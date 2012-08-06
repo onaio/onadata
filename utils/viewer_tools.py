@@ -165,13 +165,21 @@ class XFormParser(object):
         def get_pairs(e):
             result = []
             if hasattr(e, "tagName") and e.tagName in self.supported_controls:
-                result.append( (e.getAttribute("ref"),
-                                get_text(follow(e, "label").childNodes)) )
+                # get label node
+                labels = e.getElementsByTagName(u"label")
+                if len(labels) > 0:
+                    label = labels[0]
+                    result.append( (e.getAttribute("ref"),
+                                self.get_text(label)) )
             if e.hasChildNodes:
                 for child in e.childNodes:
                     result.extend(get_pairs(child))
             return result
-        return dict(get_pairs(self.follow("h:body")))
+        return dict(pair for pair in get_pairs(self.follow("h:body")))
+
+    @classmethod
+    def get_text(cls, element):
+        return element.firstChild.nodeValue
 
 
 def report_exception(subject, info, exc_info=None):

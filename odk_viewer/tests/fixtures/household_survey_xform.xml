@@ -1,0 +1,100 @@
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <h:head>
+    <h:title>survey_broken_csv_export</h:title>
+    <model>
+      <instance>
+        <survey_broken_csv_export id="survey_broken_csv_export"><formhub><uuid/></formhub>
+          <start/>
+          <end/>
+          <Date/>
+          <member jr:template="">
+            <name/>
+            <image/>
+          </member>
+          <address/>
+          <no_of_family_member/>
+          <electricity/>
+          <source/>
+          <photo/>
+          <gps/>
+        </survey_broken_csv_export>
+      </instance>
+      <bind nodeset="/survey_broken_csv_export/formhub/uuid" type="string" calculate="'d1a525ee6523456fb9d5613d37286df1'" />
+      <bind jr:preload="timestamp" jr:preloadParams="start" nodeset="/survey_broken_csv_export/start" type="dateTime"/>
+      <bind jr:preload="timestamp" jr:preloadParams="end" nodeset="/survey_broken_csv_export/end" type="dateTime"/>
+      <bind nodeset="/survey_broken_csv_export/Date" type="date"/>
+      <bind nodeset="/survey_broken_csv_export/member/name" type="string"/>
+      <bind nodeset="/survey_broken_csv_export/member/image" type="binary"/>
+      <bind nodeset="/survey_broken_csv_export/address" type="string"/>
+      <bind nodeset="/survey_broken_csv_export/no_of_family_member" type="int"/>
+      <bind nodeset="/survey_broken_csv_export/electricity" type="select1"/>
+      <bind nodeset="/survey_broken_csv_export/source" relevant="/survey_broken_csv_export/electricity = 'no'" type="select"/>
+      <bind nodeset="/survey_broken_csv_export/photo" relevant="/survey_broken_csv_export/electricity = 'no'" type="binary"/>
+      <bind nodeset="/survey_broken_csv_export/gps" type="geopoint"/>
+    </model>
+  </h:head>
+  <h:body>
+    <input ref="/survey_broken_csv_export/Date">
+      <label>DATE</label>
+      <hint>please enter the date</hint>
+    </input>
+    <group ref="/survey_broken_csv_export/member">
+      <label>Do yo want to add household member ?</label>
+      <repeat nodeset="/survey_broken_csv_export/member">
+        <input ref="/survey_broken_csv_export/member/name">
+          <label>NAME</label>
+          <hint>Please enter the name</hint>
+        </input>
+        <upload mediatype="image/*" ref="/survey_broken_csv_export/member/image">
+          <label>Photo</label>
+          <hint>Please take picture</hint>
+        </upload>
+      </repeat>
+    </group>
+    <input ref="/survey_broken_csv_export/address">
+      <label>ADDRESS</label>
+    </input>
+    <input ref="/survey_broken_csv_export/no_of_family_member">
+      <label>Number of Family Member</label>
+    </input>
+    <select1 ref="/survey_broken_csv_export/electricity">
+      <label>Do you have elecricity meter in your house ?</label>
+      <item>
+        <label>yes</label>
+        <value>yes</value>
+      </item>
+      <item>
+        <label>no</label>
+        <value>no</value>
+      </item>
+    </select1>
+    <select ref="/survey_broken_csv_export/source">
+      <label>from where you get electricity ?</label>
+      <hint>Select all that apply.</hint>
+      <item>
+        <label>hooking</label>
+        <value>hook</value>
+      </item>
+      <item>
+        <label>genarator</label>
+        <value>genarator</value>
+      </item>
+      <item>
+        <label>Battery</label>
+        <value>battery</value>
+      </item>
+      <item>
+        <label>inverter</label>
+        <value>inverter</value>
+      </item>
+    </select>
+    <upload mediatype="image/*" ref="/survey_broken_csv_export/photo">
+      <label>take picture of the power sourse</label>
+    </upload>
+    <input ref="/survey_broken_csv_export/gps">
+      <label>GPS</label>
+      <hint>Please take gps location</hint>
+    </input>
+  </h:body>
+</h:html>
+
