@@ -10,6 +10,16 @@ import Queue
 
 class Command(BaseCommand):
     help = ugettext_lazy("Insert all existing parsed instances into MongoDB")
+    option_list = BaseCommand.option_list + (
+        make_option('--batchsize',
+            type='int',
+            default=100,
+            help=ugettext_lazy("Number of records to process per query")),
+        make_option('-u', '--username',
+            help=ugettext_lazy("Username of the form user")),
+        make_option('-i', '--id_string',
+            help=ugettext_lazy("id string of the form"))
+    )
 
     def handle(self, *args, **kwargs):
         for i, pi in enumerate(queryset_iterator(ParsedInstance.objects.all())):
@@ -126,3 +136,15 @@ class RemongoThread(threading.Thread):
                     lock.release()
                 self.queue.task_done()
                 time.sleep(1)
+        i = 0
+        while start < record_count:
+            print 'Querying record %s to %s' % (start, end-1)
+            queryset = filter_queryset.order_by('pk')[start:end]
+            for pi in queryset.iterator():
+                pi.update_mongo()
+                i += 1
+                if (i % 1000) == 0:
+                    print 'Updated %d records, flushing MongoDB...' % i
+                    settings._MONGO_CONNECTION.admin.command({'fsync': 1})
+            start = start + batchsize
+            end = min(record_count, start + batchsize)
