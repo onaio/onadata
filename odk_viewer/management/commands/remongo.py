@@ -77,8 +77,8 @@ class Command(BaseCommand):
         # put batches in the queue
         lock.acquire()
         while start < record_count:
-            start = start + batchsize
             workQueue.put(start)
+            start = start + batchsize
         lock.release()
 
         # Create new threads
@@ -128,23 +128,12 @@ class RemongoThread(threading.Thread):
                     pi.update_mongo()
                     i += 1
                     lock.release()
-                if i % 1000 == 0:
-                    print 'Updated %d from %s records, flushing MongoDB...' %\
-                        (i, self.name)
-                    lock.acquire()
-                    settings._MONGO_CONNECTION.admin.command({'fsync': 1})
-                    lock.release()
+                    if i % 1000 == 0:
+                        print 'Updated %d from %s records, flushing MongoDB...' %\
+                            (i, self.name)
+                        lock.acquire()
+                        settings._MONGO_CONNECTION.admin.command({'fsync': 1})
+                        lock.release()
+                print "Updated %d records from %s" % (i, self.name)
                 self.queue.task_done()
                 time.sleep(1)
-        i = 0
-        while start < record_count:
-            print 'Querying record %s to %s' % (start, end-1)
-            queryset = filter_queryset.order_by('pk')[start:end]
-            for pi in queryset.iterator():
-                pi.update_mongo()
-                i += 1
-                if (i % 1000) == 0:
-                    print 'Updated %d records, flushing MongoDB...' % i
-                    settings._MONGO_CONNECTION.admin.command({'fsync': 1})
-            start = start + batchsize
-            end = min(record_count, start + batchsize)

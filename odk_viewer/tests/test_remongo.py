@@ -13,7 +13,7 @@ class TestRemongo(MainTestCase):
       # clear mongo
       settings.MONGO_DB.instances.drop()
       c = Command()
-      c.handle(batchsize=3)
+      c.handle(batchsize=3, threads=5)
       # mongo db should now have 5 records
       count = settings.MONGO_DB.instances.count()
       self.assertEqual(count, 5)
@@ -34,7 +34,7 @@ class TestRemongo(MainTestCase):
         settings.MONGO_DB.instances.drop()
         c = Command()
         c.handle(batchsize=3, username=self.user.username,
-            id_string=self.xform.id_string)
+            id_string=self.xform.id_string, threads=5)
         # mongo db should now have 5 records
         count = settings.MONGO_DB.instances.count()
         self.assertEqual(count, 4)
