@@ -77,6 +77,7 @@ class AbstractDataFrameBuilder(object):
         self.dd = DataDictionary.objects.get(user__username=self.username,
             id_string=self.id_string)
         self.select_multiples = self._collect_select_multiples(self.dd)
+
         self.gps_fields = self._collect_gps_fields(self.dd)
 
     @classmethod
@@ -542,3 +543,204 @@ class CSVDataFrameWriter(object):
     def write_to_csv(self, csv_file, index=False):
         self.dataframe.to_csv(csv_file, index=index, na_rep=NA_REP,
                               encoding='utf-8')
+
+
+import pandas as pd
+import numpy as np
+from pprint import pprint as pp
+
+class FlatExport(object):
+
+    def __init__(self, username, id_string, query=None):
+
+        self.username = username
+        self.id_string = id_string
+        self.filter_query = query
+
+        # DataDict used only for geolocation
+        self.dd = DataDictionary.objects.get(user__username=self.username, 
+                                             id_string=self.id_string)
+        # print('data data_dictionary')
+
+        self.gps_fields = self._collect_gps_fields(self.dd)
+
+    # @profile
+    def export_to(self, filename):
+        
+        cursor = self._query_mongo(self.filter_query)
+
+        # import ipdb; ipdb.set_trace()
+
+        # base data holder to feed our DataFrame:
+        # dict with keys = columns and values are list of values
+        matrix = {}
+
+        # repeat data holder
+        # we store DataFrame inside those for later merging with main DF.
+        frames = {}
+
+        # loop on mongo records to build up matrix and frames
+        for record in cursor:
+
+            # TODO: wtf?
+            self._split_gps_fields(record, self.gps_fields)
+            pp(record)
+
+            # loop on columns as we index per-column in matrix
+            for column in record:
+
+                # /!\   GEOLOCATION is special case: a list representing
+                #       a single data. It is decoupled above and thus not incl.
+                if column == GEOLOCATION:
+                    continue
+
+                # ref to cell data
+                record_data = record.get(column)
+
+                # we know it's a repeat as other would be just strings/None
+                # print(type(record_data))
+                # TODO: check there's no edge cases.
+                if (type(record_data) == list):
+                    # loop on each row of the repeat to assign it the record ID
+                    # it will be used to merge with main DF.
+                    # if len(record_data) and type(record_data[0]) is dict:
+                    record_data_dict = []
+
+                    # Convert value to dict if not yet, assigning real value
+                    # to a column-named filed (will be picked up by DF
+                    # then adds an ID field which will be used for the merge
+                    for single_row in record_data:
+                        if type(single_row) == dict:
+                            row_dict = single_row
+                            row_dict.update({ID: record.get(ID)})
+                            record_data_dict.append(row_dict)
+                        # else:
+                        #     row_dict = {column: single_row}
+                        # row_dict.update({ID: record.get(ID)})
+                        # record_data_dict.append(row_dict)
+
+                    # convert cell_data (repeat object) into a DataFrame.
+                    frame = pd.DataFrame(record_data_dict)
+
+                    # add DF to the list of repeat DF for latter merging.
+                    try:
+                        frames[column].append(frame)
+                    except:
+                        frames[column] = [frame]
+
+                    record_data = np.nan
+
+                # add cell data to the column-indexed matrix
+                try:
+                    matrix[column].append(record_data)
+                except:
+                    matrix[column] = [record_data]
+                    
+            del(record_data)
+            del(record)
+
+        # fix missing data on matrix
+        nb_submissions = cursor.count()
+        for column, row in matrix.items():
+            nb_rows = len(row)
+            if nb_rows < nb_submissions:
+                for n in range(0, nb_submissions - nb_rows):
+                    matrix[column].append(None)
+            del(nb_rows)
+        del(nb_submissions)
+
+        # generate the main DataFrame from matrix
+        # TODO: pass columns list built from Xform not just data
+        df = pd.DataFrame(matrix)
+        del(matrix)
+
+ 
+        # loop on repeat-frames to merge them in
+        for repeat_column, repeat_frames in frames.items():
+            # each item is a column-slug/list of DF.
+            # Each DF represent a single row in the repeat section.
+            # So we concatenate them into one larger DF.
+            repeat_column_frame = pd.concat(repeat_frames)
+
+            # we don't want to merge empty frames as it would fail for
+            # missing ID column.
+            if not repeat_column_frame.empty:
+            # merge the main DF with the column one
+            # this is a LEFT OUTER JOIN equivalent.
+            # JOIN is done on _id column.
+                df = df.merge(repeat_column_frame, 
+                              how='left',
+                              on=ID)
+
+            # get rid of the proxy
+            del(frames[repeat_column])
+
+
+        # pp(df)
+        df.to_csv(filename, na_rep=NA_REP, encoding='utf-8') # index=index
+        del(df)
+
+    ###############
+    ## COPIED CODE
+    ###############
+
+    def _query_mongo(self, query='{}', start=0,
+        limit=ParsedInstance.DEFAULT_LIMIT, fields='[]'):
+
+        ''' Duplicate of AbstractDataFrameBuilder method '''
+
+        # ParsedInstance.query_mongo takes params as json strings
+        # so we dumps the fields dictionary
+        count_args = {
+            'username': self.username,
+            'id_string': self.id_string,
+            'query': query,
+            'fields': '[]',
+            'sort': '{}',
+            'count': True
+        }
+        count = ParsedInstance.query_mongo(**count_args)
+        if count[0]["count"] == 0:
+            raise NoRecordsFoundError("No records found for your query")
+        query_args = {
+            'username': self.username,
+            'id_string': self.id_string,
+            'query': query,
+            'fields': fields,
+            #TODO: we might want to add this in for the user 
+            #to sepcify a sort order
+            'sort': '{}',
+            'start': start,
+            'limit': limit,
+            'count': False # TODO: we never count when exporting
+        }
+        # use ParsedInstance.query_mongo
+        cursor = ParsedInstance.query_mongo(**query_args)
+        return cursor
+
+    @classmethod
+    def _split_gps_fields(cls, record, gps_fields):
+        updated_gps_fields = {}
+        for key, value in record.iteritems():
+            if key in gps_fields and isinstance(value, basestring):
+                gps_xpaths = DataDictionary.get_additional_geopoint_xpaths(key)
+                gps_parts = dict([(xpath, None) for xpath in gps_xpaths])
+                # hack, check if its a list and grab the object within that
+                parts = value.split(' ')
+                # TODO: check whether or not we can have a gps recording
+                # from ODKCollect that has less than four components,
+                # for now we are assuming that this is not the case.
+                if len(parts) == 4:
+                    gps_parts = dict(zip(gps_xpaths, parts))
+                updated_gps_fields.update(gps_parts)
+            # check for repeats within record i.e. in value
+            elif type(value) == list:
+                for list_item in value:
+                    if type(list_item) == dict:
+                        cls._split_gps_fields(list_item, gps_fields)
+        record.update(updated_gps_fields)
+
+    @classmethod
+    def _collect_gps_fields(cls, dd):
+        return [e.get_abbreviated_xpath() for e in dd.get_survey_elements()
+            if e.bind.get("type")=="geopoint"]
