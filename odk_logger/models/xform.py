@@ -12,6 +12,8 @@ from django.utils.translation import ugettext_lazy, ugettext as _
 from odk_logger.xform_instance_parser import XLSFormError
 from utils.stathat_api import stathat_count
 
+from hashlib import md5
+
 
 def upload_to(instance, filename):
     return os.path.join(
@@ -107,12 +109,16 @@ class XForm(models.Model):
         return getattr(self, "id_string", "")
 
     def submission_count(self):
-        return self.surveys.count()
+        return self.surveys.filter(deleted_at=None).count()
     submission_count.short_description = ugettext_lazy("Submission Count")
 
     def time_of_last_submission(self):
         if self.submission_count() > 0:
             return self.surveys.order_by("-date_created")[0].date_created
+
+    @property
+    def hash(self):
+        return u'%s' % md5(self.xml.encode('utf8')).hexdigest()
 
 
 def stathat_forms_created(sender, instance, created, **kwargs):
