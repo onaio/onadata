@@ -22,13 +22,13 @@ from pyxform.errors import PyXFormError
 
 from odk_logger.models import Attachment
 from odk_logger.models import Instance
-from odk_viewer.models import ParsedInstance
+from odk_viewer.models import ParsedInstance, DataDictionary
 from odk_logger.models import SurveyType
 from odk_logger.models import XForm
 from odk_logger.models.xform import XLSFormError
 from odk_logger.xform_instance_parser import InstanceParseError,\
      InstanceInvalidUserError, IsNotCrowdformError, DuplicateInstance
-from utils.viewer_tools import get_path
+from utils.viewer_tools import get_path, django_file
 
 
 OPEN_ROSA_VERSION_HEADER = 'X-OpenRosa-Version'
@@ -72,13 +72,16 @@ def create_instance(username, xml_file, media_files,
         raise InstanceInvalidUserError()
 
     if uuid:
-        xform = XForm.objects.get(uuid=uuid)
-        xform_username = xform.user.username
+        # try find the fomr by its uuid which is the ideal condition
+        if XForm.objects.filter(uuid=uuid).count() > 0:
+            xform = XForm.objects.get(uuid=uuid)
+            xform_username = xform.user.username
 
-        if xform_username != username and not xform.is_crowd_form and not is_touchform:
-            raise IsNotCrowdformError()
+            if xform_username != username and not xform.is_crowd_form and not is_touchform:
+                raise IsNotCrowdformError()
 
-        username = xform_username
+            username = xform_username
+    # else, since we have a username, the Instance creation logic will handle checking for the forms existence by its id_string
 
     user = get_object_or_404(User, username=username)
     existing_instance_count = Instance.objects.filter(xml=xml,
@@ -206,6 +209,24 @@ def publish_form(callback):
             'type': 'alert-error',
             'text': _('Form validation timeout, please try again.'),
         }
+
+def publish_xls_form(xls_file, user, id_string=None):
+    """
+    Creates or updates a DataDictionary with supplied xls_file, user and optional id_string - if updating
+    """
+    # get or create DataDictionary based on user and id string
+    if id_string:
+        dd = DataDictionary.objects.get(user=user,
+            id_string=id_string)
+        dd.xls = xls_file
+        dd.save()
+        return dd
+    else:
+        return DataDictionary.objects.create(
+            user=user,
+            xls=xls_file
+        )
+
 
 
 class OpenRosaResponse(HttpResponse):
