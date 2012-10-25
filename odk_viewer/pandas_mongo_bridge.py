@@ -558,10 +558,11 @@ class FlatCSVDataFrameBuilder(AbstractDataFrameBuilder):
         self.gps_fields = self._collect_gps_fields(self.dd)
 
     def export_to(self, filename):
-        
+
+        nb_submissions = self._query_mongo(self.filter_query, count=True)
         cursor = self._query_mongo(self.filter_query)
-        cursor.batch_size(1000)
-        nb_submissions = cursor.count()
+        # TODO: re-implement using batches
+        # cursor.batch_size(1000)
 
         # base data holder to feed our DataFrame:
         # dict with keys = columns and values are list of values
