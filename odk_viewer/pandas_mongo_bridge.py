@@ -93,9 +93,6 @@ class AbstractDataFrameBuilder(object):
 
     @classmethod
     def _split_select_multiples(cls, record, select_multiples):
-        # find any select multiple(s) columns in this record
-        multi_select_columns = [key for key in record if key in
-            select_multiples.keys()]
         for key, choices in select_multiples.items():
             if key in record:
                 # split selected choices by spaces and join by / to the
@@ -556,6 +553,7 @@ class FlatCSVDataFrameBuilder(AbstractDataFrameBuilder):
                                              id_string=self.id_string)
 
         self.gps_fields = self._collect_gps_fields(self.dd)
+        self.select_multiples = self._collect_select_multiples(self.dd)
 
     def export_to(self, filename):
 
@@ -577,6 +575,7 @@ class FlatCSVDataFrameBuilder(AbstractDataFrameBuilder):
             
             # TODO: wtf?
             self._split_gps_fields(record, self.gps_fields)
+            self._split_select_multiples(record, self.select_multiples)
             # pp(record)
 
             # loop on columns as we index per-column in matrix
