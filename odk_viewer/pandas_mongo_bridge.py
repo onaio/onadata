@@ -1,8 +1,7 @@
 from itertools import chain
-
+import json
+import re
 import settings
-import pandas as pd
-import numpy as np
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import ExcelWriter
 from pyxform.survey import Survey
@@ -55,6 +54,17 @@ def remove_dups_from_list_maintain_order(l):
     return list(OrderedDict.fromkeys(l))
 
 
+def get_prefix_from_xpath(xpath):
+    xpath = str(xpath)
+    parts = xpath.rsplit('/', 1)
+    if len(parts) == 1:
+        return None
+    elif len(parts) == 2:
+        return '%s/' % parts[0]
+    else:
+        raise ValueError('%s cannot be prefixed, it returns %s' % (xpath, str(parts)))
+
+
 class NoRecordsFoundError(Exception):
     pass
 
@@ -105,8 +115,7 @@ class AbstractDataFrameBuilder(object):
                 # add columns to record for every choice, with default
                 # False and set to True for items in selections
                 record.update(dict([(choice, choice in selections)\
-                            for choice in
-                    choices]))
+                            for choice in choices]))
 
             # recurs into repeats
             for record_key, record_item in record.items():
