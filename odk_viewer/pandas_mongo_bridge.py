@@ -1,7 +1,7 @@
 from itertools import chain
-import json
-import re
 import settings
+import pandas as pd
+import numpy as np
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import ExcelWriter
 from pyxform.survey import Survey
