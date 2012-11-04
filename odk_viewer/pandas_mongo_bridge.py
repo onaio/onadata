@@ -1,4 +1,6 @@
 from itertools import chain
+import uuid
+import copy
 import settings
 import pandas as pd
 import numpy as np
@@ -12,7 +14,7 @@ from odk_viewer.models.data_dictionary import ParsedInstance, DataDictionary
 from utils.export_tools import question_types_to_exclude
 from collections import OrderedDict
 from common_tags import ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,\
-UUID, SUBMISSION_TIME, NA_REP, BAMBOO_DATASET_ID, DELETEDAT
+UUID, SUBMISSION_TIME, NA_REP, BAMBOO_DATASET_ID, DELETEDAT, SUBMISSION_UUID
 
 
 # this is Mongo Collection where we will store the parsed submissions
@@ -551,6 +553,8 @@ class CSVDataFrameWriter(object):
 
 class FlatCSVDataFrameBuilder(AbstractDataFrameBuilder):
 
+    DEPTH = '____DEPTH____'
+
     def __init__(self, username, id_string, query=None):
 
         self.username = username
@@ -558,131 +562,161 @@ class FlatCSVDataFrameBuilder(AbstractDataFrameBuilder):
         self.filter_query = query
 
         # DataDict used only for geolocation
-        self.dd = DataDictionary.objects.get(user__username=self.username, 
+        self.dd = DataDictionary.objects.get(user__username=self.username,
                                              id_string=self.id_string)
 
         self.gps_fields = self._collect_gps_fields(self.dd)
         self.select_multiples = self._collect_select_multiples(self.dd)
 
-    def export_to(self, filename):
+        # build the columns list
+        self.columns = OrderedDict()
+        self._build_ordered_columns(self.dd.survey, self.columns)
+        # Add submission UUID in first position
+        self.columns = OrderedDict([(SUBMISSION_UUID, None)]
+                                   + self.columns.items())
+        # from pprint import pprint as pp ; pp(self.columns)
 
-        nb_submissions = self._query_mongo(self.filter_query, count=True)
+    @classmethod
+    def _build_ordered_columns(cls, survey_element, ordered_columns,
+            is_repeating_section=False):
+        """ Build a flat ordered dict of column groups """
+        for child in survey_element.children:
+            child_xpath = child.get_abbreviated_xpath()
+            if isinstance(child, Section):
+                child_is_repeating = False
+
+                if isinstance(child, RepeatingSection):
+                    child_is_repeating = True
+
+                    ordered_columns.update({child_xpath: []})
+
+                cls._build_ordered_columns(child,
+                                           ordered_columns, child_is_repeating)
+
+            elif isinstance(child, Question) and not \
+                question_types_to_exclude(child.type):
+                ordered_columns.update({child_xpath: None})
+        # add submission ID
+
+    def dataframe_for_record(self, record):
+
+        # copy the columns list as we'll pop stuff out.
+        columns = copy.copy(self.columns)
+
+        # build a list of repeating sections and pop them out of columns
+        repeat_columns = [column if columns.pop(column, column) else column
+                          for column, column_type in columns.items()
+                          if isinstance(column_type, list)]
+
+        # holder for all rows within that record
+        rows = {}
+
+        def create_new_row(data, record, columns, depth):
+
+            # a row is the static content of the submission
+            # plus the repeat column.
+
+            row_id = uuid.uuid4().hex
+            row = copy.copy(data)
+            row.update({self.DEPTH: depth})
+
+            for column in columns:
+                if column in record:
+                    row.update({column: record.get(column)})
+
+            if row_id in rows.keys():
+                return rows.get(row_id)
+
+            rows.update({row_id: row})
+            return row
+
+        def update_row(row, key, value):
+            row.update({key: value})
+
+        def traverse_repeat_sections(iterobj, columns, row, record, depth):
+
+            if isinstance(iterobj, dict):
+                for key, value in iterobj.items():
+                    if key in columns:
+                        # we have a wanted data
+                        # we know it's not a list
+                        update_row(row, key, value)
+                for key, value in iterobj.items():
+                    if isinstance(value, (list, dict)):
+                        # somes values are dict/list.
+                        # might contain wanted data
+                        if isinstance(value, list):
+                            d = depth + 1
+                        else:
+                            d = depth
+                        traverse_repeat_sections(value, columns, row, record, d)
+
+            elif isinstance(iterobj, list):
+                for item in iterobj:
+                    # create a row for each
+                    if row.get(self.DEPTH) != depth:
+                        nrow = create_new_row(row, record, columns, depth)
+                    else:
+                        nrow = row
+                    traverse_repeat_sections(item, columns, nrow, record, depth + 1)
+            else:
+                # None
+                pass
+
+        # construct rows for each repeat sections
+        for repeat_section in repeat_columns:
+            traverse_repeat_sections(record.get(repeat_section),
+                                     columns.keys(), {}, record, 0)
+
+        # if we have no rows yet (no repeat sections), build a simple one.
+        if not len(rows):
+            create_new_row({}, record, columns, 0)
+
+        def cleanup_intermediate_rows(rows, max_depth):
+            # removes our internal extra column
+            ids = list(rows.keys())
+            for row_id in ids:
+                del(rows[row_id][self.DEPTH])
+
+        # get max depth
+        max_depth = max([d.get(self.DEPTH, 0) for d in rows.values()])
+
+        # remove depth column and intermediate rows
+        cleanup_intermediate_rows(rows, max_depth)
+
+        series = []
+        for row_id, row in rows.items():
+            s = pd.Series(row.values(), index=row.keys())
+            series.append(s)
+
+        return pd.DataFrame(series)
+
+    def export_to(self, filename):
+        # not used anymore
+        # nb_submissions = self._query_mongo(self.filter_query, count=True)
+
         cursor = self._query_mongo(self.filter_query)
         # TODO: re-implement using batches
         # cursor.batch_size(1000)
 
-        # base data holder to feed our DataFrame:
-        # dict with keys = columns and values are list of values
-        matrix = {}
-
-        # repeat data holder
-        # we store DataFrame inside those for later merging with main DF.
-        frames = {}
+        # stores a list of DF (one per row) to be concatened
+        all_frames = []
 
         # loop on mongo records to build up matrix and frames
         for record in cursor:
-            
-            # TODO: wtf?
+
+            # from pprint import pprint as pp ; pp(record)
+
+            # split columns to match FH specs
             self._split_gps_fields(record, self.gps_fields)
             self._split_select_multiples(record, self.select_multiples)
-            # pp(record)
 
-            # loop on columns as we index per-column in matrix
-            for column in record.keys():
-                # /!\   GEOLOCATION is special case: a list representing
-                #       a single data. It is decoupled above and thus not incl.
-                if column == GEOLOCATION:
-                    continue
+            # build the row DF
+            all_frames.append(self.dataframe_for_record(record))
 
-                # ref to cell data
-                record_data = record.get(column)
-
-                # we know it's a repeat as other would be just strings/None
-                # TODO: check there's no edge cases.
-                if (type(record_data) == list):
-                    # loop on each row of the repeat to assign it the record ID
-                    # it will be used to merge with main DF.
-                    # if len(record_data) and type(record_data[0]) is dict:
-                    record_data_dict = []
-
-                    # Convert value to dict if not yet, assigning real value
-                    # to a column-named filed (will be picked up by DF
-                    # then adds an ID field which will be used for the merge
-                    for single_row in record_data:
-                        if type(single_row) == dict:
-                            row_dict = single_row
-                            row_dict.update({ID: record.get(ID)})
-                            record_data_dict.append(row_dict)
-                            del(row_dict)
-                        del(single_row)
-
-                    # convert cell_data (repeat object) into a DataFrame.
-                    frame = pd.DataFrame(record_data_dict)
-
-                    # add DF to the list of repeat DF for latter merging.
-                    try:
-                        frames[column].append(frame)
-                    except KeyError:
-                        frames[column] = [frame]
-
-                    record_data = np.nan
-                    del(record_data_dict)
-                    del(frame)
-
-                # add cell data to the column-indexed matrix
-                try:
-                    matrix[column].append(record_data)
-                except KeyError:
-                    matrix[column] = [record_data]
-
-                del(column)
-                del(record_data)
-            del(record)
-
-        # fix missing data on matrix
-        del(cursor)
-
-        for column, row in matrix.iteritems():
-            nb_rows = len(row)
-            if nb_rows < nb_submissions:
-                for n in xrange(0, nb_submissions - nb_rows):
-                    matrix[column].append(None)
-            del(nb_rows)
-        del(nb_submissions)
-        del(row)
-        del(column)
-
-        # generate the main DataFrame from matrix
-        # TODO: pass columns list built from Xform not just data
-        df = pd.DataFrame(matrix)
-        del(matrix)
-
- 
-        # loop on repeat-frames to merge them in
-        for repeat_column, repeat_frames in frames.iteritems():
-            # each item is a column-slug/list of DF.
-            # Each DF represent a single row in the repeat section.
-            # So we concatenate them into one larger DF.
-            repeat_column_frame = pd.concat(repeat_frames)
-
-            # we don't want to merge empty frames as it would fail for
-            # missing ID column.
-            if not repeat_column_frame.empty:
-            # merge the main DF with the column one
-            # this is a LEFT OUTER JOIN equivalent.
-            # JOIN is done on _id column.
-                df = df.merge(repeat_column_frame, 
-                              how='left',
-                              on=ID)
-
-            # get rid of the proxy
-            del(repeat_column_frame)
-            # del(frames[repeat_column])
-
-        # remove columns we don't want
-        for col in self.INTERNAL_FIELDS:
-            if col in df.columns:
-                del(df[col])
+        # print(len(all_frames))
+        df = pd.concat(all_frames)
+        # from pprint import pprint as pp ; pp(df)
 
         df.to_csv(filename, na_rep=NA_REP, encoding='utf-8', index=False)
         del(df)

@@ -37,6 +37,7 @@ GEOLOCATION = u"_geolocation"
 SUBMISSION_TIME = u'_submission_time'
 DELETEDAT = "_deleted_at"  # marker for delete surveys
 BAMBOO_DATASET_ID = u"_bamboo_dataset_id"
+SUBMISSION_UUID = u"formhub/uuid"
 
 # datetime format that we store in mongo
 MONGO_STRFTIME = '%Y-%m-%dT%H:%M:%S'
