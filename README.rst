@@ -144,7 +144,7 @@ To run javascript tests enter the following, NOTE that the testDir and configFil
 
     ./js_tests/EnvJasmine/bin/run_all_tests.sh --testDir=../ --configFile=../env_jasmine.conf.js
 
-(OPTIONAL) Re-compiling the less css files
+(OPTIONAL) Re-compiling the less css and coffee script js files
 ---------------------------------------
 
 Install nodejs
@@ -177,6 +177,16 @@ Compile the less files
     $ cd ~/src/formhub-app/formhub/main/static/bootstrap
 
     $ make
+
+Install CoffeeScript node package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    $ sudo npm install -g coffee-script
+
+Compile the coffee files
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+    TODO:
 
 Deploying
 ---------
