@@ -13,6 +13,6 @@ EnvJasmine.loadGlobal(EnvJasmine.libDir + "jasmine-rhino-reporter/jasmine-rhino-
 // This is your main JavaScript directory in your project.
 EnvJasmine.jsDir = EnvJasmine.rootDir + "/../../"; // project's main js directory.
 
-EnvJasmine.loadGlobal(EnvJasmine.includeDir + "jquery-1.4.4.js"); // for example, load jquery.
+EnvJasmine.loadGlobal(EnvJasmine.jsDir + "main/static/js/jquery-1.8.2.js"); // for example, load jquery.
 EnvJasmine.loadGlobal(EnvJasmine.jsDir + "main/static/js/underscore-min.js");
 // TODO: Add your own

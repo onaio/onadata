@@ -27,6 +27,9 @@ registration.xml
 # for a local virtualenv (as done in mangrove repo)
 ve/
 
+# dont commit local nodejs modules
+node_modules
+
 .~lock.*
 .DS_Store
 .idea

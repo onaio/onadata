@@ -162,6 +162,11 @@ Install nodejs
 
     $ sudo make install
 
+Install grunt via npm (Node Package Manager)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    $ sudo npm install -g grunt
+
 Install recess, uglifyjs and less via npm (Node Package Manager)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
