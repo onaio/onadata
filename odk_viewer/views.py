@@ -502,3 +502,18 @@ def instance(request, username, id_string):
         'xform': xform,
         'can_edit': can_edit
     }, context_instance=context)
+
+def datalib(request, username, id_string):
+    xform, is_owner, can_edit, can_view = get_xform_and_perms(
+        username, id_string, request)
+    # no access
+    if not (xform.shared_data or can_view or
+            request.session.get('public_link')):
+        return HttpResponseForbidden(_(u'Not shared.'))
+
+    context = RequestContext(request)
+
+    return render_to_response('datalib.html', {
+        'username': username,
+        'id_string': id_string,
+    }, context_instance=context)

@@ -78,6 +78,7 @@ urlpatterns = patterns('',
     url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/progress$", 'odk_viewer.views.export_progress'),
     url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/$", 'odk_viewer.views.export_list'),
     url(r"^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)/(?P<filename>[^/]+)$", 'odk_viewer.views.export_download'),
+    url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/datalib", 'odk_viewer.views.datalib'),
 
     # odk data urls
     url(r"^submission$", 'odk_logger.views.submission'),
