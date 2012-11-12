@@ -15,4 +15,5 @@ EnvJasmine.jsDir = EnvJasmine.rootDir + "/../../"; // project's main js director
 
 EnvJasmine.loadGlobal(EnvJasmine.jsDir + "main/static/js/jquery-1.8.2.js"); // for example, load jquery.
 EnvJasmine.loadGlobal(EnvJasmine.jsDir + "main/static/js/underscore-min.js");
+EnvJasmine.loadGlobal(EnvJasmine.jsDir + "main/static/js/dv.js");
 // TODO: Add your own

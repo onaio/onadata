@@ -18,8 +18,8 @@ describe("Memory loader tests", function() {
 
         waitsFor(function(){
             var done = false;
-            deferred.done(function(data){
-                loaded_data = data;
+            deferred.done(function(mem_data){
+                loaded_data = mem_data;
                 done = true;
             });
             return done;
@@ -53,8 +53,8 @@ describe("Ajax loader tests", function() {
 
         waitsFor(function(){
             var done = false;
-            deferred.done(function(data){
-                loaded_data = data;
+            deferred.done(function(ajax_data){
+                loaded_data = ajax_data;
                 done = true;
             });
             return done;
@@ -70,6 +70,7 @@ describe("Schema manager tests", function(){
     var reader, loader, schemaManager;
 
     beforeEach(function() {
+        var deferred;
         reader = new Reader();
         loader = new MemoryLoader(reader, schema);
         schemaManager = new SchemaManager();
@@ -104,6 +105,7 @@ describe("Multi-lingual Schema manager tests", function(){
     var reader, loader, schemaManager;
 
     beforeEach(function() {
+        var deferred;
         reader = new Reader();
         loader = new MemoryLoader(reader, multilang_schema);
         schemaManager = new SchemaManager();
@@ -125,10 +127,54 @@ describe("Multi-lingual Schema manager tests", function(){
         // check that we have 2 languages
         expect(schemaManager.getSupportedLanguages().length).toEqual(2);
         // check that a label() called without a language returns the default label
-        expect(schemaManager.getFieldByName("location_photo").label()).toEqual("Served At");
+        expect(schemaManager.getFieldByName("location_photo").label()).toEqual("Served At Fr");
         // check that a label() called with a language returns the requested label
-        expect(schemaManager.getFieldByName("location_photo").label("French")).toEqual("Served At Fr");
+        expect(schemaManager.getFieldByName("location_photo").label("English")).toEqual("Served At");
         // check that options were setup
         expect(schemaManager.getFieldByName("food_type").options().length).toEqual(13);
+    });
+});
+
+describe("DataManager tests", function(){
+    var reader, dataLoader, schemaLoader, schemaManager, dataManager;
+
+    beforeEach(function() {
+        var deferred;
+        reader = new Reader();
+        schemaLoader = new MemoryLoader(reader, multilang_schema);
+        schemaManager = new SchemaManager();
+        dataLoader = new MemoryLoader(reader, data);
+        dataManager = new DataManager(schemaManager);
+
+        runs(function(){
+            deferred = schemaManager.init(schemaLoader);
+        });
+
+        waitsFor(function(){
+            var done = false;
+            deferred.done(function(data){
+                done = true;
+            });
+            return done;
+        }, "Schema manager to finish init", 1000);
+
+        runs(function(){
+            deferred = dataManager.init(dataLoader)
+        });
+
+        waitsFor(function(){
+            var done = false;
+            deferred.done(function(data){
+                done = true;
+            });
+            return done;
+        }, "Data manager to finish loading", 1000);
+    });
+
+    it("checks that data was pushed to the store successfully", function(){
+        var query = {"vals":[dv.count()]};
+        // count the number of records
+        //var result = dataManager.dvQuery(query);
+        //expect(result[0][0]).toEqual(22);
     });
 });
