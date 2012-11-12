@@ -1,4 +1,4 @@
-var AjaxLoader, Field, Loader, Manager, MemoryLoader, Reader, SchemaManager, constants,
+var AjaxLoader, DataManager, Field, Loader, Manager, MemoryLoader, Reader, SchemaManager, constants, fh_assert,
   __hasProp = {}.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
@@ -10,11 +10,23 @@ constants = {
   GROUP: "group",
   HINT: "hint",
   GEOPOINT: "geopoint",
+  TEXT: "text",
+  INTEGER: "integer",
+  DECIMAL: "decimal",
+  SELECT_ONE: "select one",
+  SELECT_MULTIPLE: "select multiple",
+  ID: "_id",
   START: "start",
   LIMIT: "limit",
   COUNT: "count",
   FIELDS: "fields",
   GEOLOCATION: "_geolocation"
+};
+
+fh_assert = function(condition, message) {
+  if (!condition) {
+    throw new Error(message);
+  }
 };
 
 Reader = (function() {
@@ -33,6 +45,7 @@ Loader = (function() {
 
   function Loader(_reader) {
     this._reader = _reader;
+    fh_assert(typeof this._reader !== "undefined" && this._reader !== null);
   }
 
   return Loader;
@@ -220,6 +233,10 @@ SchemaManager = (function(_super) {
     return this._parseSchema(data);
   };
 
+  SchemaManager.prototype.getFields = function() {
+    return this._fields;
+  };
+
   SchemaManager.prototype.getFieldByName = function(name) {
     return _.find(this._fields, function(field) {
       return field.name() === name;
@@ -237,5 +254,62 @@ SchemaManager = (function(_super) {
   };
 
   return SchemaManager;
+
+})(Manager);
+
+DataManager = (function(_super) {
+
+  __extends(DataManager, _super);
+
+  DataManager.typeMap = {};
+
+  DataManager.typeMap[constants.INTEGER] = dv.type.numeric;
+
+  DataManager.typeMap[constants.DECIMAL] = dv.type.numeric;
+
+  DataManager.typeMap[constants.SELECT_ONE] = dv.type.nominal;
+
+  DataManager.typeMap[constants.TEXT] = dv.type.unknown;
+
+  DataManager.typeMap[constants.SELECT_MULTIPLE] = dv.type.unknown;
+
+  DataManager.typeMap[constants.ID] = dv.type.unknown;
+
+  function DataManager(_schemaManager) {
+    this._schemaManager = _schemaManager;
+    this._dvTable = null;
+  }
+
+  DataManager.prototype._pushToStore = function(responses) {
+    var dvData, fields,
+      _this = this;
+    dvData = {};
+    this._dvTable = dv.table();
+    fields = _.filter(this._schemaManager.getFields(), function(field) {
+      if (DataManager.typeMap.hasOwnProperty(field.type())) {
+        dvData[field.name()] = [];
+        return true;
+      }
+      return false;
+    });
+    _.each(responses, function(response) {
+      return _.each(fields, function(field) {
+        return dvData[field.name()].push(response[field.name()]);
+      });
+    });
+    return _.each(fields, function(field) {
+      return _this._dvTable.addColumn(field.name(), dvData[field.name()], DataManager.typeMap[field.type()]);
+    });
+  };
+
+  DataManager.prototype.onload = function(data) {
+    return this._pushToStore(data);
+  };
+
+  DataManager.prototype.dvQuery = function(query) {
+    return this._dvTable.query(query);
+  };
+
+  return DataManager;
 
 })(Manager);

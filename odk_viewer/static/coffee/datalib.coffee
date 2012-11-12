@@ -1,11 +1,18 @@
 constants = {
   # pyxform constants
-  NAME: "name", LABEL: "label", TYPE: "type", CHILDREN: "children", GROUP: "group", HINT: "hint", GEOPOINT: "geopoint"
+  NAME: "name", LABEL: "label", TYPE: "type", CHILDREN: "children", GROUP: "group", HINT: "hint", GEOPOINT: "geopoint",
+  # field types
+  TEXT: "text", INTEGER: "integer", DECIMAL: "decimal", SELECT_ONE: "select one", SELECT_MULTIPLE: "select multiple",
   # formhub query syntax constants
-  START: "start", LIMIT: "limit", COUNT: "count", FIELDS: "fields",
+  ID: "_id", START: "start", LIMIT: "limit", COUNT: "count", FIELDS: "fields",
   # others
   GEOLOCATION: "_geolocation"
 };
+
+fh_assert = (condition, message) ->
+  if not condition
+    throw new Error(message)
+
 class Reader
   constructor: () ->
 
@@ -14,6 +21,7 @@ class Reader
 
 class Loader
   constructor: (@_reader) ->
+    fh_assert(typeof @_reader isnt "undefined" and @_reader isnt null)
 
 class MemoryLoader extends Loader
   constructor: (_reader, @_data) ->
@@ -127,6 +135,9 @@ class SchemaManager extends Manager
   onload: (data) ->
     @_parseSchema data
 
+  getFields: ()->
+    return @_fields
+
   getFieldByName: (name) ->
     _.find @_fields, (field) ->
       return field.name() is name
@@ -137,4 +148,46 @@ class SchemaManager extends Manager
 
   getSupportedLanguages: ->
     return @_supportedLanguages
+
+class DataManager extends Manager
+  @typeMap = {}
+  @typeMap[constants.INTEGER] = dv.type.numeric;
+  @typeMap[constants.DECIMAL] = dv.type.numeric;
+  @typeMap[constants.SELECT_ONE] = dv.type.nominal;
+  @typeMap[constants.TEXT] = dv.type.unknown;
+  @typeMap[constants.SELECT_MULTIPLE] = dv.type.unknown;
+  @typeMap[constants.ID] = dv.type.unknown;
+
+  constructor: (@_schemaManager) ->
+    @_dvTable = null
+
+  _pushToStore: (responses) ->
+    dvData = {}
+    @_dvTable = dv.table()
+
+    # chuck all questions whose type isn't in typeMap; add an _id "question"
+    # TODO: if datavore is our only datastore, this chucking can be removed (with care)
+    fields = _.filter @_schemaManager.getFields(), (field) =>
+      if DataManager.typeMap.hasOwnProperty field.type()
+        dvData[field.name()] = []
+        return true
+      return false
+
+    # for each response
+    _.each responses, (response) =>
+      # for each field
+      _.each fields, (field) =>
+        dvData[field.name()].push response[field.name()]
+
+    _.each fields, (field) =>
+      @_dvTable.addColumn(field.name(), dvData[field.name()], DataManager.typeMap[field.type()]);
+
+
+  onload: (data)->
+    # push data to datavore store
+    @_pushToStore(data)
+
+  dvQuery: (query) ->
+    return this._dvTable.query(query)
+
 
