@@ -35,18 +35,14 @@ function parseQuestions(children, prefix, cleanReplacement)
     var idx;
     cleanReplacement = typeof cleanReplacement !== 'undefined' ? cleanReplacement : '_';
 
-    for(idx in children)
-    {
-        var question = children[idx];
+    _.each(children, function(question) {
         //@TODO: do we just want to add anything with children, concern could be it item has children and is alos avalid question - if thats possible
-        if(question.hasOwnProperty('children') && (question.type == "group" || question.type == "note" || question.type == "repeat"))
-        {
-            parseQuestions(question.children, ((prefix?prefix:'') + question.name + cleanReplacement));
+        if (question.hasOwnProperty('children') && (question.type === "group" || question.type === "note" || question.type === "repeat")) {
+            parseQuestions(question.children, ((prefix ? prefix : '') + question.name + cleanReplacement));
         }
-        else
-        {
+        else {
             // TODO: question class that has accessor mesthods for type, label, language etc
-            questions[((prefix?prefix:'') + question.name)] = new Question(question);
+            questions[((prefix ? prefix : '') + question.name)] = new Question(question);
         }
-    }
+    });
 }

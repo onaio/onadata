@@ -26,4 +26,4 @@ var SurveyData =
         }
     ]
 };
-var questions = {};
+var questions;
