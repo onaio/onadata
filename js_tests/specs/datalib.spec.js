@@ -1,3 +1,4 @@
+EnvJasmine.loadGlobal(EnvJasmine.rootDir + "/../utils.js");
 EnvJasmine.load(EnvJasmine.mocksDir + "datalib.mock.js");
 EnvJasmine.load(EnvJasmine.jsDir + "odk_viewer/static/js/datalib.js");
 
@@ -173,8 +174,9 @@ describe("DataManager tests", function(){
 
     it("checks that data was pushed to the store successfully", function(){
         var query = {"vals":[dv.count()]};
+        var list = ["perte", "andrew", "james", "john"];
         // count the number of records
-        //var result = dataManager.dvQuery(query);
-        //expect(result[0][0]).toEqual(22);
+        var result = dataManager.dvQuery(query);
+        expect(result[0][0]).toEqual(22);
     });
 });
