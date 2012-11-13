@@ -3,14 +3,6 @@ var fhUtils =  (function(){
     }
 })();
 
-fhUtils.ObjectSize = function(obj) {
-    var size = 0, key;
-    for (key in obj) {
-        if (obj.hasOwnProperty(key)) size++;
-    }
-    return size;
-};
-
 /**
  * Convert a date-time string in the form "2012-04-30T13:58:15.746+03" to an
  * ISO string in the form 2012-04-30T13:58:15.746+03:00
