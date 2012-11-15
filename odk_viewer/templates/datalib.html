@@ -11,13 +11,14 @@
 <script type="text/javascript">
     var formJSONUrl = "{% url odk_logger.views.download_jsonform username id_string %}";
     var mongoAPIUrl = "{% url main.views.api username id_string %}";
+    var schema = {"default_language": "default", "id_string": "good_eats_other", "children": [{"name": "submit_data", "type": "today"}, {"name": "food_type", "label": "Type of Eat", "type": "select one", "children": [{"name": "morning_food", "label": "Morning Food"}, {"name": "lunch", "label": "Lunch Time"}, {"name": "dinner", "label": "Dinner"}, {"name": "libations", "label": "Libations"}, {"name": "caffeination", "label": "Caffeination"}, {"name": "deserts", "label": "Deserts"}, {"name": "street_meat", "label": "Street Meat"}, {"name": "streat_sweets", "label": "Street Sweets"}, {"name": "savory_snacks", "label": "Savory Snacks"}, {"name": "baked_goods", "label": "Baked Goods"}, {"name": "drunk_food", "label": "Best consumed when drunk"}, {"name": "not_sure", "label": "Not Sure What I Just Ate"}, {"name": "other", "label": "Other"}]}, {"name": "food_type_other", "label": "Specify other.", "bind": {"relevant": "selected(../food_type, 'other')"}, "type": "text"}, {"name": "description", "label": "Description", "type": "text"}, {"name": "amount", "hint": "In local currency", "label": "Amount", "type": "decimal"}, {"name": "rating", "label": "Rating", "type": "select one", "children": [{"name": "nasty", "label": "Epic Eat"}, {"name": "delectible", "label": "Delectible"}, {"name": "nothing_special", "label": "Nothing Special"}, {"name": "bad", "label": "What was I thinking"}]}, {"name": "risk_factor", "label": "Risk Factor", "type": "select one", "children": [{"name": "low_risk", "label": "Low Risk"}, {"name": "medium_risk", "label": "Medium Risk (Questionable)"}, {"name": "high_risk", "label": "High Risk (Hope it was worth it)"}]}, {"name": "food_photo", "hint": "What you are about to eat", "label": "Food Pic", "type": "photo"}, {"name": "location_name", "label": "Location Name", "type": "text"}, {"name": "location_photo", "hint": "Where the food came from", "label": "Served At", "type": "photo"}, {"name": "gps", "hint": "So you can find it again", "label": "Location", "type": "geopoint"}, {"name": "imei", "type": "deviceid"}, {"name": "submit_date", "type": "today"}], "name": "good_eats_other", "title": "good_eats_other", "type": "survey"};
     var reader, schemaLoader, schemaManager, dataLoader, dataManager;
     var schemaPromise, dataPromise;
 
     reader = new Reader();
 
     schemaManager = new SchemaManager();
-    schemaLoader = new AjaxLoader(reader, formJSONUrl);
+    schemaLoader = new MemoryLoader(reader, schema);
     schemaPromise = schemaManager.init(schemaLoader);
 
     schemaPromise.done(function(){

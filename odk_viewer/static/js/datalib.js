@@ -114,7 +114,7 @@ Field = (function() {
   function Field(fieldDef) {
     var _this = this;
     this._name = fieldDef.name;
-    this._type = fieldDef.type;
+    this._setType(fieldDef.type);
     this._hint = fieldDef.hasOwnProperty(constants.HINT) ? fieldDef.hint : null;
     this._label = fieldDef.hasOwnProperty(constants.LABEL) ? fieldDef.label : null;
     this._options = [];
@@ -124,6 +124,10 @@ Field = (function() {
       });
     }
   }
+
+  Field.prototype._setType = function(typeName) {
+    return this._type = typeName;
+  };
 
   Field.prototype.name = function() {
     return this._name;
@@ -204,11 +208,11 @@ SchemaManager = (function(_super) {
 
   SchemaManager.prototype._parseFields = function(fieldsDef) {
     var _this = this;
-    return _.each(fieldsDef, function(val, key, list) {
-      if (fieldsDef.type !== constants.GROUP) {
-        return _this._fields.push(new Field(val));
-      } else if (fieldsDef.type === constants.GROUP && fieldsDef.hasOwnProperty(constants.CHILDREN)) {
-        return _this._parseFields(fieldsDef.children);
+    return _.each(fieldsDef, function(fieldObject, index, list) {
+      if (fieldObject.type !== constants.GROUP) {
+        return _this._fields.push(new Field(fieldObject));
+      } else if (fieldObject.type === constants.GROUP && fieldObject.hasOwnProperty(constants.CHILDREN)) {
+        return _this._parseFields(fieldObject.children);
       }
     });
   };
@@ -308,6 +312,19 @@ DataManager = (function(_super) {
 
   DataManager.prototype.dvQuery = function(query) {
     return this._dvTable.query(query);
+  };
+
+  DataManager.prototype.groupBy = function(fieldName) {
+    var result;
+    try {
+      result = this._dvTable.query({
+        vals: [dv.count()],
+        dims: [fieldName]
+      });
+      return _.object(result[0], result[1]);
+    } catch (e) {
+      throw new Error("field \"" + fieldName + "\" does not exist");
+    }
   };
 
   return DataManager;

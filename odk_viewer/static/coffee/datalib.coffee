@@ -1,8 +1,9 @@
 constants = {
   # pyxform constants
-  NAME: "name", LABEL: "label", TYPE: "type", CHILDREN: "children", GROUP: "group", HINT: "hint", GEOPOINT: "geopoint",
+  NAME: "name", LABEL: "label", TYPE: "type", CHILDREN: "children"
   # field types
-  TEXT: "text", INTEGER: "integer", DECIMAL: "decimal", SELECT_ONE: "select one", SELECT_MULTIPLE: "select multiple",
+  TEXT: "text", INTEGER: "integer", DECIMAL: "decimal", SELECT_ONE: "select one",
+SELECT_MULTIPLE: "select multiple",GROUP: "group", HINT: "hint", GEOPOINT: "geopoint",
   # formhub query syntax constants
   ID: "_id", START: "start", LIMIT: "limit", COUNT: "count", FIELDS: "fields",
   # others
@@ -29,7 +30,6 @@ class MemoryLoader extends Loader
 
   load: ->
     deferred = $.Deferred()
-
     if typeof @_data isnt "undefined" and @_data isnt null
       parsed_data = @_reader.read(@_data)
       deferred.resolve(parsed_data)
@@ -54,7 +54,7 @@ class AjaxLoader extends Loader
 class Field
   constructor: (fieldDef)->
     @_name = fieldDef.name
-    @_type = fieldDef.type
+    @_setType(fieldDef.type)
     @_hint = if fieldDef.hasOwnProperty(constants.HINT) then fieldDef.hint else null
     @_label = if fieldDef.hasOwnProperty(constants.LABEL) then fieldDef.label else null
     @_options = []
@@ -63,6 +63,9 @@ class Field
     if fieldDef.hasOwnProperty(constants.CHILDREN)
       _.each fieldDef.children, (val, key, list) =>
         @_options.push new Field(val)
+
+  _setType: (typeName)->
+    @_type = typeName
 
   name: ->
     return @_name
@@ -114,11 +117,11 @@ class SchemaManager extends Manager
 
 
   _parseFields: (fieldsDef) ->
-    _.each fieldsDef, (val, key, list) =>
-      if fieldsDef.type isnt constants.GROUP
-        @_fields.push new Field(val)
-      else if fieldsDef.type is constants.GROUP and fieldsDef.hasOwnProperty(constants.CHILDREN)
-        @_parseFields(fieldsDef.children)
+    _.each fieldsDef, (fieldObject, index, list) =>
+      if fieldObject.type isnt constants.GROUP
+        @_fields.push new Field(fieldObject)
+      else if fieldObject.type is constants.GROUP and fieldObject.hasOwnProperty(constants.CHILDREN)
+        @_parseFields(fieldObject.children)
 
   _parseSchema: (schemaDef) ->
     _.each schemaDef, (val, key, list) =>
@@ -139,11 +142,11 @@ class SchemaManager extends Manager
     return @_fields
 
   getFieldByName: (name) ->
-    _.find @_fields, (field) ->
+    return _.find @_fields, (field) ->
       return field.name() is name
 
   getFieldsByType: (typeName) ->
-    _.filter @_fields, (field) ->
+    return _.filter @_fields, (field) ->
       return field.type() is typeName
 
   getSupportedLanguages: ->
@@ -183,11 +186,19 @@ class DataManager extends Manager
       @_dvTable.addColumn(field.name(), dvData[field.name()], DataManager.typeMap[field.type()]);
 
 
-  onload: (data)->
+  onload: (data) ->
     # push data to datavore store
     @_pushToStore(data)
 
   dvQuery: (query) ->
     return this._dvTable.query(query)
+
+  groupBy: (fieldName) ->
+    try
+      result = @_dvTable.query({vals: [dv.count()], dims: [fieldName]})
+      # format as object
+      return _.object(result[0], result[1])
+    catch e
+      throw new Error("field \"#{fieldName}\" does not exist")
 
 
