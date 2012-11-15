@@ -140,9 +140,9 @@ To run the test for a specific method in a specific class in a specific app, e.g
 
     python manage.py test main.TestFormErrors.test_submission_deactivated
 
-To run javascript tests enter the following, NOTE that the testDir and configFile paths are relative to the js_tests/EnvJasmine directory:
+To run javascript tests enter the following:
 
-    ./js_tests/EnvJasmine/bin/run_all_tests.sh --testDir=../ --configFile=../env_jasmine.conf.js
+    grunt jasmine
 
 (OPTIONAL) Re-compiling the less css and coffee script js files
 ---------------------------------------
@@ -162,36 +162,33 @@ Install nodejs
 
     $ sudo make install
 
-Install grunt via npm (Node Package Manager)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Install grunt globally via npm (Node Package Manager)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    $ sudo npm install -g grunt
+    $ sudo npm install grunt -g
 
-Install recess, uglifyjs and less via npm (Node Package Manager)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Install phantonjs
+^^^^^^^^^^^^^^^^^
 
-    $ sudo npm install -g recess
+    $ sudo apt-get install phantomjs
 
-    $ sudo npm install -g uglifyjs
+Install the required node modules locally
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    $ sudo npm install -g less
+    $ cd ~/src/formhub-app/formhub/
 
-Compile the less files
-^^^^^^^^^^^^^^^^^^^^^^
+    $ npm install
 
-    $ cd ~/src/formhub-app/formhub/main/static/bootstrap
-
-    $ make
-
-Install CoffeeScript node package
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-    $ sudo npm install -g coffee-script
-
-Compile the coffee files
+Re-Compile the coffee files
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-    TODO:
+    $ grunt coffee
+
+Re-Compile the less files
+^^^^^^^^^^^^^^^^^^^^^^
+
+    $ grunt less
+
 
 Deploying
 ---------

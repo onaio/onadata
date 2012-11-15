@@ -51,6 +51,23 @@ module.exports = function(grunt) {
       }
     },
     uglify: {},
+    less: {
+        bootstrap: {
+            files: {
+                "main/static/bootstrap/css/bootstrap.css": "main/static/bootstrap/less/bootstrap-custom.less"
+            }
+        },
+        responsive: {
+            files: {
+                "main/static/bootstrap/css/bootstrap-responsive.css": "main/static/bootstrap/less/responsive-custom.less"
+            }
+        },
+        screen: {
+            files: {
+                "main/static/css/screen.css": "main/static/bootstrap/less/screen.less"
+            }
+        }
+    },
     coffee: {
         files: ['odk_viewer/static/coffee/**/*.coffee'],
         main: {
@@ -68,12 +85,20 @@ module.exports = function(grunt) {
                 bare: true
             }
         }
+    },
+    jasmine:{
+        src: ["main/static/js/underscore-min.js", "main/static/js/dv.js",
+            "main/static/js/jquery-1.8.2.js", "odk_viewer/static/js/**/*.js",
+            "main/static/js/fh_utils.js", "main/static/js/formManagers.js"],
+        specs: ["js_tests/mocks/**/*.mock.js", "js_tests/specs/**/*.spec.js"]
     }
   });
 
+  grunt.loadNpmTasks('grunt-contrib-less');
   grunt.loadNpmTasks('grunt-coffee');
+  grunt.loadNpmTasks('grunt-jasmine-runner');
 
   // Default task.
-  grunt.registerTask('default', 'coffee');
+  grunt.registerTask('default', 'coffee jasmine');
 
 };
