@@ -8,10 +8,12 @@ before_install:
 install:
   - pip install numpy --use-mirrors
   - pip install -r requirements.pip --use-mirrors
+  - sudo npm install grunt -g
+  - sudo npm install
   - python manage.py syncdb --noinput
   - python manage.py migrate --noinput
 script:
   - python manage.py test --noinput
-  - ./js_tests/EnvJasmine/bin/run_all_tests.sh --testDir=../ --configFile=../env_jasmine.conf.js
+  - grunt jasmine
 notifications:
   irc: "irc.freenode.org#moditest"
