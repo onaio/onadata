@@ -1,4 +1,6 @@
 root = exports ? this
+root.fh = {}
+namespace = root.fh
 constants = {
   # pyxform constants
   NAME: "name", LABEL: "label", TYPE: "type", CHILDREN: "children"
@@ -10,18 +12,18 @@ constants = {
   GEOLOCATION: "_geolocation"
 };
 
-class root.Reader
+class namespace.Reader
   constructor: () ->
 
   read: (data) ->
     return data
 
-class root.Loader
+class namespace.Loader
   constructor: (@_reader) ->
     if typeof @_reader is "undefined" or @_reader is null
       throw new Error("You must provide a valid reader")
 
-class root.MemoryLoader extends root.Loader
+class namespace.MemoryLoader extends namespace.Loader
   constructor: (_reader, @_data) ->
     super(_reader)
 
@@ -34,7 +36,7 @@ class root.MemoryLoader extends root.Loader
       deferred.reject({"error": "No data available."});
     return deferred.promise()
 
-class root.AjaxLoader extends root.Loader
+class namespace.AjaxLoader extends namespace.Loader
   constructor: (_reader, @_url, @_params) ->
     super(_reader)
 
@@ -48,7 +50,7 @@ class root.AjaxLoader extends root.Loader
       deferred.reject(e)
     return deferred.promise();
 
-class root.Field
+class namespace.Field
   constructor: (fieldDef)->
     @_name = fieldDef.name
     @_setType(fieldDef.type)
@@ -59,7 +61,7 @@ class root.Field
     # check for choices
     if fieldDef.hasOwnProperty(constants.CHILDREN)
       _.each fieldDef.children, (val, key, list) =>
-        @_options.push new Field(val)
+        @_options.push new namespace.Field(val)
 
   _setType: (typeName)->
     @_type = typeName
@@ -87,7 +89,7 @@ class root.Field
   options: ->
     return @_options
 
-class root.Manager
+class namespace.Manager
   init: (@_loader) ->
     promise = @_loader.load()
     promise.done (data) =>
@@ -100,7 +102,7 @@ class root.Manager
 
   onfail: (e) ->
 
-class root.SchemaManager extends root.Manager
+class namespace.SchemaManager extends namespace.Manager
   constructor: ->
     @_fields = []
     @_properties = {}
@@ -116,7 +118,7 @@ class root.SchemaManager extends root.Manager
   _parseFields: (fieldsDef) ->
     _.each fieldsDef, (fieldObject, index, list) =>
       if fieldObject.type isnt constants.GROUP
-        @_fields.push new Field(fieldObject)
+        @_fields.push new namespace.Field(fieldObject)
       else if fieldObject.type is constants.GROUP and fieldObject.hasOwnProperty(constants.CHILDREN)
         @_parseFields(fieldObject.children)
 
@@ -149,7 +151,7 @@ class root.SchemaManager extends root.Manager
   getSupportedLanguages: ->
     return @_supportedLanguages
 
-class root.DataManager extends root.Manager
+class namespace.DataManager extends namespace.Manager
   @typeMap = {}
   @typeMap[constants.INTEGER] = dv.type.numeric;
   @typeMap[constants.DECIMAL] = dv.type.numeric;

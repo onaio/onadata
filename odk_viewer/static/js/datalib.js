@@ -1,9 +1,13 @@
 (function() {
-  var constants, root,
+  var constants, namespace, root,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
+
+  root.fh = {};
+
+  namespace = root.fh;
 
   constants = {
     NAME: "name",
@@ -26,7 +30,7 @@
     GEOLOCATION: "_geolocation"
   };
 
-  root.Reader = (function() {
+  namespace.Reader = (function() {
 
     function Reader() {}
 
@@ -38,7 +42,7 @@
 
   })();
 
-  root.Loader = (function() {
+  namespace.Loader = (function() {
 
     function Loader(_reader) {
       this._reader = _reader;
@@ -51,7 +55,7 @@
 
   })();
 
-  root.MemoryLoader = (function(_super) {
+  namespace.MemoryLoader = (function(_super) {
 
     __extends(MemoryLoader, _super);
 
@@ -76,9 +80,9 @@
 
     return MemoryLoader;
 
-  })(root.Loader);
+  })(namespace.Loader);
 
-  root.AjaxLoader = (function(_super) {
+  namespace.AjaxLoader = (function(_super) {
 
     __extends(AjaxLoader, _super);
 
@@ -106,9 +110,9 @@
 
     return AjaxLoader;
 
-  })(root.Loader);
+  })(namespace.Loader);
 
-  root.Field = (function() {
+  namespace.Field = (function() {
 
     function Field(fieldDef) {
       var _this = this;
@@ -119,7 +123,7 @@
       this._options = [];
       if (fieldDef.hasOwnProperty(constants.CHILDREN)) {
         _.each(fieldDef.children, function(val, key, list) {
-          return _this._options.push(new Field(val));
+          return _this._options.push(new namespace.Field(val));
         });
       }
     }
@@ -160,7 +164,7 @@
 
   })();
 
-  root.Manager = (function() {
+  namespace.Manager = (function() {
 
     function Manager() {}
 
@@ -186,7 +190,7 @@
 
   })();
 
-  root.SchemaManager = (function(_super) {
+  namespace.SchemaManager = (function(_super) {
 
     __extends(SchemaManager, _super);
 
@@ -209,7 +213,7 @@
       var _this = this;
       return _.each(fieldsDef, function(fieldObject, index, list) {
         if (fieldObject.type !== constants.GROUP) {
-          return _this._fields.push(new Field(fieldObject));
+          return _this._fields.push(new namespace.Field(fieldObject));
         } else if (fieldObject.type === constants.GROUP && fieldObject.hasOwnProperty(constants.CHILDREN)) {
           return _this._parseFields(fieldObject.children);
         }
@@ -258,9 +262,9 @@
 
     return SchemaManager;
 
-  })(root.Manager);
+  })(namespace.Manager);
 
-  root.DataManager = (function(_super) {
+  namespace.DataManager = (function(_super) {
 
     __extends(DataManager, _super);
 
@@ -328,6 +332,6 @@
 
     return DataManager;
 
-  })(root.Manager);
+  })(namespace.Manager);
 
 }).call(this);

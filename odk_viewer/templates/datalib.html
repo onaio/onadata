@@ -15,17 +15,17 @@
     var reader, schemaLoader, schemaManager, dataLoader, dataManager;
     var schemaPromise, dataPromise;
 
-    reader = new Reader();
+    reader = new fh.Reader();
 
-    schemaManager = new SchemaManager();
-    schemaLoader = new MemoryLoader(reader, schema);
+    schemaManager = new fh.SchemaManager();
+    schemaLoader = new fh.MemoryLoader(reader, schema);
     schemaPromise = schemaManager.init(schemaLoader);
 
     schemaPromise.done(function(){
         console.log("----------------Loaded schema--------------------");
         // load data
-        dataManager = new DataManager(schemaManager);
-        dataLoader = new AjaxLoader(reader, mongoAPIUrl);
+        dataManager = new fh.DataManager(schemaManager);
+        dataLoader = new fh.AjaxLoader(reader, mongoAPIUrl);
         dataPromise = dataManager.init(dataLoader);
 
         dataPromise.done(function(){

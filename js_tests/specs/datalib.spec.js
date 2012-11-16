@@ -2,8 +2,8 @@ describe("Memory loader tests", function() {
     var reader, loader;
 
     beforeEach(function() {
-        reader = new Reader();
-        loader = new MemoryLoader(reader, datalibMock.data);
+        reader = new fh.Reader();
+        loader = new fh.MemoryLoader(reader, datalibMock.data);
     });
 
     it("tests that load call works", function() {
@@ -32,8 +32,8 @@ describe("Ajax loader tests", function() {
     var reader, loader;
 
     beforeEach(function() {
-        reader = new Reader();
-        loader = new AjaxLoader(reader, datalibMock.ajaxUrl);
+        reader = new fh.Reader();
+        loader = new fh.AjaxLoader(reader, datalibMock.ajaxUrl);
         spyOn($, 'ajax').andCallFake(function() {
             var deferred = $.Deferred();
             deferred.resolve(datalibMock.data);
@@ -68,9 +68,9 @@ describe("Schema manager tests", function(){
 
     beforeEach(function() {
         var deferred;
-        reader = new Reader();
-        loader = new MemoryLoader(reader, datalibMock.schema);
-        schemaManager = new SchemaManager();
+        reader = new fh.Reader();
+        loader = new fh.MemoryLoader(reader, datalibMock.schema);
+        schemaManager = new fh.SchemaManager();
 
         runs(function(){
             deferred = schemaManager.init(loader);
@@ -121,9 +121,9 @@ describe("Multi-lingual Schema manager tests", function(){
 
     beforeEach(function() {
         var deferred;
-        reader = new Reader();
-        loader = new MemoryLoader(reader, datalibMock.multilang_schema);
-        schemaManager = new SchemaManager();
+        reader = new fh.Reader();
+        loader = new fh.MemoryLoader(reader, datalibMock.multilang_schema);
+        schemaManager = new fh.SchemaManager();
 
         runs(function(){
             deferred = schemaManager.init(loader);
@@ -161,11 +161,11 @@ describe("DataManager tests", function(){
 
     beforeEach(function() {
         var deferred;
-        reader = new Reader();
-        schemaLoader = new MemoryLoader(reader, datalibMock.schema);
-        schemaManager = new SchemaManager();
-        dataLoader = new MemoryLoader(reader, datalibMock.data);
-        dataManager = new DataManager(schemaManager);
+        reader = new fh.Reader();
+        schemaLoader = new fh.MemoryLoader(reader, datalibMock.schema);
+        schemaManager = new fh.SchemaManager();
+        dataLoader = new fh.MemoryLoader(reader, datalibMock.data);
+        dataManager = new fh.DataManager(schemaManager);
 
         runs(function(){
             deferred = schemaManager.init(schemaLoader);
