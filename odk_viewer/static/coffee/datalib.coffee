@@ -1,30 +1,27 @@
+root = exports ? this
 constants = {
   # pyxform constants
   NAME: "name", LABEL: "label", TYPE: "type", CHILDREN: "children"
   # field types
-  TEXT: "text", INTEGER: "integer", DECIMAL: "decimal", SELECT_ONE: "select one",
-SELECT_MULTIPLE: "select multiple",GROUP: "group", HINT: "hint", GEOPOINT: "geopoint",
+  TEXT: "text", INTEGER: "integer", DECIMAL: "decimal", SELECT_ONE: "select one", SELECT_MULTIPLE: "select multiple",GROUP: "group", HINT: "hint", GEOPOINT: "geopoint",
   # formhub query syntax constants
   ID: "_id", START: "start", LIMIT: "limit", COUNT: "count", FIELDS: "fields",
   # others
   GEOLOCATION: "_geolocation"
 };
 
-fh_assert = (condition, message) ->
-  if not condition
-    throw new Error(message)
-
-class Reader
+class root.Reader
   constructor: () ->
 
   read: (data) ->
     return data
 
-class Loader
+class root.Loader
   constructor: (@_reader) ->
-    fh_assert(typeof @_reader isnt "undefined" and @_reader isnt null)
+    if typeof @_reader is "undefined" or @_reader is null
+      throw new Error("You must provide a valid reader")
 
-class MemoryLoader extends Loader
+class root.MemoryLoader extends root.Loader
   constructor: (_reader, @_data) ->
     super(_reader)
 
@@ -37,7 +34,7 @@ class MemoryLoader extends Loader
       deferred.reject({"error": "No data available."});
     return deferred.promise()
 
-class AjaxLoader extends Loader
+class root.AjaxLoader extends root.Loader
   constructor: (_reader, @_url, @_params) ->
     super(_reader)
 
@@ -51,7 +48,7 @@ class AjaxLoader extends Loader
       deferred.reject(e)
     return deferred.promise();
 
-class Field
+class root.Field
   constructor: (fieldDef)->
     @_name = fieldDef.name
     @_setType(fieldDef.type)
@@ -90,7 +87,7 @@ class Field
   options: ->
     return @_options
 
-class Manager
+class root.Manager
   init: (@_loader) ->
     promise = @_loader.load()
     promise.done (data) =>
@@ -103,7 +100,7 @@ class Manager
 
   onfail: (e) ->
 
-class SchemaManager extends Manager
+class root.SchemaManager extends root.Manager
   constructor: ->
     @_fields = []
     @_properties = {}
@@ -152,7 +149,7 @@ class SchemaManager extends Manager
   getSupportedLanguages: ->
     return @_supportedLanguages
 
-class DataManager extends Manager
+class root.DataManager extends root.Manager
   @typeMap = {}
   @typeMap[constants.INTEGER] = dv.type.numeric;
   @typeMap[constants.DECIMAL] = dv.type.numeric;
