@@ -82,7 +82,7 @@ module.exports = function(grunt) {
             src: ['odk_viewer/static/coffee/*.coffee'],
             dest: 'odk_viewer/static/js/',
             options: {
-                bare: true
+                bare: false // default false to create a closure for each file
             }
         }
     },
