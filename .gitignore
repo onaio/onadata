@@ -38,6 +38,7 @@ node_modules
 .pydevproject
 .sass-cache
 .settings
+_SpecRunner.html
 
 *.bak
 *.pyc
