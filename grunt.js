@@ -31,7 +31,7 @@ module.exports = function(grunt) {
     },
     watch: {
       files: ['<config:coffee.files>'],
-      tasks: 'coffee:odk_viewer'
+      tasks: 'coffee:odk_viewer coffee:main'
     },
     jshint: {
       options: {
@@ -69,10 +69,10 @@ module.exports = function(grunt) {
         }
     },
     coffee: {
-        files: ['odk_viewer/static/coffee/**/*.coffee'],
+        files: ['odk_viewer/static/coffee/**/*.coffee', 'main/static/coffee/**/*.coffee'],
         main: {
             src: ['main/static/coffee/*.coffee'],
-            dest: 'main/static/coffee/*.js'
+            dest: 'main/static/js'
         },
         odk_logger: {
             src: ['odk_logger/static/coffee/*.coffee'],
