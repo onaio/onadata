@@ -55,7 +55,7 @@
       function Loader(_reader) {
         this._reader = _reader;
         if (typeof this._reader === "undefined" || this._reader === null) {
-          throw new Error("You must provide a valid reader");
+          this._reader = new exports.Reader();
         }
       }
 

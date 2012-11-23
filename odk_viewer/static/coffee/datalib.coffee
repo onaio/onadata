@@ -25,7 +25,7 @@ namespace 'fh', (exports) ->
   class exports.Loader
     constructor: (@_reader) ->
       if typeof @_reader is "undefined" or @_reader is null
-        throw new Error("You must provide a valid reader")
+        @_reader = new exports.Reader()
 
   class exports.MemoryLoader extends exports.Loader
     constructor: (_reader, @_data) ->
