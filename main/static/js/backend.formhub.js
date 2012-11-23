@@ -1,0 +1,85 @@
+var namespace,
+  __slice = [].slice;
+
+namespace = function(target, name, block) {
+  var item, top, _i, _len, _ref, _ref1;
+  if (arguments.length < 3) {
+    _ref = [(typeof exports !== 'undefined' ? exports : window)].concat(__slice.call(arguments)), target = _ref[0], name = _ref[1], block = _ref[2];
+  }
+  top = target;
+  _ref1 = name.split('.');
+  for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+    item = _ref1[_i];
+    target = target[item] || (target[item] = {});
+  }
+  return block(target, top);
+};
+
+namespace('recline.Backend.Formhub', function(exports) {
+  var _parseSchema;
+  exports.__type__ = 'formhub';
+  _parseSchema = function(schema) {
+    var fields, metadata, parseFields,
+      _this = this;
+    metadata = {};
+    fields = [];
+    parseFields = function(fieldsDef) {
+      return _.each(fieldsDef, function(fieldObject, index, list) {
+        var _ref;
+        if (fieldObject.type !== "group") {
+          return fields.push({
+            id: fieldObject.name,
+            label: (_ref = fieldObject.label) != null ? _ref : null
+          });
+        } else if (fieldObject.type === exports.constants.GROUP && fieldObject.hasOwnProperty(exports.constants.CHILDREN)) {
+          return parseFields(fieldObject.children);
+        }
+      });
+    };
+    _.each(schema, function(val, key) {
+      if (key !== "children") {
+        return metadata[key] = val;
+      }
+    });
+    parseFields(schema.children);
+    return {
+      metadata: metadata,
+      fields: fields
+    };
+  };
+  exports.fetch = function(dataset) {
+    var deferred, jqXHR;
+    deferred = $.Deferred();
+    jqXHR = $.getJSON(dataset.formurl);
+    jqXHR.done(function(schema) {
+      schema = _parseSchema(schema);
+      return deferred.resolve({
+        metadata: schema.metadata,
+        fields: schema.fields
+      });
+    });
+    jqXHR.fail(function(e) {
+      return deferred.reject(e);
+    });
+    return deferred.promise();
+  };
+  return exports.query = function(queryObj, dataset) {
+    var deferred, jqXHR, params;
+    deferred = $.Deferred();
+    params = {
+      start: queryObj.from,
+      limit: queryObj.size
+    };
+    jqXHR = $.getJSON(dataset.dataurl, params);
+    jqXHR.done(function(data) {
+      return deferred.resolve({
+        total: 22,
+        hits: data
+      });
+    });
+    jqXHR.fail(function(e) {
+      return deferred.reject(e);
+    });
+    return deferred.promise();
+  };
+});
