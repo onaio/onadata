@@ -321,9 +321,14 @@ def public_api(request, username, id_string):
                               user__username=username, id_string=id_string)
 
     DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+    try:
+        bamboo_datasets = simplejson.loads(xform.bamboo_datasets)
+    except:
+        bamboo_datasets = {}
     exports = {'username': xform.user.username,
                'id_string': xform.id_string,
                'bamboo_dataset': xform.bamboo_dataset,
+               'bamboo_datasets': bamboo_datasets,
                'shared': xform.shared,
                'shared_data': xform.shared_data,
                'downloadable': xform.downloadable,

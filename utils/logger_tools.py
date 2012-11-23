@@ -5,6 +5,8 @@ import pytz
 import re
 import tempfile
 import traceback
+import json
+import requests
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -30,6 +32,7 @@ from odk_logger.xform_instance_parser import InstanceInvalidUserError, \
     get_uuid_from_xml, get_deprecated_uuid_from_xml
 
 from odk_viewer.models import ParsedInstance, DataDictionary
+from common_tags import SUBMISSION_UUID
 
 
 OPEN_ROSA_VERSION_HEADER = 'X-OpenRosa-Version'
@@ -84,7 +87,6 @@ def create_instance(username, xml_file, media_files,
 
             username = xform_username
     # else, since we have a username, the Instance creation logic will handle checking for the forms existence by its id_string
-
     user = get_object_or_404(User, username=username)
     existing_instance_count = Instance.objects.filter(
         xml=xml, user=user).count()
@@ -296,3 +298,117 @@ def inject_instanceid(instance):
         xml.documentElement.appendChild(meta_tag)
         return xml.toxml()
     return instance.xml
+
+
+def xlstype2pythontype(xls_type):
+    if xls_type == 'text':
+        return unicode
+    if xls_type == 'integer':
+        return int
+    if xls_type == 'float':
+        return float
+    if xls_type == 'repeat':
+        return None
+    if xls_type == u'date':
+        return date
+    if xls_type == u'datetime':
+        return datetime
+
+    # should we send somes (attachments, geopoint, etc) as list?
+    return unicode
+
+
+def pythontype2sdftype(python_type):
+
+    # string | integer | float | date | datetime | object | list
+    MEASURE = u"measure"
+    DIMENSION = u"dimension"
+    STRING = u"string"
+    INTEGER = u"integer"
+    FLOAT = u"float"
+    DATE = u"date"
+    DATETIME = u"datetime"
+    # OBJECT = u"object"
+    LIST = u"list"
+
+    if python_type == int:
+        return (INTEGER, MEASURE)
+    if python_type == float:
+        return (FLOAT, MEASURE)
+    if python_type == date:
+        return (DATE, MEASURE)
+    if python_type == datetime:
+        return (DATETIME, MEASURE)
+    if python_type == unicode:
+        return (STRING, DIMENSION)
+    if python_type == list:
+        return (LIST, DIMENSION)
+    if python_type is None:
+        return None
+
+    return (STRING, DIMENSION)
+
+
+def xlstype2sdftype(xls_type):
+    return pythontype2sdftype(xlstype2pythontype(xls_type))
+
+
+def get_bamboo_url(xform):
+    from restservice.models import RestService
+    try:
+        service = RestService.objects.get(xform=xform, name='joined_bamboo')
+    except RestService.DoesNotExist:
+        return 'http://bamboo.io'
+
+    return service.service_url
+
+
+def create_bamboo_dataset(bamboo_url, schema=u'', joined=False,
+                          dataset=None, dataset2=None):
+    ''' create a (maybe joined) dataset in bamboo from schema and return ID.'''
+
+    dataset_id = None
+
+    if not joined:
+        url = '%(url_root)s/datasets' % {'url_root': bamboo_url}
+        req = requests.post(url, data={'schema': schema})
+    else:
+        url = ('%(url_root)s/datasets/join'
+               % {'url_root': bamboo_url})
+
+        req = requests.post(url, data={'dataset_id': dataset,
+                                       'other_dataset_id': dataset2,
+                                       'on': SUBMISSION_UUID})
+
+    if req.status_code in (200, 201, 202):
+        try:
+            dataset_id = json.loads(req.text).get('id')
+        except:
+            pass
+    return dataset_id
+
+
+def ensure_bamboo_datasets_exists(xform, recreate=False):
+    ''' create if not exist the bamboo datasets for all repeats and form '''
+
+    # bamboo URL
+    url = get_bamboo_url(xform)
+    url = u'http://localhost:8080'
+    print(url)
+
+    if not xform.bamboo_datasets.get('bamboo_id') or recreate:
+        xform.bamboo_datasets['bamboo_id'] = \
+            create_bamboo_dataset(url, xform.sdf_schema())
+
+    for repeat, repeat_dict \
+        in xform.bamboo_datasets.get('repeats', {}).items():
+
+        if not repeat_dict.get('bamboo_id') or recreate:
+            xform.bamboo_datasets['repeats'][repeat]['bamboo_id'] = \
+                create_bamboo_dataset(url, xform.sdf_schema(repeat))
+
+        if not repeat_dict.get('joined_id') or recreate:
+            xform.bamboo_datasets['repeats'][repeat]['joined_id'] = \
+               create_bamboo_dataset(url, joined=True,
+                                     dataset=xform.bamboo_datasets['bamboo_id'],
+                                     dataset2=repeat_dict.get('bamboo_id'))
