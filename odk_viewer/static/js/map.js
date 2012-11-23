@@ -17,14 +17,11 @@
   };
 
   namespace('fh.map', function(exports) {
-    var _layersControl, _map, _tileJSONLoaded,
-      _this = this;
+    var _layersControl, _map;
     _map = void 0;
     _layersControl = void 0;
-    _tileJSONLoaded = function(tilejson) {
-      var tileLayer;
-      tileLayer = new wax.leaf.connector(tilejson);
-      return layersControl.addBaseLayer(tileLayer, mapData.label);
+    exports.getMap = function() {
+      return _map;
     };
     exports.init = function(mapId) {
       _map = new L.Map(mapId);
@@ -32,12 +29,23 @@
       _map.addControl(_layersControl);
       return null;
     };
-    exports.addBaselayer = function(baseLayer) {
-      return _layersControl.addBaseLayer(baseLayer);
+    exports.addBaseLayer = function(baseLayer, label, isDefault) {
+      _layersControl.addBaseLayer(baseLayer, label);
+      if (isDefault) {
+        return _map.addLayer(baseLayer);
+      }
     };
     exports.addlayer = function(layer) {};
-    return exports.addTileJSON = function() {
-      return wax.tilejson(mapData.url, _tileJSONLoaded);
+    return exports.addTileJSON = function(url, label, isDefault, extraAttribution) {
+      var _tilejsonLoaded,
+        _this = this;
+      _tilejsonLoaded = function(tilejson) {
+        var tileLayer;
+        tilejson.attribution += extraAttribution != null ? " - " + extraAttribution : null;
+        tileLayer = new wax.leaf.connector(tilejson);
+        return exports.addBaseLayer(tileLayer, label, isDefault);
+      };
+      return wax.tilejson(url, _tilejsonLoaded);
     };
   });
 

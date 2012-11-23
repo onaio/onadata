@@ -8,10 +8,8 @@ namespace 'fh.map', (exports) ->
   _map = undefined
   _layersControl = undefined
 
-  _tileJSONLoaded = (tilejson) =>
-    tileLayer = new wax.leaf.connector(tilejson);
-    layersControl.addBaseLayer(tileLayer, mapData.label);
-
+  exports.getMap = ->
+    return _map
 
   exports.init = (mapId) ->
     _map = new L.Map(mapId)
@@ -19,10 +17,16 @@ namespace 'fh.map', (exports) ->
     _map.addControl(_layersControl);
     return null
 
-  exports.addBaselayer = (baseLayer) ->
-    _layersControl.addBaseLayer(baseLayer)
+  exports.addBaseLayer = (baseLayer, label, isDefault) ->
+    _layersControl.addBaseLayer(baseLayer, label)
+    if isDefault
+      _map.addLayer(baseLayer)
 
   exports.addlayer = (layer) ->
 
-  exports.addTileJSON = () ->
-    wax.tilejson(mapData.url, _tileJSONLoaded);
+  exports.addTileJSON = (url, label, isDefault, extraAttribution) ->
+    _tilejsonLoaded = (tilejson) =>
+      tilejson.attribution += if extraAttribution? then " - " + extraAttribution else null
+      tileLayer = new wax.leaf.connector(tilejson);
+      exports.addBaseLayer(tileLayer, label, isDefault);
+    wax.tilejson(url, _tilejsonLoaded);
