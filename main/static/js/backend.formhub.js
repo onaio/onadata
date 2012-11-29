@@ -25,19 +25,27 @@ namespace('recline.Backend.Formhub', function(exports) {
     fields = [];
     parseFields = function(fieldsDef) {
       return _.each(fieldsDef, function(fieldObject, index, list) {
-        var _ref;
-        if (fieldObject.type !== "group") {
-          return fields.push({
-            id: fieldObject.name,
-            label: (_ref = fieldObject.label) != null ? _ref : null
-          });
+        var field, _ref;
+        if (fieldObject.type !== fh.constants.GROUP) {
+          field = {
+            id: fieldObject.name
+          };
+          if (fieldObject.label && typeof metadata.languages === "undefined") {
+            if (typeof fieldObject.label === "object") {
+              metadata.languages = _.keys(fieldObject.label);
+            } else {
+              metadata.languages = ["default"];
+            }
+          }
+          field.label = (_ref = fieldObject.label) != null ? _ref : null;
+          return fields.push(field);
         } else if (fieldObject.type === exports.constants.GROUP && fieldObject.hasOwnProperty(exports.constants.CHILDREN)) {
           return parseFields(fieldObject.children);
         }
       });
     };
     _.each(schema, function(val, key) {
-      if (key !== "children") {
+      if (key !== fh.constants.CHILDREN) {
         return metadata[key] = val;
       }
     });
@@ -67,14 +75,22 @@ namespace('recline.Backend.Formhub', function(exports) {
     var deferred, jqXHR, params;
     deferred = $.Deferred();
     params = {
-      start: queryObj.from,
-      limit: queryObj.size
+      count: 1
     };
     jqXHR = $.getJSON(dataset.dataurl, params);
     jqXHR.done(function(data) {
-      return deferred.resolve({
-        total: 22,
-        hits: data
+      var total;
+      total = data[0].count;
+      params = {
+        start: queryObj.from,
+        limit: queryObj.size
+      };
+      jqXHR = $.getJSON(dataset.dataurl, params);
+      return jqXHR.done(function(data) {
+        return deferred.resolve({
+          total: total,
+          hits: data
+        });
       });
     });
     jqXHR.fail(function(e) {
