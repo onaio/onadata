@@ -38,6 +38,7 @@ node_modules
 .pydevproject
 .sass-cache
 .settings
+mongo_vs_instance_counts_report.txt
 _SpecRunner.html
 
 *.bak
