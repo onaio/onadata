@@ -1,8 +1,7 @@
-var root = (typeof exports !== "undefined" && exports !== null) ? exports : this;
 this.fh = this.fh || {};
 this.fh.template = this.fh.template || {};
-(function(my){
-    my.dataview = ' \
+(function(root){
+    root.dataview = ' \
       <div class="fh-data-view"> \
         <div class="header clearfix"> \
           <div class="navigation"> \
@@ -18,7 +17,7 @@ this.fh.template = this.fh.template || {};
       </div> \
     ';
 
-    my.map = '\
+    root.map = '\
     <div class="map"></map>\
     '
 })(this.fh.template);
