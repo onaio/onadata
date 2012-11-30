@@ -16,8 +16,14 @@ namespace = function(target, name, block) {
 };
 
 namespace('recline.Backend.Formhub', function(exports) {
-  var _parseSchema;
+  var _fhToReclineType, _parseSchema;
   exports.__type__ = 'formhub';
+  _fhToReclineType = function(fhTypeName) {
+    var fhTypes;
+    fhTypes = {};
+    fhTypes[fh.constants.GEOPOINT] = "geo_point";
+    return fhTypes[fhTypeName] || "string";
+  };
   _parseSchema = function(schema) {
     var fields, metadata, parseFields,
       _this = this;
@@ -25,7 +31,7 @@ namespace('recline.Backend.Formhub', function(exports) {
     fields = [];
     parseFields = function(fieldsDef) {
       return _.each(fieldsDef, function(fieldObject, index, list) {
-        var field, _ref;
+        var field, _ref, _ref1;
         if (fieldObject.type !== fh.constants.GROUP) {
           field = {
             id: fieldObject.name
@@ -37,7 +43,9 @@ namespace('recline.Backend.Formhub', function(exports) {
               metadata.languages = ["default"];
             }
           }
-          field.label = (_ref = fieldObject.label) != null ? _ref : null;
+          field.type = _fhToReclineType((_ref = fieldObject[fh.constants.TYPE]) != null ? _ref : null);
+          field[fh.constants.FH_TYPE] = (_ref1 = fieldObject[fh.constants.TYPE]) != null ? _ref1 : null;
+          field.label = typeof fieldObject.label === "function" ? fieldObject.label(null) : void 0;
           return fields.push(field);
         } else if (fieldObject.type === exports.constants.GROUP && fieldObject.hasOwnProperty(exports.constants.CHILDREN)) {
           return parseFields(fieldObject.children);

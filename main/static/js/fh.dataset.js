@@ -37,7 +37,8 @@ namespace('fh', function(exports) {
     COUNT: "count",
     FIELDS: "fields",
     GEOLOCATION: "_geolocation",
-    GEOFIELD: "geoField"
+    GEOFIELD: "geoField",
+    FH_TYPE: "fhType"
   };
   return exports.Dataset = (function(_super) {
 
@@ -47,11 +48,11 @@ namespace('fh', function(exports) {
       Dataset.__super__.constructor.call(this, options);
     }
 
-    Dataset.prototype.fieldsByType = function(typeName) {
+    Dataset.prototype.fieldsByFhType = function(typeName) {
       var fields,
         _this = this;
       fields = this.fields.filter(function(field) {
-        return field.get('type') === typeName;
+        return field.get(fh.constants.FH_TYPE) === typeName;
       });
       return new recline.Model.FieldList(fields);
     };

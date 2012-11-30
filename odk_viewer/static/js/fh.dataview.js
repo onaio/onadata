@@ -113,12 +113,28 @@
       __extends(FeatureLayer, _super);
 
       function FeatureLayer(options) {
+        var state;
         FeatureLayer.__super__.constructor.call(this, options);
+        state = _.extend({
+          geoField: null
+        }, options.state);
+        this.state = new recline.Model.ObjectState(state);
+        this.model.fields.bind('reset', this._setGeoField, this);
+        this.model.records.bind('reset', this._reDraw, this);
       }
 
       FeatureLayer.prototype._reDraw = function() {
-        console.log(arguments);
-        return console.log("Re-drawing...");
+        var geoField;
+        this._setGeoField();
+        return geoField = this.state.get(fh.constants.GEOFIELD);
+      };
+
+      FeatureLayer.prototype._setGeoField = function() {
+        var gpsfields;
+        if (!this.state.get(fh.constants.GEOFIELD)) {
+          gpsfields = this.model.fieldsByFhType(fh.constants.GEOPOINT);
+          return this.state.set(fh.constants.GEOFIELD, gpsfields.at(0).get('id'));
+        }
       };
 
       return FeatureLayer;

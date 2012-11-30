@@ -7,6 +7,12 @@ namespace = (target, name, block) ->
 namespace 'recline.Backend.Formhub', (exports) ->
   exports.__type__ = 'formhub';
 
+  _fhToReclineType = (fhTypeName) ->
+    fhTypes = {}
+    fhTypes[fh.constants.GEOPOINT] = "geo_point"
+
+    return fhTypes[fhTypeName] or "string"
+
   _parseSchema = (schema) ->
     metadata = {}
     fields = []
@@ -21,6 +27,10 @@ namespace 'recline.Backend.Formhub', (exports) ->
               metadata.languages = _.keys(fieldObject.label)
             else
               metadata.languages = ["default"]
+          # get the fields type
+          field.type = _fhToReclineType(fieldObject[fh.constants.TYPE] ? null)
+          # store the formhub type
+          field[fh.constants.FH_TYPE] = fieldObject[fh.constants.TYPE] ? null
           #field.label = (field) ->
           #  console.log(this)
           #  if fhlabels? && typeof fhlabels is "object"
@@ -28,7 +38,7 @@ namespace 'recline.Backend.Formhub', (exports) ->
           #    return this.fhlabels["English"]
           #  else
           #    return this.fhlabels
-          field.label = fieldObject.label ? null
+          field.label = fieldObject.label? null
           fields.push(field)
         else if fieldObject.type is exports.constants.GROUP and fieldObject.hasOwnProperty(exports.constants.CHILDREN)
           parseFields(fieldObject.children)

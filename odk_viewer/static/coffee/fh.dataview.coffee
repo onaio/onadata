@@ -70,10 +70,31 @@ namespace 'fh', (exports) ->
   class exports.FeatureLayer extends Backbone.View
     constructor: (options) ->
       super options
+      # setup our state
+      state = _.extend({
+        geoField: null
+      }, options.state)
+      @state = new recline.Model.ObjectState(state)
+      # bind field.reset so we know when fields are avilable to consume -  we'll bind reDraw to geoField change as well when its updated via the  UI
+      @model.fields.bind('reset', @_setGeoField, @)
+      # bind to records.add so we re-draw the markers
+      @model.records.bind('reset', @_reDraw, @)
 
     _reDraw: () ->
-      console.log(arguments)
-      console.log("Re-drawing...")
+      # make sure we have set a geo field
+      @_setGeoField()
+      # get the geofield from the state
+      geoField = @state.get(fh.constants.GEOFIELD)
+
+    _setGeoField: () ->
+      # check if we have a geopoint in our state, if not, pick the first one from the list
+      if not @state.get(fh.constants.GEOFIELD)
+        gpsfields = @model.fieldsByFhType(fh.constants.GEOPOINT)
+        @state.set(fh.constants.GEOFIELD, gpsfields.at(0).get('id'))
+
+    # implement render in subclasses - mainly to setup legend and hexbin indicator elements - need the map object for that me thinks -
+    # or not if the map directly accesses the el and renders it, positioning to be setup by css
+    # render: () ->
 
   class exports.MarkerLayer extends exports.FeatureLayer
     constructor: (options) ->

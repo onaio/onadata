@@ -13,14 +13,14 @@ namespace 'fh', (exports) ->
     # formhub query syntax constants
     ID: "_id", START: "start", LIMIT: "limit", COUNT: "count", FIELDS: "fields",
     # others
-    GEOLOCATION: "_geolocation", GEOFIELD: "geoField"
+    GEOLOCATION: "_geolocation", GEOFIELD: "geoField", FH_TYPE: "fhType"
   };
 
   class exports.Dataset extends recline.Model.Dataset
     constructor: (options) ->
       super options
 
-    fieldsByType: (typeName) ->
+    fieldsByFhType: (typeName) ->
       fields = @fields.filter (field) =>
-        return field.get('type') is typeName
+        return field.get(fh.constants.FH_TYPE) is typeName
       return new recline.Model.FieldList(fields)
