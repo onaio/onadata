@@ -67,7 +67,7 @@
       return DataView;
 
     })(Backbone.View);
-    return exports.Map = (function(_super) {
+    exports.Map = (function(_super) {
       var MapOptions;
 
       __extends(Map, _super);
@@ -95,14 +95,19 @@
         mapOptions = new MapOptions(options);
         Map.__super__.constructor.call(this, mapOptions.attributes);
         this.template = this.options.template;
+        this.featureLayers = this.options.featureLayers;
       }
 
       Map.prototype.render = function() {
-        var template, tmplData;
+        var template, tmplData,
+          _this = this;
         tmplData = {};
         template = Mustache.render(this.template, tmplData);
         this.$el.html(template);
-        return this._setupMap();
+        this._setupMap();
+        return _.each(this.featureLayers, function(layer) {
+          return layer.render();
+        });
       };
 
       Map.prototype._setupMap = function() {
@@ -123,6 +128,37 @@
       return Map;
 
     })(Backbone.View);
+    exports.FeatureLayer = (function(_super) {
+
+      __extends(FeatureLayer, _super);
+
+      function FeatureLayer(options) {
+        FeatureLayer.__super__.constructor.call(this, options);
+        this.model.fields.bind('change', this._reDraw);
+      }
+
+      FeatureLayer.prototype._reDraw = function() {
+        console.log(arguments);
+        return console.log("Re-drawing...");
+      };
+
+      return FeatureLayer;
+
+    })(Backbone.View);
+    return exports.MarkerLayer = (function(_super) {
+
+      __extends(MarkerLayer, _super);
+
+      function MarkerLayer(options) {
+        MarkerLayer.__super__.constructor.call(this, options);
+        this.model.fields;
+      }
+
+      MarkerLayer.prototype.render = function() {};
+
+      return MarkerLayer;
+
+    })(exports.FeatureLayer);
   });
 
 }).call(this);

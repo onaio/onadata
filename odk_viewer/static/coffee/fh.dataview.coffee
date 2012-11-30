@@ -53,6 +53,7 @@ namespace 'fh', (exports) ->
       mapOptions = new MapOptions(options)
       super mapOptions.attributes
       @template = @options.template
+      @featureLayers = @options.featureLayers
 
     render: () ->
       tmplData = {}
@@ -62,12 +63,33 @@ namespace 'fh', (exports) ->
       # setup map within render so that we have a valid map container element that was just created above
       @_setupMap()
 
+      # render child layers
+      _.each @featureLayers, (layer) =>
+        layer.render()
+
     _setupMap: () ->
       @$map_el = @$el.find('.map')
       @map = new L.Map(@$map_el.get(0))
 
+      #todo: load mapbox urls through wax to got tilejson(s) - also allow for additional maps - we'll just merge the two lists before we load
       mapUrl = "http://otile{s}.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.png";
       osmAttribution = 'Map data &copy; 2011 OpenStreetMap contributors, Tiles Courtesy of <a href="http://www.mapquest.com/" target="_blank">MapQuest</a> <img src="http://developer.mapquest.com/content/osm/mq_logo.png">';
       layer = new L.TileLayer(mapUrl, {maxZoom: 18, attribution: osmAttribution ,subdomains: '1234'});
       @map.addLayer(layer)
       @map.setView(@options.center, @options.zoom)
+
+  class exports.FeatureLayer extends Backbone.View
+    constructor: (options) ->
+      super options
+      @model.fields.bind('change', this._reDraw);
+
+    _reDraw: () ->
+      console.log(arguments)
+      console.log("Re-drawing...")
+
+  class exports.MarkerLayer extends exports.FeatureLayer
+    constructor: (options) ->
+      super options
+      @model.fields
+
+    render: () ->
