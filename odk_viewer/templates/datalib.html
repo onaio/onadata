@@ -20,6 +20,7 @@
     <script type="text/javascript" charset="utf-8" src="/static/js/recline/recline.js"></script>
 
     <!-- formhub -->
+    <script type="text/javascript" charset="utf-8" src="/static/js/fh.dataset.js"></script>
     <script type="text/javascript" charset="utf-8" src="/static/js/fh.template.js"></script>
     <script type="text/javascript" charset="utf-8" src="/static/js/fh.dataview.js"></script>
     <script type="text/javascript" charset="utf-8" src="/static/js/backend.formhub.js"></script>
@@ -46,7 +47,7 @@
         {'label': gettext('Natural Earth II'), 'url': 'http://a.tiles.mapbox.com/v3/modilabs.map-1c1r9n5g.jsonp', default: false}
     ];
 
-    var dataset = new recline.Model.Dataset({
+    var dataset = new fh.Dataset({
         backend: "formhub",
         formurl: formJSONUrl,
         dataurl: mongoAPIUrl,
@@ -75,10 +76,10 @@
                 ],
                 mapboxLayers: mapboxMaps,
                 featureLayers: [
-                    {
-                        label: 'Formhub Data',
+                    new fh.MarkerLayer({
+                        label: "Markers",
                         model: dataset
-                    }
+                    })
                 ]
             })
         }
