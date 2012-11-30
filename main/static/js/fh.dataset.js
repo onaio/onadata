@@ -18,6 +18,27 @@ namespace = function(target, name, block) {
 };
 
 namespace('fh', function(exports) {
+  exports.constants = {
+    NAME: "name",
+    LABEL: "label",
+    TYPE: "type",
+    CHILDREN: "children",
+    TEXT: "text",
+    INTEGER: "integer",
+    DECIMAL: "decimal",
+    SELECT_ONE: "select one",
+    SELECT_MULTIPLE: "select multiple",
+    GROUP: "group",
+    HINT: "hint",
+    GEOPOINT: "geopoint",
+    ID: "_id",
+    START: "start",
+    LIMIT: "limit",
+    COUNT: "count",
+    FIELDS: "fields",
+    GEOLOCATION: "_geolocation",
+    GEOFIELD: "geoField"
+  };
   return exports.Dataset = (function(_super) {
 
     __extends(Dataset, _super);

@@ -19,26 +19,6 @@
   };
 
   namespace('fh', function(exports) {
-    exports.constants = {
-      NAME: "name",
-      LABEL: "label",
-      TYPE: "type",
-      CHILDREN: "children",
-      TEXT: "text",
-      INTEGER: "integer",
-      DECIMAL: "decimal",
-      SELECT_ONE: "select one",
-      SELECT_MULTIPLE: "select multiple",
-      GROUP: "group",
-      HINT: "hint",
-      GEOPOINT: "geopoint",
-      ID: "_id",
-      START: "start",
-      LIMIT: "limit",
-      COUNT: "count",
-      FIELDS: "fields",
-      GEOLOCATION: "_geolocation"
-    };
     exports.DataView = (function(_super) {
 
       __extends(DataView, _super);
@@ -134,7 +114,6 @@
 
       function FeatureLayer(options) {
         FeatureLayer.__super__.constructor.call(this, options);
-        this.model.fields.bind('change', this._reDraw);
       }
 
       FeatureLayer.prototype._reDraw = function() {
