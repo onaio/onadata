@@ -124,9 +124,13 @@
       }
 
       FeatureLayer.prototype._reDraw = function() {
-        var geoField;
+        var geoField, geoJson,
+          _this = this;
         this._setGeoField();
-        return geoField = this.state.get(fh.constants.GEOFIELD);
+        geoField = this.state.get(fh.constants.GEOFIELD);
+        return geoJson = this.model.records.each(function(record) {
+          return console.log(record);
+        });
       };
 
       FeatureLayer.prototype._setGeoField = function() {

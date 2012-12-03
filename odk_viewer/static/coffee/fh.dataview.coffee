@@ -85,6 +85,9 @@ namespace 'fh', (exports) ->
       @_setGeoField()
       # get the geofield from the state
       geoField = @state.get(fh.constants.GEOFIELD)
+      # generate the geojson - todo: we should be able to add features/points to the existing geojson for performance - look at the recline map on how
+      geoJson = @model.records.each (record) =>
+        console.log(record)
 
     _setGeoField: () ->
       # check if we have a geopoint in our state, if not, pick the first one from the list
