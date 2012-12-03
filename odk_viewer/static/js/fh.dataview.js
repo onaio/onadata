@@ -48,32 +48,18 @@
 
     })(Backbone.View);
     exports.Map = (function(_super) {
-      var MapOptions;
 
       __extends(Map, _super);
 
-      MapOptions = (function(_super1) {
-
-        __extends(MapOptions, _super1);
-
-        function MapOptions() {
-          return MapOptions.__super__.constructor.apply(this, arguments);
-        }
-
-        MapOptions.prototype.defaults = {
-          zoom: 8,
-          className: 'fh-map-container',
-          template: fh.template.map
-        };
-
-        return MapOptions;
-
-      })(Backbone.Model);
+      Map.defaults = {
+        zoom: 8,
+        className: 'fh-map-container',
+        template: fh.template.map
+      };
 
       function Map(options) {
-        var mapOptions;
-        mapOptions = new MapOptions(options);
-        Map.__super__.constructor.call(this, mapOptions.attributes);
+        options = _.extend(exports.Map.defaults, options);
+        Map.__super__.constructor.call(this, options);
         this.template = this.options.template;
         this.featureLayers = this.options.featureLayers;
       }

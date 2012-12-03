@@ -30,17 +30,15 @@ namespace 'fh', (exports) ->
 
 
   class exports.Map extends Backbone.View
-
-    class MapOptions extends Backbone.Model
-      defaults: {
-        zoom: 8,
-        className: 'fh-map-container',
-        template: fh.template.map
-      }
+    @defaults: {
+      zoom: 8,
+      className: 'fh-map-container',
+      template: fh.template.map
+    }
 
     constructor: (options) ->
-      mapOptions = new MapOptions(options)
-      super mapOptions.attributes
+      options = _.extend(exports.Map.defaults, options)
+      super options
       @template = @options.template
       @featureLayers = @options.featureLayers
 
