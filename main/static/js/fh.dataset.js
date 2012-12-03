@@ -31,7 +31,7 @@ namespace('fh', function(exports) {
     GROUP: "group",
     HINT: "hint",
     GEOPOINT: "geopoint",
-    ID: "_id",
+    _ID: "_id",
     START: "start",
     LIMIT: "limit",
     COUNT: "count",
