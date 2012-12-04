@@ -33,7 +33,7 @@ namespace 'fh', (exports) ->
     @defaults: {
       zoom: 8,
       className: 'fh-map-container',
-      template: fh.template.map
+      template: exports.template.map
     }
 
     constructor: (options) ->
@@ -85,7 +85,7 @@ namespace 'fh', (exports) ->
     }
 
     constructor: (options) ->
-      options = _.extend(exports.Map.defaults, options)
+      options = _.extend(exports.FeatureLayer.defaults, options)
       super options
 
       # setup our state
@@ -106,20 +106,27 @@ namespace 'fh', (exports) ->
     # or not if the map directly accesses the el and renders it, positioning to be setup by css
     # render: () ->
 
+    _setGeoField: () ->
+      # check if we have a geopoint in our state, if not, pick the first one from the list
+      if not @state.get(exports.constants.GEOFIELD)
+        gpsfields = @model.fieldsByFhType(exports.constants.GEOPOINT)
+        @state.set(exports.constants.GEOFIELD, gpsfields.at(0).get('id'))
+
     _reDraw: () ->
       # make sure we have set a geo field
       @_setGeoField()
 
-    _setGeoField: () ->
-      # check if we have a geopoint in our state, if not, pick the first one from the list
-      if not @state.get(fh.constants.GEOFIELD)
-        gpsfields = @model.fieldsByFhType(fh.constants.GEOPOINT)
-        @state.set(fh.constants.GEOFIELD, gpsfields.at(0).get('id'))
 
   class exports.MarkerLayer extends exports.FeatureLayer
+    @defaults: {
+      idField: "id"
+    }
+
     constructor: (options) ->
+      options = _.extend(exports.MarkerLayer.defaults, options)
       super options
       @model.fields
+      @idField = options.idField
       @layer = new L.LayerGroup()
 
     render: () ->
@@ -132,7 +139,7 @@ namespace 'fh', (exports) ->
       @layer.clearLayers()
 
       # get the geofield from the state
-      geoField = @state.get(fh.constants.GEOFIELD)
+      geoField = @state.get(exports.constants.GEOFIELD)
 
       # generate the geojson - todo: we should be able to add features/points to the existing geojson for performance - look at the recline map on how
       features = @model.records.reduce ( (featuresMemo, record, records) =>
@@ -145,7 +152,7 @@ namespace 'fh', (exports) ->
           lng =geoparts[1]
           @bounds.extend(new L.LatLng(lat, lng))
           # todo: every record needs to have an id since this can come forms source thats not formhub, perhaps an option setting idField
-          id = record.get('_id')
+          id = record.get(@idField)
           geometry = {"type":"Point", "coordinates": [lng, lat]};
           feature = {"type": "Feature", "id": id, "geometry":geometry, "properties": record.attributes};
           featuresMemo.push(feature)

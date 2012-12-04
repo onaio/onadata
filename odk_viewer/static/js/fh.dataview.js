@@ -54,7 +54,7 @@
       Map.defaults = {
         zoom: 8,
         className: 'fh-map-container',
-        template: fh.template.map
+        template: exports.template.map
       };
 
       function Map(options) {
@@ -115,7 +115,7 @@
 
       function FeatureLayer(options) {
         var state;
-        options = _.extend(exports.Map.defaults, options);
+        options = _.extend(exports.FeatureLayer.defaults, options);
         FeatureLayer.__super__.constructor.call(this, options);
         state = _.extend({
           geoField: null
@@ -127,16 +127,16 @@
         this.bounds = new L.LatLngBounds();
       }
 
-      FeatureLayer.prototype._reDraw = function() {
-        return this._setGeoField();
-      };
-
       FeatureLayer.prototype._setGeoField = function() {
         var gpsfields;
-        if (!this.state.get(fh.constants.GEOFIELD)) {
-          gpsfields = this.model.fieldsByFhType(fh.constants.GEOPOINT);
-          return this.state.set(fh.constants.GEOFIELD, gpsfields.at(0).get('id'));
+        if (!this.state.get(exports.constants.GEOFIELD)) {
+          gpsfields = this.model.fieldsByFhType(exports.constants.GEOPOINT);
+          return this.state.set(exports.constants.GEOFIELD, gpsfields.at(0).get('id'));
         }
+      };
+
+      FeatureLayer.prototype._reDraw = function() {
+        return this._setGeoField();
       };
 
       return FeatureLayer;
@@ -146,9 +146,15 @@
 
       __extends(MarkerLayer, _super);
 
+      MarkerLayer.defaults = {
+        idField: "id"
+      };
+
       function MarkerLayer(options) {
+        options = _.extend(exports.MarkerLayer.defaults, options);
         MarkerLayer.__super__.constructor.call(this, options);
         this.model.fields;
+        this.idField = options.idField;
         this.layer = new L.LayerGroup();
       }
 
@@ -159,7 +165,7 @@
           _this = this;
         MarkerLayer.__super__._reDraw.apply(this, arguments);
         this.layer.clearLayers();
-        geoField = this.state.get(fh.constants.GEOFIELD);
+        geoField = this.state.get(exports.constants.GEOFIELD);
         features = this.model.records.reduce((function(featuresMemo, record, records) {
           var feature, geometry, geoparts, geopoint, id, lat, lng;
           geopoint = record.get(geoField);
@@ -168,7 +174,7 @@
             lat = geoparts[0];
             lng = geoparts[1];
             _this.bounds.extend(new L.LatLng(lat, lng));
-            id = record.get('_id');
+            id = record.get(_this.idField);
             geometry = {
               "type": "Point",
               "coordinates": [lng, lat]
