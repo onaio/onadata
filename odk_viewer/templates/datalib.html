@@ -56,13 +56,6 @@
 
     var views = [
         {
-            id: 'grid',
-            label: 'Grid',
-            view: new recline.View.Grid({
-                model: dataset
-            })
-        },
-        {
             id: 'map',
             label: 'Map',
             view: new fh.Map({
@@ -78,9 +71,17 @@
                 featureLayers: [
                     new fh.MarkerLayer({
                         label: "Markers",
-                        model: dataset
+                        model: dataset,
+                        idField: fh.constants._ID
                     })
                 ]
+            })
+        },
+        {
+            id: 'grid',
+            label: 'Grid',
+            view: new recline.View.Grid({
+                model: dataset
             })
         }
     ];
