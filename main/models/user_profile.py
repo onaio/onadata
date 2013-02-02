@@ -4,6 +4,8 @@ from django.utils.translation import ugettext_lazy
 from utils.country_field import COUNTRIES
 from utils.gravatar import get_gravatar_img_link, gravatar_exists
 from django.db.models.signals import post_save
+from django.conf import settings
+
 
 class UserProfile(models.Model):
     # This field is required.
@@ -21,11 +23,22 @@ class UserProfile(models.Model):
             verbose_name=ugettext_lazy("Require Phone Authentication"))
 
     @property
+    def _show_gravatar(self):
+        if hasattr(settings, 'GRAVATAR_LIVE'):
+            if not settings.GRAVATAR_LIVE:
+                return False
+        return True
+
+    @property
     def gravatar(self):
+        if not self._show_gravatar:
+            return "/static/images/formhub_avatar.png"
         return get_gravatar_img_link(self.user)
 
     @property
     def gravatar_exists(self):
+        if not self._show_gravatar:
+            return True
         return gravatar_exists(self.user)
 
     class Meta:
