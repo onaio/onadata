@@ -459,6 +459,7 @@ span > .inactive {
   background-position: 50% 50%;
   padding: 0px 2px;
 }
+/*
 .icon-large.icon-map-marker {
   background-image: url("../images/view_icons_sprite.png");
   background-position: 0 -886px;
@@ -466,7 +467,7 @@ span > .inactive {
 .icon-large.icon-camera {
   background-image: url("../images/view_icons_sprite.png");
   background-position: 0 -1046px;
-}
+}*/
 .icon-large.icon-edit {
   background-image: url("../images/view_icons_sprite.png");
   background-position: 0 -726px;
