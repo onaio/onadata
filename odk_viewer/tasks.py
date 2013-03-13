@@ -9,7 +9,7 @@ from utils.logger_tools import mongo_sync_status
 from pandas_mongo_bridge import NoRecordsFoundError
 
 
-def create_async_export(xform, export_type, query, force_xlsx):
+def create_async_export(xform, export_type, query = None, force_xlsx = False):
     username = xform.user.username
     id_string = xform.id_string
 
