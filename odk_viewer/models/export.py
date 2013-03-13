@@ -13,6 +13,11 @@ def export_delete_callback(sender, **kwargs):
     storage = get_storage_class()()
     if export.filepath and storage.exists(export.filepath):
         storage.delete(export.filepath)
+        
+    # check for async task and delete only if export is still pending
+    if export.internal_status == Export.PENDING and export.task_id:
+        result = AsyncResult(export.task_id)
+        result.revoke()
 
 
 class Export(models.Model):
