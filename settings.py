@@ -103,6 +103,7 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 #    'django.contrib.staticfiles.finders.DefaultStorageFinder',
+    'compressor.finders.CompressorFinder',
 )
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j'
@@ -115,6 +116,7 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'django.middleware.gzip.GZipMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     # 'django.middleware.locale.LocaleMiddleware',
@@ -163,11 +165,21 @@ INSTALLED_APPS = (
     'guardian',
     'djcelery',
     'stats',
+    'compressor',
 )
 
 USE_THOUSAND_SEPARATOR = True
 
 COMPRESS = True
+
+COMPRESS_ENABLED = True
+
+COMPRESS_CSS_FILTERS = [
+     'compressor.filters.cssmin.CSSMinFilter'
+]
+COMPRESS_JS_FILTERS = [
+     'compressor.filters.jsmin.JSMinFilter'
+]
 
 # extra data stored with users
 AUTH_PROFILE_MODULE = 'main.UserProfile'
