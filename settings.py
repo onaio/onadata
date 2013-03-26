@@ -175,7 +175,8 @@ COMPRESS = True
 COMPRESS_ENABLED = True
 
 COMPRESS_CSS_FILTERS = [
-     'compressor.filters.cssmin.CSSMinFilter'
+     'compressor.filters.cssmin.CSSMinFilter',
+     'compressor.filters.css_default.CssAbsoluteFilter',
 ]
 COMPRESS_JS_FILTERS = [
      'compressor.filters.jsmin.JSMinFilter'

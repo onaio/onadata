@@ -13,12 +13,16 @@
     <![endif]-->
 
     <!-- Le styles -->
-
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+    <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome.css" rel="stylesheet">
+	{% load compress %}
+	{% compress css %}
     <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/css/screen.css?v=5a0c14eab764" rel="stylesheet">
-    <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome.css" rel="stylesheet">
-    <!--[if lte IE 8]>
+    <link href="/static/css/iphone-btn-style.css" rel="stylesheet">
+    {% block css-headers %}{% endblock %}
+   	{% endcompress %}
+	<!--[if lte IE 8]>
       <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome-ie7.css" rel="stylesheet">
     <![endif]-->
 	{% if user.is_authenticated %}
@@ -27,23 +31,23 @@
 	{% if not user.is_authenticated %}
 		<link href="/static/css/bg.css" rel="stylesheet">
 	{% endif %}
-    <link href="/static/css/iphone-btn-style.css" rel="stylesheet">
-
-    <!-- Le javascript -->
-		<script type="text/javascript" src="{% url django.views.i18n.javascript_catalog %}"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script src="/static/js/jquery.tablesorter.min.js"></script>
-    <script src="/static/js/application.js?v=e78f17a2352b"></script>
-    <script src="/static/js/iphone-style-checkboxes.js"></script>
-
-    <script src="/static/bootstrap/js/bootstrap.js"></script>
 
     <!-- Le fav and touch icons -->
     <link rel="shortcut icon" type="image/x-icon" href="/static/images/favicon.ico">
     <link rel="apple-touch-icon" href="/static/bootstrap/docs/assets/ico/bootstrap-apple-57x57.png">
     <link rel="apple-touch-icon" sizes="72x72" href="/static/bootstrap/docs/assets/ico/bootstrap-apple-72x72.png">
     <link rel="apple-touch-icon" sizes="114x114" href="/static/bootstrap/docs/assets/ico/bootstrap-apple-114x114.png">
-
+	
+	<!-- Le Scripts -->
+	<script type="text/javascript" src="{% url django.views.i18n.javascript_catalog %}"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+	{% compress js%}
+	<script src="/static/js/jquery.tablesorter.min.js"></script>
+    <script src="/static/js/application.js?v=e78f17a2352b"></script>
+    <script src="/static/js/iphone-style-checkboxes.js"></script>
+    <script src="/static/bootstrap/js/bootstrap.js"></script>
+	{% endcompress %}
+	
     <!-- spot to insert stuff for google maps -->
     {% block additional-headers %}{% endblock %}
 
@@ -90,9 +94,8 @@
         {{ content|safe }}
       {% endblock %}
     </div>
-
     {% include "footer.html" %}
+	{% block additional-js %}{% endblock %}
   </body>
   {% endblock %}
-
 </html>
