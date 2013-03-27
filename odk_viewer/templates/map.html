@@ -38,6 +38,7 @@
 	}
 	$(document).ready(function() {
 	    setMapHeight();
+		initialize();
 	    $('#progress-modal').modal({
 	        keyboard: false
 	    });
@@ -49,13 +50,13 @@
 <script src="/static/js/underscore-min.js" type="text/javascript"></script>
 <script src="/static/js/d3.js" type="text/javascript"></script>
 <script src="/static/js/dv.js" type="text/javascript"></script>
-<script src="/static/js/hex.js" type="text/javascript"></script>
 <script src="/static/js/d3.hexbin.js" type="text/javascript"></script>
+<script src="/static/js/hex.js" type="text/javascript"></script>
 {% endcompress %}
 {% endblock %}
 
 {% block body %}
-<body onload="initialize()">
+<body>
   {% include "topbar.html" %}
   
   {% if mapbox_layer %}
