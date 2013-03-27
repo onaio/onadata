@@ -82,9 +82,10 @@ class DataDictionary(XForm):
 
     def save(self, *args, **kwargs):
         if self.xls:
-            survey = create_survey_from_xls(self.xls)
-            self.json = survey.to_json()
-            self.xml = survey.to_xml()
+            if not self.xml:
+                survey = create_survey_from_xls(self.xls)
+                self.json = survey.to_json()
+                self.xml = survey.to_xml()
             self._mark_start_time_boolean()
             set_uuid(self)
             self._set_uuid_in_xml()
