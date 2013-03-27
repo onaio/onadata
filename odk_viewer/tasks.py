@@ -6,7 +6,9 @@ from django.core.mail import mail_admins
 from odk_viewer.models import Export
 from utils.export_tools import generate_export
 from utils.logger_tools import mongo_sync_status
+from utils.logger_tools import publish_xls_form
 from pandas_mongo_bridge import NoRecordsFoundError
+from tempfile import NamedTemporaryFile
 
 
 def create_async_export(xform, export_type, query, force_xlsx):
@@ -91,3 +93,9 @@ def email_mongo_sync_status():
                    "python manage.py sync_mongo -ra [username] [id_string]\n"
     # send email
     mail_admins("Mongo DB sync status", report_string)
+
+@task
+def publish_xlsform_task(file_name, id_string, username):
+    #survey = form.publish(user).survey
+    return publish_xls_form(file_name, username, id_string)
+
