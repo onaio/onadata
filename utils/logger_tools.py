@@ -5,6 +5,7 @@ import pytz
 import re
 import tempfile
 import traceback
+import requests
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -19,6 +20,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from pyxform.errors import PyXFormError
+from pyxform.builder import create_survey_from_xls
 import sys
 import common_tags
 
@@ -259,21 +261,50 @@ def publish_form(callback):
         }
 
 def publish_xls_form(xls_file, user, id_string=None):
+    """Creates or updates a DataDictionary with supplied xls_file, user
+    and optional id_string - if updating
     """
-    Creates or updates a DataDictionary with supplied xls_file, user and optional id_string - if updating
-    """
-    # get or create DataDictionary based on user and id string
-    if id_string:
-        dd = DataDictionary.objects.get(user=user,
-            id_string=id_string)
-        dd.xls = xls_file
-        dd.save()
-        return dd
-    else:
-        return DataDictionary.objects.create(
-            user=user,
-            xls=xls_file
-        )
+    def create_data_dictionary(xls_file, user, id_string, xml_data, json_data):
+         # get or create DataDictionary based on user and id string
+        if id_string:
+            dd = DataDictionary.objects.get(user=user,
+                id_string=id_string)
+            dd.xls = xls_file
+            dd.xml = xml_data
+            dd.json = json_data
+            dd.save()
+            return dd
+        else:
+            return DataDictionary.objects.create(
+                user=user,
+                xls=xls_file,
+                xml=xml_data,
+                json=json_data
+            )
+    if isinstance(user, basestring):
+        user = User.objects.get(username=user)
+    if isinstance(xls_file, basestring):
+        if os.path.exists(xls_file):
+            xls_file = open(xls_file, 'rb')
+    if not hasattr(settings, 'PYXFORM_SERVICE_URL'):
+        survey = create_survey_from_xls(xls_file)
+        return create_data_dictionary(
+                xls_file, user, id_string, survey.to_xml(), survey.to_json())
+
+    files = {'xlsform_file': xls_file}
+    response = requests.post(settings.PYXFORM_SERVICE_URL, files=files)
+    if response.status_code == 200 and\
+            response.headers.get('content-type', None) == 'application/json' and\
+            response.json.get('status', None) == 'success':
+        xml_data = response.json['xml']
+        json_data = response.json['json']
+        return create_data_dictionary(
+            xls_file, user, id_string, xml_data, json_data)
+    if response.status_code == 400 and\
+            response.headers.get('content-type', None) == 'application/json' and\
+            response.json.get('status', None) == 'error':
+        raise Exception(response.json['message'])
+    raise Exception(u"Error: Processing xlsform")
 
 
 class OpenRosaResponse(HttpResponse):
