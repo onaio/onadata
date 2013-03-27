@@ -19,6 +19,7 @@ from registration.forms import RegistrationFormUniqueEmail
 from registration.models import RegistrationProfile
 from utils.country_field import COUNTRIES
 from utils.logger_tools import publish_xls_form
+from odk_viewer.tasks import publish_xlsform_task
 
 FORM_LICENSES_CHOICES = (
     ('No License', ugettext_lazy('No License')),
@@ -246,5 +247,10 @@ class QuickConverter(QuickConverterFile, QuickConverterURL):
                 xls_data = ContentFile(urllib2.urlopen(cleaned_url).read())
                 cleaned_xls_file = \
                     default_storage.save(cleaned_xls_file, xls_data)
+            xls_data = cleaned_xls_file.read()
+            path = upload_to(None, cleaned_xls_file.name, user.username)
+            path = default_storage.save(path, ContentFile(xls_data))
+            path = default_storage.path(path)
+            publish_xlsform_task.apply_async((path, user.username, id_string))
             # publish the xls
-            return publish_xls_form(cleaned_xls_file, user, id_string)
+            return publish_xls_form(path, user, id_string)
