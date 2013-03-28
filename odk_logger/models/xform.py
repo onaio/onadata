@@ -191,19 +191,27 @@ class XForm(models.Model):
             bind_type = element.bind.get("type")
             label = element.label
             # bamboo converts slashes to underscrore, lets do the same
-            key = "_".join(element.get_abbreviated_xpath().split("/"))
+            # key = "_".join(element.get_abbreviated_xpath().split("/"))
+            key = element.get_abbreviated_xpath()
             sdf[key] = parse_to_sdf(bind_type, label)
             # if its a geopoint, split it into its components
             if bind_type == "geopoint":
+                # get the xpath component before the element's name
+                last_slash_pos = key.rfind("/")
+                new_key = key
+                if last_slash_pos > -1:
+                    new_key = "%s_%s" % (key[:last_slash_pos + 1], element.name)
+                else:
+                    new_key = "_%s" % new_key
                 for part in ["latitude", "longitude", "altitude", "precision"]:
-                    sdf["_%s_%s" % (key, part)] = parse_to_sdf(
-                        "decimal", "_%s_%s" % (element.name, part))
+                    sdf["%s_%s" % (new_key, part)] = parse_to_sdf(
+                        "decimal", "%s_%s" % ("_".join(new_key.split("/")), part))
 
             # if is a select multiple, create question for each choice
             if bind_type == "select":
                 choices = dict([(c.name, c.label) for c in element.children])
                 for name, label in choices.iteritems():
-                    sdf["%s_%s" % (key, name)] = parse_to_sdf("boolean", label)
+                    sdf["%s/%s" % (key, name)] = parse_to_sdf("boolean", label)
 
         # add _uuid and _submission_time
         # todo: how do we combine this with extra fields from export code

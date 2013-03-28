@@ -403,7 +403,7 @@ class TestFormShow(MainTestCase):
                 'simpletype': 'integer',
                 'label': u'2. How old are you?'
             },
-            u'meta_instanceID':
+            u'meta/instanceID':
             {
                 'olap_type': 'dimension',
                 'simpletype': 'string',
@@ -422,7 +422,7 @@ class TestFormShow(MainTestCase):
                 'simpletype': 'float',
                 'label': u'7. How much did you spend on food yesterday?'
             },
-            u'meals_group_breakfast':
+            u'meals_group/breakfast':
             {
                 'olap_type': 'dimension',
                 'simpletype': 'string',
@@ -440,25 +440,25 @@ class TestFormShow(MainTestCase):
                 'simpletype': 'list',
                 'label': u'6. What web browsers do you use?'
             },
-            u'web_browsers_chrome':
+            u'web_browsers/chrome':
             {
                 'olap_type': 'dimension',
                 'simpletype': 'boolean',
                 'label': u'Google Chrome'
             },
-            u'web_browsers_firefox':
+            u'web_browsers/firefox':
             {
                 'olap_type': 'dimension',
                 'simpletype': 'boolean',
                 'label': u'Mozilla Firefox'
             },
-            u'web_browsers_safari':
+            u'web_browsers/safari':
             {
                 'olap_type': 'dimension',
                 'simpletype': 'boolean',
                 'label': u'Safari'
             },
-            u'web_browsers_ie':
+            u'web_browsers/ie':
             {
                 'olap_type': 'dimension',
                 'simpletype': 'boolean',
@@ -493,6 +493,36 @@ class TestFormShow(MainTestCase):
                 'olap_type': 'measure',
                 'simpletype': 'float',
                 'label': u'_gps_precision'
+            },
+            u'location/gps':
+            {
+                'olap_type': 'dimension',
+                'simpletype': 'string',
+                'label': u'12.1 What is your location again?'
+            },
+            u'location/_gps_latitude':
+            {
+                'olap_type': 'measure',
+                'simpletype': 'float',
+                'label': u'location__gps_latitude'
+            },
+            u'location/_gps_longitude':
+            {
+                'olap_type': 'measure',
+                'simpletype': 'float',
+                'label': u'location__gps_longitude'
+            },
+            u'location/_gps_altitude':
+            {
+                'olap_type': 'measure',
+                'simpletype': 'float',
+                'label': u'location__gps_altitude'
+            },
+            u'location/_gps_precision':
+            {
+                'olap_type': 'measure',
+                'simpletype': 'float',
+                'label': u'location__gps_precision'
             },
             u'_uuid':
             {
