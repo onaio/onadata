@@ -95,7 +95,7 @@ def email_mongo_sync_status():
     mail_admins("Mongo DB sync status", report_string)
 
 @task
-def publish_xlsform_task(file_name, id_string, username):
+def publish_xlsform_task(file_name, username, id_string):
     #survey = form.publish(user).survey
-    return publish_xls_form(file_name, username, id_string)
-
+    dd = publish_xls_form(file_name, username, id_string)
+    return dd.pk
