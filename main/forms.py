@@ -23,7 +23,7 @@ from odk_viewer.tasks import publish_xlsform_task
 
 FORM_LICENSES_CHOICES = (
     ('No License', ugettext_lazy('No License')),
-    ('https://creativecommons.org/licenses/by/3.0/', 
+    ('https://creativecommons.org/licenses/by/3.0/',
      ugettext_lazy('Attribution CC BY')),
     ('https://creativecommons.org/licenses/by-sa/3.0/',
      ugettext_lazy('Attribution-ShareAlike CC BY-SA')),
@@ -31,11 +31,11 @@ FORM_LICENSES_CHOICES = (
 
 DATA_LICENSES_CHOICES = (
     ('No License', ugettext_lazy('No License')),
-    ('http://opendatacommons.org/licenses/pddl/summary/', 
+    ('http://opendatacommons.org/licenses/pddl/summary/',
      ugettext_lazy('PDDL')),
     ('http://opendatacommons.org/licenses/by/summary/',
      ugettext_lazy('ODC-BY')),
-    ('http://opendatacommons.org/licenses/odbl/summary/', 
+    ('http://opendatacommons.org/licenses/odbl/summary/',
      ugettext_lazy('ODBL')),
 )
 
@@ -188,17 +188,17 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
 
 
 class SourceForm(forms.Form):
-    source = forms.FileField(label=ugettext_lazy(u"Source document"), 
+    source = forms.FileField(label=ugettext_lazy(u"Source document"),
                              required=True)
 
 
 class SupportDocForm(forms.Form):
-    doc = forms.FileField(label=ugettext_lazy(u"Supporting document"), 
+    doc = forms.FileField(label=ugettext_lazy(u"Supporting document"),
                           required=True)
 
 
 class MediaForm(forms.Form):
-    media = forms.FileField(label=ugettext_lazy(u"Media upload"), 
+    media = forms.FileField(label=ugettext_lazy(u"Media upload"),
                             required=True)
 
     def clean_media(self):
@@ -251,6 +251,7 @@ class QuickConverter(QuickConverterFile, QuickConverterURL):
             path = upload_to(None, cleaned_xls_file.name, user.username)
             path = default_storage.save(path, ContentFile(xls_data))
             path = default_storage.path(path)
-            publish_xlsform_task.apply_async((path, user.username, id_string))
+            k = publish_xlsform_task.apply_async(
+                (path, user.username, id_string))
             # publish the xls
-            return publish_xls_form(path, user, id_string)
+            return k.task_id  # return publish_xls_form(path, user, id_string)
