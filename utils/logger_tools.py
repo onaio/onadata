@@ -10,6 +10,7 @@ import requests
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.files.base import File
 from django.core.files.storage import get_storage_class
 from django.core.mail import mail_admins
 from django.core.servers.basehttp import FileWrapper
@@ -299,7 +300,7 @@ def publish_xls_form(xls_file, user, id_string=None):
         xml_data = response.json['xml']
         json_data = response.json['json']
         return create_data_dictionary(
-            xls_file, user, id_string, xml_data, json_data)
+            File(xls_file), user, id_string, xml_data, json_data)
     if response.status_code == 400 and\
             response.headers.get('content-type', None) == 'application/json' and\
             response.json.get('status', None) == 'error':
