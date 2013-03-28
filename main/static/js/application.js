@@ -221,3 +221,35 @@ function privacyEdit(url, param) {
     $.post(url, {toggle_shared: param});
 }
 
+checkXLSFormPublishProgress = function(task_id, url){
+    var req_options = {
+        url:url,
+        type: "POST",
+        data: {task_id: task_id},
+        dataType: 'json'
+    }
+    var checkProgress = function(){
+        var xhrq = $.ajax(req_options);
+        xhrq.done(function(data){
+            if(data.text){
+                $('.alert').html(data.text);
+            }
+            if(data.status == 'SUCCESS'){
+                $('.alert').removeClass('alert-info alert-error')
+                $('.alert').addClass('alert-success')
+                return true;
+            }
+            if(data.status == 'FAILURE'){
+                $('.alert').removeClass('alert-info alert-success')
+                $('.alert').addClass('alert-error')
+                return false;
+            }
+            setTimeout(checkProgress, 1000);
+        });
+        xhrq.error(function(error){
+            console.log("An error occured", error);
+        });
+    };
+    setTimeout(checkProgress, 1000);
+};
+

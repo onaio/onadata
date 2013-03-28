@@ -141,5 +141,13 @@
     </div> 
   </section>
   {% endif %}
+
+  {% if message and message.task_id %}
+  <script type="text/javascript">
+      $(document).ready(function(){
+        checkXLSFormPublishProgress('{{ message.task_id }}', '{% url main.views.xlsform_progress content_user.username %}');
+        });
+  </script>
+  {% endif %}
   {% endblock %}
   
