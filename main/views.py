@@ -4,6 +4,7 @@ import os
 import urllib2
 import json
 from django import forms
+from django.db import IntegrityError
 from django.core.urlresolvers import reverse
 from django.core.files.storage import default_storage, get_storage_class
 from django.contrib.auth.decorators import login_required
@@ -33,6 +34,7 @@ from odk_viewer.models.parsed_instance import GLOBAL_SUBMISSION_STATS,\
     DATETIME_FORMAT
 from odk_viewer.views import image_urls_for_form, survey_responses, \
     attachment_url
+from odk_viewer.tasks import publish_xlsform_task
 from stats.models import StatsCount
 from stats.tasks import stat_log
 from utils.decorators import is_owner
@@ -133,25 +135,12 @@ def profile(request, username):
     if request.method == 'POST' and request.user.is_authenticated():
         def set_form():
             form = QuickConverter(request.POST, request.FILES)
-            survey = form.publish(request.user).survey
-            audit = {}
-            audit_log(
-                Actions.FORM_PUBLISHED, request.user, content_user,
-                _("Published form '%(id_string)s'.") %
-                {
-                    'id_string': survey.id_string,
-                }, audit, request)
-            enketo_webform_url = reverse(
-                enter_data,
-                kwargs={'username': username, 'id_string': survey.id_string}
-            )
-            return {
-                'type': 'alert-success',
-                'text': _(u'Successfully published %(form_id)s.'
-                          u' <a href="%(form_url)s">Enter Web Form</a>')
-                        % {'form_id': survey.id_string,
-                            'form_url': enketo_webform_url}
-            }
+            task_id = form.publish(request.user)
+            if task_id:
+                return {'type': 'alert-info',
+                        'text': _(u"XLSForm is being processed."),
+                        'task_id': task_id
+                }
         context.message = publish_form(set_form)
 
     # profile view...
@@ -1158,3 +1147,49 @@ def qrcode(request, username, id_string):
     img = u"""<img class="qrcode" src="%s" alt="%s" /></br><a href="%s" target="_blank">%s</a>""" % (image, url, url, url)
 
     return HttpResponse(img, mimetype='text/html')
+
+
+@require_POST
+def xlsform_progress(request, username):
+    data = {}
+    content_user = get_object_or_404(User, username=username)
+    task_id = request.POST.get('task_id', None)
+    if task_id:
+        rs = publish_xlsform_task.AsyncResult(task_id)
+        data['status'] = rs.status
+        if rs.successful():
+            survey = get_object_or_404(DataDictionary, pk=rs.result)
+            audit = {}
+            audit_log(
+                Actions.FORM_PUBLISHED, request.user, content_user,
+                _("Published form '%(id_string)s'.") %
+                {
+                    'id_string': survey.id_string,
+                }, audit, request)
+            enketo_webform_url = reverse(
+                enter_data,
+                kwargs={'username': username, 'id_string': survey.id_string}
+            )
+            data.update({
+                'type': 'alert-success',
+                'text': _(u'Successfully published %(form_id)s.'
+                          u' <a href="%(form_url)s">Enter Web Form</a>')
+                        % {'form_id': survey.id_string,
+                            'form_url': enketo_webform_url}
+            })
+        elif rs.failed():
+            if isinstance(rs.result, IntegrityError):
+                tmp = unicode(rs.result)
+                tmp = tmp[tmp.find(u"'") + 1:]
+                tmp = tmp[:tmp.find(u"'")]
+                data['text'] = _(u"Duplicate entry: <b>%(id_string)s</b>"
+                                 u" has already been published."
+                                 % {'id_string': tmp})
+            else:
+                data['text'] = u"%s" % rs.result
+        else:
+            pass
+    else:
+        data['status'] = 'error'
+        data['text'] = _(u"Error:Missing task id!")
+    return HttpResponse(json.dumps(data), mimetype='application/json')

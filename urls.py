@@ -9,7 +9,7 @@ admin.autodiscover()
 urlpatterns = patterns('',
     #change Language
     (r'^i18n/', include('django.conf.urls.i18n')),
-    
+
     # django default stuff
     url(r'^accounts/', include('main.registration_urls')),
     url(r'^admin/', include(admin.site.urls)),
@@ -40,11 +40,12 @@ urlpatterns = patterns('',
     url(r'^login_redirect/$', 'main.views.login_redirect'),
     url(r"^attachment/$", 'odk_viewer.views.attachment_url'),
     url(r"^attachment/(?P<size>[^/]+)$", 'odk_viewer.views.attachment_url'),
-    url(r'^jsi18n/$', 'django.views.i18n.javascript_catalog', 
+    url(r'^jsi18n/$', 'django.views.i18n.javascript_catalog',
         {'packages': ('main', 'odk_viewer',)}),
     url(r'^(?P<username>[^/]+)/$', 'main.views.profile', name='user_profile'),
     url(r'^(?P<username>[^/]+)/profile$', 'main.views.public_profile', name='public_profile'),
     url(r'^(?P<username>[^/]+)/settings', 'main.views.profile_settings'),
+    url(r'^(?P<username>[^/]+)/xlsform-progress', 'main.views.xlsform_progress'),
     url(r'^(?P<username>[^/]+)/cloneform$', 'main.views.clone_xlsform'),
     url(r'^(?P<username>[^/]+)/activity$', 'main.views.activity'),
     url(r'^(?P<username>[^/]+)/activity/api$', 'main.views.activity_api'),
