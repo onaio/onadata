@@ -8,6 +8,7 @@ import pytz
 from datetime import datetime
 from itertools import chain
 from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse, HttpResponseBadRequest, \
@@ -27,7 +28,7 @@ from odk_viewer.models import ParsedInstance
 
 from utils.logger_tools import create_instance, OpenRosaResponseBadRequest, \
     OpenRosaResponseNotAllowed, OpenRosaResponse, OpenRosaResponseNotFound,\
-    inject_instanceid
+    inject_instanceid, remove_xform
 from models import XForm, Instance
 from main.models import UserProfile, MetaData
 from utils.logger_tools import response_with_mimetype_and_name
@@ -172,9 +173,12 @@ def xformsManifest(request, username, id_string):
     return response
 
 
-@require_POST
+@require_http_methods(["HEAD", "POST"])
 @csrf_exempt
 def submission(request, username=None):
+    if request.method == 'HEAD':
+        # TODO Http Digest Authentication
+        return OpenRosaResponse(status=204)
     context = RequestContext(request)
     xml_file_list = []
     media_files = []
@@ -347,7 +351,10 @@ def download_jsonform(request, username, id_string):
 def delete_xform(request, username, id_string):
     xform = get_object_or_404(XForm, user__username=username,
                               id_string=id_string)
-    xform.delete()
+
+    # delete xform and submissions
+    remove_xform(xform)
+
     audit = {}
     audit_log(Actions.FORM_DELETED, request.user, xform.user,
         _("Deleted form '%(id_string)s'.") %\

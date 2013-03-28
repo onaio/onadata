@@ -85,7 +85,11 @@ def _is_invalid_for_mongo(key):
 def update_mongo_instance(record):
     # since our dict always has an id, save will always result in an upsert op - so we dont need to worry whether its an edit or not
     # http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.save
-    return xform_instances.save(record)
+    try:
+        return xform_instances.save(record)
+    except Exception:
+        # todo: mail admins about the exception
+        pass
 
 
 class ParsedInstance(models.Model):
@@ -117,12 +121,11 @@ class ParsedInstance(models.Model):
         query[cls.USERFORM_ID] = u'%s_%s' % (username, id_string)
         if hide_deleted:
             #display only active elements
-            query.update(
-                {"$or":
-                 [{"_deleted_at": {"$exists": False}},
-                 {"_deleted_at": None}]
-                 }
-            )
+            deleted_at_query = {
+                "$or": [{"_deleted_at": {"$exists": False}},
+                        {"_deleted_at": None}]}
+            # join existing query with deleted_at_query on an $and
+            query = {"$and": [query, deleted_at_query]}
         # fields must be a string array i.e. '["name", "age"]'
         fields = json.loads(
             fields, object_hook=json_util.object_hook) if fields else []

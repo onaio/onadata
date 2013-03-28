@@ -5,7 +5,8 @@ from tempfile import NamedTemporaryFile
 import urllib2
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+# from django.test import TestCase
+from django_nose import FastFixtureTestCase as TestCase
 from django.test.client import Client
 
 from odk_logger.models import XForm, Instance, Attachment
@@ -92,6 +93,10 @@ class MainTestCase(TestCase):
         s = self.surveys[survey_at]
         self._make_submission(os.path.join(self.this_directory, 'fixtures',
                     'transportation', 'instances', s, s + '.xml'))
+
+    def _submit_transport_instance_w_uuid(self, name):
+        self._make_submission(os.path.join(self.this_directory, 'fixtures',
+            'transportation', 'instances_w_uuid', name, name + '.xml'))
 
     def _submit_transport_instance_w_attachment(self, survey_at=0):
         s = self.surveys[survey_at]
