@@ -6,7 +6,7 @@ var JSONSurveyToHTML__r_str = gettext("Response");
 
 
 var centerLatLng = new L.LatLng(!center.lat?0.0:center.lat, !center.lng?0.0:center.lng);
-var defaultZoom = 8;
+var defaultZoom = 18;
 var mapId = 'map_canvas';
 var map;
 var layersControl;
@@ -125,16 +125,42 @@ function initialize() {
         }
     };
 
-    map.addControl(layerButtonControl(markerButton, hexButton));
+	var heatLayer = L.TileLayer.heatMap({
+	                    radius: 20,
+	                    opacity: 0.8,
+	                    gradient: {
+	                        0.45: "rgb(0,0,255)",
+	                        0.55: "rgb(0,255,255)",
+	                        0.65: "rgb(0,255,0)",
+	                        0.95: "yellow",
+	                        1.0: "rgb(255,0,0)"
+	                    }
+	                });
+
+	var data= [{lat: 10.32952049, lon: -1.16075882, value:1}];
+	heatLayer.addData(data);
+
+    var heatButton = function () {
+        if(!map.hasLayer(heatLayer)) {
+            $('div.layer-heatButton').toggleClass('layer-heatButton-active');
+            return map.addLayer(heatLayer);
+        }
+        else{
+            $('div.layer-heatButton').toggleClass('layer-heatButton-active');
+            return map.removeLayer(heatLayer);
+        }
+    };
+
+    map.addControl(layerButtonControl(markerButton, hexButton, heatButton));
     layersControl = new L.Control.Layers();
     map.addControl(layersControl);
     //show marker layer by default
-    map.addLayer(markerLayerGroup);
+    map.addLayer(heatLayer);
     $('div.layer-markerButton').addClass('layer-markerButton-active');
 
     // add bing maps layer
     /** $.each(bingMapTypeLabels, function(type, label) {
-        var bingLayer = new L.TileLayer.Bing(bingAPIKey, type); 
+        var bingLayer = new L.TileLayer.Bing(bingAPIKey, type);
         layersControl.addBaseLayer(bingLayer, label);
     });*/
 
@@ -599,16 +625,16 @@ function JSONSurveyToHTML(data)
                     var thisID = questionName.replace(/\//g,'-') + "-" + idx;
                     var collapseButton = $('<a>Child ' + (idx+1) + '</a>') // 1-indexed
                                          .addClass('btn')
-                                         .attr('id', 'collapse-' + thisID) 
+                                         .attr('id', 'collapse-' + thisID)
                                          .appendTo(td);
                     var collapseDiv = $('<div></div>')
-                                          .attr('id', thisID) 
+                                          .attr('id', thisID)
                                           .hide()
                                           .appendTo(td);
                     var table = $(JSONSurveyToHTML(repeatEl)).appendTo(collapseDiv);
                     $('.leaflet-popup-content')
-                        .on('click', 
-                            '#collapse-' + thisID, 
+                        .on('click',
+                            '#collapse-' + thisID,
                             function() {$('#' + thisID).toggle();}
                         );
                 });
@@ -863,7 +889,7 @@ var colors = (function() {
         return colorsArr[Math.floor(zero_to_one_inclusive * (colorsArr.length - epsilon))];
     }
 
-    // METHODS FOR EXPORT 
+    // METHODS FOR EXPORT
     colors.getNumProportional = function(colorscheme) {
         colorscheme = colorscheme || defaultColorScheme;
         return colorschemes.proportional[colorscheme].length;

@@ -109,11 +109,30 @@ body { height: 100%; margin: 0; padding: 0 }
     background-image: url(images/hexbin_overlay.png);
     background-repeat:no-repeat;
     background-position: center;
-    width: 34px;
+    border-bottom: 1px solid #aaa;
+		width: 34px;
     height: 34px;
 }
 
 .layer-button-container .layer-hexbinButton.layer-hexbinButton-active{
+    background-color: rgba(153, 153, 153, 0.2);
+    background-image: url(images/hexbin_overlay_active.png);
+    background-repeat:no-repeat;
+    background-position: center;
+    border-bottom: 1px solid #aaa;
+    width: 34px;
+    height: 34px;
+}
+
+.layer-button-container .layer-heatButton{
+    background-image: url(images/marker_overlay.png);
+    background-repeat:no-repeat;
+    background-position: center;
+    width: 34px;
+    height: 34px;
+}
+
+.layer-button-container .layer-heatButton.layer-heatButton-active{
     background-color: rgba(153, 153, 153, 0.2);
     -moz-border-radius-bottomleft: 8px;
     -moz-border-radius-bottomright: 8px;
