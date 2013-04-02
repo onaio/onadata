@@ -24,6 +24,9 @@ build
 # file created by tests
 registration.xml
 
+# cache files
+/static
+
 # for a local virtualenv (as done in mangrove repo)
 ve/
 
