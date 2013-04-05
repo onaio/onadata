@@ -9,6 +9,9 @@ var centerLatLng = new L.LatLng(!center.lat?0.0:center.lat, !center.lng?0.0:cent
 var defaultZoom = 18;
 var mapId = 'map_canvas';
 var map;
+var data_map = [];
+var data = [];
+var heatLayer;
 var layersControl;
 // array of mapbox maps to use as base layers - the first one will be the default map
 var mapboxMaps = [
@@ -125,7 +128,7 @@ function initialize() {
         }
     };
 
-	var heatLayer = L.TileLayer.heatMap({
+	heatLayer = L.TileLayer.heatMap({
 	                    radius: 20,
 	                    opacity: 0.8,
 	                    gradient: {
@@ -136,9 +139,6 @@ function initialize() {
 	                        1.0: "rgb(255,0,0)"
 	                    }
 	                });
-
-	var data= [{lat: 10.32952049, lon: -1.16075882, value:1}];
-	heatLayer.addData(data);
 
     var heatButton = function () {
         if(!map.hasLayer(heatLayer)) {
@@ -155,7 +155,7 @@ function initialize() {
     layersControl = new L.Control.Layers();
     map.addControl(layersControl);
     //show marker layer by default
-    map.addLayer(heatLayer);
+    map.addLayer(markerLayerGroup);
     $('div.layer-markerButton').addClass('layer-markerButton-active');
 
     // add bing maps layer
@@ -385,11 +385,11 @@ function setLanguage(idx)
 function _buildMarkerLayer(geoJSON)
 {
     var latLngArray = [];
-
     L.geoJson(geoJSON, {
         pointToLayer: function(feature, latlng) {
             var marker = L.circleMarker(latlng, circleStyle);
             latLngArray.push(latlng);
+			data_map.push(latlng);
             marker.on('click', function(e) {
                 var popup = L.popup({offset: popupOffset})
                     .setContent("Loading...").setLatLng(latlng).openOn(map);
@@ -406,6 +406,15 @@ function _buildMarkerLayer(geoJSON)
             return marker;
         }
     }).addTo(markerLayerGroup);
+
+	for (var i = 0; i < data_map.length; i++){
+		data.push({
+			lat: data_map[i].lat,
+			lon: data_map[i].lng,
+			value: 1
+		});
+	};
+	heatLayer.addData(data);
 
     _.defer(refreshHexOverLay); // TODO: add a toggle to do this only if hexOn = true;
 
