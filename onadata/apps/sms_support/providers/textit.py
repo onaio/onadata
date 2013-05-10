@@ -7,7 +7,6 @@
 
     See: https://textit.in/api/v1/webhook/ """
 
-import json
 import datetime
 import dateutil
 
@@ -59,13 +58,15 @@ def get_response(data):
 
     # send a response
     if message:
-        payload = data.get('payload', {})
-        payload.update({'text': message})
-        if payload.get('phone'):
-            response = {"phone": [payload.get('phone')],
-                        "text": payload.get('text')}
-            return HttpResponse(json.dumps(response),
-                                mimetype='application/json')
+        messages = [message, ]
+        sendouts = data.get('sendouts', [])
+        if len(sendouts):
+            messages += sendouts
+        for text in messages:
+            payload = data.get('payload', {})
+            payload.update({'text': text})
+            if payload.get('phone'):
+                send_sms_via_textit(**payload)
 
     return HttpResponse()
 
