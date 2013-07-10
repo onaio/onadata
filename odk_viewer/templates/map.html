@@ -113,6 +113,30 @@
             addModalCloseButton(modalElem);
             modalElem.append(content);
 
+            var lat = data[0]._geolocation[0];
+            var lng = data[0]._geolocation[1];
+            var map = L.mapbox.map('popup-map', 'modilabs.map-iuetkf9u')
+                            .setView([lat, lng], 16);
+
+                    L.mapbox.markerLayer({
+                        // this feature is in the GeoJSON format: see geojson.org
+                        // for the full specification
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            // coordinates here are in longitude, latitude order because
+                            // x, y is the standard for GeoJSON and many formats
+                            coordinates: [lng, lat]
+                        },
+                        properties: {
+                            // one can customize markers by adding simplestyle properties
+                            // http://mapbox.com/developers/simplestyle/
+                            'marker-size': 'medium',
+                            'marker-color': '#ff0',
+                            'marker-symbol': 'star-stroked'
+                        }
+                    }).addTo(map);
+
             // click on the Edit button
             $('button.edit-submission').click(function () {
                 var data_id = $(this).data('id');
