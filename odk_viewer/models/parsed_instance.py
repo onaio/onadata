@@ -8,6 +8,7 @@ from bson import json_util
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save, pre_delete
+from django.utils import timezone
 from restservice.utils import call_service
 from stats.tasks import stat_log
 from utils.decorators import apply_form_field_names
@@ -41,6 +42,8 @@ def datetime_from_str(text):
         dt = parser.parse(text)
     except Exception:
         return None
+    if not timezone.is_aware(dt):
+        dt = timezone.make_aware(dt, timezone.utc)
     return dt
 
 
