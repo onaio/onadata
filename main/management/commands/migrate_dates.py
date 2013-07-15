@@ -36,12 +36,12 @@ class Command(BaseCommand):
         tz = pytz.timezone(settings.TIME_ZONE)
         upto = parse(upto)
         upto = upto.replace(tzinfo=pytz.timezone(settings.TIME_ZONE))
-        print upto
+        logger.debug("Switching dates before %s" % upto)
         # User
         users = User.objects.filter(date_joined__lte=upto)
         c = 0
         t = users.count()
-        logger.info("Starting on User model")
+        logger.debug("Starting on User model")
         for user in queryset_iterator(users):
             dt = user.date_joined .replace(tzinfo=tz)
             user.date_joined = dt.astimezone(pytz.utc)
@@ -52,7 +52,7 @@ class Command(BaseCommand):
             c += 1
             if c % 100 == 0:
                 logger.info("Users: %d of %d" % (c, t))
-        logger.info("Done: Users: %d of %d" % (c, t))
+        logger.debug("Done: Users: %d of %d" % (c, t))
         sessions = Session.objects.filter(expire_date__lte=upto)
         c = 0
         t = sessions.count()
@@ -84,7 +84,10 @@ class Command(BaseCommand):
             if xform.date_modified <= upto:
                 dt = xform.date_modified.replace(tzinfo=tz)
                 xform.date_modified = dt.astimezone(pytz.utc)
-            xform.save()
+            try:
+                xform.save()
+            except Exception, e:
+                logger.error(e)
             c += 1
             if c % 100 == 0:
                 logger.info("XForms: %d of %d" % (c, t))
@@ -100,13 +103,13 @@ class Command(BaseCommand):
                 instance.deleted_at = dt.astimezone(pytz.utc)
             try:
                 instance.save()
-            except Instance.DoesNotExist, e:
+            except Exception, e:
                 logger.error(e)
             c += 1
             if c % 100 == 0:
                 logger.info("Instances: %d of %d" % (c, t))
         logger.debug("Done: Instances: %d of %d" % (c, t))
-        qs = ParsedInstance.objects.filter(date_created__lte=upto)
+        qs = ParsedInstance.objects.filter()
         c = 0
         t = qs.count()
         for i in queryset_iterator(qs):
@@ -126,7 +129,7 @@ class Command(BaseCommand):
             instance.date_created = dt.astimezone(pytz.utc)
             try:
                 instance.save()
-            except InstanceHistory.DoesNotExist, e:
+            except Exception, e:
                 logger.error(e)
             c += 1
             if c % 100 == 0:
@@ -140,7 +143,7 @@ class Command(BaseCommand):
             obj.created_on = dt.astimezone(pytz.utc)
             try:
                 obj.save()
-            except Export.DoesNotExist, e:
+            except Exception, e:
                 logger.error(e)
             c += 1
             if c % 100 == 0:
