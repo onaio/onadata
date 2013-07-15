@@ -9,7 +9,7 @@ from dateutil.parser import parse
 from django.contrib.auth.models import User
 from django.contrib.sessions.models import Session
 from django.contrib.admin.models import LogEntry
-from odk_logger.models import XForm, Instance, InstanceHistory, Attachment
+from odk_logger.models import XForm, Instance, InstanceHistory
 from odk_viewer.models import ParsedInstance, Export
 from utils.model_tools import queryset_iterator
 
