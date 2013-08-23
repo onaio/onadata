@@ -1,5 +1,5 @@
-import json
 import os
+import json
 import tempfile
 from xml.parsers.expat import ExpatError
 import pytz
@@ -39,6 +39,7 @@ from odk_logger.xform_instance_parser import InstanceEmptyError,\
     InstanceInvalidUserError, IsNotCrowdformError, DuplicateInstance
 from odk_logger.models.instance import FormInactiveError
 from odk_logger.models.attachment import Attachment
+from odk_logger.models.ziggy_instance import ZiggyInstance
 from utils.log import audit_log, Actions
 from django_digest import HttpDigestAuthenticator
 from utils.viewer_tools import enketo_url
@@ -659,3 +660,35 @@ def form_upload(request, username):
             else:
                 status = 400
     return OpenRosaResponse(content, status=status)
+
+
+@csrf_exempt
+def ziggy_submissions(request):
+    """
+    Accepts ziggy JSON submissions.
+        - stored in mongo, ziggy_instances
+        - ZiggyInstance Django Model
+    Copy form_instance - to create actual Instances for a specific form?
+    """
+    data = {'status': 'undefined'}
+    status = 400
+    if request.method == 'POST':
+        json_post = request.body
+        if json_post:
+            # save submission
+            # i.e pick entity_id, instance_id, server_version, client_version?
+            # reporter_id
+            records = ZiggyInstance.create_ziggy_instances(json_post)
+
+            data = {'status': 'success',
+                    'message': _(u"Successfully processed %(records)s records"
+                                 % {'records': records})}
+            status = 201
+    else:
+        # get clientVersion and reportId
+        reporter_id = request.GET.get('reporter-id', None)
+        client_version = request.GET.get('timestamp', 0)
+        if reporter_id is not None and client_version is not None:
+            data = ZiggyInstance.get_current_list(reporter_id, client_version)
+            status = 200
+    return HttpResponse(content=json.dumps(data), status=status)
