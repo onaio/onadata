@@ -30,6 +30,7 @@ class ZiggyInstance(models.Model):
     reporter = models.ForeignKey(User, related_name='ziggys', null=False)
     client_version = models.BigIntegerField(null=True, default=None)
     server_version = models.BigIntegerField()
+    form_version = models.CharField(max_length=10, default=u'1.0')
 
     # shows when we first received this instance
     date_created = models.DateTimeField(auto_now_add=True)
@@ -52,7 +53,8 @@ class ZiggyInstance(models.Model):
             'instanceId': self.instance_id,
             'formInstance': self.form_instance,
             'clientVersion': self.client_version,
-            'serverVersion': self.server_version
+            'serverVersion': self.server_version,
+            'formDataDefinitionVersion': self.form_version
         }
         return obj
 
@@ -67,12 +69,13 @@ class ZiggyInstance(models.Model):
             form_instance = instance['formInstance']
             client_version = instance['clientVersion']
             reporter_id = instance['reporterId']
+            form_version = instance['formDataDefinitionVersion']
             if reporter is None:
                 reporter = get_object_or_404(User, username=reporter_id)
             zi = ZiggyInstance.objects.create(
                 entity_id=entity_id, instance_id=instance_id,
                 reporter=reporter, client_version=client_version,
-                form_instance=form_instance)
+                form_instance=form_instance, form_version=form_version)
             data.append(zi.pk)
 
             # get ths formInstance within the db if it exists
@@ -94,19 +97,19 @@ class ZiggyInstance(models.Model):
                 'formName': instance.get('formName'),
                 'clientVersion': client_version,
                 'serverVersion': zi.server_version,
-                'formDataDefinitionVersion': None
+                'formDataDefinitionVersion': form_version,
+                'reporterId': reporter.username
             }
             mongo_ziggys.save(mongo_data)
         return len(data)
 
     @classmethod
     def get_current_list(cls, reporter_id, client_version):
-        data = []
-        instances = ZiggyInstance.objects.filter(
-            reporter__username=reporter_id, server_version__gt=client_version)
-        for instance in instances:
-            data.append(instance.to_ziggy_dict())
-        return data
+        query = {
+            'reporterId': reporter_id,
+            'serverVersion': {'$gte': int(client_version)}
+        }
+        return mongo_ziggys.find(query)
 
     @classmethod
     def field_by_name_exists(cls, name):
