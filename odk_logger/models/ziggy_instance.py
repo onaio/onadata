@@ -3,6 +3,10 @@ import time
 from django.db import models
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
+from django.conf import settings
+
+
+mongo_ziggys = settings.MONGO_DB.ziggys
 
 
 class ZiggyInstance(models.Model):
@@ -58,17 +62,10 @@ class ZiggyInstance(models.Model):
         data = []
         reporter = None
         for instance in sorted(instances, key=lambda k: k['clientVersion']):
-            assert 'entityId' in instance
             entity_id = instance['entityId']
-            assert 'instanceId' in instance
             instance_id = instance['instanceId']
-            assert 'formInstance' in instance
             form_instance = instance['formInstance']
-            # assert 'server_version' in instance
-            # server_version = instance['server_version']
-            assert 'clientVersion' in instance
             client_version = instance['clientVersion']
-            assert 'reporterId' in instance
             reporter_id = instance['reporterId']
             if reporter is None:
                 reporter = get_object_or_404(User, username=reporter_id)
@@ -76,7 +73,30 @@ class ZiggyInstance(models.Model):
                 entity_id=entity_id, instance_id=instance_id,
                 reporter=reporter, client_version=client_version,
                 form_instance=form_instance)
-            data.append(zi)
+            data.append(zi.pk)
+
+            # get ths formInstance within the db if it exists
+            entity = mongo_ziggys.find_one(entity_id)
+            if entity:
+                existing_form_instance = json.loads(entity['formInstance'])
+                existing_field_data = existing_form_instance['form']['fields']
+                new_field_data = json.loads(form_instance)['form']['fields']
+                existing_field_data = ZiggyInstance.merge_ziggy_form_instances(
+                    existing_field_data, new_field_data)
+                existing_form_instance['form']['fields'] = existing_field_data
+                form_instance = json.dumps(existing_form_instance)
+
+            mongo_data = {
+                '_id': entity_id,
+                'instanceId': instance_id,
+                'entityId': entity_id,
+                'formInstance': form_instance,
+                'formName': instance.get('formName'),
+                'clientVersion': client_version,
+                'serverVersion': zi.server_version,
+                'formDataDefinitionVersion': None
+            }
+            mongo_ziggys.save(mongo_data)
         return len(data)
 
     @classmethod
@@ -87,3 +107,25 @@ class ZiggyInstance(models.Model):
         for instance in instances:
             data.append(instance.to_ziggy_dict())
         return data
+
+    @classmethod
+    def field_by_name_exists(cls, name):
+        """ Returns a function that can be used with the filter method
+
+        @param name: the name key to look for
+        @return: a function to use with filter
+        """
+        return lambda rec: rec['name'] == name
+
+    @classmethod
+    def merge_ziggy_form_instances(cls, source_data, update_data):
+        for item in update_data:
+            # check for the item in a, update if it exists otherwise append to a
+            matches = filter(
+                cls.field_by_name_exists(item['name']), source_data)
+            if len(matches) > 0:
+                match = matches[0]
+                match.update(item)
+            else:
+                source_data.append(item)
+        return source_data
