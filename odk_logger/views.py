@@ -670,7 +670,7 @@ def ziggy_submissions(request):
         - ZiggyInstance Django Model
     Copy form_instance - to create actual Instances for a specific form?
     """
-    data = {'status': 'undefined'}
+    data = {'message': _(u"Invalid request!")}
     status = 400
     if request.method == 'POST':
         json_post = request.body
@@ -689,7 +689,12 @@ def ziggy_submissions(request):
         reporter_id = request.GET.get('reporter-id', None)
         client_version = request.GET.get('timestamp', 0)
         if reporter_id is not None and client_version is not None:
-            cursor = ZiggyInstance.get_current_list(reporter_id, client_version)
-            status = 200
-            data = [record for record in cursor]
+            try:
+                cursor = ZiggyInstance.get_current_list(reporter_id, client_version)
+            except ValueError, e:
+                status = 400
+                data = {'message': '%s' % e}
+            else:
+                status = 200
+                data = [record for record in cursor]
     return HttpResponse(json.dumps(data), status=status)
