@@ -30,6 +30,9 @@ class TestZiggy(MainTestCase):
                                 content_type='application/json')
 
     def test_ziggy_submissions_post_url(self):
+        self._ziggy_submissions_post_url()
+
+    def _ziggy_submissions_post_url(self):
         num_ziggys = ZiggyInstance.objects.count()
         response = self.make_ziggy_submission(self.village_profile_json_path)
         self.assertEqual(response.status_code, 201)
@@ -39,6 +42,24 @@ class TestZiggy(MainTestCase):
         num_entities = mongo_ziggys.find(
             {'_id': self.ENTITY_ID}).count()
         self.assertEqual(num_entities, 1)
+
+    def test_ziggy_submissions_view(self):
+        self._ziggy_submissions_post_url()
+        response = self.client.get(
+            self.ziggy_submission_url,
+            data={'timestamp':0,'reporter-id': 'c'}
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(len(data), 1)
+        del data[0]['serverVersion']
+        del data[0]['_id']
+        with open(self.village_profile_json_path) as f:
+            expected_data = json.load(f)
+            expected_data[0]['formInstance'] = json.loads(
+                    expected_data[0]['formInstance'])
+            data[0]['formInstance'] = json.loads(data[0]['formInstance'])
+            self.assertEqual(expected_data, data)
 
     def test_ziggy_submission_post_update(self):
         num_ziggys = ZiggyInstance.objects.count()
