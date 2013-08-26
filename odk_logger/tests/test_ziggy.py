@@ -20,8 +20,6 @@ class TestZiggy(MainTestCase):
 
     def setUp(self):
         super(TestZiggy, self).setUp()
-        # todo: create c user for now
-        self._create_user('c', 'c1')
 
     def tearDown(self):
         # clear mongo db after each test
@@ -51,7 +49,7 @@ class TestZiggy(MainTestCase):
         self._ziggy_submissions_post_url()
         response = self.client.get(
             self.ziggy_submission_url,
-            data={'timestamp':0,'reporter-id': 'c'}
+            data={'timestamp':0,'reporter-id': self.user.username}
         )
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
@@ -69,7 +67,7 @@ class TestZiggy(MainTestCase):
         self._ziggy_submissions_post_url()
         response = self.client.get(
             self.ziggy_submission_url,
-            data={'timestamp': 'k','reporter-id': 'c'}
+            data={'timestamp': 'k','reporter-id': self.user.username}
         )
         self.assertEqual(response.status_code, 400)
 
