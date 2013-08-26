@@ -23,6 +23,10 @@ class TestZiggy(MainTestCase):
         # todo: create c user for now
         self._create_user('c', 'c1')
 
+    def tearDown(self):
+        # clear mongo db after each test
+        settings.MONGO_DB.ziggys.drop()
+
     def make_ziggy_submission(self, path):
         with open(path) as f:
             data = f.read()
