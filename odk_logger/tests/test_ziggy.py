@@ -61,6 +61,14 @@ class TestZiggy(MainTestCase):
             data[0]['formInstance'] = json.loads(data[0]['formInstance'])
             self.assertEqual(expected_data, data)
 
+    def test_ziggy_submissions_view_invalid_timestamp(self):
+        self._ziggy_submissions_post_url()
+        response = self.client.get(
+            self.ziggy_submission_url,
+            data={'timestamp': 'k','reporter-id': 'c'}
+        )
+        self.assertEqual(response.status_code, 400)
+
     def test_ziggy_submission_post_update(self):
         num_ziggys = ZiggyInstance.objects.count()
         response = self.make_ziggy_submission(self.village_profile_json_path)
