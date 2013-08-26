@@ -689,6 +689,7 @@ def ziggy_submissions(request):
         reporter_id = request.GET.get('reporter-id', None)
         client_version = request.GET.get('timestamp', 0)
         if reporter_id is not None and client_version is not None:
-            data = ZiggyInstance.get_current_list(reporter_id, client_version)
+            cursor = ZiggyInstance.get_current_list(reporter_id, client_version)
             status = 200
-    return HttpResponse(content=json.dumps(data), status=status)
+            data = [record for record in cursor]
+    return HttpResponse(json.dumps(data), status=status)
