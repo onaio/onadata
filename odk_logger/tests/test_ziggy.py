@@ -18,9 +18,6 @@ class TestZiggy(MainTestCase):
         'cc_monthly_report.json')
     ENTITY_ID = '9e7ee7c3-3071-4cb5-881f-f71572101f35'
 
-    def setUp(self):
-        super(TestZiggy, self).setUp()
-
     def tearDown(self):
         # clear mongo db after each test
         settings.MONGO_DB.ziggys.drop()
@@ -49,7 +46,7 @@ class TestZiggy(MainTestCase):
         self._ziggy_submissions_post_url()
         response = self.client.get(
             self.ziggy_submission_url,
-            data={'timestamp':0,'reporter-id': self.user.username}
+            data={'timestamp': 0, 'reporter-id': self.user.username}
         )
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
@@ -59,7 +56,7 @@ class TestZiggy(MainTestCase):
         with open(self.village_profile_json_path) as f:
             expected_data = json.load(f)
             expected_data[0]['formInstance'] = json.loads(
-                    expected_data[0]['formInstance'])
+                expected_data[0]['formInstance'])
             data[0]['formInstance'] = json.loads(data[0]['formInstance'])
             self.assertEqual(expected_data, data)
 
@@ -67,7 +64,7 @@ class TestZiggy(MainTestCase):
         self._ziggy_submissions_post_url()
         response = self.client.get(
             self.ziggy_submission_url,
-            data={'timestamp': 'k','reporter-id': self.user.username}
+            data={'timestamp': 'k', 'reporter-id': self.user.username}
         )
         self.assertEqual(response.status_code, 400)
 
@@ -100,7 +97,6 @@ class TestZiggy(MainTestCase):
             json.loads(entity['formInstance'])['form']['fields'])
         self.assertEqual(len(matching_fields), 1)
         self.assertEqual(matching_fields[0]['value'], '10-2013')
-
 
     def test_merge_ziggy_form_instances(self):
         instance_1 = [
