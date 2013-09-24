@@ -62,7 +62,10 @@ class MainTestCase(TestCase):
             path = os.path.join(self.this_directory, path)
         with open(path) as xls_file:
             post_data = {'xls_file': xls_file}
-            return self.client.post('/%s/' % self.user.username, post_data)
+            num_xforms = XForm.objects.count()
+            response = self.client.post('/%s/' % self.user.username, post_data)
+            self.assertEqual(XForm.objects.count(), num_xforms + 1)
+            return response
 
     def _publish_xlsx_file(self):
         path = os.path.join(self.this_directory, 'fixtures', 'exp.xlsx')
