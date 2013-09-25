@@ -1,11 +1,14 @@
 import json
 import time
 from django.db import models
+from django.db.models.signals import post_save
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.conf import settings
+from odk_logger.models import XForm
+from restservice.utils import call_ziggy_services
 
-
+xform_instances = settings.MONGO_DB.instances
 mongo_ziggys = settings.MONGO_DB.ziggys
 
 
@@ -31,6 +34,8 @@ class ZiggyInstance(models.Model):
     client_version = models.BigIntegerField(null=True, default=None)
     server_version = models.BigIntegerField()
     form_version = models.CharField(max_length=10, default=u'1.0')
+    xform = models.ForeignKey(XForm, null=True,
+                              related_name='ziggy_submissions')
 
     # shows when we first received this instance
     date_created = models.DateTimeField(auto_now_add=True)
@@ -59,45 +64,62 @@ class ZiggyInstance(models.Model):
         return obj
 
     @classmethod
-    def create_ziggy_instances(cls, json_post):
+    def create_ziggy_instance(cls, user, instance, reporter):
+        entity_id = instance['entityId']
+        instance_id = instance['instanceId']
+        form_instance = instance['formInstance']
+        client_version = instance['clientVersion']
+        form_version = instance['formDataDefinitionVersion']
+        form_name = instance['formName']
+
+        try:
+            xform = XForm.objects.get(user=user, id_string=form_name)
+        except XForm.DoesNotExist:
+            xform = None
+
+        zi = ZiggyInstance(
+            entity_id=entity_id, instance_id=instance_id,
+            reporter=reporter, client_version=client_version,
+            form_instance=form_instance, form_version=form_version,
+            xform=xform)
+        return zi
+
+    @classmethod
+    def create_ziggy_instances(cls, form_user, json_post):
         instances = json.loads(json_post)
         data = []
         reporter = None
         for instance in sorted(instances, key=lambda k: k['clientVersion']):
-            entity_id = instance['entityId']
-            instance_id = instance['instanceId']
-            form_instance = instance['formInstance']
-            client_version = instance['clientVersion']
             reporter_id = instance['reporterId']
-            form_version = instance['formDataDefinitionVersion']
             if reporter is None:
                 reporter = get_object_or_404(User, username=reporter_id)
-            zi = ZiggyInstance.objects.create(
-                entity_id=entity_id, instance_id=instance_id,
-                reporter=reporter, client_version=client_version,
-                form_instance=form_instance, form_version=form_version)
+
+            zi = cls.create_ziggy_instance(form_user, instance, reporter)
+            zi.save()
             data.append(zi.pk)
 
             # get ths formInstance within the db if it exists
-            entity = mongo_ziggys.find_one(entity_id)
+            entity = mongo_ziggys.find_one(zi.entity_id)
             if entity:
                 existing_form_instance = json.loads(entity['formInstance'])
                 existing_field_data = existing_form_instance['form']['fields']
-                new_field_data = json.loads(form_instance)['form']['fields']
+                new_field_data = json.loads(zi.form_instance)['form']['fields']
                 existing_field_data = ZiggyInstance.merge_ziggy_form_instances(
                     existing_field_data, new_field_data)
                 existing_form_instance['form']['fields'] = existing_field_data
-                form_instance = json.dumps(existing_form_instance)
+                new_form_instance = json.dumps(existing_form_instance)
+            else:
+                new_form_instance = zi.form_instance
 
             mongo_data = {
-                '_id': entity_id,
-                'instanceId': instance_id,
-                'entityId': entity_id,
-                'formInstance': form_instance,
+                '_id': zi.entity_id,
+                'instanceId': zi.instance_id,
+                'entityId': zi.entity_id,
+                'formInstance': new_form_instance,
                 'formName': instance.get('formName'),
-                'clientVersion': client_version,
+                'clientVersion': zi.client_version,
                 'serverVersion': zi.server_version,
-                'formDataDefinitionVersion': form_version,
+                'formDataDefinitionVersion': zi.form_version,
                 'reporterId': reporter.username
             }
             mongo_ziggys.save(mongo_data)
@@ -132,3 +154,31 @@ class ZiggyInstance(models.Model):
             else:
                 source_data.append(item)
         return source_data
+
+
+def ziggy_to_formhub_instance(ziggy_form_instance):
+    # todo: use form's fields to map fields to values
+    ziggy_instance = json.loads(ziggy_form_instance)
+    formhub_instance = {}
+    for field in ziggy_instance['form']['fields']:
+        if 'bind' in field:
+            field_name = field['bind'].split('/')[-1]
+            formhub_instance[field_name] = field.get('value', '')
+    return formhub_instance
+
+
+def rest_service_ziggy_submission(sender, instance, raw, created,
+                                  update_fields, **kwargs):
+    # todo: this only works if the formName within ziggy matches this form's name
+    if created and instance.xform:
+        # convert instance to a mongo style record
+        ziggy_instance = instance.form_instance
+        formhub_instance = ziggy_to_formhub_instance(ziggy_instance)
+        # create mongo instance and capture its object id
+        object_id = xform_instances.save(formhub_instance)
+        object_id_str = str(object_id)
+        services_called = call_ziggy_services(instance, object_id_str)
+        return services_called
+
+
+post_save.connect(rest_service_ziggy_submission, sender=ZiggyInstance)

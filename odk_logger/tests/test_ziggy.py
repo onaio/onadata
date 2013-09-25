@@ -1,25 +1,40 @@
 import os
+import re
 import json
+import requests
+
 from django.conf import settings
 from main.tests.test_base import MainTestCase
 from django.core.urlresolvers import reverse
 from odk_logger.models import ZiggyInstance
+from odk_logger.models.ziggy_instance import (
+    ziggy_to_formhub_instance, rest_service_ziggy_submission)
 from odk_logger.views import ziggy_submissions
+from restservice.models import RestService
+from httmock import urlmatch, HTTMock
+from bson import ObjectId
 
 mongo_ziggys = settings.MONGO_DB.ziggys
+ziggy_submission_url = reverse(ziggy_submissions, kwargs={'username': 'bob'})
+village_profile_xls_path = os.path.join(
+    os.path.dirname(__file__), 'fixtures', 'ziggy', 'village_profile.xls')
+village_profile_json_path = os.path.join(
+    os.path.dirname(__file__), 'fixtures', 'ziggy', 'village_profile.json')
+cc_monthly_xls_path = os.path.join(
+    os.path.dirname(__file__), 'fixtures', 'ziggy',
+    'cc_monthly_report_form.xls')
+cc_monthly_json_path = os.path.join(
+    os.path.dirname(__file__), 'fixtures', 'ziggy',
+    'cc_monthly_report.json')
+ENTITY_ID = '9e7ee7c3-3071-4cb5-881f-f71572101f35'
 
 
-class TestZiggy(MainTestCase):
-    ziggy_submission_url = reverse(ziggy_submissions)
-    village_profile_json_path = os.path.join(
-        os.path.dirname(__file__), 'fixtures', 'ziggy', 'village_profile.json')
-    cc_monthly_json_path = os.path.join(
-        os.path.dirname(__file__), 'fixtures', 'ziggy',
-        'cc_monthly_report.json')
-    ENTITY_ID = '9e7ee7c3-3071-4cb5-881f-f71572101f35'
-
+class TestZiggySubmissions(MainTestCase):
     def setUp(self):
-        super(TestZiggy, self).setUp()
+        super(TestZiggySubmissions, self).setUp()
+        # publish xforms
+        self._publish_xls_file(village_profile_xls_path)
+        self._publish_xls_file(cc_monthly_xls_path)
 
     def tearDown(self):
         # clear mongo db after each test
@@ -28,7 +43,7 @@ class TestZiggy(MainTestCase):
     def make_ziggy_submission(self, path):
         with open(path) as f:
             data = f.read()
-        return self.client.post(self.ziggy_submission_url, data,
+        return self.client.post(ziggy_submission_url, data,
                                 content_type='application/json')
 
     def test_ziggy_submissions_post_url(self):
@@ -36,19 +51,19 @@ class TestZiggy(MainTestCase):
 
     def _ziggy_submissions_post_url(self):
         num_ziggys = ZiggyInstance.objects.count()
-        response = self.make_ziggy_submission(self.village_profile_json_path)
+        response = self.make_ziggy_submission(village_profile_json_path)
         self.assertEqual(response.status_code, 201)
         # check instance was created in db
         self.assertEqual(ZiggyInstance.objects.count(), num_ziggys + 1)
         # check that instance was added to mongo
         num_entities = mongo_ziggys.find(
-            {'_id': self.ENTITY_ID}).count()
+            {'_id': ENTITY_ID}).count()
         self.assertEqual(num_entities, 1)
 
     def test_ziggy_submissions_view(self):
         self._ziggy_submissions_post_url()
         response = self.client.get(
-            self.ziggy_submission_url,
+            ziggy_submission_url,
             data={'timestamp':0,'reporter-id': self.user.username}
         )
         self.assertEqual(response.status_code, 200)
@@ -56,7 +71,7 @@ class TestZiggy(MainTestCase):
         self.assertEqual(len(data), 1)
         del data[0]['serverVersion']
         del data[0]['_id']
-        with open(self.village_profile_json_path) as f:
+        with open(village_profile_json_path) as f:
             expected_data = json.load(f)
             expected_data[0]['formInstance'] = json.loads(
                     expected_data[0]['formInstance'])
@@ -66,24 +81,24 @@ class TestZiggy(MainTestCase):
     def test_ziggy_submissions_view_invalid_timestamp(self):
         self._ziggy_submissions_post_url()
         response = self.client.get(
-            self.ziggy_submission_url,
+            ziggy_submission_url,
             data={'timestamp': 'k','reporter-id': self.user.username}
         )
         self.assertEqual(response.status_code, 400)
 
     def test_ziggy_submission_post_update(self):
         num_ziggys = ZiggyInstance.objects.count()
-        response = self.make_ziggy_submission(self.village_profile_json_path)
+        response = self.make_ziggy_submission(village_profile_json_path)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(ZiggyInstance.objects.count(), num_ziggys + 1)
 
         # make update submission
-        response = self.make_ziggy_submission(self.cc_monthly_json_path)
+        response = self.make_ziggy_submission(cc_monthly_json_path)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(ZiggyInstance.objects.count(), num_ziggys + 2)
 
         # check that we only end up with a single updated object within mongo
-        entities = [r for r in mongo_ziggys.find({'_id': self.ENTITY_ID})]
+        entities = [r for r in mongo_ziggys.find({'_id': ENTITY_ID})]
         self.assertEqual(len(entities), 1)
 
         # check that the sagContactNumber field exists and is unmodified
@@ -100,7 +115,6 @@ class TestZiggy(MainTestCase):
             json.loads(entity['formInstance'])['form']['fields'])
         self.assertEqual(len(matching_fields), 1)
         self.assertEqual(matching_fields[0]['value'], '10-2013')
-
 
     def test_merge_ziggy_form_instances(self):
         instance_1 = [
@@ -146,5 +160,72 @@ class TestZiggy(MainTestCase):
             filter(ZiggyInstance.field_by_name_exists(
                 'num_latrines'), expected_merged_instance)[0])
 
+    def test_submission_when_xform_doesnt_exist_works(self):
+        pass
+
     def test_ziggy_post_sorts_by_timestamp(self):
         pass
+
+
+@urlmatch(netloc=r'^(.*)example\.com', path='^/f2dhis2')
+def f2dhis_mock(url, request):
+    match = re.match(r'.*f2dhis2/(.+)/post/(.+)$', request.url)
+    if match is not None:
+        id_string, uuid = match.groups()
+        record = settings.MONGO_DB.instances.find_one(ObjectId(uuid))
+        if record is not None:
+            res = requests.Response()
+            res.status_code = 200
+            res._content = "{'status': true, 'contents': 'OK'}"
+            return res
+
+
+class TestZiggyRestService(MainTestCase):
+    def setUp(self):
+        super(TestZiggyRestService, self).setUp()
+        # publish xform
+        self._publish_xls_file_and_set_xform(cc_monthly_xls_path)
+        # add a dhis service
+        RestService.objects.create(
+            name='f2dhis2',
+            xform=self.xform,
+            service_url='http://example.com/f2dhis2/%(id_string)s/post/%(uuid)s')
+
+    def test_rest_service_ziggy_submission(self):
+        with open(cc_monthly_json_path) as f:
+            json_post = json.load(f)
+        ziggy_instance = json_post[0]
+        zi = ZiggyInstance.create_ziggy_instance(self.user, ziggy_instance,
+                                                 self.user)
+        # check that the HTTP request was made
+        with HTTMock(f2dhis_mock):
+            services_called = rest_service_ziggy_submission(
+                ZiggyInstance, zi, False, True, False)
+            # make sure a service was called
+            self.assertEqual(services_called, 1)
+
+    def test_ziggy_to_formhub_instance(self):
+        with open(cc_monthly_json_path) as f:
+            json_post = json.load(f)
+        ziggy_instance = json_post[0]['formInstance']
+        formhub_instance = ziggy_to_formhub_instance(ziggy_instance)
+        expected_formhub_instance = {
+            'village_name': 'dygvbh',
+            'village_code': 'fjhgh',
+            'gps': '',
+            'reporting_month': '10-2013',
+            'households': '12',
+            'village_population': '2',
+            'improved_latrines': '5',
+            'latrines_smooth_cleanable_floor': '45',
+            'latrines_with_lid': '12',
+            'latrines_with_superstructure': '8',
+            'latrines_signs_of_use': '5',
+            'latrines_hand_washers': '12',
+            'latrines_all_improved_reqs': '',
+            'households_quality_checked': '4',
+            'checks_accurate': '9',
+            'today': '2013-08-23'
+        }
+        self.assertDictEqual(formhub_instance, expected_formhub_instance)
+

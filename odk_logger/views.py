@@ -663,7 +663,7 @@ def form_upload(request, username):
 
 
 @csrf_exempt
-def ziggy_submissions(request):
+def ziggy_submissions(request, username):
     """
     Accepts ziggy JSON submissions.
         - stored in mongo, ziggy_instances
@@ -672,13 +672,14 @@ def ziggy_submissions(request):
     """
     data = {'message': _(u"Invalid request!")}
     status = 400
+    form_user = get_object_or_404(User, username=username)
     if request.method == 'POST':
         json_post = request.body
         if json_post:
             # save submission
             # i.e pick entity_id, instance_id, server_version, client_version?
             # reporter_id
-            records = ZiggyInstance.create_ziggy_instances(json_post)
+            records = ZiggyInstance.create_ziggy_instances(form_user, json_post)
 
             data = {'status': 'success',
                     'message': _(u"Successfully processed %(records)s records"
@@ -690,7 +691,8 @@ def ziggy_submissions(request):
         client_version = request.GET.get('timestamp', 0)
         if reporter_id is not None and client_version is not None:
             try:
-                cursor = ZiggyInstance.get_current_list(reporter_id, client_version)
+                cursor = ZiggyInstance.get_current_list(
+                    reporter_id, client_version)
             except ValueError, e:
                 status = 400
                 data = {'message': '%s' % e}
