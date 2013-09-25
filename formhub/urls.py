@@ -137,7 +137,7 @@ urlpatterns = patterns('',
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_submission/(?P<service>[a-z]+)/?$', 'sms_support.providers.import_submission_for_form', name='sms_submission_form_api'),
 
     # Ziggy
-    url(r"^form-submissions$", 'odk_logger.views.ziggy_submissions'),
+    url(r"^form-submissions/(?P<username>\w+)$", 'odk_logger.views.ziggy_submissions'),
 
     # static media
     url(r'^static/(?P<path>.*)$', 'django.views.static.serve',
