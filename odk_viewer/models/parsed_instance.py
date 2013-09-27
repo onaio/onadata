@@ -4,7 +4,7 @@ import re
 import json
 
 from dateutil import parser
-from bson import json_util
+from bson import json_util, ObjectId
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save, pre_delete
@@ -129,13 +129,17 @@ class ParsedInstance(models.Model):
         # fields must be a string array i.e. '["name", "age"]'
         fields = json.loads(
             fields, object_hook=json_util.object_hook) if fields else []
-        # TODO: current mongo (2.0.4 of this writing)
-        # cant mix including and excluding fields in a single query
+        # TODO: current mongo (2.0.4 of this writing) cant mix including and excluding fields in a single query
         if type(fields) == list and len(fields) > 0:
             fields_to_select = dict(
                 [(_encode_for_mongo(field), 1) for field in fields])
         sort = json.loads(
             sort, object_hook=json_util.object_hook) if sort else {}
+
+        # check if query contains and _id and if its a valid ObjectID
+        if '_id' in query and ObjectId.is_valid(query['_id']):
+            query['_id'] = ObjectId(query['_id'])
+
         cursor = xform_instances.find(query, fields_to_select)
         if count:
             return [{"count": cursor.count()}]
