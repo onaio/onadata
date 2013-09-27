@@ -6,7 +6,6 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from odk_logger.models import XForm
-from restservice.utils import call_ziggy_services
 
 xform_instances = settings.MONGO_DB.instances
 mongo_ziggys = settings.MONGO_DB.ziggys
@@ -169,6 +168,7 @@ def ziggy_to_formhub_instance(ziggy_form_instance):
 
 def rest_service_ziggy_submission(sender, instance, raw, created,
                                   update_fields, **kwargs):
+    from restservice.utils import call_ziggy_services
     # todo: this only works if the formName within ziggy matches this form's name
     if created and instance.xform:
         # convert instance to a mongo style record
