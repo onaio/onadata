@@ -4,6 +4,11 @@ import os
 import subprocess
 import sys
 
+import logging
+
+from django.utils.log import AdminEmailHandler
+from celery.signals import after_setup_logger
+
 from pymongo import MongoClient
 
 import djcelery
@@ -275,7 +280,7 @@ LOGGING = {
     },
     'loggers': {
         'django.request': {
-            'handlers': ['mail_admins'],
+            'handlers': ['mail_admins', 'console'],
             'level': 'DEBUG',
             'propagate': True,
         },
@@ -291,6 +296,14 @@ LOGGING = {
         }
     }
 }
+
+
+def configure_logging(logger, **kwargs):
+    admin_email_handler = AdminEmailHandler()
+    admin_email_handler.setLevel(logging.ERROR)
+    logger.addHandler(admin_email_handler)
+
+after_setup_logger.connect(configure_logging)
 
 MONGO_DATABASE = {
     'HOST': 'localhost',
