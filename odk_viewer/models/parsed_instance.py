@@ -119,6 +119,11 @@ class ParsedInstance(models.Model):
             query, object_hook=json_util.object_hook) if query else {}
         query = dict_for_mongo(query)
         query[cls.USERFORM_ID] = u'%s_%s' % (username, id_string)
+
+        # check if query contains and _id and if its a valid ObjectID
+        if '_uuid' in query and ObjectId.is_valid(query['_uuid']):
+            query['_uuid'] = ObjectId(query['_uuid'])
+
         if hide_deleted:
             #display only active elements
             deleted_at_query = {
@@ -135,10 +140,6 @@ class ParsedInstance(models.Model):
                 [(_encode_for_mongo(field), 1) for field in fields])
         sort = json.loads(
             sort, object_hook=json_util.object_hook) if sort else {}
-
-        # check if query contains and _id and if its a valid ObjectID
-        if '_id' in query and ObjectId.is_valid(query['_id']):
-            query['_id'] = ObjectId(query['_id'])
 
         cursor = xform_instances.find(query, fields_to_select)
         if count:
