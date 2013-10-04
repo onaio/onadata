@@ -2,6 +2,7 @@ from datetime import datetime
 from django.contrib.contenttypes.models import ContentType
 import os
 import json
+from bson import json_util
 from django.db import IntegrityError
 from django.core.urlresolvers import reverse
 from django.core.files.storage import default_storage, get_storage_class
@@ -449,7 +450,7 @@ def api(request, username=None, id_string=None):
     except ValueError, e:
         return HttpResponseBadRequest(e.__str__())
     records = list(record for record in cursor)
-    response_text = json.dumps(records)
+    response_text = json_util.dumps(records)
     if 'callback' in request.GET and request.GET.get('callback') != '':
         callback = request.GET.get('callback')
         response_text = ("%s(%s)" % (callback, response_text))
