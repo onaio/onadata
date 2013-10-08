@@ -172,7 +172,7 @@ def f2dhis_mock(url, request):
     match = re.match(r'.*f2dhis2/(.+)/post/(.+)$', request.url)
     if match is not None:
         id_string, uuid = match.groups()
-        record = settings.MONGO_DB.instances.find_one(ObjectId(uuid))
+        record = settings.MONGO_DB.instances.find_one({'_uuid': ObjectId(uuid)})
         if record is not None:
             res = requests.Response()
             res.status_code = 200
@@ -194,8 +194,8 @@ class TestZiggyRestService(MainTestCase):
     def test_rest_service_ziggy_submission(self):
         with open(cc_monthly_json_path) as f:
             json_post = json.load(f)
-        ziggy_instance = json_post[0]
-        zi = ZiggyInstance.create_ziggy_instance(self.user, ziggy_instance,
+        ziggy_json = json_post[0]
+        zi = ZiggyInstance.create_ziggy_instance(self.user, ziggy_json,
                                                  self.user)
         # check that the HTTP request was made
         with HTTMock(f2dhis_mock):
@@ -207,9 +207,11 @@ class TestZiggyRestService(MainTestCase):
     def test_ziggy_to_formhub_instance(self):
         with open(cc_monthly_json_path) as f:
             json_post = json.load(f)
-        ziggy_instance = json_post[0]['formInstance']
-        formhub_instance = ziggy_to_formhub_instance(ziggy_instance)
-        expected_formhub_instance = {
+        ziggy_json = json_post[0]
+        zi = ZiggyInstance.create_ziggy_instance(self.user, ziggy_json,
+                                                 self.user)
+        formhub_dict = ziggy_to_formhub_instance(zi)
+        expected_formhub_dict = {
             'village_name': 'dygvbh',
             'village_code': 'fjhgh',
             'gps': '',
@@ -225,7 +227,8 @@ class TestZiggyRestService(MainTestCase):
             'latrines_all_improved_reqs': '',
             'households_quality_checked': '4',
             'checks_accurate': '9',
-            'today': '2013-08-23'
+            'today': '2013-08-23',
+            '_userform_id': 'bob_cc_monthly_report_form'
         }
-        self.assertDictEqual(formhub_instance, expected_formhub_instance)
+        self.assertDictEqual(formhub_dict, expected_formhub_dict)
 

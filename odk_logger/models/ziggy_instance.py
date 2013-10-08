@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from odk_logger.models import XForm
+import common_tags
 
 xform_instances = settings.MONGO_DB.instances
 mongo_ziggys = settings.MONGO_DB.ziggys
@@ -155,15 +156,17 @@ class ZiggyInstance(models.Model):
         return source_data
 
 
-def ziggy_to_formhub_instance(ziggy_form_instance):
+def ziggy_to_formhub_instance(ziggy_instance):
     # todo: use form's fields to map fields to values
-    ziggy_instance = json.loads(ziggy_form_instance)
-    formhub_instance = {}
-    for field in ziggy_instance['form']['fields']:
+    ziggy_dict = json.loads(ziggy_instance.form_instance)
+    formhub_dict = {}
+    for field in ziggy_dict['form']['fields']:
         if 'bind' in field:
             field_name = field['bind'].split('/')[-1]
-            formhub_instance[field_name] = field.get('value', '')
-    return formhub_instance
+            formhub_dict[field_name] = field.get('value', '')
+    formhub_dict[common_tags.USERFORM_ID] = '{}_{}'.format(
+        ziggy_instance.xform.user.username, ziggy_instance.xform.id_string)
+    return formhub_dict
 
 
 def rest_service_ziggy_submission(sender, instance, raw, created,
@@ -172,13 +175,14 @@ def rest_service_ziggy_submission(sender, instance, raw, created,
     # todo: this only works if the formName within ziggy matches this form's name
     if created and instance.xform:
         # convert instance to a mongo style record
-        ziggy_instance = instance.form_instance
-        formhub_instance = ziggy_to_formhub_instance(ziggy_instance)
+        formhub_instance = ziggy_to_formhub_instance(instance)
         # create mongo instance and capture its object id
         object_id = xform_instances.save(formhub_instance)
+        # update _uuid since its whats used in f2dhis2 service calls
+        xform_instances.update({'_id': object_id},
+                               {'$set': {common_tags.UUID: object_id}})
         object_id_str = str(object_id)
         services_called = call_ziggy_services(instance, object_id_str)
         return services_called
-
 
 post_save.connect(rest_service_ziggy_submission, sender=ZiggyInstance)
