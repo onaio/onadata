@@ -8,17 +8,19 @@ var FHFieldSet = Backbone.Collection.extend({
 
 var FHForm = Backbone.Model.extend({
     init: function(){
-        var fields = new FHFieldSet();
+        var fields = new FHFieldSet(),
+            this_form = this,
+            xhr;
         this.fields = fields;
 
-        var _form = this;
-        var xhr = this.fetch();
+        xhr = this.fetch();
         xhr.done(function(){
-            var questions = FHForm.parseQuestions(_form.get(FHForm.constants.CHILDREN));
+            var questions = FHForm.parseQuestions(this_form.get(FHForm.constants.CHILDREN));
             questions.forEach(function(q){
-                fields.add(new FHField(q))
+                fields.add(new FHField(q));
             });
-            _form.trigger('load')
+            // trigger the **load** event
+            this_form.trigger('load');
         });
         xhr.fail(function(){
 
@@ -28,7 +30,7 @@ var FHForm = Backbone.Model.extend({
     questionsByType: function(fh_types){
         return this.fields.filter(function(f){
             return _.indexOf(fh_types, f.get('type').toLowerCase()) !== -1;
-        })
+        });
     }
 });
 

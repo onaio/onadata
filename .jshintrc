@@ -1,0 +1,10 @@
+{
+  "browser": true,
+  "nomen": true,
+  "globals": {
+      "_": true,
+      "L": true,
+      "Backbone": true,
+      "FHForm": true
+  }
+}
