@@ -18,6 +18,8 @@ module.exports = function(config) {
       'http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore.js',
       'http://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.0.0/backbone.js',
       'http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.6.4/leaflet.js',
+      'https://maps.google.com/maps/api/js?v=3.2&sensor=false',
+      'main/static/js/Google.js',
       'odk_viewer/static/js/map.js',
       'odk_viewer/static/js/xform.js',
       'odk_viewer/js_tests/spec/*.spec.js'
