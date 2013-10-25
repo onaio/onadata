@@ -1,6 +1,6 @@
 {
   "browser": true,
-  "nomen": true,
+  "nomen": false,
   "globals": {
       "_": true,
       "L": true,
