@@ -1,73 +1,145 @@
+// Formhub Map Component Specs
+// ---------------------------
 describe("Formhub Map", function () {
+    // Handle to our map's DOM element
+    var el;
 
-    describe("Add Form", function(){
-        beforeEach(function () {
-            $('body').append($('<div id="map"></div>'));
+    var layer_configs = [
+        {label: 'Mapbox Streets', options: {user: 'modilabs', map: 'map-iuetkf9u'}},
+        {label: 'MapBox Streets Light', options: {user: 'modilabs', map: 'map-p543gvbh'}},
+        {label: 'MapBox Streets Zenburn', options: {user: 'modilabs', map: 'map-bjhr55gf'}},
+        {label: 'Cloudless Earth', options: {user: 'modilabs', map: 'map-aef58tqo'}},
+        {label: 'Mapbox Streets (Français)', options: {user: 'modilabs', map: 'map-vdpjhtgz'}, lang: 'fr'},
+        {label: 'Mapbox Streets (Español)', options: {user: 'modilabs', map: 'map-5gjzjlah'}, lang: 'es'}
+    ];
+    var customMapBoxTileLayer = {
+        label: 'Mapbox Street Custom',
+        options: {
+            url: 'http://{s}.tiles.mapbox.com/v3/modilabs.map-iuetkf9u.json',
+            attribution: '&copy; Me'
+        },
+        is_custom: true
+    };
+
+    // Create a `#map` div before each spec and assign it to the `el` variable.
+    beforeEach(function(){
+       $('body').append($('<div id="map"></div>'));
+       el = $('#map');
+    });
+
+    // Remove the `#map` div after each spec and un-define the `el` variable.
+    afterEach(function(){
+        el.remove();
+        el = undefined;
+    });
+
+    // ### Test the map's initialization
+    describe("Map initialization", function(){
+        // Test that default map options are overridden when specified.
+        it("overrides defaults", function(){
+            var map = new FH.Map({
+                el: el,
+                zoom: 13,
+                center: [36.0, -1.0]
+            });
+            expect(map.options.zoom).toEqual(13);
+            expect(map.options.center).toEqual([36.0, -1.0]);
+        });
+
+        // Test that default map options are used if overrides are not specified.
+        it("uses defaults if they are not specified", function(){
+            var map = new FH.Map({
+                el: el
+            });
+            expect(map.options.zoom).toEqual(8);
+            expect(map.options.center).toEqual([0, 0]);
+        });
+    });
+
+    // ### Test base layer functionality.
+    describe("Base Layers", function(){
+        it("creates base layers defined at initialisation", function(){
+            var map = new FH.Map({
+                    el: el,
+                    layers: layer_configs.concat([customMapBoxTileLayer])
+                });
+            expect(_.keys(map._layers_control._layers).length).toEqual(7);
+        });
+
+        describe("Layer Initialisation by type", function(){
+            var map;
+            // Create an FH.Map before each spec
+            beforeEach(function(){
+                map = new FH.Map({
+                    el: el
+                });
+            });
+
+            // Test that `addBaseLayer` can add a MapBox layer
+            it("can add a mapbox layer", function(){
+                var mapbox_layer_config = {
+                        type: FH.layers.MAPBOX,
+                        label: 'Mapbox Streets',
+                        options: {
+                            user: 'modilabs',
+                            map: 'map-iuetkf9u',
+                            attribution: 'Map data (c) OpenStreetMap contributors, CC-BY-SA'
+                        }
+                    },
+                    layer;
+                layer = map.addBaseLayer(mapbox_layer_config, true);
+                expect(map._map.hasLayer(layer)).toEqual(true);
+            });
+
+            // Test that `addBaseLayer` can add a Google layer
+            it("can add a Google layer", function(){
+                var google_layer_config = {
+                        type: FH.layers.GOOGLE,
+                        label: 'Google Hybrid',
+                        options: {
+                            type: 'HYBRID'
+                        }
+                    },
+                    layer;
+                layer = map.addBaseLayer(google_layer_config, true);
+                expect(map._map.hasLayer(layer)).toEqual(true);
+            });
+
+            // Test that `addBaseLayer` can add a generic layer defined by url
+            it("can add a generic layer", function(){
+                var generic_layer_config = {
+                        label: 'Custom Layer',
+                        options: {
+                            url: 'http://{s}.tiles.mapbox.com/v3/modilabs.map-iuetkf9u.json',
+                            attribution: '&copy; Me'
+                        }
+                    },
+                    layer;
+                layer = map.addBaseLayer(generic_layer_config, true);
+                expect(map._map.hasLayer(layer)).toEqual(true);
+            });
         });
     });
 
     describe("determineDefaultLayer", function () {
-        var predefined_layer_configs = [
-            {label: 'Mapbox Streets', user: 'modilabs', map: 'map-iuetkf9u'},
-            {label: 'MapBox Streets Light', user: 'modilabs', map: 'map-p543gvbh'},
-            {label: 'MapBox Streets Zenburn', user: 'modilabs', map: 'map-bjhr55gf'},
-            {label: 'Cloudless Earth', user: 'modilabs', map: 'map-aef58tqo'},
-            {label: 'Mapbox Streets (Français)', user: 'modilabs', map: 'map-vdpjhtgz', lang: 'fr'},
-            {label: 'Mapbox Streets (Español)', user: 'modilabs', map: 'map-5gjzjlah', lang: 'es'}
-        ];
-        var customMapBoxTileLayer = {
-            url: 'http://a.tiles.mapbox.com/v3/modilabs.map-iuetkf9u.json',
-            label: 'Mapbox Street Custom',
-            attribution: '&copy; Me'
-        };
-
-        var base_layers = [];
-
-        beforeEach(function () {
-            base_layers = [];
-            predefined_layer_configs.forEach(function (layer_config) {
-                var layer = new L.TileLayer.MapBox({user: layer_config.user, map: layer_config.map});
-                base_layers.push({
-                    title: layer_config.label,
-                    layer: layer,
-                    lang: layer_config.lang,
-                    is_custom: false
-                });
-            });
-        });
-
         it("sets the custom layer as the default if its defined", function () {
             // add the custom layer
-            base_layers.push({
-                title: customMapBoxTileLayer.label,
-                layer: L.tileLayer(customMapBoxTileLayer.url, {attribution: customMapBoxTileLayer.attribution}),
-                lang: customMapBoxTileLayer.lang,
-                is_custom: true
-            });
-            FHMap.determineDefaultLayer(base_layers, 'en');
-            var default_layer = _.find(base_layers, function (layer) {
-                return layer.is_default === true;
-            });
+            var base_layers = layer_configs.concat([customMapBoxTileLayer]);
+            var default_layer = FH.Map.determineDefaultLayer(base_layers, 'en');
             expect(default_layer).toBeDefined();
-            expect(default_layer.title).toEqual(customMapBoxTileLayer.label);
+            expect(default_layer).toBe(customMapBoxTileLayer);
         });
 
         it("sets the layer matching the language code as the default if no custom layer is defined", function () {
-            FHMap.determineDefaultLayer(base_layers, 'fr');
-            var default_layer = _.find(base_layers, function (layer) {
-                return layer.is_default === true;
-            });
+            var default_layer = FH.Map.determineDefaultLayer(layer_configs, 'fr');
             expect(default_layer).toBeDefined();
-            expect(default_layer.title).toEqual('Mapbox Streets (Français)');
+            expect(default_layer.label).toEqual('Mapbox Streets (Français)');
         });
 
         it("sets the first defined layer as the default if no custom or language layer is found", function () {
-            FHMap.determineDefaultLayer(base_layers, 'en');
-            var default_layer = _.find(base_layers, function (layer) {
-                return layer.is_default === true;
-            });
+            var default_layer = FH.Map.determineDefaultLayer(layer_configs, 'en');
             expect(default_layer).toBeDefined();
-            expect(default_layer.title).toEqual('Mapbox Streets');
+            expect(default_layer.label).toEqual('Mapbox Streets');
         });
     });
 });

@@ -32,11 +32,6 @@
 <body>
   {% include "topbar.html" %}
 
-  {% if mapbox_layer %}
-  <script type="text/javascript">
-    var customMapBoxTileLayer = {label: '{{mapbox_layer.map_name}}', url: '{{mapbox_layer.link}}'};
-  </script>
-  {% endif %}
   <div id="progress-modal" class="modal hide fade" data-backdrop="static">
       <div class="progress progress-info progress-striped">
           <div class="bar" style="width: 1%"></div>
@@ -61,7 +56,7 @@
 <script src="/static/js/map.js?ts=201310221330" type="text/javascript"></script>
 {% if mapbox_layer %}
 <script type="text/javascript">
-	var customMapBoxTileLayer = {label: '{{mapbox_layer.map_name}}', url: '{{mapbox_layer.link}}'};
+	var customMapBoxTileLayer = {label: '{{mapbox_layer.map_name}}', url: '{{mapbox_layer.link}}', attribution: '{{mapbox_layer.attribution}}'};
 </script>
 {% endif %}
 <script type="text/javascript">
@@ -85,61 +80,37 @@
 	$(window).resize(setMapHeight);
 
     (function(){
-        FHMap.init('map_canvas', {
-            zoom: default_zoom,
-            center: [center.lat, center.lng]
-        });
+        var fh_map,
+            osmAttribution = gettext(" Map data (c) OpenStreetMap contributors, CC-BY-SA");
 
-        var mapbox_layer_configs = [
-            {label: gettext('Mapbox Streets'), user: 'modilabs', map: 'map-iuetkf9u'},
-            {label: gettext('MapBox Streets Light'), user: 'modilabs', map: 'map-p543gvbh'},
-            {label: gettext('MapBox Streets Zenburn'), user: 'modilabs', map: 'map-bjhr55gf'},
-            {label: gettext('Cloudless Earth'), user: 'modilabs', map: 'map-aef58tqo'},
-            {label: gettext("Mapbox Streets (Français)"), user: 'modilabs', map: 'map-vdpjhtgz', lang: 'fr'},
-            {label: gettext("Mapbox Streets (Español)"), user: 'modilabs', map: 'map-5gjzjlah', lang: 'es'}
+        var layer_configs = [
+            {type: FH.layers.MAPBOX, label: gettext('Mapbox Streets'), options: {user: 'modilabs', map: 'map-iuetkf9u', attribution: osmAttribution}},
+            {type: FH.layers.MAPBOX, label: gettext('MapBox Streets Light'), options: {user: 'modilabs', map: 'map-p543gvbh', attribution: osmAttribution}},
+            {type: FH.layers.MAPBOX, label: gettext('MapBox Streets Zenburn'), options: {user: 'modilabs', map: 'map-bjhr55gf', attribution: osmAttribution}},
+            {type: FH.layers.MAPBOX, label: gettext('Cloudless Earth'), options: {user: 'modilabs', map: 'map-aef58tqo', attribution: osmAttribution}},
+            {type: FH.layers.MAPBOX, label: gettext("Mapbox Streets (Français)"), options: {user: 'modilabs', map: 'map-vdpjhtgz', attribution: osmAttribution}, lang: 'fr'},
+            {type: FH.layers.MAPBOX, label: gettext("Mapbox Streets (Español)"), options: {user: 'modilabs', map: 'map-5gjzjlah', attribution: osmAttribution}, lang: 'es'},
+            {type: FH.layers.GOOGLE, label: gettext("Google Satellite Map"), options: {type: 'HYBRID'}}
         ];
-        var base_layers = [];
-
-        mapbox_layer_configs.forEach(function(layer_config){
-            var layer = new L.TileLayer.MapBox({
-                user: layer_config.user,
-                map: layer_config.map,
-                attribution: gettext(" Map data (c) OpenStreetMap contributors, CC-BY-SA")
-            });
-            base_layers.push({
-                title: layer_config.label,
-                layer: layer,
-                lang: layer_config.lang,
-                is_custom: false
-            });
-        });
 
         // check for a user defined map
         if (typeof customMapBoxTileLayer !== "undefined" && customMapBoxTileLayer) {
-            base_layers.push({
-                title: customMapBoxTileLayer.label,
-                layer: L.tileLayer(customMapBoxTileLayer.url, {attribution: customMapBoxTileLayer.attribution}),
-                lang: customMapBoxTileLayer.lang,
+            layer_configs.push({
+                label: customMapBoxTileLayer.label,
+                options: {
+                    url: customMapBoxTileLayer.url,
+                    attribution: customMapBoxTileLayer.attribution
+                },
                 is_custom: true
             });
         }
 
-        // add google sat layer
-        base_layers.push({
-            title: gettext("Google Satellite Map"),
-            layer: new L.Google('HYBRID'),
-            is_custom: false
+        fh_map = new FH.Map({
+            el: $('#map_canvas'),
+            zoom: default_zoom,
+            center: [center.lat, center.lng],
+            layers: layer_configs
         });
-
-        // set default layer
-        FHMap.determineDefaultLayer(base_layers, language_code);
-
-        // add base layers
-        base_layers.forEach(function(base_layer){
-           FHMap.addBaseLayer(base_layer.layer, base_layer.title, base_layer.is_default);
-        });
-
-        FHMap.addForm(formJSONUrl, mongoAPIUrl);
     })();
 </script>
 </body>

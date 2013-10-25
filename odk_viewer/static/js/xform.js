@@ -19,7 +19,7 @@ var FHForm = Backbone.Model.extend({
             questions.forEach(function(q){
                 fields.add(new FHField(q));
             });
-            // trigger the **load** event
+            // trigger the `load` event
             this_form.trigger('load');
         });
         xhr.fail(function(){
