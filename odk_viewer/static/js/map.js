@@ -1,8 +1,3 @@
-/*jslint browser: true */
-/*jslint nomen: true*/ /* tells jslint to allow underscores */
-/*jslint sloppy: true*/ /* tells jslint to avoid `use strict` errors */
-/*global _, L */
-
 // Leaflet shortcuts for common tile providers - is it worth adding such 1.5kb to Leaflet core?
 // https://gist.github.com/mourner/1804938
 L.TileLayer.Common = L.TileLayer.extend({
@@ -12,7 +7,6 @@ L.TileLayer.Common = L.TileLayer.extend({
 });
 
 (function () {
-
     var osmAttr = '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>';
 
     L.TileLayer.CloudMade = L.TileLayer.Common.extend({
@@ -42,8 +36,8 @@ L.TileLayer.Common = L.TileLayer.extend({
 }());
 
 var FHMap = (function () {
-    var map,
-        layers_control,
+    "use strict";
+    var map, layers_control,
         defaults = {
             zoom: 8,
             center: [0, 0]
@@ -98,4 +92,4 @@ var FHMap = (function () {
             });
         }
     };
-})();
+}());
