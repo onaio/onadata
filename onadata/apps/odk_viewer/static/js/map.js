@@ -68,10 +68,12 @@
                 center: this.options.center
             }).addControl(this._layers_control);
 
+            // determine the default layer
             default_layer_config = FH.Map.determineDefaultLayer(this.options.layers);
 
             // Add base layers that were defined within options
             this.options.layers.forEach(function (layer_config) {
+                // is this layer the we determined to be our default
                 var is_default = default_layer_config === layer_config;
                 this_map.addBaseLayer(layer_config, is_default);
             });
@@ -97,15 +99,22 @@
         }
     });
 
+    // #### Determine the default layer from the specified list
     FH.Map.determineDefaultLayer = function (base_layers, language_code) {
         var custom_layer, lang_specific_layer, first;
+
+        // Find the layer defined as custom, if any.
         custom_layer = _.find(base_layers, function (layer) {
             return layer.is_custom === true;
         });
+
+        // Find the language specific layer if any.
         lang_specific_layer = _.find(base_layers, function (layer) {
             return layer.lang === language_code;
         });
 
+        // Finally return the custom layer, language specific layer or the first
+        // layer if non of the above exists.
         if (custom_layer) {
             return custom_layer;
         } else if (lang_specific_layer) {
@@ -115,10 +124,10 @@
         }
     };
 
-    var osmAttr = '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>';
-
     // Leaflet shortcuts for common tile providers - is it worth adding such 1.5kb to Leaflet core?
     // https://gist.github.com/mourner/1804938
+    var osmAttr = '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>';
+
     L.TileLayer.Common = L.TileLayer.extend({
         initialize: function (options) {
             L.TileLayer.prototype.initialize.call(this, this.url, options);
@@ -157,6 +166,7 @@
         return new L.TileLayer(options.url, options);
     };
 
+    // Assign functions that instantiate the different types of layers
     LayerFactories[FH.layers.MAPBOX] = L.TileLayer.MapBox;
     LayerFactories[FH.layers.CLOUD_MADE] = L.TileLayer.CloudMade;
     LayerFactories[FH.layers.OPEN_STREET_MAP] = L.TileLayer.OpenStreetMap;
