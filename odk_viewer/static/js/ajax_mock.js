@@ -6,6 +6,11 @@
         this.responses = options.responses || {};
     };
 
+    var predicate_args = [
+        'data',
+        'dataType'
+    ];
+
     this.AjaxMock.prototype.ajax = function (xhrParams) {
         var method,
             params,
@@ -13,42 +18,34 @@
             deferred = $.Deferred();
 
         // Default to `GET`
-        method = xhrParams.type || "GET";
-        params = void 0;
+        method = xhrParams.type = xhrParams.type || "GET";
 
-        // Build url query params from `data` property if `GET`
-        if (method === "GET") {
-            params = [];
-            xhrParams.data = xhrParams.data || {};
+        // Filter responses for matching url and method
+        var matching_responses = this.responses.filter(function (r) {
+            return r.url === xhrParams.url && r.type === xhrParams.type;
+        });
 
-            if(typeof(xhrParams.data) !== "string") {
-                for(var k in xhrParams.data) {
-                    if (xhrParams.data.hasOwnProperty(k)){
-                        params.push(k + "=" + xhrParams.data[k]);
-                    }
+        // Use predicate arguments to further filter the list
+        matching_responses = matching_responses.filter( function (r) {
+            var is_match = true;
+            predicate_args.forEach(function (arg) {
+                // Check if the response def or xhr has this arg the use
+                // _.isEqual to deep compare
+                if(( xhrParams.hasOwnProperty(arg) || r.hasOwnProperty(arg) ) && !_.isEqual(xhrParams[arg], r[arg])){
+                    is_match = false;
                 }
-            } else {
-                params.push(xhrParams.data);
-            }
-            params = params.join("&");
-        }
-        if (params) {
-            xhrParams.url += "?" + params;
-        }
+            });
+            return is_match;
+        });
 
-        // Try to get the url from our defined responses
-        try {
-            response = this.responses[xhrParams.url][method];
-            if (response === void 0) {
-                console.error("urls." + xhrParams.url + "." + method + " is not defined.");
-                deferred.reject({}, 'error');
-            } else {
-                deferred.resolve(response, 'success', {});
-            }
-        } catch (err) {
-            deferred.reject({}, 'error', err);
+        if(matching_responses.length > 1) {
+            throw Error("Multiple response definitions matched.");
+        } else if(matching_responses.length === 0) {
+            console.warn("url " + xhrParams.url + "." + method + " with params " + JSON.stringify(xhrParams) +" is not defined.");
+            deferred.reject({}, 'error');
+        } else {
+            deferred.resolve(matching_responses[0].response, 'success', {});
         }
-
         return deferred.promise();
     };
 }).call(this);
