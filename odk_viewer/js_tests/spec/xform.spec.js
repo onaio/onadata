@@ -92,7 +92,7 @@ describe("Formhub Form", function () {
             ]
         };
 
-        form = new FHForm({}, {url: form_url});
+        form = new FH.Form({}, {url: form_url});
         spyOn(form, 'fetch').andCallThrough();
         spyOn(Backbone, 'ajax').andCallFake(function(params, options){
             var deferred = $.Deferred();
@@ -116,24 +116,24 @@ describe("Formhub Form", function () {
         }, "Waiting for form to load", 1000);
     });
 
-    it("loads on init", function(){
+    it("loads on init", function () {
         expect(Backbone.ajax).toHaveBeenCalled();
         expect(form.fetch).toHaveBeenCalled();
     });
 
-    describe("Parse Questions", function(){
+    describe("Parse Questions", function () {
         var parsed, raw_questions;
 
-        beforeEach(function(){
-            raw_questions = form.get(FHForm.constants.CHILDREN);
-            parsed = FHForm.parseQuestions(raw_questions);
+        beforeEach(function () {
+            raw_questions = form.get(FH.constants.CHILDREN);
+            parsed = FH.Form.parseQuestions(raw_questions);
             expect(parsed).toBeDefined();
             expect(parsed.length).toEqual(8);
         });
 
-        it("can parse nested questions into a single level", function(){
+        it("can parse nested questions into a single level", function () {
             // get field names
-            var field_names = parsed.map(function(q){
+            var field_names = parsed.map(function (q) {
                 return q.name;
             });
             expect(field_names).toContain('start_time');
@@ -147,12 +147,12 @@ describe("Formhub Form", function () {
             expect(field_names).toContain('how_delectible');
         });
 
-        it("sets id from fields name for top level children", function(){
+        it("sets id from fields name for top level children", function () {
             var nearest_watering_hole = _.find(parsed, function (q) {
                 return q.name === 'nearest_watering_hole';
             });
             expect(nearest_watering_hole).toBeDefined();
-            expect(nearest_watering_hole.xpath).toEqual(nearest_watering_hole.name)
+            expect(nearest_watering_hole.xpath).toEqual(nearest_watering_hole.name);
         });
 
         it("sets id from fields parent's name and name for nested children", function(){
@@ -176,12 +176,12 @@ describe("Formhub Form", function () {
         });
     });
 
-    describe("Questions By Type", function(){
+    describe("Questions By Type", function () {
         it("can return questions by type", function () {
-            var gps_questions = form.questionsByType(FHForm.types.GEOLOCATION);
+            var gps_questions = form.questionsByType(FH.types.GEOLOCATION);
             expect(gps_questions.length).toEqual(2);
 
-            var question_names = _.map(gps_questions, function(q){
+            var question_names = _.map(gps_questions, function (q) {
                 return q.get('name');
             });
             expect(question_names).toContain('location');
