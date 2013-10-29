@@ -1,0 +1,17 @@
+{
+  "name": "formhub-js",
+  "version": "0.0.1",
+  "dependencies": {},
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-karma": "~0.6.2",
+    "load-grunt-tasks": "~0.1.0",
+    "sinon": "~1.7.3"
+  },
+  "engines": {
+    "node": ">=0.8.0"
+  },
+  "scripts": {
+    "test": "grunt test"
+  }
+}
