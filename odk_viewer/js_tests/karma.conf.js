@@ -20,9 +20,15 @@ module.exports = function(config) {
       'http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.6.4/leaflet.js',
       'https://maps.google.com/maps/api/js?v=3.2&sensor=false',
       'main/static/js/Google.js',
+      'node_modules/sinon/lib/sinon.js',
+      'node_modules/sinon/lib/sinon/util/event.js',
+      'node_modules/sinon/lib/sinon/util/fake_xml_http_request.js',
+      'node_modules/sinon/lib/sinon/util/fake_server.js',
       'odk_viewer/static/js/map.js',
       'odk_viewer/static/js/xform.js',
-      'odk_viewer/js_tests/spec/*.js'
+      'odk_viewer/static/js/ajax_mock.js',
+      'odk_viewer/js_tests/spec/*.js',
+      'odk_viewer/js_tests/mock/*.js'
     ],
 
 

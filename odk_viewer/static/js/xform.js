@@ -12,6 +12,7 @@
 
     FH.constants = {
         ID_STRING: 'id_string',
+        NAME: 'name',
         CHILDREN: 'children',
         GROUP: 'group',
         NOTE: 'note'
@@ -38,11 +39,10 @@
     // var form = new Form({}, {url: "http://formhub.org/user/forms/test/form.json"});
     // ```
     var Form = FH.Form = Backbone.Model.extend({
-        init: function(){
-            var fields = new FieldSet(),
+        load: function () {
+            var fields = this.fields = new FieldSet(),
                 this_form = this,
                 xhr;
-            this.fields = fields;
 
             xhr = this.fetch();
             xhr.done(function(){
@@ -55,29 +55,27 @@
                 this_form.trigger('load');
             });
             xhr.fail(function(){
-
             });
         },
 
-        questionsByType: function(fh_types){
+        questionsByType: function (fh_types) {
             return this.fields.filter(function(f){
                 return _.indexOf(fh_types, f.get('type').toLowerCase()) !== -1;
             });
         }
     });
 
-    // #### Parse form.json questions
     // Pass in the top level `children` property from a form.json structure,
     // returns flat list of questions from all levels, discarding groups and
     // notes.
-    FH.Form.parseQuestions = function(children, xpaths){
+    FH.Form.parseQuestions = function (children, xpaths) {
         var questions = [];
 
         // The `xpaths` params is an empty list initially but is incrementally
         // built with every nested children group
         xpaths = xpaths || [];
 
-        children.forEach(function(q){
+        children.forEach( function (q) {
             if(q.type.toLowerCase() === FH.constants.GROUP)
             {
                 var grouped = FH.Form.parseQuestions(q.children, xpaths.concat([q.name]));
@@ -95,9 +93,37 @@
         return questions;
     };
 
-    FH.Data = Backbone.Model.extend({
-        query: function(query, fields, start, limit){
+    // #### DataSet
+    // A collection for form data
+    FH.DataSet = Backbone.Collection.extend({
+        // Load data from the server, `params` can contain:
+        // - query: An object of specifying the filter params for the query
+        // - fields: a list of fieldnames to retrieve
+        // - start: number of records to skip
+        // - limit: number of records to limit
+        // reset: whether to replace existing records or to merge
+        load: function (params, reset) {
+            var xhr,
+                _that = this;
 
+            params = params || {};
+            reset = !!reset || false;
+
+            // String-ify query params
+            params.query && (params.query = JSON.stringify(params.query));
+            params.fields && (params.fields = JSON.stringify(params.fields));
+            params.start && (params.start = JSON.stringify(params.start));
+
+            xhr = this.fetch({
+                data: params,
+                reset: reset
+            });
+            xhr.done(function () {
+                _that.trigger('load');
+            });
+            xhr.fail(function () {
+                console.error("Failed to load data.");
+            });
         }
     });
 }).call(this);

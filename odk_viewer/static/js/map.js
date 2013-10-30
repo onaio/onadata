@@ -68,6 +68,9 @@
                 center: this.options.center
             }).addControl(this._layers_control);
 
+            // Set the FeatureLayerSet
+            this.feature_layers = new FH.FeatureLayerSet();
+
             // determine the default layer
             default_layer_config = FH.Map.determineDefaultLayer(this.options.layers);
 
@@ -96,6 +99,24 @@
                 this._map.addLayer(layer);
             }
             return layer;
+        },
+
+        addFeatureLayer: function (form_url, data_url) {
+            var form = new FH.Form({}, {url: form_url});
+            form.load();
+            form.on('load', function () {
+                // Get the list of GPS type questions to load GPS data first
+                var gps_questions = form.questionsByType(FH.types.GEOLOCATION)
+                    .map(function (q) {
+                        return q.get(FH.constants.NAME);
+                    });
+
+                var form_data = new FH.DataSet({}, {url: data_url});
+                form_data.load({fields: gps_questions});
+                form_data.on('load', function () {
+
+                });
+            });
         }
     });
 
@@ -123,6 +144,10 @@
             return _.values(base_layers)[0];
         }
     };
+
+    var FeatureLayerSet = FH.FeatureLayerSet = Backbone.Collection.extend({
+
+    });
 
     // Leaflet shortcuts for common tile providers - is it worth adding such 1.5kb to Leaflet core?
     // https://gist.github.com/mourner/1804938
