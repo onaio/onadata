@@ -47,12 +47,12 @@ class TestZiggySubmissions(MainTestCase):
         # clear mongo db after each test
         settings.MONGO_DB.ziggys.drop()
 
-    def _make_ziggy_submission(self, path, client=None):
+    def _make_ziggy_submission(self, path, client=None, **extra):
         client = client or self.client
         with open(path) as f:
             data = f.read()
         return client.post(ziggy_submission_url, data,
-                           content_type='application/json')
+                           content_type='application/json', **extra)
 
     def test_ziggy_submission_requires_authentication(self):
         response = self._make_ziggy_submission(village_profile_json_path,
@@ -75,6 +75,25 @@ class TestZiggySubmissions(MainTestCase):
         # check permissions within view
         self.client = self._login(*reporter_credentials)
         response = self._make_ziggy_submission(village_profile_json_path)
+        self.assertEqual(response.status_code, 201)
+
+    def test_ziggy_submission_works_with_basic_auth(self):
+        # create a team that belongs to this organization
+        org = self.user
+        reporters_team = create_organization_team(
+            org, 'reporters', ['make_submission'])
+        reporter_credentials = ('reporter', 'r3port3r',)
+        reporter = self._create_user(*reporter_credentials)
+        add_user_to_team(reporters_team, reporter)
+
+        # make sure the permission was assigned
+        self.assertTrue(reporter.has_perm(
+            'api.make_submission', org.profile))
+
+        # check basic auth permissions within view
+        auth_headers = self._set_auth_headers(*reporter_credentials)
+        response = self._make_ziggy_submission(
+            village_profile_json_path, self.anon, **auth_headers)
         self.assertEqual(response.status_code, 201)
 
     def test_ziggy_submissions_post_url(self):

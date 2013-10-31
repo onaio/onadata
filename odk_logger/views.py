@@ -681,6 +681,10 @@ def ziggy_submissions(request, username):
         return HttpResponseBadRequest(
             "'{}' is not an organisation account".format(username))
 
+    auth_response = helper_auth_helper(request)
+    if auth_response is not None:
+        raise PermissionDenied
+
     # check if requesting user has permissions to make submissions to this
     # organization's profile
     # TODO: check against all owners team members for permissions
