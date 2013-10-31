@@ -1,6 +1,7 @@
 from django.db import IntegrityError
 from django.contrib.auth.models import Permission
 from main.tests.test_base import MainTestCase
+from main.models import UserProfile
 from api.models import Team, OrganizationProfile, Project, ProjectXForm
 from api import tools as utils
 
@@ -92,3 +93,14 @@ class TestModels(MainTestCase):
         with self.assertRaises(IntegrityError):
             utils.add_xform_to_project(
                 self.xform, project, self.user)
+
+    def test_convert_user_to_org_when_profile_exists(self):
+        user_to_convert = self._create_user('toconvert', 't0conv3rt')
+        UserProfile.objects.get_or_create(user=user_to_convert)
+        utils.convert_user_to_org(user_to_convert)
+        self.assertIsInstance(user_to_convert.profile, OrganizationProfile)
+
+    def test_convert_user_to_org_when_profile_doesnt_exist(self):
+        user_to_convert = self._create_user('toconvert', 't0conv3rt')
+        utils.convert_user_to_org(user_to_convert)
+        self.assertIsInstance(user_to_convert.profile, OrganizationProfile)

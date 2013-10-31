@@ -6,6 +6,7 @@ from guardian.shortcuts import assign_perm
 from main.forms import QuickConverter
 from odk_logger.models import XForm
 from utils.logger_tools import publish_form
+from main.models import UserProfile
 
 
 def _get_first_last_names(name):
@@ -46,6 +47,29 @@ def create_organization_object(org_name, creator, attrs={}):
         home_page=attrs.get('home_page', u''),
         twitter=attrs.get('twitter', u''))
     return profile
+
+
+def convert_user_to_org(user, creator=None):
+    create_kwargs = {}
+    try:
+        profile = UserProfile.objects.get(user=user)
+    except UserProfile.DoesNotExist:
+        pass
+    else:
+        create_kwargs = {
+            'name': profile.name,
+            'city': profile.city,
+            'country': profile.country,
+            'organization': profile.organization,
+            'home_page': profile.home_page,
+            'twitter': profile.twitter
+        }
+        profile.delete()
+
+    OrganizationProfile.objects.create(
+        user=user,
+        creator=creator or user,
+        **create_kwargs)
 
 
 def create_organization_team(organization, name, permission_names=[]):
