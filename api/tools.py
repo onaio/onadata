@@ -2,7 +2,7 @@ from api.models import OrganizationProfile, Team, Project, ProjectXForm
 
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
-
+from guardian.shortcuts import assign_perm
 from main.forms import QuickConverter
 from odk_logger.models import XForm
 from utils.logger_tools import publish_form
@@ -56,8 +56,8 @@ def create_organization_team(organization, name, permission_names=[]):
         # get permission objects
         perms = Permission.objects.filter(
             codename__in=permission_names, content_type=content_type)
-        if perms:
-            team.permissions.add(*tuple(perms))
+        for perm in perms:
+            assign_perm(perm.codename, team, organization.profile)
     return team
 
 
