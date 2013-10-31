@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_GET, require_POST,\
     require_http_methods
 from google_doc import GoogleDoc
-from guardian.shortcuts import assign, remove_perm, get_users_with_perms
+from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
 
 from main.forms import UserProfileForm, FormLicenseForm, DataLicenseForm,\
     SupportDocForm, QuickConverterFile, QuickConverterURL, QuickConverter,\
@@ -1019,7 +1019,7 @@ def set_perm(request, username, id_string):
                         'id_string': xform.id_string,
                         'for_user': for_user
                     }, audit, request)
-                assign('change_xform', user, xform)
+                assign_perm('change_xform', user, xform)
             elif perm_type == 'view' and\
                     not user.has_perm('view_xform', xform):
                 audit = {
@@ -1033,7 +1033,7 @@ def set_perm(request, username, id_string):
                         'id_string': xform.id_string,
                         'for_user': for_user
                     }, audit, request)
-                assign('view_xform', user, xform)
+                assign_perm('view_xform', user, xform)
             elif perm_type == 'remove':
                 audit = {
                     'xform': xform.id_string
@@ -1326,7 +1326,7 @@ def enketo_preview(request, username, id_string):
     xform = get_object_or_404(
         XForm, user__username=username, id_string=id_string)
     owner = xform.user
-    if not has_permission(xform, owner, request):
+    if not has_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
     enekto_preview_url = \
         "%(enketo_url)s?server=%(profile_url)s&id=%(id_string)s" % {
