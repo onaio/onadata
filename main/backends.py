@@ -1,7 +1,11 @@
 from django.contrib.auth.models import User
-from django.contrib.auth.backends import ModelBackend as DjangoModelBackend
+from django.contrib.auth.backends import RemoteUserBackend
 
-class ModelBackend(DjangoModelBackend):
+
+class ModelBackend(RemoteUserBackend):
+    # Don't create users that don't exist
+    create_unknown_user = False
+
     def authenticate(self, username=None, password=None):
         """ Case insensitive username """
         try:

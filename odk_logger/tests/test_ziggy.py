@@ -13,6 +13,11 @@ from odk_logger.views import ziggy_submissions
 from restservice.models import RestService
 from httmock import urlmatch, HTTMock
 from bson import ObjectId
+from api.tools import (
+    create_organization_object,
+    create_organization_team,
+    add_user_to_team,
+    convert_user_to_org)
 
 mongo_ziggys = settings.MONGO_DB.ziggys
 ziggy_submission_url = reverse(ziggy_submissions, kwargs={'username': 'bob'})
@@ -32,6 +37,8 @@ ENTITY_ID = '9e7ee7c3-3071-4cb5-881f-f71572101f35'
 class TestZiggySubmissions(MainTestCase):
     def setUp(self):
         super(TestZiggySubmissions, self).setUp()
+        # convert user to org
+        convert_user_to_org(self.user)
         # publish xforms
         self._publish_xls_file(village_profile_xls_path)
         self._publish_xls_file(cc_monthly_xls_path)
@@ -40,18 +47,42 @@ class TestZiggySubmissions(MainTestCase):
         # clear mongo db after each test
         settings.MONGO_DB.ziggys.drop()
 
-    def make_ziggy_submission(self, path):
+    def _make_ziggy_submission(self, path, client=None):
+        client = client or self.client
         with open(path) as f:
             data = f.read()
-        return self.client.post(ziggy_submission_url, data,
-                                content_type='application/json')
+        return client.post(ziggy_submission_url, data,
+                           content_type='application/json')
+
+    def test_ziggy_submission_requires_authentication(self):
+        response = self._make_ziggy_submission(village_profile_json_path,
+                                               self.anon)
+        self.assertEqual(response.status_code, 403)
+
+    def test_ziggy_submission_allows_user_with_submission_perms(self):
+        # create a team that belongs to this organization
+        org = self.user
+        reporters_team = create_organization_team(
+            org, 'reporters', ['make_submission'])
+        reporter_credentials = ('reporter', 'r3port3r',)
+        reporter = self._create_user(*reporter_credentials)
+        add_user_to_team(reporters_team, reporter)
+
+        # make sure the permission was assigned
+        self.assertTrue(reporter.has_perm(
+            'api.make_submission', org.profile))
+
+        # check permissions within view
+        self.client = self._login(*reporter_credentials)
+        response = self._make_ziggy_submission(village_profile_json_path)
+        self.assertEqual(response.status_code, 201)
 
     def test_ziggy_submissions_post_url(self):
         self._ziggy_submissions_post_url()
 
     def _ziggy_submissions_post_url(self):
         num_ziggys = ZiggyInstance.objects.count()
-        response = self.make_ziggy_submission(village_profile_json_path)
+        response = self._make_ziggy_submission(village_profile_json_path)
         self.assertEqual(response.status_code, 201)
         # check instance was created in db
         self.assertEqual(ZiggyInstance.objects.count(), num_ziggys + 1)
@@ -88,12 +119,12 @@ class TestZiggySubmissions(MainTestCase):
 
     def test_ziggy_submission_post_update(self):
         num_ziggys = ZiggyInstance.objects.count()
-        response = self.make_ziggy_submission(village_profile_json_path)
+        response = self._make_ziggy_submission(village_profile_json_path)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(ZiggyInstance.objects.count(), num_ziggys + 1)
 
         # make update submission
-        response = self.make_ziggy_submission(cc_monthly_json_path)
+        response = self._make_ziggy_submission(cc_monthly_json_path)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(ZiggyInstance.objects.count(), num_ziggys + 2)
 

@@ -43,6 +43,7 @@ from odk_logger.models.ziggy_instance import ZiggyInstance
 from utils.log import audit_log, Actions
 from django_digest import HttpDigestAuthenticator
 from utils.viewer_tools import enketo_url
+from api.models import OrganizationProfile
 
 
 @require_POST
@@ -672,14 +673,29 @@ def ziggy_submissions(request, username):
     """
     data = {'message': _(u"Invalid request!")}
     status = 400
-    form_user = get_object_or_404(User, username=username)
+    owner = get_object_or_404(User, username=username)
+
+    try:
+        org_profile = OrganizationProfile.objects.get(user=owner)
+    except OrganizationProfile.DoesNotExist:
+        return HttpResponseBadRequest(
+            "'{}' is not an organisation account".format(username))
+
+    # check if requesting user has permissions to make submissions to this
+    # organization's profile
+    # TODO: check against all owners team members for permissions
+    if not request.user == owner and not request.user.has_perm(
+            'api.make_submission', org_profile):
+        raise PermissionDenied
+
     if request.method == 'POST':
         json_post = request.body
         if json_post:
             # save submission
             # i.e pick entity_id, instance_id, server_version, client_version?
             # reporter_id
-            records = ZiggyInstance.create_ziggy_instances(form_user, json_post)
+            records = ZiggyInstance.create_ziggy_instances(
+                owner, json_post)
 
             data = {'status': 'success',
                     'message': _(u"Successfully processed %(records)s records"
