@@ -21,6 +21,10 @@ class OrganizationProfile(UserProfile):
 
     class Meta:
         app_label = 'api'
+        permissions = (
+            ('make_submission',
+             "Can make submissions to this organisation's forms"),
+        )
 
     is_organization = models.BooleanField(default=True)
     # Other fields here
