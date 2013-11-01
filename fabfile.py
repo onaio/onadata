@@ -70,4 +70,4 @@ def deploy(deployment_name, branch='master'):
         run_in_virtualenv("python manage.py collectstatic --settings=formhub.local_settings --noinput")
     run("sudo /etc/init.d/celeryd-ona restart")
     #run("sudo /etc/init.d/celerybeat-ona restart")
-    run("sudo /usr/local/bin/uwsgi --reload /var/run/formhub.pid")
+    run("sudo /usr/local/bin/uwsgi --reload /var/run/ona.pid")
