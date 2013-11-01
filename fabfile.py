@@ -19,12 +19,6 @@ DEPLOYMENTS = {
     'prod': {
         'home': '/home/ubuntu/src/',
         'host_string': 'ubuntu@ona.io',
-        'project': 'formhub-ec2',
-        'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
-    },
-    'ziggy': {
-        'home': '/home/ubuntu/src/',
-        'host_string': 'ubuntu@ziggy.ona.io',
         'project': 'ona',
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
         'virtualenv': '/home/ubuntu/.virtualenvs/ona'
