@@ -93,9 +93,23 @@
         return questions;
     };
 
+    // A single form data row
+    FH.Data = Backbone.Model.extend({
+        idAttribute: '_id'
+    });
+
     // #### DataSet
     // A collection for form data
     FH.DataSet = Backbone.Collection.extend({
+        model: FH.Data,
+        initialize: function (models, options) {
+            // set the url
+            if(! options.url) {
+                throw new Error(
+                    "You must sepcify the dataset's url within the options");
+            }
+            this.url = options.url;
+        },
         // Load data from the server, `params` can contain:
         // - query: An object of specifying the filter params for the query
         // - fields: a list of fieldnames to retrieve
@@ -119,7 +133,7 @@
                 reset: reset
             });
             xhr.done(function () {
-                _that.trigger('load');
+                _that.trigger('load', arguments);
             });
             xhr.fail(function () {
                 console.error("Failed to load data.");
