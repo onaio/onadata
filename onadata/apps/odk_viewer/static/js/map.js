@@ -53,7 +53,7 @@
         // here.
         initialize: function () {
             var default_layer_config,
-                this_map = this;
+                _that = this;
 
             // Populate un-specified options with defaults
             _.defaults(this.options, defaults);
@@ -68,7 +68,7 @@
                 center: this.options.center
             }).addControl(this._layers_control);
 
-            // Set the FeatureLayerSet
+            // Create the FeatureLayerSet
             this.feature_layers = new FH.FeatureLayerSet();
 
             // determine the default layer
@@ -78,7 +78,7 @@
             this.options.layers.forEach(function (layer_config) {
                 // is this layer the we determined to be our default
                 var is_default = default_layer_config === layer_config;
-                this_map.addBaseLayer(layer_config, is_default);
+                _that.addBaseLayer(layer_config, is_default);
             });
         },
 
@@ -102,21 +102,12 @@
         },
 
         addFeatureLayer: function (form_url, data_url) {
-            var form = new FH.Form({}, {url: form_url});
-            form.load();
-            form.on('load', function () {
-                // Get the list of GPS type questions to load GPS data first
-                var gps_questions = form.questionsByType(FH.types.GEOLOCATION)
-                    .map(function (q) {
-                        return q.get(FH.constants.NAME);
-                    });
-
-                var form_data = new FH.DataSet({}, {url: data_url});
-                form_data.load({fields: gps_questions});
-                form_data.on('load', function () {
-
-                });
-            });
+            this.feature_layers.add(
+                new FeatureLayer({}, {
+                    form_url: form_url,
+                    data_url: data_url,
+                    map: this._map
+                }));
         }
     });
 
@@ -145,8 +136,72 @@
         }
     };
 
-    var FeatureLayerSet = FH.FeatureLayerSet = Backbone.Collection.extend({
+    // A `FeatureLayer` is initialised with a form url and a data url. It loads
+    // the form and then the geopoint data on initialization.
+    var FeatureLayer = FH.FeatureLayer = Backbone.Model.extend({
+        initialize: function (attributes, options) {
+            var form,
+                data,
+                _that = this;
 
+            this._map = options.map;
+            // Save the form and data urls for later
+            this.form_url = options.form_url;
+            this.data_url = options.data_url;
+
+            // Create the feature group that will manage our markers
+            this.feature_group = new L.FeatureGroup().addTo(this._map);
+
+            // Initialize the form and geopoint data
+            this.form = form = new FH.Form({}, {url: this.form_url});
+            form.load();
+            form.on('load', function () {
+                // Get the list of GPS type questions to load GPS data first
+                var gps_question = form.questionsByType(FH.types.GEOLOCATION)
+                    // Extract the first gps question
+                    .slice(0, 1)
+                    .map(function (q) {
+                        return q.get(FH.constants.NAME);
+                    });
+
+                _that.data = data = new FH.DataSet([], {url: _that.data_url});
+                _that.on('gps_data_load', _that.onGPSData);
+                data.load({fields: gps_question});
+                data.on('load', function () {
+                    _that.trigger('gps_data_load', gps_question[0]);
+                });
+            });
+        },
+
+        onGPSData: function (gps_field) {
+            var _that = this;
+            // TODO: Clear the feature group
+            this.data.each(function (record) {
+                var gps_string = record.get(gps_field),
+                    latLng;
+                if (gps_string) {
+                    latLng = FH.FeatureLayer.parseLatLngString(gps_string);
+                    _that.feature_group.addLayer(L.marker(latLng));
+                }
+            });
+        }
+    });
+
+    // Take a string in the form "lat lng alt precision" and return an array
+    // with lat and lng for leaflet's consumption
+    FH.FeatureLayer.parseLatLngString = function (lat_lng_str) {
+        return lat_lng_str
+            .split(" ")
+            .slice(0, 2)
+            .map(function (d) {
+                return parseFloat(d);
+            });
+    };
+
+    // A `FeatureLayerSet` contains a number of `FeatureLayers` that available
+    // on the map
+    var FeatureLayerSet = FH.FeatureLayerSet = Backbone.Collection.extend({
+        model: FeatureLayer
     });
 
     // Leaflet shortcuts for common tile providers - is it worth adding such 1.5kb to Leaflet core?

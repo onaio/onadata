@@ -22,21 +22,21 @@ describe("Formhub Map", function () {
     };
 
     // Create a `#map` div before each spec and assign it to the `el` variable.
-    beforeEach(function(){
-       $('body').append($('<div id="map"></div>'));
-       el = $('#map');
+    beforeEach(function () {
+        $('body').append($('<div id="map"></div>'));
+        el = $('#map');
     });
 
     // Remove the `#map` div after each spec and un-define the `el` variable.
-    afterEach(function(){
+    afterEach(function () {
         el.remove();
         el = undefined;
     });
 
     // ### Test the map's initialization
-    describe("Map initialization", function(){
+    describe("Map initialization", function () {
         // Test that default map options are overridden when specified.
-        it("overrides defaults", function(){
+        it("overrides defaults", function () {
             var map = new FH.Map({
                 el: el,
                 zoom: 13,
@@ -47,7 +47,7 @@ describe("Formhub Map", function () {
         });
 
         // Test that default map options are used if overrides are not specified.
-        it("uses defaults if they are not specified", function(){
+        it("uses defaults if they are not specified", function () {
             var map = new FH.Map({
                 el: el
             });
@@ -57,26 +57,26 @@ describe("Formhub Map", function () {
     });
 
     // ### Test base layer functionality.
-    describe("Base Layers", function(){
-        it("creates base layers defined at initialisation", function(){
+    describe("Base Layers", function () {
+        it("creates base layers defined at initialisation", function () {
             var map = new FH.Map({
-                    el: el,
-                    layers: layer_configs.concat([customMapBoxTileLayer])
-                });
+                el: el,
+                layers: layer_configs.concat([customMapBoxTileLayer])
+            });
             expect(_.keys(map._layers_control._layers).length).toEqual(7);
         });
 
-        describe("Layer Initialisation by type", function(){
+        describe("Layer Initialisation by type", function () {
             var map;
             // Create an FH.Map before each spec
-            beforeEach(function(){
+            beforeEach(function () {
                 map = new FH.Map({
                     el: el
                 });
             });
 
             // Test that `addBaseLayer` can add a MapBox layer
-            it("can add a mapbox layer", function(){
+            it("can add a mapbox layer", function () {
                 var mapbox_layer_config = {
                         type: FH.layers.MAPBOX,
                         label: 'Mapbox Streets',
@@ -92,7 +92,7 @@ describe("Formhub Map", function () {
             });
 
             // Test that `addBaseLayer` can add a Google layer
-            it("can add a Google layer", function(){
+            it("can add a Google layer", function () {
                 var google_layer_config = {
                         type: FH.layers.GOOGLE,
                         label: 'Google Hybrid',
@@ -106,7 +106,7 @@ describe("Formhub Map", function () {
             });
 
             // Test that `addBaseLayer` can add a generic layer defined by url
-            it("can add a generic layer", function(){
+            it("can add a generic layer", function () {
                 var generic_layer_config = {
                         label: 'Custom Layer',
                         options: {
@@ -140,6 +140,26 @@ describe("Formhub Map", function () {
             var default_layer = FH.Map.determineDefaultLayer(layer_configs, 'en');
             expect(default_layer).toBeDefined();
             expect(default_layer.label).toEqual('Mapbox Streets');
+        });
+    });
+
+    describe("parseLatLngString", function () {
+        describe("valid string", function () {
+            var lat_lng_str = "36.0 -1.2 3600 25",
+                result;
+
+            beforeEach(function () {
+                result = FH.FeatureLayer.parseLatLngString(lat_lng_str);
+            });
+
+            it("returns an array with two elements", function () {
+                expect(result.length).toEqual(2);
+            });
+
+            it("converts the string values into floats", function () {
+                expect(typeof(result[0])).toEqual("number");
+                expect(result[0]).not.toBeNaN();
+            });
         });
     });
 });
