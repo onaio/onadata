@@ -175,13 +175,26 @@
 
         onGPSData: function (gps_field) {
             var _that = this;
-            // TODO: Clear the feature group
+            // Clear any markers within the feature group
+            this.feature_group.clearLayers();
             this.data.each(function (record) {
                 var gps_string = record.get(gps_field),
                     latLng;
                 if (gps_string) {
                     latLng = FH.FeatureLayer.parseLatLngString(gps_string);
-                    _that.feature_group.addLayer(L.marker(latLng));
+                    //try{
+                        _that.feature_group.addLayer(L.circleMarker(latLng, {
+                            color: '#fff',
+                            border: 8,
+                            fillColor: '#ff3300',
+                            fillOpacity: 0.9,
+                            radius: 8,
+                            opacity: 0.5
+                        }));
+                    /*}
+                    catch (e) {
+                        console.error(e);
+                    }*/
                 }
             });
         }
