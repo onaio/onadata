@@ -80,7 +80,7 @@
 	$(window).resize(setMapHeight);
 
     (function(){
-        var fh_map,
+        var fhMap,
             osmAttribution = gettext(" Map data (c) OpenStreetMap contributors, CC-BY-SA");
 
         var layer_configs = [
@@ -105,15 +105,15 @@
             });
         }
 
-        fh_map = new FH.Map({
+        this.fhMap = fhMap = new FH.Map({
             el: $('#map_canvas'),
             zoom: default_zoom,
             center: [center.lat, center.lng],
             layers: layer_configs
         });
 
-        fh_map.addFeatureLayer(formJSONUrl, mongoAPIUrl);
-    })();
+        fhMap.addFeatureLayer(formJSONUrl, mongoAPIUrl);
+    }).call(this);
 </script>
 </body>
 {% endblock %}

@@ -102,12 +102,23 @@
         },
 
         addFeatureLayer: function (form_url, data_url) {
-            this.feature_layers.add(
-                new FeatureLayer({}, {
+            var feature_layer = new FeatureLayer({}, {
                     form_url: form_url,
                     data_url: data_url,
                     map: this._map
-                }));
+                }),
+                _that = this;
+            this.feature_layers.add(feature_layer);
+
+            // When markers have been added, fit the maps bounds based on all
+            // feature layers
+            feature_layer.on('layer_add_complete', function () {
+                var bounds = L.latLngBounds([]);
+                _that.feature_layers.each(function (feature_layer) {
+                    bounds.extend(feature_layer.feature_group.getBounds());
+                });
+                _that._map.fitBounds(bounds);
+            });
         }
     });
 
@@ -150,7 +161,8 @@
             this.data_url = options.data_url;
 
             // Create the feature group that will manage our markers
-            this.feature_group = new L.FeatureGroup().addTo(this._map);
+            this.feature_group = new L.FeatureGroup()
+                .addTo(this._map);
 
             // Initialize the form and geopoint data
             this.form = form = new FH.Form({}, {url: this.form_url});
@@ -179,24 +191,30 @@
             this.feature_group.clearLayers();
             this.data.each(function (record) {
                 var gps_string = record.get(gps_field),
-                    latLng;
+                    latLng,
+                    marker;
                 if (gps_string) {
                     latLng = FH.FeatureLayer.parseLatLngString(gps_string);
                     //try{
-                        _that.feature_group.addLayer(L.circleMarker(latLng, {
-                            color: '#fff',
-                            border: 8,
-                            fillColor: '#ff3300',
-                            fillOpacity: 0.9,
-                            radius: 8,
-                            opacity: 0.5
-                        }));
+                    marker = L.circleMarker(latLng, {
+                        color: '#fff',
+                        border: 8,
+                        fillColor: '#ff3300',
+                        fillOpacity: 0.9,
+                        radius: 8,
+                        opacity: 0.5
+                    });
                     /*}
                     catch (e) {
                         console.error(e);
                     }*/
+                    _that.feature_group.addLayer(marker);
                 }
             });
+            // Trigger event to notify that this layer is complete -> to be
+            // caught by the `FeatureLayerSet` or `FHMap` to zoom to contain
+            // all markers
+            this.trigger('layer_add_complete');
         }
     });
 
