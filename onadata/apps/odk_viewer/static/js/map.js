@@ -59,17 +59,17 @@
             _.defaults(this.options, defaults);
 
             // Create the layers control
-            this._layers_control = new L.Control.Layers();
+            this._layersControl = new L.Control.Layers();
 
             // Initialize the leaflet `_map` and assign it as a property of this
             // FH.Map instance
             this._map = L.map(this.el, {
                 zoom: this.options.zoom,
                 center: this.options.center
-            }).addControl(this._layers_control);
+            }).addControl(this._layersControl);
 
             // Create the FeatureLayerSet
-            this.feature_layers = new FH.FeatureLayerSet();
+            this.featureLayers = new FH.FeatureLayerSet();
 
             // determine the default layer
             default_layer_config = FH.Map.determineDefaultLayer(this.options.layers);
@@ -92,7 +92,7 @@
             var layer = new LayerFactories[layer_config.type](layer_config.options);
 
             // Add the layer to the layer's control.
-            this._layers_control.addBaseLayer(layer, layer_config.label);
+            this._layersControl.addBaseLayer(layer, layer_config.label);
 
             // If the is_default flag is set, add it to the map.
             if(is_default) {
@@ -101,24 +101,25 @@
             return layer;
         },
 
-        addFeatureLayer: function (form_url, data_url) {
-            var feature_layer = new FeatureLayer({}, {
+        addFeatureLayer: function (form_url, data_url, layer_options) {
+            var featureLayer = new FeatureLayer({}, {
                     form_url: form_url,
                     data_url: data_url,
                     map: this._map
                 }),
                 _that = this;
-            this.feature_layers.add(feature_layer);
 
             // When markers have been added, fit the maps bounds based on all
             // feature layers
-            feature_layer.on('layer_add_complete', function () {
+            // TODO: also re-fit when a feature layer is removed
+            featureLayer.on('markersCreated', function () {
                 var bounds = L.latLngBounds([]);
-                _that.feature_layers.each(function (feature_layer) {
-                    bounds.extend(feature_layer.feature_group.getBounds());
+                _that.featureLayers.each(function (layer) {
+                    bounds.extend(layer.featureGroup.getBounds());
                 });
                 _that._map.fitBounds(bounds);
             });
+            this.featureLayers.add(featureLayer);
         }
     });
 
@@ -148,8 +149,22 @@
     };
 
     // A `FeatureLayer` is initialised with a form url and a data url. It loads
-    // the form and then the geopoint data on initialization.
+    // the form and then the geo data on initialization.
     var FeatureLayer = FH.FeatureLayer = Backbone.Model.extend({
+        // The leaflet `FeatureGroup` that contains this layer's markers
+        featureGroup: void 0,
+
+        // The deafult style to be applied to the marker, override by providing
+        // a `markerStyle` object within options on initialization
+        markerStyle: {
+            color: '#fff',
+            border: 8,
+            fillColor: '#ff3300',
+            fillOpacity: 0.9,
+            radius: 8,
+            opacity: 0.5
+        },
+
         initialize: function (attributes, options) {
             var form,
                 data,
@@ -160,35 +175,42 @@
             this.form_url = options.form_url;
             this.data_url = options.data_url;
 
+            // Make the form url the id of this `FeatureLayer` to kill
+            // duplicate additions
+            this.id = this.form_url;
+
+            // Setup our marker style by extending the default `makerStyle`
+            // with the provided style - if any
+            _.extend(this.markerStyle, options.markerStyle);
+
             // Create the feature group that will manage our markers
-            this.feature_group = new L.FeatureGroup()
+            this.featureGroup = new L.FeatureGroup()
                 .addTo(this._map);
 
-            // Initialize the form and geopoint data
+            // Initialize the form and geo data
             this.form = form = new FH.Form({}, {url: this.form_url});
             form.load();
             form.on('load', function () {
                 // Get the list of GPS type questions to load GPS data first
-                var gps_question = form.questionsByType(FH.types.GEOLOCATION)
-                    // Extract the first gps question
+                var gpsQuestions = form.questionsByType(FH.types.GEOLOCATION)
+                    // TODO: For now we are grabbing the the first geo question. In future we might expand this to allow the user to specify the question to map
                     .slice(0, 1)
                     .map(function (q) {
                         return q.get(FH.constants.NAME);
                     });
 
                 _that.data = data = new FH.DataSet([], {url: _that.data_url});
-                _that.on('gps_data_load', _that.onGPSData);
-                data.load({fields: gps_question});
+                data.load({fields: gpsQuestions});
                 data.on('load', function () {
-                    _that.trigger('gps_data_load', gps_question[0]);
+                    _that.createMarkers(gpsQuestions[0]);
                 });
             });
         },
 
-        onGPSData: function (gps_field) {
+        createMarkers: function (gps_field) {
             var _that = this;
             // Clear any markers within the feature group
-            this.feature_group.clearLayers();
+            this.featureGroup.clearLayers();
             this.data.each(function (record) {
                 var gps_string = record.get(gps_field),
                     latLng,
@@ -196,25 +218,18 @@
                 if (gps_string) {
                     latLng = FH.FeatureLayer.parseLatLngString(gps_string);
                     //try{
-                    marker = L.circleMarker(latLng, {
-                        color: '#fff',
-                        border: 8,
-                        fillColor: '#ff3300',
-                        fillOpacity: 0.9,
-                        radius: 8,
-                        opacity: 0.5
-                    });
+                    marker = L.circleMarker(latLng, _that.markerStyle);
                     /*}
                     catch (e) {
                         console.error(e);
                     }*/
-                    _that.feature_group.addLayer(marker);
+                    _that.featureGroup.addLayer(marker);
                 }
             });
-            // Trigger event to notify that this layer is complete -> to be
-            // caught by the `FeatureLayerSet` or `FHMap` to zoom to contain
-            // all markers
-            this.trigger('layer_add_complete');
+            // Trigger `markersCreated` event to notify that this layer is
+            // complete -> to be caught by the `FeatureLayerSet` or `FHMap`
+            // to zoom to contain all markers
+            this.trigger('markersCreated');
         }
     });
 
@@ -232,7 +247,17 @@
     // A `FeatureLayerSet` contains a number of `FeatureLayers` that available
     // on the map
     var FeatureLayerSet = FH.FeatureLayerSet = Backbone.Collection.extend({
-        model: FeatureLayer
+        model: FeatureLayer,
+
+        // Convenience method to create a `FeatureLayer` and add to to this set
+        createFeatureLayer: function (form_url, data_url, layer_options) {
+            var featureLayer = new FeatureLayer({}, {
+                form_url: form_url, data_url: data_url
+            });
+
+            this.add(featureLayer);
+            return featureLayer;
+        }
     });
 
     // Leaflet shortcuts for common tile providers - is it worth adding such 1.5kb to Leaflet core?
