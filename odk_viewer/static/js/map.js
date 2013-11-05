@@ -74,11 +74,18 @@
             // Listen for `add` events to add the feature to the map
             this.featureLayers.on('add', function (featureLayer) {
                 featureLayer.featureGroup.addTo(_that._map);
+
+                // When markers have been added, fit the maps bounds based on all
+                // feature layers
+                featureLayer.on('markersCreated', function () {
+                    _that.reCalculateBounds();
+                });
             });
 
             // Listen for `remove` events to remove feature form the map
             this.featureLayers.on('remove', function (featureLayer) {
-                _that._map.remove(featureLayer);
+                _that._map.removeLayer(featureLayer.featureGroup);
+                _that.reCalculateBounds();
             });
 
             // determine the default layer
@@ -90,6 +97,14 @@
                 var is_default = default_layer_config === layer_config;
                 _that.addBaseLayer(layer_config, is_default);
             });
+        },
+
+        reCalculateBounds: function () {
+            var bounds = L.latLngBounds([]);
+            this.featureLayers.each(function (layer) {
+                bounds.extend(layer.featureGroup.getBounds());
+            });
+            this._map.fitBounds(bounds);
         },
 
         // #### Add a base layer
@@ -112,20 +127,8 @@
         },
 
         addFeatureLayer: function (form_url, data_url, options) {
-            var _that = this,
-                featureLayer = this.featureLayers.createFeatureLayer(
+            return this.featureLayers.createFeatureLayer(
                 form_url, data_url, options);
-
-            // When markers have been added, fit the maps bounds based on all
-            // feature layers
-            // TODO: also re-fit when a feature layer is removed
-            featureLayer.on('markersCreated', function () {
-                var bounds = L.latLngBounds([]);
-                _that.featureLayers.each(function (layer) {
-                    bounds.extend(layer.featureGroup.getBounds());
-                });
-                _that._map.fitBounds(bounds);
-            });
         }
     });
 
@@ -191,7 +194,7 @@
             // with the provided style - if any
             _.extend(this.markerStyle, options.markerStyle);
 
-            // Create the feature group that will manage our markers
+            // Create the feature group that will contain our markers
             this.featureGroup = new L.FeatureGroup();
 
             // Initialize the form and geo data
