@@ -63,7 +63,7 @@ describe("Formhub Map", function () {
                 el: el,
                 layers: layer_configs.concat([customMapBoxTileLayer])
             });
-            expect(_.keys(map._layers_control._layers).length).toEqual(7);
+            expect(_.keys(map._layersControl._layers).length).toEqual(7);
         });
 
         describe("Layer Initialisation by type", function () {
@@ -142,7 +142,9 @@ describe("Formhub Map", function () {
             expect(default_layer.label).toEqual('Mapbox Streets');
         });
     });
+});
 
+describe("FeatureLayer", function () {
     describe("parseLatLngString", function () {
         describe("valid string", function () {
             var lat_lng_str = "36.0 -1.2 3600 25",
