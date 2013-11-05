@@ -101,13 +101,16 @@
             return layer;
         },
 
-        addFeatureLayer: function (form_url, data_url, layer_options) {
-            var featureLayer = new FeatureLayer({}, {
-                    form_url: form_url,
-                    data_url: data_url,
-                    map: this._map
-                }),
+        addFeatureLayer: function (form_url, data_url, options) {
+            var featureLayer,
                 _that = this;
+
+            options = options || {};
+            _.extend(options, {map: this._map});
+            featureLayer = new FeatureLayer({
+                form_url: form_url,
+                data_url: data_url
+            }, options);
 
             // When markers have been added, fit the maps bounds based on all
             // feature layers
@@ -154,7 +157,10 @@
         // The leaflet `FeatureGroup` that contains this layer's markers
         featureGroup: void 0,
 
-        // The deafult style to be applied to the marker, override by providing
+        // Our id is determined by the form's url
+        idAttribute: 'form_url',
+
+        // The default style to be applied to the marker, override by providing
         // a `markerStyle` object within options on initialization
         markerStyle: {
             color: '#fff',
@@ -170,14 +176,18 @@
                 data,
                 _that = this;
 
-            this._map = options.map;
-            // Save the form and data urls for later
-            this.form_url = options.form_url;
-            this.data_url = options.data_url;
+            if(!this.get('form_url')){
+                throw new Error("You must specify the form's url");
+            }
 
-            // Make the form url the id of this `FeatureLayer` to kill
-            // duplicate additions
-            this.id = this.form_url;
+            if(!this.get('data_url')){
+                throw new Error("You must specify the data url");
+            }
+
+            this._map = options.map;
+
+            // Save the form and data urls for later
+
 
             // Setup our marker style by extending the default `makerStyle`
             // with the provided style - if any
@@ -188,7 +198,7 @@
                 .addTo(this._map);
 
             // Initialize the form and geo data
-            this.form = form = new FH.Form({}, {url: this.form_url});
+            this.form = form = new FH.Form({}, {url: this.get('form_url')});
             form.load();
             form.on('load', function () {
                 // Get the list of GPS type questions to load GPS data first
@@ -199,7 +209,7 @@
                         return q.get(FH.constants.NAME);
                     });
 
-                _that.data = data = new FH.DataSet([], {url: _that.data_url});
+                _that.data = data = new FH.DataSet([], {url: _that.get('data_url')});
                 data.load({fields: gpsQuestions});
                 data.on('load', function () {
                     _that.createMarkers(gpsQuestions[0]);
