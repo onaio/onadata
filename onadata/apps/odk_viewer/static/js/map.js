@@ -48,6 +48,9 @@
     // });
     // ```
     FH.Map = Backbone.View.extend({
+        // Colors we pop from whenever we add a a new layer and push to when
+        // we remove
+        markerColors: ["#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#e41a1c"],
         // #### Initialize the map
         // Called when a new map is constructed, we initialize the leaflet map
         // here.
@@ -80,10 +83,16 @@
                 featureLayer.on('markersCreated', function () {
                     _that.reCalculateBounds();
                 });
+
+                // Call load to initialize data sync
+                //featureLayer.load();
             });
 
-            // Listen for `remove` events to remove feature form the map
+            // Listen for `remove` events to remove the feature from the map
             this.featureLayers.on('remove', function (featureLayer) {
+                // TODO: HACK
+                _that.markerColors.push(featureLayer.fillColor);
+
                 _that._map.removeLayer(featureLayer.featureGroup);
                 _that.reCalculateBounds();
             });
@@ -126,7 +135,16 @@
             return layer;
         },
 
+        // Specify a form_url, data_url and optionally marker styles to create
+        // and add a new feature/marker layer
         addFeatureLayer: function (form_url, data_url, options) {
+            options = options || {};
+            // TODO: HACK
+            var markerColor = this.markerColors.pop();
+            options.markerStyle = options.markerStyle || {};
+            options.markerStyle.fillColor = markerColor;
+            // TODO: End HACK
+
             return this.featureLayers.createFeatureLayer(
                 form_url, data_url, options);
         }
@@ -190,6 +208,9 @@
                 throw new Error("You must specify the data url");
             }
 
+            // TODO: HACK - Store the marker color
+            this.fillColor = options.markerStyle.fillColor;
+
             // Setup our marker style by extending the default `makerStyle`
             // with the provided style - if any
             _.extend(this.markerStyle, options.markerStyle);
@@ -237,8 +258,7 @@
                 }
             });
             // Trigger `markersCreated` event to notify that this layer is
-            // complete -> to be caught by the `FeatureLayerSet` or `FHMap`
-            // to zoom to contain all markers
+            // complete -> to be caught by the `FHMap` to fit bounds
             this.trigger('markersCreated');
         }
     });
@@ -254,8 +274,8 @@
             });
     };
 
-    // A `FeatureLayerSet` contains a number of `FeatureLayers` that available
-    // on the map
+    // A `FeatureLayerSet` contains a number of `FeatureLayers` that are
+    // available on the map
     var FeatureLayerSet = FH.FeatureLayerSet = Backbone.Collection.extend({
         model: FeatureLayer,
 
