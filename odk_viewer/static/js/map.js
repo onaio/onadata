@@ -71,6 +71,16 @@
             // Create the FeatureLayerSet
             this.featureLayers = new FH.FeatureLayerSet();
 
+            // Listen for `add` events to add the feature to the map
+            this.featureLayers.on('add', function (featureLayer) {
+                featureLayer.featureGroup.addTo(_that._map);
+            });
+
+            // Listen for `remove` events to remove feature form the map
+            this.featureLayers.on('remove', function (featureLayer) {
+                _that._map.remove(featureLayer);
+            });
+
             // determine the default layer
             default_layer_config = FH.Map.determineDefaultLayer(this.options.layers);
 
@@ -102,15 +112,9 @@
         },
 
         addFeatureLayer: function (form_url, data_url, options) {
-            var featureLayer,
-                _that = this;
-
-            options = options || {};
-            _.extend(options, {map: this._map});
-            featureLayer = new FeatureLayer({
-                form_url: form_url,
-                data_url: data_url
-            }, options);
+            var _that = this,
+                featureLayer = this.featureLayers.createFeatureLayer(
+                form_url, data_url, options);
 
             // When markers have been added, fit the maps bounds based on all
             // feature layers
@@ -122,7 +126,6 @@
                 });
                 _that._map.fitBounds(bounds);
             });
-            this.featureLayers.add(featureLayer);
         }
     });
 
@@ -184,18 +187,12 @@
                 throw new Error("You must specify the data url");
             }
 
-            this._map = options.map;
-
-            // Save the form and data urls for later
-
-
             // Setup our marker style by extending the default `makerStyle`
             // with the provided style - if any
             _.extend(this.markerStyle, options.markerStyle);
 
             // Create the feature group that will manage our markers
-            this.featureGroup = new L.FeatureGroup()
-                .addTo(this._map);
+            this.featureGroup = new L.FeatureGroup();
 
             // Initialize the form and geo data
             this.form = form = new FH.Form({}, {url: this.get('form_url')});
@@ -228,10 +225,10 @@
                 if (gps_string) {
                     latLng = FH.FeatureLayer.parseLatLngString(gps_string);
                     //try{
-                    marker = L.circleMarker(latLng, _that.markerStyle);
+                        marker = L.circleMarker(latLng, _that.markerStyle);
                     /*}
                     catch (e) {
-                        console.error(e);
+                        //console.error(e);
                     }*/
                     _that.featureGroup.addLayer(marker);
                 }
@@ -259,12 +256,15 @@
     var FeatureLayerSet = FH.FeatureLayerSet = Backbone.Collection.extend({
         model: FeatureLayer,
 
-        // Convenience method to create a `FeatureLayer` and add to to this set
-        createFeatureLayer: function (form_url, data_url, layer_options) {
-            var featureLayer = new FeatureLayer({}, {
-                form_url: form_url, data_url: data_url
-            });
+        // Convenience method to create a `FeatureLayer`
+        createFeatureLayer: function (form_url, data_url, options) {
+            var featureLayer;
 
+            options = options || {};
+            featureLayer = new FeatureLayer({
+                form_url: form_url,
+                data_url: data_url
+            }, options);
             this.add(featureLayer);
             return featureLayer;
         }
