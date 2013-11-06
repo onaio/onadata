@@ -1,8 +1,8 @@
-Formhub
+OnaData
 =======
 
-.. image:: https://secure.travis-ci.org/modilabs/formhub.png?branch=master
-  :target: http://travis-ci.org/modilabs/formhub
+.. image:: https://secure.travis-ci.org/onaio/onadata.png?branch=master
+  :target: http://travis-ci.org/onaio/onadata
 
 Installation
 ------------
@@ -43,17 +43,17 @@ Set up a new virtual environment:
 
     $ mkdir ~/virtual_environments
     $ cd ~/virtual_environments
-    $ virtualenv --no-site-packages formhub
-    $ source formhub/bin/activate
+    $ virtualenv --no-site-packages onadata
+    $ source onadata/bin/activate
 
-Make directory structure and clone formhub:
+Make directory structure and clone onadata:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: sh
 
-    $ mkdir -p ~/src/formhub-app
-    $ cd ~/src/formhub-app
-    $ git clone git://github.com/modilabs/formhub.git
+    $ mkdir -p ~/src/onadata-app
+    $ cd ~/src/onadata-app
+    $ git clone git://github.com/onaio/onadata.git
     $ git submodule init
     $ git submodule update
 
@@ -88,7 +88,7 @@ NOTE: If you inted to use special characters from other languages within your fo
 
 .. code-block:: sh
 
-    $ mysql> CREATE DATABASE formhub CHARACTER SET utf8;
+    $ mysql> CREATE DATABASE onadata CHARACTER SET utf8;
     $ pip install -r requirements-s3.pip
     $ pip install -r requirements-ses.pip
 
@@ -119,10 +119,10 @@ Copy the required files from the extras directory:
 
 .. code-block:: sh
 
-    $ sudo cp ~/src/formhub-app/formhub/extras/celeryd/etc/init.d/celeryd /etc/init.d/celeryd
-    $ sudo cp ~/src/formhub-app/formhub/extras/celeryd/etc/default/celeryd /etc/default/celeryd
+    $ sudo cp ~/src/onadata-app/onadata/extras/celeryd/etc/init.d/celeryd /etc/init.d/celeryd
+    $ sudo cp ~/src/onadata-app/onadata/extras/celeryd/etc/default/celeryd /etc/default/celeryd
 
-Open /etc/default/celeryd and update the path to your formhub install directory, if you directory structure is identical to what is described above, you only need to update your username.
+Open /etc/default/celeryd and update the path to your onadata install directory, if you directory structure is identical to what is described above, you only need to update your username.
 
 Start the celery daemon
 
@@ -206,7 +206,7 @@ Compile the less files
 
 .. code-block:: sh
 
-    $ cd ~/src/formhub-app/formhub/main/static/bootstrap
+    $ cd ~/src/onadata-app/onadata/main/static/bootstrap
     $ make
 
 Deploying
@@ -243,7 +243,7 @@ Contributing
 ------------
 
 If you would like to contribute code please read
-`Contributing Code to Formhub <https://github.com/modilabs/formhub/wiki/Contributing-Code-to-Formhub>`_.
+`Contributing Code to Ona Data <https://github.com/onaio/onadata/wiki/Contributing-Code-to-OnaData>`_.
 
 Code Structure
 --------------
