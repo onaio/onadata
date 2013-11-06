@@ -157,6 +157,8 @@ body .leaflet-draw-edit-remove {
 
 .inner-modal {
 	padding: 1em;
+    height: 70%;
+    overflow: auto;
 }
 
 .inner-modal ul {
