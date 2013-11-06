@@ -84,6 +84,11 @@
                     _that.reCalculateBounds();
                 });
 
+                // Listen to `markerClicked` events from the feature
+                featureLayer.on('markerClicked', function (record) {
+                    _that.dataModal.render(featureLayer.template, record);
+                });
+
                 // Call load to initialize data sync
                 //featureLayer.load();
             });
@@ -96,6 +101,9 @@
                 _that._map.removeLayer(featureLayer.featureGroup);
                 _that.reCalculateBounds();
             });
+
+            // Create a `DataModal` instance to manage the data modal
+            this.dataModal = new FH.DataModal({el: '#enketo-modal'});
 
             // determine the default layer
             default_layer_config = FH.Map.determineDefaultLayer(this.options.layers);
@@ -150,7 +158,7 @@
         }
     });
 
-    // #### Determine the default layer from the specified list
+    // Determine the default layer from the specified list
     FH.Map.determineDefaultLayer = function (base_layers, language_code) {
         var custom_layer, lang_specific_layer, first;
 
@@ -218,6 +226,15 @@
             // Create the feature group that will contain our markers
             this.featureGroup = new L.FeatureGroup();
 
+            this.featureGroup.on('click', function (evt) {
+                var record = evt.layer._fh_data;
+                if(!record){
+                    throw new Error("Marker layer does not have a record attached");
+                }
+                // Trigger a marker clicked event to be handled by the map
+                _that.trigger('markerClicked', record);
+            });
+
             // Initialize the form and geo data
             this.form = form = new FH.Form({}, {url: this.get('form_url')});
             form.load();
@@ -229,6 +246,9 @@
                     .map(function (q) {
                         return q.get(FH.constants.NAME);
                     });
+
+                // Initialize our template based on the form's data
+                _that.template = _.template(FH.FeatureLayer.templateFromFields(form.fields));
 
                 _that.data = data = new FH.DataSet([], {url: _that.get('data_url')});
                 data.load({fields: gpsQuestions});
@@ -254,6 +274,8 @@
                     catch (e) {
                         //console.error(e);
                     }*/
+                    // Attach the data to be used on marker clicks
+                    marker._fh_data = record;
                     _that.featureGroup.addLayer(marker);
                 }
             });
@@ -274,6 +296,20 @@
             });
     };
 
+    // Create an underscore template based on a forms fields
+    FH.FeatureLayer.templateFromFields = function (fields) {
+        var template_string = '<table class="table table-bordered table-striped">';
+            template_string += '<tr><th>Question</th><th>Response</th></tr>';
+            fields.each(function (f) {
+                template_string += '<tr>';
+                    template_string += '<td>' + f.get('label') + '</td>';
+                    template_string += '<td><%= record["' + f.get('name') +'"] %></td>';
+                template_string += '</tr>';
+            });
+        template_string += '</table>';
+        return template_string;
+    };
+
     // A `FeatureLayerSet` contains a number of `FeatureLayers` that are
     // available on the map
     var FeatureLayerSet = FH.FeatureLayerSet = Backbone.Collection.extend({
@@ -290,6 +326,14 @@
             }, options);
             this.add(featureLayer);
             return featureLayer;
+        }
+    });
+
+    var DataModal = FH.DataModal = Backbone.View.extend({
+        render: function (template, record) {
+            var html = template({record: record.toJSON()});
+            this.$('.inner-modal').html(html);
+            this.$el.modal();
         }
     });
 

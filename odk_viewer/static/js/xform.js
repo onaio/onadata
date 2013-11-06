@@ -106,7 +106,7 @@
             // set the url
             if(! options.url) {
                 throw new Error(
-                    "You must sepcify the dataset's url within the options");
+                    "You must specify the dataset's url within the options");
             }
             this.url = options.url;
         },
