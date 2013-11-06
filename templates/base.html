@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>formhub</title>
+    <title>OnaData</title>
     <meta name="description" content="Mobile data collection made easy. formhub is built on a belief that data collection and analysis should be fast, flexible and reliable. And open source, of course.">
     <meta name="author" content="">
     <meta name="google-site-verification" content="8pAiKPreksD8GiYnSCtWm9QG3i6wyuKg7E2Y95RTzRM" />
@@ -21,10 +21,7 @@
     <!--[if lte IE 8]>
       <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome-ie7.css" rel="stylesheet">
     <![endif]-->
-	  <link href="/static/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
-	{% if not user.is_authenticated %}
-		<link href="/static/css/bg.css" rel="stylesheet">
-	{% endif %}
+	<link href="/static/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
     <link href="/static/css/iphone-btn-style.css" rel="stylesheet">
 
     <!-- Le javascript -->
@@ -46,21 +43,6 @@
     <!-- spot to insert stuff for google maps -->
     {% block additional-headers %}{% endblock %}
 
-
-<script type="text/javascript">
-
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', 'UA-83697-18']);
-  _gaq.push(['_setDomainName', 'formhub.org']);
-  _gaq.push(['_trackPageview']);
-
-  (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  })();
-
-</script>
 
   </head>
 
@@ -88,7 +70,7 @@
     </div>
 
     {% include "footer.html" %}
+    <script>(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*newDate();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','//www.google-analytics.com/analytics.js','ga');ga('create', 'UA-45510928-1', 'ona.io');ga('send', 'pageview');</script>
   </body>
   {% endblock %}
-
 </html>
