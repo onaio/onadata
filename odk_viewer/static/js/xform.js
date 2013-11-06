@@ -15,7 +15,8 @@
         NAME: 'name',
         CHILDREN: 'children',
         GROUP: 'group',
-        NOTE: 'note'
+        NOTE: 'note',
+        XFORM_ID_STRING: '_xform_id_string'
     };
 
     FH.types = {
@@ -95,7 +96,40 @@
 
     // A single form data row
     FH.Data = Backbone.Model.extend({
-        idAttribute: '_id'
+        idAttribute: '_id',
+
+        // Need to override url method as we query by params
+        url: function () {
+            return this.collection.url + '?query={"_id":' + this.id +'}';
+        },
+
+        // Load data form the server if necessary
+        load: function () {
+            var _that = this;
+
+            // we hackily check if _xform_id_string is available as an
+            // indication that all the data is available
+            if(!this.get(FH.constants.XFORM_ID_STRING)) {
+                _that.fetch()
+                    .done(function () {
+                        _that.trigger('ready');
+                    })
+                    .fail(function () {
+                        _that.trigger('readyFailed');
+                    });
+            } else {
+                _that.trigger('ready');
+            }
+        },
+
+        // Data from the API is returned as an Array, we need to extract it
+        parse: function (data) {
+            // TODO: Hack for now, if data is an array, extract the first element
+            if(_.isArray(data)) {
+                data = data[0];
+            }
+            this.set(data);
+        }
     });
 
     // #### DataSet

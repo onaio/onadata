@@ -86,7 +86,9 @@
 
                 // Listen to `markerClicked` events from the feature
                 featureLayer.on('markerClicked', function (record) {
-                    _that.dataModal.render(featureLayer.template, record);
+                    // Update the data view's model
+                    featureLayer.dataView.setModel(record);
+                    _that.dataModal.render(featureLayer.dataView.$el, record);
                 });
 
                 // Call load to initialize data sync
@@ -247,8 +249,8 @@
                         return q.get(FH.constants.NAME);
                     });
 
-                // Initialize our template based on the form's data
-                _that.template = _.template(FH.FeatureLayer.templateFromFields(form.fields));
+                // Initialize our `DataView` based on the form's data
+                _that.dataView = new FH.DataView({fieldSet: form.fields});
 
                 _that.data = data = new FH.DataSet([], {url: _that.get('data_url')});
                 data.load({fields: gpsQuestions});
@@ -296,23 +298,9 @@
             });
     };
 
-    // Create an underscore template based on a forms fields
-    FH.FeatureLayer.templateFromFields = function (fields) {
-        var template_string = '<table class="table table-bordered table-striped">';
-            template_string += '<tr><th>Question</th><th>Response</th></tr>';
-            fields.each(function (f) {
-                template_string += '<tr>';
-                    template_string += '<td>' + f.get('label') + '</td>';
-                    template_string += '<td><%= record["' + f.get('name') +'"] %></td>';
-                template_string += '</tr>';
-            });
-        template_string += '</table>';
-        return template_string;
-    };
-
     // A `FeatureLayerSet` contains a number of `FeatureLayers` that are
     // available on the map
-    var FeatureLayerSet = FH.FeatureLayerSet = Backbone.Collection.extend({
+    FH.FeatureLayerSet = Backbone.Collection.extend({
         model: FeatureLayer,
 
         // Convenience method to create a `FeatureLayer`
@@ -329,10 +317,64 @@
         }
     });
 
-    var DataModal = FH.DataModal = Backbone.View.extend({
-        render: function (template, record) {
-            var html = template({record: record.toJSON()});
-            this.$('.inner-modal').html(html);
+    // View used to render data per `FeatureLayer`, its template is compiled
+    // on init, based on the specified fields
+     FH.DataView = Backbone.View.extend({
+         // Don't set directly as we need to do some cleanup on set
+         model: void 0,
+         initialize: function (options) {
+             if (!options.fieldSet) {
+                 throw new Error("You must specify the FieldSet to use to create the template.");
+             }
+
+             this.template = _.template(FH.DataView.templateFromFields(options.fieldSet));
+         },
+
+         render: function () {
+             this.$el.html(this.template({record: this.model.toJSON()}));
+         },
+
+         renderStatus: function (message) {
+             this.$el.html(message);
+         },
+
+         // Set/Get the views model, used to disable any pending events
+         setModel: function (record) {
+             if(this.model) {
+                 this.model.off('ready');
+             }
+             this.model = record;
+             this.model.on('ready', this.render, this);
+             this.model.on('readyFailed', function () {
+                 this.renderStatus("Failed to load ...");
+             }, this);
+
+             // set us to loading
+             this.renderStatus("Loading ...");
+
+             // Initiate the load
+             this.model.load();
+         }
+    });
+
+    // Create an underscore template based on a forms fields
+    FH.DataView.templateFromFields = function (fields) {
+        var template_string = '<table class="table table-bordered table-striped">';
+            template_string += '<tr><th>Question</th><th>Response</th></tr>';
+            fields.each(function (f) {
+                template_string += '<tr>';
+                    template_string += '<td>' + f.get('label') + '</td>';
+                    template_string += '<td><%= record["' + f.get('name') +'"] %></td>';
+                template_string += '</tr>';
+            });
+        template_string += '</table>';
+        return template_string;
+    };
+
+    FH.DataModal = Backbone.View.extend({
+        render: function (elm, record) {
+            // Clear current contents and append new
+            this.$('.inner-modal').empty().append(elm);
             this.$el.modal();
         }
     });
