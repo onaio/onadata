@@ -164,35 +164,46 @@ describe("FeatureLayer", function () {
             });
         });
     });
+});
+
+describe("DataView", function () {
+    var fieldSet,
+        raw_questions = [
+            {
+                name: "name",
+                type: "text",
+                label: "Name"
+            },
+            {
+                name: "age",
+                type: "integer",
+                label: "Age"
+            }
+        ];
+
+    beforeEach(function () {
+        fieldSet = new FH.FieldSet();
+        FH.Form.parseQuestions(raw_questions).forEach(function (field) {
+            fieldSet.add(field);
+        });
+    });
+
+    it("creates a template from the specified fieldSet", function () {
+        var dataView = new FH.DataView({fieldSet: fieldSet});
+        expect(dataView.template).toBeDefined();
+    });
 
     describe("templateFromFields", function () {
         it("creates a table row for each question", function () {
-            var fields = new FH.FieldSet(),
-                raw_questions = [
-                    {
-                        name: "name",
-                        type: "text",
-                        label: "Name"
-                    },
-                    {
-                        name: "age",
-                        type: "integer",
-                        label: "Age"
-                    }
-                ],
-                result;
+            var result;
 
-            FH.Form.parseQuestions(raw_questions).forEach( function (field) {
-                fields.add(field);
-            });
-
-            result = FH.FeatureLayer.templateFromFields(fields);
+            result = FH.DataView.templateFromFields(fieldSet);
             expect(result).toEqual(
                 '<table class="table table-bordered table-striped">' +
-                  '<tr><th>Question</th><th>Response</th></tr>' +
-                  '<tr><td>Name</td><td><%= record["name"] %></td></tr>' +
-                  '<tr><td>Age</td><td><%= record["age"] %></td></tr>' +
-                '</table>');
+                    '<tr><th>Question</th><th>Response</th></tr>' +
+                    '<tr><td>Name</td><td><%= record["name"] %></td></tr>' +
+                    '<tr><td>Age</td><td><%= record["age"] %></td></tr>' +
+                    '</table>');
         });
     });
 });
