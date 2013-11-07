@@ -1,0 +1,24 @@
+{
+  "name": "formhub",
+  "version": "0.0.1",
+  "homepage": "https://github.com/modilabs/formhub",
+  "keywords": [
+    "formhub",
+    "javascript"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "main/static/bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~1.10",
+    "underscore": "~1.5.2",
+    "backbone": "~1.1.0",
+    "leaflet-dist": "~0.6.4"
+  }
+}

@@ -40,6 +40,14 @@
     // var form = new Form({}, {url: "http://formhub.org/user/forms/test/form.json"});
     // ```
     var Form = FH.Form = Backbone.Model.extend({
+        // Explicitly set url from otpyion, newer Backbone doesnt
+        initialize: function (attributes, options) {
+            if(!options.url) {
+                throw new Error("You must specify the form's url within the options");
+            }
+            this.url = options.url;
+        },
+
         load: function () {
             var fields = this.fields = new FieldSet(),
                 this_form = this,
@@ -110,7 +118,7 @@
             // we hackily check if _xform_id_string is available as an
             // indication that all the data is available
             if(!this.get(FH.constants.XFORM_ID_STRING)) {
-                _that.fetch()
+                this.fetch()
                     .done(function () {
                         _that.trigger('ready');
                     })
@@ -118,7 +126,7 @@
                         _that.trigger('readyFailed');
                     });
             } else {
-                _that.trigger('ready');
+                this.trigger('ready');
             }
         },
 
@@ -132,8 +140,7 @@
         }
     });
 
-    // #### DataSet
-    // A collection for form data
+    // A collection of form data
     FH.DataSet = Backbone.Collection.extend({
         model: FH.Data,
         initialize: function (models, options) {
@@ -157,7 +164,7 @@
             params = params || {};
             reset = !!reset || false;
 
-            // String-ify query params
+            // Stringify query params
             params.query && (params.query = JSON.stringify(params.query));
             params.fields && (params.fields = JSON.stringify(params.fields));
             params.start && (params.start = JSON.stringify(params.start));
