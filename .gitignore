@@ -54,3 +54,6 @@ gunicorn_cfg.py
 run_gunicorn.sh
 /static
 celerybeat-schedule
+
+# bower
+main/static/bower_components

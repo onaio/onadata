@@ -54,9 +54,11 @@
         // #### Initialize the map
         // Called when a new map is constructed, we initialize the leaflet map
         // here.
-        initialize: function () {
+        initialize: function (options) {
             var default_layer_config,
                 _that = this;
+
+            this.options = options || {};
 
             // Populate un-specified options with defaults
             _.defaults(this.options, defaults);
