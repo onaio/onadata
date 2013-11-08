@@ -59,6 +59,7 @@
                         <button type="submit" class="btn btn-primary btn-lg btn-block">{% trans 'Sign in' %}</button>
                         <br/>
                         <p> Or if you want to create an account, please </p>
+                        {% url "registration_register" as registration_url %}
                         {% blocktrans %}
                         <a class="btn btn-info btn-lg btn-block" href="{{ registration_url }}">Sign up</a>
                         {% endblocktrans %}
