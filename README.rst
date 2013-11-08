@@ -8,9 +8,7 @@ Collect, Analyze and Share Data!
 About
 -----
 
-This is derived from the excellent Formhub platform developed by the Sustainable Engineering Lab at Columbia University.
-
-http://github.com/modilabs/formhub
+OnaData is derived from the excellent `formhub <http://github.com/modilabs/formhub>`_ platform developed by the Sustainable Engineering Lab at Columbia University.
 
 Installation
 ------------
