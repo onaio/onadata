@@ -1,8 +1,16 @@
 OnaData
 =======
+Collect, Analyze and Share Data!
 
 .. image:: https://secure.travis-ci.org/onaio/onadata.png?branch=master
   :target: http://travis-ci.org/onaio/onadata
+
+About
+-----
+
+This is derived from the excellent Formhub platform developed by the Sustainable Engineering Lab at Columbia University.
+
+http://github.com/modilabs/formhub
 
 Installation
 ------------
