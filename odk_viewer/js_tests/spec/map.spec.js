@@ -189,7 +189,8 @@ describe("DataView", function () {
     });
 
     it("creates a template from the specified fieldSet", function () {
-        var dataView = new FH.DataView({fieldSet: fieldSet});
+        var dataView = new FH.DataView();
+        dataView.renderTemplate(fieldSet);
         expect(dataView.template).toBeDefined();
     });
 
@@ -203,6 +204,41 @@ describe("DataView", function () {
                     '<tr><th>Question</th><th>Response</th></tr>' +
                     '<tr><td>Name</td><td><%= record["name"] %></td></tr>' +
                     '<tr><td>Age</td><td><%= record["age"] %></td></tr>' +
+                    '</table>');
+        });
+
+        it("uses the specified language if provided", function () {
+            var result,
+                multi_lang_questions = [
+                    {
+                        name: "name",
+                        type: "text",
+                        label: {
+                            English: "Name",
+                            Swahili: "Jina"
+                        }
+                    },
+                    {
+                        name: "age",
+                        type: "integer",
+                        label: {
+                            English: "Age",
+                            Swahili: "Umri"
+                        }
+                    }
+                ];
+
+            fieldSet = new FH.FieldSet();
+            FH.Form.parseQuestions(multi_lang_questions).forEach(function (field) {
+                fieldSet.add(field);
+            });
+
+            result = FH.DataView.templateFromFields(fieldSet, "Swahili");
+            expect(result).toEqual(
+                '<table class="table table-bordered table-striped">' +
+                    '<tr><th>Question</th><th>Response</th></tr>' +
+                    '<tr><td>Jina</td><td><%= record["name"] %></td></tr>' +
+                    '<tr><td>Umri</td><td><%= record["age"] %></td></tr>' +
                     '</table>');
         });
     });
