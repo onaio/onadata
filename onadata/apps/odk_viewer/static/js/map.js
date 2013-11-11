@@ -239,8 +239,31 @@
                 _that.trigger('markerClicked', record);
             });
 
+            // Initialize the `DataView`
+            this.dataView = new FH.DataView();
+
             // Initialize the form and geo data
             this.form = form = new FH.Form({}, {url: this.get('form_url')});
+
+            // Set this layers language to the first language in the list if any
+            form.on('change:languages', function (model, value) {
+                _that.set('language', value.slice(0, 1)[0]);
+            }, this);
+
+            // Set the language to a default value to force the change event
+            // when the new value is `undefined` as it is for non-multilingual
+            // forms
+            this.set('language', '------');
+
+            // Anytime the language changes, re-create the dataView's template
+            // This assumes we have a valid form, which should be ok since the language change is only triggered
+            this.on('change:language', function (model, language) {
+                if( this.form.fields.length === 0 ) {
+                    throw new Error("Triggered language change without having a valid form");
+                }
+                this.dataView.renderTemplate(this.form.fields, language);
+            });
+
             form.load();
             form.on('load', function () {
                 // Get the list of GPS type questions to load GPS data first
@@ -250,9 +273,6 @@
                     .map(function (q) {
                         return q.get(FH.constants.NAME);
                     });
-
-                // Initialize our `DataView` based on the form's data
-                _that.dataView = new FH.DataView({fieldSet: form.fields});
 
                 _that.data = data = new FH.DataSet([], {url: _that.get('data_url')});
                 data.load({fields: gpsQuestions});
@@ -324,20 +344,24 @@
      FH.DataView = Backbone.View.extend({
          // Don't set directly as we need to do some cleanup on set
          model: void 0,
-         initialize: function (options) {
-             if (!options.fieldSet) {
-                 throw new Error("You must specify the FieldSet to use to create the template.");
-             }
-
-             this.template = _.template(FH.DataView.templateFromFields(options.fieldSet));
-         },
 
          render: function () {
-             this.$el.html(this.template({record: this.model.toJSON()}));
+             // Allow graceful rendering model has not been set
+             var data = this.model && this.model.toJSON() || {};
+             this.$el.html(this.template({record: data}));
          },
 
          renderStatus: function (message) {
              this.$el.html(message);
+         },
+
+         // Render the current model to our template using the specified form
+         // `FieldSet`
+         renderTemplate: function (fieldSet, language) {
+             this.template = _.template(FH.DataView.templateFromFields(fieldSet, language));
+             // Re-render in-case we are in view
+             this.render();
+             return this;
          },
 
          // Set/Get the views model, used to disable any pending events
@@ -360,12 +384,12 @@
     });
 
     // Create an underscore template based on a forms fields
-    FH.DataView.templateFromFields = function (fields) {
+    FH.DataView.templateFromFields = function (fields, language) {
         var template_string = '<table class="table table-bordered table-striped">';
             template_string += '<tr><th>Question</th><th>Response</th></tr>';
             fields.each(function (f) {
                 template_string += '<tr>';
-                    template_string += '<td>' + f.get('label') + '</td>';
+                    template_string += '<td>' + f.get('label', language) + '</td>';
                     template_string += '<td><%= record["' + f.get('name') +'"] %></td>';
                 template_string += '</tr>';
             });

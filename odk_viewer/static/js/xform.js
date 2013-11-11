@@ -13,6 +13,7 @@
     FH.constants = {
         ID_STRING: 'id_string',
         NAME: 'name',
+        LABEL: 'label',
         CHILDREN: 'children',
         GROUP: 'group',
         NOTE: 'note',
@@ -26,8 +27,39 @@
 
     // #### A form's field
     var Field = FH.Field = Backbone.Model.extend({
-        idAttribute: 'xpath'
+        idAttribute: 'xpath',
+
+        // Override `get` to handle requests for fields without labels e.g.
+        // start and requests for multi-lingual labels
+        get: function (id, language) {
+            var val = Backbone.Model.prototype.get.apply(this, arguments);
+            if(id === FH.constants.LABEL) {
+                if(typeof val === typeof undefined) {
+                    // Use the name as the label
+                    val = Backbone.Model.prototype.get.call(this, FH.constants.NAME);
+                } else if (typeof val === 'object') {
+                    // If the language is specified, return its label, otherwise, return the first label
+                    if(language) {
+                        val = val[language];
+                    } else {
+                        throw new Error("You must specify a language");
+                    }
+                }
+            }
+            return val;
+        }
     });
+
+    // Get the list of languages from a label
+    FH.Field.languagesFromLabel = function(label) {
+        if(typeof label === "string" || typeof label === "undefined") {
+            return [];
+        } else if (typeof label === "object") {
+            return _.keys(label);
+        } else {
+            throw new Error("Don know how to handle label of type: " + typeof label);
+        }
+    };
 
     // #### A collection of fields
     var FieldSet = FH.FieldSet = Backbone.Collection.extend({
@@ -40,28 +72,55 @@
     // var form = new Form({}, {url: "http://formhub.org/user/forms/test/form.json"});
     // ```
     var Form = FH.Form = Backbone.Model.extend({
-        // Explicitly set url from otpyion, newer Backbone doesnt
+        fields: void 0,
+
+        // Explicitly set url from option.url, newer Backbone doesnt
         initialize: function (attributes, options) {
             if(!options.url) {
                 throw new Error("You must specify the form's url within the options");
             }
             this.url = options.url;
+
+            // Initialize the `FieldSet`
+            this.fields = new FieldSet();
+        },
+
+        // Override `set` to parse questions on load/set
+        set: function (attributes, options) {
+            var _that = this,
+                languages = [],
+                questions;
+
+            // Check if we have children
+            if(attributes[FH.constants.CHILDREN]) {
+                questions = Form.parseQuestions(
+                    attributes[FH.constants.CHILDREN]);
+
+                questions.forEach(function (q) {
+                    FH.Field.languagesFromLabel(q.label).forEach(function (lang) {
+                        if (languages.indexOf(lang) === -1) {
+                            languages.push(lang);
+                        }
+                    });
+                    _that.fields.add(new Field(q));
+                });
+
+                // Set languages
+                this.set('languages', languages);
+            }
+
+            // Check if we're setting children and parse fields
+            return Backbone.Model.prototype.set.apply(this, arguments);
         },
 
         load: function () {
-            var fields = this.fields = new FieldSet(),
-                this_form = this,
+            var _that = this,
                 xhr;
 
             xhr = this.fetch();
             xhr.done(function(){
-                var questions = Form.parseQuestions(
-                    this_form.get(FH.constants.CHILDREN));
-                questions.forEach(function(q){
-                    fields.add(new Field(q));
-                });
                 // trigger the `load` event
-                this_form.trigger('load');
+                _that.trigger('load');
             });
             xhr.fail(function(){
             });
