@@ -289,5 +289,19 @@ describe("Formhub Form", function () {
                 expect(result).toContain('Swahili');
             });
         });
+
+        describe("FH.Field.isA", function () {
+           it("returns true if the typeName is within the type constants", function () {
+               var typeName = 'A_type';
+               var typeConstants = ['a_type', 'another_type'];
+               expect(FH.Field.isA(typeName, typeConstants)).toBe(true);
+           });
+
+            it("returns false if the typeName is not within the type constants", function () {
+               var typeName = 'a_different_type';
+               var typeConstants = ['a_type', 'another_type'];
+               expect(FH.Field.isA(typeName, typeConstants)).toBe(false);
+           });
+        });
     });
 });

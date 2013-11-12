@@ -21,6 +21,9 @@
     };
 
     FH.types = {
+        TEXT: ['text'],
+        INTEGER: ['integer'],
+        DECIMAL: ['decimal'],
         GEOLOCATION: ['gps', 'geopoint'],
         SELECT_ONE: ['select one', 'select_one']
     };
@@ -59,6 +62,12 @@
         } else {
             throw new Error("Don know how to handle label of type: " + typeof label);
         }
+    };
+
+    // Check if a field type string is a certain FH.type constant
+    // e.g. FH.Field.isA('select one', FH.types.SELECT_ONE)
+    FH.Field.isA = function (typeName, typeConstant) {
+        return typeConstant.indexOf(typeName.toLowerCase()) !== -1;
     };
 
     // #### A collection of fields
@@ -240,4 +249,63 @@
             });
         }
     });
+
+    // Encapsulates a DataSet and FieldSet within a `datavore` table
+    FH.Datavore = Backbone.Model.extend({
+        // The datavore table
+        table: void 0,
+
+        // Initialise with a `fieldSet` and `dataSet` within `attributes`
+        initialize: function (attributes, options) {
+            // Column structure that we build and pass to the table
+            var cols = [],
+                dataSet = this.get('dataSet'),
+                fieldSet = this.get('fieldSet');
+
+            if( !dataSet || !fieldSet ) {
+                throw new Error("You must specify the dataSet and the fieldSet");
+            }
+
+            // Build columns
+            cols = fieldSet.map(function (field) {
+                var xpath = field.get('xpath');
+                if( !xpath ) {
+                    throw new Error("Field '" + field.get('name') + "' doesnt have an xpath attribute");
+                }
+
+                return {
+                    name: xpath,
+                    values: [],
+                    type: FH.Datavore.fhToDatavoreType(field.get('type'))};
+            });
+
+            // Prepend the meta _id column
+            cols.splice(0, 0, {name: '_id', values: [], type: dv.type.unknown});
+
+            // Iterate over the records
+            dataSet.each(function (record) {
+                cols.forEach(function (col) {
+                   col.values.push(record.get(col.name));
+                });
+            });
+            this.table = dv.table(cols);
+        },
+
+        countBy: function (xpath) {
+            var aggregation = this.table.query(
+                {dims: [xpath], vals: [dv.count()]});
+            return _.object(aggregation[0], aggregation[1]);
+        }
+    });
+
+    // Converts FH types to one of the datavore types
+    FH.Datavore.fhToDatavoreType = function (typeName) {
+        if( FH.Field.isA(typeName, FH.types.SELECT_ONE) ) {
+            return dv.type.nominal;
+        } else if (FH.Field.isA(typeName, FH.types.INTEGER) || FH.Field.isA(typeName, FH.types.DECIMAL) ) {
+            return dv.type.numeric;
+        } else {
+            return dv.type.unknown;
+        }
+    };
 }).call(this);

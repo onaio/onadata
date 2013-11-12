@@ -14,11 +14,12 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      'http://cdnjs.cloudflare.com/ajax/libs/jquery/1.10.2/jquery.js',
-      'http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore.js',
-      'http://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.0.0/backbone.js',
-      'http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.6.4/leaflet.js',
+      'main/static/bower_components/jquery/jquery.js',
+      'main/static/bower_components/underscore/underscore.js',
+      'main/static/bower_components/backbone/backbone.js',
+      'main/static/bower_components/leaflet-dist/leaflet-src.js',
       'https://maps.google.com/maps/api/js?v=3.2&sensor=false',
+      'main/static/js/dv.js',
       'main/static/js/Google.js',
       'node_modules/sinon/lib/sinon.js',
       'node_modules/sinon/lib/sinon/util/event.js',
