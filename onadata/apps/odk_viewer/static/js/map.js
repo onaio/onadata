@@ -1,11 +1,11 @@
 // FH.Map Closure
 // ------------------
-(function(){
+(function () {
     "use strict";
     // Save a reference to the global object (`window` in the browser, `exports`
     // on the server).
     var root = this,
-        // Default map options.
+    // Default map options.
         defaults = {
             layers: [],
             zoom: 8,
@@ -76,6 +76,10 @@
             // Create the FeatureLayerSet
             this.featureLayers = new FH.FeatureLayerSet();
 
+            // Create feature layer's container
+            this.$featureLayersContainer = $('<div class="feature-layers-container"></div>');
+            this.$('.leaflet-bottom.leaflet-left').append(this.$featureLayersContainer);
+
             // Listen for `add` events to add the feature to the map
             this.featureLayers.on('add', function (featureLayer) {
                 featureLayer.featureGroup.addTo(_that._map);
@@ -93,14 +97,17 @@
                     _that.dataModal.render(featureLayer.dataView.$el, record);
                 });
 
-                // Call load to initialize data sync
-                //featureLayer.load();
+                // Add the layer's controls to the page
+                _that.$featureLayersContainer.append(featureLayer.layerView.$el);
             });
 
             // Listen for `remove` events to remove the feature from the map
             this.featureLayers.on('remove', function (featureLayer) {
                 // TODO: HACK
                 _that.markerColors.push(featureLayer.fillColor);
+
+                // Remove the layer's view from the page
+                featureLayer.layerView.remove();
 
                 _that._map.removeLayer(featureLayer.featureGroup);
                 _that.reCalculateBounds();
@@ -141,7 +148,7 @@
             this._layersControl.addBaseLayer(layer, layer_config.label);
 
             // If the is_default flag is set, add it to the map.
-            if(is_default) {
+            if (is_default) {
                 this._map.addLayer(layer);
             }
             return layer;
@@ -212,11 +219,11 @@
                 data,
                 _that = this;
 
-            if(!this.get('form_url')){
+            if (!this.get('form_url')) {
                 throw new Error("You must specify the form's url");
             }
 
-            if(!this.get('data_url')){
+            if (!this.get('data_url')) {
                 throw new Error("You must specify the data url");
             }
 
@@ -232,7 +239,7 @@
 
             this.featureGroup.on('click', function (evt) {
                 var record = evt.layer._fh_data;
-                if(!record){
+                if (!record) {
                     throw new Error("Marker layer does not have a record attached");
                 }
                 // Trigger a marker clicked event to be handled by the map
@@ -241,6 +248,9 @@
 
             // Initialize the `DataView`
             this.dataView = new FH.DataView();
+
+            // Create our layer's view
+            this.layerView = new FH.FeatureLayerView({featureLayer: this});
 
             // Initialize the form and geo data
             this.form = form = new FH.Form({}, {url: this.get('form_url')});
@@ -256,13 +266,19 @@
             this.set('language', '------');
 
             // Anytime the language changes, re-create the dataView's template
-            // This assumes we have a valid form, which should be ok since the language change is only triggered
+            // This assumes we have a valid form, which should be since the
+            // language change is only triggered when the form is loaded
             this.on('change:language', function (model, language) {
-                if( this.form.fields.length === 0 ) {
+                if (this.form.fields.length === 0) {
                     throw new Error("Triggered language change without having a valid form");
                 }
                 this.dataView.renderTemplate(this.form.fields, language);
             });
+
+            // Re-build our layer view's field list whenever the forms fields change
+            form.on('change:children', function () {
+                this.layerView.render(this);
+            }, this);
 
             form.load();
             form.on('load', function () {
@@ -293,11 +309,11 @@
                 if (gps_string) {
                     latLng = FH.FeatureLayer.parseLatLngString(gps_string);
                     //try{
-                        marker = L.circleMarker(latLng, _that.markerStyle);
+                    marker = L.circleMarker(latLng, _that.markerStyle);
                     /*}
-                    catch (e) {
-                        //console.error(e);
-                    }*/
+                     catch (e) {
+                     //console.error(e);
+                     }*/
                     // Attach the data to be used on marker clicks
                     marker._fh_data = record;
                     _that.featureGroup.addLayer(marker);
@@ -320,6 +336,60 @@
             });
     };
 
+    // Displays and allows interaction to manipulate a `FeatureLayer`'s state
+    FH.FeatureLayerView = Backbone.View.extend({
+        className: 'feature-layer leaflet-control',
+        template: _.template('<h3><%= layer.title %></h3>' +
+            '<select class="field-selector">' +
+              '<option value="">--None--</option>' +
+              '<% _.each(layer.fields, function(field){ %>' +
+                '<option value="<%= field.name %>"><%= field.label %></option>' +
+              '<% }); %>' +
+            '</select>'),
+        events: {
+            "change .field-selector": "fieldSelected"
+        },
+
+        initialize: function (options) {
+            if( !options.featureLayer ) {
+                throw new Error("You must specify this view's feature layer on initialization.");
+            }
+            this.featureLayer = options.featureLayer;
+        },
+
+        render: function (featureLayer) {
+            var data,
+                fields,
+                _that = this;
+
+            fields = this.featureLayer.form.questionsByType(FH.types.SELECT_ONE)
+                .map(function (field) {
+                    return {
+                        name: field.cid,
+                        label: field.get('label', _that.featureLayer.get('language'))
+                    };
+                });
+            data = {
+                title: featureLayer.form.get('title'),
+                fields: fields
+            };
+            // Get the list of select one questions
+            this.$el.html(this.template({layer: data}));
+        },
+
+        fieldSelected: function (evt) {
+            var cid = evt.target.value,
+                targetField;
+            // Find the field by this cid
+            targetField = this.featureLayer.form.fields.find(function (field) {
+                return field.cid === cid;
+            });
+            if(targetField) {
+                // Get select options
+            }
+        }
+    });
+
     // A `FeatureLayerSet` contains a number of `FeatureLayers` that are
     // available on the map
     FH.FeatureLayerSet = Backbone.Collection.extend({
@@ -341,58 +411,58 @@
 
     // View used to render data per `FeatureLayer`, its template is compiled
     // on init, based on the specified fields
-     FH.DataView = Backbone.View.extend({
-         // Don't set directly as we need to do some cleanup on set
-         model: void 0,
+    FH.DataView = Backbone.View.extend({
+        // Don't set directly as we need to do some cleanup on set
+        model: void 0,
 
-         render: function () {
-             // Allow graceful rendering model has not been set
-             var data = this.model && this.model.toJSON() || {};
-             this.$el.html(this.template({record: data}));
-         },
+        render: function () {
+            // Allow graceful rendering model has not been set
+            var data = this.model && this.model.toJSON() || {};
+            this.$el.html(this.template({record: data}));
+        },
 
-         renderStatus: function (message) {
-             this.$el.html(message);
-         },
+        renderStatus: function (message) {
+            this.$el.html(message);
+        },
 
-         // Render the current model to our template using the specified form
-         // `FieldSet`
-         renderTemplate: function (fieldSet, language) {
-             this.template = _.template(FH.DataView.templateFromFields(fieldSet, language));
-             // Re-render in-case we are in view
-             this.render();
-             return this;
-         },
+        // Render the current model to our template using the specified form
+        // `FieldSet`
+        renderTemplate: function (fieldSet, language) {
+            this.template = _.template(FH.DataView.templateFromFields(fieldSet, language));
+            // Re-render in-case we are in view
+            this.render();
+            return this;
+        },
 
-         // Set/Get the views model, used to disable any pending events
-         setModel: function (record) {
-             if(this.model) {
-                 this.model.off('ready');
-             }
-             this.model = record;
-             this.model.on('ready', this.render, this);
-             this.model.on('readyFailed', function () {
-                 this.renderStatus("Failed to load ...");
-             }, this);
+        // Set/Get the views model, used to disable any pending events
+        setModel: function (record) {
+            if (this.model) {
+                this.model.off('ready');
+            }
+            this.model = record;
+            this.model.on('ready', this.render, this);
+            this.model.on('readyFailed', function () {
+                this.renderStatus("Failed to load ...");
+            }, this);
 
-             // set us to loading
-             this.renderStatus("Loading ...");
+            // set us to loading
+            this.renderStatus("Loading ...");
 
-             // Initiate the load
-             this.model.load();
-         }
+            // Initiate the load
+            this.model.load();
+        }
     });
 
     // Create an underscore template based on a forms fields
     FH.DataView.templateFromFields = function (fields, language) {
         var template_string = '<table class="table table-bordered table-striped">';
-            template_string += '<tr><th>Question</th><th>Response</th></tr>';
-            fields.each(function (f) {
-                template_string += '<tr>';
-                    template_string += '<td>' + f.get('label', language) + '</td>';
-                    template_string += '<td><%= record["' + f.get('name') +'"] %></td>';
-                template_string += '</tr>';
-            });
+        template_string += '<tr><th>Question</th><th>Response</th></tr>';
+        fields.each(function (f) {
+            template_string += '<tr>';
+            template_string += '<td>' + f.get('label', language) + '</td>';
+            template_string += '<td><%= record["' + f.get('name') + '"] %></td>';
+            template_string += '</tr>';
+        });
         template_string += '</table>';
         return template_string;
     };
