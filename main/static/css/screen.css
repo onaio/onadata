@@ -1094,3 +1094,8 @@ color: white;
 .toggler {
   cursor: pointer;
 }
+
+body.authenticated {
+	background-image: url("images/background.jpg");
+	background-repeat: repeat;
+}
