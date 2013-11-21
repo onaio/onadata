@@ -13,8 +13,7 @@ def stats(request, username=None, id_string=None):
         xform = get_object_or_404(
             XForm, user=request.user, id_string=id_string)
         context.xform = xform
-        context.submission_stats = get_form_submissions_per_day(xform)\
-            .order_by('date')
+        context.submission_stats = get_form_submissions_per_day(xform)
     else:
         context.xforms = XForm.objects.filter(user=request.user)
     return render_to_response('form-stats.html', context_instance=context)

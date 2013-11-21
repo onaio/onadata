@@ -20,7 +20,7 @@
         </tr>
         {% for rec in submission_stats %}
         <tr>
-            <td>{{ rec.date|date:"d, M, Y" }}</td>
+            <td>{{ rec.date }}</td>
             <td>{{ rec.count }}</td>
         </tr>
         {% endfor %}
