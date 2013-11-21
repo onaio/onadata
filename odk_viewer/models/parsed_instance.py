@@ -134,7 +134,8 @@ class ParsedInstance(models.Model):
         # fields must be a string array i.e. '["name", "age"]'
         fields = json.loads(
             fields, object_hook=json_util.object_hook) if fields else []
-        # TODO: current mongo (2.0.4 of this writing) cant mix including and excluding fields in a single query
+        # TODO: current mongo (2.0.4 of this writing)
+        # cant mix including and excluding fields in a single query
         if type(fields) == list and len(fields) > 0:
             fields_to_select = dict(
                 [(_encode_for_mongo(field), 1) for field in fields])
@@ -157,6 +158,37 @@ class ParsedInstance(models.Model):
         # set batch size
         cursor.batch_size = cls.DEFAULT_BATCHSIZE
         return cursor
+
+    @classmethod
+    @apply_form_field_names
+    def mongo_aggregate(cls, query, pipeline, hide_deleted=True):
+        """Perform mongo aggregate queries
+        query - is a dict which is to be passed to $match, a pipeline operator
+        pipeline - list of dicts or dict of mongodb pipeline operators,
+        http://docs.mongodb.org/manual/reference/operator/aggregation-pipeline
+        """
+        if isinstance(query, basestring):
+            query = json.loads(
+                query, object_hook=json_util.object_hook) if query else {}
+        if not (isinstance(pipeline, dict) or isinstance(pipeline, list)):
+            raise Exception(_(u"Invalid pipeline! %s" % pipeline))
+        if not isinstance(query, dict):
+            raise Exception(_(u"Invalid query! %s" % query))
+        query = dict_for_mongo(query)
+        if hide_deleted:
+            #display only active elements
+            deleted_at_query = {
+                "$or": [{"_deleted_at": {"$exists": False}},
+                        {"_deleted_at": None}]}
+            # join existing query with deleted_at_query on an $and
+            query = {"$and": [query, deleted_at_query]}
+        k = [{'$match': query}]
+        if isinstance(pipeline, list):
+            k.extend(pipeline)
+        else:
+            k.append(pipeline)
+        results = xform_instances.aggregate(k)
+        return results['result']
 
     @classmethod
     @apply_form_field_names
