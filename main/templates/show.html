@@ -355,7 +355,7 @@
         </div>
         <br/>
         <div class="clearfix bordered">
-                <h3 data-toggle="collapse" class="toggler" data-target="#docs_tab">{% trans "Supporting Documents" %}</h3>
+                <h3 data-toggle="collapse" class="toggler" data-target="#docs_tab">{% trans "Methodology" %}</h3>
                 <div id='docs_tab' class="collapse">
                 {% for doc in supporting_docs %}
                     <p><a href="{% url "main.views.download_metadata" content_user.username xform.id_string doc.id %}">{{ doc.data_value }}</a>
