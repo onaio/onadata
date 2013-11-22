@@ -23,7 +23,8 @@ from api import mixins
 from api.signals import xform_tags_add, xform_tags_delete
 from api import tools as utils
 
-from utils.user_auth import check_and_set_form_by_id
+from utils.user_auth import check_and_set_form_by_id, \
+    check_and_set_form_by_id_string
 from main.models import UserProfile
 
 from odk_logger.models import XForm, Instance
@@ -1163,3 +1164,110 @@ Payload
         if request.method == 'GET':
             status = 200
         return Response(data, status=status)
+
+
+class StatsViewSet(viewsets.ViewSet):
+    """
+    Provides submissions counts grouped by a specified field.
+    It accepts query parameters `group` and `name`. Default result
+    is grouped by `_submission_time`, hence you get submission counts per day.
+    If a date field is used as the group, the result will be grouped by day.
+
+    * *group* - field to group submission counts by
+    * *name* - name to be applied to the group on results
+
+    Example:
+
+        GET /api/v1/stats/submissions/ukanga/1?group=_submission_time&name=day_of_submission
+
+    Response:
+
+        [
+            {
+                "count": 8,
+                "day_of_submission": "2013-11-15",
+            },
+            {
+                "count": 99,
+                "day_of_submission": "2013-11-16",
+            },
+            {
+                "count": 133,
+                "day_of_submission": "2013-11-17",
+            },
+            {
+                "count": 162,
+                "day_of_submission": "2013-11-18",
+            },
+            {
+                "count": 102,
+                "day_of_submission": "2013-11-19",
+            }
+        ]
+    """
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, ]
+    lookup_field = 'owner'
+    lookup_fields = ('owner', 'formid', 'dataid')
+    extra_lookup_fields = None
+    queryset = Instance.objects.all()
+
+    def _get_accessible_forms(self, owner=None):
+        xforms = []
+        # list public forms incase anonymous user
+        if self.request.user.is_anonymous():
+            xforms = XForm.public_forms().order_by('?')[:10]
+            # select only  the random 10, allows chaining later on
+            xforms = XForm.objects.filter(pk__in=[x.pk for x in xforms])
+        else:
+            xforms = XForm.objects.filter(user__username=owner)
+        return xforms.distinct()
+
+    def _get_formlist_data_points(self, request, owner=None):
+        xforms = self._get_accessible_forms(owner)
+        # filter by tags if available.
+        tags = self.request.QUERY_PARAMS.get('tags', None)
+        if tags and isinstance(tags, basestring):
+            tags = tags.split(',')
+            xforms = xforms.filter(tags__name__in=tags).distinct()
+        rs = {}
+        for xform in xforms.distinct():
+            point = {u"%s" % xform.id_string:
+                     reverse("stats-list", kwargs={
+                             "formid": xform.pk,
+                             "owner": xform.user.username},
+                             request=request)}
+            rs.update(point)
+        return rs
+
+    def list(self, request, owner=None, formid=None, **kwargs):
+        data = []
+        if owner is None and not request.user.is_anonymous():
+            owner = request.user.username
+        if not formid:
+            data = self._get_formlist_data_points(request, owner)
+        if formid:
+            try:
+                formid = int(formid)
+            except ValueError:
+                xform = check_and_set_form_by_id_string(formid, request)
+            else:
+                xform = check_and_set_form_by_id(int(formid), request)
+            if not xform:
+                raise exceptions.PermissionDenied(
+                    _("You do not have permission to "
+                      "view data from this form."))
+            else:
+                field = '_submission_time'
+                name = 'date_of_submission'
+                group = request.QUERY_PARAMS.get('group', None)
+                alt_name = request.QUERY_PARAMS.get('name', None)
+                if group:
+                    name = field = group
+                if alt_name:
+                    name = alt_name
+                try:
+                    data = utils.get_form_submissions_grouped_by_field(
+                        xform, field, name)
+                except ValueError as e:
+                    raise exceptions.ParseError(detail=e.message)
+        return Response(data)
