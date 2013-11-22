@@ -1,11 +1,18 @@
-from api.models import OrganizationProfile, Team, Project, ProjectXForm
+from datetime import datetime
 
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
+from django.utils.translation import ugettext as _
 
 from main.forms import QuickConverter
+
 from odk_logger.models import XForm
+from odk_viewer.models import ParsedInstance
+from odk_viewer.models.parsed_instance import xform_instances, \
+    datetime_from_str, _encode_for_mongo
+
 from utils.logger_tools import publish_form
+from api.models import OrganizationProfile, Team, Project, ProjectXForm
 
 
 def _get_first_last_names(name):
@@ -114,3 +121,57 @@ def publish_project_xform(request, project):
     if isinstance(xform, XForm):
         add_xform_to_project(xform, project, request.user)
     return xform
+
+
+def get_form_submissions_grouped_by_field(xform, field, name=None):
+    """Number of submissions grouped by field"""
+    query = {}
+    mongo_field = _encode_for_mongo(field)
+    query[ParsedInstance.USERFORM_ID] =\
+        u'%s_%s' % (xform.user.username, xform.id_string)
+    query[mongo_field] = {"$exists": True}
+
+    # check if requested field a datetime str
+    record = xform_instances.find_one(query, {mongo_field: 1})
+    if not record:
+        raise ValueError(_(u"Field '%s' does not exist." % field))
+    if record:
+        date_field = datetime_from_str(record[mongo_field])
+        if isinstance(date_field, datetime):
+            # for datetime fields we only pick the YYYY-MM-DD
+            group = {
+                "_id": {
+                    "$substr": ['$%s' % mongo_field, 0, 10]
+                },
+                "count": {"$sum": 1}
+            }
+        else:
+            group = {
+                "_id": "$%s" % mongo_field,
+                "count": {"$sum": 1}
+            }
+    field_name = field if name is None else name
+    pipeline = [
+        {
+            "$group": group
+        },
+        {
+            "$sort": {"_id": 1}
+        },
+        {
+            "$project": {
+                field_name: "$_id",
+                "count": 1
+            }
+        }
+    ]
+    kargs = {
+        'query': query,
+        'pipeline': pipeline
+    }
+    records = ParsedInstance.mongo_aggregate(**kargs)
+    # delete mongodb's _id field from records
+    # TODO: is there an elegant way to do this? should we remove the field?
+    for record in records:
+        del record['_id']
+    return records
