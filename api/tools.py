@@ -24,6 +24,14 @@ def _get_first_last_names(name):
     return first_name, last_name
 
 
+def _get_id_for_type(record, mongo_field):
+    date_field = datetime_from_str(record[mongo_field])
+    mongo_str = '$' + mongo_field
+
+    return {"$substr": [mongo_str, 0, 10]} if isinstance(date_field, datetime)\
+        else mongo_str
+
+
 def create_organization(name, creator):
     """
     Organization created by a user
@@ -133,23 +141,12 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
 
     # check if requested field a datetime str
     record = xform_instances.find_one(query, {mongo_field: 1})
+
     if not record:
         raise ValueError(_(u"Field '%s' does not exist." % field))
-    if record:
-        date_field = datetime_from_str(record[mongo_field])
-        if isinstance(date_field, datetime):
-            # for datetime fields we only pick the YYYY-MM-DD
-            group = {
-                "_id": {
-                    "$substr": ['$%s' % mongo_field, 0, 10]
-                },
-                "count": {"$sum": 1}
-            }
-        else:
-            group = {
-                "_id": "$%s" % mongo_field,
-                "count": {"$sum": 1}
-            }
+
+    group = {"count": {"$sum": 1}}
+    group["_id"] = _get_id_for_type(record, mongo_field)
     field_name = field if name is None else name
     pipeline = [
         {
