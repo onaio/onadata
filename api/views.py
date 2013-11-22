@@ -1240,11 +1240,11 @@ class StatsViewSet(viewsets.ViewSet):
         return rs
 
     def list(self, request, owner=None, formid=None, **kwargs):
-        data = []
         if owner is None and not request.user.is_anonymous():
             owner = request.user.username
-        if not formid:
-            data = self._get_formlist_data_points(request, owner)
+
+        data = []
+
         if formid:
             try:
                 formid = int(formid)
@@ -1270,4 +1270,7 @@ class StatsViewSet(viewsets.ViewSet):
                         xform, field, name)
                 except ValueError as e:
                     raise exceptions.ParseError(detail=e.message)
+        else:
+            data = self._get_formlist_data_points(request, owner)
+
         return Response(data)
