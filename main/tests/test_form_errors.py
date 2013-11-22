@@ -6,11 +6,13 @@ from django.core.files.storage import get_storage_class
 from main.views import show
 import os
 
+
 class TestFormErrors(MainTestCase):
 
     def _create_xform(self):
-        self.xls_path = os.path.join(self.this_directory, "fixtures",
-                "transportation", "transportation.xls")
+        self.xls_path = os.path.join(
+            self.this_directory, "fixtures",
+            "transportation", "transportation.xls")
         response = self._publish_xls_file(self.xls_path)
         self.assertEquals(response.status_code, 200)
         self.xform = XForm.objects.all()[0]
@@ -39,7 +41,7 @@ class TestFormErrors(MainTestCase):
         default_storage.delete(path)
         self.assertEqual(default_storage.exists(path), False)
         url = reverse('xls_export', kwargs={'username': self.user.username,
-                'id_string': self.xform.id_string})
+                      'id_string': self.xform.id_string})
         response = self.anon.get(url)
         self.assertEqual(response.status_code, 404)
 
@@ -48,23 +50,25 @@ class TestFormErrors(MainTestCase):
         self.xform.xls = "blah"
         self.xform.save()
         url = reverse('xls_export', kwargs={'username': self.user.username,
-                'id_string': self.xform.id_string})
+                      'id_string': self.xform.id_string})
         response = self.anon.get(url)
         self.assertEqual(response.status_code, 403)
 
     def test_nonexist_id_string(self):
-        url = reverse(show,
-            kwargs={'username': self.user.username, 'id_string': '4444'})
+        url = reverse(show, kwargs={'username': self.user.username,
+                                    'id_string': '4444'})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
         response = self.anon.get(url)
         self.assertEqual(response.status_code, 404)
 
     def test_empty_submission(self):
-        xls_path = os.path.join(self.this_directory, "fixtures",
-                "transportation", "transportation.xls")
-        xml_path = os.path.join(self.this_directory, "fixtures",
-                "transportation", "transportation_empty_submission.xml")
+        xls_path = os.path.join(
+            self.this_directory, "fixtures",
+            "transportation", "transportation.xls")
+        xml_path = os.path.join(
+            self.this_directory, "fixtures",
+            "transportation", "transportation_empty_submission.xml")
         self._publish_xls_file(xls_path)
         self._make_submission(xml_path)
         self.assertTrue(self.response.status_code, 400)
@@ -73,7 +77,8 @@ class TestFormErrors(MainTestCase):
         self._create_xform()
         self.xform.downloadable = False
         self.xform.save()
-        xml_path = os.path.join(self.this_directory, "fixtures",
-                "transportation", "transportation_empty_submission.xml")
+        xml_path = os.path.join(
+            self.this_directory, "fixtures",
+            "transportation", "transportation_empty_submission.xml")
         self._make_submission(xml_path)
         self.assertTrue(self.response.status_code, 400)
