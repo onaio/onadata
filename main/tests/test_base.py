@@ -1,8 +1,9 @@
 import base64
 import os
 import re
-from tempfile import NamedTemporaryFile
+import socket
 import urllib2
+from tempfile import NamedTemporaryFile
 
 from cStringIO import StringIO
 
@@ -174,7 +175,7 @@ class MainTestCase(TestCase):
         try:
             response = urllib2.urlopen(url, timeout=timeout)
             return True
-        except urllib2.URLError as err: pass
+        except (urllib2.URLError, socket.timeout): pass
         return False
 
     def _internet_on(self, url='http://74.125.113.99'):
