@@ -9,11 +9,11 @@
     <div class="span5">
         <h1>{% blocktrans %}Publish a Form <small>Upload XLSForm</small>{% endblocktrans %}</h1>
         {% url "tutorial" as tutorial_url %}
-        {% blocktrans %}For a quick introduction on how to publish a form check out the <a href="{{ tutorial_url }}">tutorial</a>, and try publishing <a href="http://formhub.org/formhub_u/forms/tutorial/form.xls">tutorial.xls</a>.{% endblocktrans %}
+        {% blocktrans %}For a quick introduction on how to publish a form try do download <a href="/examples/forms/tutorial/form.xls">tutorial.xls</a> and publish it.{% endblocktrans %}
         <br/>
         <br/>
         {% url "syntax" as syntax_url %}
-        {% blocktrans %}Learn about the XLSForm syntax <a href="{{ syntax_url }}">here</a>, email <a href="https://groups.google.com/forum/?fromgroups#!forum/formhub-users">formhub users mailing list</a> if you have questions, and checkout examples at: <br/><a href="/formhub_u/">Formhub University</a>.{% endblocktrans %}
+        {% blocktrans %}Learn about the XLSForm syntax <a href="{{ syntax_url }}">here</a> along with more <a href="/examples/">form examples</a>.{% endblocktrans %}
         <br/>
         <br/>
         <form action="." method="post" enctype="multipart/form-data">
@@ -60,7 +60,6 @@
             <img src='{{ profile.gravatar }}' alt='gravatar' width='60' height='60' />
             {% if not profile.gravatar_exists %}
                </a>
-               <script type="text/javascript">$('#gravatar').tooltip();</script>
             {% endif %}
         </div>
         <div class="span4">
