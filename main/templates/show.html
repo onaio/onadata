@@ -222,6 +222,9 @@
             <a class="btn btn-info" btn-info  rel="tooltip" title="{% trans "Browse Data (One by One)" %}" href="{% url "odk_viewer.views.instance" content_user.username xform.id_string %}">
                 <i class="icon-list-alt icon-white"></i> {% trans "Browse Data" %}
             </a>
+            <a class="btn btn-info" btn-info  rel="tooltip" title="{% trans "View Submission Counts Per Day" %}" href="{% url "form-stats" content_user.username xform.id_string %}">
+                <i class="icon-list-alt icon-white"></i> {% trans "Daily Submission Statistics" %}
+            </a>
         </div>
         {% else %}
             {% if can_edit %}
@@ -296,7 +299,7 @@
         </div>
         <br/>
         <div class="clearfix bordered">
-                <h3 data-toggle="collapse" class="toggler" data-target="#docs_tab">{% trans "Supporting Documents" %}</h3>
+                <h3 data-toggle="collapse" class="toggler" data-target="#docs_tab">{% trans "Methodology" %}</h3>
                 <div id='docs_tab' class="collapse">
                 {% for doc in supporting_docs %}
                     <p><a href="{% url "main.views.download_metadata" content_user.username xform.id_string doc.id %}">{{ doc.data_value }}</a>

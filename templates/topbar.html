@@ -64,7 +64,7 @@
               {% if user.is_superuser or user.is_staff %}
             <li><a href="{% url "main.views.members_list" %}">{% trans "People" %}</a></li>
               {% endif %}
-            <li><a href="/resources/">{% trans "Resources" %}</a></li>
+            <!-- <li><a href="/resources/">{% trans "Resources" %}</a></li> -->
             <li><a href="{% url "main.views.syntax" %}">{% trans "Syntax" %}</a></li>
             <li><a href="{% url "main.views.support" %}">{% trans "Support" %}</a></li>
           </ul>
