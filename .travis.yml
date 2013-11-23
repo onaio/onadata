@@ -2,12 +2,12 @@ language: python
 services:
   - mongodb
 python:
-  - "2.7"
+  - '2.7'
 before_install:
   - mysql -e 'create database formhub_test;'
-  -  sudo apt-get install gfortran libatlas-base-dev libjpeg-dev zlib1g-dev
-  -  sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so ~/virtualenv/python2.7/lib/
-  -  sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so ~/virtualenv/python2.7/lib/
+  - sudo apt-get install gfortran libatlas-base-dev libjpeg-dev zlib1g-dev
+  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so ~/virtualenv/python2.7/lib/
+  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so ~/virtualenv/python2.7/lib/
 install:
   - pip install numpy --use-mirrors
   - pip install -r requirements.pip --use-mirrors
@@ -18,4 +18,10 @@ script:
   - python manage.py test --noinput --settings=formhub.preset.travis_test
   - ./js_tests/EnvJasmine/bin/run_all_tests.sh --testDir=../ --configFile=../env_jasmine.conf.js
 notifications:
-  irc: "irc.freenode.org#onatest"
+  email:
+    - tech@ona.io
+    - tino.kreutzer@kobotoolbox.org
+  hipchat:
+    rooms:
+      secure: cfWcsNSVAq9vs0pFrT5VKrd7Be6uE8eDPuaOBVT+sGjRKoF7UgaY+jwHK6yaO+Iv+/4aBEsMb5Sc0qp0vQ7vwP9X9THO4Y+giFolQByKO74rnMEp/cn5Hdyv8r5UsHXLYj4MtipLAuD9wkZBOWjsbYfhhDZ6zJ7ZFztvYn/Fxoc=
+  irc: 'irc.freenode.org#onatest'
