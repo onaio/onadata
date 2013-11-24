@@ -132,9 +132,13 @@
                     <a href="{% url "odk_viewer.views.data_view" content_user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
                         <i class="icon-list icon-large inactive"></i>
                     </a>
+                    <a href="{% url " odk_viewer.views.form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
+                    <i class="icon-bar-chart icon-large inactive"></i>
+                    </a>
                 {% else %}
                     <span><i class="icon-camera icon-large inactive"></i></span>
                     <span><i class="icon-list icon-large inactive"></i></span>
+                    <span><i class="icon-bar-chart icon-large inactive"></i></span>
                 {% endif %}
         </td>
         <td>
@@ -271,9 +275,13 @@
                           <a href="{% url "odk_viewer.views.data_view" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
                               <i class="icon-list icon-large inactive"></i>
                           </a>
+                          <a href="{% url " odk_viewer.views.form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
+                          <i class="icon-bar-chart icon-large inactive"></i>
+                          </a>
                       {% else %}
                           <span><i class="icon-camera icon-large inactive"></i></span>
                           <span><i class="icon-list icon-large inactive"></i></span>
+                          <span><i class="icon-bar-chart icon-large inactive"></i></span>
                       {% endif %}
               </td>
               <td>
@@ -360,9 +368,13 @@
                                     <a href="{% url "odk_viewer.views.data_view" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
                                         <i class="icon-list icon-large inactive"></i>
                                     </a>
+                                    <a href="{% url " odk_viewer.views.form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
+                                    <i class="icon-bar-chart icon-large inactive"></i>
+                                    </a>
                                 {% else %}
                                     <span><i class="icon-camera icon-large inactive"></i></span>
                                     <span><i class="icon-list icon-large inactive"></i></span>
+                                    <span><i class="icon-bar-chart icon-large inactive"></i></span>
                                 {% endif %}
                         </td>
                         <!-- end view options -->
