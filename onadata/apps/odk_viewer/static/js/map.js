@@ -460,7 +460,7 @@
         fields.each(function (f) {
             template_string += '<tr>';
             template_string += '<td>' + f.get('label', language) + '</td>';
-            template_string += '<td><%= record["' + f.get('name') + '"] %></td>';
+            template_string += '<td><%= record["' + f.get('xpath') + '"] %></td>';
             template_string += '</tr>';
         });
         template_string += '</table>';
