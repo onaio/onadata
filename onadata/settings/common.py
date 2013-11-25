@@ -14,12 +14,11 @@ import os
 import subprocess  # nopep8, used by included files
 import sys  # nopep8, used by included files
 
-
-from django.utils.log import AdminEmailHandler
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
-from pymongo import MongoClient
+from django.utils.log import AdminEmailHandler
 import djcelery
+from pymongo import MongoClient
 
 
 djcelery.setup_loader()
@@ -273,7 +272,6 @@ def skip_suspicious_operations(record):
     background and more information:
     http://www.tiwoc.de/blog/2013/03/django-prevent-email-notification-on-susp\
     iciousoperation/
-
     """
     if record.exc_info:
         exc_value = record.exc_info[1]
