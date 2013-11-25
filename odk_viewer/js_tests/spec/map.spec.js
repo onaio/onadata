@@ -241,5 +241,39 @@ describe("DataView", function () {
                     '<tr><td>Umri</td><td><%= record["age"] %></td></tr>' +
                     '</table>');
         });
+
+        it("handles grouped questions", function () {
+            var result;
+            raw_questions = [
+                {
+                    name: 'a_group',
+                    type: 'group',
+                    children: [
+                        {
+                            name: "name",
+                            type: "text",
+                            label: "Name"
+                        },
+                        {
+                            name: "age",
+                            type: "integer",
+                            label: "Age"
+                        }
+                    ]
+                }
+            ];
+            fieldSet = new FH.FieldSet();
+            FH.Form.parseQuestions(raw_questions).forEach(function (field) {
+                fieldSet.add(field);
+            });
+
+            result = FH.DataView.templateFromFields(fieldSet);
+            expect(result).toEqual(
+                '<table class="table table-bordered table-striped">' +
+                    '<tr><th>Question</th><th>Response</th></tr>' +
+                    '<tr><td>Name</td><td><%= record["a_group/name"] %></td></tr>' +
+                    '<tr><td>Age</td><td><%= record["a_group/age"] %></td></tr>' +
+                    '</table>');
+        });
     });
 });

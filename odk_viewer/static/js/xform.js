@@ -13,6 +13,7 @@
     FH.constants = {
         ID_STRING: 'id_string',
         NAME: 'name',
+        XPATH: 'xpath',
         LABEL: 'label',
         CHILDREN: 'children',
         GROUP: 'group',
