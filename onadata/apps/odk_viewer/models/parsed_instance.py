@@ -293,8 +293,9 @@ class ParsedInstance(models.Model):
                 return item['name']
 
     def get_data_dictionary(self):
-        # TODO: import here is a hack to get around a circular import
-        from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
+        # TODO: fix hack to get around a circular import
+        from onadata.apps.odk_viewer.models.data_dictionary import\
+            DataDictionary
         return DataDictionary.objects.get(
             user=self.instance.xform.user,
             id_string=self.instance.xform.id_string
