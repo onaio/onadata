@@ -49,6 +49,12 @@ class TestDataAPI(MainTestCase):
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
 
+    def test_anon_form_list(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/')
+        response = view(request)
+        self.assertEqual(response.status_code, 401)
+
     def test_add_form_tag_propagates_to_data_tags(self):
         """Test that when a tag is applied on an xform,
         it propagates to the instance submissions
