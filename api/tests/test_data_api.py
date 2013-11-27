@@ -83,3 +83,29 @@ class TestDataAPI(MainTestCase):
         self.assertEqual(response.data, [])
         for i in self.xform.surveys.all():
             self.assertNotIn(u'hello', i.tags.names())
+
+    def test_add_notes_to_data_point(self):
+        # add a note to a specific data point
+        view = DataViewSet.as_view({
+            'get': 'notes',
+            'post': 'notes',
+            'delete': 'notes'
+        })
+        note = {'note': u"Road Warrior"}
+        formid = self.xform.pk
+        request = self.factory.post('/', data=note, **self.extra)
+        self.assertTrue(self.xform.surveys.count())
+        dataid = self.xform.surveys.all()[0].pk
+        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 201)
+        request = self.factory.get('/', **self.extra)
+        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.data, [note['note']])
+        request = self.factory.delete('/', data=note, **self.extra)
+        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 200)
+        request = self.factory.get('/', **self.extra)
+        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.data, [])
