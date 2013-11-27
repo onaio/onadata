@@ -18,6 +18,7 @@ from common_tags import START_TIME, START, END_TIME, END, ID, UUID,\
     ATTACHMENTS, GEOLOCATION, SUBMISSION_TIME, MONGO_STRFTIME,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS
 from django.utils.translation import ugettext as _
+from odk_logger.models import Note
 
 
 # this is Mongo Collection where we will store the parsed submissions
@@ -360,6 +361,17 @@ class ParsedInstance(models.Model):
         super(ParsedInstance, self).save(*args, **kwargs)
         # insert into Mongo
         self.update_mongo(async)
+
+    def add_note(self, note):
+        note = Note(instance=self.instance, note=note)
+        note.save()
+
+    def remove_note(self, pk):
+        note = self.instance.notes.get(pk=pk)
+        note.delete()
+
+    def get_notes(self):
+        return [note['note'] for note in self.instance.notes.values('note')]
 
 
 def _remove_from_mongo(sender, **kwargs):
