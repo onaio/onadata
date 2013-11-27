@@ -1,6 +1,6 @@
 from django.test import RequestFactory
 from main.tests.test_base import MainTestCase
-
+from odk_logger.models import Note
 from api.views import DataViewSet, XFormViewSet
 
 
@@ -92,6 +92,7 @@ class TestDataAPI(MainTestCase):
             'delete': 'notes'
         })
         note = {'note': u"Road Warrior"}
+        note2 = {'note': u"Yet another road Warrior"}
         formid = self.xform.pk
         request = self.factory.post('/', data=note, **self.extra)
         self.assertTrue(self.xform.surveys.count())
@@ -102,10 +103,22 @@ class TestDataAPI(MainTestCase):
         response = view(request, owner='bob', formid=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.data, [note['note']])
-        request = self.factory.delete('/', data=note, **self.extra)
-        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        pk = Note.objects.all()[0].pk
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, owner='bob', formid=formid,
+                        dataid=dataid, noteid=pk)
         self.assertEqual(response.status_code, 200)
         request = self.factory.get('/', **self.extra)
         response = view(request, owner='bob', formid=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.data, [])
+        request = self.factory.post('/', data=note, **self.extra)
+        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 201)
+        request = self.factory.post('/', data=note2, **self.extra)
+        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 201)
+        request = self.factory.get('/', **self.extra)
+        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.data, [note['note'], note2['note']])
