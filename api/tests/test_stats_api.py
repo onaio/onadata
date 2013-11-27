@@ -33,3 +33,9 @@ class TestDataAPI(MainTestCase):
             u'count': 4
         }
         self.assertDictContainsSubset(data, response.data[0])
+
+    def test_anon_form_list(self):
+        view = StatsViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/')
+        response = view(request)
+        self.assertEqual(response.status_code, 401)
