@@ -1031,6 +1031,36 @@ Payload
   > Response
   >
   >        HTTP 200 OK
+
+## Add Notes to a submission
+
+A `POST` payload of parameter `note` with the note string to add to a data point.
+
+ <pre class="prettyprint">
+  <b>POST</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>{dataid}</code>/notes</pre>
+
+Payload
+
+    {"note": "This is a note."}
+
+  > Response
+  >
+  >        HTTP 201 OK
+
+# Get List of notes for a data point
+
+A `GET` request will return the list of notes applied to a data point.
+
+ <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>{dataid}</code>/notes</pre>
+
+
+  > Response
+  >
+  >        ["This is a note."]
+  >
+  >        HTTP 200 OK
+
     """
     permission_classes = [permissions.IsAuthenticated, ]
     lookup_field = 'owner'
@@ -1156,6 +1186,38 @@ Payload
         else:
             data = list(instance.instance.tags.names())
         if request.method == 'GET':
+            status = 200
+        return Response(data, status=status)
+
+    @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['noteid', ])
+    def notes(self, request, owner, formid, dataid, **kwargs):
+        class NoteForm(forms.Form):
+            note = forms.CharField()
+        if owner is None and not request.user.is_anonymous():
+            owner = request.user.username
+        xform = check_and_set_form_by_id(int(formid), request)
+        if not xform:
+            raise exceptions.PermissionDenied(
+                _("You do not have permission to "
+                    "view data from this form."))
+        status = 400
+        instance = get_object_or_404(ParsedInstance, instance__pk=int(dataid))
+        data = None
+        noteid = kwargs.get('noteid')
+        if request.method == 'POST':
+            form = NoteForm(request.DATA)
+            if form.is_valid():
+                note = form.cleaned_data.get('note', None)
+                instance.add_note(note)
+                status = 201
+                data = [note]
+            else:
+                raise exceptions.ParseError(detail=form.errors)
+        elif request.method == 'GET':
+            status = 200
+            data = instance.get_notes()
+        elif request.method == 'DELETE' and noteid:
+            instance.remove_note(noteid)
             status = 200
         return Response(data, status=status)
 
