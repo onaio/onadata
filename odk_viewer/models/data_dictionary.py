@@ -1,8 +1,7 @@
 import os
 import re
 
-from xml.dom import minidom, Node
-from django.contrib.auth.models import User
+from xml.dom import Node
 from django.db import models
 from pyxform import SurveyElementBuilder
 from pyxform.builder import create_survey_from_xls
@@ -84,7 +83,7 @@ class DataDictionary(XForm):
         # get the first child whose id attribute matches our id_string
         survey_nodes = [node for node in instance_node.childNodes
                         if node.nodeType == Node.ELEMENT_NODE and
-                           node.tagName == file_name]
+                        node.tagName == file_name]
 
         if len(survey_nodes) != 1:
             raise Exception(
@@ -93,10 +92,11 @@ class DataDictionary(XForm):
         survey_node = survey_nodes[0]
         formhub_nodes = [n for n in survey_node.childNodes
                          if n.nodeType == Node.ELEMENT_NODE and
-                            n.tagName=="formhub"]
+                         n.tagName == "formhub"]
 
         if len(formhub_nodes) > 1:
-            raise Exception(u"Multiple formhub nodes within main instance node")
+            raise Exception(
+                u"Multiple formhub nodes within main instance node")
         elif len(formhub_nodes) == 1:
             formhub_node = formhub_nodes[0]
         else:
@@ -120,13 +120,15 @@ class DataDictionary(XForm):
 
         self.xml = doc.toprettyxml(indent="  ", encoding='utf-8')
         # hack
-        # http://ronrothman.com/public/leftbraned/xml-dom-minidom-toprettyxml-and-silly-whitespace/
+        # http://ronrothman.com/public/leftbraned/xml-dom-minidom-toprettyxml-\
+        # and-silly-whitespace/
         text_re = re.compile('>\n\s+([^<>\s].*?)\n\s+</', re.DOTALL)
         output_re = re.compile('\n.*(<output.*>)\n(  )*')
         prettyXml = text_re.sub('>\g<1></', self.xml)
         inlineOutput = output_re.sub('\g<1>', prettyXml)
         inlineOutput = re.compile(
-            '<label>\s*\n*\s*\n*\s*</label>').sub('<label></label>', inlineOutput)
+            '<label>\s*\n*\s*\n*\s*</label>').sub(
+            '<label></label>', inlineOutput)
         self.xml = inlineOutput
 
     class Meta:
@@ -189,7 +191,8 @@ class DataDictionary(XForm):
                 return e.get_abbreviated_xpath()
 
     def has_surveys_with_geopoints(self):
-        return ParsedInstance.objects.filter(instance__xform=self, lat__isnull=False).count() > 0
+        return ParsedInstance.objects.filter(
+            instance__xform=self, lat__isnull=False).count() > 0
 
     def xpaths(self, prefix='', survey_element=None, result=None,
                repeat_iterations=4):
@@ -230,7 +233,8 @@ class DataDictionary(XForm):
         """
         This will return a list of the additional fields that are
         added per geopoint.  For example, given a field 'group/gps' it will
-        return 'group/_gps_(suffix)' for suffix in DataDictionary.GEODATA_SUFFIXES
+        return 'group/_gps_(suffix)' for suffix in
+        DataDictionary.GEODATA_SUFFIXES
         """
         match = cls.PREFIX_NAME_REGEX.match(xpath)
         prefix = ''
@@ -241,7 +245,8 @@ class DataDictionary(XForm):
         else:
             name = xpath
         # NOTE: these must be concatenated and not joined
-        return [prefix + '_' + name + '_' +  suffix for suffix in cls.GEODATA_SUFFIXES]
+        return [prefix + '_' + name + '_' + suffix
+                for suffix in cls.GEODATA_SUFFIXES]
 
     def _additional_headers(self):
         return [u'_xform_id_string', u'_percentage_complete', u'_status',
@@ -287,7 +292,8 @@ class DataDictionary(XForm):
 
     def get_xpath_cmp(self):
         if not hasattr(self, "_xpaths"):
-            self._xpaths = [e.get_abbreviated_xpath() for e in self.survey_elements]
+            self._xpaths = [e.get_abbreviated_xpath()
+                            for e in self.survey_elements]
 
         def xpath_cmp(x, y):
             # For the moment, we aren't going to worry about repeating
@@ -385,4 +391,5 @@ class DataDictionary(XForm):
             self.has_start_time = False
 
     def get_survey_elements_of_type(self, element_type):
-        return [e for e in self.get_survey_elements() if e.type==element_type]
+        return [e for e in self.get_survey_elements()
+                if e.type == element_type]

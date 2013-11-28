@@ -1,10 +1,9 @@
 import os
 from django.db import models
-from celery.result import AsyncResult
 from django.core.files.storage import get_storage_class
 from django.db.models.signals import post_delete
 from odk_logger.models import XForm
-from django.utils.translation import ugettext_lazy, ugettext as _
+from django.utils.translation import ugettext as _
 from tempfile import NamedTemporaryFile
 
 

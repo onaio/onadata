@@ -8,7 +8,8 @@ class InstanceModification(models.Model):
 
     action = models.CharField(max_length=50)
 
-    instance = models.ForeignKey(Instance, null=False, related_name="modifications")
+    instance = models.ForeignKey(Instance, null=False,
+                                 related_name="modifications")
     xpath = models.CharField(max_length=50)
 
     date_created = models.DateTimeField(auto_now_add=True)
@@ -18,6 +19,7 @@ class InstanceModification(models.Model):
         app_label = "odk_viewer"
 
     def process_doc(self, doc):
-        if self.action=="delete":
+        if self.action == "delete":
             doc.pop(self.xpath)
+
         return doc
