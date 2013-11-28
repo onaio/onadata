@@ -23,9 +23,9 @@
           div_target = $(this).attr('data-target')
           url = $(this).attr('href')
           $(div_target+" .img_holder").load(url)
-        
+
         });
-           
+
 	  var tbl = $('#forms-table').dataTable({
         "bPaginate": false,
         "sPaginationType": "bootstrap",
@@ -67,7 +67,7 @@
             "oLanguage": {"sSearch": "{% trans 'Search:' %}"},
             "oSearch": {"sSearch": ""}
         });
-        
+
 
 	});
   </script>
@@ -132,7 +132,7 @@
                     <a href="{% url "odk_viewer.views.data_view" content_user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
                         <i class="icon-list icon-large inactive"></i>
                     </a>
-                    <a href="{% url " odk_viewer.views.form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
+                    <a href="{% url "form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
                     <i class="icon-bar-chart icon-large inactive"></i>
                     </a>
                 {% else %}
@@ -275,7 +275,7 @@
                           <a href="{% url "odk_viewer.views.data_view" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
                               <i class="icon-list icon-large inactive"></i>
                           </a>
-                          <a href="{% url " odk_viewer.views.form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
+                          <a href="{% url "form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
                           <i class="icon-bar-chart icon-large inactive"></i>
                           </a>
                       {% else %}
@@ -368,7 +368,7 @@
                                     <a href="{% url "odk_viewer.views.data_view" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
                                         <i class="icon-list icon-large inactive"></i>
                                     </a>
-                                    <a href="{% url " odk_viewer.views.form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
+                                    <a href="{% url "form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
                                     <i class="icon-bar-chart icon-large inactive"></i>
                                     </a>
                                 {% else %}
@@ -424,12 +424,12 @@
          <div class="img_holder"/> </div>
     </div>
     <div class="modal-footer" style="text-align: center;">
-        
+
         {%  trans "DOWNLOAD " %}
         <a class="btn" href="http://scan.me/apps/" target="_blank">
-            <i class="icon-qrcode"></i> 
+            <i class="icon-qrcode"></i>
         {%  trans " Scan - QR Reader" %}
         </a>
-        
+
     </div>
 </div>
