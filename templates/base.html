@@ -2,10 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>OnaData</title>
-    <meta name="description" content="Mobile data collection made easy. formhub is built on a belief that data collection and analysis should be fast, flexible and reliable. And open source, of course.">
+    <title>{% block title %}Formhub{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}Mobile data collection made easy. formhub is built on a belief that data collection and analysis should be fast, flexible and reliable. And open source, of course.{% endblock %}">
     <meta name="author" content="">
-    <meta name="google-site-verification" content="8pAiKPreksD8GiYnSCtWm9QG3i6wyuKg7E2Y95RTzRM" />
+    {% if GOOGLE_SITE_VERIFICATION %}
+    <meta name="google-site-verification" content="{{ GOOGLE_SITE_VERIFICATION }}" />
+    {% endif %}
 
     <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
     <!--[if lt IE 9]>
@@ -13,33 +15,25 @@
     <![endif]-->
 
     <!-- Le styles -->
+    {% block styles %}
 
-    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
-    <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href='//fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/2.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/css/screen.css?v=2809679b01" rel="stylesheet">
     <link href="/static/css/ona-screen-overrides.css" rel="stylesheet">
     <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome.css" rel="stylesheet">
     <!--[if lte IE 8]>
       <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome-ie7.css" rel="stylesheet">
     <![endif]-->
-	<link href="/static/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
-    <link href="/static/css/iphone-btn-style.css" rel="stylesheet">
-
-    <!-- Le javascript -->
-		<script type="text/javascript" src="{% url "django.views.i18n.javascript_catalog" %}"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-    <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
-    <script src="/static/js/jquery.tablesorter.min.js"></script>
-    <script src="/static/js/application.js?v=201307251039"></script>
-    <script src="/static/js/iphone-style-checkboxes.js"></script>
-
-    <script src="/static/bootstrap/js/bootstrap.js"></script>
+	  <link href="/static/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
 
     <!-- Le fav and touch icons -->
     <link rel="shortcut icon" type="image/x-icon" href="/static/images/favicon.ico">
     <link rel="apple-touch-icon" href="/static/bootstrap/docs/assets/ico/bootstrap-apple-57x57.png">
     <link rel="apple-touch-icon" sizes="72x72" href="/static/bootstrap/docs/assets/ico/bootstrap-apple-72x72.png">
     <link rel="apple-touch-icon" sizes="114x114" href="/static/bootstrap/docs/assets/ico/bootstrap-apple-114x114.png">
+
+    {% endblock %}
 
     <!-- spot to insert stuff for google maps -->
     {% block additional-headers %}{% endblock %}
@@ -49,14 +43,17 @@
 
   {% block body %}
 	{% if not user.is_authenticated %}
+
 	<body style="padding-top: 20px !important">
 		{% include "change_language.html"%}
 		{% include "home_topbar.html" %}
-	{% endif %}
 
-  	{% if user.is_authenticated %}
+    {% else %}
+
+    <body class='authenticated'>
 		{% include "topbar.html"%}
-  	{% endif %}
+
+    {% endif %}
 
     <div class="container">
       {% block message %}
@@ -71,7 +68,38 @@
     </div>
 
     {% include "footer.html" %}
-    <script>(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*newDate();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)})(window,document,'script','//www.google-analytics.com/analytics.js','ga');ga('create', 'UA-45510928-1', 'ona.io');ga('send', 'pageview');</script>
+
+    {% block javascript %}
+
+    <!-- Le javascript -->
+	<script type="text/javascript" src="{% url "django.views.i18n.javascript_catalog" %}"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-migrate/1.2.1/jquery-migrate.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.13.3/jquery.tablesorter.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/2.3.2/js/bootstrap.js"></script>
+    <script src="/static/bootstrap/js/bootstrapx-clickover.js"></script>
+    <script src="/static/bootstrap/js/bootstrapx-clickover-btns.js"></script>
+     <script src="/static/js/application.js?v=201307251039"></script>
+
+    {% endblock %}
+
+    {% block additional-javascript %}{% endblock %}
+
+    {% block google-analytics %}
+    {% if GOOGLE_ANALYTICS_PROPERTY_ID %}
+    <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+     (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+       m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+         })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', '{{ GOOGLE_ANALYTICS_PROPERTY_ID }}', '{{ GOOGLE_ANALYTICS_DOMAIN }}');
+    ga('send', 'pageview');
+
+    </script>
+    {% endif %}
+    {% endblock %}
+
   </body>
   {% endblock %}
 </html>
