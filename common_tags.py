@@ -48,3 +48,5 @@ NA_REP = 'n/a'
 
 # hold tags
 TAGS = u"_tags"
+
+NOTES = u"_notes"

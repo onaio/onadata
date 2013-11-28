@@ -16,7 +16,7 @@ from odk_logger.models import Instance, XForm
 from celery import task
 from common_tags import START_TIME, START, END_TIME, END, ID, UUID,\
     ATTACHMENTS, GEOLOCATION, SUBMISSION_TIME, MONGO_STRFTIME,\
-    BAMBOO_DATASET_ID, DELETEDAT, TAGS
+    BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES
 from django.utils.translation import ugettext as _
 from odk_logger.models import Note
 
@@ -256,7 +256,8 @@ class ParsedInstance(models.Model):
                 SUBMISSION_TIME:
                 self.instance.date_created.strftime(MONGO_STRFTIME),
                 DELETEDAT: deleted_at,
-                TAGS: list(self.instance.tags.names())
+                TAGS: list(self.instance.tags.names()),
+                NOTES: self.get_notes()
             }
         )
         return dict_for_mongo(d)
