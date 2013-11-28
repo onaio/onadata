@@ -198,8 +198,8 @@ def create_csv_zip_export(username, id_string, export_id, query=None,
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
         gen_export = generate_export(
-            Export.CSV_ZIP_EXPORT, 'zip', username, id_string, export_id, query,
-            group_delimiter, split_select_multiples)
+            Export.CSV_ZIP_EXPORT, 'zip', username, id_string, export_id,
+            query, group_delimiter, split_select_multiples)
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
