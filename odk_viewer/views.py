@@ -4,6 +4,7 @@ from datetime import datetime
 from tempfile import NamedTemporaryFile
 from time import strftime, strptime
 
+from django import forms
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -32,6 +33,7 @@ from utils.user_auth import has_permission, get_xform_and_perms,\
 from utils.google import google_export_xls, redirect_uri
 # TODO: using from main.views import api breaks the application, why?
 from odk_viewer.models import Export
+from odk_logger.models import Instance
 from utils.export_tools import generate_export, should_create_new_export
 from utils.export_tools import kml_export_data
 from utils.export_tools import newset_export_for
@@ -726,6 +728,17 @@ def attachment_url(request, size='medium'):
 
 
 def instance(request, username, id_string):
+    class NoteForm(forms.Form):
+        note = forms.CharField(min_length=1)
+        instance_id = forms.IntegerField(widget=forms.HiddenInput())
+
+        def save(self):
+            data = self.cleaned_data
+            instance = get_object_or_404(Instance, pk=data['instance_id'])
+            instance.parsed_instance.add_note(data['note'])
+            instance.parsed_instance.save()
+            return data['instance_id']
+
     xform, is_owner, can_edit, can_view = get_xform_and_perms(
         username, id_string, request)
     # no access
@@ -734,16 +747,26 @@ def instance(request, username, id_string):
         return HttpResponseForbidden(_(u'Not shared.'))
 
     context = RequestContext(request)
+    context.noteform = NoteForm()
 
-    audit = {
-        "xform": xform.id_string,
-    }
-    audit_log(
-        Actions.FORM_DATA_VIEWED, request.user, xform.user,
-        _("Requested instance view for '%(id_string)s'.") %
-        {
-            'id_string': xform.id_string,
-        }, audit, request)
+    if request.method == 'POST':
+        form = NoteForm(request.POST)
+        if form.is_valid():
+            pk = form.save()
+            return redirect('%s#/%s' % (request.path, pk))
+        else:
+            context.messages = form.errors
+
+    else:
+        audit = {
+            "xform": xform.id_string,
+        }
+        audit_log(
+            Actions.FORM_DATA_VIEWED, request.user, xform.user,
+            _("Requested instance view for '%(id_string)s'.") %
+            {
+                'id_string': xform.id_string,
+            }, audit, request)
     return render_to_response('instance.html', {
         'username': username,
         'id_string': id_string,
