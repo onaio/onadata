@@ -1,20 +1,22 @@
 #!/usr/bin/env python
 # vim: ai ts=4 sts=4 et sw=4 encoding=utf-8
 
-from odk_logger.models import Instance, XForm
+from odk_logger.models import Instance
 from odk_viewer.models import ParsedInstance, Registration
 from nga_districts import models as nga_models
 from surveyor_manager.models import Surveyor
 
 from django.contrib.auth.models import User
-from django.conf import settings
 from django.utils.translation import ugettext as _
 
-import time, math
+import math
+import time
+
 
 def get_counts():
-    cols = ['instances', 'parsed_instances', 'mongo_instances', \
-            'districts_assigned', 'districts_total', 'registrations', 'surveyors', 'users']
+    cols = ['instances', 'parsed_instances', 'mongo_instances',
+            'districts_assigned', 'districts_total', 'registrations',
+            'surveyors', 'users']
     counts = {
         'instances': Instance.objects.count(),
         'parsed_instances': ParsedInstance.objects.count(),
@@ -26,16 +28,17 @@ def get_counts():
     }
     return (cols, counts, time.clock())
 
+
 def reparse_all(*args, **kwargs):
     debug = kwargs.get('debug', False)
-    
+
     if debug:
         print _("[Reparsing XForm Instances]\n")
         sim_reset = kwargs.get('reset', False)
         if sim_reset:
             print " --> %s" % reset_values.__doc__.strip()
             reset_values()
-        
+
         cols, counts_1, start_time = get_counts()
 
     # Delete all parsed instances.
@@ -46,10 +49,10 @@ def reparse_all(*args, **kwargs):
             ParsedInstance.objects.create(instance=i)
         except Exception as e:
             print e
-    
+
     if debug:
         cols, counts_2, end_time = get_counts()
-        print (_("That process took [%(nb)d ticks]") 
+        print (_("That process took [%(nb)d ticks]")
                % {'nb': math.floor(1000 * (end_time-start_time))})
         display_counts_as_table(cols, [counts_1, counts_2])
 
@@ -63,7 +66,7 @@ def display_counts_as_table(cols, list_of_dicts):
         breaker.append("--------------------")
         for i in range(0, len(list_of_dicts)):
             strs[i].append(" %-18d " % list_of_dicts[i][c])
-    
+
     print '|'.join(col_heads)
     print '-'.join(breaker)
     for starr in strs:
@@ -72,21 +75,23 @@ def display_counts_as_table(cols, list_of_dicts):
 #        strs[1].append(" %-18d " % cts_1[c])
 #        strs[2].append(" %-18d " % cts_2[c])
 #        strs[3].append("--------------------")
-    
+
 #    print '|'.join(strs[0])
 #    print '-'.join(strs[3])
 #    print '|'.join(strs[1])
 #    print '|'.join(strs[2])
 #    print "\n"
-    
-    
+
+
 def reset_values():
     """
-    This function is meant to simulate what we want to acheive with i.delete(). Right now, it is resetting mongo_db, Deleting ParsedInstances, Deleting Surveyors.
+    This function is meant to simulate what we want to acheive with i.delete().
+    Right now, it is resetting mongo_db, Deleting ParsedInstances,
+    Deleting Surveyors.
     """
     for x in Instance.objects.all():
         pi = ParsedInstance.objects.filter(instance=x)
         if pi.count() > 0:
             x.parsed_instance.delete()
-    for s in Surveyor.objects.all(): s.delete()
-    return reset_stuff.__doc__.strip()
+    for s in Surveyor.objects.all():
+        s.delete()
