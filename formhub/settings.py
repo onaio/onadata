@@ -10,6 +10,8 @@
 # The local files should be used as the value for your DJANGO_SETTINGS_FILE
 # environment variable as needed.
 import os
+import subprocess  # nopep8, used by included files
+import sys  # nopep8, used by included files
 
 import logging
 
