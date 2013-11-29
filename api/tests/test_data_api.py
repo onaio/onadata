@@ -1,7 +1,7 @@
 from django.test import RequestFactory
 from main.tests.test_base import MainTestCase
 from odk_logger.models import Note
-from api.views import DataViewSet, XFormViewSet
+from api.views import DataViewSet, XFormViewSet, NoteViewSet
 
 
 class TestDataAPI(MainTestCase):
@@ -86,39 +86,31 @@ class TestDataAPI(MainTestCase):
 
     def test_add_notes_to_data_point(self):
         # add a note to a specific data point
-        view = DataViewSet.as_view({
-            'get': 'notes',
-            'post': 'notes',
-            'delete': 'notes'
+        view = NoteViewSet.as_view({
+            'get': 'retrieve',
+            'post': 'create',
+            'delete': 'destroy'
         })
         note = {'note': u"Road Warrior"}
-        note2 = {'note': u"Yet another road Warrior"}
         formid = self.xform.pk
+        dataid = self.xform.surveys.all()[0].pk
+        note['instance'] = dataid
         request = self.factory.post('/', data=note, **self.extra)
         self.assertTrue(self.xform.surveys.count())
-        dataid = self.xform.surveys.all()[0].pk
-        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        response = view(request)
         self.assertEqual(response.status_code, 201)
+        pk = response.data['id']
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        response = view(request, pk=pk)
         self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.data, [note['note']])
-        pk = Note.objects.all()[0].pk
+        self.assertDictContainsSubset(note, response.data)
         request = self.factory.delete('/', **self.extra)
-        response = view(request, owner='bob', formid=formid,
-                        dataid=dataid, noteid=pk)
-        self.assertEqual(response.status_code, 200)
+        response = view(request, pk=pk)
+        self.assertEqual(response.status_code, 204)
+        view = NoteViewSet.as_view({
+            'get': 'list',
+        })
         request = self.factory.get('/', **self.extra)
         response = view(request, owner='bob', formid=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.data, [])
-        request = self.factory.post('/', data=note, **self.extra)
-        response = view(request, owner='bob', formid=formid, dataid=dataid)
-        self.assertEqual(response.status_code, 201)
-        request = self.factory.post('/', data=note2, **self.extra)
-        response = view(request, owner='bob', formid=formid, dataid=dataid)
-        self.assertEqual(response.status_code, 201)
-        request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', formid=formid, dataid=dataid)
-        self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.data, [note['note'], note2['note']])
