@@ -235,7 +235,7 @@ SWAGGER_SETTINGS = {
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = (
-    'dev.formhub.org',
+    'dev.ona.io',
 )
 
 USE_THOUSAND_SEPARATOR = True
@@ -329,7 +329,7 @@ MONGO_DATABASE = {
     'PASSWORD': ''
 }
 
-GOOGLE_STEP2_URI = 'http://formhub.org/gwelcome'
+GOOGLE_STEP2_URI = 'http://ona.io/gwelcome'
 GOOGLE_CLIENT_ID = '617113120802.apps.googleusercontent.com'
 GOOGLE_CLIENT_SECRET = '9reM29qpGFPyI8TBuB54Z4fk'
 
