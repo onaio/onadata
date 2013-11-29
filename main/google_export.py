@@ -1,19 +1,12 @@
-import json
-import urllib
-import urllib2
-import gdata.gauth
 import gdata.client
 import gdata.docs.data
 import gdata.docs.client
+import gdata.gauth
+from gdata.spreadsheets import client
 
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
-from django.contrib.auth.decorators import login_required
-
-
-from gdata.spreadsheets import client
 
 from main.models import TokenStorageModel
 from main.views import home
