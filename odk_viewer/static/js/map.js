@@ -161,7 +161,7 @@
             // TODO: HACK
             var markerColor = this.markerColors.pop();
             options.markerStyle = options.markerStyle || {};
-            options.markerStyle.fillColor = markerColor;
+            options.markerStyle.color = markerColor;
             // TODO: End HACK
 
             return this.featureLayers.createFeatureLayer(
@@ -206,9 +206,9 @@
         // The default style to be applied to the marker, override by providing
         // a `markerStyle` object within options on initialization
         markerStyle: {
-            color: '#fff',
+            color: '#ff3300',
             border: 8,
-            fillColor: '#ff3300',
+            fillColor: '#fff',
             fillOpacity: 0.9,
             radius: 8,
             opacity: 0.5
@@ -314,16 +314,38 @@
             this.layerView = new FH.FeatureLayerView({featureLayer: this});
             this.layerView.on('fieldSelected', function (field) {
                 var groups,
-                    choices;
+                    choices,
+                    chromaScale;
                 if(!this.datavoreWrapper) {
                     throw new Error("The Datavore wrapper must have been initialised");
                 }
                 // Group by the selected field
                 groups = this.datavoreWrapper.countBy(field.id);
-                choices = _.map(groups, function (g) {
-                    return {title: g.key, count: g.value, color: '#ff0000'};
+                chromaScale = chroma.scale('Set3').domain([0, groups.length - 1]).out('hex');
+                choices = _.map(groups, function (g, idx) {
+                    return {id: g.key, title: g.key, count: g.value, color: chromaScale(idx)};
                 });
                 this.layerView.render(this, field.cid, choices);
+
+                // Update markers
+                this.featureGroup.eachLayer(function (layer) {
+                    // Get the value for this field for the submission in this layer
+                    var match,
+                        value = layer._fh_data.get(field.get('xpath'));
+
+                    // Find the match and thus the color within choices
+                    match = _.find(choices, function (choice) {
+                        return choice.id === value;
+                    });
+                    layer.setStyle({
+                        color: '#fff',
+                        border: 8,
+                        fillColor: match.color,
+                        fillOpacity: 0.9,
+                        radius: 8,
+                        opacity: 0.5
+                    });
+                });
             }, this);
         },
 
@@ -524,6 +546,55 @@
             this.$el.modal();
         }
     });
+
+    // COLORS MODULE
+    FH.Colors = (function() {
+        var colors = {};
+        var colorschemes = {proportional: {
+            // http://colorbrewer2.org/index.php?type=sequential
+            "Set1": ["#EFEDF5", "#DADAEB", "#BCBDDC", "#9E9AC8", "#807DBA", "#6A51A3", "#54278F", "#3F007D"],
+            "Set2": ["#DEEBF7", "#C6DBEF", "#9ECAE1", "#6BAED6", "#4292C6", "#2171B5", "#08519C", "#08306B"]
+        }};
+        var defaultColorScheme = "Set1";
+        function select_from_colors(type, colorscheme, zero_to_one_inclusive) {
+            var epsilon = 0.00001;
+            colorscheme = colorscheme || defaultColorScheme;
+            var colorsArr = colorschemes[type][colorscheme];
+            return colorsArr[Math.floor(zero_to_one_inclusive * (colorsArr.length - epsilon))];
+        }
+
+        // METHODS FOR EXPORT
+        colors.getNumProportional = function(colorscheme) {
+            colorscheme = colorscheme || defaultColorScheme;
+            return colorschemes.proportional[colorscheme].length;
+        };
+        colors.getProportional = function(zero_to_one, colorscheme) {
+            return select_from_colors('proportional', colorscheme, zero_to_one);
+        };
+
+        return colors;
+    }());
+
+    FH.Colors.GetRandomColor = function (step, numOfSteps) {
+        // This function generates vibrant, "evenly spaced" colours (i.e. no clustering). This is ideal for creating easily distiguishable vibrant markers in Google Maps and other apps.
+        // Adam Cole, 2011-Sept-14
+        // HSV to RBG adapted from: http://mjijackson.com/2008/02/rgb-to-hsl-and-rgb-to-hsv-color-model-conversion-algorithms-in-javascript
+        var r, g, b;
+        var h = step / numOfSteps;
+        var i = ~~(h * 6);
+        var f = h * 6 - i;
+        var q = 1 - f;
+        switch(i % 6){
+            case 0: r = 1, g = f, b = 0; break;
+            case 1: r = q, g = 1, b = 0; break;
+            case 2: r = 0, g = 1, b = f; break;
+            case 3: r = 0, g = q, b = 1; break;
+            case 4: r = f, g = 0, b = 1; break;
+            case 5: r = 1, g = 0, b = q; break;
+        }
+        var c = "#" + ("00" + (~ ~(r * 255)).toString(16)).slice(-2) + ("00" + (~ ~(g * 255)).toString(16)).slice(-2) + ("00" + (~ ~(b * 255)).toString(16)).slice(-2);
+        return (c);
+    };
 
     // Leaflet shortcuts for common tile providers - is it worth adding such 1.5kb to Leaflet core?
     // https://gist.github.com/mourner/1804938
