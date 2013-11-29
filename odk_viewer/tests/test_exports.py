@@ -1459,7 +1459,8 @@ class TestExportBuilder(MainTestCase):
                                 'children.info/ice_creams/strawberry',
                                 'children.info/ice_creams/chocolate', '_id',
                                 '_uuid', '_submission_time', '_index',
-                                '_parent_table_name', '_parent_index']
+                                '_parent_table_name', '_parent_index',
+                                u'_tags', '_notes']
             rows = [row for row in reader]
             actual_headers = [h.decode('utf-8') for h in rows[0]]
             self.assertEqual(sorted(actual_headers), sorted(expected_headers))
@@ -1783,7 +1784,7 @@ class TestExportBuilder(MainTestCase):
             u'geo/_geolocation_precision', u'tel/tel.office',
             u'tel/tel.mobile', u'_id', u'meta/instanceID', u'_uuid',
             u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name']
+            u'_parent_table_name', u'_tags', '_notes']
         column_headers = [c[0].value for c in main_sheet.columns]
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
@@ -1796,7 +1797,7 @@ class TestExportBuilder(MainTestCase):
             u'children/ice.creams/vanilla', u'children/ice.creams/strawberry',
             u'children/ice.creams/chocolate', u'_id', u'_uuid',
             u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name']
+            u'_parent_table_name', u'_tags', '_notes']
         column_headers = [c[0].value for c in childrens_sheet.columns]
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
@@ -1805,7 +1806,7 @@ class TestExportBuilder(MainTestCase):
         expected_column_headers = [
             u'children/cartoons/name', u'children/cartoons/why', u'_id',
             u'_uuid', u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name']
+            u'_parent_table_name', u'_tags', '_notes']
         column_headers = [c[0].value for c in cartoons_sheet.columns]
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
@@ -1815,7 +1816,7 @@ class TestExportBuilder(MainTestCase):
             u'children/cartoons/characters/name',
             u'children/cartoons/characters/good_or_evil', u'_id', u'_uuid',
             u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name']
+            u'_parent_table_name', u'_tags', '_notes']
         column_headers = [c[0].value for c in characters_sheet.columns]
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
@@ -1841,7 +1842,7 @@ class TestExportBuilder(MainTestCase):
             u'geo._geolocation_precision', u'tel.tel.office',
             u'tel.tel.mobile', u'_id', u'meta.instanceID', u'_uuid',
             u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name']
+            u'_parent_table_name', u'_tags', '_notes']
         column_headers = [c[0].value for c in main_sheet.columns]
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
