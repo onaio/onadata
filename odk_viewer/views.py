@@ -4,7 +4,6 @@ from datetime import datetime
 from tempfile import NamedTemporaryFile
 from time import strftime, strptime
 
-from django import forms
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -33,7 +32,7 @@ from utils.user_auth import has_permission, get_xform_and_perms,\
 from utils.google import google_export_xls, redirect_uri
 # TODO: using from main.views import api breaks the application, why?
 from odk_viewer.models import Export
-from odk_logger.models import Instance
+from odk_viewer.forms import NoteForm
 from utils.export_tools import generate_export, should_create_new_export
 from utils.export_tools import kml_export_data
 from utils.export_tools import newset_export_for
@@ -166,7 +165,8 @@ def add_submission_with(request, username, id_string):
     from dict2xml import dict2xml
 
     def geopoint_xpaths(username, id_string):
-        d = DataDictionary.objects.get(user__username=username, id_string=id_string)
+        d = DataDictionary.objects.get(
+            user__username=username, id_string=id_string)
         return [e.get_abbreviated_xpath()
                 for e in d.get_survey_elements()
                 if e.bind.get(u'type') == u'geopoint']
@@ -180,11 +180,12 @@ def add_submission_with(request, username, id_string):
     context = {'username': username,
                'id_string': id_string,
                'xml_content': dict2xml(xml_dict)}
-    instance_xml = loader.get_template("instance_add.xml").render(Context(context))
+    instance_xml = loader.get_template("instance_add.xml")\
+        .render(Context(context))
 
     url = settings.ENKETO_API_INSTANCE_IFRAME_URL
-    return_url = reverse('thank_you_submission', kwargs={"username": username,
-                                                         "id_string": id_string})
+    return_url = reverse('thank_you_submission',
+                         kwargs={"username": username, "id_string": id_string})
     if settings.DEBUG:
         openrosa_url = "https://dev.formhub.org/{}".format(username)
     else:
@@ -272,7 +273,7 @@ def data_export(request, username, id_string, export_type):
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
     if should_create_new_export(xform, export_type) or query or\
-                    'start' in request.GET or 'end' in request.GET:
+            'start' in request.GET or 'end' in request.GET:
         format_date_for_mongo = lambda x, datetime: datetime.strptime(
             x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
         # check for start and end params
@@ -728,17 +729,6 @@ def attachment_url(request, size='medium'):
 
 
 def instance(request, username, id_string):
-    class NoteForm(forms.Form):
-        note = forms.CharField(min_length=1)
-        instance_id = forms.IntegerField(widget=forms.HiddenInput())
-
-        def save(self):
-            data = self.cleaned_data
-            instance = get_object_or_404(Instance, pk=data['instance_id'])
-            instance.parsed_instance.add_note(data['note'])
-            instance.parsed_instance.save()
-            return data['instance_id']
-
     xform, is_owner, can_edit, can_view = get_xform_and_perms(
         username, id_string, request)
     # no access
