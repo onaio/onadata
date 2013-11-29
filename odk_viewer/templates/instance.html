@@ -19,10 +19,10 @@
 {% endif %}
 <div id="data"></div>
 
-<div id="notes">
+<div id="notes" style="display: none">
     <div id='notes-section'>
     </div>
-    <form action="{% url "odk_viewer.views.instance" username id_string %}" method="post" name="notesform">
+    <form action="{% url "odk_viewer.views.instance" username id_string %}" method="post" name="notesform" id="notesform">
         {% csrf_token %}
         <input type="hidden" value="" name="instance_id" id="instance_id" />
         Add a note:
@@ -337,7 +337,7 @@ function reDraw(context, data)
             }
         });
 
-        console.log(data['_notes']);
+        $("#notes").show();
         var notes = data['_notes'], notesHTML = '<ul>';
         if(notes.length > 0){
             for(note in notes){
@@ -355,6 +355,7 @@ function reDraw(context, data)
         $('#data').empty();
         $('#data').html("<h3>{% trans 'The requested content was not found.' %}<h3>");
         $('#notes-section').empty();
+        $("#notes").hide();
     }
 }
 
@@ -466,6 +467,25 @@ function parseLanguages(children)
     	languages.push('en');
     }
 }
+
+$(document).ready(function(){
+    $('#notesform').submit(function(event){
+        event.preventDefault();
+        var instance_id = $("#instance_id").val(),
+            note = $("#note").val().trim();
+        if (note == ""){
+            return false;
+        }
+        var notes_url = '/api/v1/data/{{username}}/{{id_string}}/' + instance_id + '/notes';
+        $.post(notes_url, {'note': note}).done(function(data){
+                if(data.status && data.status == 'success'){
+                    $("#notes-section ul").append("<li>" + data.note + "</li>");
+                }
+                $("#notesform")[0].reset();
+        }).fail(function(data){console.log(data);})
+        return false;
+    });
+});
 </script>
 
 

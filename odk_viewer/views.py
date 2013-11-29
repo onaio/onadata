@@ -32,7 +32,6 @@ from utils.user_auth import has_permission, get_xform_and_perms,\
 from utils.google import google_export_xls, redirect_uri
 # TODO: using from main.views import api breaks the application, why?
 from odk_viewer.models import Export
-from odk_viewer.forms import NoteForm
 from utils.export_tools import generate_export, should_create_new_export
 from utils.export_tools import kml_export_data
 from utils.export_tools import newset_export_for
@@ -737,26 +736,15 @@ def instance(request, username, id_string):
         return HttpResponseForbidden(_(u'Not shared.'))
 
     context = RequestContext(request)
-    context.noteform = NoteForm()
-
-    if request.method == 'POST':
-        form = NoteForm(request.POST)
-        if form.is_valid():
-            pk = form.save()
-            return redirect('%s#/%s' % (request.path, pk))
-        else:
-            context.messages = form.errors
-
-    else:
-        audit = {
-            "xform": xform.id_string,
-        }
-        audit_log(
-            Actions.FORM_DATA_VIEWED, request.user, xform.user,
-            _("Requested instance view for '%(id_string)s'.") %
-            {
-                'id_string': xform.id_string,
-            }, audit, request)
+    audit = {
+        "xform": xform.id_string,
+    }
+    audit_log(
+        Actions.FORM_DATA_VIEWED, request.user, xform.user,
+        _("Requested instance view for '%(id_string)s'.") %
+        {
+            'id_string': xform.id_string,
+        }, audit, request)
     return render_to_response('instance.html', {
         'username': username,
         'id_string': id_string,
