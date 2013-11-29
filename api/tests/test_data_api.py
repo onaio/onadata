@@ -89,10 +89,8 @@ class TestDataAPI(MainTestCase):
         view = NoteViewSet.as_view({
             'get': 'retrieve',
             'post': 'create',
-            'delete': 'destroy'
         })
         note = {'note': u"Road Warrior"}
-        formid = self.xform.pk
         dataid = self.xform.surveys.all()[0].pk
         note['instance'] = dataid
         request = self.factory.post('/', data=note, **self.extra)
@@ -104,13 +102,21 @@ class TestDataAPI(MainTestCase):
         response = view(request, pk=pk)
         self.assertEqual(response.status_code, 200)
         self.assertDictContainsSubset(note, response.data)
+        view = NoteViewSet.as_view({
+            'get': 'list',
+            'delete': 'destroy'
+        })
+        user = self._create_user('deno', 'deno')
+        extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % user.auth_token}
+        request = self.factory.get('/', **extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.data, [])
         request = self.factory.delete('/', **self.extra)
         response = view(request, pk=pk)
         self.assertEqual(response.status_code, 204)
-        view = NoteViewSet.as_view({
-            'get': 'list',
-        })
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.data, [])

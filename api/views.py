@@ -1221,6 +1221,9 @@ A `GET` request will return the list of notes applied to a data point.
     permission_classes = [permissions.DjangoModelPermissions,
                           permissions.IsAuthenticated, ]
 
+    def get_queryset(self):
+        return Note.objects.filter(instance__xform__user=self.request.user)
+
 
 class StatsViewSet(viewsets.ViewSet):
     """
