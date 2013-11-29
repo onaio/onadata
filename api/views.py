@@ -31,6 +31,7 @@ from odk_logger.models import XForm, Instance
 from odk_viewer.models import ParsedInstance
 
 from api.models import Project, OrganizationProfile, ProjectXForm, Team
+from api.forms import NoteForm
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1200,8 +1201,6 @@ A `GET` request will return the list of notes applied to a data point.
     @action(methods=['GET', 'POST', 'DELETE'],
             extra_lookup_fields=['noteid', ])
     def notes(self, request, owner, formid, dataid, **kwargs):
-        class NoteForm(forms.Form):
-            note = forms.CharField()
         if owner is None and not request.user.is_anonymous():
             owner = request.user.username
         xform = None
@@ -1220,10 +1219,10 @@ A `GET` request will return the list of notes applied to a data point.
         if request.method == 'POST':
             form = NoteForm(request.DATA)
             if form.is_valid():
-                note = form.cleaned_data.get('note', None)
-                instance.add_note(note)
+                form.save(instance)
+                note = form.cleaned_data.get('note')
                 status = 201
-                data = [note]
+                data = {'status': 'success', 'note': note}
             else:
                 raise exceptions.ParseError(detail=form.errors)
         elif request.method == 'GET':
