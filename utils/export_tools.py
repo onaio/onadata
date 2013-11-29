@@ -108,7 +108,7 @@ def dict_to_joined_export(data, index, indices, name):
     # TODO: test for _geolocation and attachment lists
     if isinstance(data, dict):
         for key, val in data.iteritems():
-            if isinstance(val, list):
+            if isinstance(val, list) and key not in [NOTES, TAGS]:
                 output[key] = []
                 for child in val:
                     if key not in indices:
@@ -132,7 +132,12 @@ def dict_to_joined_export(data, index, indices, name):
             else:
                 if name not in output:
                     output[name] = {}
-                output[name][key] = val
+                if key in [TAGS]:
+                    output[name][key] = ",".join(val)
+                elif key in [NOTES]:
+                    output[name][key] = "\r\n".join(val)
+                else:
+                    output[name][key] = val
     return output
 
 
