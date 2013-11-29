@@ -1,5 +1,3 @@
-from odk_logger.xform_instance_parser import XFORM_ID_STRING
-
 # WE SHOULD PUT MORE STRUCTURE ON THESE TAGS SO WE CAN ACCESS DOCUMENT
 # FIELDS ELEGANTLY
 
@@ -9,7 +7,6 @@ ID = u"_id"
 UUID = u"_uuid"
 PICTURE = u"picture"
 GPS = u"location/gps"
-LGA = u"lga"
 SURVEY_TYPE = u'_survey_type_slug'
 
 # Phone IMEI:

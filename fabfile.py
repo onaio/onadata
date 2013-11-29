@@ -1,7 +1,7 @@
-import os, sys
+import os
+import sys
 
 from fabric.api import env, run, cd
-from fabric.decorators import hosts
 
 
 DEFAULTS = {
@@ -12,9 +12,10 @@ DEFAULTS = {
 DEPLOYMENTS = {
     'dev': {
         'home': '/home/ubuntu/src/',
-        'host_string': 'ubuntu@23.21.82.214', # TODO: switch to dev.formhub.org
-        'project': 'formhub-ec2',
+        'host_string': 'ubuntu@dev.ona.io',
+        'project': 'ona',
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
+        'virtualenv': '/home/ubuntu/.virtualenvs/ona'
     },
     'prod': {
         'home': '/home/ubuntu/src/',
@@ -65,9 +66,13 @@ def deploy(deployment_name, branch='master'):
     run_in_virtualenv("pip install numpy")
     run_in_virtualenv("pip install -r %s" % env.pip_requirements_file)
     with cd(env.code_src):
-        run_in_virtualenv("python manage.py syncdb --settings=formhub.local_settings")
-        run_in_virtualenv("python manage.py migrate --settings=formhub.local_settings")
-        run_in_virtualenv("python manage.py collectstatic --settings=formhub.local_settings --noinput")
+        run_in_virtualenv(
+            "python manage.py syncdb --settings=formhub.local_settings")
+        run_in_virtualenv(
+            "python manage.py migrate --settings=formhub.local_settings")
+        run_in_virtualenv(
+            "python manage.py collectstatic --settings=formhub.local_settings "
+            "--noinput")
     run("sudo /etc/init.d/celeryd-ona restart")
     #run("sudo /etc/init.d/celerybeat-ona restart")
     run("sudo /usr/local/bin/uwsgi --reload /var/run/ona.pid")

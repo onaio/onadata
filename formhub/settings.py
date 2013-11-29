@@ -1,24 +1,26 @@
 # vim: set fileencoding=utf-8
-# this system uses structured settings as defined in http://www.slideshare.net/jacobian/the-best-and-worst-of-django
+# this system uses structured settings as defined in
+# http://www.slideshare.net/jacobian/the-best-and-worst-of-django
 #
-# this is the base settings.py -- which contains settings common to all implementations of formhub: edit it at last resort
+# this is the base settings.py -- which contains settings common to all
+# implementations of ona: edit it at last resort
 #
-# local customizations should be done in several files each of which in turn imports this one.
-# The local files should be used as the value for your DJANGO_SETTINGS_FILE environment variable as needed.
-# For example, the bin/postactivate file in your virtual environment might look like:
+# local customizations should be done in several files each of which in turn
+# imports this one.
+# The local files should be used as the value for your DJANGO_SETTINGS_FILE
+# environment variable as needed.
 import os
-import subprocess
-import sys
+import subprocess  # nopep8, used by included files
+import sys  # nopep8, used by included files
 
 import logging
 
 from django.utils.log import AdminEmailHandler
 from celery.signals import after_setup_logger
-
 from pymongo import MongoClient
-
-
 import djcelery
+
+
 djcelery.setup_loader()
 
 CURRENT_FILE = os.path.abspath(__file__)
@@ -236,7 +238,7 @@ SWAGGER_SETTINGS = {
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = (
-    'dev.formhub.org',
+    'dev.ona.io',
 )
 
 USE_THOUSAND_SEPARATOR = True
@@ -330,7 +332,7 @@ MONGO_DATABASE = {
     'PASSWORD': ''
 }
 
-GOOGLE_STEP2_URI = 'http://formhub.org/gwelcome'
+GOOGLE_STEP2_URI = 'http://ona.io/gwelcome'
 GOOGLE_CLIENT_ID = '617113120802.apps.googleusercontent.com'
 GOOGLE_CLIENT_SECRET = '9reM29qpGFPyI8TBuB54Z4fk'
 
@@ -371,8 +373,10 @@ RECAPTCHA_USE_SSL = False
 RECAPTCHA_PRIVATE_KEY = ''
 RECAPTCHA_PUBLIC_KEY = '6Ld52OMSAAAAAJJ4W-0TFDTgbznnWWFf0XuOSaB6'
 
-try:  # legacy setting for old sites who still use a local_settings.py file and have not updated to presets/
-    from local_settings import *
+# legacy setting for old sites who still use a local_settings.py file and have
+# not updated to presets/
+try:
+    from local_settings import *  # nopep8
 except ImportError:
     pass
 

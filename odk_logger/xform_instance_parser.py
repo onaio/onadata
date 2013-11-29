@@ -4,7 +4,7 @@ from xml.dom import minidom, Node
 from django.utils.encoding import smart_unicode, smart_str
 from django.utils.translation import ugettext as _
 
-XFORM_ID_STRING = u"_xform_id_string"
+from common_tags import XFORM_ID_STRING
 
 
 class XLSFormError(Exception):
@@ -71,7 +71,7 @@ def get_meta_from_xml(xml_str, meta_name):
     uuid_tags = [n for n in meta_tag.childNodes if
                  n.nodeType == Node.ELEMENT_NODE and
                  (n.tagName.lower() == meta_name.lower() or
-                 n.tagName.lower() == u'orx:%s' % meta_name.lower())]
+                  n.tagName.lower() == u'orx:%s' % meta_name.lower())]
     if len(uuid_tags) == 0:
         return None
 
