@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block additional-headers %}
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+
+<link rel="stylesheet" href="/static/bower_components/leaflet-dist/leaflet.css" />
+<link rel="stylesheet" href="/static/css/leaflet.draw.css?v=0.2.0-dev" />
+<link rel="stylesheet" href="/static/css/map.css" />
+<!--[if lte IE 8]>
+    <link rel="stylesheet" href="/static/bower_components/leaflet-dist/leaflet.ie.css" />
+    <link rel="stylesheet" href="/static/css/leaflet.draw.ie.css?v=0.2.0-dev" />
+<![endif]-->
+<script type="text/javascript" src="/static/bower_components/underscore/underscore-min.js"></script>
+<script type="text/javascript" src="/static/bower_components/backbone/backbone-min.js"></script>
+<script type="text/javascript" src="/static/js/json2.js"></script>
+<script type="text/javascript" src="/static/js/dv.js"></script>
+<script type="text/javascript" src="/static/js/d3.js"></script>
+<script type="text/javascript" src="/static/js/hex.js"></script>
+<script type="text/javascript" src="/static/js/d3.hexbin.js"></script>
+<script type="text/javascript" src="/static/js/chroma.min.js"></script>
+<script type="text/javascript" src="/static/bower_components/leaflet-dist/leaflet-src.js"></script>
+<script type="text/javascript" src="/static/js/leaflet.draw.js?v=0.2.0-dev"></script>
+<script type="text/javascript" src="/static/js/mapbox.standalone.js?v=1.1.0"></script>
+<script type="text/javascript" src="/static/js/custom-button-leaflet.js"></script>
+<script src="https://maps.google.com/maps/api/js?v=3.2&sensor=false"></script>
+<script type="text/javascript" src="/static/js/Google.js"></script>
+<script type="text/javascript" src="/static/js/wax.leaf.min.js?v=6.4.0"></script>
+<script type="text/javascript" src="/static/js/TileLayer.Bing.js"></script>
+    <style type="text/css">
+    .feature-layers-container {
+        position: relative;
+        bottom: 10px;
+        overflow: auto;
+        min-height: 300px;
+    }
+
+    .feature-layer {
+        background-color: #ffffff;
+        margin-bottom: 4px;
+        padding: 4px;
+    }
+    </style>
+{% endblock %}
+
+{% block body %}
+<body>
+  {% include "topbar.html" %}
+
+  <div id="progress-modal" class="modal hide fade" data-backdrop="static">
+      <div class="progress progress-info progress-striped">
+          <div class="bar" style="width: 1%"></div>
+      </div>
+  </div>
+  <div id="map_canvas"></div>
+  <div id="enketo-modal" class="modal hide enketo-modal">
+      <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal"
+                  aria-hidden="true">&times;</button>
+          <h3>&nbsp;</h3>
+      </div>
+      <div class="inner-modal">
+          <p>One fine body…</p>
+      </div>
+  </div>
+  <div id="delete-modal" class="modal hide fade">
+      <div class="modal-header">
+          <a data-dismiss="modal" class="close">&times;</a>
+
+          <h3>{% trans "Delete Confirmation" %}</h3>
+      </div>
+      <div class="modal-body">
+          <p>{% trans "Are you sure you want to delete this record. If you are unsure about deleting this record press 'Cancel'." %}</p>
+      </div>
+      <div class="modal-footer">
+          <a href="#" onclick="deleteData();"
+             class="btn btn-primary">{% trans "Delete" %}</a>
+          <a href="#" onclick="$('#delete-modal').modal('hide');"
+             class="btn secondary">{% trans "Cancel" %}</a>
+      </div>
+  </div>
+<script src="/static/js/xform.js?ts=201310231330" type="text/javascript"></script>
+<script src="/static/js/map.js?ts=201310221330" type="text/javascript"></script>
+{% if mapbox_layer %}
+<script type="text/javascript">
+	var customMapBoxTileLayer = {label: '{{mapbox_layer.map_name}}', url: '{{mapbox_layer.link}}', attribution: '{{mapbox_layer.attribution}}'};
+</script>
+{% endif %}
+<script type="text/javascript">
+	var center = {{ center|safe }};
+    var default_zoom = 13;
+	var formJSONUrl = "{{ jsonform_url }}";
+	var enketoAddUrl = "{{ enketo_add_url }}";
+	var enketoEditUrl = "{{ enketo_edit_url }}";
+	enketoEditUrl = enketoEditUrl.slice(0, enketoEditUrl.length - 1);
+	var mongoAPIUrl = "{{ mongo_api_url }}";
+	var deleteAPIUrl = "{{ delete_data_url }}";
+    var language_code = "{{LANGUAGE_CODE}}";
+	var attachmentsBaseUrl = "{% url "odk_viewer.views.attachment_url" %}";
+
+	function setMapHeight(){
+        var newHeight = $(window).height() - $('.navbar-inner').height();
+        $('#map_canvas').height(newHeight);
+	}
+
+    $(document).ready(setMapHeight);
+	$(window).resize(setMapHeight);
+
+    (function(){
+        var fhMap,
+            osmAttribution = gettext(" Map data (c) OpenStreetMap contributors, CC-BY-SA");
+
+        var layer_configs = [
+            {type: FH.layers.MAPBOX, label: gettext('Mapbox Streets'), options: {user: 'modilabs', map: 'map-iuetkf9u', attribution: osmAttribution}},
+            {type: FH.layers.MAPBOX, label: gettext('MapBox Streets Light'), options: {user: 'modilabs', map: 'map-p543gvbh', attribution: osmAttribution}},
+            {type: FH.layers.MAPBOX, label: gettext('MapBox Streets Zenburn'), options: {user: 'modilabs', map: 'map-bjhr55gf', attribution: osmAttribution}},
+            {type: FH.layers.MAPBOX, label: gettext('Cloudless Earth'), options: {user: 'modilabs', map: 'map-aef58tqo', attribution: osmAttribution}},
+            {type: FH.layers.MAPBOX, label: gettext("Mapbox Streets (Français)"), options: {user: 'modilabs', map: 'map-vdpjhtgz', attribution: osmAttribution}, lang: 'fr'},
+            {type: FH.layers.MAPBOX, label: gettext("Mapbox Streets (Español)"), options: {user: 'modilabs', map: 'map-5gjzjlah', attribution: osmAttribution}, lang: 'es'},
+            {type: FH.layers.GOOGLE, label: gettext("Google Satellite Map"), options: {type: 'HYBRID'}}
+        ];
+
+        // check for a user defined map
+        if (typeof customMapBoxTileLayer !== "undefined" && customMapBoxTileLayer) {
+            layer_configs.push({
+                label: customMapBoxTileLayer.label,
+                options: {
+                    url: customMapBoxTileLayer.url,
+                    attribution: customMapBoxTileLayer.attribution
+                },
+                is_custom: true
+            });
+        }
+
+        this.fhMap = fhMap = new FH.Map({
+            el: $('#map_canvas'),
+            zoom: default_zoom,
+            center: [center.lat, center.lng],
+            layers: layer_configs
+        });
+
+        fhMap.addFeatureLayer(formJSONUrl, mongoAPIUrl);
+    }).call(this);
+</script>
+</body>
+{% endblock %}
