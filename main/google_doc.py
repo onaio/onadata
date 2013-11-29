@@ -108,7 +108,8 @@ class GoogleDoc(object):
         Here is an example of what a section header looks like in the
         html of a Google Document:
 
-        <h3 class="c1"><a name="h.699ffpepx6zs"></a><span>Hello World</span></h3>
+        <h3 class="c1"><a name="h.699ffpepx6zs"></a><span>Hello World
+        </span></h3>
 
         We split the content of the Google Document up using a regular
         expression that matches the above header. re.split is a pretty
@@ -185,11 +186,10 @@ class GoogleDoc(object):
         Render the navigation html as a Twitter Bootstrap section.
         """
         return render_to_string('section.html', {
-                'level': 1,
-                'id': 'contents',
-                'title': 'Contents',
-                'content': self._navigation_list(),
-                })
+            'level': 1,
+            'id': 'contents',
+            'title': 'Contents',
+            'content': self._navigation_list()})
 
     def to_html(self):
         """
@@ -197,6 +197,5 @@ class GoogleDoc(object):
         Document.
         """
         return render_to_string('google_doc.html', {
-                'nav': self._navigation_html(),
-                'content': '\n'.join([s.to_html() for s in self._sections]),
-                })
+            'nav': self._navigation_html(),
+            'content': '\n'.join([s.to_html() for s in self._sections])})
