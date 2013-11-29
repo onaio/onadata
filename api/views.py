@@ -27,7 +27,7 @@ from utils.user_auth import check_and_set_form_by_id, \
     check_and_set_form_by_id_string
 from main.models import UserProfile
 
-from odk_logger.models import XForm, Instance
+from odk_logger.models import XForm, Instance, Note
 from odk_viewer.models import ParsedInstance
 
 from api.models import Project, OrganizationProfile, ProjectXForm, Team
@@ -1033,35 +1033,6 @@ Payload
   >
   >        HTTP 200 OK
 
-## Add Notes to a submission
-
-A `POST` payload of parameter `note` with the note string to add to a data point.
-
- <pre class="prettyprint">
-  <b>POST</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>{dataid}</code>/notes</pre>
-
-Payload
-
-    {"note": "This is a note."}
-
-  > Response
-  >
-  >        HTTP 201 OK
-
-# Get List of notes for a data point
-
-A `GET` request will return the list of notes applied to a data point.
-
- <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>{dataid}</code>/notes</pre>
-
-
-  > Response
-  >
-  >        ["This is a note."]
-  >
-  >        HTTP 200 OK
-
     """
     permission_classes = [permissions.IsAuthenticated, ]
     lookup_field = 'owner'
@@ -1198,40 +1169,57 @@ A `GET` request will return the list of notes applied to a data point.
             status = 200
         return Response(data, status=status)
 
-    @action(methods=['GET', 'POST', 'DELETE'],
-            extra_lookup_fields=['noteid', ])
-    def notes(self, request, owner, formid, dataid, **kwargs):
-        if owner is None and not request.user.is_anonymous():
-            owner = request.user.username
-        xform = None
-        try:
-            xform = check_and_set_form_by_id(int(formid), request)
-        except ValueError:
-            xform = check_and_set_form_by_id_string(formid, request)
-        if not xform:
-            raise exceptions.PermissionDenied(
-                _("You do not have permission to "
-                    "view data from this form."))
-        status = 400
-        instance = get_object_or_404(ParsedInstance, instance__pk=int(dataid))
-        data = None
-        noteid = kwargs.get('noteid')
-        if request.method == 'POST':
-            form = NoteForm(request.DATA)
-            if form.is_valid():
-                form.save(instance)
-                note = form.cleaned_data.get('note')
-                status = 201
-                data = {'status': 'success', 'note': note}
-            else:
-                raise exceptions.ParseError(detail=form.errors)
-        elif request.method == 'GET':
-            status = 200
-            data = instance.get_notes()
-        elif request.method == 'DELETE' and noteid:
-            instance.remove_note(noteid)
-            status = 200
-        return Response(data, status=status)
+
+class NoteViewSet(viewsets.ModelViewSet):
+    """## Add Notes to a submission
+
+A `POST` payload of parameters:
+
+    `note` - the note string to add to a data point
+    `instance` - the data point id
+
+ <pre class="prettyprint">
+  <b>POST</b> /api/v1/notes</pre>
+
+Payload
+
+    {"instance": 1, "note": "This is a note."}
+
+  > Response
+  >
+  >     {
+  >          "id": 1,
+  >          "instance": 1,
+  >          "note": "This is a note."
+  >          ...
+  >     }
+  >
+  >     HTTP 201 OK
+
+# Get List of notes for a data point
+
+A `GET` request will return the list of notes applied to a data point.
+
+ <pre class="prettyprint">
+  <b>GET</b> /api/v1/notes</pre>
+
+
+  > Response
+  >
+  >     [{
+  >          "id": 1,
+  >          "instance": 1,
+  >          "note": "This is a note."
+  >          ...
+  >     }, ...]
+  >
+  >
+  >        HTTP 200 OK
+"""
+    queryset = Note.objects.all()
+    serializer_class = api_serializers.NoteSerializer
+    permission_classes = [permissions.DjangoModelPermissions,
+                          permissions.IsAuthenticated, ]
 
 
 class StatsViewSet(viewsets.ViewSet):
