@@ -1,4 +1,4 @@
-describe("FH.Datavore", function () {
+describe("FH.DatavoreWrapper", function () {
     var fieldSet = new FH.FieldSet([
         {name: 'food_type', type: 'select one', label: 'Type of Food', xpath: 'good_eats/food_type', children: [
             {name: 'breakfast', label: 'Breakfast'}, {name: 'lunch', label: 'Lunch'}, {name: 'dinner', label: 'Dinner'}
@@ -20,34 +20,34 @@ describe("FH.Datavore", function () {
         {_id: 115, 'good_eats/food_type': 'breakfast', 'good_eats/risk_factor': 'high',   'good_eats/rating': 2}
     ], {url: '/user/forms/test/form.json'});
 
-    describe("FH.Datavore.fhToDatavoreTypes", function () {
+    describe("FH.DatavoreWrapper.fhToDatavoreTypes", function () {
         it("returns nominal for select one", function () {
-            var dvType = FH.Datavore.fhToDatavoreType("select one");
+            var dvType = FH.DatavoreWrapper.fhToDatavoreType("select one");
             expect(dvType).toEqual(dv.type.nominal);
         });
 
         it("returns numeric for integers", function () {
-            var dvType = FH.Datavore.fhToDatavoreType("integer");
+            var dvType = FH.DatavoreWrapper.fhToDatavoreType("integer");
             expect(dvType).toEqual(dv.type.numeric);
         });
 
         it("returns numeric for decimal", function () {
-            var dvType = FH.Datavore.fhToDatavoreType("decimal");
+            var dvType = FH.DatavoreWrapper.fhToDatavoreType("decimal");
             expect(dvType).toEqual(dv.type.numeric);
         });
 
         it("returns unknown for text", function () {
-            var dvType = FH.Datavore.fhToDatavoreType("text");
+            var dvType = FH.DatavoreWrapper.fhToDatavoreType("text");
             expect(dvType).toEqual(dv.type.unknown);
         });
 
         it("returns unknown for geopoint", function () {
-            var dvType = FH.Datavore.fhToDatavoreType("geopoint");
+            var dvType = FH.DatavoreWrapper.fhToDatavoreType("geopoint");
             expect(dvType).toEqual(dv.type.unknown);
         });
 
         it("returns unknown for gps", function () {
-            var dvType = FH.Datavore.fhToDatavoreType("gps");
+            var dvType = FH.DatavoreWrapper.fhToDatavoreType("gps");
             expect(dvType).toEqual(dv.type.unknown);
         });
     });
@@ -56,7 +56,7 @@ describe("FH.Datavore", function () {
         var fhDatavore;
 
         beforeEach(function () {
-            fhDatavore = new FH.Datavore({'fieldSet': fieldSet, dataSet: dataSet});
+            fhDatavore = new FH.DatavoreWrapper({'fieldSet': fieldSet, dataSet: dataSet});
         });
 
         it("initialises a datavore table on creation", function () {
@@ -111,12 +111,14 @@ describe("FH.Datavore", function () {
             describe("countBy", function () {
                 it("aggregates the data using the defined field and returns a mapping of field name's to count", function () {
                     var result = fhDatavore.countBy('good_eats/food_type'),
-                        expectedResult = {
-                            'breakfast': 3,
-                            'lunch': 3,
-                            'dinner': 1
-                        };
-                    expect(result).toEqual(expectedResult);
+                        expectedResult = [
+                            {key: 'breakfast', value: 3},
+                            {key: 'lunch', value: 3},
+                            {key: 'dinner', value: 1}
+                        ];
+                    expect(result).toContain(expectedResult[0]);
+                    expect(result).toContain(expectedResult[1]);
+                    expect(result).toContain(expectedResult[2]);
                 });
             });
         });

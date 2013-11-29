@@ -214,6 +214,9 @@
             opacity: 0.5
         },
 
+        // FH Datavore wrapper
+        datavoreWrapper: void 0,
+
         initialize: function (attributes, options) {
             var form,
                 data,
@@ -248,9 +251,6 @@
 
             // Initialize the `DataView`
             this.dataView = new FH.DataView();
-
-            // Create our layer's view
-            this.layerView = new FH.FeatureLayerView({featureLayer: this});
 
             // Initialize the form and geo data
             this.form = form = new FH.Form({}, {url: this.get('form_url')});
@@ -287,15 +287,44 @@
                     // TODO: For now we are grabbing the the first geo question. In future we might expand this to allow the user to specify the question to map
                     .slice(0, 1)
                     .map(function (q) {
-                        return q.get(FH.constants.NAME);
+                        return q.get(FH.constants.XPATH);
                     });
 
                 _that.data = data = new FH.DataSet([], {url: _that.get('data_url')});
-                data.load({fields: gpsQuestions});
                 data.on('load', function () {
                     _that.createMarkers(gpsQuestions[0]);
+
+                    // Disable this callback - infinite loop bad
+                    data.off('load');
+
+                    // load the rest of the data
+                    data.on('load', function(){
+                        // TODO: Enable the view for this feature layer here
+
+                        // Initilaise the Dtavore wrapper
+                        _that.datavoreWrapper = new FH.DatavoreWrapper(
+                            {fieldSet: form.fields, dataSet: data});
+                    });
+                    data.load();
                 });
+                data.load({fields: gpsQuestions});
             });
+
+            // Create our layer's view
+            this.layerView = new FH.FeatureLayerView({featureLayer: this});
+            this.layerView.on('fieldSelected', function (field) {
+                var groups,
+                    choices;
+                if(!this.datavoreWrapper) {
+                    throw new Error("The Datavore wrapper must have been initialised");
+                }
+                // Group by the selected field
+                groups = this.datavoreWrapper.countBy(field.id);
+                choices = _.map(groups, function (g) {
+                    return {title: g.key, count: g.value, color: '#ff0000'};
+                });
+                this.layerView.render(this, field.cid, choices);
+            }, this);
         },
 
         createMarkers: function (gps_field) {
@@ -340,12 +369,29 @@
     FH.FeatureLayerView = Backbone.View.extend({
         className: 'feature-layer leaflet-control',
         template: _.template('<h3><%= layer.title %></h3>' +
-            '<select class="field-selector">' +
-              '<option value="">--None--</option>' +
-              '<% _.each(layer.fields, function(field){ %>' +
-                '<option value="<%= field.name %>"><%= field.label %></option>' +
-              '<% }); %>' +
-            '</select>'),
+            '<div>' +
+              '<select class="field-selector">' +
+                '<option value="">--None--</option>' +
+                '<% _.each(layer.fields, function(field){ %>' +
+                  '<option value="<%= field.cid %>" <% if(field.cid === layer.fieldCID){ %> selected="" <% } %>><%= field.label %></option>' +
+                '<% }); %>' +
+              '</select>' +
+            '</div>' +
+            '<% if(layer.fieldCID){ %>' +
+              '<div class="legend">' +
+                '<ul class="nav nav-pills nav-stacked">' +
+                  '<% _.each(layer.choices, function(choice){ %>' +
+                    '<li>' +
+                      '<a href="javascript:;" rel="">' +
+                        '<span class="legend-bullet" style="background-color: <%= choice.color %>;"></span>' +
+                        '<span class="legend-response-count"><%= choice.count %></span>' +
+                        '<span class="item-label language"><%= choice.title || "Not Specified" %></span>' +
+                      '</a>' +
+                    '</li>' +
+                  '<% }); %>' +
+                '</ul' +
+              '</div>' +
+            '<% } %>'),
         events: {
             "change .field-selector": "fieldSelected"
         },
@@ -357,23 +403,26 @@
             this.featureLayer = options.featureLayer;
         },
 
-        render: function (featureLayer) {
+        render: function (featureLayer, fieldCID, choices) {
             var data,
                 fields,
                 _that = this;
 
-            fields = this.featureLayer.form.questionsByType(FH.types.SELECT_ONE)
+            fieldCID = fieldCID || "";
+            choices = choices || [];
+            fields = featureLayer.form.questionsByType(FH.types.SELECT_ONE)
                 .map(function (field) {
                     return {
-                        name: field.cid,
+                        cid: field.cid,
                         label: field.get('label', _that.featureLayer.get('language'))
                     };
                 });
             data = {
                 title: featureLayer.form.get('title'),
-                fields: fields
+                fields: fields,
+                fieldCID: fieldCID,
+                choices: choices
             };
-            // Get the list of select one questions
             this.$el.html(this.template({layer: data}));
         },
 
@@ -385,7 +434,8 @@
                 return field.cid === cid;
             });
             if(targetField) {
-                // Get select options
+                // trigger field selected
+                this.trigger('fieldSelected', targetField);
             }
         }
     });

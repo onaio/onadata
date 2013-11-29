@@ -252,7 +252,7 @@
     });
 
     // Encapsulates a DataSet and FieldSet within a `datavore` table
-    FH.Datavore = Backbone.Model.extend({
+    FH.DatavoreWrapper = Backbone.Model.extend({
         // The datavore table
         table: void 0,
 
@@ -277,7 +277,7 @@
                 return {
                     name: xpath,
                     values: [],
-                    type: FH.Datavore.fhToDatavoreType(field.get('type'))};
+                    type: FH.DatavoreWrapper.fhToDatavoreType(field.get('type'))};
             });
 
             // Prepend the meta _id column
@@ -295,12 +295,14 @@
         countBy: function (xpath) {
             var aggregation = this.table.query(
                 {dims: [xpath], vals: [dv.count()]});
-            return _.object(aggregation[0], aggregation[1]);
+            return _.map(aggregation[0], function (item, idx) {
+                return {key: item, value: aggregation[1][idx]};
+            });
         }
     });
 
     // Converts FH types to one of the datavore types
-    FH.Datavore.fhToDatavoreType = function (typeName) {
+    FH.DatavoreWrapper.fhToDatavoreType = function (typeName) {
         if( FH.Field.isA(typeName, FH.types.SELECT_ONE) ) {
             return dv.type.nominal;
         } else if (FH.Field.isA(typeName, FH.types.INTEGER) || FH.Field.isA(typeName, FH.types.DECIMAL) ) {
