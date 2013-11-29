@@ -1117,7 +1117,11 @@ A `GET` request will return the list of notes applied to a data point.
         if not formid and not dataid and not tags:
             data = self._get_formlist_data_points(request, owner)
         if formid:
-            xform = check_and_set_form_by_id(int(formid), request)
+            xform = None
+            try:
+                xform = check_and_set_form_by_id(int(formid), request)
+            except ValueError:
+                xform = check_and_set_form_by_id_string(formid, request)
             if not xform:
                 raise exceptions.PermissionDenied(
                     _("You do not have permission to "
@@ -1155,7 +1159,11 @@ A `GET` request will return the list of notes applied to a data point.
             tags = TagField()
         if owner is None and not request.user.is_anonymous():
             owner = request.user.username
-        xform = check_and_set_form_by_id(int(formid), request)
+        xform = None
+        try:
+            xform = check_and_set_form_by_id(int(formid), request)
+        except ValueError:
+            xform = check_and_set_form_by_id_string(formid, request)
         if not xform:
             raise exceptions.PermissionDenied(
                 _("You do not have permission to "
@@ -1189,13 +1197,18 @@ A `GET` request will return the list of notes applied to a data point.
             status = 200
         return Response(data, status=status)
 
-    @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['noteid', ])
+    @action(methods=['GET', 'POST', 'DELETE'],
+            extra_lookup_fields=['noteid', ])
     def notes(self, request, owner, formid, dataid, **kwargs):
         class NoteForm(forms.Form):
             note = forms.CharField()
         if owner is None and not request.user.is_anonymous():
             owner = request.user.username
-        xform = check_and_set_form_by_id(int(formid), request)
+        xform = None
+        try:
+            xform = check_and_set_form_by_id(int(formid), request)
+        except ValueError:
+            xform = check_and_set_form_by_id_string(formid, request)
         if not xform:
             raise exceptions.PermissionDenied(
                 _("You do not have permission to "
