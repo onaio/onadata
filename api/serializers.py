@@ -9,7 +9,7 @@ from rest_framework.exceptions import ParseError
 from main.models import UserProfile
 from main.forms import UserProfileForm, RegistrationFormUserProfile
 
-from odk_logger.models import XForm
+from odk_logger.models import XForm, Note
 
 from api.models import Project, OrganizationProfile, Team
 from api.fields import HyperlinkedMultiIdentityField,\
@@ -242,3 +242,8 @@ class TeamSerializer(serializers.Serializer):
             self.errors['name'] = u'A team name is required'
             return attrs
         return Team(organization=org, name=team_name)
+
+
+class NoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Note

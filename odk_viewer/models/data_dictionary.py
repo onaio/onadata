@@ -9,7 +9,7 @@ from pyxform.question import Question
 from pyxform.section import RepeatingSection
 from pyxform.xform2json import create_survey_element_from_xml
 
-from common_tags import ID, UUID, SUBMISSION_TIME
+from common_tags import ID, UUID, SUBMISSION_TIME, TAGS, NOTES
 from odk_logger.models import XForm
 from odk_viewer.models import ParsedInstance
 from odk_viewer.models.parsed_instance import _encode_for_mongo
@@ -37,7 +37,7 @@ def upload_to(instance, filename, username=None):
         username,
         'xls',
         os.path.split(filename)[1]
-        )
+    )
 
 
 class DataDictionary(XForm):
@@ -126,8 +126,7 @@ class DataDictionary(XForm):
         output_re = re.compile('\n.*(<output.*>)\n(  )*')
         prettyXml = text_re.sub('>\g<1></', self.xml)
         inlineOutput = output_re.sub('\g<1>', prettyXml)
-        inlineOutput = re.compile(
-            '<label>\s*\n*\s*\n*\s*</label>').sub(
+        inlineOutput = re.compile('<label>\s*\n*\s*\n*\s*</label>').sub(
             '<label></label>', inlineOutput)
         self.xml = inlineOutput
 
@@ -261,7 +260,7 @@ class DataDictionary(XForm):
             return '/'.join(l[2:])
 
         header_list = [shorten(xpath) for xpath in self.xpaths()]
-        header_list += [UUID, SUBMISSION_TIME]
+        header_list += [UUID, SUBMISSION_TIME, TAGS, NOTES]
         if include_additional_headers:
             header_list += self._additional_headers()
         return header_list
@@ -370,7 +369,7 @@ class DataDictionary(XForm):
             qs = ParsedInstance.objects.filter(
                 phone=parsed_instance.phone,
                 start_time=parsed_instance.start_time
-                ).exclude(id=parsed_instance.id)
+            ).exclude(id=parsed_instance.id)
             d['_potential_duplicates'] = \
                 ';'.join([str(pi.instance.id) for pi in qs])
 
