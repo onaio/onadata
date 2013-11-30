@@ -8,7 +8,8 @@
 
     2. Update languages: Regenerate English PO files. TX gets it automaticaly.
 
-    3. Update translations: download translations from TX and compiles them. '''
+    3. Update translations: download translations from TX and compiles them.
+'''
 
 import os
 import sys
@@ -48,10 +49,10 @@ def chdir(dirname):
 
 
 def download_with_login(url, login_url, login=None,
-                              password=None, ext='',
-                              username_field='username',
-                              password_field='password',
-                              form_id=1):
+                        password=None, ext='',
+                        username_field='username',
+                        password_field='password',
+                        form_id=1):
     ''' Download a URI from a website using Django by loging-in first
 
         1. Logs in using supplied login & password (if provided)
@@ -135,7 +136,7 @@ def update(user, password, lang=None):
                                               password_field='password',
                                               form_id=1)
             po_file = os.path.join(REPO_ROOT, 'locale', loc,
-                                  'LC_MESSAGES', 'django.po')
+                                   'LC_MESSAGES', 'django.po')
             with indent(2):
                 puts(u"Copying downloaded file to %s" % po_file)
             shutil.move(tmp_po_file, po_file)
@@ -231,7 +232,8 @@ def main():
             user = password = None
 
         if not user or not password:
-            print(colored.red(u"You need to provide Transifex.com credentials"))
+            print(colored.red(
+                u"You need to provide Transifex.com credentials"))
             usage()
 
         return command(user, password, lang)

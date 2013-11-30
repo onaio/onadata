@@ -1,9 +1,12 @@
 from collections import defaultdict
 from pyxform import Section, Question
-from odk_viewer.models import DataDictionary
+from xlwt import Workbook
+
 from utils.export_tools import question_types_to_exclude
 
+
 class XlsWriter(object):
+
     def __init__(self):
         self.set_file()
         self.reset_workbook()
@@ -21,12 +24,10 @@ class XlsWriter(object):
             self._file = StringIO()
 
     def reset_workbook(self):
-        import xlwt
-        self._workbook = xlwt.Workbook()
+        self._workbook = Workbook()
         self._sheets = {}
         self._columns = defaultdict(list)
-        def one(): return 1
-        self._current_index = defaultdict(one)
+        self._current_index = defaultdict(lambda: 1)
         self._generated_sheet_name_dict = {}
 
     def add_sheet(self, name):
@@ -57,14 +58,15 @@ class XlsWriter(object):
         for sheet_name, rows in obs.items():
             for row in rows:
                 actual_sheet_name = self._generated_sheet_name_dict.get(
-                        sheet_name, sheet_name)
+                    sheet_name, sheet_name)
                 self.add_row(actual_sheet_name, row)
 
     def _fix_indices(self, obs):
         for sheet_name, rows in obs.items():
             for row in rows:
                 row[u'_index'] += self._current_index[sheet_name]
-                if row[u'_parent_index']==-1: continue
+                if row[u'_parent_index'] == -1:
+                    continue
                 i = self._current_index[row[u'_parent_table_name']]
                 row[u'_parent_index'] += i
 
@@ -81,7 +83,7 @@ class XlsWriter(object):
             self.add_sheet(table_name)
             for i, row in enumerate(table):
                 for j, value in enumerate(row):
-                    self._sheets[table_name].write(i,j,unicode(value))
+                    self._sheets[table_name].write(i, j, unicode(value))
         return self._workbook
 
     def save_workbook_to_file(self):
@@ -115,12 +117,12 @@ class XlsWriter(object):
 
     def _generate_unique_sheet_name(self, sheet_name):
         # check if sheet name exists
-        if(not self._sheets.has_key(sheet_name)):
+        if(not sheet_name in self._sheets):
             return sheet_name
         else:
             i = 1
             unique_name = sheet_name
-            while(self._sheets.has_key(unique_name)):
+            while(unique_name in self._sheets):
                 number_len = len(str(i))
                 allowed_name_len = self.sheet_name_limit - number_len
                 # make name required len
@@ -129,4 +131,3 @@ class XlsWriter(object):
                 unique_name = "{0}{1}".format(unique_name, i)
                 i = i + 1
             return unique_name
-

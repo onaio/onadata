@@ -222,8 +222,8 @@
             <a class="btn btn-info" btn-info  rel="tooltip" title="{% trans "Browse Data (One by One)" %}" href="{% url "odk_viewer.views.instance" content_user.username xform.id_string %}">
                 <i class="icon-list-alt icon-white"></i> {% trans "Browse Data" %}
             </a>
-            <a class="btn btn-info" btn-info  rel="tooltip" title="{% trans "View Submission Counts Per Day" %}" href="{% url "form-stats" content_user.username xform.id_string %}">
-                <i class="icon-list-alt icon-white"></i> {% trans "Daily Submission Statistics" %}
+            <a class="btn btn-info" btn-info  rel="tooltip" title="{% trans "View Statistics" %}" href="{% url "form-stats" content_user.username xform.id_string %}">
+                <i class="icon-bar-chart icon-white"></i> {% trans "Statistics" %}
             </a>
         </div>
         {% else %}
@@ -252,6 +252,7 @@
                       <i class="icon-check icon-white"></i> {% trans "Preview Form" %}
                   </a>
                   {% endif %}
+
               </div>
               {% if can_edit or xform.is_crowd_form or xform.shared %}
               <div id="preview-modal" class="modal hide fade">

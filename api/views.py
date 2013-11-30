@@ -1032,7 +1032,7 @@ Payload
   >
   >        HTTP 200 OK
     """
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, ]
+    permission_classes = [permissions.IsAuthenticated, ]
     lookup_field = 'owner'
     lookup_fields = ('owner', 'formid', 'dataid')
     extra_lookup_fields = None
@@ -1041,13 +1041,7 @@ Payload
 
     def _get_accessible_forms(self, owner=None):
         xforms = []
-        # list public forms incase anonymous user
-        if self.request.user.is_anonymous():
-            xforms = XForm.public_forms().order_by('?')[:10]
-            # select only  the random 10, allows chaining later on
-            xforms = XForm.objects.filter(pk__in=[x.pk for x in xforms])
-        else:
-            xforms = XForm.objects.filter(user__username=owner)
+        xforms = XForm.objects.filter(user__username=owner)
         return xforms.distinct()
 
     def _get_formlist_data_points(self, request, owner=None):
@@ -1205,7 +1199,7 @@ class StatsViewSet(viewsets.ViewSet):
             }
         ]
     """
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, ]
+    permission_classes = [permissions.IsAuthenticated, ]
     lookup_field = 'owner'
     lookup_fields = ('owner', 'formid', 'dataid')
     extra_lookup_fields = None
@@ -1214,12 +1208,7 @@ class StatsViewSet(viewsets.ViewSet):
     def _get_accessible_forms(self, owner=None):
         xforms = []
         # list public forms incase anonymous user
-        if self.request.user.is_anonymous():
-            xforms = XForm.public_forms().order_by('?')[:10]
-            # select only  the random 10, allows chaining later on
-            xforms = XForm.objects.filter(pk__in=[x.pk for x in xforms])
-        else:
-            xforms = XForm.objects.filter(user__username=owner)
+        xforms = XForm.objects.filter(user__username=owner)
         return xforms.distinct()
 
     def _get_formlist_data_points(self, request, owner=None):
