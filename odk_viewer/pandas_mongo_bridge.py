@@ -11,7 +11,7 @@ from odk_viewer.models.data_dictionary import ParsedInstance, DataDictionary
 from utils.export_tools import question_types_to_exclude
 from collections import OrderedDict
 from common_tags import ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,\
-    UUID, SUBMISSION_TIME, NA_REP, BAMBOO_DATASET_ID, DELETEDAT
+    UUID, SUBMISSION_TIME, NA_REP, BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES
 
 
 # this is Mongo Collection where we will store the parsed submissions
@@ -70,7 +70,7 @@ class AbstractDataFrameBuilder(object):
     IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ID, ATTACHMENTS, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields NOT within the form def that we want to include
-    ADDITIONAL_COLUMNS = [UUID, SUBMISSION_TIME]
+    ADDITIONAL_COLUMNS = [UUID, SUBMISSION_TIME, TAGS, NOTES]
 
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
@@ -463,7 +463,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         d = {}
 
         # check for lists
-        if type(value) is list and len(value) > 0:
+        if type(value) is list and len(value) > 0 and key != NOTES:
             for index, item in enumerate(value):
                 # start at 1
                 index += 1
@@ -500,7 +500,10 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         else:
             # anything that's not a list will be in the top level dict so its
             # safe to simply assign
-            d[key] = value
+            if key == NOTES:
+                d[key] = u"\r\n".join(value)
+            else:
+                d[key] = value
         return d
 
     @classmethod

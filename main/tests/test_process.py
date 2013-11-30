@@ -345,7 +345,8 @@ class TestSite(MainTestCase):
         data = [
             {'meta/instanceID': 'uuid:5b2cc313-fc09-437e-8149-fcd32f695d41',
              '_uuid': '5b2cc313-fc09-437e-8149-fcd32f695d41',
-             '_submission_time': '2013-02-14T15:37:21'
+             '_submission_time': '2013-02-14T15:37:21',
+             '_tags': '', '_notes': ''
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
@@ -355,14 +356,16 @@ class TestSite(MainTestCase):
              "loop_over_transport_types_frequency/bicycle/frequency_to_referral_facility": "weekly",
              "meta/instanceID": "uuid:f3d8dc65-91a6-4d0f-9e97-802128083390",
              '_uuid': 'f3d8dc65-91a6-4d0f-9e97-802128083390',
-             '_submission_time': '2013-02-14T15:37:22'
+             '_submission_time': '2013-02-14T15:37:22',
+             '_tags': '', '_notes': ''
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
              "loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility": "weekly",
              "meta/instanceID": "uuid:9c6f3468-cfda-46e8-84c1-75458e72805d",
              '_uuid': '9c6f3468-cfda-46e8-84c1-75458e72805d',
-             '_submission_time': '2013-02-14T15:37:23'
+             '_submission_time': '2013-02-14T15:37:23',
+             '_tags': '', '_notes': ''
              },
             {"available_transportation_types_to_referral_facility/taxi":
              "True",
@@ -373,7 +376,8 @@ class TestSite(MainTestCase):
              "loop_over_transport_types_frequency/taxi/frequency_to_referral_facility": "daily",
              "meta/instanceID": "uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf",
              '_uuid': '9f0a1508-c3b7-4c99-be00-9b237c26bcbf',
-             '_submission_time': '2013-02-14T15:37:24'
+             '_submission_time': '2013-02-14T15:37:24',
+             '_tags': '', '_notes': ''
              }
         ]
 

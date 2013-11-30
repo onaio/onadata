@@ -27,10 +27,11 @@ from utils.user_auth import check_and_set_form_by_id, \
     check_and_set_form_by_id_string
 from main.models import UserProfile
 
-from odk_logger.models import XForm, Instance
+from odk_logger.models import XForm, Instance, Note
 from odk_viewer.models import ParsedInstance
 
 from api.models import Project, OrganizationProfile, ProjectXForm, Team
+from api.forms import NoteForm
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1031,6 +1032,7 @@ Payload
   > Response
   >
   >        HTTP 200 OK
+
     """
     permission_classes = [permissions.IsAuthenticated, ]
     lookup_field = 'owner'
@@ -1087,7 +1089,11 @@ Payload
         if not formid and not dataid and not tags:
             data = self._get_formlist_data_points(request, owner)
         if formid:
-            xform = check_and_set_form_by_id(int(formid), request)
+            xform = None
+            try:
+                xform = check_and_set_form_by_id(int(formid), request)
+            except ValueError:
+                xform = check_and_set_form_by_id_string(formid, request)
             if not xform:
                 raise exceptions.PermissionDenied(
                     _("You do not have permission to "
@@ -1125,7 +1131,11 @@ Payload
             tags = TagField()
         if owner is None and not request.user.is_anonymous():
             owner = request.user.username
-        xform = check_and_set_form_by_id(int(formid), request)
+        xform = None
+        try:
+            xform = check_and_set_form_by_id(int(formid), request)
+        except ValueError:
+            xform = check_and_set_form_by_id_string(formid, request)
         if not xform:
             raise exceptions.PermissionDenied(
                 _("You do not have permission to "
@@ -1158,6 +1168,61 @@ Payload
         if request.method == 'GET':
             status = 200
         return Response(data, status=status)
+
+
+class NoteViewSet(viewsets.ModelViewSet):
+    """## Add Notes to a submission
+
+A `POST` payload of parameters:
+
+    `note` - the note string to add to a data point
+    `instance` - the data point id
+
+ <pre class="prettyprint">
+  <b>POST</b> /api/v1/notes</pre>
+
+Payload
+
+    {"instance": 1, "note": "This is a note."}
+
+  > Response
+  >
+  >     {
+  >          "id": 1,
+  >          "instance": 1,
+  >          "note": "This is a note."
+  >          ...
+  >     }
+  >
+  >     HTTP 201 OK
+
+# Get List of notes for a data point
+
+A `GET` request will return the list of notes applied to a data point.
+
+ <pre class="prettyprint">
+  <b>GET</b> /api/v1/notes</pre>
+
+
+  > Response
+  >
+  >     [{
+  >          "id": 1,
+  >          "instance": 1,
+  >          "note": "This is a note."
+  >          ...
+  >     }, ...]
+  >
+  >
+  >        HTTP 200 OK
+"""
+    queryset = Note.objects.all()
+    serializer_class = api_serializers.NoteSerializer
+    permission_classes = [permissions.DjangoModelPermissions,
+                          permissions.IsAuthenticated, ]
+
+    def get_queryset(self):
+        return Note.objects.filter(instance__xform__user=self.request.user)
 
 
 class StatsViewSet(viewsets.ViewSet):
