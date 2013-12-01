@@ -45,6 +45,26 @@ from django_digest import HttpDigestAuthenticator
 from utils.viewer_tools import enketo_url
 
 
+def _html_submission_response(context, instance):
+    context.username = instance.user.username
+    context.id_string = instance.xform.id_string
+    context.domain = Site.objects.get(id=settings.SITE_ID).domain
+
+    return render_to_response("submission.html", context_instance=context)
+
+
+def _odk_submission_response(context, instance):
+    context.message = _("Successful submission.")
+    context.formid = instance.xform.id_string
+    context.encrypted = instance.xform.encrypted
+    context.instanceID = u'uuid:%s' % instance.uuid
+    context.submissionDate = instance.date_created.isoformat()
+    context.markedAsCompleteDate = instance.date_modified.isoformat()
+    t = loader.get_template('submission.xml')
+
+    return BaseOpenRosaResponse(t.render(context))
+
+
 @require_POST
 @csrf_exempt
 def bulksubmission(request, username):
@@ -210,7 +230,7 @@ def submission(request, username=None):
     context = RequestContext(request)
     xml_file_list = []
     media_files = []
-    html_response = False
+
     # request.FILES is a django.utils.datastructures.MultiValueDict
     # for each key we have a list of values
     try:
@@ -224,9 +244,7 @@ def submission(request, username=None):
 
         # get uuid from post request
         uuid = request.POST.get('uuid')
-        # response as html if posting with a UUID
-        if not username and uuid:
-            html_response = True
+
         try:
             instance = create_instance(
                 username, xml_file_list[0], media_files,
@@ -271,24 +289,16 @@ def submission(request, username=None):
             {
                 "id_string": instance.xform.id_string
             }, audit, request)
+
+        # response as html if posting with a UUID
+        if not username and uuid:
+            response = _html_submission_response(context, instance)
+        else:
+            response = _odk_submission_response(context, instance)
+
         # ODK needs two things for a form to be considered successful
         # 1) the status code needs to be 201 (created)
         # 2) The location header needs to be set to the host it posted to
-        if html_response:
-            context.username = instance.user.username
-            context.id_string = instance.xform.id_string
-            context.domain = Site.objects.get(id=settings.SITE_ID).domain
-            response = render_to_response("submission.html",
-                                          context_instance=context)
-        else:
-            context.message = _("Successful submission.")
-            context.formid = instance.xform.id_string
-            context.encrypted = instance.xform.encrypted
-            context.instanceID = u'uuid:%s' % instance.uuid
-            context.submissionDate = instance.date_created.isoformat()
-            context.markedAsCompleteDate = instance.date_modified.isoformat()
-            t = loader.get_template('submission.xml')
-            response = BaseOpenRosaResponse(t.render(context))
         response.status_code = 201
         response['Location'] = request.build_absolute_uri(request.path)
         return response
