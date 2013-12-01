@@ -33,6 +33,10 @@ from odk_viewer.models import ParsedInstance
 from api.models import Project, OrganizationProfile, ProjectXForm, Team
 
 
+def get_accessible_forms(owner=None):
+    return XForm.objects.filter(user__username=owner).distinct()
+
+
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     """
 This endpoint allows you to list and retrieve user's first and last names.
@@ -481,9 +485,7 @@ Payload
         return queryset.distinct()
 
     @action(methods=['GET'])
-    def form(self, request, format=None, **kwargs):
-        if not format:
-            format = 'json'
+    def form(self, request, format='json', **kwargs):
         self.object = self.get_object()
         if format == 'xml':
             data = self.object.xml
@@ -510,8 +512,8 @@ Payload
         label = kwargs.get('label', None)
         if request.method == 'GET' and label:
             data = [
-                i['name']
-                for i in self.object.tags.filter(name=label).values('name')]
+                tag['name']
+                for tag in self.object.tags.filter(name=label).values('name')]
         elif request.method == 'DELETE' and label:
             count = self.object.tags.count()
             self.object.tags.remove(label)
@@ -1059,13 +1061,8 @@ or to delete the tag "hello world"
 
     queryset = Instance.objects.all()
 
-    def _get_accessible_forms(self, owner=None):
-        xforms = []
-        xforms = XForm.objects.filter(user__username=owner)
-        return xforms.distinct()
-
     def _get_formlist_data_points(self, request, owner=None):
-        xforms = self._get_accessible_forms(owner)
+        xforms = get_accessible_forms(owner)
         # filter by tags if available.
         tags = self.request.QUERY_PARAMS.get('tags', None)
         if tags and isinstance(tags, basestring):
@@ -1131,7 +1128,7 @@ or to delete the tag "hello world"
         if xform:
             data = self._get_form_data(xform, query=query)
         if not xform and not data:
-            xforms = self._get_accessible_forms(owner)
+            xforms = get_accessible_forms(owner)
             query[ParsedInstance.USERFORM_ID] = {
                 '$in': [
                     u'%s_%s' % (form.user.username, form.id_string)
@@ -1172,7 +1169,7 @@ or to delete the tag "hello world"
         label = kwargs.get('label', None)
         if request.method == 'GET' and label:
             data = [
-                i['name'] for i in
+                tag['name'] for tag in
                 instance.instance.tags.filter(name=label).values('name')]
         elif request.method == 'DELETE' and label:
             count = instance.instance.tags.count()
@@ -1289,14 +1286,8 @@ Response:
     extra_lookup_fields = None
     queryset = Instance.objects.all()
 
-    def _get_accessible_forms(self, owner=None):
-        xforms = []
-        # list public forms incase anonymous user
-        xforms = XForm.objects.filter(user__username=owner)
-        return xforms.distinct()
-
     def _get_formlist_data_points(self, request, owner=None):
-        xforms = self._get_accessible_forms(owner)
+        xforms = get_accessible_forms(owner)
         # filter by tags if available.
         tags = self.request.QUERY_PARAMS.get('tags', None)
         if tags and isinstance(tags, basestring):
