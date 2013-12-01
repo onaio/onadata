@@ -45,6 +45,13 @@ from django_digest import HttpDigestAuthenticator
 from utils.viewer_tools import enketo_url
 
 
+def _extract_uuid(text):
+    text = text[text.find("@key="):-1].replace("@key=", "")
+    if text.startswith("uuid:"):
+        text = text.replace("uuid:", "")
+    return text
+
+
 def _parse_int(num):
     try:
         return int(num)
@@ -582,13 +589,6 @@ def view_submission_list(request, username):
 
 
 def view_download_submission(request, username):
-
-    def extract_uuid(text):
-        text = text[text.find("@key="):-1].replace("@key=", "")
-        if text.startswith("uuid:"):
-            text = text.replace("uuid:", "")
-        return text
-
     form_user = get_object_or_404(User, username=username)
     profile, created = \
         UserProfile.objects.get_or_create(user=form_user)
@@ -605,7 +605,7 @@ def view_download_submission(request, username):
     if form_id_parts.__len__() < 2:
         return HttpResponseBadRequest()
 
-    uuid = extract_uuid(form_id_parts[1])
+    uuid = _extract_uuid(form_id_parts[1])
     instance = get_object_or_404(
         Instance, xform__id_string=id_string, uuid=uuid,
         user__username=username)
