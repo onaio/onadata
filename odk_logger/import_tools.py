@@ -1,12 +1,10 @@
 # encoding=utf-8
-import glob
 import os
 import shutil
 import tempfile
 import zipfile
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.utils.translation import ugettext as _
 
 from utils.logger_tools import create_instance
 from odk_logger.xform_fs import XFormInstanceFS
@@ -42,35 +40,6 @@ def django_file(path, field_name, content_type):
         size=os.path.getsize(path),
         charset=None
     )
-
-
-def import_instance(path_to_instance_folder, status, user):
-    xml_files = glob.glob(os.path.join(path_to_instance_folder, "*.xml"))
-
-    if len(xml_files) < 1:
-        return
-    if len(xml_files) > 1:
-        raise Exception(_("Too many XML files."))
-
-    instance = None
-
-    with django_file(xml_files[0], field_name="xml_file",
-                     content_type="text/xml") as xml_file:
-        images = []
-        for jpg in glob.glob(os.path.join(path_to_instance_folder, "*.jpg")):
-            image_file = django_file(jpg, field_name="image",
-                                     content_type="image/jpeg")
-            images.append(image_file)
-        # todo: if an instance has been submitted make sure all the
-        # files are in the database.
-        # there shouldn't be any instances with a submitted status in the
-        instance = create_instance(user.username, xml_file, images, status)
-
-        # close the files
-        for i in images:
-            i.close()
-
-    return instance
 
 
 def iterate_through_odk_instances(dirpath, callback):
