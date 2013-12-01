@@ -45,6 +45,17 @@ from django_digest import HttpDigestAuthenticator
 from utils.viewer_tools import enketo_url
 
 
+def _get_form_url(request, username):
+    # TODO store strings as constants elsewhere
+    if settings.TESTING_MODE:
+        http_host = 'testserver.com'
+        username = 'bob'
+    else:
+        http_host = request.META.get('HTTP_HOST') or 'ona.io'
+
+    return 'https://%s/%s' % (http_host, username)
+
+
 def _html_submission_response(context, instance):
     context.username = instance.user.username
     context.id_string = instance.xform.id_string
@@ -442,13 +453,9 @@ def enter_data(request, username, id_string):
                               id_string=id_string)
     if not has_edit_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
-    try:
-        formhub_url = "http://%s/" % request.META['HTTP_HOST']
-    except:
-        formhub_url = "http://formhub.org/"
-    form_url = formhub_url + username
-    if settings.TESTING_MODE:
-        form_url = "https://testserver.com/bob"
+
+    form_url = _get_form_url(request, username)
+
     try:
         url = enketo_url(form_url, xform.id_string)
         if not url:
@@ -495,10 +502,6 @@ def edit_data(request, username, id_string, data_id):
 
     url = '%sdata/edit_url' % settings.ENKETO_URL
     # see commit 220f2dad0e for tmp file creation
-    try:
-        formhub_url = "http://%s/" % request.META['HTTP_HOST']
-    except:
-        formhub_url = "http://formhub.org/"
     injected_xml = inject_instanceid(instance.xml, instance.uuid)
     return_url = request.build_absolute_uri(
         reverse(
@@ -507,9 +510,8 @@ def edit_data(request, username, id_string, data_id):
                 'username': username,
                 'id_string': id_string}
         ) + "#/" + str(instance.id))
-    form_url = formhub_url + username
-    if settings.TESTING_MODE:
-        form_url = "https://testserver.com/bob"
+    form_url = _get_form_url(request, username)
+
     try:
         url = enketo_url(
             form_url, xform.id_string, instance_xml=injected_xml,
