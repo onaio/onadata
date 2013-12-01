@@ -257,8 +257,6 @@ def submission(request, username=None):
             return response
         except PermissionDenied, e:
             return OpenRosaResponseNotAllowed(e.message)
-        except Exception, e:
-            raise
 
         if instance is None:
             return OpenRosaResponseBadRequest(
