@@ -61,45 +61,46 @@ def bulksubmission(request, username):
         return HttpResponseBadRequest(_(u"There was a problem receiving your "
                                         u"ODK submission. [Error: IO Error "
                                         u"reading data]"))
-    if len(temp_postfile) == 1:
-        postfile = temp_postfile[0]
-        tempdir = tempfile.gettempdir()
-        our_tfpath = os.path.join(tempdir, postfile.name)
-        our_tempfile = open(our_tfpath, 'wb')
-        our_tempfile.write(postfile.read())
-        our_tempfile.close()
-        our_tf = open(our_tfpath, 'rb')
-        total_count, success_count, errors = \
-            import_instances_from_zip(our_tf, user=posting_user)
-        # chose the try approach as suggested by the link below
-        # http://stackoverflow.com/questions/82831
-        try:
-            os.remove(our_tfpath)
-        except IOError:
-            # TODO: log this Exception somewhere
-            pass
-        json_msg = {
-            'message': _(u"Submission complete. Out of %(total)d "
-                         u"survey instances, %(success)d were imported, "
-                         u"(%(rejected)d were rejected as duplicates, "
-                         u"missing forms, etc.)") %
-            {'total': total_count, 'success': success_count,
-             'rejected': total_count - success_count},
-            'errors': u"%d %s" % (len(errors), errors)
-        }
-        audit = {
-            "bulk_submission_log": json_msg
-        }
-        audit_log(Actions.USER_BULK_SUBMISSION, request.user, posting_user,
-                  _("Made bulk submissions."), audit, request)
-        response = HttpResponse(json.dumps(json_msg))
-        response.status_code = 200
-        response['Location'] = request.build_absolute_uri(request.path)
-        return response
-    else:
+    if len(temp_postfile) != 1:
         return HttpResponseBadRequest(_(u"There was a problem receiving your"
                                         u" ODK submission. [Error: multiple "
                                         u"submission files (?)]"))
+
+    postfile = temp_postfile[0]
+    tempdir = tempfile.gettempdir()
+    our_tfpath = os.path.join(tempdir, postfile.name)
+
+    with open(our_tfpath, 'wb') as f:
+        f.write(postfile.read())
+
+    with open(our_tfpath, 'rb') as f:
+        total_count, success_count, errors = import_instances_from_zip(
+            f, posting_user)
+    # chose the try approach as suggested by the link below
+    # http://stackoverflow.com/questions/82831
+    try:
+        os.remove(our_tfpath)
+    except IOError:
+        # TODO: log this Exception somewhere
+        pass
+    json_msg = {
+        'message': _(u"Submission complete. Out of %(total)d "
+                     u"survey instances, %(success)d were imported, "
+                     u"(%(rejected)d were rejected as duplicates, "
+                     u"missing forms, etc.)") %
+        {'total': total_count, 'success': success_count,
+         'rejected': total_count - success_count},
+        'errors': u"%d %s" % (len(errors), errors)
+    }
+    audit = {
+        "bulk_submission_log": json_msg
+    }
+    audit_log(Actions.USER_BULK_SUBMISSION, request.user, posting_user,
+              _("Made bulk submissions."), audit, request)
+    response = HttpResponse(json.dumps(json_msg))
+    response.status_code = 200
+    response['Location'] = request.build_absolute_uri(request.path)
+    return response
 
 
 @login_required
@@ -677,7 +678,8 @@ def ziggy_submissions(request, username):
             # save submission
             # i.e pick entity_id, instance_id, server_version, client_version?
             # reporter_id
-            records = ZiggyInstance.create_ziggy_instances(form_user, json_post)
+            records = ZiggyInstance.create_ziggy_instances(
+                form_user, json_post)
 
             data = {'status': 'success',
                     'message': _(u"Successfully processed %(records)s records"
