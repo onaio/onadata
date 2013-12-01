@@ -45,6 +45,13 @@ from django_digest import HttpDigestAuthenticator
 from utils.viewer_tools import enketo_url
 
 
+def _parse_int(num):
+    try:
+        return int(num)
+    except ValueError:
+        pass
+
+
 def _get_form_url(request, username):
     # TODO store strings as constants elsewhere
     if settings.TESTING_MODE:
@@ -551,21 +558,14 @@ def view_submission_list(request, username):
     cursor = request.GET.get('cursor', None)
     instances = xform.surveys.all().order_by('pk')
 
+    cursor = _parse_int(cursor)
     if cursor:
-        try:
-            cursor = int(cursor)
-        except ValueError:
-            pass
-        else:
-            instances = instances.filter(pk__gt=cursor)
+        instances = instances.filter(pk__gt=cursor)
 
+    num_entries = _parse_int(num_entries)
     if num_entries:
-        try:
-            num_entries = int(num_entries)
-        except ValueError:
-            pass
-        else:
-            instances = instances[:num_entries]
+        instances = instances[:num_entries]
+
     context.instances = instances
 
     if instances.count():
