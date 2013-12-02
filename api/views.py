@@ -31,7 +31,6 @@ from odk_logger.models import XForm, Instance, Note
 from odk_viewer.models import ParsedInstance
 
 from api.models import Project, OrganizationProfile, ProjectXForm, Team
-from api.forms import NoteForm
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
