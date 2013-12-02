@@ -1138,6 +1138,8 @@ or to delete the tag "hello world"
             data = self._get_form_data(xform, query=query)
         if not xform and not data:
             xforms = get_accessible_forms(owner)
+            if not query:
+                query = {}
             query[ParsedInstance.USERFORM_ID] = {
                 '$in': [
                     u'%s_%s' % (form.user.username, form.id_string)
