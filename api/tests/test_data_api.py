@@ -15,7 +15,7 @@ class TestDataAPI(MainTestCase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
-    def test_form_list(self):
+    def test_data(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
