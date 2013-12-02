@@ -54,7 +54,7 @@ def _extract_uuid(text):
 
 def _parse_int(num):
     try:
-        return int(num)
+        return num and int(num)
     except ValueError:
         pass
 
