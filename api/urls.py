@@ -326,6 +326,7 @@ router.register(r'orgs', api_views.OrgProfileViewSet)
 router.register(r'forms', api_views.XFormViewSet)
 router.register(r'projects', api_views.ProjectViewSet)
 router.register(r'teams', api_views.TeamViewSet)
+router.register(r'notes', api_views.NoteViewSet)
 router.register(r'data', api_views.DataViewSet, base_name='data')
 router.register(r'stats/submissions',
                 api_views.StatsViewSet, base_name='stats')

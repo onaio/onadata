@@ -14,8 +14,22 @@
   <p> Loading... </p>
   <img id="loading-image" src="/static/images/ajax-loader.gif" alt="Loading..." />
 </div>
-
+{% if messages %}
+<div>{{messages}}</div>
+{% endif %}
 <div id="data"></div>
+
+<div id="notes" style="display: none">
+    <div id='notes-section'>
+    </div>
+    <form action="{% url "odk_viewer.views.instance" username id_string %}" method="post" name="notesform" id="notesform">
+        {% csrf_token %}
+        <input type="hidden" value="" name="instance_id" id="instance_id" />
+        Add a note:
+        <textarea id="note" class="form-control" rows="3" name="note" autocomplete="off"></textarea>
+        <button type="submit" id="note_save" class="btn small btn-primary" >{% trans "save" %}</button>
+    </form>
+</div>
 {% endblock %}
 
 {% block javascript %}
@@ -222,6 +236,10 @@ function updateButtons(data){
     deletebutton.removeClass('disabled');
     deletebutton.attr('href', '#del/' + data['_id']);
     $('a.btn-primary').attr('href', '#delete/' + data['_id']);
+
+    // Add a note section
+    $("#instance_id").val(data['_id']);
+    $("#note").removeAttr("disabled");
 }
 
 function updatePrevNextControls(data)
@@ -318,11 +336,26 @@ function reDraw(context, data)
                 return '[data-key="' + k + '"]';
             }
         });
+
+        $("#notes").show();
+        var notes = data['_notes'], notesHTML = '<ul>';
+        if(notes.length > 0){
+            for(note in notes){
+                notesHTML += '<li>' + notes[note] + '</li>';
+            }
+            var nHTML = notesHTML + '</ul>';
+            $('#notes-section').html(nHTML);
+        } else{
+            $('#notes-section').empty();
+        }
+
     }
     else
     {
         $('#data').empty();
         $('#data').html("<h3>{% trans 'The requested content was not found.' %}<h3>");
+        $('#notes-section').empty();
+        $("#notes").hide();
     }
 }
 
@@ -434,6 +467,25 @@ function parseLanguages(children)
     	languages.push('en');
     }
 }
+
+$(document).ready(function(){
+    $('#notesform').submit(function(event){
+        event.preventDefault();
+        var instance_id = $("#instance_id").val(),
+            note = $("#note").val().trim();
+        if (note == ""){
+            return false;
+        }
+        var notes_url = '/api/v1/data/{{username}}/{{id_string}}/' + instance_id + '/notes';
+        $.post(notes_url, {'note': note}).done(function(data){
+                if(data.status && data.status == 'success'){
+                    $("#notes-section ul").append("<li>" + data.note + "</li>");
+                }
+                $("#notesform")[0].reset();
+        }).fail(function(data){console.log(data);})
+        return false;
+    });
+});
 </script>
 
 

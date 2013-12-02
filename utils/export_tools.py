@@ -21,7 +21,7 @@ from utils.viewer_tools import image_urls
 from zipfile import ZipFile
 from common_tags import ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,\
     BAMBOO_DATASET_ID, DELETEDAT, USERFORM_ID, INDEX, PARENT_INDEX,\
-    PARENT_TABLE_NAME, SUBMISSION_TIME, UUID
+    PARENT_TABLE_NAME, SUBMISSION_TIME, UUID, TAGS, NOTES
 from odk_viewer.models.parsed_instance import _is_invalid_for_mongo,\
     _encode_for_mongo, dict_for_mongo, _decode_from_mongo
 
@@ -54,48 +54,48 @@ class DictOrganizer(object):
             obs[table_name] = []
         this_index = len(obs[table_name])
         obs[table_name].append({
-            u"_parent_table_name" : parent_table_name,
-            u"_parent_index" : parent_index,
-            })
+            u"_parent_table_name": parent_table_name,
+            u"_parent_index": parent_index,
+        })
         for k, v in d.items():
-            if type(v)!=dict and type(v)!=list:
+            if type(v) != dict and type(v) != list:
                 assert k not in obs[table_name][-1]
                 obs[table_name][-1][k] = v
         obs[table_name][-1][u"_index"] = this_index
 
         for k, v in d.items():
-            if type(v)==dict:
+            if type(v) == dict:
                 kwargs = {
-                    "d" : v,
-                    "obs" : obs,
-                    "table_name" : k,
-                    "parent_table_name" : table_name,
-                    "parent_index" : this_index
-                    }
+                    "d": v,
+                    "obs": obs,
+                    "table_name": k,
+                    "parent_table_name": table_name,
+                    "parent_index": this_index
+                }
                 self._build_obs_from_dict(**kwargs)
-            if type(v)==list:
+            if type(v) == list:
                 for i, item in enumerate(v):
                     kwargs = {
-                        "d" : item,
-                        "obs" : obs,
-                        "table_name" : k,
-                        "parent_table_name" : table_name,
-                        "parent_index" : this_index,
-                        }
+                        "d": item,
+                        "obs": obs,
+                        "table_name": k,
+                        "parent_table_name": table_name,
+                        "parent_index": this_index,
+                    }
                     self._build_obs_from_dict(**kwargs)
         return obs
 
     def get_observation_from_dict(self, d):
         result = {}
-        assert len(d.keys())==1
+        assert len(d.keys()) == 1
         root_name = d.keys()[0]
         kwargs = {
-            "d" : d[root_name],
-            "obs" : result,
-            "table_name" : root_name,
-            "parent_table_name" : u"",
-            "parent_index" : -1,
-            }
+            "d": d[root_name],
+            "obs": result,
+            "table_name": root_name,
+            "parent_table_name": u"",
+            "parent_index": -1,
+        }
         self._build_obs_from_dict(**kwargs)
         return result
 
@@ -108,7 +108,7 @@ def dict_to_joined_export(data, index, indices, name):
     # TODO: test for _geolocation and attachment lists
     if isinstance(data, dict):
         for key, val in data.iteritems():
-            if isinstance(val, list):
+            if isinstance(val, list) and key not in [NOTES, TAGS]:
                 output[key] = []
                 for child in val:
                     if key not in indices:
@@ -132,7 +132,12 @@ def dict_to_joined_export(data, index, indices, name):
             else:
                 if name not in output:
                     output[name] = {}
-                output[name][key] = val
+                if key in [TAGS]:
+                    output[name][key] = ",".join(val)
+                elif key in [NOTES]:
+                    output[name][key] = "\r\n".join(val)
+                else:
+                    output[name][key] = val
     return output
 
 
@@ -141,7 +146,7 @@ class ExportBuilder(object):
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields we export but are not within the form's structure
     EXTRA_FIELDS = [ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME,
-                    PARENT_INDEX]
+                    PARENT_INDEX, TAGS, NOTES]
     SPLIT_SELECT_MULTIPLES = True
 
     # column group delimiters
@@ -149,7 +154,7 @@ class ExportBuilder(object):
     GROUP_DELIMITER_DOT = '.'
     GROUP_DELIMITER = GROUP_DELIMITER_SLASH
     GROUP_DELIMITERS = [GROUP_DELIMITER_SLASH, GROUP_DELIMITER_DOT]
-    TYPES_TO_CONVERT = ['int', 'decimal', 'date']#, 'dateTime']
+    TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
     CONVERT_FUNCS = {
         'int': lambda x: int(x),
         'decimal': lambda x: float(x),
@@ -158,7 +163,6 @@ class ExportBuilder(object):
     }
 
     XLS_SHEET_NAME_MAX_CHARS = 31
-
 
     @classmethod
     def string_to_date_with_xls_validation(cls, date_str):
@@ -208,7 +212,8 @@ class ExportBuilder(object):
                         child_xpath = child.get_abbreviated_xpath()
                         current_section['elements'].append({
                             'title': ExportBuilder.format_field_title(
-                                child.get_abbreviated_xpath(), field_delimiter),
+                                child.get_abbreviated_xpath(),
+                                field_delimiter),
                             'xpath': child_xpath,
                             'type': child.bind.get(u"type")
                         })
@@ -252,11 +257,11 @@ class ExportBuilder(object):
                                 for xpath in xpaths
                             ])
                         _append_xpaths_to_section(
-                            current_section_name,gps_fields,
+                            current_section_name, gps_fields,
                             child.get_abbreviated_xpath(), xpaths)
 
         def _append_xpaths_to_section(current_section_name, field_list, xpath,
-                                   xpaths):
+                                      xpaths):
             if current_section_name not in field_list:
                 field_list[current_section_name] = {}
             field_list[
@@ -610,7 +615,7 @@ def generate_export(export_type, extension, username, id_string,
     export.filename = basename
     export.internal_status = Export.SUCCESSFUL
     # dont persist exports that have a filter
-    if filter_query == None:
+    if filter_query is None:
         export.save()
     return export
 
@@ -632,7 +637,8 @@ def query_mongo(username, id_string, query=None, hide_deleted=True):
 
 def should_create_new_export(xform, export_type):
     from odk_viewer.models import Export
-    if Export.objects.filter(xform=xform, export_type=export_type).count() == 0\
+    if Export.objects.filter(
+            xform=xform, export_type=export_type).count() == 0\
             or Export.exports_outdated(xform, export_type=export_type):
         return True
     return False
@@ -645,7 +651,7 @@ def newset_export_for(xform, export_type):
     """
     from odk_viewer.models import Export
     return Export.objects.filter(xform=xform, export_type=export_type)\
-           .latest('created_on')
+        .latest('created_on')
 
 
 def increment_index_in_filename(filename):
@@ -669,7 +675,7 @@ def increment_index_in_filename(filename):
 
 
 def generate_attachments_zip_export(
-        export_type, extension, username, id_string, export_id = None,
+        export_type, extension, username, id_string, export_id=None,
         filter_query=None):
     from odk_viewer.models import Export
 
@@ -677,7 +683,7 @@ def generate_attachments_zip_export(
     attachments = Attachment.objects.filter(instance__xform=xform)
     zip_file = create_attachments_zipfile(attachments)
     basename = "%s_%s" % (id_string,
-                             datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+                          datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
     filename = basename + "." + extension
     file_path = os.path.join(
         username,
@@ -699,8 +705,7 @@ def generate_attachments_zip_export(
     if(export_id):
         export = Export.objects.get(id=export_id)
     else:
-        export = Export.objects.create(xform=xform,
-            export_type=export_type)
+        export = Export.objects.create(xform=xform, export_type=export_type)
 
     export.filedir = dir_name
     export.filename = basename
@@ -710,7 +715,7 @@ def generate_attachments_zip_export(
 
 
 def generate_kml_export(
-        export_type, extension, username, id_string, export_id = None,
+        export_type, extension, username, id_string, export_id=None,
         filter_query=None):
     from odk_viewer.models import Export
 
@@ -720,7 +725,7 @@ def generate_kml_export(
         'survey.kml', {'data': kml_export_data(id_string, user)})
 
     basename = "%s_%s" % (id_string,
-                             datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+                          datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
     filename = basename + "." + extension
     file_path = os.path.join(
         username,
@@ -744,8 +749,7 @@ def generate_kml_export(
     if(export_id):
         export = Export.objects.get(id=export_id)
     else:
-        export = Export.objects.create(xform=xform,
-            export_type=export_type)
+        export = Export.objects.create(xform=xform, export_type=export_type)
 
     export.filedir = dir_name
     export.filename = basename

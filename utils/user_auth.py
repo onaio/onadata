@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404
 
 from guardian.shortcuts import get_perms_for_model, assign_perm
 from main.models import UserProfile
-from odk_logger.models import XForm
+from odk_logger.models import XForm, Note
 from api.models import Project, Team, OrganizationProfile
 
 
@@ -144,7 +144,7 @@ def add_cors_headers(response):
 
 
 def set_api_permissions_for_user(user):
-    models = [UserProfile, XForm, Project, Team, OrganizationProfile]
+    models = [UserProfile, XForm, Project, Team, OrganizationProfile, Note]
     for model in models:
         for perm in get_perms_for_model(model):
             assign_perm(

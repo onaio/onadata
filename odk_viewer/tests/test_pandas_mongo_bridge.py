@@ -240,7 +240,6 @@ class TestPandasMongoBridge(MainTestCase):
             u'gps_group/_gps_longitude',
             u'gps_group/_gps_altitude',
             u'gps_group/_gps_precision',
-            u'_tags',
             u'web_browsers/firefox',
             u'web_browsers/chrome',
             u'web_browsers/ie',
@@ -268,7 +267,6 @@ class TestPandasMongoBridge(MainTestCase):
             u'_gps_longitude': u'36.7926442',
             u'_gps_altitude': u'0.0',
             u'_gps_precision': u'30.0',
-            u'_tags': u'',
             u'kids/has_kids': u'1',
             u'info/age': u'80',
             u'kids/kids_details[1]/kids_name': u'Abel',
@@ -591,6 +589,7 @@ class TestPandasMongoBridge(MainTestCase):
             u'_xform_id_string': u'groups_in_repeats',
             u'_status': u'submitted_via_web',
             u'_tags': u'',
+            u'_notes': u'',
 #            u'_bamboo_dataset_id': u'',
 #            u'_submission_time': u'2013-03-20T10:50:08',
             u'name': u'Abe',
@@ -664,7 +663,9 @@ class TestPandasMongoBridge(MainTestCase):
 #                        u'_uuid': u'ba6bc9d7-b46a-4d25-955e-99ec94e7b2f6',
                     u'_index': 1,
                     u'_parent_table_name': None,
-                    u'_parent_index': -1
+                    u'_parent_index': -1,
+                    u'_tags': [],
+                    u'_notes': []
                 }
             ]
             ,
