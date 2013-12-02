@@ -45,6 +45,51 @@ from django_digest import HttpDigestAuthenticator
 from utils.viewer_tools import enketo_url
 
 
+def _extract_uuid(text):
+    text = text[text.find("@key="):-1].replace("@key=", "")
+    if text.startswith("uuid:"):
+        text = text.replace("uuid:", "")
+    return text
+
+
+def _parse_int(num):
+    try:
+        return num and int(num)
+    except ValueError:
+        pass
+
+
+def _get_form_url(request, username):
+    # TODO store strings as constants elsewhere
+    if settings.TESTING_MODE:
+        http_host = 'testserver.com'
+        username = 'bob'
+    else:
+        http_host = request.META.get('HTTP_HOST') or 'ona.io'
+
+    return 'https://%s/%s' % (http_host, username)
+
+
+def _html_submission_response(context, instance):
+    context.username = instance.user.username
+    context.id_string = instance.xform.id_string
+    context.domain = Site.objects.get(id=settings.SITE_ID).domain
+
+    return render_to_response("submission.html", context_instance=context)
+
+
+def _odk_submission_response(context, instance):
+    context.message = _("Successful submission.")
+    context.formid = instance.xform.id_string
+    context.encrypted = instance.xform.encrypted
+    context.instanceID = u'uuid:%s' % instance.uuid
+    context.submissionDate = instance.date_created.isoformat()
+    context.markedAsCompleteDate = instance.date_modified.isoformat()
+    t = loader.get_template('submission.xml')
+
+    return BaseOpenRosaResponse(t.render(context))
+
+
 @require_POST
 @csrf_exempt
 def bulksubmission(request, username):
@@ -61,45 +106,46 @@ def bulksubmission(request, username):
         return HttpResponseBadRequest(_(u"There was a problem receiving your "
                                         u"ODK submission. [Error: IO Error "
                                         u"reading data]"))
-    if len(temp_postfile) == 1:
-        postfile = temp_postfile[0]
-        tempdir = tempfile.gettempdir()
-        our_tfpath = os.path.join(tempdir, postfile.name)
-        our_tempfile = open(our_tfpath, 'wb')
-        our_tempfile.write(postfile.read())
-        our_tempfile.close()
-        our_tf = open(our_tfpath, 'rb')
-        total_count, success_count, errors = \
-            import_instances_from_zip(our_tf, user=posting_user)
-        # chose the try approach as suggested by the link below
-        # http://stackoverflow.com/questions/82831
-        try:
-            os.remove(our_tfpath)
-        except IOError:
-            # TODO: log this Exception somewhere
-            pass
-        json_msg = {
-            'message': _(u"Submission complete. Out of %(total)d "
-                         u"survey instances, %(success)d were imported, "
-                         u"(%(rejected)d were rejected as duplicates, "
-                         u"missing forms, etc.)") %
-            {'total': total_count, 'success': success_count,
-             'rejected': total_count - success_count},
-            'errors': u"%d %s" % (len(errors), errors)
-        }
-        audit = {
-            "bulk_submission_log": json_msg
-        }
-        audit_log(Actions.USER_BULK_SUBMISSION, request.user, posting_user,
-                  _("Made bulk submissions."), audit, request)
-        response = HttpResponse(json.dumps(json_msg))
-        response.status_code = 200
-        response['Location'] = request.build_absolute_uri(request.path)
-        return response
-    else:
+    if len(temp_postfile) != 1:
         return HttpResponseBadRequest(_(u"There was a problem receiving your"
                                         u" ODK submission. [Error: multiple "
                                         u"submission files (?)]"))
+
+    postfile = temp_postfile[0]
+    tempdir = tempfile.gettempdir()
+    our_tfpath = os.path.join(tempdir, postfile.name)
+
+    with open(our_tfpath, 'wb') as f:
+        f.write(postfile.read())
+
+    with open(our_tfpath, 'rb') as f:
+        total_count, success_count, errors = import_instances_from_zip(
+            f, posting_user)
+    # chose the try approach as suggested by the link below
+    # http://stackoverflow.com/questions/82831
+    try:
+        os.remove(our_tfpath)
+    except IOError:
+        # TODO: log this Exception somewhere
+        pass
+    json_msg = {
+        'message': _(u"Submission complete. Out of %(total)d "
+                     u"survey instances, %(success)d were imported, "
+                     u"(%(rejected)d were rejected as duplicates, "
+                     u"missing forms, etc.)") %
+        {'total': total_count, 'success': success_count,
+         'rejected': total_count - success_count},
+        'errors': u"%d %s" % (len(errors), errors)
+    }
+    audit = {
+        "bulk_submission_log": json_msg
+    }
+    audit_log(Actions.USER_BULK_SUBMISSION, request.user, posting_user,
+              _("Made bulk submissions."), audit, request)
+    response = HttpResponse(json.dumps(json_msg))
+    response.status_code = 200
+    response['Location'] = request.build_absolute_uri(request.path)
+    return response
 
 
 @login_required
@@ -209,7 +255,7 @@ def submission(request, username=None):
     context = RequestContext(request)
     xml_file_list = []
     media_files = []
-    html_response = False
+
     # request.FILES is a django.utils.datastructures.MultiValueDict
     # for each key we have a list of values
     try:
@@ -223,9 +269,7 @@ def submission(request, username=None):
 
         # get uuid from post request
         uuid = request.POST.get('uuid')
-        # response as html if posting with a UUID
-        if not username and uuid:
-            html_response = True
+
         try:
             instance = create_instance(
                 username, xml_file_list[0], media_files,
@@ -256,8 +300,6 @@ def submission(request, username=None):
             return response
         except PermissionDenied, e:
             return OpenRosaResponseNotAllowed(e.message)
-        except Exception, e:
-            raise
 
         if instance is None:
             return OpenRosaResponseBadRequest(
@@ -272,24 +314,16 @@ def submission(request, username=None):
             {
                 "id_string": instance.xform.id_string
             }, audit, request)
+
+        # response as html if posting with a UUID
+        if not username and uuid:
+            response = _html_submission_response(context, instance)
+        else:
+            response = _odk_submission_response(context, instance)
+
         # ODK needs two things for a form to be considered successful
         # 1) the status code needs to be 201 (created)
         # 2) The location header needs to be set to the host it posted to
-        if html_response:
-            context.username = instance.user.username
-            context.id_string = instance.xform.id_string
-            context.domain = Site.objects.get(id=settings.SITE_ID).domain
-            response = render_to_response("submission.html",
-                                          context_instance=context)
-        else:
-            context.message = _("Successful submission.")
-            context.formid = instance.xform.id_string
-            context.encrypted = instance.xform.encrypted
-            context.instanceID = u'uuid:%s' % instance.uuid
-            context.submissionDate = instance.date_created.isoformat()
-            context.markedAsCompleteDate = instance.date_modified.isoformat()
-            t = loader.get_template('submission.xml')
-            response = BaseOpenRosaResponse(t.render(context))
         response.status_code = 201
         response['Location'] = request.build_absolute_uri(request.path)
         return response
@@ -433,13 +467,9 @@ def enter_data(request, username, id_string):
                               id_string=id_string)
     if not has_edit_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
-    try:
-        formhub_url = "http://%s/" % request.META['HTTP_HOST']
-    except:
-        formhub_url = "http://formhub.org/"
-    form_url = formhub_url + username
-    if settings.TESTING_MODE:
-        form_url = "https://testserver.com/bob"
+
+    form_url = _get_form_url(request, username)
+
     try:
         url = enketo_url(form_url, xform.id_string)
         if not url:
@@ -486,10 +516,6 @@ def edit_data(request, username, id_string, data_id):
 
     url = '%sdata/edit_url' % settings.ENKETO_URL
     # see commit 220f2dad0e for tmp file creation
-    try:
-        formhub_url = "http://%s/" % request.META['HTTP_HOST']
-    except:
-        formhub_url = "http://formhub.org/"
     injected_xml = inject_instanceid(instance.xml, instance.uuid)
     return_url = request.build_absolute_uri(
         reverse(
@@ -498,9 +524,8 @@ def edit_data(request, username, id_string, data_id):
                 'username': username,
                 'id_string': id_string}
         ) + "#/" + str(instance.id))
-    form_url = formhub_url + username
-    if settings.TESTING_MODE:
-        form_url = "https://testserver.com/bob"
+    form_url = _get_form_url(request, username)
+
     try:
         url = enketo_url(
             form_url, xform.id_string, instance_xml=injected_xml,
@@ -540,21 +565,14 @@ def view_submission_list(request, username):
     cursor = request.GET.get('cursor', None)
     instances = xform.surveys.all().order_by('pk')
 
+    cursor = _parse_int(cursor)
     if cursor:
-        try:
-            cursor = int(cursor)
-        except ValueError:
-            pass
-        else:
-            instances = instances.filter(pk__gt=cursor)
+        instances = instances.filter(pk__gt=cursor)
 
+    num_entries = _parse_int(num_entries)
     if num_entries:
-        try:
-            num_entries = int(num_entries)
-        except ValueError:
-            pass
-        else:
-            instances = instances[:num_entries]
+        instances = instances[:num_entries]
+
     context.instances = instances
 
     if instances.count():
@@ -571,13 +589,6 @@ def view_submission_list(request, username):
 
 
 def view_download_submission(request, username):
-
-    def extract_uuid(text):
-        text = text[text.find("@key="):-1].replace("@key=", "")
-        if text.startswith("uuid:"):
-            text = text.replace("uuid:", "")
-        return text
-
     form_user = get_object_or_404(User, username=username)
     profile, created = \
         UserProfile.objects.get_or_create(user=form_user)
@@ -594,7 +605,7 @@ def view_download_submission(request, username):
     if form_id_parts.__len__() < 2:
         return HttpResponseBadRequest()
 
-    uuid = extract_uuid(form_id_parts[1])
+    uuid = _extract_uuid(form_id_parts[1])
     instance = get_object_or_404(
         Instance, xform__id_string=id_string, uuid=uuid,
         user__username=username)
@@ -677,7 +688,8 @@ def ziggy_submissions(request, username):
             # save submission
             # i.e pick entity_id, instance_id, server_version, client_version?
             # reporter_id
-            records = ZiggyInstance.create_ziggy_instances(form_user, json_post)
+            records = ZiggyInstance.create_ziggy_instances(
+                form_user, json_post)
 
             data = {'status': 'success',
                     'message': _(u"Successfully processed %(records)s records"
