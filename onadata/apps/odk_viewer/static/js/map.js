@@ -217,6 +217,12 @@
         // FH Datavore wrapper
         datavoreWrapper: void 0,
 
+        // The currecntly active view-by field
+        selectedViewByField: void 0,
+
+        // Currently selected list of choices
+        selectedViewByChoices: [],
+
         initialize: function (attributes, options) {
             var form,
                 data,
@@ -319,6 +325,8 @@
                 if(!this.datavoreWrapper) {
                     throw new Error("The Datavore wrapper must have been initialised");
                 }
+
+                this.selectedViewByField = field;
                 // Group by the selected field
                 groups = this.datavoreWrapper.countBy(field.id);
                 chromaScale = chroma.scale('Set3').domain([0, groups.length - 1]).out('hex');
@@ -346,6 +354,50 @@
                         opacity: 0.5
                     });
                 });
+            }, this);
+
+            this.layerView.on('choicesChanged', function (selectedChoices) {
+                // Check if we have any choices, if not show everything
+                var _that = this;
+
+                if (selectedChoices.length > 0) {
+                    this.featureGroup.eachLayer(function (layer) {
+                        var style,
+                            opacity,
+                            response = layer._fh_data.get(_that.selectedViewByField.get('xpath'));
+                        // If response is not one of the choices, set its opacity
+                        if( _.indexOf(selectedChoices, response) > -1 ) {
+                            opacity = 0.9;
+                        } else {
+                            opacity = 0.2;
+                        }
+                        style = {
+                            color: layer.options.color,
+                            border: layer.options.border,
+                            fillColor: layer.options.fillColor,
+                            fillOpacity: layer.options.fillOpacity,
+                            radius: layer.options.radius,
+                            opacity: layer.options.opacity
+                        };
+                        style.fillOpacity = style.opacity = opacity;
+                        layer.setStyle(style);
+                    });
+                } else {
+                    this.featureGroup.eachLayer(function (layer) {
+                        var style = {
+                            color: layer.options.color,
+                            border: layer.options.border,
+                            fillColor: layer.options.fillColor,
+                            fillOpacity: layer.options.fillOpacity,
+                            radius: layer.options.radius,
+                            opacity: layer.options.opacity
+                        };
+
+                        // Set every layer's opacity to full
+                        style.fillOpacity = style.opacity = 0.9;
+                        layer.setStyle(style);
+                    });
+                }
             }, this);
         },
 
@@ -404,7 +456,7 @@
                 '<ul class="nav nav-pills nav-stacked">' +
                   '<% _.each(layer.choices, function(choice){ %>' +
                     '<li>' +
-                      '<a href="javascript:;" rel="">' +
+                      '<a href="javascript:;" rel="" data-choice="<%= choice.id %>" class="legend-label">' +
                         '<span class="legend-bullet" style="background-color: <%= choice.color %>;"></span>' +
                         '<span class="legend-response-count"><%= choice.count %></span>' +
                         '<span class="item-label language"><%= choice.title || "Not Specified" %></span>' +
@@ -415,7 +467,8 @@
               '</div>' +
             '<% } %>'),
         events: {
-            "change .field-selector": "fieldSelected"
+            "change .field-selector": "fieldSelected",
+            "click ul.nav li a": "choiceClicked"
         },
 
         initialize: function (options) {
@@ -459,6 +512,23 @@
                 // trigger field selected
                 this.trigger('fieldSelected', targetField);
             }
+        },
+
+        choiceClicked: function (evt) {
+            var $target = $(evt.currentTarget),
+                choice;
+            choice = $target.data('choice');
+
+            // Toggle the choices active state
+            $target.hasClass('active')?$target.removeClass('active'):$target.addClass('active');
+
+            // Get list of active choices
+            this.trigger(
+                'choicesChanged',
+                _.map(this.$el.find('a.active'), function (el) {
+                    return $(el).data('choice');
+                })
+            );
         }
     });
 
