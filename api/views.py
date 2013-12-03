@@ -44,7 +44,7 @@ This endpoint allows you to list and retrieve user's first and last names.
 ## List Users
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/users
+>       curl -X GET https://ona.io/api/v1/users
 
 > Response:
 
@@ -69,7 +69,7 @@ This endpoint allows you to list and retrieve user's first and last names.
 
 > Example:
 >
->        curl -X GET https://formhub.org/api/v1/users/demo
+>        curl -X GET https://ona.io/api/v1/users/demo
 
 > Response:
 >
@@ -114,13 +114,13 @@ List, Retrieve, Update, Create/Register users.
 <pre class="prettyprint"><b>GET</b> /api/v1/profiles</pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/profiles
+>       curl -X GET https://ona.io/api/v1/profiles
 
 > Response
 >
 >       [
 >        {
->            "url": "https://formhub.org/api/v1/profiles/demo",
+>            "url": "https://ona.io/api/v1/profiles/demo",
 >            "username": "demo",
 >            "name": "Demo User",
 >            "email": "demo@localhost.com",
@@ -131,7 +131,7 @@ List, Retrieve, Update, Create/Register users.
 >            "twitter": "",
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
->            "user": "https://formhub.org/api/v1/users/demo"
+>            "user": "https://ona.io/api/v1/users/demo"
 >        },
 >        {
 >           ...}, ...
@@ -142,12 +142,12 @@ List, Retrieve, Update, Create/Register users.
 <pre class="prettyprint"><b>GET</b> /api/v1/profiles/{username}</pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/profiles/demo
+>       curl -X GET https://ona.io/api/v1/profiles/demo
 
 > Response
 >
 >        {
->            "url": "https://formhub.org/api/v1/profiles/demo",
+>            "url": "https://ona.io/api/v1/profiles/demo",
 >            "username": "demo",
 >            "name": "Demo User",
 >            "email": "demo@localhost.com",
@@ -158,7 +158,7 @@ List, Retrieve, Update, Create/Register users.
 >            "twitter": "",
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
->            "user": "https://formhub.org/api/v1/users/demo"
+>            "user": "https://ona.io/api/v1/users/demo"
 >        }
 """
     queryset = UserProfile.objects.all()
@@ -196,13 +196,13 @@ List, Retrieve, Update, Create/Register Organizations
 <pre class="prettyprint"><b>GET</b> /api/v1/orgs</pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/orgs
+>       curl -X GET https://ona.io/api/v1/orgs
 
 > Response
 >
 >       [
 >        {
->            "url": "https://formhub.org/api/v1/orgs/modilabs",
+>            "url": "https://ona.io/api/v1/orgs/modilabs",
 >            "org": "modilabs",
 >            "name": "Modi Labs Research",
 >            "email": "modilabs@localhost.com",
@@ -212,8 +212,8 @@ List, Retrieve, Update, Create/Register Organizations
 >            "twitter": "",
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
->            "user": "https://formhub.org/api/v1/users/modilabs"
->            "creator": "https://formhub.org/api/v1/users/demo"
+>            "user": "https://ona.io/api/v1/users/modilabs"
+>            "creator": "https://ona.io/api/v1/users/demo"
 >        },
 >        {
 >           ...}, ...
@@ -224,12 +224,12 @@ List, Retrieve, Update, Create/Register Organizations
 <pre class="prettyprint"><b>GET</b> /api/v1/orgs/{username}</pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/orgs/modilabs
+>       curl -X GET https://ona.io/api/v1/orgs/modilabs
 
 > Response
 >
 >        {
->            "url": "https://formhub.org/api/v1/orgs/modilabs",
+>            "url": "https://ona.io/api/v1/orgs/modilabs",
 >            "org": "modilabs",
 >            "name": "Modi Labs Research",
 >            "email": "modilabs@localhost.com",
@@ -239,8 +239,8 @@ List, Retrieve, Update, Create/Register Organizations
 >            "twitter": "",
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
->            "user": "https://formhub.org/api/v1/users/modilabs"
->            "creator": "https://formhub.org/api/v1/users/demo"
+>            "user": "https://ona.io/api/v1/users/modilabs"
+>            "creator": "https://ona.io/api/v1/users/demo"
 >        }
 """
     queryset = OrganizationProfile.objects.all()
@@ -281,12 +281,12 @@ Where:
 {formid}</code></pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/forms/28058
+>       curl -X GET https://ona.io/api/v1/forms/28058
 
 > Response
 >
 >       {
->           "url": "https://formhub.org/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/modilabs/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -298,7 +298,7 @@ Where:
 >           "downloadable": true,
 >           "encrypted": false,
 >           "is_crowd_form": false,
->           "owner": "https://formhub.org/api/v1/users/modilabs",
+>           "owner": "https://ona.io/api/v1/users/modilabs",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -311,12 +311,12 @@ Where:
 <b>GET</b> /api/v1/forms/<code>{owner}</code></pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/forms/modilabs
+>       curl -X GET https://ona.io/api/v1/forms/modilabs
 
 > Response
 >
 >       [{
->           "url": "https://formhub.org/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/modilabs/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -331,7 +331,7 @@ Where:
 <code>{format}</code></pre>
 > JSON Example
 >
->       curl -X GET https://formhub.org/api/v1/forms/modilabs/28058/form.json
+>       curl -X GET https://ona.io/api/v1/forms/modilabs/28058/form.json
 
 > Response
 >
@@ -353,7 +353,7 @@ Where:
 
 > XML Example
 >
->       curl -X GET https://formhub.org/api/v1/forms/modilabs/28058/form.xml
+>       curl -X GET https://ona.io/api/v1/forms/modilabs/28058/form.xml
 
 > Response
 >
@@ -380,13 +380,13 @@ tag1,tag2</code></pre>
 List forms tagged `smart` or `brand new` or both.
 > Request
 >
->       curl -X GET https://formhub.org/api/v1/forms?tag=smart,brand+new
+>       curl -X GET https://ona.io/api/v1/forms?tag=smart,brand+new
 
 > Response
 >        HTTP 200 OK
 >
 >       [{
->           "url": "https://formhub.org/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/modilabs/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -402,7 +402,7 @@ List forms tagged `smart` or `brand new` or both.
 </pre>
 > Request
 >
->       curl -X GET https://formhub.org/api/v1/forms/28058/labels
+>       curl -X GET https://ona.io/api/v1/forms/28058/labels
 
 > Response
 >
@@ -434,12 +434,12 @@ Payload
 > Request
 >
 >       curl -X DELETE
->       https://formhub.org/api/v1/forms/modilabs/28058/labels/tag1
+>       https://ona.io/api/v1/forms/modilabs/28058/labels/tag1
 >
 > or to delete the tag "hello world"
 >
 >       curl -X DELETE
->       https://formhub.org/api/v1/forms/modilabs/28058/labels/hello%20world
+>       https://ona.io/api/v1/forms/modilabs/28058/labels/hello%20world
 >
 > Response
 >
@@ -546,8 +546,8 @@ Where:
 > Example
 >
 >       {
->           "url": "https://formhub.org/api/v1/projects/modilabs/1",
->           "owner": "https://formhub.org/api/v1/users/modilabs",
+>           "url": "https://ona.io/api/v1/projects/modilabs/1",
+>           "owner": "https://ona.io/api/v1/users/modilabs",
 >           "name": "project 1",
 >           "date_created": "2013-07-24T13:37:39Z",
 >           "date_modified": "2013-07-24T13:37:39Z"
@@ -559,22 +559,22 @@ Where:
 <b>GET</b> /api/v1/projects/<code>{owner}</code></pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/projects
->       curl -X GET https://formhub.org/api/v1/projects/modilabs
+>       curl -X GET https://ona.io/api/v1/projects
+>       curl -X GET https://ona.io/api/v1/projects/modilabs
 
 > Response
 >
 >       [
 >           {
->               "url": "https://formhub.org/api/v1/projects/modilabs/1",
->               "owner": "https://formhub.org/api/v1/users/modilabs",
+>               "url": "https://ona.io/api/v1/projects/modilabs/1",
+>               "owner": "https://ona.io/api/v1/users/modilabs",
 >               "name": "project 1",
 >               "date_created": "2013-07-24T13:37:39Z",
 >               "date_modified": "2013-07-24T13:37:39Z"
 >           },
 >           {
->               "url": "https://formhub.org/api/v1/projects/modilabs/4",
->               "owner": "https://formhub.org/api/v1/users/modilabs",
+>               "url": "https://ona.io/api/v1/projects/modilabs/4",
+>               "owner": "https://ona.io/api/v1/users/modilabs",
 >               "name": "project 2",
 >               "date_created": "2013-07-24T13:59:10Z",
 >               "date_modified": "2013-07-24T13:59:10Z"
@@ -587,13 +587,13 @@ Where:
 <b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code></pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/projects/modilabs/1
+>       curl -X GET https://ona.io/api/v1/projects/modilabs/1
 
 > Response
 >
 >       {
->           "url": "https://formhub.org/api/v1/projects/modilabs/1",
->           "owner": "https://formhub.org/api/v1/users/modilabs",
+>           "url": "https://ona.io/api/v1/projects/modilabs/1",
+>           "owner": "https://ona.io/api/v1/users/modilabs",
 >           "name": "project 1",
 >           "date_created": "2013-07-24T13:37:39Z",
 >           "date_modified": "2013-07-24T13:37:39Z"
@@ -606,12 +606,12 @@ Where:
 > Example
 >
 >       curl -X POST -F xls_file=@/path/to/form.xls
->       https://formhub.org/api/v1/projects/modilabs/1/forms
+>       https://ona.io/api/v1/projects/modilabs/1/forms
 
 > Response
 >
 >       {
->           "url": "https://formhub.org/api/v1/forms/28058",
+>           "url": "https://ona.io/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -637,12 +637,12 @@ Where:
 {formid}</code></pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/projects/modilabs/1/forms/28058
+>       curl -X GET https://ona.io/api/v1/projects/modilabs/1/forms/28058
 
 > Response
 >
 >       {
->           "url": "https://formhub.org/api/v1/forms/28058",
+>           "url": "https://ona.io/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -746,21 +746,21 @@ Provides a json list of teams within a specified organization
 
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/teams/bruize
+>       curl -X GET https://ona.io/api/v1/teams/bruize
 
 > Response
 >
 >        [
 >            {
->                "url": "https://formhub.org/api/v1/teams/bruize/1",
+>                "url": "https://ona.io/api/v1/teams/bruize/1",
 >                "name": "Owners",
->                "organization": "https://formhub.org/api/v1/users/bruize",
+>                "organization": "https://ona.io/api/v1/users/bruize",
 >                "projects": []
 >            },
 >            {
->                "url": "https://formhub.org/api/v1/teams/bruize/2",
+>                "url": "https://ona.io/api/v1/teams/bruize/2",
 >                "name": "demo team",
->                "organization": "https://formhub.org/api/v1/users/bruize",
+>                "organization": "https://ona.io/api/v1/users/bruize",
 >                "projects": []
 >            }
 >        ]
@@ -778,14 +778,14 @@ Shows teams details and the projects the team is assigned to, where:
 
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/teams/bruize/1
+>       curl -X GET https://ona.io/api/v1/teams/bruize/1
 
 > Response
 >
 >        {
->            "url": "https://formhub.org/api/v1/teams/bruize/1",
+>            "url": "https://ona.io/api/v1/teams/bruize/1",
 >            "name": "Owners",
->            "organization": "https://formhub.org/api/v1/users/bruize",
+>            "organization": "https://ona.io/api/v1/users/bruize",
 >            "projects": []
 >        }
 """
@@ -841,14 +841,14 @@ This is a json list of the data end points of `owner` forms
 
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/data/modilabs
+>       curl -X GET https://ona.io/api/v1/data/modilabs
 
 > Response
 >
 >        {
->            "dhis2form": "https://formhub.org/api/v1/data/modilabs/4240",
->            "exp_one": "https://formhub.org/api/v1/data/modilabs/13789",
->            "userone": "https://formhub.org/api/v1/data/modilabs/10417",
+>            "dhis2form": "https://ona.io/api/v1/data/modilabs/4240",
+>            "exp_one": "https://ona.io/api/v1/data/modilabs/13789",
+>            "userone": "https://ona.io/api/v1/data/modilabs/10417",
 >        }
 
 ## Get Submitted data for a specific form
@@ -857,7 +857,7 @@ Provides a list of json submitted data for a specific form.
 <b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code></pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/data/modilabs/22845
+>       curl -X GET https://ona.io/api/v1/data/modilabs/22845
 
 > Response
 >
@@ -909,7 +909,7 @@ Get a single specific submission json data providing `formid`
 {dataid}</code></pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/data/modilabs/22845/4503
+>       curl -X GET https://ona.io/api/v1/data/modilabs/22845/4503
 
 > Response
 >
@@ -961,7 +961,7 @@ API Parameters</a>.
 ?query={"field":"value"}</pre>
 > Example
 >
->       curl -X GET  https://formhub.org/api/v1/data/modilabs/22845
+>       curl -X GET  https://ona.io/api/v1/data/modilabs/22845
 >       ?query={"kind": "monthly"}
 
 > Response
@@ -1016,7 +1016,7 @@ should be a comma separated list of tags.
 
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/data/modilabs/22845?tags=monthly
+>       curl -X GET https://ona.io/api/v1/data/modilabs/22845?tags=monthly
 
 ## Tag a submission data point
 
@@ -1044,11 +1044,11 @@ Payload
 > Request
 >
 >       curl -X DELETE
->       https://formhub.org/api/v1/data/modilabs/28058/20/labels/tag1
+>       https://ona.io/api/v1/data/modilabs/28058/20/labels/tag1
 or to delete the tag "hello world"
 >
 >       curl -X DELETE
->       https://formhub.org/api/v1/data/modilabs/28058/20/labels/hello%20world
+>       https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
 >
 > Response
 >
