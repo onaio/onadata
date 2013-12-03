@@ -133,11 +133,11 @@ class MultiLookupRouter(routers.DefaultRouter):
         for prefix, viewset, basename in self.registry:
             api_root_dict[prefix] = list_name.format(basename=basename)
 
-        class FormhubApi(APIView):
+        class OnaDataApi(APIView):
             """
             ## JSON Rest API
 
-            Formhub provides the following JSON api endpoints:
+            OnaData provides the following JSON api endpoints:
 
             * [/api/v1/users](/api/v1/users) - List, Retrieve username, first
             and last name
@@ -163,7 +163,7 @@ class MultiLookupRouter(routers.DefaultRouter):
 
             ## Authentication
 
-            Formhub JSON API enpoints support both Basic authentication
+            OnaData JSON API enpoints support both Basic authentication
             and API Token Authentication through the `Authorization` header.
 
             ### Basic Authentication
@@ -178,7 +178,7 @@ class MultiLookupRouter(routers.DefaultRouter):
 
                 curl -X GET https://formhub.org/api/v1 -H "Authorization: Token TOKEN_KEY"
 
-            ### Formhub Tagging API
+            ### OnaData Tagging API
 
             * [Filter form list by
             * tags.](/api/v1/forms#get-list-of-forms-with-specific-tags)
@@ -267,7 +267,7 @@ class MultiLookupRouter(routers.DefaultRouter):
 
             Now that you have an `access_token` you can make API calls.
 
-            ### 4. Accessing the Formhub API using the `access_token`.
+            ### 4. Accessing the OnaData API using the `access_token`.
 
             Example using curl:
 
@@ -282,7 +282,7 @@ class MultiLookupRouter(routers.DefaultRouter):
                         url_name, request=request, format=format)
                 return Response(ret)
 
-        return FormhubApi.as_view()
+        return OnaDataApi.as_view()
 
     def get_urls(self):
         ret = []
