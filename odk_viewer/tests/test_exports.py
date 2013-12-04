@@ -161,6 +161,20 @@ class TestDataExportURL(MainTestCase):
         basename, ext = os.path.splitext(filename)
         self.assertEqual(ext, '.zip')
 
+    def test_sav_zip_export_url(self):
+        self._submit_transport_instance()
+        url = reverse('sav_zip_export', kwargs={
+            'username': self.user.username,
+            'id_string': self.xform.id_string,
+        })
+        response = self.client.get(url)
+        headers = dict(response.items())
+        self.assertEqual(headers['Content-Type'], 'application/zip')
+        content_disposition = headers['Content-Disposition']
+        filename = self._filename_from_disposition(content_disposition)
+        basename, ext = os.path.splitext(filename)
+        self.assertEqual(ext, '.zip')
+
 
 class TestExports(MainTestCase):
     def setUp(self):

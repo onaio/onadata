@@ -262,7 +262,7 @@ def data_export(request, username, id_string, export_type):
     force_xlsx = request.GET.get('xls') != 'true'
     if export_type == Export.XLS_EXPORT and force_xlsx:
         extension = 'xlsx'
-    elif export_type == Export.CSV_ZIP_EXPORT:
+    elif export_type in [Export.CSV_ZIP_EXPORT, Export.SAV_ZIP_EXPORT]:
         extension = 'zip'
 
     audit = {
