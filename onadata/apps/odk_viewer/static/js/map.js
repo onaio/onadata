@@ -217,7 +217,10 @@
         // FH Datavore wrapper
         datavoreWrapper: void 0,
 
-        // The currecntly active view-by field
+        // Currently active list of choices
+        currentViewByChoices: void 0,
+
+        // The currently active view-by field
         selectedViewByField: void 0,
 
         // Currently selected list of choices
@@ -258,12 +261,19 @@
             // Initialize the `DataView`
             this.dataView = new FH.DataView();
 
+            // Create our layer's view
+            this.layerView = new FH.FeatureLayerView({featureLayer: this});
+
             // Initialize the form and geo data
             this.form = form = new FH.Form({}, {url: this.get('form_url')});
 
             // Set this layers language to the first language in the list if any
             form.on('change:languages', function (model, value) {
-                fhFeatureLayer.set('language', value.slice(0, 1)[0]);
+                var currentLanguage = value.slice(0, 1)[0];
+                fhFeatureLayer.set('languages', value);
+                fhFeatureLayer.set('language', currentLanguage);
+
+                // TODO: we should probably re-render the layerView if this change happens anywhere other than on initial load
             }, this);
 
             // Set the language to a default value to force the change event
@@ -279,7 +289,15 @@
                     throw new Error("Triggered language change without having a valid form");
                 }
                 this.dataView.renderTemplate(this.form.fields, language);
+
+                // Update the layer view
+                this.layerView.render(this);
             });
+
+            // Catch layer view's language change events and propagate to change:language
+            this.layerView.on('languageChanged', function (newLanguage) {
+                this.set('language', newLanguage);
+            }, this);
 
             // Re-build our layer view's field list whenever the forms fields change
             form.on('change:children', function () {
@@ -317,12 +335,12 @@
                 data.load({fields: gpsQuestions});
             });
 
-            // Create our layer's view
-            this.layerView = new FH.FeatureLayerView({featureLayer: this});
             this.layerView.on('fieldSelected', function (field) {
                 var groups,
-                    choices,
-                    chromaScale;
+                    chromaScale,
+                    featureLayer = this,
+                    children;
+
                 if(!this.datavoreWrapper) {
                     throw new Error("The Datavore wrapper must have been initialised");
                 }
@@ -331,10 +349,15 @@
                 // Group by the selected field
                 groups = this.datavoreWrapper.countBy(field.id);
                 chromaScale = chroma.scale('Set3').domain([0, Math.max(groups.length - 1, 1)]).out('hex');
-                choices = _.map(groups, function (g, idx) {
-                    return {id: g.key, title: g.key, count: g.value, color: chromaScale(idx)};
+
+                this.currentViewByChoices = _.map(groups, function (g, idx) {
+                    var choice = _.find(field.get(FH.constants.CHILDREN), function (c) {
+                        return c.name === g.key;
+                    });
+                    // Turn the choice into an FH.Field so we can make use of the multi-lang feature
+                    return {field: new FH.Field(choice), count: g.value, color: chromaScale(idx)};
                 });
-                this.layerView.render(this, field.cid, choices);
+                this.layerView.render(this);
 
                 // Update markers
                 this.featureGroup.eachLayer(function (layer) {
@@ -343,8 +366,8 @@
                         value = layer._fh_data.get(field.get('xpath'));
 
                     // Find the match and thus the color within choices
-                    match = _.find(choices, function (choice) {
-                        return choice.id === value;
+                    match = _.find(featureLayer.currentViewByChoices, function (choice) {
+                        return choice.field.get(FH.constants.NAME) === value;
                     });
                     layer.setStyle({
                         color: '#fff',
@@ -444,7 +467,18 @@
     FH.FeatureLayerView = Backbone.View.extend({
         className: 'feature-layer leaflet-control',
         template: _.template('<h3><%= layer.title %></h3>' +
+            '<% if(layer.languages.length > 0){ %>' +
+              '<h4>Language</h4>' +
+              '<div>' +
+                '<select class="language-selector">' +
+                  '<% _.each(layer.languages, function(lang){ %>' +
+                    '<option value="<%= lang %>" <% if(lang === layer.currentLang){ %> selected="" <% } %>><%= lang %></option>' +
+                  '<% }); %>' +
+                '</select>' +
+              '</div>' +
+            '<% } %>' +
             '<div>' +
+              '<h4>View By</h4>' +
               '<select class="field-selector">' +
                 '<option value="">--None--</option>' +
                 '<% _.each(layer.fields, function(field){ %>' +
@@ -469,7 +503,8 @@
             '<% } %>'),
         events: {
             "change .field-selector": "fieldSelected",
-            "click ul.nav li a": "choiceClicked"
+            "click ul.nav li a": "choiceClicked",
+            "change .language-selector": "languageChanged"
         },
 
         initialize: function (options) {
@@ -479,25 +514,31 @@
             this.featureLayer = options.featureLayer;
         },
 
-        render: function (featureLayer, fieldCID, choices) {
+        render: function (featureLayer) {
             var data,
                 fields,
+                fieldCID,
+                choices,
                 fhFeatureLayerView = this;
 
-            fieldCID = fieldCID || "";
-            choices = choices || [];
+            fieldCID = featureLayer.selectedViewByField && featureLayer.selectedViewByField.cid || "";
+            choices = _.map(featureLayer.currentViewByChoices, function (choice) {
+                return {id: choice.field.get('name'), title: choice.field.get('label', featureLayer.get('language')), count: choice.count, color: choice.color};
+            });
             fields = featureLayer.form.questionsByType(FH.types.SELECT_ONE)
                 .map(function (field) {
                     return {
                         cid: field.cid,
-                        label: field.get('label', fhFeatureLayerView.featureLayer.get('language'))
+                        label: field.get('label', featureLayer.get('language'))
                     };
                 });
             data = {
                 title: featureLayer.form.get('title'),
                 fields: fields,
                 fieldCID: fieldCID,
-                choices: choices
+                choices: choices,
+                languages: featureLayer.get('languages') || [],
+                currentLang: featureLayer.get('language') || void 0
             };
             this.$el.html(this.template({layer: data}));
         },
@@ -531,6 +572,12 @@
                     return $(el).data('choice') || undefined;
                 })
             );
+        },
+
+        languageChanged: function (evt) {
+            var $target = $(evt.currentTarget);
+
+            this.trigger('languageChanged', $target.val());
         }
     });
 
