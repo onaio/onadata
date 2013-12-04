@@ -330,7 +330,7 @@
                 this.selectedViewByField = field;
                 // Group by the selected field
                 groups = this.datavoreWrapper.countBy(field.id);
-                chromaScale = chroma.scale('Set3').domain([0, groups.length - 1]).out('hex');
+                chromaScale = chroma.scale('Set3').domain([0, Math.max(groups.length - 1, 1)]).out('hex');
                 choices = _.map(groups, function (g, idx) {
                     return {id: g.key, title: g.key, count: g.value, color: chromaScale(idx)};
                 });
