@@ -56,7 +56,7 @@
         // here.
         initialize: function (options) {
             var default_layer_config,
-                _that = this;
+                fhMap = this;
 
             this.options = options || {};
 
@@ -82,35 +82,35 @@
 
             // Listen for `add` events to add the feature to the map
             this.featureLayers.on('add', function (featureLayer) {
-                featureLayer.featureGroup.addTo(_that._map);
+                featureLayer.featureGroup.addTo(fhMap._map);
 
                 // When markers have been added, fit the maps bounds based on all
                 // feature layers
                 featureLayer.on('markersCreated', function () {
-                    _that.reCalculateBounds();
+                    fhMap.reCalculateBounds();
                 });
 
                 // Listen to `markerClicked` events from the feature
                 featureLayer.on('markerClicked', function (record) {
                     // Update the data view's model
                     featureLayer.dataView.setModel(record);
-                    _that.dataModal.render(featureLayer.dataView.$el, record);
+                    fhMap.dataModal.render(featureLayer.dataView.$el, record);
                 });
 
                 // Add the layer's controls to the page
-                _that.$featureLayersContainer.append(featureLayer.layerView.$el);
+                fhMap.$featureLayersContainer.append(featureLayer.layerView.$el);
             });
 
             // Listen for `remove` events to remove the feature from the map
             this.featureLayers.on('remove', function (featureLayer) {
                 // TODO: HACK
-                _that.markerColors.push(featureLayer.fillColor);
+                fhMap.markerColors.push(featureLayer.fillColor);
 
                 // Remove the layer's view from the page
                 featureLayer.layerView.remove();
 
-                _that._map.removeLayer(featureLayer.featureGroup);
-                _that.reCalculateBounds();
+                fhMap._map.removeLayer(featureLayer.featureGroup);
+                fhMap.reCalculateBounds();
             });
 
             // Create a `DataModal` instance to manage the data modal
@@ -123,7 +123,7 @@
             this.options.layers.forEach(function (layer_config) {
                 // is this layer the we determined to be our default
                 var is_default = default_layer_config === layer_config;
-                _that.addBaseLayer(layer_config, is_default);
+                fhMap.addBaseLayer(layer_config, is_default);
             });
         },
 
@@ -226,7 +226,7 @@
         initialize: function (attributes, options) {
             var form,
                 data,
-                _that = this;
+                fhFeatureLayer = this;
 
             if (!this.get('form_url')) {
                 throw new Error("You must specify the form's url");
@@ -252,7 +252,7 @@
                     throw new Error("Marker layer does not have a record attached");
                 }
                 // Trigger a marker clicked event to be handled by the map
-                _that.trigger('markerClicked', record);
+                fhFeatureLayer.trigger('markerClicked', record);
             });
 
             // Initialize the `DataView`
@@ -263,7 +263,7 @@
 
             // Set this layers language to the first language in the list if any
             form.on('change:languages', function (model, value) {
-                _that.set('language', value.slice(0, 1)[0]);
+                fhFeatureLayer.set('language', value.slice(0, 1)[0]);
             }, this);
 
             // Set the language to a default value to force the change event
@@ -296,10 +296,10 @@
                         return q.get(FH.constants.XPATH);
                     });
 
-                _that.data = data = new FH.DataSet([], {url: _that.get('data_url')});
+                fhFeatureLayer.data = data = new FH.DataSet([], {url: fhFeatureLayer.get('data_url')});
                 data.on('load', function () {
                     // TODO: We might get here without any records, `markersCreated` then throws
-                    _that.createMarkers(gpsQuestions[0]);
+                    fhFeatureLayer.createMarkers(gpsQuestions[0]);
 
                     // Disable this callback - infinite loop bad
                     data.off('load');
@@ -309,7 +309,7 @@
                         // TODO: Enable the view for this feature layer here
 
                         // Initialize the Datavore wrapper
-                        _that.datavoreWrapper = new FH.DatavoreWrapper(
+                        fhFeatureLayer.datavoreWrapper = new FH.DatavoreWrapper(
                             {fieldSet: form.fields, dataSet: data});
                     });
                     data.load();
@@ -359,13 +359,13 @@
 
             this.layerView.on('choicesChanged', function (selectedChoices) {
                 // Check if we have any choices, if not show everything
-                var _that = this;
+                var fhFeatureLayer = this;
 
                 if (selectedChoices.length > 0) {
                     this.featureGroup.eachLayer(function (layer) {
                         var style,
                             opacity,
-                            response = layer._fh_data.get(_that.selectedViewByField.get('xpath'));
+                            response = layer._fh_data.get(fhFeatureLayer.selectedViewByField.get('xpath'));
                         // If response is not one of the choices, set its opacity
                         if( _.indexOf(selectedChoices, response) > -1 ) {
                             opacity = 0.9;
@@ -403,7 +403,7 @@
         },
 
         createMarkers: function (gps_field) {
-            var _that = this;
+            var fhFeatureLayer = this;
             // Clear any markers within the feature group
             this.featureGroup.clearLayers();
             this.data.each(function (record) {
@@ -413,14 +413,14 @@
                 if (gps_string) {
                     latLng = FH.FeatureLayer.parseLatLngString(gps_string);
                     //try{
-                    marker = L.circleMarker(latLng, _that.markerStyle);
+                    marker = L.circleMarker(latLng, fhFeatureLayer.markerStyle);
                     /*}
                      catch (e) {
                      //console.error(e);
                      }*/
                     // Attach the data to be used on marker clicks
                     marker._fh_data = record;
-                    _that.featureGroup.addLayer(marker);
+                    fhFeatureLayer.featureGroup.addLayer(marker);
                 }
             });
             // Trigger `markersCreated` event to notify that this layer is
@@ -482,7 +482,7 @@
         render: function (featureLayer, fieldCID, choices) {
             var data,
                 fields,
-                _that = this;
+                fhFeatureLayerView = this;
 
             fieldCID = fieldCID || "";
             choices = choices || [];
@@ -490,7 +490,7 @@
                 .map(function (field) {
                     return {
                         cid: field.cid,
-                        label: field.get('label', _that.featureLayer.get('language'))
+                        label: field.get('label', fhFeatureLayerView.featureLayer.get('language'))
                     };
                 });
             data = {
