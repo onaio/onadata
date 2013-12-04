@@ -28,6 +28,8 @@ class Export(models.Model):
     ZIP_EXPORT = 'zip'
     GDOC_EXPORT = 'gdoc'
     CSV_ZIP_EXPORT = 'csv_zip'
+    SAV_ZIP_EXPORT = 'sav_zip'
+    SAV_EXPORT = 'sav'
 
     EXPORT_MIMES = {
         'xls': 'vnd.ms-excel',

@@ -547,7 +547,7 @@ class ExportBuilder(object):
             self.SPLIT_SELECT_MULTIPLES)
         csv_builder.export_to(path)
 
-    def to_sav_export(self, path, data, *args):
+    def to_zipped_sav(self, path, data, *args):
         def encode_if_str(row, key):
             val = row.get(key)
             if isinstance(val, basestring):
@@ -657,6 +657,7 @@ def generate_export(export_type, extension, username, id_string,
         Export.XLS_EXPORT: 'to_xls_export',
         Export.CSV_EXPORT: 'to_flat_csv_export',
         Export.CSV_ZIP_EXPORT: 'to_zipped_csv',
+        Export.SAV_ZIP_EXPORT: 'to_zipped_sav',
     }
 
     xform = XForm.objects.get(user__username=username, id_string=id_string)
