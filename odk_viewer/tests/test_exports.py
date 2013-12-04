@@ -10,7 +10,6 @@ import shutil
 from openpyxl import load_workbook
 from time import sleep
 from pyxform.builder import create_survey_from_xls
-from django.conf import settings
 from main.tests.test_base import MainTestCase
 from django.utils.dateparse import parse_datetime
 from django.core.urlresolvers import reverse
@@ -18,19 +17,16 @@ from django.core.files.temp import NamedTemporaryFile
 from odk_viewer.xls_writer import XlsWriter
 from odk_viewer.views import delete_export, export_list, create_export,\
     export_progress, export_download
-from pyxform import SurveyElementBuilder
 from odk_viewer.models import Export, ParsedInstance
 from utils.export_tools import generate_export, increment_index_in_filename,\
     dict_to_joined_export, ExportBuilder
-from odk_logger.models import Instance, XForm
+from odk_logger.models import Instance
 from main.views import delete_data
-from utils.logger_tools import inject_instanceid
 from django.core.files.storage import get_storage_class
-from odk_viewer.pandas_mongo_bridge import NoRecordsFoundError
 from odk_viewer.tasks import create_xls_export
 from xlrd import open_workbook
 from odk_viewer.models.parsed_instance import _encode_for_mongo
-from odk_logger.xform_instance_parser import XFormInstanceParser
+from savReaderWriter import SavReader
 
 
 class TestExportList(MainTestCase):
@@ -2023,3 +2019,107 @@ class TestExportBuilder(MainTestCase):
         converted_val = ExportBuilder.convert_type(val, 'date')
         self.assertIsInstance(converted_val, datetime.date)
         self.assertEqual(converted_val, expected_val)
+
+    def test_to_sav_export(self):
+        survey = self._create_childrens_survey()
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        filename = temp_zip_file.name
+        export_builder.to_sav_export(filename, self.data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+
+        # generate data to compare with
+        index = 1
+        indices = {}
+        survey_name = survey.name
+        outputs = []
+        for d in self.data:
+            outputs.append(
+                dict_to_joined_export(d, index, indices, survey_name))
+            index += 1
+
+        # check that each file exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "{0}.sav".format(survey.name))))
+        with SavReader(
+                os.path.join(
+                    temp_dir, "{0}.sav".format(survey.name)),
+                returnHeader=True) as reader:
+            header = next(reader)
+            rows = [r for r in reader]
+
+            # open comparison file
+            with SavReader(
+                os.path.join(
+                    os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
+                    'spss', 'childrens_survey.sav'),
+                    returnHeader=True) as fixture_reader:
+                fixture_header = next(fixture_reader)
+                self.assertEqual(header, fixture_header)
+                expected_rows = [r for r in fixture_reader]
+                self.assertEqual(rows, expected_rows)
+
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "children.sav")))
+        with SavReader(os.path.join(temp_dir, "children.sav"),
+                       returnHeader=True) as reader:
+            header = next(reader)
+            rows = [r for r in reader]
+
+            # open comparison file
+            with SavReader(
+                os.path.join(
+                    os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
+                    'spss', 'children.sav'),
+                    returnHeader=True) as fixture_reader:
+                fixture_header = next(fixture_reader)
+                self.assertEqual(header, fixture_header)
+                expected_rows = [r for r in fixture_reader]
+                self.assertEqual(rows, expected_rows)
+
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "children_cartoons.sav")))
+        with SavReader(os.path.join(temp_dir, "children_cartoons.sav"),
+                       returnHeader=True) as reader:
+            header = next(reader)
+            rows = [r for r in reader]
+
+            # open comparison file
+            with SavReader(
+                os.path.join(
+                    os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
+                    'spss', 'children_cartoons.sav'),
+                    returnHeader=True) as fixture_reader:
+                fixture_header = next(fixture_reader)
+                self.assertEqual(header, fixture_header)
+                expected_rows = [r for r in fixture_reader]
+                self.assertEqual(rows, expected_rows)
+
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "children_cartoons_characters.sav")))
+        with SavReader(os.path.join(
+                temp_dir, "children_cartoons_characters.sav"),
+                returnHeader=True) as reader:
+            header = next(reader)
+            rows = [r for r in reader]
+
+            # open comparison file
+            with SavReader(
+                os.path.join(
+                    os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
+                    'spss', 'children_cartoons_characters.sav'),
+                    returnHeader=True) as fixture_reader:
+                fixture_header = next(fixture_reader)
+                self.assertEqual(header, fixture_header)
+                expected_rows = [r for r in fixture_reader]
+                self.assertEqual(rows, expected_rows)
