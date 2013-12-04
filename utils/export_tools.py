@@ -587,7 +587,7 @@ class ExportBuilder(object):
             )
             sav_file = NamedTemporaryFile(suffix=".sav")
             sav_writer = SavWriter(sav_file.name, varNames, varTypes,
-                                   varLabels=varLabels)
+                                   varLabels=varLabels, ioUtf8=True)
             sav_defs[section['name']] = {
                 'sav_file': sav_file, 'sav_writer': sav_writer}
 
