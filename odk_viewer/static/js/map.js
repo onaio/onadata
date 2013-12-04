@@ -209,7 +209,7 @@
             color: '#ff3300',
             border: 8,
             fillColor: '#fff',
-            fillOpacity: 0.9,
+            fillOpacity: 1.0,
             radius: 8,
             opacity: 0.5
         },
@@ -349,7 +349,7 @@
                         color: '#fff',
                         border: 8,
                         fillColor: match.color,
-                        fillOpacity: 0.9,
+                        fillOpacity: 1.0,
                         radius: 8,
                         opacity: 0.5
                     });
@@ -367,9 +367,9 @@
                             response = layer._fh_data.get(_that.selectedViewByField.get('xpath'));
                         // If response is not one of the choices, set its opacity
                         if( _.indexOf(selectedChoices, response) > -1 ) {
-                            opacity = 0.9;
+                            opacity = 1.0;
                         } else {
-                            opacity = 0.2;
+                            opacity = 0.0;
                         }
                         style = {
                             color: layer.options.color,
@@ -394,7 +394,7 @@
                         };
 
                         // Set every layer's opacity to full
-                        style.fillOpacity = style.opacity = 0.9;
+                        style.fillOpacity = style.opacity = 1.0;
                         layer.setStyle(style);
                     });
                 }

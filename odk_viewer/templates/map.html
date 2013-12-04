@@ -88,7 +88,7 @@
 </script>
 {% endif %}
 <script type="text/javascript">
-	var center = {{ center|safe }};
+	var center = {lat: 0, lng: 0};
     var default_zoom = 13;
 	var formJSONUrl = "{{ jsonform_url }}";
 	var enketoAddUrl = "{{ enketo_add_url }}";
