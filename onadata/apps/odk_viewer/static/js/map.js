@@ -298,6 +298,7 @@
 
                 _that.data = data = new FH.DataSet([], {url: _that.get('data_url')});
                 data.on('load', function () {
+                    // TODO: We might get here without any records, `markersCreated` then throws
                     _that.createMarkers(gpsQuestions[0]);
 
                     // Disable this callback - infinite loop bad
@@ -307,7 +308,7 @@
                     data.on('load', function(){
                         // TODO: Enable the view for this feature layer here
 
-                        // Initilaise the Dtavore wrapper
+                        // Initialize the Datavore wrapper
                         _that.datavoreWrapper = new FH.DatavoreWrapper(
                             {fieldSet: form.fields, dataSet: data});
                     });
@@ -526,7 +527,8 @@
             this.trigger(
                 'choicesChanged',
                 _.map(this.$el.find('a.active'), function (el) {
-                    return $(el).data('choice');
+                    // If choice is an empty string, return undefined
+                    return $(el).data('choice') || undefined;
                 })
             );
         }
