@@ -5,6 +5,7 @@ from utils.country_field import COUNTRIES
 from utils.gravatar import get_gravatar_img_link, gravatar_exists
 from django.db.models.signals import post_save
 from rest_framework.authtoken.models import Token
+from main.signals import set_api_permissions
 
 
 class UserProfile(models.Model):
@@ -60,3 +61,5 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
 post_save.connect(create_auth_token, sender=User)
+
+post_save.connect(set_api_permissions, sender=User)
