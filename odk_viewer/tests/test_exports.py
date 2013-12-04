@@ -81,10 +81,18 @@ class TestExportList(MainTestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 302)
 
-    def test_xsv_zip_export_list(self):
+    def test_csv_zip_export_list(self):
         kwargs = {'username': self.user.username,
                   'id_string': self.xform.id_string,
                   'export_type': Export.CSV_ZIP_EXPORT}
+        url = reverse(export_list, kwargs=kwargs)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_sav_zip_export_list(self):
+        kwargs = {'username': self.user.username,
+                  'id_string': self.xform.id_string,
+                  'export_type': Export.SAV_ZIP_EXPORT}
         url = reverse(export_list, kwargs=kwargs)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
