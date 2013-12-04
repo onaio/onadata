@@ -1,0 +1,6 @@
+pip install numpy --use-mirrors
+pip install -r requirements.pip
+pip install -r requirements-mysql.pip
+
+python manage.py syncdb --noinput
+python manage.py migrate
