@@ -37,6 +37,8 @@ class Export(models.Model):
         'csv': 'csv',
         'zip': 'zip',
         'csv_zip': 'zip',
+        'sav_zip': 'zip',
+        'sav': 'sav',
         'kml': 'vnd.google-earth.kml+xml'
     }
 
@@ -47,6 +49,8 @@ class Export(models.Model):
         (ZIP_EXPORT, 'ZIP'),
         (KML_EXPORT, 'kml'),
         (CSV_ZIP_EXPORT, 'CSV ZIP'),
+        (SAV_ZIP_EXPORT, 'SAV ZIP'),
+        (SAV_EXPORT, 'SAV'),
     ]
 
     EXPORT_TYPE_DICT = dict(export_type for export_type in EXPORT_TYPES)
