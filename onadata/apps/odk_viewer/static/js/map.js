@@ -94,7 +94,7 @@
                 featureLayer.on('markerClicked', function (record) {
                     // Update the data view's model
                     featureLayer.dataView.setModel(record);
-                    fhMap.dataModal.render(featureLayer.dataView.$el, record);
+                    featureLayer.dataModal.render(featureLayer.dataView.$el, record);
                 });
 
                 // Add the layer's controls to the page
@@ -112,9 +112,6 @@
                 fhMap._map.removeLayer(featureLayer.featureGroup);
                 fhMap.reCalculateBounds();
             });
-
-            // Create a `DataModal` instance to manage the data modal
-            this.dataModal = new FH.DataModal({el: '#enketo-modal'});
 
             // determine the default layer
             default_layer_config = FH.Map.determineDefaultLayer(this.options.layers);
@@ -156,7 +153,7 @@
 
         // Specify a form_url, data_url and optionally marker styles to create
         // and add a new feature/marker layer
-        addFeatureLayer: function (form_url, data_url, options) {
+        addFeatureLayer: function (formUrl, dataUrl, enketoEditUrl, enketoAddUrl, options) {
             options = options || {};
             // TODO: HACK
             var markerColor = this.markerColors.pop();
@@ -165,7 +162,7 @@
             // TODO: End HACK
 
             return this.featureLayers.createFeatureLayer(
-                form_url, data_url, options);
+                formUrl, dataUrl, enketoEditUrl, enketoAddUrl, options);
         }
     });
 
@@ -239,6 +236,14 @@
                 throw new Error("You must specify the data url");
             }
 
+            if (!this.get('enketoEditUrl')) {
+                throw new Error("You must specify the Enketo Edit url");
+            }
+
+            if (!this.get('enketoAddUrl')) {
+                throw new Error("You must specify the Enketo Add url");
+            }
+
             // TODO: HACK - Store the marker color
             this.fillColor = options.markerStyle.fillColor;
 
@@ -266,6 +271,21 @@
 
             // Initialize the form and geo data
             this.form = form = new FH.Form({}, {url: this.get('form_url')});
+
+            // An `EnketoIFrame`
+            this.enketoIFrame = new FH.EnketoIFrame({editUrlTpl: this.get('enketoEditUrl')});
+
+            // Create a `DataModal` instance to manage the data modal
+            this.dataModal = new FH.DataModal({el: '#enketo-modal'});
+
+            this.dataModal.on('editRequested', function (dataID) {
+                this.enketoIFrame.render(dataID);
+                this.dataModal.render(this.enketoIFrame.$el);
+            }, this);
+
+            this.dataModal.on('deletedRequested', function (dataID) {
+
+            }, this);
 
             // Set this layers language to the first language in the list if any
             form.on('change:languages', function (model, value) {
@@ -585,13 +605,15 @@
         model: FeatureLayer,
 
         // Convenience method to create a `FeatureLayer`
-        createFeatureLayer: function (form_url, data_url, options) {
+        createFeatureLayer: function (formUrl, dataUrl, enketoEditUrl, enketoAddUrl, options) {
             var featureLayer;
 
             options = options || {};
             featureLayer = new FeatureLayer({
-                form_url: form_url,
-                data_url: data_url
+                form_url: formUrl,
+                data_url: dataUrl,
+                enketoEditUrl: enketoEditUrl,
+                enketoAddUrl: enketoAddUrl
             }, options);
             this.add(featureLayer);
             return featureLayer;
@@ -603,11 +625,16 @@
     FH.DataView = Backbone.View.extend({
         // Don't set directly as we need to do some cleanup on set
         model: void 0,
+        attributes: {
+            class: 'inner-modal-content'
+        },
 
         render: function () {
             // Allow graceful rendering when model has not been set
             var data = this.model && this.model.toJSON() || {};
             this.$el.html(this.template({record: data}));
+            this.delegateEvents(this.events);
+            return this;
         },
 
         renderStatus: function (message) {
@@ -646,6 +673,16 @@
     FH.DataView.templateFromFields = function (fields, language) {
         var template_string = '<table class="table table-bordered table-striped">';
         template_string += '<tr><th>Question</th><th>Response</th></tr>';
+        // Render edit/delete buttons
+        template_string += '' +
+            '<ul>' +
+              '<li>' +
+                '<a class="edit-submission btn" data-id="<%= record["_id"] %>">Edit Submission Data</a>' +
+              '</li>' +
+              '<li>' +
+                '<a class="del-submission btn btn-danger" data-id="<%= record["_id"] %>">Delete Submission</a>' +
+              '</li>' +
+            '</ul>';
         // Render attachments
         template_string += '' +
             '<% if (record["_attachments"] && record["_attachments"].length > 0) { %>' +
@@ -670,11 +707,47 @@
         return template_string;
     };
 
+    FH.EnketoIFrame = Backbone.View.extend({
+        template: _.template('<iframe src="<%= data.url %>" scrolling="yes" marginwidth="0" marginheight="0" frameborder="0" vspace="0" hspace="0"></iframe>'),
+        attributes: {
+            class: 'inner-modal-content'
+        },
+
+        initialize: function (options) {
+            this.editUrlTemplate = _.template(options.editUrlTpl);
+        },
+
+        render: function (dataID) {
+            var data = {
+                url: this.editUrlTemplate({id: dataID})
+            };
+            this.$el.html(this.template({data: data}));
+        }
+    });
+
     FH.DataModal = Backbone.View.extend({
+        events: {
+            "click .edit-submission": "editClicked",
+            "click .del-submission": "deleteClicked"
+        },
+        attributes: {
+            class: 'inner-modal-content'
+        },
+
         render: function (elm, record) {
             // Clear current contents and append new
             this.$('.inner-modal').empty().append(elm);
             this.$el.modal();
+        },
+
+        editClicked: function (evt) {
+            var $target = $(evt.currentTarget);
+            this.trigger('editRequested', ($target.data('id')));
+        },
+
+        deleteClicked: function (evt) {
+            var $target = $(evt.currentTarget);
+            this.trigger('deleteRequested', ($target.data('id')));
         }
     });
 
