@@ -208,6 +208,14 @@
                 data = data[0];
             }
             this.set(data);
+        },
+
+        // Override `sync` to use POST on delete
+        sync: function (method, model, options) {
+            if (method === 'delete') {
+                method = 'create';
+            }
+            return Backbone.Model.prototype.sync.call(this, method, model, options);
         }
     });
 

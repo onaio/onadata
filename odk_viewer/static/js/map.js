@@ -153,7 +153,7 @@
 
         // Specify a form_url, data_url and optionally marker styles to create
         // and add a new feature/marker layer
-        addFeatureLayer: function (formUrl, dataUrl, enketoEditUrl, enketoAddUrl, options) {
+        addFeatureLayer: function (formUrl, dataUrl, enketoEditUrl, enketoAddUrl, deleteAPIUrl, options) {
             options = options || {};
             // TODO: HACK
             var markerColor = this.markerColors.pop();
@@ -162,7 +162,7 @@
             // TODO: End HACK
 
             return this.featureLayers.createFeatureLayer(
-                formUrl, dataUrl, enketoEditUrl, enketoAddUrl, options);
+                formUrl, dataUrl, enketoEditUrl, enketoAddUrl, deleteAPIUrl, options);
         }
     });
 
@@ -244,6 +244,10 @@
                 throw new Error("You must specify the Enketo Add url");
             }
 
+            if (!this.get('deleteAPIUrl')) {
+                throw new Error("You must specify the Delete API url");
+            }
+
             // TODO: HACK - Store the marker color
             this.fillColor = options.markerStyle.fillColor;
 
@@ -278,13 +282,43 @@
             // Create a `DataModal` instance to manage the data modal
             this.dataModal = new FH.DataModal({el: '#enketo-modal'});
 
+            // Delete confirmation modal
+            this.deleteModal = new FH.DeleteModal({el: '#delete-modal'});
+
             this.dataModal.on('editRequested', function (dataID) {
                 this.enketoIFrame.render(dataID);
                 this.dataModal.render(this.enketoIFrame.$el);
             }, this);
 
-            this.dataModal.on('deletedRequested', function (dataID) {
+            this.dataModal.on('deleteRequested', function (dataID) {
+                // Hide the DataModal
+                this.dataModal.$el.modal('hide');
+                this.deleteModal.render(dataID);
+            }, this);
 
+
+            this.deleteModal.on('deleteConfirmed', function (dataID){
+                // Find the record
+                var xhr,
+                    record = this.data.find(function (data) {
+                        return data.id === dataID;
+                    });
+                if (record) {
+                    record.on('destroy', function (record, collection, xhr) {
+                        // Remove marker from the map
+                        var layer = _.find(this.featureGroup.getLayers(), function(layer, id){return layer._fh_data.id === record.id})
+                        this.featureGroup.removeLayer(layer && layer._leaflet_id);
+                    }, this);
+                    xhr = record.destroy({url: this.get('deleteAPIUrl'), data: 'id=' + dataID});
+                }
+                // Close both delete and data modals
+                this.deleteModal.$el.modal('hide');
+                this.dataModal.$el.modal('hide');
+            }, this);
+
+            this.deleteModal.on('deleteCanceled', function (dataID) {
+                // Hide the DataModal
+                this.dataModal.$el.modal('show');
             }, this);
 
             // Set this layers language to the first language in the list if any
@@ -605,7 +639,7 @@
         model: FeatureLayer,
 
         // Convenience method to create a `FeatureLayer`
-        createFeatureLayer: function (formUrl, dataUrl, enketoEditUrl, enketoAddUrl, options) {
+        createFeatureLayer: function (formUrl, dataUrl, enketoEditUrl, enketoAddUrl, deleteAPIUrl, options) {
             var featureLayer;
 
             options = options || {};
@@ -613,7 +647,8 @@
                 form_url: formUrl,
                 data_url: dataUrl,
                 enketoEditUrl: enketoEditUrl,
-                enketoAddUrl: enketoAddUrl
+                enketoAddUrl: enketoAddUrl,
+                deleteAPIUrl: deleteAPIUrl
             }, options);
             this.add(featureLayer);
             return featureLayer;
@@ -748,6 +783,30 @@
         deleteClicked: function (evt) {
             var $target = $(evt.currentTarget);
             this.trigger('deleteRequested', ($target.data('id')));
+        }
+    });
+
+    FH.DeleteModal = Backbone.View.extend({
+        events: {
+            'click a.secondary': function () {
+                // Remove data ID set on delete button
+                this.$('.btn-primary').data('id', "");
+                this.trigger('deleteCanceled');
+            },
+            'click a.btn-primary': function (evt) {
+                var $target = $(evt.currentTarget);
+                // disable the button
+                $target.addClass('disabled');
+                this.trigger('deleteConfirmed', $target.data('id'));
+            }
+        },
+
+        render: function (dataID) {
+            var primaryBtn = this.$('.btn-primary');
+            // Update data id on delete button
+            primaryBtn.data('id', dataID);
+            primaryBtn.removeClass('disabled');
+            this.$el.modal();
         }
     });
 
