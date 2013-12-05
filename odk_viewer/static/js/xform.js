@@ -18,7 +18,8 @@
         CHILDREN: 'children',
         GROUP: 'group',
         NOTE: 'note',
-        XFORM_ID_STRING: '_xform_id_string'
+        XFORM_ID_STRING: '_xform_id_string',
+        TYPE: 'type'
     };
 
     FH.types = {
@@ -26,7 +27,8 @@
         INTEGER: ['integer'],
         DECIMAL: ['decimal'],
         GEOLOCATION: ['gps', 'geopoint'],
-        SELECT_ONE: ['select one', 'select_one']
+        SELECT_ONE: ['select one', 'select_one'],
+        PHOTO: ['photo', 'image']
     };
 
     // #### A form's field
