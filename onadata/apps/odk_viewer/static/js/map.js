@@ -279,7 +279,7 @@
             // Set the language to a default value to force the change event
             // when the new value is `undefined` as it is for non-multilingual
             // forms
-            this.set('language', '------');
+            this.set({'language': '------'}, {silent: true});
 
             // Anytime the language changes, re-create the dataView's template
             // This assumes we have a valid form, which should be since the
@@ -288,7 +288,7 @@
                 if (this.form.fields.length === 0) {
                     throw new Error("Triggered language change without having a valid form");
                 }
-                this.dataView.renderTemplate(this.form.fields, language);
+                this.dataView.renderTemplate(this.form, language);
 
                 // Update the layer view
                 this.layerView.render(this);
@@ -324,8 +324,6 @@
 
                     // load the rest of the data
                     data.on('load', function(){
-                        // TODO: Enable the view for this feature layer here
-
                         // Initialize the Datavore wrapper
                         fhFeatureLayer.datavoreWrapper = new FH.DatavoreWrapper(
                             {fieldSet: form.fields, dataSet: data});
@@ -607,7 +605,7 @@
         model: void 0,
 
         render: function () {
-            // Allow graceful rendering model has not been set
+            // Allow graceful rendering when model has not been set
             var data = this.model && this.model.toJSON() || {};
             this.$el.html(this.template({record: data}));
         },
@@ -618,8 +616,8 @@
 
         // Render the current model to our template using the specified form
         // `FieldSet`
-        renderTemplate: function (fieldSet, language) {
-            this.template = _.template(FH.DataView.templateFromFields(fieldSet, language));
+        renderTemplate: function (form, language) {
+            this.template = _.template(FH.DataView.templateFromFields(form.fields, language));
             // Re-render in-case we are in view
             this.render();
             return this;
@@ -648,11 +646,25 @@
     FH.DataView.templateFromFields = function (fields, language) {
         var template_string = '<table class="table table-bordered table-striped">';
         template_string += '<tr><th>Question</th><th>Response</th></tr>';
+        // Render attachments
+        template_string += '' +
+            '<% if (record["_attachments"] && record["_attachments"].length > 0) { %>' +
+              '<ul class="media-grid">' +
+                '<% _.each(record["_attachments"], function (a) { %>' +
+                  '<li>' +
+                    '<a href="/attachment/?media_file=<%= a %>" target="_blank">' +
+                      '<img class="thumbnail" width="210" src="/attachment/?media_file=<%= a %>&size=small" />' +
+                    '</a>' +
+                  '</li>' +
+                '<% }) %>' +
+              '</ul>' +
+            '<% } %>';
         fields.each(function (f) {
-            template_string += '<tr>';
-            template_string += '<td>' + f.get('label', language) + '</td>';
-            template_string += '<td><%= record["' + f.get('xpath') + '"] %></td>';
-            template_string += '</tr>';
+            template_string += '' +
+                '<tr>' +
+                  '<td>' + f.get('label', language) + '</td>' +
+                  '<td><%= record["' + f.get('xpath') + '"] %></td>' +
+                '</tr>';
         });
         template_string += '</table>';
         return template_string;
