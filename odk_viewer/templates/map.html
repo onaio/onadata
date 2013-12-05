@@ -93,7 +93,7 @@
 	var formJSONUrl = "{{ jsonform_url }}";
 	var enketoAddUrl = "{{ enketo_add_url }}";
 	var enketoEditUrl = "{{ enketo_edit_url }}";
-	enketoEditUrl = enketoEditUrl.slice(0, enketoEditUrl.length - 1);
+	enketoEditUrl = enketoEditUrl.slice(0, -1) + "<%= id %>";
 	var mongoAPIUrl = "{{ mongo_api_url }}";
 	var deleteAPIUrl = "{{ delete_data_url }}";
     var language_code = "{{LANGUAGE_CODE}}";
@@ -140,7 +140,7 @@
             layers: layer_configs
         });
 
-        fhMap.addFeatureLayer(formJSONUrl, mongoAPIUrl);
+        fhMap.addFeatureLayer(formJSONUrl, mongoAPIUrl, enketoEditUrl, enketoAddUrl);
     }).call(this);
 </script>
 </body>
