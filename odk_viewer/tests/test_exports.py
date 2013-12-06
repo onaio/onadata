@@ -10,7 +10,6 @@ import shutil
 from openpyxl import load_workbook
 from time import sleep
 from pyxform.builder import create_survey_from_xls
-from django.conf import settings
 from main.tests.test_base import MainTestCase
 from django.utils.dateparse import parse_datetime
 from django.core.urlresolvers import reverse
@@ -18,19 +17,16 @@ from django.core.files.temp import NamedTemporaryFile
 from odk_viewer.xls_writer import XlsWriter
 from odk_viewer.views import delete_export, export_list, create_export,\
     export_progress, export_download
-from pyxform import SurveyElementBuilder
 from odk_viewer.models import Export, ParsedInstance
 from utils.export_tools import generate_export, increment_index_in_filename,\
     dict_to_joined_export, ExportBuilder
-from odk_logger.models import Instance, XForm
+from odk_logger.models import Instance
 from main.views import delete_data
-from utils.logger_tools import inject_instanceid
 from django.core.files.storage import get_storage_class
-from odk_viewer.pandas_mongo_bridge import NoRecordsFoundError
 from odk_viewer.tasks import create_xls_export
 from xlrd import open_workbook
 from odk_viewer.models.parsed_instance import _encode_for_mongo
-from odk_logger.xform_instance_parser import XFormInstanceParser
+from savReaderWriter import SavReader
 
 
 class TestExportList(MainTestCase):
@@ -85,10 +81,18 @@ class TestExportList(MainTestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 302)
 
-    def test_xsv_zip_export_list(self):
+    def test_csv_zip_export_list(self):
         kwargs = {'username': self.user.username,
                   'id_string': self.xform.id_string,
                   'export_type': Export.CSV_ZIP_EXPORT}
+        url = reverse(export_list, kwargs=kwargs)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_sav_zip_export_list(self):
+        kwargs = {'username': self.user.username,
+                  'id_string': self.xform.id_string,
+                  'export_type': Export.SAV_ZIP_EXPORT}
         url = reverse(export_list, kwargs=kwargs)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -157,6 +161,20 @@ class TestDataExportURL(MainTestCase):
         basename, ext = os.path.splitext(filename)
         self.assertEqual(ext, '.zip')
 
+    def test_sav_zip_export_url(self):
+        self._submit_transport_instance()
+        url = reverse('sav_zip_export', kwargs={
+            'username': self.user.username,
+            'id_string': self.xform.id_string,
+        })
+        response = self.client.get(url)
+        headers = dict(response.items())
+        self.assertEqual(headers['Content-Type'], 'application/zip')
+        content_disposition = headers['Content-Disposition']
+        filename = self._filename_from_disposition(content_disposition)
+        basename, ext = os.path.splitext(filename)
+        self.assertEqual(ext, '.zip')
+
 
 class TestExports(MainTestCase):
     def setUp(self):
@@ -179,14 +197,15 @@ class TestExports(MainTestCase):
                 self.this_directory, 'fixtures', 'transportation',
                 'instances', survey, survey + '.xml'),
             forced_submission_time=self._submission_time)
-        response = self.client.get(reverse('csv_export',
+        response = self.client.get(reverse(
+            'csv_export',
             kwargs={
                 'username': self.user.username,
                 'id_string': self.xform.id_string
             }))
         self.assertEqual(response.status_code, 200)
-        test_file_path = os.path.join(os.path.dirname(__file__),
-            'fixtures', 'transportation.csv')
+        test_file_path = os.path.join(
+            os.path.dirname(__file__), 'fixtures', 'transportation.csv')
         content = self._get_response_content(response)
         with open(test_file_path, 'r') as test_file:
             self.assertEqual(content, test_file.read())
@@ -194,7 +213,8 @@ class TestExports(MainTestCase):
     def test_responses_for_empty_exports(self):
         self._publish_transportation_form()
         # test csv though xls uses the same view
-        url = reverse('csv_export',
+        url = reverse(
+            'csv_export',
             kwargs={
                 'username': self.user.username,
                 'id_string': self.xform.id_string
@@ -209,23 +229,23 @@ class TestExports(MainTestCase):
         storage = get_storage_class()()
         # test xls
         export = generate_export(Export.XLS_EXPORT, 'xls', self.user.username,
-            self.xform.id_string)
+                                 self.xform.id_string)
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, '.xls')
 
         # test csv
         export = generate_export(Export.CSV_EXPORT, 'csv', self.user.username,
-            self.xform.id_string)
+                                 self.xform.id_string)
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, '.csv')
 
         # test xls with existing export_id
         existing_export = Export.objects.create(xform=self.xform,
-            export_type=Export.XLS_EXPORT)
+                                                export_type=Export.XLS_EXPORT)
         export = generate_export(Export.XLS_EXPORT, 'xls', self.user.username,
-            self.xform.id_string, existing_export.id)
+                                 self.xform.id_string, existing_export.id)
         self.assertEqual(existing_export.id, export.id)
 
     def test_delete_file_on_export_delete(self):
@@ -243,7 +263,7 @@ class TestExports(MainTestCase):
         self._publish_transportation_form()
         self._submit_transport_instance()
         export = generate_export(Export.XLS_EXPORT, 'xls', self.user.username,
-            self.xform.id_string)
+                                 self.xform.id_string)
         storage = get_storage_class()()
         # delete file
         storage.delete(export.filepath)
@@ -266,13 +286,13 @@ class TestExports(MainTestCase):
         self._publish_transportation_form()
         self._submit_transport_instance()
         # create first export
-        first_export = generate_export(Export.XLS_EXPORT, 'xls', self.user.username,
-            self.xform.id_string)
+        first_export = generate_export(
+            Export.XLS_EXPORT, 'xls', self.user.username, self.xform.id_string)
         self.assertIsNotNone(first_export.pk)
         # create exports that exceed set limit
         for i in range(Export.MAX_EXPORTS):
             generate_export(Export.XLS_EXPORT, 'xls', self.user.username,
-                self.xform.id_string)
+                            self.xform.id_string)
         # first export should be deleted
         exports = Export.objects.filter(id=first_export.id)
         self.assertEqual(len(exports), 0)
@@ -296,7 +316,7 @@ class TestExports(MainTestCase):
         self._submit_transport_instance()
         # create export
         export = generate_export(Export.XLS_EXPORT, 'xls', self.user.username,
-            self.xform.id_string)
+                                 self.xform.id_string)
         exports = Export.objects.filter(id=export.id)
         self.assertEqual(len(exports), 1)
         delete_url = reverse(delete_export, kwargs={
@@ -316,7 +336,7 @@ class TestExports(MainTestCase):
         # create exports
         for i in range(2):
             generate_export(Export.XLS_EXPORT, 'xls', self.user.username,
-                self.xform.id_string)
+                            self.xform.id_string)
         self.assertEqual(Export.objects.count(), 2)
         # progress for multiple exports
         progress_url = reverse(export_progress, kwargs={
@@ -329,7 +349,7 @@ class TestExports(MainTestCase):
         content = json.loads(response.content)
         self.assertEqual(len(content), 2)
         self.assertEqual(sorted(['url', 'export_id', 'complete', 'filename']),
-            sorted(content[0].keys()))
+                         sorted(content[0].keys()))
 
     def test_auto_export_if_none_exists(self):
         self._publish_transportation_form()
@@ -341,7 +361,7 @@ class TestExports(MainTestCase):
             'id_string': self.xform.id_string,
             'export_type': Export.XLS_EXPORT
         })
-        response = self.client.get(export_list_url)
+        self.client.get(export_list_url)
         self.assertEqual(Export.objects.count(), num_exports + 1)
 
     def test_dont_auto_export_if_exports_exist(self):
@@ -353,67 +373,73 @@ class TestExports(MainTestCase):
             'id_string': self.xform.id_string,
             'export_type': Export.XLS_EXPORT
         })
-        response = self.client.post(create_export_url)
+        self.client.post(create_export_url)
         num_exports = Export.objects.count()
         export_list_url = reverse(export_list, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
             'export_type': Export.XLS_EXPORT
         })
-        response = self.client.get(export_list_url)
+        self.client.get(export_list_url)
         self.assertEqual(Export.objects.count(), num_exports)
 
     def test_last_submission_time_on_export(self):
         self._publish_transportation_form()
         self._submit_transport_instance()
         # create export
-        xls_export = generate_export(Export.XLS_EXPORT, 'xls', self.user.username,
-            self.xform.id_string)
-        num_exports = Export.objects.filter(xform=self.xform,
-            export_type=Export.XLS_EXPORT).count()
+        generate_export(
+            Export.XLS_EXPORT, 'xls', self.user.username, self.xform.id_string)
+        num_exports = Export.objects.filter(
+            xform=self.xform, export_type=Export.XLS_EXPORT).count()
         # check that our function knows there are no more submissions
-        self.assertFalse(Export.exports_outdated(xform=self.xform,
-            export_type=Export.XLS_EXPORT))
+        self.assertFalse(
+            Export.exports_outdated(xform=self.xform,
+                                    export_type=Export.XLS_EXPORT))
         sleep(1)
         # force new  last submission date on xform
         last_submission = self.xform.surveys.order_by('-date_created')[0]
         last_submission.date_created += datetime.timedelta(hours=1)
         last_submission.save()
         # check that our function knows data has changed
-        self.assertTrue(Export.exports_outdated(xform=self.xform,
-            export_type=Export.XLS_EXPORT))
+        self.assertTrue(
+            Export.exports_outdated(xform=self.xform,
+                                    export_type=Export.XLS_EXPORT))
         # check that requesting list url will generate a new export
         export_list_url = reverse(export_list, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
             'export_type': Export.XLS_EXPORT
         })
-        response = self.client.get(export_list_url)
-        self.assertEqual(Export.objects.filter(xform=self.xform,
-            export_type=Export.XLS_EXPORT).count(), num_exports + 1)
+        self.client.get(export_list_url)
+        self.assertEqual(
+            Export.objects.filter(xform=self.xform,
+                                  export_type=Export.XLS_EXPORT).count(),
+            num_exports + 1)
         # make sure another export type causes auto-generation
-        num_exports = Export.objects.filter(xform=self.xform,
-            export_type=Export.CSV_EXPORT).count()
+        num_exports = Export.objects.filter(
+            xform=self.xform, export_type=Export.CSV_EXPORT).count()
         export_list_url = reverse(export_list, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
             'export_type': Export.CSV_EXPORT
         })
-        response = self.client.get(export_list_url)
-        self.assertEqual(Export.objects.filter(xform=self.xform,
-            export_type=Export.CSV_EXPORT).count(), num_exports + 1)
+        self.client.get(export_list_url)
+        self.assertEqual(
+            Export.objects.filter(xform=self.xform,
+                                  export_type=Export.CSV_EXPORT).count(),
+            num_exports + 1)
 
     def test_last_submission_time_empty(self):
         self._publish_transportation_form()
         self._submit_transport_instance()
         # create export
         export = generate_export(Export.XLS_EXPORT, 'xls', self.user.username,
-            self.xform.id_string)
+                                 self.xform.id_string)
         # set time of last submission to None
         export.time_of_last_submission = None
         export.save()
         self.assertTrue(Export.exports_outdated(xform=self.xform,
-            export_type=Export.XLS_EXPORT))
+                        export_type=Export.XLS_EXPORT))
 
     def test_invalid_export_type(self):
         self._publish_transportation_form()
@@ -450,20 +476,24 @@ class TestExports(MainTestCase):
         self._publish_transportation_form()
         self._submit_transport_instance()
         # create an export object in the db
-        # TODO: only works if the time we time we generate the basename is exact to the second with the time the 2nd export is created
-        basename = "%s_%s" % (self.xform.id_string,
-                              datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+        # TODO: only works if the time we time we generate the basename
+        # is exact to the second with the time the 2nd export is created
+        basename = "%s_%s" % (
+            self.xform.id_string,
+            datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
         filename = basename + ".csv"
-        export = Export.objects.create(xform=self.xform,
-            export_type=Export.CSV_EXPORT, filename=filename)
+        export = Export.objects.create(
+            xform=self.xform, export_type=Export.CSV_EXPORT, filename=filename)
         # 2nd export
-        export_2 = generate_export(Export.CSV_EXPORT, 'csv', self.user.username,
-                                   self.xform.id_string)
+        export_2 = generate_export(
+            Export.CSV_EXPORT, 'csv', self.user.username, self.xform.id_string)
         if export.created_on.timetuple() == export_2.created_on.timetuple():
             new_filename = increment_index_in_filename(filename)
             self.assertEqual(new_filename, export_2.filename)
         else:
-            stdout.write("duplicate export filename test skipped because export times differ.")
+            stdout.write("duplicate export filename test skipped "
+                         "because export times differ.")
+            self.skipTest()
 
     def test_export_download_url(self):
         self._publish_transportation_form()
@@ -480,7 +510,7 @@ class TestExports(MainTestCase):
         self.assertEqual(response.status_code, 200)
         # test xls
         export = generate_export(Export.XLS_EXPORT, 'xls', self.user.username,
-            self.xform.id_string)
+                                 self.xform.id_string)
         xls_export_url = reverse(export_download, kwargs={
             "username": self.user.username,
             "id_string": self.xform.id_string,
@@ -492,7 +522,8 @@ class TestExports(MainTestCase):
 
     def test_404_on_export_io_error(self):
         """
-        Test that we return a 404 when the response_with_mimetype_and_name encounters an IOError
+        Test that we return a 404 when the response_with_mimetype_and_name
+        encounters an IOError
         """
         self._publish_transportation_form()
         self._submit_transport_instance()
@@ -520,7 +551,7 @@ class TestExports(MainTestCase):
         count = ParsedInstance.query_mongo(
             self.user.username, self.xform.id_string, '{}', '[]', '{}',
             count=True)[0]['count']
-        self.assertEqual(count, initial_count+2)
+        self.assertEqual(count, initial_count + 2)
         # get id of second submission
         instance_id = Instance.objects.filter(
             xform=self.xform).order_by('id').reverse()[0].id
@@ -536,7 +567,7 @@ class TestExports(MainTestCase):
         # create the export
         csv_export_url = reverse(
             'csv_export', kwargs={"username": self.user.username,
-                                "id_string":self.xform.id_string})
+                                  "id_string": self.xform.id_string})
         response = self.client.get(csv_export_url)
         self.assertEqual(response.status_code, 200)
         f = StringIO.StringIO(self._get_response_content(response))
@@ -559,9 +590,7 @@ class TestExports(MainTestCase):
         count = ParsedInstance.query_mongo(
             self.user.username, self.xform.id_string, '{}', '[]', '{}',
             count=True)[0]['count']
-        self.assertEqual(count, initial_count+1)
-        instance = Instance.objects.filter(
-            xform=self.xform).order_by('id').reverse()[0]
+        self.assertEqual(count, initial_count + 1)
         # make edited submission - simulating what enketo would return
         instance_name = 'transport_2011-07-25_19-05-36-edited'
         path = os.path.join(
@@ -571,11 +600,11 @@ class TestExports(MainTestCase):
         count = ParsedInstance.query_mongo(
             self.user.username, self.xform.id_string, '{}', '[]', '{}',
             count=True)[0]['count']
-        self.assertEqual(count, initial_count+1)
+        self.assertEqual(count, initial_count + 1)
         # create the export
         csv_export_url = reverse(
             'csv_export', kwargs={"username": self.user.username,
-                                "id_string":self.xform.id_string})
+                                  "id_string": self.xform.id_string})
         response = self.client.get(csv_export_url)
         self.assertEqual(response.status_code, 200)
         f = StringIO.StringIO(self._get_response_content(response))
@@ -585,7 +614,7 @@ class TestExports(MainTestCase):
         num_rows = len(data)
         # number of rows == initial_count + 1
         self.assertEqual(num_rows, initial_count + 1)
-        key ='transport/loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility'
+        key = 'transport/loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility'
         self.assertEqual(data[initial_count][key], "monthly")
 
     def test_export_ids_dont_have_comma_separation(self):
@@ -597,7 +626,7 @@ class TestExports(MainTestCase):
         self._submit_transport_instance()
         # create an in-complete export
         export = Export.objects.create(id=1234, xform=self.xform,
-                              export_type=Export.XLS_EXPORT)
+                                       export_type=Export.XLS_EXPORT)
         self.assertEqual(export.pk, 1234)
         export_list_url = reverse(
             export_list, kwargs={
@@ -618,7 +647,7 @@ class TestExports(MainTestCase):
         self._publish_transportation_form()
         # generate an export that fails because of the NoRecordsFound exception
         export = Export.objects.create(xform=self.xform,
-            export_type=Export.XLS_EXPORT)
+                                       export_type=Export.XLS_EXPORT)
         # check that progress url says pending
         progress_url = reverse(export_progress, kwargs={
             'username': self.user.username,
@@ -692,7 +721,8 @@ class TestExports(MainTestCase):
             xform=self.xform, export_type=Export.CSV_EXPORT).count()
         self.assertEqual(num_csv_exports, initial_num_csv_exports + 1)
 
-        # this should not affect a direct XLS export and XLS should still re-generate
+        # this should not affect a direct XLS export
+        # and XLS should still re-generate
         response = self.client.get(xls_export_url)
         self.assertEqual(response.status_code, 200)
         num_xls_exports = Export.objects.filter(
@@ -729,7 +759,8 @@ class TestExports(MainTestCase):
         self.assertEqual(response.status_code, 200)
         response = self.client.get(csv_export_url)
         self.assertEqual(response.status_code, 200)
-        # we should have an extra export now that the data has been updated by the delete
+        # we should have an extra export now that the data
+        # has been updated by the delete
         num_csv_exports = Export.objects.filter(
             xform=self.xform, export_type=Export.CSV_EXPORT).count()
         self.assertEqual(num_csv_exports, initial_num_csv_exports + 3)
@@ -793,11 +824,9 @@ class TestExports(MainTestCase):
             xform=self.xform, export_type='csv').latest('created_on')
         self.assertTrue(bool(export.filepath))
         data = self._get_csv_data(export.filepath)
-        self.assertTrue(
-            data.has_key(
-                'transport/available_transportation_types_to_referral_facility/ambulance'))
-        self.assertEqual(
-            data['transport/available_transportation_types_to_referral_facility/ambulance'], 'True')
+        key = 'transport/available_transportation_types_to_referral_facility/ambulance'
+        self.assertTrue(key in data)
+        self.assertEqual(data[key], 'True')
 
         sleep(1)
         # test csv with dot delimiter
@@ -807,11 +836,9 @@ class TestExports(MainTestCase):
             xform=self.xform, export_type='csv').latest('created_on')
         self.assertTrue(bool(export.filepath))
         data = self._get_csv_data(export.filepath)
-        self.assertTrue(
-            data.has_key(
-                'transport.available_transportation_types_to_referral_facility.ambulance'))
-        self.assertEqual(
-            data['transport.available_transportation_types_to_referral_facility.ambulance'], 'True')
+        key = 'transport.available_transportation_types_to_referral_facility.ambulance'
+        self.assertTrue(key in data)
+        self.assertEqual(data[key], 'True')
 
         # test xls with default group delimiter
         create_csv_export_url = reverse(create_export, kwargs={
@@ -825,11 +852,10 @@ class TestExports(MainTestCase):
             xform=self.xform, export_type='xls').latest('created_on')
         self.assertTrue(bool(export.filepath))
         data = self._get_xls_data(export.filepath)
-        self.assertTrue(
-            data.has_key("transport/available_transportation_types_to_referral_facility/ambulance"))
+        key = "transport/available_transportation_types_to_referral_facility/ambulance"
+        self.assertTrue(key in data)
         # xlrd reader seems to convert bools into integers i.e. 0 or 1
-        self.assertEqual(
-            data["transport/available_transportation_types_to_referral_facility/ambulance"], 1)
+        self.assertEqual(data[key], 1)
 
         sleep(1)
         # test xls with dot delimiter
@@ -839,11 +865,10 @@ class TestExports(MainTestCase):
             xform=self.xform, export_type='xls').latest('created_on')
         self.assertTrue(bool(export.filepath))
         data = self._get_xls_data(export.filepath)
-        self.assertTrue(
-            data.has_key("transport.available_transportation_types_to_referral_facility.ambulance"))
+        key = "transport.available_transportation_types_to_referral_facility.ambulance"
+        self.assertTrue(key in data)
         # xlrd reader seems to convert bools into integers i.e. 0 or 1
-        self.assertEqual(
-            data["transport.available_transportation_types_to_referral_facility.ambulance"], 1)
+        self.assertEqual(data[key], 1)
 
     def test_split_select_multiple_export_option(self):
         self._publish_transportation_form()
@@ -866,8 +891,7 @@ class TestExports(MainTestCase):
         data = self._get_csv_data(export.filepath)
         # we should have transport/available_transportation_types_to_referral_facility/ambulance as a separate column
         self.assertTrue(
-            data.has_key(
-                'transport/available_transportation_types_to_referral_facility/ambulance'))
+                'transport/available_transportation_types_to_referral_facility/ambulance' in data)
 
         sleep(1)
         # test csv without default split select multiples
@@ -879,12 +903,10 @@ class TestExports(MainTestCase):
         data = self._get_csv_data(export.filepath)
         # transport/available_transportation_types_to_referral_facility/ambulance should not be in its own column
         self.assertFalse(
-            data.has_key(
-                'transport/available_transportation_types_to_referral_facility/ambulance'))
+            'transport/available_transportation_types_to_referral_facility/ambulance' in data)
         # transport/available_transportation_types_to_referral_facility should be a column
         self.assertTrue(
-            data.has_key(
-                'transport/available_transportation_types_to_referral_facility'))
+            'transport/available_transportation_types_to_referral_facility' in data)
         # check that ambulance is one the values within the transport/available_transportation_types_to_referral_facility column
         self.assertTrue("ambulance" in data['transport/available_transportation_types_to_referral_facility'].split(" "))
 
@@ -902,8 +924,7 @@ class TestExports(MainTestCase):
         data = self._get_xls_data(export.filepath)
         # we should have transport/available_transportation_types_to_referral_facility/ambulance as a separate column
         self.assertTrue(
-            data.has_key(
-                'transport/available_transportation_types_to_referral_facility/ambulance'))
+            'transport/available_transportation_types_to_referral_facility/ambulance' in data)
 
         sleep(1)
         # test xls without default split select multiples
@@ -915,12 +936,10 @@ class TestExports(MainTestCase):
         data = self._get_xls_data(export.filepath)
         # transport/available_transportation_types_to_referral_facility/ambulance should NOT be in its own column
         self.assertFalse(
-            data.has_key(
-                'transport/available_transportation_types_to_referral_facility/ambulance'))
+            'transport/available_transportation_types_to_referral_facility/ambulance' in data)
         # transport/available_transportation_types_to_referral_facility should be a column
         self.assertTrue(
-            data.has_key(
-                'transport/available_transportation_types_to_referral_facility'))
+            'transport/available_transportation_types_to_referral_facility' in data)
         # check that ambulance is one the values within the transport/available_transportation_types_to_referral_facility column
         self.assertTrue("ambulance" in data['transport/available_transportation_types_to_referral_facility'].split(" "))
 
@@ -944,14 +963,15 @@ class TestExports(MainTestCase):
                             },
                             {
                                 'children/cartoons/name': 'Flinstones',
-                                'children/cartoons/why': u"I like bamb bam\u0107",
+                                'children/cartoons/why':
+                                u"I like bamb bam\u0107",
                             }
                         ]
                     },
                     {
                         'children/name': 'John',
                         'children/age': '2',
-                        'children/cartoons':[]
+                        'children/cartoons': []
                     },
                     {
                         'children/name': 'Imora',
@@ -984,8 +1004,8 @@ class TestExports(MainTestCase):
         expected_output =\
             {
                 'survey': {
-                  'name': 'Abe',
-                  'age': '35'
+                    'name': 'Abe',
+                    'age': '35'
                 },
                 'children':
                 [
@@ -1311,7 +1331,8 @@ class TestExportBuilder(MainTestCase):
         expected_element_names = [
             'children/cartoons/characters/name',
             'children/cartoons/characters/good_or_evil']
-        section = export_builder.section_by_name('children/cartoons/characters')
+        section = \
+            export_builder.section_by_name('children/cartoons/characters')
         element_names = [element['xpath'] for element in section['elements']]
         self.assertEqual(
             sorted(expected_element_names), sorted(element_names))
@@ -1598,7 +1619,7 @@ class TestExportBuilder(MainTestCase):
                 }
             }
         gps_fields = export_builder.gps_fields
-        self.assertTrue(gps_fields.has_key('childrens_survey'))
+        self.assertTrue('childrens_survey' in gps_fields)
         self.assertEqual(
             sorted(gps_fields['childrens_survey']),
             sorted(expected_gps_fields['childrens_survey']))
@@ -2023,3 +2044,55 @@ class TestExportBuilder(MainTestCase):
         converted_val = ExportBuilder.convert_type(val, 'date')
         self.assertIsInstance(converted_val, datetime.date)
         self.assertEqual(converted_val, expected_val)
+
+    def test_to_sav_export(self):
+        survey = self._create_childrens_survey()
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        filename = temp_zip_file.name
+        export_builder.to_zipped_sav(filename, self.data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+
+        # generate data to compare with
+        index = 1
+        indices = {}
+        survey_name = survey.name
+        outputs = []
+        for d in self.data:
+            outputs.append(
+                dict_to_joined_export(d, index, indices, survey_name))
+            index += 1
+
+        # check that each file exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "{0}.sav".format(survey.name))))
+
+        def _test_sav_file(section):
+            with SavReader(
+                    os.path.join(
+                        temp_dir, "{0}.sav".format(section)),
+                    returnHeader=True) as reader:
+                header = next(reader)
+                rows = [r for r in reader]
+
+                # open comparison file
+                with SavReader(
+                    os.path.join(
+                        os.path.abspath('./'), 'odk_logger', 'tests',
+                        'fixtures', 'spss', "{0}.sav".format(section)),
+                        returnHeader=True) as fixture_reader:
+                    fixture_header = next(fixture_reader)
+                    self.assertEqual(header, fixture_header)
+                    expected_rows = [r for r in fixture_reader]
+                    self.assertEqual(rows, expected_rows)
+
+        for section in export_builder.sections:
+            section_name = section['name'].replace('/', '_')
+            _test_sav_file(section_name)
