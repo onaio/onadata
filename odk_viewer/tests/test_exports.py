@@ -2073,78 +2073,26 @@ class TestExportBuilder(MainTestCase):
         self.assertTrue(
             os.path.exists(
                 os.path.join(temp_dir, "{0}.sav".format(survey.name))))
-        with SavReader(
-                os.path.join(
-                    temp_dir, "{0}.sav".format(survey.name)),
-                returnHeader=True) as reader:
-            header = next(reader)
-            rows = [r for r in reader]
 
-            # open comparison file
+        def _test_sav_file(section):
             with SavReader(
-                os.path.join(
-                    os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
-                    'spss', 'childrens_survey.sav'),
-                    returnHeader=True) as fixture_reader:
-                fixture_header = next(fixture_reader)
-                self.assertEqual(header, fixture_header)
-                expected_rows = [r for r in fixture_reader]
-                self.assertEqual(rows, expected_rows)
+                    os.path.join(
+                        temp_dir, "{0}.sav".format(section)),
+                    returnHeader=True) as reader:
+                header = next(reader)
+                rows = [r for r in reader]
 
-        self.assertTrue(
-            os.path.exists(
-                os.path.join(temp_dir, "children.sav")))
-        with SavReader(os.path.join(temp_dir, "children.sav"),
-                       returnHeader=True) as reader:
-            header = next(reader)
-            rows = [r for r in reader]
+                # open comparison file
+                with SavReader(
+                    os.path.join(
+                        os.path.abspath('./'), 'odk_logger', 'tests',
+                        'fixtures', 'spss', "{0}.sav".format(section)),
+                        returnHeader=True) as fixture_reader:
+                    fixture_header = next(fixture_reader)
+                    self.assertEqual(header, fixture_header)
+                    expected_rows = [r for r in fixture_reader]
+                    self.assertEqual(rows, expected_rows)
 
-            # open comparison file
-            with SavReader(
-                os.path.join(
-                    os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
-                    'spss', 'children.sav'),
-                    returnHeader=True) as fixture_reader:
-                fixture_header = next(fixture_reader)
-                self.assertEqual(header, fixture_header)
-                expected_rows = [r for r in fixture_reader]
-                self.assertEqual(rows, expected_rows)
-
-        self.assertTrue(
-            os.path.exists(
-                os.path.join(temp_dir, "children_cartoons.sav")))
-        with SavReader(os.path.join(temp_dir, "children_cartoons.sav"),
-                       returnHeader=True) as reader:
-            header = next(reader)
-            rows = [r for r in reader]
-
-            # open comparison file
-            with SavReader(
-                os.path.join(
-                    os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
-                    'spss', 'children_cartoons.sav'),
-                    returnHeader=True) as fixture_reader:
-                fixture_header = next(fixture_reader)
-                self.assertEqual(header, fixture_header)
-                expected_rows = [r for r in fixture_reader]
-                self.assertEqual(rows, expected_rows)
-
-        self.assertTrue(
-            os.path.exists(
-                os.path.join(temp_dir, "children_cartoons_characters.sav")))
-        with SavReader(os.path.join(
-                temp_dir, "children_cartoons_characters.sav"),
-                returnHeader=True) as reader:
-            header = next(reader)
-            rows = [r for r in reader]
-
-            # open comparison file
-            with SavReader(
-                os.path.join(
-                    os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
-                    'spss', 'children_cartoons_characters.sav'),
-                    returnHeader=True) as fixture_reader:
-                fixture_header = next(fixture_reader)
-                self.assertEqual(header, fixture_header)
-                expected_rows = [r for r in fixture_reader]
-                self.assertEqual(rows, expected_rows)
+        for section in export_builder.sections:
+            section_name = section['name'].replace('/', '_')
+            _test_sav_file(section_name)
