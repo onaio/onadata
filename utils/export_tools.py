@@ -565,29 +565,28 @@ class ExportBuilder(object):
             fields = [element['title'] for element in section['elements']]\
                 + self.EXTRA_FIELDS
             c = 0
-            varLabels = {}
-            varNames = []
-            tmpK = {}
+            var_labels = {}
+            var_names = []
+            tmp_k = {}
             for field in fields:
                 c += 1
                 var_name = 'var%d' % c
-                varLabels[var_name] = field
-                varNames.append(var_name)
-                tmpK[field] = var_name
+                var_labels[var_name] = field
+                var_names.append(var_name)
+                tmp_k[field] = var_name
 
-            varTypes = [element['type'] for element in section['elements']]\
-                + self.EXTRA_FIELDS
-            varTypes = dict(
-                [(tmpK[element['title']],
+            var_types = dict(
+                [(tmp_k[element['title']],
                   0 if element['type'] in ['decimal', 'int'] else 255)
                  for element in section['elements']]
-                + [(tmpK[item],
+                + [(tmp_k[item],
                     0 if item in ['_id', '_index', '_parent_index'] else 255)
                    for item in self.EXTRA_FIELDS]
             )
             sav_file = NamedTemporaryFile(suffix=".sav")
-            sav_writer = SavWriter(sav_file.name, varNames, varTypes,
-                                   varLabels=varLabels, ioUtf8=True)
+            sav_writer = SavWriter(sav_file.name, varNames=var_names,
+                                   varTypes=var_types,
+                                   varLabels=var_labels, ioUtf8=True)
             sav_defs[section['name']] = {
                 'sav_file': sav_file, 'sav_writer': sav_writer}
 
