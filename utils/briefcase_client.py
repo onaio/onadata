@@ -14,7 +14,10 @@ class BriefcaseClient(object):
         self.url = url
         self.user = user
         self.auth = HTTPDigestAuth(username, password)
-        self.form_list_url = urljoin(self.url, 'formList.xml')
+        self.form_list_url = urljoin(self.url, 'formList')
+        self.submission_list_url = urljoin(self.url, 'view/submissionList')
+        self.download_submission_url = urljoin(self.url,
+                                               'view/downloadSubmission')
 
     def download_xforms(self):
         # fetch formList
@@ -33,9 +36,34 @@ class BriefcaseClient(object):
         # download each xform
         if forms:
             path = os.path.join(self.user.username, 'briefcase', 'forms')
-            if not default_storage.exists(path):
-                pass
             for id_string, download_url in forms:
                 form_path = os.path.join(path, id_string, '%s.xml' % id_string)
                 form_res = requests.get(download_url, auth=self.auth)
-                default_storage.save(form_path, ContentFile(form_res.content))
+                content = ContentFile(form_res.content.strip())
+                default_storage.save(form_path, content)
+
+    def download_instances(self, form_id):
+        response = requests.get(self.submission_list_url,
+                                params={'formId': form_id})
+        xmlDoc = clean_and_parse_xml(response.content)
+        instances = []
+        for childNode in xmlDoc.childNodes:
+            if childNode.nodeName == 'idChunk':
+                for idNode in childNode.getElementsByTagName('id'):
+                    if idNode.childNodes:
+                        instance_id = idNode.childNodes[0].nodeValue
+                        instances.append(instance_id)
+        path = os.path.join(self.user.username, 'briefcase', 'forms',
+                            form_id, 'instances')
+        for uuid in instances:
+            form_str = u'%(formId)s[@version=null and @uiVersion=null]/'\
+                u'%(formId)s[@key=%(instanceId)s]' % {
+                    'formId': form_id,
+                    'instanceId': uuid
+                }
+            instance_res = requests.get(self.download_submission_url,
+                                        params={'formId': form_str})
+            instance_path = os.path.join(path, uuid.replace(':', ''),
+                                         'submission.xml')
+            content = instance_res.content.strip()
+            default_storage.save(instance_path, ContentFile(content))

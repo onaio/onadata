@@ -8,13 +8,17 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.files.storage import get_storage_class
 from django.core.urlresolvers import reverse
 from django.test import RequestFactory
+from django_digest.test import Client as DigestClient
 
 from main.tests.test_base import MainTestCase
 from main.views import profile
 
+from odk_logger.models import Instance
 from odk_logger.views import formList, download_xform
 
 from utils.briefcase_client import BriefcaseClient
+
+storage = get_storage_class()()
 
 
 @urlmatch(netloc=r'(.*\.)?testserver$')
@@ -29,6 +33,17 @@ def form_list_xml(url, request, **kwargs):
         res = download_xform(req, username='bob', id_string=id_string)
     else:
         res = formList(req, username='bob')
+    response = requests.Response()
+    response.status_code = 200
+    response._content = res.content
+    return response
+
+
+@urlmatch(netloc=r'(.*\.)?testserver$')
+def instances_xml(url, request, **kwargs):
+    client = DigestClient()
+    client.set_authorization('bob', 'bob', 'Digest')
+    res = client.get('%s?%s' % (url.path, url.query))
     response = requests.Response()
     response.status_code = 200
     response._content = res.content
@@ -61,7 +76,6 @@ class TestBriefcaseClient(MainTestCase):
         # check that [user]/briefcase/forms/[id_string].xml is created
         with HTTMock(form_list_xml):
             self.bc.download_xforms()
-        storage = get_storage_class()()
         forms_folder_path = os.path.join(
             'deno', 'briefcase', 'forms', self.xform.id_string)
         self.assertTrue(storage.exists(forms_folder_path))
@@ -81,9 +95,17 @@ class TestBriefcaseClient(MainTestCase):
         """
         Download instance xml
         """
-        # check that [user]/briefcase/forms/instances is created
+        # check that [user]/briefcase/forms/[id_string]/instances is created
         # check that instances/[uuid]/submission.xml is created
-        pass
+        with HTTMock(instances_xml):
+            self.bc.download_instances(self.xform.id_string)
+        instance_folder_path = os.path.join(
+            'deno', 'briefcase', 'forms', self.xform.id_string, 'instances')
+        self.assertTrue(storage.exists(instance_folder_path))
+        instance = Instance.objects.all()[0]
+        instance_path = os.path.join(
+            instance_folder_path, 'uuid%s' % instance.uuid, 'submission.xml')
+        self.assertTrue(storage.exists(instance_path))
 
     def test_download_instance_with_attachment(self):
         """
