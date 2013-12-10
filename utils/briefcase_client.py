@@ -33,15 +33,33 @@ class BriefcaseClient(object):
                         id_string = form_id.childNodes[0].nodeValue
                         d = xformNode.getElementsByTagName('downloadUrl')[0]
                         download_url = d.childNodes[0].nodeValue
-                        forms.append((id_string, download_url))
+                        m = xformNode.getElementsByTagName('manifestUrl')[0]
+                        manifest_url = m.childNodes[0].nodeValue
+                        forms.append((id_string, download_url, manifest_url))
         # download each xform
         if forms:
             path = os.path.join(self.user.username, 'briefcase', 'forms')
-            for id_string, download_url in forms:
+            for id_string, download_url, manifest_url in forms:
                 form_path = os.path.join(path, id_string, '%s.xml' % id_string)
                 form_res = requests.get(download_url, auth=self.auth)
                 content = ContentFile(form_res.content.strip())
                 default_storage.save(form_path, content)
+                manifest_res = requests.get(manifest_url, auth=self.auth)
+                manifest_doc = clean_and_parse_xml(manifest_res.content)
+                manifest_path = os.path.join(path, id_string, 'form-media')
+                self.download_media_files(manifest_doc, manifest_path)
+
+    def download_media_files(self, xml_doc, media_path):
+        for media_node in xml_doc.getElementsByTagName('mediaFile'):
+            filename_node = media_node.getElementsByTagName('filename')
+            url_node = media_node.getElementsByTagName('downloadUrl')
+            if filename_node and url_node:
+                filename = filename_node[0].childNodes[0].nodeValue
+                download_url = url_node[0].childNodes[0].nodeValue
+                download_res = requests.get(download_url, auth=self.auth)
+                media_content = ContentFile(download_res.content)
+                path = os.path.join(media_path, filename)
+                default_storage.save(path, media_content)
 
     def download_instances(self, form_id, cursor=0, num_entries=100):
         response = requests.get(self.submission_list_url, auth=self.auth,
@@ -70,17 +88,8 @@ class BriefcaseClient(object):
             content = instance_res.content.strip()
             default_storage.save(instance_path, ContentFile(content))
             instance_doc = clean_and_parse_xml(content)
-            for media_node in instance_doc.getElementsByTagName('mediaFile'):
-                filename_node = media_node.getElementsByTagName('filename')
-                url_node = media_node.getElementsByTagName('downloadUrl')
-                if filename_node and url_node:
-                    filename = filename_node[0].childNodes[0].nodeValue
-                    download_url = url_node[0].childNodes[0].nodeValue
-                    download_res = requests.get(download_url, auth=self.auth)
-                    media_path = os.path.join(path, uuid.replace(':', ''),
-                                              filename)
-                    media_content = ContentFile(download_res.content)
-                    default_storage.save(media_path, media_content)
+            media_path = os.path.join(path, uuid.replace(':', ''))
+            self.download_media_files(instance_doc, media_path)
         if xml_doc.getElementsByTagName('resumptionCursor'):
             rs_node = xml_doc.getElementsByTagName('resumptionCursor')[0]
             cursor = rs_node.childNodes[0].nodeValue

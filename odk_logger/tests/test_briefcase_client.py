@@ -7,15 +7,17 @@ from httmock import urlmatch, HTTMock
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.storage import get_storage_class
+from django.core.files.uploadedfile import UploadedFile
 from django.core.urlresolvers import reverse
 from django.test import RequestFactory
 from django_digest.test import Client as DigestClient
 
+from main.models import MetaData
 from main.tests.test_base import MainTestCase
-from main.views import profile
+from main.views import profile, download_media_data
 
 from odk_logger.models import Instance
-from odk_logger.views import formList, download_xform
+from odk_logger.views import formList, download_xform, xformsManifest
 
 from utils.briefcase_client import BriefcaseClient
 
@@ -24,20 +26,37 @@ storage = get_storage_class()()
 
 @urlmatch(netloc=r'(.*\.)?testserver$')
 def form_list_xml(url, request, **kwargs):
+    response = requests.Response()
     factory = RequestFactory()
     req = factory.get(url.path)
     req.user = AnonymousUser()
     id_string = 'transportation_2011_07_25'
-    if url.path.endswith('formList.xml'):
+    if url.path.endswith('formList'):
         res = formList(req, username='bob')
     elif url.path.endswith('form.xml'):
         res = download_xform(req, username='bob', id_string=id_string)
+    elif url.path.find('xformsManifest') > -1:
+        res = xformsManifest(req, username='bob', id_string=id_string)
+    elif url.path.find('formid-media') > -1:
+        data_id = url.path[url.path.rfind('/') + 1:]
+        res = download_media_data(
+            req, username='bob', id_string=id_string, data_id=data_id)
+        response._content = get_streaming_content(res)
     else:
         res = formList(req, username='bob')
-    response = requests.Response()
     response.status_code = 200
-    response._content = res.content
+    if not response._content:
+        response._content = res.content
     return response
+
+
+def get_streaming_content(res):
+    tmp = StringIO()
+    for chunk in res.streaming_content:
+        tmp.write(chunk)
+    content = tmp.getvalue()
+    tmp.close()
+    return content
 
 
 @urlmatch(netloc=r'(.*\.)?testserver$')
@@ -48,12 +67,8 @@ def instances_xml(url, request, **kwargs):
     res = client.get('%s?%s' % (url.path, url.query))
     if res.status_code == 302:
         res = client.get(res['Location'])
-        content = StringIO()
-        for chunk in res.streaming_content:
-            content.write(chunk)
-        response._content = content.getvalue()
-        content.close()
         response.encoding = res.get('content-type')
+        response._content = get_streaming_content(res)
     else:
         response._content = res.content
     response.status_code = 200
@@ -66,6 +81,12 @@ class TestBriefcaseClient(MainTestCase):
         MainTestCase.setUp(self)
         self._publish_transportation_form()
         self._submit_transport_instance_w_attachment()
+        src = os.path.join(self.this_directory, "fixtures",
+                           "transportation", "screenshot.png")
+        uf = UploadedFile(file=open(src), content_type='image/png')
+        count = MetaData.objects.count()
+        MetaData.media_upload(self.xform, uf)
+        self.assertEqual(MetaData.objects.count(), count + 1)
         url = urljoin(
             self.base_url,
             reverse(profile, kwargs={'username': self.user.username})
@@ -82,8 +103,6 @@ class TestBriefcaseClient(MainTestCase):
         """
         Download xform via briefcase api
         """
-        # check that [user]/briefcase/forms folder is created for user deno
-        # check that [user]/briefcase/forms/[id_string].xml is created
         with HTTMock(form_list_xml):
             self.bc.download_xforms()
         forms_folder_path = os.path.join(
@@ -92,14 +111,10 @@ class TestBriefcaseClient(MainTestCase):
         forms_path = os.path.join(forms_folder_path,
                                   '%s.xml' % self.xform.id_string)
         self.assertTrue(storage.exists(forms_path))
-
-    def test_download_form_media(self):
-        """
-        Download media via briefcase api
-        """
-        # check that [user]/briefcase/forms/[id_string]-media is created
-        # check that media file is save in [id_string]-media
-        pass
+        form_media_path = os.path.join(forms_folder_path, 'form-media')
+        self.assertTrue(storage.exists(form_media_path))
+        media_path = os.path.join(form_media_path, 'screenshot.png')
+        self.assertTrue(storage.exists(media_path))
 
     def test_download_instance(self):
         """
