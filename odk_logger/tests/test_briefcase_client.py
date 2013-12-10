@@ -1,6 +1,7 @@
 import os.path
 import requests
 
+from cStringIO import StringIO
 from urlparse import urljoin
 from httmock import urlmatch, HTTMock
 
@@ -41,12 +42,21 @@ def form_list_xml(url, request, **kwargs):
 
 @urlmatch(netloc=r'(.*\.)?testserver$')
 def instances_xml(url, request, **kwargs):
+    response = requests.Response()
     client = DigestClient()
     client.set_authorization('bob', 'bob', 'Digest')
     res = client.get('%s?%s' % (url.path, url.query))
-    response = requests.Response()
+    if res.status_code == 302:
+        res = client.get(res['Location'])
+        content = StringIO()
+        for chunk in res.streaming_content:
+            content.write(chunk)
+        response._content = content.getvalue()
+        content.close()
+        response.encoding = res.get('content-type')
+    else:
+        response._content = res.content
     response.status_code = 200
-    response._content = res.content
     return response
 
 
@@ -95,8 +105,6 @@ class TestBriefcaseClient(MainTestCase):
         """
         Download instance xml
         """
-        # check that [user]/briefcase/forms/[id_string]/instances is created
-        # check that instances/[uuid]/submission.xml is created
         with HTTMock(instances_xml):
             self.bc.download_instances(self.xform.id_string)
         instance_folder_path = os.path.join(
@@ -106,10 +114,7 @@ class TestBriefcaseClient(MainTestCase):
         instance_path = os.path.join(
             instance_folder_path, 'uuid%s' % instance.uuid, 'submission.xml')
         self.assertTrue(storage.exists(instance_path))
-
-    def test_download_instance_with_attachment(self):
-        """
-        Download instance xml and attachments
-        """
-        # check that instances/[uuid]/[media_file.ext] is created
-        pass
+        media_file = "1335783522563.jpg"
+        media_path = os.path.join(
+            instance_folder_path, 'uuid%s' % instance.uuid, media_file)
+        self.assertTrue(storage.exists(media_path))

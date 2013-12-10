@@ -18,6 +18,7 @@ class BriefcaseClient(object):
         self.submission_list_url = urljoin(self.url, 'view/submissionList')
         self.download_submission_url = urljoin(self.url,
                                                'view/downloadSubmission')
+        self.resumption_cursor = 0
 
     def download_xforms(self):
         # fetch formList
@@ -42,16 +43,16 @@ class BriefcaseClient(object):
                 content = ContentFile(form_res.content.strip())
                 default_storage.save(form_path, content)
 
-    def download_instances(self, form_id):
-        response = requests.get(self.submission_list_url,
+    def download_instances(self, form_id, cursor=0, num_entries=100):
+        response = requests.get(self.submission_list_url, auth=self.auth,
                                 params={'formId': form_id})
-        xmlDoc = clean_and_parse_xml(response.content)
+        xml_doc = clean_and_parse_xml(response.content)
         instances = []
-        for childNode in xmlDoc.childNodes:
-            if childNode.nodeName == 'idChunk':
-                for idNode in childNode.getElementsByTagName('id'):
-                    if idNode.childNodes:
-                        instance_id = idNode.childNodes[0].nodeValue
+        for child_node in xml_doc.childNodes:
+            if child_node.nodeName == 'idChunk':
+                for id_node in child_node.getElementsByTagName('id'):
+                    if id_node.childNodes:
+                        instance_id = id_node.childNodes[0].nodeValue
                         instances.append(instance_id)
         path = os.path.join(self.user.username, 'briefcase', 'forms',
                             form_id, 'instances')
@@ -62,8 +63,27 @@ class BriefcaseClient(object):
                     'instanceId': uuid
                 }
             instance_res = requests.get(self.download_submission_url,
+                                        auth=self.auth,
                                         params={'formId': form_str})
             instance_path = os.path.join(path, uuid.replace(':', ''),
                                          'submission.xml')
             content = instance_res.content.strip()
             default_storage.save(instance_path, ContentFile(content))
+            instance_doc = clean_and_parse_xml(content)
+            for media_node in instance_doc.getElementsByTagName('mediaFile'):
+                filename_node = media_node.getElementsByTagName('filename')
+                url_node = media_node.getElementsByTagName('downloadUrl')
+                if filename_node and url_node:
+                    filename = filename_node[0].childNodes[0].nodeValue
+                    download_url = url_node[0].childNodes[0].nodeValue
+                    download_res = requests.get(download_url, auth=self.auth)
+                    media_path = os.path.join(path, uuid.replace(':', ''),
+                                              filename)
+                    media_content = ContentFile(download_res.content)
+                    default_storage.save(media_path, media_content)
+        if xml_doc.getElementsByTagName('resumptionCursor'):
+            rs_node = xml_doc.getElementsByTagName('resumptionCursor')[0]
+            cursor = rs_node.childNodes[0].nodeValue
+            if self.resumption_cursor != cursor:
+                self.resumption_cursor = cursor
+                self.download_instances(form_id, cursor)
