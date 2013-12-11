@@ -16,7 +16,7 @@ from main.models import MetaData
 from main.tests.test_base import MainTestCase
 from main.views import profile, download_media_data
 
-from odk_logger.models import Instance
+from odk_logger.models import Instance, XForm
 from odk_logger.views import formList, download_xform, xformsManifest
 
 from utils.briefcase_client import BriefcaseClient
@@ -116,7 +116,6 @@ class TestBriefcaseClient(MainTestCase):
         media_path = os.path.join(form_media_path, 'screenshot.png')
         self.assertTrue(storage.exists(media_path))
 
-    def test_download_instance(self):
         """
         Download instance xml
         """

@@ -18,9 +18,11 @@ class BriefcaseClient(object):
         self.submission_list_url = urljoin(self.url, 'view/submissionList')
         self.download_submission_url = urljoin(self.url,
                                                'view/downloadSubmission')
+        self.forms_path = os.path.join(
+            self.user.username, 'briefcase', 'forms')
         self.resumption_cursor = 0
 
-    def download_xforms(self):
+    def download_xforms(self, include_instances=False):
         # fetch formList
         response = requests.get(self.form_list_url, auth=self.auth)
         xmlDoc = clean_and_parse_xml(response.content)
@@ -38,16 +40,19 @@ class BriefcaseClient(object):
                         forms.append((id_string, download_url, manifest_url))
         # download each xform
         if forms:
-            path = os.path.join(self.user.username, 'briefcase', 'forms')
             for id_string, download_url, manifest_url in forms:
-                form_path = os.path.join(path, id_string, '%s.xml' % id_string)
+                form_path = os.path.join(
+                    self.forms_path, id_string, '%s.xml' % id_string)
                 form_res = requests.get(download_url, auth=self.auth)
                 content = ContentFile(form_res.content.strip())
                 default_storage.save(form_path, content)
                 manifest_res = requests.get(manifest_url, auth=self.auth)
                 manifest_doc = clean_and_parse_xml(manifest_res.content)
-                manifest_path = os.path.join(path, id_string, 'form-media')
+                manifest_path = os.path.join(
+                    self.forms_path, id_string, 'form-media')
                 self.download_media_files(manifest_doc, manifest_path)
+                if include_instances:
+                    self.download_instances(id_string)
 
     def download_media_files(self, xml_doc, media_path):
         for media_node in xml_doc.getElementsByTagName('mediaFile'):
@@ -63,7 +68,9 @@ class BriefcaseClient(object):
 
     def download_instances(self, form_id, cursor=0, num_entries=100):
         response = requests.get(self.submission_list_url, auth=self.auth,
-                                params={'formId': form_id})
+                                params={'formId': form_id,
+                                        'numEntries': num_entries,
+                                        'cursor': cursor})
         xml_doc = clean_and_parse_xml(response.content)
         instances = []
         for child_node in xml_doc.childNodes:
@@ -72,8 +79,7 @@ class BriefcaseClient(object):
                     if id_node.childNodes:
                         instance_id = id_node.childNodes[0].nodeValue
                         instances.append(instance_id)
-        path = os.path.join(self.user.username, 'briefcase', 'forms',
-                            form_id, 'instances')
+        path = os.path.join(self.forms_path, form_id, 'instances')
         for uuid in instances:
             form_str = u'%(formId)s[@version=null and @uiVersion=null]/'\
                 u'%(formId)s[@key=%(instanceId)s]' % {
