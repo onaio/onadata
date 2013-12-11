@@ -32,6 +32,10 @@ def _get_id_for_type(record, mongo_field):
         else mongo_str
 
 
+def get_accessible_forms(owner=None):
+    return XForm.objects.filter(user__username=owner).distinct()
+
+
 def create_organization(name, creator):
     """
     Organization created by a user
