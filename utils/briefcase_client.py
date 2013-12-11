@@ -7,6 +7,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 
 from odk_logger.xform_instance_parser import clean_and_parse_xml
+from utils.logger_tools import publish_xml_form, publish_form
 
 
 class BriefcaseClient(object):
@@ -102,3 +103,35 @@ class BriefcaseClient(object):
             if self.resumption_cursor != cursor:
                 self.resumption_cursor = cursor
                 self.download_instances(form_id, cursor)
+
+    def _upload_xform(self, path, file_name):
+        class PublishXForm(object):
+            def __init__(self, xml_file, user):
+                self.xml_file = xml_file
+                self.user = user
+
+            def publish_xform(self):
+                return publish_xml_form(self.xml_file, self.user)
+        xml_file = default_storage.open(path)
+        xml_file.name = file_name
+        k = PublishXForm(xml_file, self.user)
+        return publish_form(k.publish_xform)
+
+    def _upload_instances(self, path):
+        pass
+
+    def push(self):
+        dirs, files = default_storage.listdir(self.forms_path)
+        for form_dir in dirs:
+            dir_path = os.path.join(self.forms_path, form_dir)
+            form_dirs, form_files = default_storage.listdir(dir_path)
+            form_xml = '%s.xml' % form_dir
+            if form_xml in form_files:
+                form_xml_path = os.path.join(dir_path, form_xml)
+                x = self._upload_xform(form_xml_path, form_xml)
+                if isinstance(x, dict):
+                    print "Failed to publish %s" % form_dir
+                else:
+                    print "Successfully published %s" % form_dir
+            if 'instances' in form_dirs:
+                self._upload_instances(os.path.join(dir_path, 'instances'))
