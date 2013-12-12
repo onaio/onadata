@@ -138,6 +138,7 @@ class TestBriefcaseClient(MainTestCase):
             self.bc.download_xforms()
         with HTTMock(instances_xml):
             self.bc.download_instances(self.xform.id_string)
+        XForm.objects.all().delete()
         xforms = XForm.objects.filter(
             user=self.user, id_string=self.xform.id_string)
         self.assertTrue(xforms.count() == 0)

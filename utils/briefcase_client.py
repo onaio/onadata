@@ -1,13 +1,28 @@
 import os
+import mimetypes
 import requests
 from requests.auth import HTTPDigestAuth
 from urlparse import urljoin
 
+from cStringIO import StringIO
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from odk_logger.xform_instance_parser import clean_and_parse_xml
-from utils.logger_tools import publish_xml_form, publish_form
+from utils.logger_tools import publish_xml_form, publish_form, \
+    create_instance
+
+
+def django_file(file_obj, field_name, content_type):
+    return InMemoryUploadedFile(
+        file=file_obj,
+        field_name=field_name,
+        name=file_obj.name,
+        content_type=content_type,
+        size=file_obj.size,
+        charset=None
+    )
 
 
 class BriefcaseClient(object):
@@ -118,7 +133,38 @@ class BriefcaseClient(object):
         return publish_form(k.publish_xform)
 
     def _upload_instances(self, path):
-        pass
+        instances = []
+        dirs, not_in_use = default_storage.listdir(path)
+        for instance_dir in dirs:
+            instance_dir_path = os.path.join(path, instance_dir)
+            i_dirs, files = default_storage.listdir(instance_dir_path)
+            xml_file = None
+            attachments = []
+            for s_file in files:
+                file_obj = default_storage.open(
+                    os.path.join(instance_dir_path, s_file))
+                if s_file == 'submission.xml':
+                    xml_file = file_obj
+                else:
+                    mimetype, encoding = mimetypes.guess_type(file_obj.name)
+                    attachments.append(
+                        django_file(file_obj, 'media_files[]', mimetype))
+            if xml_file:
+                try:
+                    xml_doc = clean_and_parse_xml(xml_file.read())
+                    xml = StringIO()
+                    for node in xml_doc.documentElement.firstChild.childNodes:
+                        xml.write(node.toxml())
+                    new_xml_file = ContentFile(xml.getvalue())
+                    new_xml_file.content_type = 'text/xml'
+                    xml.close()
+                    instance = create_instance(
+                        self.user.username, new_xml_file, attachments)
+                except Exception:
+                    pass
+                else:
+                    instances.append(instance)
+        return len(instances)
 
     def push(self):
         dirs, files = default_storage.listdir(self.forms_path)
@@ -134,4 +180,5 @@ class BriefcaseClient(object):
                 else:
                     print "Successfully published %s" % form_dir
             if 'instances' in form_dirs:
-                self._upload_instances(os.path.join(dir_path, 'instances'))
+                c = self._upload_instances(os.path.join(dir_path, 'instances'))
+                print "Published %d instances for %s" % (c, form_dir)
