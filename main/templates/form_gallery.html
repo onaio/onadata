@@ -58,9 +58,9 @@
 {% block javascript %}
 {{ block.super }}
 
-  <script type="text/javascript" src="/static/js/jquery.dataTables.js"></script>
-  <script type="text/javascript" src="/static/js/jquery.dataTables.pagination.js"></script>
-  <script type="text/javascript" src="/static/js/form_actions.js"></script>
+  <script type="text/javascript" src="{{STATIC_URL}}js/jquery.dataTables.js"></script>
+  <script type="text/javascript" src="{{STATIC_URL}}js/jquery.dataTables.pagination.js"></script>
+  <script type="text/javascript" src="{{STATIC_URL}}js/form_actions.js"></script>
   <script type="text/javascript">
 
 	$(document).ready(function() {
