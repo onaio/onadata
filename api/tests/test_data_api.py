@@ -1,6 +1,5 @@
 from django.test import RequestFactory
 from main.tests.test_base import MainTestCase
-from odk_logger.models import Note
 from api.views import DataViewSet, XFormViewSet, NoteViewSet
 
 
