@@ -29,4 +29,4 @@ class Command(BaseCommand):
         user = User.objects.get(username=to)
         bc = BriefcaseClient(username=username, password=password,
                              user=user, url=url)
-        bc.download_xforms(include_instances=True)
+        bc.push()
