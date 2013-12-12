@@ -3,19 +3,23 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from rest_framework.decorators import action
 from rest_framework import exceptions
+from rest_framework.mixins import CreateModelMixin, ListModelMixin,\
+    RetrieveModelMixin
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from api import mixins, serializers
+from api import serializers
+from api.mixins import MultiLookupMixin
 from api.models import Project, ProjectXForm
 from api import tools as utils
 from odk_logger.models import XForm
 
 
-class ProjectViewSet(mixins.MultiLookupMixin,
-                     mixins.CreateModelMixin,
-                     mixins.RetrieveModelMixin,
-                     mixins.ListModelMixin, GenericViewSet):
+class ProjectViewSet(CreateModelMixin,
+                     GenericViewSet,
+                     ListModelMixin,
+                     MultiLookupMixin,
+                     RetrieveModelMixin):
     """
 List, Retrieve, Update, Create Project and Project Forms
 
