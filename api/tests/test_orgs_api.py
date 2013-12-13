@@ -1,8 +1,8 @@
-from api.tests.test_api import TestAPICase
+from api.tests.test_api import TestAPI
 from api.views import OrgProfileViewSet
 
 
-class TestOrgsAPI(TestAPICase):
+class TestOrgsAPI(TestAPI):
     def setUp(self):
         super(TestOrgsAPI, self).setUp()
         self.view = OrgProfileViewSet.as_view({

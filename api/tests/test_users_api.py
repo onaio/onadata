@@ -1,9 +1,9 @@
 import json
-from api.tests.test_api import TestAPICase
+from api.tests.test_api import TestAPI
 from api.views import UserViewSet
 
 
-class TestUsersAPI(TestAPICase):
+class TestUsersAPI(TestAPI):
     def setUp(self):
         super(TestUsersAPI, self).setUp()
 

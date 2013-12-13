@@ -2,11 +2,11 @@ import json
 
 from main.models import UserProfile
 
-from api.tests.test_api import TestAPICase
+from api.tests.test_api import TestAPI
 from api.views import UserProfileViewSet
 
 
-class TestProfilesAPI(TestAPICase):
+class TestProfilesAPI(TestAPI):
     def setUp(self):
         super(TestProfilesAPI, self).setUp()
         self.view = UserProfileViewSet.as_view({

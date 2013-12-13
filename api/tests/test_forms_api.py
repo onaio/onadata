@@ -3,11 +3,11 @@ import os
 from xml.dom import minidom, Node
 from django.conf import settings
 
-from api.tests.test_api import TestAPICase
+from api.tests.test_api import TestAPI
 from api.views import XFormViewSet
 
 
-class TestFormsAPI(TestAPICase):
+class TestFormsAPI(TestAPI):
     def setUp(self):
         super(TestFormsAPI, self).setUp()
         self.view = XFormViewSet.as_view({

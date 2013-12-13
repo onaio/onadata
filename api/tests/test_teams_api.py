@@ -1,12 +1,12 @@
 import json
 
-from api.tests.test_api import TestAPICase
+from api.tests.test_api import TestAPI
 
 from api.models import Team
 from api.views import TeamViewSet
 
 
-class TestTeamsAPI(TestAPICase):
+class TestTeamsAPI(TestAPI):
     def setUp(self):
         super(TestTeamsAPI, self).setUp()
         self.view = TeamViewSet.as_view({
