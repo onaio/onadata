@@ -148,10 +148,10 @@ urlpatterns = patterns(
     url(r"^(?P<username>[^/]+)/form-submissions$", 'odk_logger.views.ziggy_submissions'),
 
     # static media
-    url(r'^static/(?P<path>.*)$', 'django.views.static.serve',
-        {'document_root': settings.MEDIA_ROOT}),
     url(r'^media/(?P<path>.*)$', 'django.views.static.serve',
         {'document_root': settings.MEDIA_ROOT}),
     url(r'^favicon\.ico', RedirectView.as_view(url='/static/images/favicon.ico'))
 )
-
+urlpatterns += patterns('django.contrib.staticfiles.views',
+                        url(r'^static/(?P<path>.*)$', 'serve'),
+                        )
