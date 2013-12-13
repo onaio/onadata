@@ -12,7 +12,10 @@ from odk_viewer.models.parsed_instance import xform_instances, \
     datetime_from_str, _encode_for_mongo
 
 from utils.logger_tools import publish_form
-from api.models import OrganizationProfile, Team, Project, ProjectXForm
+from api.models.organization_profile import OrganizationProfile
+from api.models.project import Project
+from api.models.project_xform import ProjectXForm
+from api.models.team import Team
 
 
 def _get_first_last_names(name):
@@ -94,11 +97,14 @@ def create_organization_project(organization, project_name, created_by):
     :returns: a Project instance
     """
     profile = OrganizationProfile.objects.get(user=organization)
+
     if not profile.is_organization_owner(created_by):
         return None
-    project = Project.objects.create(
-        name=project_name,
-        organization=organization, created_by=created_by)
+
+    project = Project.objects.create(name=project_name,
+                                     organization=organization,
+                                     created_by=created_by)
+
     return project
 
 
