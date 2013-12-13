@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404
 
 from guardian.shortcuts import get_perms_for_model, assign_perm
 from main.models import UserProfile
-from odk_logger.models import XForm
+from odk_logger.models import XForm, Note
 from api.models import Project, Team, OrganizationProfile
 
 
@@ -78,6 +78,12 @@ def check_and_set_user_and_form(username, id_string, request):
         else [False, False]
 
 
+def check_and_set_form_by_id_string(id_string, request):
+    xform = get_object_or_404(XForm, id_string=id_string)
+    return xform if has_permission(xform, xform.user, request)\
+        else False
+
+
 def check_and_set_form_by_id(pk, request):
     xform = get_object_or_404(XForm, pk=pk)
     return xform if has_permission(xform, xform.user, request)\
@@ -138,7 +144,7 @@ def add_cors_headers(response):
 
 
 def set_api_permissions_for_user(user):
-    models = [UserProfile, XForm, Project, Team, OrganizationProfile]
+    models = [UserProfile, XForm, Project, Team, OrganizationProfile, Note]
     for model in models:
         for perm in get_perms_for_model(model):
             assign_perm(

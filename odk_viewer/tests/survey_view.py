@@ -10,7 +10,6 @@ from odk_viewer.models import ParsedInstance, DataDictionary
 from odk_viewer.views import survey_responses
 from odk_logger.xform_instance_parser import xform_instance_to_dict
 from odk_viewer.xls_writer import XlsWriter
-from odk_viewer.csv_writer import CsvWriter
 from utils.export_tools import DictOrganizer
 
 
@@ -42,6 +41,7 @@ class TestSurveyView(MainTestCase):
             'instance_id': self.parsed_instance.instance.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
+        # TODO move this to a fixture
         expected_html = '''
 
 <table class="table table-bordered table-striped">
@@ -71,7 +71,7 @@ class TestSurveyView(MainTestCase):
             ('table one', [['column header 1', 'column header 2'], [1, 2, ]]),
             ('table two', [['1,1', '1,2'], ['2,1', '2,2']])
         ])
-        file_object = xls_writer.save_workbook_to_file()
+        xls_writer.save_workbook_to_file()
         # I guess we should read the excel file and make sure it has
         # the right stuff. I looked at it, but writing that test
         # doesn't seem worth it.
@@ -186,7 +186,3 @@ class TestSurveyView(MainTestCase):
             dict_organizer.get_observation_from_dict(d),
             expected_dict
         )
-
-    def test_csv_writer(self):
-        dd_writer = CsvWriter(self.data_dictionary)
-        self.assertEqual(dd_writer._keys, self.data_dictionary.get_keys())

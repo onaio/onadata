@@ -5,7 +5,6 @@ import os
 import re
 
 from hashlib import md5
-from StringIO import StringIO
 from xml.dom import minidom, Node
 from django.core.urlresolvers import reverse
 from django.conf import settings
@@ -24,6 +23,7 @@ from odk_logger.xform_instance_parser import clean_and_parse_xml
 uuid_regex = re.compile(
     r'(</instance>.*uuid[^//]+="\')([^\']+)(\'".*)', re.DOTALL)
 xform_instances = settings.MONGO_DB.instances
+
 
 class TestSite(MainTestCase):
     uuid_to_submission_times = {
@@ -93,14 +93,13 @@ class TestSite(MainTestCase):
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     def test_bad_url_upload(self):
-        if self._internet_on():
-            xls_url = 'formhuborg/pld/forms/transportation_2011_07_25/form.xls'
-            pre_count = XForm.objects.count()
-            response = self.client.post('/%s/' % self.user.username,
-                                        {'xls_url': xls_url})
-            # make sure publishing the survey worked
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(XForm.objects.count(), pre_count)
+        xls_url = 'formhuborg/pld/forms/transportation_2011_07_25/form.xls'
+        pre_count = XForm.objects.count()
+        response = self.client.post('/%s/' % self.user.username,
+                                    {'xls_url': xls_url})
+        # make sure publishing the survey worked
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(XForm.objects.count(), pre_count)
 
     # This method tests a large number of xls files.
     # create a directory /main/test/fixtures/online_xls
@@ -193,7 +192,7 @@ class TestSite(MainTestCase):
 
 </xforms>
 """ % {'download_url': self.download_url, 'manifest_url': self.manifest_url,
-       'hash': md5_hash}
+            'hash': md5_hash}
         self.assertEqual(response.content, expected_content)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
         self.assertTrue(response.has_header('Date'))
@@ -208,16 +207,16 @@ class TestSite(MainTestCase):
             expected_doc = minidom.parse(xml_file)
 
         model_node = [
-                     n for n in
-                     response_doc.getElementsByTagName("h:head")[0].childNodes
-                     if n.nodeType == Node.ELEMENT_NODE and
-                        n.tagName == "model"][0]
+            n for n in
+            response_doc.getElementsByTagName("h:head")[0].childNodes
+            if n.nodeType == Node.ELEMENT_NODE and
+            n.tagName == "model"][0]
 
         # check for UUID and remove
         uuid_nodes = [node for node in model_node.childNodes
                       if node.nodeType == Node.ELEMENT_NODE and
-                         node.getAttribute("nodeset") ==\
-                           "/transportation/formhub/uuid"]
+                      node.getAttribute("nodeset") ==
+                      "/transportation/formhub/uuid"]
         self.assertEqual(len(uuid_nodes), 1)
         uuid_node = uuid_nodes[0]
         uuid_node.setAttribute("calculate", "''")
@@ -285,14 +284,17 @@ class TestSite(MainTestCase):
         instance = self.xform.surveys.all()[1]
         expected_dict = {
             u"transportation": {
-                u"meta": {u"instanceID": u"uuid:f3d8dc65-91a6-4d0f-9e97-802128083390"},
+                u"meta": {
+                    u"instanceID": u"uuid:f3d8dc65-91a6-4d0f-9e97-802128083390"
+                },
                 u"transport": {
                     u"loop_over_transport_types_frequency": {u"bicycle": {
                         u"frequency_to_referral_facility": u"weekly"
                     },
-                    u"ambulance": {
-                        u"frequency_to_referral_facility": u"daily"
-                    }},
+                        u"ambulance": {
+                            u"frequency_to_referral_facility": u"daily"
+                        }
+                    },
                     u"available_transportation_types_to_referral_facility":
                     u"ambulance bicycle",
                 }
@@ -343,7 +345,8 @@ class TestSite(MainTestCase):
         data = [
             {'meta/instanceID': 'uuid:5b2cc313-fc09-437e-8149-fcd32f695d41',
              '_uuid': '5b2cc313-fc09-437e-8149-fcd32f695d41',
-             '_submission_time': '2013-02-14T15:37:21'
+             '_submission_time': '2013-02-14T15:37:21',
+             '_tags': '', '_notes': ''
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
@@ -353,14 +356,16 @@ class TestSite(MainTestCase):
              "loop_over_transport_types_frequency/bicycle/frequency_to_referral_facility": "weekly",
              "meta/instanceID": "uuid:f3d8dc65-91a6-4d0f-9e97-802128083390",
              '_uuid': 'f3d8dc65-91a6-4d0f-9e97-802128083390',
-             '_submission_time': '2013-02-14T15:37:22'
+             '_submission_time': '2013-02-14T15:37:22',
+             '_tags': '', '_notes': ''
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
              "loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility": "weekly",
              "meta/instanceID": "uuid:9c6f3468-cfda-46e8-84c1-75458e72805d",
              '_uuid': '9c6f3468-cfda-46e8-84c1-75458e72805d',
-             '_submission_time': '2013-02-14T15:37:23'
+             '_submission_time': '2013-02-14T15:37:23',
+             '_tags': '', '_notes': ''
              },
             {"available_transportation_types_to_referral_facility/taxi":
              "True",
@@ -371,7 +376,8 @@ class TestSite(MainTestCase):
              "loop_over_transport_types_frequency/taxi/frequency_to_referral_facility": "daily",
              "meta/instanceID": "uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf",
              '_uuid': '9f0a1508-c3b7-4c99-be00-9b237c26bcbf',
-             '_submission_time': '2013-02-14T15:37:24'
+             '_submission_time': '2013-02-14T15:37:24',
+             '_tags': '', '_notes': ''
              }
         ]
 
@@ -381,7 +387,7 @@ class TestSite(MainTestCase):
             for k, v in d.items():
                 if v in ["n/a", "False"] or k in dd._additional_headers():
                     del d[k]
-            l =  []
+            l = []
             for k, v in expected_dict.items():
                 if k == 'meta/instanceID' or k.startswith("_"):
                     l.append((k, v))
@@ -398,7 +404,7 @@ class TestSite(MainTestCase):
     def _check_xls_export(self):
         xls_export_url = reverse(
             'xls_export', kwargs={'username': self.user.username,
-            'id_string': self.xform.id_string})
+                                  'id_string': self.xform.id_string})
         response = self.client.get(xls_export_url)
         expected_xls = open_workbook(os.path.join(
             self.this_directory, "fixtures", "transportation",
@@ -450,17 +456,20 @@ class TestSite(MainTestCase):
 
     def test_metadata_file_hash(self):
         self._publish_transportation_form()
-        src = os.path.join(self.this_directory, "fixtures", "transportation","screenshot.png")
+        src = os.path.join(self.this_directory, "fixtures",
+                           "transportation", "screenshot.png")
         uf = UploadedFile(file=open(src), content_type='image/png')
         count = MetaData.objects.count()
-        rs = MetaData.media_upload(self.xform, uf)
+        MetaData.media_upload(self.xform, uf)
         # assert successful insert of new metadata record
         self.assertEqual(MetaData.objects.count(), count + 1)
-        md = MetaData.objects.get(xform=self.xform, data_value='screenshot.png')
+        md = MetaData.objects.get(xform=self.xform,
+                                  data_value='screenshot.png')
         # assert checksum string has been generated, hash length > 1
         self.assertTrue(len(md.hash) > 16)
         md.data_file.storage.delete(md.data_file.name)
-        md = MetaData.objects.get(xform=self.xform, data_value='screenshot.png')
+        md = MetaData.objects.get(xform=self.xform,
+                                  data_value='screenshot.png')
         self.assertEqual(len(md.hash), 0)
 
     def test_uuid_injection_in_cascading_select(self):
@@ -476,7 +485,8 @@ class TestSite(MainTestCase):
         self.assertEqual(post_count, pre_count + 1)
         xform = XForm.objects.latest('date_created')
 
-        # check that the uuid is within the main instance/ the one without an id attribute
+        # check that the uuid is within the main instance/
+        # the one without an id attribute
         xml = clean_and_parse_xml(xform.xml)
 
         # check for instance nodes that are direct children of the model node
@@ -490,8 +500,8 @@ class TestSite(MainTestCase):
 
         # get the first element whose id attribute is equal to our form's id_string
         form_nodes = [node for node in instance_node.childNodes if
-                 node.nodeType == Node.ELEMENT_NODE and
-                 node.getAttribute("id") == xform.id_string]
+                      node.nodeType == Node.ELEMENT_NODE and
+                      node.getAttribute("id") == xform.id_string]
         form_node = form_nodes[0]
 
         # find the formhub node that has a uuid child node
@@ -505,7 +515,7 @@ class TestSite(MainTestCase):
                                 node.nodeType == Node.ELEMENT_NODE and
                                 node.tagName == "bind" and
                                 node.getAttribute("nodeset") ==
-                                    "/%s/formhub/uuid" % file_name]
+                                "/%s/formhub/uuid" % file_name]
         self.assertEqual(len(calculate_bind_nodes), 1)
         calculate_bind_node = calculate_bind_nodes[0]
         self.assertEqual(
@@ -519,5 +529,5 @@ class TestSite(MainTestCase):
         params = {
             'text_xls_form': csv_text
         }
-        response = self.client.post(url, params)
+        self.response = self.client.post(url, params)
         self.assertEqual(XForm.objects.count(), num_xforms + 1)

@@ -1,8 +1,14 @@
-Formhub
+OnaData
 =======
+Collect, Analyze and Share Data!
 
-.. image:: https://secure.travis-ci.org/modilabs/formhub.png?branch=master
-  :target: http://travis-ci.org/modilabs/formhub
+.. image:: https://secure.travis-ci.org/onaio/onadata.png?branch=master
+  :target: http://travis-ci.org/onaio/onadata
+
+About
+-----
+
+OnaData is derived from the excellent `formhub <http://github.com/SEL-Columbia/formhub>`_ platform developed by the Sustainable Engineering Lab at Columbia University.
 
 Installation
 ------------
@@ -12,7 +18,7 @@ Contributing
 ------------
 
 If you would like to contribute code please read
-`Contributing Code to Formhub <https://github.com/modilabs/formhub/wiki/Contributing-Code-to-Formhub>`_.
+`Contributing Code to Ona Data <https://github.com/onaio/onadata/wiki/Contributing-Code-to-OnaData>`_.
 
 Code Structure
 --------------
@@ -51,3 +57,4 @@ To compile MO files and update live translations
 
     $ django-admin.py compilemessages ;
     $ for app in {main,odk_viewer} ; do cd ${app} && django-admin.py compilemessages && cd - ; done
+    

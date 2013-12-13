@@ -23,58 +23,63 @@ from api import mixins
 from api.signals import xform_tags_add, xform_tags_delete
 from api import tools as utils
 
-from utils.user_auth import check_and_set_form_by_id
+from utils.user_auth import check_and_set_form_by_id, \
+    check_and_set_form_by_id_string
 from main.models import UserProfile
 
-from odk_logger.models import XForm, Instance
+from odk_logger.models import XForm, Instance, Note
 from odk_viewer.models import ParsedInstance
 
 from api.models import Project, OrganizationProfile, ProjectXForm, Team
 
 
+def get_accessible_forms(owner=None):
+    return XForm.objects.filter(user__username=owner).distinct()
+
+
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    This endpoint allows you to list and retrieve user's first and last names.
+This endpoint allows you to list and retrieve user's first and last names.
 
-    ## List Users
-    > Example
-    >
-    >       curl -X GET https://formhub.org/api/v1/users
+## List Users
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/users
 
-    > Response:
+> Response:
 
-    >       [
-    >            {
-    >                "username": "demo",
-    >                "first_name": "First",
-    >                "last_name": "Last"
-    >            },
-    >            {
-    >                "username": "another_demo",
-    >                "first_name": "Another",
-    >                "last_name": "Demo"
-    >            },
-    >            ...
-    >        ]
+>       [
+>            {
+>                "username": "demo",
+>                "first_name": "First",
+>                "last_name": "Last"
+>            },
+>            {
+>                "username": "another_demo",
+>                "first_name": "Another",
+>                "last_name": "Demo"
+>            },
+>            ...
+>        ]
 
 
-    ## Retrieve a specific user info
+## Retrieve a specific user info
 
-    <pre class="prettyprint"><b>GET</b> /api/v1/users/{username}</pre>
+<pre class="prettyprint"><b>GET</b> /api/v1/users/{username}</pre>
 
-    > Example:
-    >
-    >        curl -X GET https://formhub.org/api/v1/users/demo
+> Example:
+>
+>        curl -X GET https://ona.io/api/v1/users/demo
 
-    > Response:
-    >
-    >       {
-    >           "username": "demo",
-    >           "first_name": "First",
-    >           "last_name": "Last"
-    >       }
+> Response:
+>
+>       {
+>           "username": "demo",
+>           "first_name": "First",
+>           "last_name": "Last"
+>       }
 
-    """
+"""
     queryset = User.objects.all()
     serializer_class = api_serializers.UserSerializer
     lookup_field = 'username'
@@ -90,72 +95,72 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
 class UserProfileViewSet(mixins.ObjectLookupMixin, viewsets.ModelViewSet):
     """
-    List, Retrieve, Update, Create/Register users.
+List, Retrieve, Update, Create/Register users.
 
-    ## Register a new User
-    <pre class="prettyprint"><b>POST</b> /api/v1/profiles</pre>
-    > Example
-    >
-    >        {
-    >            "username": "demo",
-    >            "name": "Demo User",
-    >            "email": "demo@localhost.com",
-    >            "city": "Kisumu",
-    >            "country": "KE",
-    >            ...
-    >        }
+## Register a new User
+<pre class="prettyprint"><b>POST</b> /api/v1/profiles</pre>
+> Example
+>
+>        {
+>            "username": "demo",
+>            "name": "Demo User",
+>            "email": "demo@localhost.com",
+>            "city": "Kisumu",
+>            "country": "KE",
+>            ...
+>        }
 
-    ## List User Profiles
-    <pre class="prettyprint"><b>GET</b> /api/v1/profiles</pre>
-    > Example
-    >
-    >       curl -X GET https://formhub.org/api/v1/profiles
+## List User Profiles
+<pre class="prettyprint"><b>GET</b> /api/v1/profiles</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/profiles
 
-    > Response
-    >
-    >       [
-    >        {
-    >            "url": "https://formhub.org/api/v1/profiles/demo",
-    >            "username": "demo",
-    >            "name": "Demo User",
-    >            "email": "demo@localhost.com",
-    >            "city": "",
-    >            "country": "",
-    >            "organization": "",
-    >            "website": "",
-    >            "twitter": "",
-    >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
-    >            "require_auth": false,
-    >            "user": "https://formhub.org/api/v1/users/demo"
-    >        },
-    >        {
-    >           ...}, ...
-    >       ]
+> Response
+>
+>       [
+>        {
+>            "url": "https://ona.io/api/v1/profiles/demo",
+>            "username": "demo",
+>            "name": "Demo User",
+>            "email": "demo@localhost.com",
+>            "city": "",
+>            "country": "",
+>            "organization": "",
+>            "website": "",
+>            "twitter": "",
+>            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
+>            "require_auth": false,
+>            "user": "https://ona.io/api/v1/users/demo"
+>        },
+>        {
+>           ...}, ...
+>       ]
 
-    ## Retrieve User Profile Information
+## Retrieve User Profile Information
 
-    <pre class="prettyprint"><b>GET</b> /api/v1/profiles/{username}</pre>
-    > Example
-    >
-    >       curl -X GET https://formhub.org/api/v1/profiles/demo
+<pre class="prettyprint"><b>GET</b> /api/v1/profiles/{username}</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/profiles/demo
 
-    > Response
-    >
-    >        {
-    >            "url": "https://formhub.org/api/v1/profiles/demo",
-    >            "username": "demo",
-    >            "name": "Demo User",
-    >            "email": "demo@localhost.com",
-    >            "city": "",
-    >            "country": "",
-    >            "organization": "",
-    >            "website": "",
-    >            "twitter": "",
-    >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
-    >            "require_auth": false,
-    >            "user": "https://formhub.org/api/v1/users/demo"
-    >        }
-    """
+> Response
+>
+>        {
+>            "url": "https://ona.io/api/v1/profiles/demo",
+>            "username": "demo",
+>            "name": "Demo User",
+>            "email": "demo@localhost.com",
+>            "city": "",
+>            "country": "",
+>            "organization": "",
+>            "website": "",
+>            "twitter": "",
+>            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
+>            "require_auth": false,
+>            "user": "https://ona.io/api/v1/users/demo"
+>        }
+"""
     queryset = UserProfile.objects.all()
     serializer_class = api_serializers.UserProfileSerializer
     lookup_field = 'user'
@@ -172,72 +177,72 @@ class UserProfileViewSet(mixins.ObjectLookupMixin, viewsets.ModelViewSet):
 
 class OrgProfileViewSet(mixins.ObjectLookupMixin, viewsets.ModelViewSet):
     """
-    List, Retrieve, Update, Create/Register Organizations
+List, Retrieve, Update, Create/Register Organizations
 
-    ## Register a new Organization
-    <pre class="prettyprint"><b>POST</b> /api/v1/orgs</pre>
-    > Example
-    >
-    >        {
-    >            "org": "modilabs",
-    >            "name": "Modi Labs Research",
-    >            "email": "modilabs@localhost.com",
-    >            "city": "New York",
-    >            "country": "US",
-    >            ...
-    >        }
+## Register a new Organization
+<pre class="prettyprint"><b>POST</b> /api/v1/orgs</pre>
+> Example
+>
+>        {
+>            "org": "modilabs",
+>            "name": "Modi Labs Research",
+>            "email": "modilabs@localhost.com",
+>            "city": "New York",
+>            "country": "US",
+>            ...
+>        }
 
-    ## List of Organizations
-    <pre class="prettyprint"><b>GET</b> /api/v1/orgs</pre>
-    > Example
-    >
-    >       curl -X GET https://formhub.org/api/v1/orgs
+## List of Organizations
+<pre class="prettyprint"><b>GET</b> /api/v1/orgs</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/orgs
 
-    > Response
-    >
-    >       [
-    >        {
-    >            "url": "https://formhub.org/api/v1/orgs/modilabs",
-    >            "org": "modilabs",
-    >            "name": "Modi Labs Research",
-    >            "email": "modilabs@localhost.com",
-    >            "city": "New York",
-    >            "country": "US",
-    >            "website": "",
-    >            "twitter": "",
-    >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
-    >            "require_auth": false,
-    >            "user": "https://formhub.org/api/v1/users/modilabs"
-    >            "creator": "https://formhub.org/api/v1/users/demo"
-    >        },
-    >        {
-    >           ...}, ...
-    >       ]
+> Response
+>
+>       [
+>        {
+>            "url": "https://ona.io/api/v1/orgs/modilabs",
+>            "org": "modilabs",
+>            "name": "Modi Labs Research",
+>            "email": "modilabs@localhost.com",
+>            "city": "New York",
+>            "country": "US",
+>            "website": "",
+>            "twitter": "",
+>            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
+>            "require_auth": false,
+>            "user": "https://ona.io/api/v1/users/modilabs"
+>            "creator": "https://ona.io/api/v1/users/demo"
+>        },
+>        {
+>           ...}, ...
+>       ]
 
-    ## Retrieve Organization Profile Information
+## Retrieve Organization Profile Information
 
-    <pre class="prettyprint"><b>GET</b> /api/v1/orgs/{username}</pre>
-    > Example
-    >
-    >       curl -X GET https://formhub.org/api/v1/orgs/modilabs
+<pre class="prettyprint"><b>GET</b> /api/v1/orgs/{username}</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/orgs/modilabs
 
-    > Response
-    >
-    >        {
-    >            "url": "https://formhub.org/api/v1/orgs/modilabs",
-    >            "org": "modilabs",
-    >            "name": "Modi Labs Research",
-    >            "email": "modilabs@localhost.com",
-    >            "city": "New York",
-    >            "country": "US",
-    >            "website": "",
-    >            "twitter": "",
-    >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
-    >            "require_auth": false,
-    >            "user": "https://formhub.org/api/v1/users/modilabs"
-    >            "creator": "https://formhub.org/api/v1/users/demo"
-    >        }
-    """
+> Response
+>
+>        {
+>            "url": "https://ona.io/api/v1/orgs/modilabs",
+>            "org": "modilabs",
+>            "name": "Modi Labs Research",
+>            "email": "modilabs@localhost.com",
+>            "city": "New York",
+>            "country": "US",
+>            "website": "",
+>            "twitter": "",
+>            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
+>            "require_auth": false,
+>            "user": "https://ona.io/api/v1/users/modilabs"
+>            "creator": "https://ona.io/api/v1/users/demo"
+>        }
+"""
     queryset = OrganizationProfile.objects.all()
     serializer_class = api_serializers.OrganizationSerializer
     lookup_field = 'user'
@@ -272,15 +277,16 @@ Where:
 
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms/<code>{formid}</code>
-<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/<code>{formid}</code></pre>
+<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/<code>
+{formid}</code></pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/forms/28058
+>       curl -X GET https://ona.io/api/v1/forms/28058
 
 > Response
 >
 >       {
->           "url": "https://formhub.org/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/modilabs/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -292,7 +298,7 @@ Where:
 >           "downloadable": true,
 >           "encrypted": false,
 >           "is_crowd_form": false,
->           "owner": "https://formhub.org/api/v1/users/modilabs",
+>           "owner": "https://ona.io/api/v1/users/modilabs",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -305,12 +311,12 @@ Where:
 <b>GET</b> /api/v1/forms/<code>{owner}</code></pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/forms/modilabs
+>       curl -X GET https://ona.io/api/v1/forms/modilabs
 
 > Response
 >
 >       [{
->           "url": "https://formhub.org/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/modilabs/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -320,65 +326,67 @@ Where:
 >       }, ...]
 
 ## Get `JSON` | `XML` Form Representation
-  <pre class="prettyprint">
-  <b>GET</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/form.<code>{format}</code></pre>
-  > JSON Example
-  >
-  >       curl -X GET https://formhub.org/api/v1/forms/modilabs/28058/form.json
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/form.
+<code>{format}</code></pre>
+> JSON Example
+>
+>       curl -X GET https://ona.io/api/v1/forms/modilabs/28058/form.json
 
-  > Response
-  >
-  >        {
-  >            "name": "Birds",
-  >            "title": "Birds",
-  >            "default_language": "default",
-  >            "id_string": "Birds",
-  >            "type": "survey",
-  >            "children": [
-  >                {
-  >                    "type": "text",
-  >                    "name": "name",
-  >                    "label": "1. What is your name?"
-  >                },
-  >                ...
-  >                ]
-  >        }
+> Response
+>
+>        {
+>            "name": "Birds",
+>            "title": "Birds",
+>            "default_language": "default",
+>            "id_string": "Birds",
+>            "type": "survey",
+>            "children": [
+>                {
+>                    "type": "text",
+>                    "name": "name",
+>                    "label": "1. What is your name?"
+>                },
+>                ...
+>                ]
+>        }
 
-  > XML Example
-  >
-  >       curl -X GET https://formhub.org/api/v1/forms/modilabs/28058/form.xml
+> XML Example
+>
+>       curl -X GET https://ona.io/api/v1/forms/modilabs/28058/form.xml
 
-  > Response
-  >
-  >        <?xml version="1.0" encoding="utf-8"?>
-  >        <h:html xmlns="http://www.w3.org/2002/xforms" ...>
-  >          <h:head>
-  >            <h:title>Birds</h:title>
-  >            <model>
-  >              <itext>
-  >                 .....
-  >          </h:body>
-  >        </h:html>
+> Response
+>
+>        <?xml version="1.0" encoding="utf-8"?>
+>        <h:html xmlns="http://www.w3.org/2002/xforms" ...>
+>          <h:head>
+>            <h:title>Birds</h:title>
+>            <model>
+>              <itext>
+>                 .....
+>          </h:body>
+>        </h:html>
 
 ## Get list of forms with specific tag(s)
 
 Use the `tags` query parameter to filter the list of forms, `tags` should be a
 comma separated list of tags.
 
-  <pre class="prettyprint">
-  <b>GET</b> /api/v1/forms?<code>tags</code>=<code>tag1,tag2</code>
-  <b>GET</b> /api/v1/forms/<code>{owner}</code>?<code>tags</code>=<code>tag1,tag2</code></pre>
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms?<code>tags</code>=<code>tag1,tag2</code>
+<b>GET</b> /api/v1/forms/<code>{owner}</code>?<code>tags</code>=<code>
+tag1,tag2</code></pre>
 
- List forms tagged `smart` or `brand new` or both.
-  > Request
-  >
-  >       curl -X GET https://formhub.org/api/v1/forms?tag=smart,brand+new
+List forms tagged `smart` or `brand new` or both.
+> Request
+>
+>       curl -X GET https://ona.io/api/v1/forms?tag=smart,brand+new
 
 > Response
 >        HTTP 200 OK
 >
 >       [{
->           "url": "https://formhub.org/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/modilabs/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -389,15 +397,16 @@ comma separated list of tags.
 
 
 ## Get list of Tags for a specific Form
-  <pre class="prettyprint">
-  <b>GET</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels</pre>
-  > Request
-  >
-  >       curl -X GET https://formhub.org/api/v1/forms/28058/labels
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels
+</pre>
+> Request
+>
+>       curl -X GET https://ona.io/api/v1/forms/28058/labels
 
-  > Response
-  >
-  >       ["old", "smart", "clean house"]
+> Response
+>
+>       ["old", "smart", "clean house"]
 
 ## Tag forms
 
@@ -409,7 +418,8 @@ Examples
 - `animal, fruit denim` - comma delimited
 
  <pre class="prettyprint">
-  <b>POST</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels</pre>
+  <b>POST</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels
+  </pre>
 
 Payload
 
@@ -417,20 +427,24 @@ Payload
 
 ## Delete a specific tag
 
- <pre class="prettyprint">
-  <b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels/<code>tag_name</code></pre>
+<pre class="prettyprint">
+<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>
+/labels/<code>tag_name</code></pre>
 
-  > Request
-  >
-  >       curl -X DELETE https://formhub.org/api/v1/forms/modilabs/28058/labels/tag1
-  > or to delete the tag "hello world"
-  >
-  >       curl -X DELETE https://formhub.org/api/v1/forms/modilabs/28058/labels/hello%20world
-  >
-  > Response
-  >
-  >        HTTP 200 OK
-    """
+> Request
+>
+>       curl -X DELETE
+>       https://ona.io/api/v1/forms/modilabs/28058/labels/tag1
+>
+> or to delete the tag "hello world"
+>
+>       curl -X DELETE
+>       https://ona.io/api/v1/forms/modilabs/28058/labels/hello%20world
+>
+> Response
+>
+>        HTTP 200 OK
+"""
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [SurveyRenderer]
     queryset = XForm.objects.all()
     serializer_class = api_serializers.XFormSerializer
@@ -471,9 +485,7 @@ Payload
         return queryset.distinct()
 
     @action(methods=['GET'])
-    def form(self, request, format=None, **kwargs):
-        if not format:
-            format = 'json'
+    def form(self, request, format='json', **kwargs):
         self.object = self.get_object()
         if format == 'xml':
             data = self.object.xml
@@ -500,8 +512,8 @@ Payload
         label = kwargs.get('label', None)
         if request.method == 'GET' and label:
             data = [
-                i['name']
-                for i in self.object.tags.filter(name=label).values('name')]
+                tag['name']
+                for tag in self.object.tags.filter(name=label).values('name')]
         elif request.method == 'DELETE' and label:
             count = self.object.tags.count()
             self.object.tags.remove(label)
@@ -534,8 +546,8 @@ Where:
 > Example
 >
 >       {
->           "url": "https://formhub.org/api/v1/projects/modilabs/1",
->           "owner": "https://formhub.org/api/v1/users/modilabs",
+>           "url": "https://ona.io/api/v1/projects/modilabs/1",
+>           "owner": "https://ona.io/api/v1/users/modilabs",
 >           "name": "project 1",
 >           "date_created": "2013-07-24T13:37:39Z",
 >           "date_modified": "2013-07-24T13:37:39Z"
@@ -547,22 +559,22 @@ Where:
 <b>GET</b> /api/v1/projects/<code>{owner}</code></pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/projects
->       curl -X GET https://formhub.org/api/v1/projects/modilabs
+>       curl -X GET https://ona.io/api/v1/projects
+>       curl -X GET https://ona.io/api/v1/projects/modilabs
 
 > Response
 >
 >       [
 >           {
->               "url": "https://formhub.org/api/v1/projects/modilabs/1",
->               "owner": "https://formhub.org/api/v1/users/modilabs",
+>               "url": "https://ona.io/api/v1/projects/modilabs/1",
+>               "owner": "https://ona.io/api/v1/users/modilabs",
 >               "name": "project 1",
 >               "date_created": "2013-07-24T13:37:39Z",
 >               "date_modified": "2013-07-24T13:37:39Z"
 >           },
 >           {
->               "url": "https://formhub.org/api/v1/projects/modilabs/4",
->               "owner": "https://formhub.org/api/v1/users/modilabs",
+>               "url": "https://ona.io/api/v1/projects/modilabs/4",
+>               "owner": "https://ona.io/api/v1/users/modilabs",
 >               "name": "project 2",
 >               "date_created": "2013-07-24T13:59:10Z",
 >               "date_modified": "2013-07-24T13:59:10Z"
@@ -575,13 +587,13 @@ Where:
 <b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code></pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/projects/modilabs/1
+>       curl -X GET https://ona.io/api/v1/projects/modilabs/1
 
 > Response
 >
 >       {
->           "url": "https://formhub.org/api/v1/projects/modilabs/1",
->           "owner": "https://formhub.org/api/v1/users/modilabs",
+>           "url": "https://ona.io/api/v1/projects/modilabs/1",
+>           "owner": "https://ona.io/api/v1/users/modilabs",
 >           "name": "project 1",
 >           "date_created": "2013-07-24T13:37:39Z",
 >           "date_modified": "2013-07-24T13:37:39Z"
@@ -593,12 +605,13 @@ Where:
 <b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms</pre>
 > Example
 >
->       curl -X POST -F xls_file=@/path/to/form.xls https://formhub.org/api/v1/projects/modilabs/1/forms
+>       curl -X POST -F xls_file=@/path/to/form.xls
+>       https://ona.io/api/v1/projects/modilabs/1/forms
 
 > Response
 >
 >       {
->           "url": "https://formhub.org/api/v1/forms/28058",
+>           "url": "https://ona.io/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -620,15 +633,16 @@ Where:
 ## Get Form Information for a project
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/<code>{formid}</code></pre>
+<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/<code>
+{formid}</code></pre>
 > Example
 >
->       curl -X GET https://formhub.org/api/v1/projects/modilabs/1/forms/28058
+>       curl -X GET https://ona.io/api/v1/projects/modilabs/1/forms/28058
 
 > Response
 >
 >       {
->           "url": "https://formhub.org/api/v1/forms/28058",
+>           "url": "https://ona.io/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -726,30 +740,30 @@ Provides a json list of teams within a specified organization
 * `org` - is the unique organization name identifier
 
 <pre class="prettyprint">
-  <b>GET</b> /api/v1/teams
-  <b>GET</b> /api/v1/teams/<code>{org}</code>
-  </pre>
+<b>GET</b> /api/v1/teams
+<b>GET</b> /api/v1/teams/<code>{org}</code>
+</pre>
 
-  > Example
-  >
-  >       curl -X GET https://formhub.org/api/v1/teams/bruize
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/teams/bruize
 
-  > Response
-  >
-  >        [
-  >            {
-  >                "url": "https://formhub.org/api/v1/teams/bruize/1",
-  >                "name": "Owners",
-  >                "organization": "https://formhub.org/api/v1/users/bruize",
-  >                "projects": []
-  >            },
-  >            {
-  >                "url": "https://formhub.org/api/v1/teams/bruize/2",
-  >                "name": "demo team",
-  >                "organization": "https://formhub.org/api/v1/users/bruize",
-  >                "projects": []
-  >            }
-  >        ]
+> Response
+>
+>        [
+>            {
+>                "url": "https://ona.io/api/v1/teams/bruize/1",
+>                "name": "Owners",
+>                "organization": "https://ona.io/api/v1/users/bruize",
+>                "projects": []
+>            },
+>            {
+>                "url": "https://ona.io/api/v1/teams/bruize/2",
+>                "name": "demo team",
+>                "organization": "https://ona.io/api/v1/users/bruize",
+>                "projects": []
+>            }
+>        ]
 
 ## GET Team Info for a specific team.
 
@@ -759,22 +773,22 @@ Shows teams details and the projects the team is assigned to, where:
 * `pk` - unique identifier for the team
 
 <pre class="prettyprint">
-  <b>GET</b> /api/v1/teams/<code>{org}</code>/<code>{pk}</code>
-  </pre>
+<b>GET</b> /api/v1/teams/<code>{org}</code>/<code>{pk}</code>
+</pre>
 
-  > Example
-  >
-  >       curl -X GET https://formhub.org/api/v1/teams/bruize/1
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/teams/bruize/1
 
-  > Response
-  >
-  >        {
-  >            "url": "https://formhub.org/api/v1/teams/bruize/1",
-  >            "name": "Owners",
-  >            "organization": "https://formhub.org/api/v1/users/bruize",
-  >            "projects": []
-  >        }
-    """
+> Response
+>
+>        {
+>            "url": "https://ona.io/api/v1/teams/bruize/1",
+>            "name": "Owners",
+>            "organization": "https://ona.io/api/v1/users/bruize",
+>            "projects": []
+>        }
+"""
     queryset = Team.objects.all()
     serializer_class = api_serializers.TeamSerializer
     lookup_fields = ('owner', 'pk')
@@ -822,64 +836,64 @@ This endpoint provides access to submitted data in JSON format. Where:
 This is a json list of the data end points of `owner` forms
  and/or including public forms and forms shared with `owner`.
 <pre class="prettyprint">
-  <b>GET</b> /api/v1/data
-  <b>GET</b> /api/v1/data/<code>{owner}</code></pre>
+<b>GET</b> /api/v1/data
+<b>GET</b> /api/v1/data/<code>{owner}</code></pre>
 
-  > Example
-  >
-  >       curl -X GET https://formhub.org/api/v1/data/modilabs
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/modilabs
 
-  > Response
-  >
-  >        {
-  >            "dhis2form": "https://formhub.org/api/v1/data/modilabs/4240",
-  >            "exp_one": "https://formhub.org/api/v1/data/modilabs/13789",
-  >            "userone": "https://formhub.org/api/v1/data/modilabs/10417",
-  >        }
+> Response
+>
+>        {
+>            "dhis2form": "https://ona.io/api/v1/data/modilabs/4240",
+>            "exp_one": "https://ona.io/api/v1/data/modilabs/13789",
+>            "userone": "https://ona.io/api/v1/data/modilabs/10417",
+>        }
 
 ## Get Submitted data for a specific form
 Provides a list of json submitted data for a specific form.
- <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code></pre>
-  > Example
-  >
-  >       curl -X GET https://formhub.org/api/v1/data/modilabs/22845
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code></pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/modilabs/22845
 
-  > Response
-  >
-  >        [
-  >            {
-  >                "_id": 4503,
-  >                "_bamboo_dataset_id": "",
-  >                "_deleted_at": null,
-  >                "expense_type": "service",
-  >                "_xform_id_string": "exp",
-  >                "_geolocation": [
-  >                    null,
-  >                    null
-  >                ],
-  >                "end": "2013-01-03T10:26:25.674+03",
-  >                "start": "2013-01-03T10:25:17.409+03",
-  >                "expense_date": "2011-12-23",
-  >                "_status": "submitted_via_web",
-  >                "today": "2013-01-03",
-  >                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
-  >                "imei": "351746052013466",
-  >                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
-  >                "kind": "monthly",
-  >                "_submission_time": "2013-01-03T02:27:19",
-  >                "required": "yes",
-  >                "_attachments": [],
-  >                "item": "Rent",
-  >                "amount": "35000.0",
-  >                "deviceid": "351746052013466",
-  >                "subscriberid": "639027...60317"
-  >            },
-  >            {
-  >                ....
-  >                "subscriberid": "639027...60317"
-  >            }
-  >        ]
+> Response
+>
+>        [
+>            {
+>                "_id": 4503,
+>                "_bamboo_dataset_id": "",
+>                "_deleted_at": null,
+>                "expense_type": "service",
+>                "_xform_id_string": "exp",
+>                "_geolocation": [
+>                    null,
+>                    null
+>                ],
+>                "end": "2013-01-03T10:26:25.674+03",
+>                "start": "2013-01-03T10:25:17.409+03",
+>                "expense_date": "2011-12-23",
+>                "_status": "submitted_via_web",
+>                "today": "2013-01-03",
+>                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
+>                "imei": "351746052013466",
+>                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
+>                "kind": "monthly",
+>                "_submission_time": "2013-01-03T02:27:19",
+>                "required": "yes",
+>                "_attachments": [],
+>                "item": "Rent",
+>                "amount": "35000.0",
+>                "deviceid": "351746052013466",
+>                "subscriberid": "639027...60317"
+>            },
+>            {
+>                ....
+>                "subscriberid": "639027...60317"
+>            }
+>        ]
 
 ## Get a single data submission for a given form
 
@@ -890,46 +904,47 @@ Get a single specific submission json data providing `formid`
 * `formid` - is the identifying number for a specific form
 * `dataid` - is the unique id of the data, the value of `_id` or `_uuid`
 
- <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>{dataid}</code></pre>
-  > Example
-  >
-  >       curl -X GET https://formhub.org/api/v1/data/modilabs/22845/4503
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>
+{dataid}</code></pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/modilabs/22845/4503
 
-  > Response
-  >
-  >            {
-  >                "_id": 4503,
-  >                "_bamboo_dataset_id": "",
-  >                "_deleted_at": null,
-  >                "expense_type": "service",
-  >                "_xform_id_string": "exp",
-  >                "_geolocation": [
-  >                    null,
-  >                    null
-  >                ],
-  >                "end": "2013-01-03T10:26:25.674+03",
-  >                "start": "2013-01-03T10:25:17.409+03",
-  >                "expense_date": "2011-12-23",
-  >                "_status": "submitted_via_web",
-  >                "today": "2013-01-03",
-  >                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
-  >                "imei": "351746052013466",
-  >                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
-  >                "kind": "monthly",
-  >                "_submission_time": "2013-01-03T02:27:19",
-  >                "required": "yes",
-  >                "_attachments": [],
-  >                "item": "Rent",
-  >                "amount": "35000.0",
-  >                "deviceid": "351746052013466",
-  >                "subscriberid": "639027...60317"
-  >            },
-  >            {
-  >                ....
-  >                "subscriberid": "639027...60317"
-  >            }
-  >        ]
+> Response
+>
+>            {
+>                "_id": 4503,
+>                "_bamboo_dataset_id": "",
+>                "_deleted_at": null,
+>                "expense_type": "service",
+>                "_xform_id_string": "exp",
+>                "_geolocation": [
+>                    null,
+>                    null
+>                ],
+>                "end": "2013-01-03T10:26:25.674+03",
+>                "start": "2013-01-03T10:25:17.409+03",
+>                "expense_date": "2011-12-23",
+>                "_status": "submitted_via_web",
+>                "today": "2013-01-03",
+>                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
+>                "imei": "351746052013466",
+>                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
+>                "kind": "monthly",
+>                "_submission_time": "2013-01-03T02:27:19",
+>                "required": "yes",
+>                "_attachments": [],
+>                "item": "Rent",
+>                "amount": "35000.0",
+>                "deviceid": "351746052013466",
+>                "subscriberid": "639027...60317"
+>            },
+>            {
+>                ....
+>                "subscriberid": "639027...60317"
+>            }
+>        ]
 
 ## Query submitted data of a specific form
 Provides a list of json submitted data for a specific form. Use `query`
@@ -938,66 +953,70 @@ parameter to apply form data specific, see
 http://www.mongodb.org/display/DOCS/Querying</a>.
 
 For more details see
-<a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)#api-parameters">
+<a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)
+#api-parameters">
 API Parameters</a>.
- <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>?query={"field":"value"}</pre>
-  > Example
-  >
-  >       curl -X GET
-  >       https://formhub.org/api/v1/data/modilabs/22845?query={"kind": "monthly"}
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>
+?query={"field":"value"}</pre>
+> Example
+>
+>       curl -X GET  https://ona.io/api/v1/data/modilabs/22845
+>       ?query={"kind": "monthly"}
 
-  > Response
-  >
-  >        [
-  >            {
-  >                "_id": 4503,
-  >                "_bamboo_dataset_id": "",
-  >                "_deleted_at": null,
-  >                "expense_type": "service",
-  >                "_xform_id_string": "exp",
-  >                "_geolocation": [
-  >                    null,
-  >                    null
-  >                ],
-  >                "end": "2013-01-03T10:26:25.674+03",
-  >                "start": "2013-01-03T10:25:17.409+03",
-  >                "expense_date": "2011-12-23",
-  >                "_status": "submitted_via_web",
-  >                "today": "2013-01-03",
-  >                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
-  >                "imei": "351746052013466",
-  >                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
-  >                "kind": "monthly",
-  >                "_submission_time": "2013-01-03T02:27:19",
-  >                "required": "yes",
-  >                "_attachments": [],
-  >                "item": "Rent",
-  >                "amount": "35000.0",
-  >                "deviceid": "351746052013466",
-  >                "subscriberid": "639027...60317"
-  >            },
-  >            {
-  >                ....
-  >                "subscriberid": "639027...60317"
-  >            }
-  >        ]
+> Response
+>
+>        [
+>            {
+>                "_id": 4503,
+>                "_bamboo_dataset_id": "",
+>                "_deleted_at": null,
+>                "expense_type": "service",
+>                "_xform_id_string": "exp",
+>                "_geolocation": [
+>                    null,
+>                    null
+>                ],
+>                "end": "2013-01-03T10:26:25.674+03",
+>                "start": "2013-01-03T10:25:17.409+03",
+>                "expense_date": "2011-12-23",
+>                "_status": "submitted_via_web",
+>                "today": "2013-01-03",
+>                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
+>                "imei": "351746052013466",
+>                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
+>                "kind": "monthly",
+>                "_submission_time": "2013-01-03T02:27:19",
+>                "required": "yes",
+>                "_attachments": [],
+>                "item": "Rent",
+>                "amount": "35000.0",
+>                "deviceid": "351746052013466",
+>                "subscriberid": "639027...60317"
+>            },
+>            {
+>                ....
+>                "subscriberid": "639027...60317"
+>            }
+>        ]
 
 ## Query submitted data of a specific form using Tags
 Provides a list of json submitted data for a specific form matching specific
 tags. Use the `tags` query parameter to filter the list of forms, `tags`
 should be a comma separated list of tags.
 
- <pre class="prettyprint">
-  <b>GET</b> /api/v1/data?<code>tags</code>=<code>tag1,tag2</code></pre>
- <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{owner}</code>?<code>tags</code>=<code>tag1,tag2</code></pre>
- <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>?<code>tags</code>=<code>tag1,tag2</code></pre>
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data?<code>tags</code>=<code>tag1,tag2</code></pre>
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{owner}</code>?<code>tags</code>=<code>tag1,tag2
+</code></pre>
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>?<code>tags
+</code>=<code>tag1,tag2</code></pre>
 
-  > Example
-  >
-  >       curl -X GET https://formhub.org/api/v1/data/modilabs/22845?tags=monthly
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/modilabs/22845?tags=monthly
 
 ## Tag a submission data point
 
@@ -1008,8 +1027,9 @@ Examples
 - `animal fruit denim` - space delimited, no commas
 - `animal, fruit denim` - comma delimited
 
- <pre class="prettyprint">
-  <b>POST</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>{dataid}</code>/labels</pre>
+<pre class="prettyprint">
+<b>POST</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>
+{dataid}</code>/labels</pre>
 
 Payload
 
@@ -1017,40 +1037,32 @@ Payload
 
 ## Delete a specific tag from a submission
 
- <pre class="prettyprint">
-  <b>DELETE</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>{dataid}</code>/labels/<code>tag_name</code></pre>
+<pre class="prettyprint">
+<b>DELETE</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>
+{dataid}</code>/labels/<code>tag_name</code></pre>
 
-  > Request
-  >
-  >       curl -X DELETE https://formhub.org/api/v1/data/modilabs/28058/20/labels/tag1
-  or to delete the tag "hello world"
-  >
-  >       curl -X DELETE https://formhub.org/api/v1/data/modilabs/28058/20/labels/hello%20world
-  >
-  > Response
-  >
-  >        HTTP 200 OK
-    """
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, ]
+> Request
+>
+>       curl -X DELETE
+>       https://ona.io/api/v1/data/modilabs/28058/20/labels/tag1
+or to delete the tag "hello world"
+>
+>       curl -X DELETE
+>       https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
+>
+> Response
+>
+>        HTTP 200 OK
+"""
+    permission_classes = [permissions.IsAuthenticated, ]
     lookup_field = 'owner'
     lookup_fields = ('owner', 'formid', 'dataid')
     extra_lookup_fields = None
 
     queryset = Instance.objects.all()
 
-    def _get_accessible_forms(self, owner=None):
-        xforms = []
-        # list public forms incase anonymous user
-        if self.request.user.is_anonymous():
-            xforms = XForm.public_forms().order_by('?')[:10]
-            # select only  the random 10, allows chaining later on
-            xforms = XForm.objects.filter(pk__in=[x.pk for x in xforms])
-        else:
-            xforms = XForm.objects.filter(user__username=owner)
-        return xforms.distinct()
-
     def _get_formlist_data_points(self, request, owner=None):
-        xforms = self._get_accessible_forms(owner)
+        xforms = get_accessible_forms(owner)
         # filter by tags if available.
         tags = self.request.QUERY_PARAMS.get('tags', None)
         if tags and isinstance(tags, basestring):
@@ -1092,27 +1104,42 @@ Payload
         if not formid and not dataid and not tags:
             data = self._get_formlist_data_points(request, owner)
         if formid:
-            xform = check_and_set_form_by_id(int(formid), request)
+            xform = None
+            try:
+                xform = check_and_set_form_by_id(int(formid), request)
+            except ValueError:
+                xform = check_and_set_form_by_id_string(formid, request)
             if not xform:
                 raise exceptions.PermissionDenied(
                     _("You do not have permission to "
                       "view data from this form."))
+            else:
+                query = {}
+                query[ParsedInstance.USERFORM_ID] = \
+                    u'%s_%s' % (xform.user.username, xform.id_string)
         if xform and dataid and dataid == 'labels':
             return Response(list(xform.tags.names()))
-        if xform and dataid:
-            query = {'_id': int(dataid)}
+        if dataid:
+            if query:
+                query.update({'_id': int(dataid)})
+            else:
+                query = {'_id': int(dataid)}
         rquery = request.QUERY_PARAMS.get('query', None)
         if rquery:
             rquery = json.loads(rquery)
             if query:
-                rquery.update(json.loads(query))
+                query.update(rquery)
+            else:
+                query = rquery
         if tags:
             query = query if query else {}
             query['_tags'] = {'$all': tags.split(',')}
         if xform:
             data = self._get_form_data(xform, query=query)
         if not xform and not data:
-            xforms = self._get_accessible_forms(owner)
+            xforms = get_accessible_forms(owner)
+            if not query:
+                query = {}
             query[ParsedInstance.USERFORM_ID] = {
                 '$in': [
                     u'%s_%s' % (form.user.username, form.id_string)
@@ -1130,7 +1157,11 @@ Payload
             tags = TagField()
         if owner is None and not request.user.is_anonymous():
             owner = request.user.username
-        xform = check_and_set_form_by_id(int(formid), request)
+        xform = None
+        try:
+            xform = check_and_set_form_by_id(int(formid), request)
+        except ValueError:
+            xform = check_and_set_form_by_id_string(formid, request)
         if not xform:
             raise exceptions.PermissionDenied(
                 _("You do not have permission to "
@@ -1149,7 +1180,7 @@ Payload
         label = kwargs.get('label', None)
         if request.method == 'GET' and label:
             data = [
-                i['name'] for i in
+                tag['name'] for tag in
                 instance.instance.tags.filter(name=label).values('name')]
         elif request.method == 'DELETE' and label:
             count = instance.instance.tags.count()
@@ -1163,3 +1194,158 @@ Payload
         if request.method == 'GET':
             status = 200
         return Response(data, status=status)
+
+
+class NoteViewSet(viewsets.ModelViewSet):
+    """## Add Notes to a submission
+
+A `POST` payload of parameters:
+
+    `note` - the note string to add to a data point
+    `instance` - the data point id
+
+ <pre class="prettyprint">
+  <b>POST</b> /api/v1/notes</pre>
+
+Payload
+
+    {"instance": 1, "note": "This is a note."}
+
+  > Response
+  >
+  >     {
+  >          "id": 1,
+  >          "instance": 1,
+  >          "note": "This is a note."
+  >          ...
+  >     }
+  >
+  >     HTTP 201 OK
+
+# Get List of notes for a data point
+
+A `GET` request will return the list of notes applied to a data point.
+
+ <pre class="prettyprint">
+  <b>GET</b> /api/v1/notes</pre>
+
+
+  > Response
+  >
+  >     [{
+  >          "id": 1,
+  >          "instance": 1,
+  >          "note": "This is a note."
+  >          ...
+  >     }, ...]
+  >
+  >
+  >        HTTP 200 OK
+"""
+    queryset = Note.objects.all()
+    serializer_class = api_serializers.NoteSerializer
+    permission_classes = [permissions.DjangoModelPermissions,
+                          permissions.IsAuthenticated, ]
+
+    def get_queryset(self):
+        return Note.objects.filter(instance__xform__user=self.request.user)
+
+
+class StatsViewSet(viewsets.ViewSet):
+    """
+Provides submissions counts grouped by a specified field.
+It accepts query parameters `group` and `name`. Default result
+is grouped by `_submission_time`, hence you get submission counts per day.
+If a date field is used as the group, the result will be grouped by day.
+
+* *group* - field to group submission counts by
+* *name* - name to be applied to the group on results
+
+Example:
+
+    GET /api/v1/stats/submissions/ukanga/1?
+    group=_submission_time&name=day_of_submission
+
+Response:
+
+    [
+        {
+            "count": 8,
+            "day_of_submission": "2013-11-15",
+        },
+        {
+            "count": 99,
+            "day_of_submission": "2013-11-16",
+        },
+        {
+            "count": 133,
+            "day_of_submission": "2013-11-17",
+        },
+        {
+            "count": 162,
+            "day_of_submission": "2013-11-18",
+        },
+        {
+            "count": 102,
+            "day_of_submission": "2013-11-19",
+        }
+    ]
+"""
+    permission_classes = [permissions.IsAuthenticated, ]
+    lookup_field = 'owner'
+    lookup_fields = ('owner', 'formid', 'dataid')
+    extra_lookup_fields = None
+    queryset = Instance.objects.all()
+
+    def _get_formlist_data_points(self, request, owner=None):
+        xforms = get_accessible_forms(owner)
+        # filter by tags if available.
+        tags = self.request.QUERY_PARAMS.get('tags', None)
+        if tags and isinstance(tags, basestring):
+            tags = tags.split(',')
+            xforms = xforms.filter(tags__name__in=tags).distinct()
+        rs = {}
+        for xform in xforms.distinct():
+            point = {u"%s" % xform.id_string:
+                     reverse("stats-list", kwargs={
+                             "formid": xform.pk,
+                             "owner": xform.user.username},
+                             request=request)}
+            rs.update(point)
+        return rs
+
+    def list(self, request, owner=None, formid=None, **kwargs):
+        if owner is None and not request.user.is_anonymous():
+            owner = request.user.username
+
+        data = []
+
+        if formid:
+            try:
+                formid = int(formid)
+            except ValueError:
+                xform = check_and_set_form_by_id_string(formid, request)
+            else:
+                xform = check_and_set_form_by_id(int(formid), request)
+            if not xform:
+                raise exceptions.PermissionDenied(
+                    _("You do not have permission to "
+                      "view data from this form."))
+            else:
+                field = '_submission_time'
+                name = 'date_of_submission'
+                group = request.QUERY_PARAMS.get('group', None)
+                alt_name = request.QUERY_PARAMS.get('name', None)
+                if group:
+                    name = field = group
+                if alt_name:
+                    name = alt_name
+                try:
+                    data = utils.get_form_submissions_grouped_by_field(
+                        xform, field, name)
+                except ValueError as e:
+                    raise exceptions.ParseError(detail=e.message)
+        else:
+            data = self._get_formlist_data_points(request, owner)
+
+        return Response(data)

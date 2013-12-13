@@ -47,7 +47,10 @@ urlpatterns = patterns(
     url(r'^people/$', 'main.views.members_list'),
     url(r'^xls2xform/$', 'main.views.xls2xform'),
     url(r'^support/$', 'main.views.support'),
-    url(r'^stats/$', 'staff.views.stats'),
+    url(r'^admin-stats/$', 'staff.views.stats'),
+    url(r'^stats/$', 'stats.views.stats', name='form-stats'),
+    url(r'^stats/(?P<username>[^/]+)/(?P<id_string>[^/]+)$',
+        'stats.views.stats', name='form-stats'),
     url(r'^login_redirect/$', 'main.views.login_redirect'),
     url(r"^attachment/$", 'odk_viewer.views.attachment_url'),
     url(r"^attachment/(?P<size>[^/]+)$", 'odk_viewer.views.attachment_url'),
@@ -100,6 +103,7 @@ urlpatterns = patterns(
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.csv$", 'odk_viewer.views.data_export', name='csv_export', kwargs={'export_type': 'csv'}),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.xls", 'odk_viewer.views.data_export', name='xls_export', kwargs={'export_type': 'xls'}),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.csv.zip", 'odk_viewer.views.data_export', name='csv_zip_export', kwargs={'export_type': 'csv_zip'}),
+    url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.sav.zip", 'odk_viewer.views.data_export', name='sav_zip_export', kwargs={'export_type': 'sav_zip'}),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.kml$", 'odk_viewer.views.kml_export'),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.zip", 'odk_viewer.views.zip_export'),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/gdocs$", 'odk_viewer.views.google_xls_export'),
@@ -139,6 +143,9 @@ urlpatterns = patterns(
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/sms_multiple_submissions$', 'sms_support.views.import_multiple_submissions_for_form', name='sms_submissions_form'),
     url(r"^(?P<username>[^/]+)/sms_multiple_submissions$", 'sms_support.views.import_multiple_submissions', name='sms_submissions'),
     url(r"^(?P<username>[^/]+)/sms_submission$", 'sms_support.views.import_submission', name='sms_submission'),
+
+    # Ziggy
+    url(r"^(?P<username>[^/]+)/form-submissions$", 'odk_logger.views.ziggy_submissions'),
 
     # static media
     url(r'^static/(?P<path>.*)$', 'django.views.static.serve',

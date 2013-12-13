@@ -148,7 +148,8 @@ def add_submission_with(request, username, id_string):
     from dict2xml import dict2xml
 
     def geopoint_xpaths(username, id_string):
-        d = DataDictionary.objects.get(user__username=username, id_string=id_string)
+        d = DataDictionary.objects.get(
+            user__username=username, id_string=id_string)
         return [e.get_abbreviated_xpath()
                 for e in d.get_survey_elements()
                 if e.bind.get(u'type') == u'geopoint']
@@ -162,11 +163,12 @@ def add_submission_with(request, username, id_string):
     context = {'username': username,
                'id_string': id_string,
                'xml_content': dict2xml(xml_dict)}
-    instance_xml = loader.get_template("instance_add.xml").render(Context(context))
+    instance_xml = loader.get_template("instance_add.xml")\
+        .render(Context(context))
 
     url = settings.ENKETO_API_INSTANCE_IFRAME_URL
-    return_url = reverse('thank_you_submission', kwargs={"username": username,
-                                                         "id_string": id_string})
+    return_url = reverse('thank_you_submission',
+                         kwargs={"username": username, "id_string": id_string})
     if settings.DEBUG:
         openrosa_url = "https://dev.formhub.org/{}".format(username)
     else:
@@ -244,7 +246,7 @@ def data_export(request, username, id_string, export_type):
     force_xlsx = request.GET.get('xls') != 'true'
     if export_type == Export.XLS_EXPORT and force_xlsx:
         extension = 'xlsx'
-    elif export_type == Export.CSV_ZIP_EXPORT:
+    elif export_type in [Export.CSV_ZIP_EXPORT, Export.SAV_ZIP_EXPORT]:
         extension = 'zip'
 
     audit = {
@@ -254,7 +256,7 @@ def data_export(request, username, id_string, export_type):
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
     if should_create_new_export(xform, export_type) or query or\
-                    'start' in request.GET or 'end' in request.GET:
+            'start' in request.GET or 'end' in request.GET:
         format_date_for_mongo = lambda x, datetime: datetime.strptime(
             x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
         # check for start and end params
@@ -718,7 +720,6 @@ def instance(request, username, id_string):
         return HttpResponseForbidden(_(u'Not shared.'))
 
     context = RequestContext(request)
-
     audit = {
         "xform": xform.id_string,
     }

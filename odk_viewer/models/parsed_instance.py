@@ -4,7 +4,7 @@ import re
 import json
 
 from dateutil import parser
-from bson import json_util
+from bson import json_util, ObjectId
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save, pre_delete
@@ -16,8 +16,9 @@ from odk_logger.models import Instance, XForm
 from celery import task
 from common_tags import START_TIME, START, END_TIME, END, ID, UUID,\
     ATTACHMENTS, GEOLOCATION, SUBMISSION_TIME, MONGO_STRFTIME,\
-    BAMBOO_DATASET_ID, DELETEDAT, TAGS
+    BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES
 from django.utils.translation import ugettext as _
+from odk_logger.models import Note
 
 
 # this is Mongo Collection where we will store the parsed submissions
@@ -119,11 +120,19 @@ class ParsedInstance(models.Model):
             query, object_hook=json_util.object_hook) if query else {}
         query = dict_for_mongo(query)
         query[cls.USERFORM_ID] = u'%s_%s' % (username, id_string)
+
+        # check if query contains and _id and if its a valid ObjectID
+        if '_uuid' in query and ObjectId.is_valid(query['_uuid']):
+            query['_uuid'] = ObjectId(query['_uuid'])
+
         if hide_deleted:
             #display only active elements
+            deleted_at_query = {
+                "$or": [{"_deleted_at": {"$exists": False}},
+                        {"_deleted_at": None}]}
             # join existing query with deleted_at_query on an $and
-            query = {"$and": [query, {"_deleted_at": None}]}
-        # fields must be a string array i.e. '["name", "age"]
+            query = {"$and": [query, deleted_at_query]}
+        # fields must be a string array i.e. '["name", "age"]'
         fields = json.loads(
             fields, object_hook=json_util.object_hook) if fields else []
         # TODO: current mongo (2.0.4 of this writing)
@@ -133,6 +142,7 @@ class ParsedInstance(models.Model):
                 [(_encode_for_mongo(field), 1) for field in fields])
         sort = json.loads(
             sort, object_hook=json_util.object_hook) if sort else {}
+
         cursor = xform_instances.find(query, fields_to_select)
         if count:
             return [{"count": cursor.count()}]
@@ -152,6 +162,37 @@ class ParsedInstance(models.Model):
 
     @classmethod
     @apply_form_field_names
+    def mongo_aggregate(cls, query, pipeline, hide_deleted=True):
+        """Perform mongo aggregate queries
+        query - is a dict which is to be passed to $match, a pipeline operator
+        pipeline - list of dicts or dict of mongodb pipeline operators,
+        http://docs.mongodb.org/manual/reference/operator/aggregation-pipeline
+        """
+        if isinstance(query, basestring):
+            query = json.loads(
+                query, object_hook=json_util.object_hook) if query else {}
+        if not (isinstance(pipeline, dict) or isinstance(pipeline, list)):
+            raise Exception(_(u"Invalid pipeline! %s" % pipeline))
+        if not isinstance(query, dict):
+            raise Exception(_(u"Invalid query! %s" % query))
+        query = dict_for_mongo(query)
+        if hide_deleted:
+            #display only active elements
+            deleted_at_query = {
+                "$or": [{"_deleted_at": {"$exists": False}},
+                        {"_deleted_at": None}]}
+            # join existing query with deleted_at_query on an $and
+            query = {"$and": [query, deleted_at_query]}
+        k = [{'$match': query}]
+        if isinstance(pipeline, list):
+            k.extend(pipeline)
+        else:
+            k.append(pipeline)
+        results = xform_instances.aggregate(k)
+        return results['result']
+
+    @classmethod
+    @apply_form_field_names
     def query_mongo_minimal(
             cls, query, fields, sort, start=0, limit=DEFAULT_LIMIT,
             count=False, hide_deleted=True):
@@ -163,8 +204,11 @@ class ParsedInstance(models.Model):
         query = dict_for_mongo(query)
         if hide_deleted:
             #display only active elements
+            deleted_at_query = {
+                "$or": [{"_deleted_at": {"$exists": False}},
+                        {"_deleted_at": None}]}
             # join existing query with deleted_at_query on an $and
-            query = {"$and": [query, {"_deleted_at": None}]}
+            query = {"$and": [query, deleted_at_query]}
         # fields must be a string array i.e. '["name", "age"]'
         fields = json.loads(
             fields, object_hook=json_util.object_hook) if fields else []
@@ -194,23 +238,28 @@ class ParsedInstance(models.Model):
 
     def to_dict_for_mongo(self):
         d = self.to_dict()
-        data = {
-            UUID: self.instance.uuid,
-            ID: self.instance.id,
-            BAMBOO_DATASET_ID: self.instance.xform.bamboo_dataset,
-            self.USERFORM_ID: u'%s_%s' % (
-                self.instance.user.username,
-                self.instance.xform.id_string),
-            ATTACHMENTS: [a.media_file.name for a in
-                          self.instance.attachments.all()],
-            self.STATUS: self.instance.status,
-            GEOLOCATION: [self.lat, self.lng],
-            SUBMISSION_TIME: self.instance.date_created.strftime(MONGO_STRFTIME),
-            TAGS: list(self.instance.tags.names())
-        }
+        deleted_at = None
         if isinstance(self.instance.deleted_at, datetime.datetime):
-            data[DELETEDAT] = self.instance.deleted_at.strftime(MONGO_STRFTIME)
-        d.update(data)
+            deleted_at = self.instance.deleted_at.strftime(MONGO_STRFTIME)
+        d.update(
+            {
+                UUID: self.instance.uuid,
+                ID: self.instance.id,
+                BAMBOO_DATASET_ID: self.instance.xform.bamboo_dataset,
+                self.USERFORM_ID: u'%s_%s' % (
+                    self.instance.user.username,
+                    self.instance.xform.id_string),
+                ATTACHMENTS: [a.media_file.name for a in
+                              self.instance.attachments.all()],
+                self.STATUS: self.instance.status,
+                GEOLOCATION: [self.lat, self.lng],
+                SUBMISSION_TIME:
+                self.instance.date_created.strftime(MONGO_STRFTIME),
+                DELETEDAT: deleted_at,
+                TAGS: list(self.instance.tags.names()),
+                NOTES: self.get_notes()
+            }
+        )
         return dict_for_mongo(d)
 
     def update_mongo(self, async=True):
@@ -313,6 +362,17 @@ class ParsedInstance(models.Model):
         super(ParsedInstance, self).save(*args, **kwargs)
         # insert into Mongo
         self.update_mongo(async)
+
+    def add_note(self, note):
+        note = Note(instance=self.instance, note=note)
+        note.save()
+
+    def remove_note(self, pk):
+        note = self.instance.notes.get(pk=pk)
+        note.delete()
+
+    def get_notes(self):
+        return [note['note'] for note in self.instance.notes.values('note')]
 
 
 def _remove_from_mongo(sender, **kwargs):

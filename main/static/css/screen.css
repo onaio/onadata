@@ -3,6 +3,9 @@ formhub-extras.css
 Made for formhub.org, which mostly uses bootstrap for css.
 This is for all the extra things it needs beyond what bootstrap provides.
 */
+body {
+  font-family: Helvetica;
+}
 .clearfix {
   *zoom: 1;
 }
@@ -806,11 +809,13 @@ img {
 	vertical-align: middle;
 }
 
-a {
-	color:#d96e27;
+a,a:hover {
+	color:#1e8fde;
 }
 
-a:hover {text-decoration: none; color:#b65d22;}
+a:hover {
+    text-decoration: none;
+}
 
 /* Features */
 

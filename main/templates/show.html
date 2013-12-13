@@ -147,6 +147,17 @@
             </ul>
           </div>
           <div class="btn-group">
+            <a class="btn" href="{% url "odk_viewer.views.export_list" content_user.username xform.id_string 'sav_zip' %}" rel="tooltip" data-original-title="{% trans 'SPSS data files zip exports' %}"><i class="icon-download-alt"></i> <font color=#000>{% trans "sav zip" %}</font></a>
+            <button class="btn dropdown-toggle" data-toggle="dropdown">
+              <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+              <li>
+                <input class="input-xxlarge" type="text" size="16" value="{{base_url}}{% url "odk_viewer.views.export_list" content_user.username xform.id_string 'sav_zip' %}"/>
+              </li>
+            </ul>
+          </div>
+          <div class="btn-group">
             <a class="btn" href="{% url "odk_viewer.views.export_list" content_user.username xform.id_string 'xls' %}" rel="tooltip" data-original-title="{% trans 'xls exports' %}"><i class="icon-download-alt"></i> <font color=#000>{% trans "xls" %}</font></a>
             <button class="btn dropdown-toggle" data-toggle="dropdown">
               <span class="caret"></span>
@@ -222,6 +233,9 @@
             <a class="btn btn-info" btn-info  rel="tooltip" title="{% trans "Browse Data (One by One)" %}" href="{% url "odk_viewer.views.instance" content_user.username xform.id_string %}">
                 <i class="icon-list-alt icon-white"></i> {% trans "Browse Data" %}
             </a>
+            <a class="btn btn-info" btn-info  rel="tooltip" title="{% trans "View Statistics" %}" href="{% url "form-stats" content_user.username xform.id_string %}">
+                <i class="icon-bar-chart icon-white"></i> {% trans "Statistics" %}
+            </a>
         </div>
         {% else %}
             {% if can_edit %}
@@ -249,6 +263,7 @@
                       <i class="icon-check icon-white"></i> {% trans "Preview Form" %}
                   </a>
                   {% endif %}
+
               </div>
               {% if can_edit or xform.is_crowd_form or xform.shared %}
               <div id="preview-modal" class="modal hide fade">
@@ -296,7 +311,7 @@
         </div>
         <br/>
         <div class="clearfix bordered">
-                <h3 data-toggle="collapse" class="toggler" data-target="#docs_tab">{% trans "Supporting Documents" %}</h3>
+                <h3 data-toggle="collapse" class="toggler" data-target="#docs_tab">{% trans "Methodology" %}</h3>
                 <div id='docs_tab' class="collapse">
                 {% for doc in supporting_docs %}
                     <p><a href="{% url "main.views.download_metadata" content_user.username xform.id_string doc.id %}">{{ doc.data_value }}</a>

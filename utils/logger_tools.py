@@ -92,7 +92,7 @@ def create_instance(username, xml_file, media_files,
             raise InstanceInvalidUserError()
 
         if uuid:
-            # try find the fomr by its uuid which is the ideal condition
+            # try find the form by its uuid which is the ideal condition
             if XForm.objects.filter(uuid=uuid).count() > 0:
                 xform = XForm.objects.get(uuid=uuid)
                 xform_username = xform.user.username
@@ -102,7 +102,8 @@ def create_instance(username, xml_file, media_files,
                     raise IsNotCrowdformError()
 
                 username = xform_username
-        # else, since we have a username, the Instance creation logic will
+
+        # Else, since we have a username, the Instance creation logic will
         # handle checking for the forms existence by its id_string
         if username and request and request.user.is_authenticated():
             id_string = get_id_string_from_xml_str(xml)
@@ -507,8 +508,7 @@ def mongo_sync_status(remongo=False, update_all=False, user=None, xform=None):
     # will show progress
     if not remongo:
         line = "Total # of forms out of sync: %d\n" \
-            "Total # of records to remongo: %d\n" % (
-            found, total_to_remongo)
+            "Total # of records to remongo: %d\n" % (found, total_to_remongo)
         report_string += line
     return report_string
 

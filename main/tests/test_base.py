@@ -1,8 +1,9 @@
 import base64
 import os
 import re
-from tempfile import NamedTemporaryFile
+import socket
 import urllib2
+from tempfile import NamedTemporaryFile
 
 from cStringIO import StringIO
 
@@ -106,9 +107,9 @@ class MainTestCase(TestCase):
     def _submit_transport_instance_w_attachment(self, survey_at=0):
         s = self.surveys[survey_at]
         media_file = "1335783522563.jpg"
-        self._make_submission_w_attachment(
-            os.path.join(self.this_directory, 'fixtures',
-                         'transportation', 'instances', s, s + '.xml'),
+        self._make_submission_w_attachment(os.path.join(
+            self.this_directory, 'fixtures',
+            'transportation', 'instances', s, s + '.xml'),
             os.path.join(self.this_directory, 'fixtures',
                          'transportation', 'instances', s, media_file))
         attachment = Attachment.objects.all().reverse()[0]
@@ -184,7 +185,7 @@ class MainTestCase(TestCase):
         try:
             urllib2.urlopen(url, timeout=timeout)
             return True
-        except urllib2.URLError:
+        except (urllib2.URLError, socket.timeout):
             pass
         return False
 
@@ -194,8 +195,8 @@ class MainTestCase(TestCase):
 
     def _set_auth_headers(self, username, password):
         return {
-            'HTTP_AUTHORIZATION': 'Basic ' +
-            base64.b64encode('%s:%s' % (username, password)),
+            'HTTP_AUTHORIZATION':
+            'Basic ' + base64.b64encode('%s:%s' % (username, password)),
         }
 
     def _get_authenticated_client(

@@ -1,4 +1,5 @@
 import httplib2
+import requests
 from restservice.RestServiceInterface import RestServiceInterface
 
 
@@ -12,3 +13,9 @@ class ServiceDefinition(RestServiceInterface):
         valid_url = url % info
         http = httplib2.Http()
         resp, content = http.request(valid_url, 'GET')
+
+    def send_ziggy(self, url, ziggy_instance, uuid):
+        info = {"id_string": ziggy_instance.xform.id_string, "uuid": uuid}
+        valid_url = url % info
+        response = requests.get(valid_url)
+        return response

@@ -8,7 +8,8 @@
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </a>
-      <a class="brand" href="/" title="formhub"><img alt="formhub" src="/static/images/logo.png" /></a>
+      <a class="brand" href="/" title="onadata"><img alt="onadata"
+          src="/static/images/onadata_logo_white.png" /></a>
       <div class="nav-collapse collapse">
           {% if form_view %}
           <ul class="nav">
@@ -63,11 +64,9 @@
               {% if user.is_superuser or user.is_staff %}
             <li><a href="{% url "main.views.members_list" %}">{% trans "People" %}</a></li>
               {% endif %}
-            <li><a href="/resources/">{% trans "Resources" %}</a></li>
+            <!-- <li><a href="/resources/">{% trans "Resources" %}</a></li> -->
             <li><a href="{% url "main.views.syntax" %}">{% trans "Syntax" %}</a></li>
             <li><a href="{% url "main.views.support" %}">{% trans "Support" %}</a></li>
-            <li><a href="http://blog.formhub.org/">{% trans "Blog" %}</a></li>
-
           </ul>
           <ul class="nav pull-right">
             {% if user.is_authenticated %}

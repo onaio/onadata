@@ -1,7 +1,7 @@
 from django.test import RequestFactory
 from main.tests.test_base import MainTestCase
-
-from api.views import DataViewSet, XFormViewSet
+from odk_logger.models import Note
+from api.views import DataViewSet, XFormViewSet, NoteViewSet
 
 
 class TestDataAPI(MainTestCase):
@@ -15,7 +15,7 @@ class TestDataAPI(MainTestCase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
-    def test_form_list(self):
+    def test_data(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
@@ -49,6 +49,26 @@ class TestDataAPI(MainTestCase):
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
 
+    def test_data_with_query_parameter(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        dataid = self.xform.surveys.all()[0].pk
+        response = view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+        query_str = '{"_id": "%s"}' % dataid
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+    def test_anon_form_list(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/')
+        response = view(request)
+        self.assertEqual(response.status_code, 401)
+
     def test_add_form_tag_propagates_to_data_tags(self):
         """Test that when a tag is applied on an xform,
         it propagates to the instance submissions
@@ -77,3 +97,40 @@ class TestDataAPI(MainTestCase):
         self.assertEqual(response.data, [])
         for i in self.xform.surveys.all():
             self.assertNotIn(u'hello', i.tags.names())
+
+    def test_add_notes_to_data_point(self):
+        # add a note to a specific data point
+        view = NoteViewSet.as_view({
+            'get': 'retrieve',
+            'post': 'create',
+        })
+        note = {'note': u"Road Warrior"}
+        dataid = self.xform.surveys.all()[0].pk
+        note['instance'] = dataid
+        request = self.factory.post('/', data=note, **self.extra)
+        self.assertTrue(self.xform.surveys.count())
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+        pk = response.data['id']
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictContainsSubset(note, response.data)
+        view = NoteViewSet.as_view({
+            'get': 'list',
+            'delete': 'destroy'
+        })
+        user = self._create_user('deno', 'deno')
+        extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % user.auth_token}
+        request = self.factory.get('/', **extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.data, [])
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, pk=pk)
+        self.assertEqual(response.status_code, 204)
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.data, [])
