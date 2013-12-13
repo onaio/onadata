@@ -70,8 +70,11 @@
             // FH.Map instance
             this._map = L.map(this.el, {
                 zoom: this.options.zoom,
-                center: this.options.center
-            }).addControl(this._layersControl);
+                center: this.options.center,
+                zoomControl: false
+            })
+                .addControl(L.control.zoom({position: 'topright'}))
+                .addControl(this._layersControl);
 
             // Create the FeatureLayerSet
             this.featureLayers = new FH.FeatureLayerSet();
