@@ -1,7 +1,7 @@
 django-extensions
-ipython
 ipdb
 statsd
 django-statsd-mozilla
 gunicorn
 fabric
+django-kombu
