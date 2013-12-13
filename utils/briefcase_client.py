@@ -47,9 +47,9 @@ class BriefcaseClient(object):
         # fetch formList
         response = requests.get(self.form_list_url, auth=self.auth)
         self.logger.debug('Successfull fetched %s.' % self.form_list_url)
-        xmlDoc = clean_and_parse_xml(response.content)
+        xml_doc = clean_and_parse_xml(response.content)
         forms = []
-        for childNode in xmlDoc.childNodes:
+        for childNode in xml_doc.childNodes:
             if childNode.nodeName == 'xforms':
                 for xformNode in childNode.childNodes:
                     if xformNode.nodeName == 'xform':
@@ -189,7 +189,7 @@ class BriefcaseClient(object):
         return publish_form(k.publish_xform)
 
     def _upload_instances(self, path):
-        instances = []
+        instances_count = 0
         dirs, not_in_use = default_storage.listdir(path)
         for instance_dir in dirs:
             instance_dir_path = os.path.join(path, instance_dir)
@@ -229,8 +229,8 @@ class BriefcaseClient(object):
                 except Exception:
                     pass
                 else:
-                    instances.append(instance)
-        return len(instances)
+                    instances_count += 1
+        return instances_count
 
     def push(self):
         dirs, files = default_storage.listdir(self.forms_path)
