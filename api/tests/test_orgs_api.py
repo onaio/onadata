@@ -1,11 +1,13 @@
 from api.tests.test_api import TestAPI
-from api.views import OrgProfileViewSet
+from api.viewsets.organization_profile_viewset import\
+    OrganizationProfileViewSet
 
 
 class TestOrgsAPI(TestAPI):
+
     def setUp(self):
         super(TestOrgsAPI, self).setUp()
-        self.view = OrgProfileViewSet.as_view({
+        self.view = OrganizationProfileViewSet.as_view({
             'get': 'list',
             'post': 'create'
         })
@@ -19,7 +21,7 @@ class TestOrgsAPI(TestAPI):
 
     def test_orgs_get(self):
         self._org_create()
-        view = OrgProfileViewSet.as_view({
+        view = OrganizationProfileViewSet.as_view({
             'get': 'retrieve'
         })
         request = self.factory.get('/', **self.extra)

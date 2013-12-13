@@ -1,6 +1,6 @@
 import json
 from api.tests.test_api import TestAPI
-from api.views import UserViewSet
+from api.viewsets.user_viewset import UserViewSet
 
 
 class TestUsersAPI(TestAPI):

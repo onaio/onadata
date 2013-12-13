@@ -3,7 +3,7 @@ import json
 from main.models import UserProfile
 
 from api.tests.test_api import TestAPI
-from api.views import UserProfileViewSet
+from api.viewsets.user_profile_viewset import UserProfileViewSet
 
 
 class TestProfilesAPI(TestAPI):

@@ -4,7 +4,7 @@ from xml.dom import minidom, Node
 from django.conf import settings
 
 from api.tests.test_api import TestAPI
-from api.views import XFormViewSet
+from api.viewsets.xform_viewset import XFormViewSet
 
 
 class TestFormsAPI(TestAPI):

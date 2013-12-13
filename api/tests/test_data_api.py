@@ -1,6 +1,8 @@
 from django.test import RequestFactory
 from main.tests.test_base import MainTestCase
-from api.views import DataViewSet, XFormViewSet, NoteViewSet
+from api.viewsets.data_viewset import DataViewSet
+from api.viewsets.note_viewset import NoteViewSet
+from api.viewsets.xform_viewset import XFormViewSet
 
 
 class TestDataAPI(MainTestCase):

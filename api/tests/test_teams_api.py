@@ -3,7 +3,7 @@ import json
 from api.tests.test_api import TestAPI
 
 from api.models import Team
-from api.views import TeamViewSet
+from api.viewsets.team_viewset import TeamViewSet
 
 
 class TestTeamsAPI(TestAPI):

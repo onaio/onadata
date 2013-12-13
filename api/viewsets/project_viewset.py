@@ -171,6 +171,7 @@ Where:
                 raise exceptions.ParseError(
                     detail=_(u"The path parameter {pk} "
                              u"should be a number, '%s' given instead." % pk))
+        print queryset
         return super(ProjectViewSet, self).get_object(queryset)
 
     def list(self, request, **kwargs):

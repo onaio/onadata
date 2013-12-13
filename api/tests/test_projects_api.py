@@ -1,5 +1,5 @@
 from api.tests.test_api import TestAPI
-from api.views import ProjectViewSet
+from api.viewsets.project_viewset import ProjectViewSet
 
 
 class TestProjectsAPI(TestAPI):
