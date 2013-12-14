@@ -11,15 +11,16 @@ from django.contrib.auth.models import Permission
 from utils.user_auth import set_api_permissions_for_user
 
 from api.models import OrganizationProfile, Project
-from api.views import OrgProfileViewSet
-from api.views import ProjectViewSet
+from api.viewsets.organization_profile_viewset import\
+    OrganizationProfileViewSet
+from api.viewsets.project_viewset import ProjectViewSet
 from api.serializers import ProjectSerializer
 
 
-class TestAPICase(TestCase):
+class TestAPI(TestCase):
 
     def setUp(self):
-        super(TestAPICase, self).setUp()
+        super(TestAPI, self).setUp()
         self.factory = RequestFactory()
         self._login_user_and_profile()
         self.maxDiff = None
@@ -61,7 +62,7 @@ class TestAPICase(TestCase):
             set_api_permissions_for_user(self.user)
 
     def _org_create(self):
-        view = OrgProfileViewSet.as_view({
+        view = OrganizationProfileViewSet.as_view({
             'get': 'list',
             'post': 'create'
         })

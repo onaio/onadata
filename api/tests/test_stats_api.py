@@ -1,7 +1,7 @@
 from django.test import RequestFactory
 from main.tests.test_base import MainTestCase
 
-from api.views import StatsViewSet
+from api.viewsets.stats_viewset import StatsViewSet
 
 
 class TestDataAPI(MainTestCase):
