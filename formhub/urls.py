@@ -96,7 +96,7 @@ urlpatterns = patterns(
         'odk_logger.views.form_upload'),
 
     # stats
-    url(r"^stats/submissions/$", 'staff.views.submissions'),
+    url(r"^stats/submissions/$", 'stats.views.submissions'),
 
     # exporting stuff
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.csv$", 'odk_viewer.views.data_export', name='csv_export', kwargs={'export_type': 'csv'}),
