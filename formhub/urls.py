@@ -47,7 +47,6 @@ urlpatterns = patterns(
     url(r'^people/$', 'main.views.members_list'),
     url(r'^xls2xform/$', 'main.views.xls2xform'),
     url(r'^support/$', 'main.views.support'),
-    url(r'^admin-stats/$', 'staff.views.stats'),
     url(r'^stats/$', 'stats.views.stats', name='form-stats'),
     url(r'^stats/(?P<username>[^/]+)/(?P<id_string>[^/]+)$',
         'stats.views.stats', name='form-stats'),
