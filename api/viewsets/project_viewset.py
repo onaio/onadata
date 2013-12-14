@@ -15,11 +15,11 @@ from api import tools as utils
 from odk_logger.models import XForm
 
 
-class ProjectViewSet(CreateModelMixin,
-                     GenericViewSet,
+class ProjectViewSet(MultiLookupMixin,
+                     CreateModelMixin,
+                     RetrieveModelMixin,
                      ListModelMixin,
-                     MultiLookupMixin,
-                     RetrieveModelMixin):
+                     GenericViewSet):
     """
 List, Retrieve, Update, Create Project and Project Forms
 
