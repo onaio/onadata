@@ -12,14 +12,12 @@ import json
 import datetime
 import dateutil
 
-import requests
 from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.translation import ugettext as _
 
-from odk_logger.models import XForm
 from sms_support.tools import SMS_API_ERROR, SMS_SUBMISSION_ACCEPTED
 from sms_support.parser import process_incoming_smses
 
@@ -66,7 +64,8 @@ def get_response(data):
         if payload.get('phone'):
             response = {"phone": [payload.get('phone')],
                         "text": payload.get('text')}
-            return HttpResponse(json.dumps(response), mimetype='application/json')
+            return HttpResponse(json.dumps(response),
+                                mimetype='application/json')
 
     return HttpResponse()
 
