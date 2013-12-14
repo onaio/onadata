@@ -53,15 +53,15 @@ def unknown_service(request, username=None, id_string=None):
 @csrf_exempt
 def import_submission(request, username, service):
     """ Proxy to the service's import_submission view """
-    return PROVIDERS.get(service.lower(), {}) \
-                    .get('imp', unknown_service)(request, username)
+    return PROVIDERS.get(service.lower(), {}).get(
+        'imp', unknown_service)(request, username)
 
 
 @csrf_exempt
 def import_submission_for_form(request, username, id_string, service):
     """ Proxy to the service's import_submission_for_form view """
-    return PROVIDERS.get(service.lower(), {}) \
-                    .get('imp_form', unknown_service)(request, username, id_string)
+    return PROVIDERS.get(service.lower(), {}).get(
+        'imp_form', unknown_service)(request, username, id_string)
 
 
 def providers_doc(url_root, username, id_string):

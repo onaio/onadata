@@ -244,7 +244,8 @@ def check_form_sms_compatibility(form, json_survey=None):
             xlsf_choices = field.get('children')
             if xlsf_type in ('select one', 'select all that apply'):
                 nb_choices = len(xlsf_choices)
-                options = list(set([c.get('sms_option', '') or None for c in xlsf_choices]))
+                options = list(set([c.get('sms_option', '') or None
+                               for c in xlsf_choices]))
                 try:
                     options.remove(None)
                 except ValueError:
