@@ -187,7 +187,6 @@ INSTALLED_APPS = (
     'odk_viewer',
     'main',
     'restservice',
-    'staff',
     'api',
     'guardian',
     'djcelery',
