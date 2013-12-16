@@ -1,8 +1,8 @@
-from api.tests.test_api import TestAPICase
-from api.views import ProjectViewSet
+from api.tests.test_api import TestAPI
+from api.viewsets.project_viewset import ProjectViewSet
 
 
-class TestProjectsAPI(TestAPICase):
+class TestProjectsAPI(TestAPI):
     def setUp(self):
         super(TestProjectsAPI, self).setUp()
         self.view = ProjectViewSet.as_view({

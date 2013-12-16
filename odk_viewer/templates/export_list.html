@@ -106,11 +106,11 @@
 
 {% block javascript %}
 {{ block.super }}
-<script type="text/javascript" src="/static/js/jquery.dataTables.js"></script>
-<script type="text/javascript" src="/static/js/jquery.dataTables.pagination.js"></script>
-<script type="text/javascript" src="/static/js/form_actions.js"></script>
-<script type="text/javascript" charset="utf-8" src="/static/js/underscore-min.js"></script>
-<script type="text/javascript" charset="utf-8" src="/static/js/export_list.js"></script>
+<script type="text/javascript" src="{{STATIC_URL}}js/jquery.dataTables.js"></script>
+<script type="text/javascript" src="{{STATIC_URL}}js/jquery.dataTables.pagination.js"></script>
+<script type="text/javascript" src="{{STATIC_URL}}js/form_actions.js"></script>
+<script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/underscore-min.js"></script>
+<script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/export_list.js"></script>
 <script type="text/javascript">
     var progress_url = '{% url "odk_viewer.views.export_progress" username xform.id_string export_type %}';
 </script>

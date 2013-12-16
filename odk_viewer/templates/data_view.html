@@ -16,9 +16,9 @@
 {% endblock %}
 
 {% block additional-headers %}
-    <link rel="stylesheet" href="/static/recline/dist/recline.css" />
-    <link rel="stylesheet" href="/static/recline/vendor/slickgrid/2.0.1/slick.grid.css" />
-    <link rel="stylesheet" href="/static/js/datetimepicker/datepicker.css" />
+    <link rel="stylesheet" href="{{STATIC_URL}}recline/dist/recline.css" />
+    <link rel="stylesheet" href="{{STATIC_URL}}recline/vendor/slickgrid/2.0.1/slick.grid.css" />
+    <link rel="stylesheet" href="{{STATIC_URL}}js/datetimepicker/datepicker.css" />
     <style type="text/css">
         .recline-slickgrid {
             height: 700px;
@@ -29,19 +29,19 @@
 
 {% block javascript %}
 {{ block.super }}
-    <script src="/static/js/underscore-min.js" type="text/javascript"></script>
-    <script src="/static/recline/vendor/mustache/0.5.0-dev/mustache.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}js/underscore-min.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}recline/vendor/mustache/0.5.0-dev/mustache.js" type="text/javascript"></script>
     <!-- Slick Grid -->
-    <script src="/static/recline/vendor/slickgrid/2.0.1/jquery-ui-1.8.16.custom.min.js" type="text/javascript"></script>
-    <script src="/static/recline/vendor/slickgrid/2.0.1/jquery.event.drag-2.0.min.js" type="text/javascript"></script>
-    <script src="/static/recline/vendor/slickgrid/2.0.1/slick.grid.min.js" type="text/javascript"></script>
-    <script src="/static/recline/vendor/backbone/0.9.2/backbone.js" type="text/javascript"></script>
-    <script src="/static/recline/dist/recline.js" type="text/javascript"></script>
-    <script src="/static/js/backend.formhub-mongo-api.js" type="text/javascript"></script>
-    <script src="/static/js/fh.multiview.js" type="text/javascript"></script>
-    <script src="/static/js/widget.language-selector.js" type="text/javascript"></script>
-    <script src="/static/js/views.fh-slickgrid.js" type="text/javascript"></script>
-    <script src="/static/js/datetimepicker/datepicker.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}recline/vendor/slickgrid/2.0.1/jquery-ui-1.8.16.custom.min.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}recline/vendor/slickgrid/2.0.1/jquery.event.drag-2.0.min.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}recline/vendor/slickgrid/2.0.1/slick.grid.min.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}recline/vendor/backbone/0.9.2/backbone.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}recline/dist/recline.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}js/backend.formhub-mongo-api.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}js/fh.multiview.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}js/widget.language-selector.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}js/views.fh-slickgrid.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}js/datetimepicker/datepicker.js" type="text/javascript"></script>
     <script type="text/javascript">
         var formJSONUrl = "{% url "odk_logger.views.download_jsonform" owner.username xform.id_string %}";
         var mongoAPIUrl = "{% url "main.views.api" owner.username xform.id_string %}";
@@ -49,5 +49,5 @@
         var numDefaultColumns = 30;//number of columns to show by default
         var instance_view_url = "{% url "odk_viewer.views.instance" owner.username xform.id_string %}"
     </script>
-    <script src="/static/js/data_view.js" type="text/javascript"></script>
+    <script src="{{STATIC_URL}}js/data_view.js" type="text/javascript"></script>
 {% endblock %}
