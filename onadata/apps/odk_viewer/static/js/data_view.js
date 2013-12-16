@@ -1,77 +1,80 @@
-var dataset = new recline.Model.Dataset({
-    formUrl: formJSONUrl,
-    dataUrl: mongoAPIUrl,
-    backend: "FormhubMongoAPI"
-});
+(function () {
+    "use strict";
+    // Save a reference to the global object (`window` in the browser, `exports`
+    // on the server).
+    var root = this;
 
-var fhSlickView = new recline.View.FHSlickGrid({
-    model: dataset,
-    state: {
-        fitColumns: false
-    }
-});
+    var DataView = root.DataView = Backbone.View.extend({
+        // Instance of the `Form` object
+        form: void 0,
 
-var views = [
-    {
-        id: 'grid',
-        label: 'Data Grid',
-        view: fhSlickView
-    }
-];
+        // Instance of the `Data` object
+        data: void 0,
 
-var fieldsView = new recline.View.Fields({
-    model: dataset
-});
-var filterEditor = new recline.View.FilterEditor({
-    model: dataset
-});
-dataset.bind('change:language', function(){
-    fieldsView.render();
-    filterEditor.render();
-});
-sideBarViews = [
-    {
-        id: 'langsView',
-        label: 'Languages',
-        view: new recline.View.LanguageSelector({
-            model: dataset
-        })
-    },
-    {
-        id: 'filterEditor',
-        label: 'Filters',
-        view: filterEditor
-    },
-    {
-        id: 'fieldsView',
-        label: 'Fields',
-        view: fieldsView
-    }
-];
+        initialize: function (options) {
+            if (!options.formUrl) {
+                throw new Error("You must define a formUrl property within options");
+            }
 
-multiView = new fh.View.MultiView({
-    model: dataset,
-    views: views,
-    sidebarViews: sideBarViews
-});
+            if (!options.dataUrl) {
+                throw new Error("You must define a dataUrl property within options");
+            }
 
-// attach callback field's reset so we can setup what columns to show
-dataset.fields.on("reset", function(){
-    // use the first numDefaultColumns columns
-    var columnsToShow = _.first(_.map(dataset.fields.models, function(field){
-        return field.id;
-    }), numDefaultColumns);
-    fhSlickView.setColumns(columnsToShow);
-});
+            // Setup the form
+            this.form = new FH.Form({}, {url: options.formUrl});
 
-// subscribe to the grids double click event to navigate to the instance view
-fhSlickView.on("doubleclick", function(record){
-    var record_id = record.get("_id");
-    if(record_id)
-        window.open(instance_view_url + "#/" + record_id, "_blank");
-});
+            // Setup the data
+            this.data = new FH.DataSet([], {url: options.dataUrl});
 
-$(document).ready(function(){
-    // attach to DOM
-    $('#data-grid').append(multiView.el);
-});
+            this.form.on('load', function () {
+                // Initialize the data
+                this.data.on('load', function () {
+                    // Disable this callback - infinite loop
+                    this.data.off('load');
+
+                    // For each column, append some data
+                    // Initialize the data table with our columns
+                    this.$el.dataTable({
+                        sScrollX: "100%",
+                        //sScrollXInner: "110%",
+                        aoColumns: DataView.dataTableColumns(this.form),
+                        aaData: DataView.dataSetToDataTables(this.form, this.data)
+                    });
+                }, this);
+                this.data.load();
+            }, this);
+            this.form.load();
+        }
+    });
+
+    DataView.dataTableColumns = function (form) {
+        return form.fields.map(function (field) {
+            return {
+                // Replace dots with dashes, datatables dont like dots
+                mDataProp: field.get(FH.constants.XPATH).replace(/\./g, "-"),
+                sTitle: field.get(FH.constants.LABEL)
+            };
+        });
+    };
+
+    DataView.dataSetToDataTables = function (form, dataSet) {
+        // For each column, set the value or undefined
+        return dataSet.map(function (row) {
+            var data = row.toJSON();
+
+            // for each column, replace dots with dashes
+            _.each(data, function (v, k) {
+                if(k.match(/\./g)) {
+                    data[k.replace(/\./g, '-')] = v;
+                    delete(data[k]);
+                }
+            });
+
+            form.fields.each(function (f) {
+                var cleanedXPath = f.get(FH.constants.XPATH).replace(/\./g, "-");
+                data[cleanedXPath] = data[cleanedXPath] || null;
+            });
+            return data;
+        });
+    };
+}).call(this);
