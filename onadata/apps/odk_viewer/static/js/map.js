@@ -81,7 +81,7 @@
 
             // Create feature layer's container
             this.$featureLayersContainer = $('<div class="feature-layers-container"></div>');
-            this.$('.leaflet-bottom.leaflet-left').append(this.$featureLayersContainer);
+            this.$('.leaflet-top.leaflet-left').append(this.$featureLayersContainer);
 
             // Listen for `add` events to add the feature to the map
             this.featureLayers.on('add', function (featureLayer) {
