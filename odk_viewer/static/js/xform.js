@@ -28,6 +28,7 @@
         DECIMAL: ['decimal'],
         GEOLOCATION: ['gps', 'geopoint'],
         SELECT_ONE: ['select one', 'select_one'],
+        SELECT_MULTIPLE: ['select', 'select all that apply'],
         PHOTO: ['photo', 'image']
     };
 

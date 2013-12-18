@@ -2,7 +2,7 @@
 {% load i18n %}
 
 {% block additional-headers %}
-    <link href="/static/bower_components/datatables-plugins/integration/bootstrap/2/dataTables.bootstrap.css" rel="stylesheet">
+    <link href="/static/dynatable/jquery.dynatable.css" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -15,13 +15,15 @@
         </div>
         <div class="row">
         <span class="span12">
-                <table id="data-table" cellpadding="0" cellspacing="0" border="0"
-                       class="table table-striped table-bordered">
-                    <thead>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
+                <div id="data-table-container">
+                    <table id="data-table" cellpadding="0" cellspacing="0" border="0"
+                           class="table table-striped table-bordered">
+                        <thead>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
             <div style="clear: both;"></div>
         </span>
         </div>
@@ -33,8 +35,7 @@
     <script type="text/javascript" src="/static/bower_components/underscore/underscore-min.js"></script>
     <script type="text/javascript" src="/static/bower_components/backbone/backbone-min.js"></script>
     <script type="text/javascript" src="/static/js/json2.js"></script>
-    <script type="text/javascript" src="/static/bower_components/datatables/media/js/jquery.dataTables.js"></script>
-    <script type="text/javascript" src="/static/bower_components/datatables-plugins/integration/bootstrap/2/dataTables.bootstrap.js"></script>
+    <script type="text/javascript" src="/static/dynatable/jquery.dynatable.js"></script>
     <script type="text/javascript" src="/static/js/xform.js"></script>
     <script type="text/javascript">
         var formJSONUrl = "{% url "odk_logger.views.download_jsonform" owner.username xform.id_string %}";
@@ -45,8 +46,8 @@
         var dataView;
 
         $(document).ready(function () {
-            dataView = new DataView({
-                el: '#data-table',
+            dataView = new FH.DataView({
+                el: '#data-table-container',
                 formUrl: formJSONUrl,
                 dataUrl: mongoAPIUrl
             });
