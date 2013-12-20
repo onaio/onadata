@@ -25,7 +25,7 @@
 
         // toggle label template
         labelToggleTemplate: _.template('' +
-            '<span style="float: left">' +
+            '<span>' +
               '<label>' +
                 '<input class="toggle-labels" type="checkbox" name="toggle_labels" aria-controls="data-table" <% if (isChecked) { %>checked="checked" <% } %> />' +
                 ' Show select labels' +
