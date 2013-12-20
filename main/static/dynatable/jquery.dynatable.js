@@ -70,6 +70,12 @@
       recordCountPlacement: 'after',
       paginationLinkTarget: null,
       paginationLinkPlacement: 'after',
+      paginationClass: 'dynatable-pagination-links',
+      paginationLinkClass: 'dynatable-page-link',
+      paginationPrevClass: 'dynatable-page-prev',
+      paginationNextClass: 'dynatable-page-next',
+      paginationActiveClass: 'dynatable-active-page',
+      paginationDisabledClass: 'dynatable-disabled-page',
       paginationPrev: 'Previous',
       paginationNext: 'Next',
       paginationGap: [1,2,2,1],
@@ -172,6 +178,8 @@
   };
 
   build = function() {
+    this.$element.trigger('dynatable:preinit', this);
+
     for (model in modelPrototypes) {
       if (modelPrototypes.hasOwnProperty(model)) {
         var modelInstance = this[model] = new modelPrototypes[model](this, this.settings);
@@ -280,14 +288,20 @@
     var html = column.attributeWriter(record),
         td = '<td';
 
-    // keep cells for hidden column headers hidden
-    if (column.hidden) {
-      td += ' display="none"';
-    }
+    if (column.hidden || column.textAlign) {
+      td += ' style="';
 
-    // keep cells aligned as their column headers are aligned
-    if (column.textAlign) {
-      td += ' style="text-align: ' + column.textAlign + ';"';
+      // keep cells for hidden column headers hidden
+      if (column.hidden) {
+        td += 'display: none;';
+      }
+
+      // keep cells aligned as their column headers are aligned
+      if (column.textAlign) {
+        td += 'text-align: ' + column.textAlign + ';';
+      }
+
+      td += '"';
     }
 
     return td + '>' + html + '</td>';
@@ -815,7 +829,7 @@
       // Since we don't know what the actual limit will be in any given situation, we'll just try caching and rescue
       // any exceptions by retrying pushState without caching the records.
       //
-      // I have aboslutely no idea why perPageOptions suddenly becomes an array-like object instead of an array,
+      // I have absolutely no idea why perPageOptions suddenly becomes an array-like object instead of an array,
       // but just recently, this started throwing an error if I don't convert it:
       // 'Uncaught Error: DATA_CLONE_ERR: DOM Exception 25'
       cache.dynatable.dataset.perPageOptions = $.makeArray(cache.dynatable.dataset.perPageOptions);
@@ -1081,7 +1095,7 @@
         if (settings.dataset.queries.hasOwnProperty(query)) {
           var value = settings.dataset.queries[query];
           if (_this.functions[query] === undefined) {
-            // Try to lazily evaluate query from column names if not explictly defined
+            // Try to lazily evaluate query from column names if not explicitly defined
             var queryColumn = utility.findObjectInArray(settings.table.columns, {id: query});
             if (queryColumn) {
               _this.functions[query] = function(record, queryValue) {
@@ -1306,13 +1320,10 @@
     };
 
     this.create = function() {
-      var $pageLinks = $('<ul></ul>', {
-            id: 'dynatable-pagination-links-' + obj.element.id,
-            'class': 'dynatable-pagination-links',
-            html: '<span>Pages: </span>'
-          }),
-          pageLinkClass = 'dynatable-page-link',
-          activePageClass = 'dynatable-active-page',
+      var pageLinks = '<ul id="' + 'dynatable-pagination-links-' + obj.element.id + '" class="' + settings.inputs.paginationClass + '">',
+          pageLinkClass = settings.inputs.paginationLinkClass,
+          activePageClass = settings.inputs.paginationActiveClass,
+          disabledPageClass = settings.inputs.paginationDisabledClass,
           pages = Math.ceil(settings.dataset.queryRecordCount / settings.dataset.perPage),
           page = settings.dataset.page,
           breaks = [
@@ -1320,65 +1331,53 @@
             settings.dataset.page - settings.inputs.paginationGap[1],
             settings.dataset.page + settings.inputs.paginationGap[2],
             (pages + 1) - settings.inputs.paginationGap[3]
-          ],
-          $link;
+          ];
+
+      pageLinks += '<li><span>Pages: </span></li>';
 
       for (var i = 1; i <= pages; i++) {
         if ( (i > breaks[0] && i < breaks[1]) || (i > breaks[2] && i < breaks[3])) {
           // skip to next iteration in loop
           continue;
         } else {
-          $link = $('<a></a>',{
-            html: i,
-            'class': pageLinkClass,
-            'data-dynatable-page': i
-          }).appendTo($pageLinks);
-
-          if (page == i) { $link.addClass(activePageClass); }
+          var li = obj.paginationLinks.buildLink(i, i, pageLinkClass, page == i, activePageClass),
+              breakIndex,
+              nextBreak;
 
           // If i is not between one of the following
           // (1 + (settings.paginationGap[0]))
           // (page - settings.paginationGap[1])
           // (page + settings.paginationGap[2])
           // (pages - settings.paginationGap[3])
-          var breakIndex = $.inArray(i, breaks),
-              nextBreak = breaks[breakIndex + 1];
+          breakIndex = $.inArray(i, breaks);
+          nextBreak = breaks[breakIndex + 1];
           if (breakIndex > 0 && i !== 1 && nextBreak && nextBreak > (i + 1)) {
-            var $ellip = $('<span class="dynatable-page-break">&hellip;</span>');
-            $link = breakIndex < 2 ? $link.before($ellip) : $link.after($ellip);
+            var ellip = '<li><span class="dynatable-page-break">&hellip;</span></li>';
+            li = breakIndex < 2 ? ellip + li : li + ellip;
           }
 
-        }
+          if (settings.inputs.paginationPrev && i === 1) {
+            var prevLi = obj.paginationLinks.buildLink(page - 1, settings.inputs.paginationPrev, pageLinkClass + ' ' + settings.inputs.paginationPrevClass, page === 1, disabledPageClass);
+            li = prevLi + li;
+          }
+          if (settings.inputs.paginationNext && i === pages) {
+            var nextLi = obj.paginationLinks.buildLink(page + 1, settings.inputs.paginationNext, pageLinkClass + ' ' + settings.inputs.paginationNextClass, page === pages, disabledPageClass);
+            li += nextLi;
+          }
 
-        if (settings.inputs.paginationPrev && i === 1) {
-          var $prevLink = $('<a></a>',{
-            html: settings.inputs.paginationPrev,
-            'class': pageLinkClass + ' dynatable-page-prev',
-            'data-dynatable-page': page - 1
-          });
-          if (page === 1) { $prevLink.addClass(activePageClass); }
-          $link = $link.before($prevLink);
-        }
-        if (settings.inputs.paginationNext && i === pages) {
-          var $nextLink = $('<a></a>',{
-            html: settings.inputs.paginationNext,
-            'class': pageLinkClass + ' dynatable-page-next',
-            'data-dynatable-page': page + 1
-          });
-          if (page === pages) { $nextLink.addClass(activePageClass); }
-          $link = $link.after($nextLink);
+          pageLinks += li;
         }
       }
 
-      $pageLinks.children().wrap('<li></li>');
+      pageLinks += '</ul>';
 
-      // only bind page handler to non-active pages
-      var selector = '#dynatable-pagination-links-' + obj.element.id + ' .' + pageLinkClass + ':not(.' + activePageClass + ')';
+      // only bind page handler to non-active and non-disabled page links
+      var selector = '#dynatable-pagination-links-' + obj.element.id + ' a.' + pageLinkClass + ':not(.' + activePageClass + ',.' + disabledPageClass + ')';
       // kill any existing delegated-bindings so they don't stack up
       $(document).undelegate(selector, 'click.dynatable');
       $(document).delegate(selector, 'click.dynatable', function(e) {
         $this = $(this);
-        $this.closest('.dynatable-pagination-links').find('.' + activePageClass).removeClass(activePageClass);
+        $this.closest(settings.inputs.paginationClass).find('.' + activePageClass).removeClass(activePageClass);
         $this.addClass(activePageClass);
 
         obj.paginationPage.set($this.data('dynatable-page'));
@@ -1386,20 +1385,35 @@
         e.preventDefault();
       });
 
-      return $pageLinks;
+      return pageLinks;
+    };
+
+    this.buildLink = function(page, label, linkClass, conditional, conditionalClass) {
+      var link = '<a data-dynatable-page=' + page + ' class="' + linkClass,
+          li = '<li';
+
+      if (conditional) {
+        link += ' ' + conditionalClass;
+        li += ' class="' + conditionalClass + '"';
+      }
+
+      link += '">' + label + '</a>';
+      li += '>' + link + '</li>';
+
+      return li;
     };
 
     this.attach = function() {
-      // append page liks *after* delegate-event-binding so it doesn't need to
+      // append page links *after* delegate-event-binding so it doesn't need to
       // find and select all page links to bind event
       var $target = settings.inputs.paginationLinkTarget ? $(settings.inputs.paginationLinkTarget) : obj.$element;
       $target[settings.inputs.paginationLinkPlacement](obj.paginationLinks.create());
     };
   };
 
-  utility = {
+  utility = dt.utility = {
     normalizeText: function(text, style) {
-      text = (typeof(style) === 'function')?style(text):this.textTransform[style](text);
+      text = this.textTransform[style](text);
       return text;
     },
     textTransform: {
@@ -1532,7 +1546,7 @@
             continue;
           }
 
-          // If we havne't returned true by now, then we actually want to update the parameter in the URL
+          // If we haven't returned true by now, then we actually want to update the parameter in the URL
           if (data[label]) {
             urlOptions[label] = data[label];
           } else {

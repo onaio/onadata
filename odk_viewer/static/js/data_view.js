@@ -70,19 +70,22 @@
                     // For each column, append some data
                     // Initialize the data table with our columns
                     this.$('table')
+                        .bind('dynatable:preinit', function (e, dynatable) {
+                            dynatable.utility.textTransform.getFieldId = function (fieldSet) {
+                                return function (label) {
+                                    var field = fieldSet.find(function (field) {
+                                        return field.get(FH.constants.LABEL) === label;
+                                    });
+                                    return field && field.get(FH.constants.XPATH) || label;
+                                };
+                            }(dataView.form.fields);
+                        })
                         .bind('dynatable:init', function(e, dynatable) {
                             dataView.dynatable = dynatable;
                         })
                         .dynatable({
                             table: {
-                                defaultColumnIdStyle: function (fieldSet) {
-                                    return function (label) {
-                                        var field = fieldSet.find(function (field) {
-                                            return field.get(FH.constants.LABEL) === label;
-                                        });
-                                        return field && field.get(FH.constants.XPATH) || label;
-                                    };
-                                }(this.form.fields)
+                                defaultColumnIdStyle: 'getFieldId'
                             },
                             dataset: {
                                 records: this.data.toJSON()
