@@ -14,9 +14,8 @@ from utils.decorators import apply_form_field_names
 from utils.model_tools import queryset_iterator
 from odk_logger.models import Instance, XForm
 from celery import task
-from common_tags import START_TIME, START, END_TIME, END, ID, UUID,\
-    ATTACHMENTS, GEOLOCATION, SUBMISSION_TIME, MONGO_STRFTIME,\
-    BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES
+from common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION, SUBMISSION_TIME,\
+    MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES
 from django.utils.translation import ugettext as _
 from odk_logger.models import Note
 
@@ -85,7 +84,8 @@ def _is_invalid_for_mongo(key):
 def update_mongo_instance(record):
     # since our dict always has an id, save will always result in an upsert op
     # - so we dont need to worry whether its an edit or not
-    # http://api.mongodb.org/python/current/api/pymongo/collection.html#pymongo.collection.Collection.save
+    # http://api.mongodb.org/python/current/api/pymongo/collection.html#pymong\
+    # o.collection.Collection.save
     try:
         return xform_instances.save(record)
     except Exception:
@@ -243,8 +243,9 @@ class ParsedInstance(models.Model):
                           self.instance.attachments.all()],
             self.STATUS: self.instance.status,
             GEOLOCATION: [self.lat, self.lng],
-            SUBMISSION_TIME: self.instance.date_created.strftime(MONGO_STRFTIME),
-            TAGS: list(self.instance.tags.names())
+            SUBMISSION_TIME: self.instance.date_created.strftime(
+                MONGO_STRFTIME),
+            TAGS: list(self.instance.tags.names()),
             NOTES: self.get_notes()
         }
 
@@ -322,8 +323,10 @@ class ParsedInstance(models.Model):
             xform.save()
 
     def save(self, async=False, *args, **kwargs):
-        self.start_time = None  # start/end_time obsolete: originally used to approximate for instanceID,
-        self.end_time = None    # before instanceIDs were implemented
+        # start/end_time obsolete: originally used to approximate for
+        # instanceID, before instanceIDs were implemented
+        self.start_time = None
+        self.end_time = None
         self._set_geopoint()
         super(ParsedInstance, self).save(*args, **kwargs)
         # insert into Mongo
