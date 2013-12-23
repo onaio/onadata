@@ -166,6 +166,16 @@ class BriefcaseClient(object):
                 else:
                     self.logger.error("Failed to fetch %s." % filename)
 
+    def get_instances_uuids(xml_doc):
+        uuids = []
+        for child_node in xml_doc.childNodes:
+            if child_node.nodeName == 'idChunk':
+                for id_node in child_node.getElementsByTagName('id'):
+                    if id_node.childNodes:
+                        uuid = id_node.childNodes[0].nodeValue
+                        uuids.append(uuid)
+        return uuid
+
     def download_instances(self, form_id, cursor=0, num_entries=100):
         response = requests.get(self.submission_list_url, auth=self.auth,
                                 params={'formId': form_id,
@@ -177,13 +187,7 @@ class BriefcaseClient(object):
             xml_doc = clean_and_parse_xml(response.content)
         except ExpatError:
             return
-        instances = []
-        for child_node in xml_doc.childNodes:
-            if child_node.nodeName == 'idChunk':
-                for id_node in child_node.getElementsByTagName('id'):
-                    if id_node.childNodes:
-                        instance_id = id_node.childNodes[0].nodeValue
-                        instances.append(instance_id)
+        instances = self.get_instances_uuids(xml_doc)
         path = os.path.join(self.forms_path, form_id, 'instances')
         for uuid in instances:
             self.logger.debug("Fetching %s %s submission" % (uuid, form_id))
