@@ -54,6 +54,10 @@
                 }
             }
             return val;
+        },
+
+        isA: function (type, typeConstant) {
+            return typeConstant.indexOf(this.get(FH.constants.TYPE).toLowerCase()) !== -1;
         }
     });
 
