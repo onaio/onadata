@@ -84,8 +84,7 @@ class DataDictionary(XForm):
         survey_nodes = [node for node in instance_node.childNodes
                         if node.nodeType == Node.ELEMENT_NODE and
                         (node.tagName == file_name or
-                         (node.attributes.get('id') and
-                          node.attributes.get('id').nodeValue == file_name))]
+                         node.attributes.get('id'))]
 
         if len(survey_nodes) != 1:
             raise Exception(
