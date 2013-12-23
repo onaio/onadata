@@ -20,6 +20,7 @@ build
 # todo: figure out a way to clean this up rather than ignore it.
 /test_media
 /media
+/static
 
 # file created by tests
 registration.xml
