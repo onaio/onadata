@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <h:head>
+    <h:title>Chama Contributions</h:title>
+    <model>
+      <instance>
+        <contributions id="contributions">
+          <formhub>
+            <uuid/>
+          </formhub>
+          <name/>
+          <age/>
+          <amount/>
+          <date_of_contribution/>
+          <meta>
+            <instanceID/>
+          </meta>
+        </contributions>
+      </instance>
+      <bind nodeset="/contributions/name" type="string"/>
+      <bind nodeset="/contributions/age" type="int"/>
+      <bind nodeset="/contributions/amount" type="decimal"/>
+      <bind nodeset="/contributions/date_of_contribution" type="date"/>
+      <bind calculate="concat('uuid:', uuid())" nodeset="/contributions/meta/instanceID" readonly="true()" type="string"/>
+      <bind calculate="'e24036d80c0644a9b5674178892d6b6f'" nodeset="/contributions/formhub/uuid" type="string"/>
+    </model>
+  </h:head>
+  <h:body>
+    <input ref="/contributions/name">
+      <label>Name</label>
+    </input>
+    <input ref="/contributions/age">
+      <label>Age</label>
+    </input>
+    <input ref="/contributions/amount">
+      <label>Amount</label>
+    </input>
+    <input ref="/contributions/date_of_contribution">
+      <label>Date</label>
+    </input>
+  </h:body>
+</h:html>
