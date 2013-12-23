@@ -8,6 +8,38 @@
     // attach all our exposed objects to it.
     var FH = root.FH = root.FH || {};
 
+    // Map of FH types to Backgrid cell types
+    var FHToBackgridTypes = {
+        'integer': 'integer',
+        'decimal': 'number',
+        /*'select': '',
+        'select all that apply': '',
+        'select one': '',*/
+        'photo': '',
+        'image': '',
+        'date': 'date',
+        'datetime': 'datetime'
+    };
+
+    var PageableDataset = FH.PageableDataset = Backbone.PageableCollection.extend({
+        state: {
+            pageSize: 15
+        },
+        mode: "client", // page entirely on the client side,
+        model: FH.Data,
+        initialize: function (models, options) {
+            // set the url
+            /*if(! options.url) {
+                throw new Error(
+                    "You must specify the dataset's url within the options");
+            }*/
+            this.url = options && options.url;
+
+            // Call super
+            return Backbone.PageableCollection.prototype.initialize.apply(this, arguments);
+        }
+    });
+
     var DataView = FH.DataView = Backbone.View.extend({
         // Instance of the `Form` object
         form: void 0,
@@ -18,18 +50,18 @@
         // Table header template
         headerTemplate: _.template('' +
             '<tr>' +
-              '<% _.each(columns, function (column){ %>' +
-                '<th><%= column %></th>' +
-              '<% }); %>' +
+            '<% _.each(columns, function (column){ %>' +
+            '<th><%= column %></th>' +
+            '<% }); %>' +
             '</tr>'),
 
         // toggle label template
         labelToggleTemplate: _.template('' +
             '<span>' +
-              '<label>' +
-                '<input class="toggle-labels" type="checkbox" name="toggle_labels" aria-controls="data-table" <% if (isChecked) { %>checked="checked" <% } %> />' +
-                ' Show select labels' +
-              '</label>' +
+            '<label>' +
+            '<input class="toggle-labels" type="checkbox" name="toggle_labels" aria-controls="data-table" <% if (isChecked) { %>checked="checked" <% } %> />' +
+            ' Show select labels' +
+            '</label>' +
             '</span>'),
 
         // Whether to show select names or labels
@@ -48,17 +80,22 @@
             this.form = new FH.Form({}, {url: options.formUrl});
 
             // Setup the data
-            this.data = new FH.DataSet([], {url: options.dataUrl});
+            this.data = new FH.PageableDataset([], {
+                url: options.dataUrl,
+                state: {
+                    pageSize: 5
+                }
+            });
 
             this.form.on('load', function () {
                 // Render the columns
-                this.$('table thead')
+                /*this.$('table thead')
                     .empty()
                     .append(this.headerTemplate({
                         columns: this.form.fields.map(function (field) {
                             return field.get(FH.constants.LABEL);
                         })
-                    }));
+                    }));*/
 
                 // Initialize the data
                 this.data.on('load', function () {
@@ -67,50 +104,6 @@
                     // Disable this callback - infinite loop
                     this.data.off('load');
 
-                    // For each column, append some data
-                    // Initialize the data table with our columns
-                    this.$('table')
-                        .bind('dynatable:preinit', function (e, dynatable) {
-                            dynatable.utility.textTransform.getFieldId = function (fieldSet) {
-                                return function (label) {
-                                    var field = fieldSet.find(function (field) {
-                                        return field.get(FH.constants.LABEL) === label;
-                                    });
-                                    return field && field.get(FH.constants.XPATH) || label;
-                                };
-                            }(dataView.form.fields);
-                        })
-                        .bind('dynatable:init', function(e, dynatable) {
-                            dataView.dynatable = dynatable;
-                        })
-                        .dynatable({
-                            table: {
-                                defaultColumnIdStyle: 'getFieldId'
-                            },
-                            dataset: {
-                                records: this.data.toJSON()
-                            },
-                            writers: {
-                                _attributeWriter: function (fieldSet) {
-                                    return function (record) {
-                                        var column = this;
-
-                                        // Get the target field
-                                        var field = fieldSet.find(function (field) {
-                                            return field.get(FH.constants.XPATH) === column.id;
-                                        });
-
-                                        if(FH.Field.isA(field.get(FH.constants.TYPE), FH.types.SELECT_ONE) ||
-                                            FH.Field.isA(field.get(FH.constants.TYPE), FH.types.SELECT_MULTIPLE)) {
-                                            return field && DataView.NameOrLabel.call(dataView, field, record) || record[this.id] || "";
-                                        } else {
-                                            return record[this.id] && record[this.id] || "";
-                                        }
-                                    };
-                                }(this.form.fields)
-                            }
-                        });
-
                     // Append the toggle labels checkbox
                     $(this.labelToggleTemplate({isChecked: this.showLabels})).insertAfter(this.$('.dynatable-per-page'));
 
@@ -118,14 +111,53 @@
                         'click input.toggle-labels': 'onToggleLabels'
                     });
                 }, this);
-                this.data.load();
+
+                // Initialize the grid
+                this.dataGrid = new Backgrid.Grid({
+                    columns: this.form.fields.map(function (f) {
+                        return {
+                            name: f.get(FH.constants.XPATH),
+                            label: f.get(FH.constants.LABEL),
+                            editable: false,
+                            cell: "string"//FHToBackgridTypes[f.get(FH.constants.TYPE)] || "string"
+                        };
+                    }),
+                    collection: this.data
+                });
+
+                this.$el.append(this.dataGrid.render().$el);
+
+                // Initialize the paginator
+                var paginator = new Backgrid.Extension.Paginator({
+                    collection: this.data
+                });
+
+                // Render the paginator
+                this.$el.append(paginator.render().$el);
+
+                // Initialize a client-side filter to filter on the client
+                // mode pageable collection's cache.
+                var filter = new Backgrid.Extension.ClientSideFilter({
+                    collection: this.data,
+                    fields: ['name']
+                });
+
+                // Render the filter
+                this.$el.prepend(filter.render().$el);
+
+                // Add some space to the filter and move it to the right
+                filter.$el.css({float: "right", margin: "20px"});
+
+                // Fetch some data
+                this.data.fetch({reset: true});
+
             }, this);
             this.form.load();
         },
 
         onToggleLabels: function (evt) {
             var target = evt.currentTarget;
-            if(target.checked) {
+            if (target.checked) {
                 this.showLabels = true;
             } else {
                 this.showLabels = false;
@@ -140,9 +172,8 @@
             var funcOrNull,
                 cleanedXPath = field.get(FH.constants.XPATH).replace(/\./g, "-");
 
-            if(FH.Field.isA(field.get(FH.constants.TYPE), FH.types.SELECT_ONE) ||
-                FH.Field.isA(field.get(FH.constants.TYPE), FH.types.SELECT_MULTIPLE))
-            {
+            if (FH.Field.isA(field.get(FH.constants.TYPE), FH.types.SELECT_ONE) ||
+                FH.Field.isA(field.get(FH.constants.TYPE), FH.types.SELECT_MULTIPLE)) {
                 funcOrNull = DataView.NameOrLabel.call(dataView, field);
             } else {
                 funcOrNull = cleanedXPath;
@@ -200,7 +231,7 @@
 
             // for each column, replace dots with dashes
             _.each(data, function (v, k) {
-                if(k.match(/\./g)) {
+                if (k.match(/\./g)) {
                     data[k.replace(/\./g, '-')] = v;
                     delete(data[k]);
                 }
