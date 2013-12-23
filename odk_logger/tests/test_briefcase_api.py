@@ -1,7 +1,9 @@
 import os
+import shutil
 import codecs
 
 from django.core.urlresolvers import reverse
+from django.core.files.storage import get_storage_class
 from django_digest.test import Client as DigestClient
 
 from main.tests.test_base import MainTestCase
@@ -12,6 +14,8 @@ from odk_logger.views import form_upload
 from odk_logger.views import submission
 from odk_logger.models import Instance
 from odk_logger.models import XForm
+
+storage = get_storage_class()()
 
 
 class TestBriefcaseAPI(MainTestCase):
@@ -201,6 +205,18 @@ class TestBriefcaseAPI(MainTestCase):
             self.assertNotEqual(XForm.objects.count(), count + 1)
             self.assertEqual(response.status_code, 403)
 
+    def test_publish_xml_form_where_filename_is_not_id_string(self):
+        form_def_path = os.path.join(
+            self.this_directory, 'fixtures', 'transportation',
+            'Transportation Form.xml')
+        count = XForm.objects.count()
+        with codecs.open(form_def_path, encoding='utf-8') as f:
+            params = {'form_def_file': f, 'dataFile': ''}
+            response = self.client.post(self._form_upload_url, data=params)
+            self.assertEqual(XForm.objects.count(), count + 1)
+            self.assertContains(
+                response, "successfully published.", status_code=201)
+
     def _publish_xml_form(self):
         count = XForm.objects.count()
         with codecs.open(self.form_def_path, encoding='utf-8') as f:
@@ -237,3 +253,9 @@ class TestBriefcaseAPI(MainTestCase):
             self.assertContains(response, message, status_code=201)
             self.assertContains(response, instanceId, status_code=201)
             self.assertEqual(Instance.objects.count(), count + 1)
+
+    def tearDown(self):
+        # remove media files
+        if self.user:
+            if storage.exists(self.user.username):
+                shutil.rmtree(storage.path(self.user.username))
