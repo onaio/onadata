@@ -166,7 +166,7 @@ class BriefcaseClient(object):
                 else:
                     self.logger.error("Failed to fetch %s." % filename)
 
-    def get_instances_uuids(xml_doc):
+    def get_instances_uuids(self, xml_doc):
         uuids = []
         for child_node in xml_doc.childNodes:
             if child_node.nodeName == 'idChunk':
@@ -174,7 +174,7 @@ class BriefcaseClient(object):
                     if id_node.childNodes:
                         uuid = id_node.childNodes[0].nodeValue
                         uuids.append(uuid)
-        return uuid
+        return uuids
 
     def download_instances(self, form_id, cursor=0, num_entries=100):
         response = requests.get(self.submission_list_url, auth=self.auth,
@@ -234,6 +234,27 @@ class BriefcaseClient(object):
         k = PublishXForm(xml_file, self.user)
         return publish_form(k.publish_xform)
 
+    def _upload_instance(self, xml_file, instance_dir_path, files):
+        xml_doc = clean_and_parse_xml(xml_file.read())
+        xml = StringIO()
+        de_node = xml_doc.documentElement
+        for node in de_node.firstChild.childNodes:
+            xml.write(node.toxml())
+        new_xml_file = ContentFile(xml.getvalue())
+        new_xml_file.content_type = 'text/xml'
+        xml.close()
+        attachments = []
+        for attach in de_node.getElementsByTagName('mediaFile'):
+            filename_node = attach.getElementsByTagName('filename')
+            filename = filename_node[0].childNodes[0].nodeValue
+            if filename in files:
+                file_obj = default_storage.open(
+                    os.path.join(instance_dir_path, filename))
+                mimetype, encoding = mimetypes.guess_type(file_obj.name)
+                media_obj = django_file(file_obj, 'media_files[]', mimetype)
+                attachments.append(media_obj)
+        create_instance(self.user.username, new_xml_file, attachments)
+
     def _upload_instances(self, path):
         instances_count = 0
         dirs, not_in_use = default_storage.listdir(path)
@@ -241,37 +262,15 @@ class BriefcaseClient(object):
             instance_dir_path = os.path.join(path, instance_dir)
             i_dirs, files = default_storage.listdir(instance_dir_path)
             xml_file = None
-            attachments = []
             if 'submission.xml' in files:
                 file_obj = default_storage.open(
                     os.path.join(instance_dir_path, 'submission.xml'))
                 xml_file = file_obj
             if xml_file:
                 try:
-                    try:
-                        xml_doc = clean_and_parse_xml(xml_file.read())
-                    except ExpatError:
-                        continue
-                    xml = StringIO()
-                    de_node = xml_doc.documentElement
-                    for node in de_node.firstChild.childNodes:
-                        xml.write(node.toxml())
-                    new_xml_file = ContentFile(xml.getvalue())
-                    new_xml_file.content_type = 'text/xml'
-                    xml.close()
-                    for attach in de_node.getElementsByTagName('mediaFile'):
-                        filename_node = attach.getElementsByTagName('filename')
-                        filename = filename_node[0].childNodes[0].nodeValue
-                        if filename in files:
-                            file_obj = default_storage.open(
-                                os.path.join(instance_dir_path, filename))
-                            mimetype, encoding = mimetypes.guess_type(
-                                file_obj.name)
-                            media_obj = django_file(
-                                file_obj, 'media_files[]', mimetype)
-                            attachments.append(media_obj)
-                    create_instance(
-                        self.user.username, new_xml_file, attachments)
+                    self._upload_instance(xml_file, instance_dir_path, files)
+                except ExpatError:
+                    continue
                 except Exception:
                     pass
                 else:
