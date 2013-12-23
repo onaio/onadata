@@ -17,6 +17,8 @@ from odk_logger.xform_instance_parser import clean_and_parse_xml
 from utils.logger_tools import publish_xml_form, publish_form, \
     create_instance
 
+NUM_RETRIES = 3
+
 
 def django_file(file_obj, field_name, content_type):
     return InMemoryUploadedFile(
@@ -27,6 +29,46 @@ def django_file(file_obj, field_name, content_type):
         size=file_obj.size,
         charset=None
     )
+
+
+def retry(tries, delay=3, backoff=2):
+    '''
+    Adapted from code found here:
+        http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
+
+    Retries a function or method until it returns True.
+
+    *delay* sets the initial delay in seconds, and *backoff* sets the
+    factor by which the delay should lengthen after each failure.
+    *backoff* must be greater than 1, or else it isn't really a backoff.
+    *tries* must be at least 0, and *delay* greater than 0.
+    '''
+
+    if backoff <= 1:  # pragma: no cover
+        raise ValueError("backoff must be greater than 1")
+
+    tries = math.floor(tries)
+    if tries < 0:  # pragma: no cover
+        raise ValueError("tries must be 0 or greater")
+
+    if delay <= 0:  # pragma: no cover
+        raise ValueError("delay must be greater than 0")
+
+    def decorator_retry(func):
+        def function_retry(self, *args, **kwargs):
+            mtries, mdelay = tries, delay
+            result = func(self, *args, **kwargs)
+            while mtries > 0:
+                if result:
+                    return result
+                mtries -= 1
+                time.sleep(mdelay)
+                mdelay *= backoff
+                result = func(self, *args, **kwargs)
+            return False
+
+        return function_retry
+    return decorator_retry
 
 
 class BriefcaseClient(object):
@@ -94,19 +136,19 @@ class BriefcaseClient(object):
                     self.logger.debug("Done downloading submissions for %s" %
                                       id_string)
 
-    def download_media_files(self, xml_doc, media_path, num_retries=3):
-        @retry(num_retries)
-        def _download(self, url):
-            self._current_response = None
-            # S3 redirects, avoid using formhub digest on S3
-            head_response = requests.head(url, auth=self.auth)
-            if head_response.status_code == 302:
-                url = head_response.headers.get('location')
-            response = requests.get(url)
-            success = response.status_code == 200
-            self._current_response = response
-            return success
+    @retry(NUM_RETRIES)
+    def _get_response(self, url):
+        self._current_response = None
+        # S3 redirects, avoid using formhub digest on S3
+        head_response = requests.head(url, auth=self.auth)
+        if head_response.status_code == 302:
+            url = head_response.headers.get('location')
+        response = requests.get(url)
+        success = response.status_code == 200
+        self._current_response = response
+        return success
 
+    def download_media_files(self, xml_doc, media_path):
         for media_node in xml_doc.getElementsByTagName('mediaFile'):
             filename_node = media_node.getElementsByTagName('filename')
             url_node = media_node.getElementsByTagName('downloadUrl')
@@ -116,7 +158,7 @@ class BriefcaseClient(object):
                 if default_storage.exists(path):
                     continue
                 download_url = url_node[0].childNodes[0].nodeValue
-                if _download(self, download_url):
+                if self._get_response(download_url):
                     download_res = self._current_response
                     media_content = ContentFile(download_res.content)
                     default_storage.save(path, media_content)
@@ -224,7 +266,7 @@ class BriefcaseClient(object):
                             media_obj = django_file(
                                 file_obj, 'media_files[]', mimetype)
                             attachments.append(media_obj)
-                    instance = create_instance(
+                    create_instance(
                         self.user.username, new_xml_file, attachments)
                 except Exception:
                     pass
@@ -250,43 +292,3 @@ class BriefcaseClient(object):
                 c = self._upload_instances(os.path.join(dir_path, 'instances'))
                 self.logger.debug("Published %d instances for %s" %
                                   (c, form_dir))
-
-
-def retry(tries, delay=3, backoff=2):
-    '''
-    Adapted from code found here:
-        http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
-
-    Retries a function or method until it returns True.
-
-    *delay* sets the initial delay in seconds, and *backoff* sets the
-    factor by which the delay should lengthen after each failure.
-    *backoff* must be greater than 1, or else it isn't really a backoff.
-    *tries* must be at least 0, and *delay* greater than 0.
-    '''
-
-    if backoff <= 1:  # pragma: no cover
-        raise ValueError("backoff must be greater than 1")
-
-    tries = math.floor(tries)
-    if tries < 0:  # pragma: no cover
-        raise ValueError("tries must be 0 or greater")
-
-    if delay <= 0:  # pragma: no cover
-        raise ValueError("delay must be greater than 0")
-
-    def decorator_retry(func):
-        def function_retry(self, *args, **kwargs):
-            mtries, mdelay = tries, delay
-            result = func(self, *args, **kwargs)
-            while mtries > 0:
-                if result:
-                    return result
-                mtries -= 1
-                time.sleep(mdelay)
-                mdelay *= backoff
-                result = func(self, *args, **kwargs)
-            return False
-
-        return function_retry
-    return decorator_retry
