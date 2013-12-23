@@ -1,3 +1,4 @@
+import shutil
 import os.path
 import requests
 
@@ -152,3 +153,9 @@ class TestBriefcaseClient(MainTestCase):
         instances = Instance.objects.filter(
             user=self.user, xform__id_string=self.xform.id_string)
         self.assertTrue(instances.count() == 1)
+
+    def tearDown(self):
+        # remove media files
+        for username in ['bob', 'deno']:
+            if storage.exists(username):
+                shutil.rmtree(storage.path(username))
