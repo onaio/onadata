@@ -1,0 +1,9 @@
+.data-table-container {
+    width: 100%;
+}
+
+.data-table-container table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+}
