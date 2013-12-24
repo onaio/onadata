@@ -1,8 +1,10 @@
-import sys, re
+import re
+import sys
 from celery import task
 from django.db import transaction
 from django.conf import settings
 from django.core.mail import mail_admins
+
 from odk_viewer.models import Export
 from utils.export_tools import generate_export,\
     generate_attachments_zip_export, generate_kml_export
@@ -263,20 +265,25 @@ def delete_export(export_id):
 SYNC_MONGO_MANUAL_INSTRUCTIONS = """
 To re-sync manually, ssh into the server and run:
 
-python manage.py sync_mongo -r [username] [id_string]
+python manage.py sync_mongo -r [username] [id_string]\
+--settings='formhub.preset.local_settings'
 
 To force complete delete and re-creation, use the -a option:
 
-python manage.py sync_mongo -ra [username] [id_string]
+python manage.py sync_mongo -ra [username] [id_string]\
+--settings='formhub.preset.local_settings'
 """
 
-REMONGO_PATTERN = re.compile(r'Total # of records to remongo: [1-9]+', re.IGNORECASE)
+REMONGO_PATTERN = re.compile(r'Total # of records to remongo: -?[1-9]+',
+                             re.IGNORECASE)
+
 
 @task()
 def email_mongo_sync_status():
-    """Check the status of records in the mysql db versus mongodb, and, if necessary,
-    invoke the command to re-sync the two databases, sending an email report to the
-    admins of before and after, so that manual syncing (if necessary) can be done."""
+    """Check the status of records in the mysql db versus mongodb, and, if
+    necessary, invoke the command to re-sync the two databases, sending an
+    email report to the admins of before and after, so that manual syncing (if
+    necessary) can be done."""
 
     before_report = mongo_sync_status()
     if REMONGO_PATTERN.search(before_report):
@@ -292,4 +299,3 @@ def email_mongo_sync_status():
                 '\n\n'.join([before_report,
                              after_report,
                              SYNC_MONGO_MANUAL_INSTRUCTIONS]))
-
