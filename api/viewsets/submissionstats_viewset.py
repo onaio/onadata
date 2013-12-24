@@ -70,7 +70,7 @@ Response:
         rs = {}
         for xform in xforms.distinct():
             point = {u"%s" % xform.id_string:
-                     reverse("stats-list", kwargs={
+                     reverse("submissionstats-list", kwargs={
                              "formid": xform.pk,
                              "owner": xform.user.username},
                              request=request)}

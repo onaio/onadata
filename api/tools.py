@@ -222,7 +222,7 @@ def get_median_for_field(field, xform):
     return numpy.median([float(i[mongo_field]) for i in cursor])
 
 
-def get_median_for_numeric_fields_in_form(xform, field):
+def get_median_for_numeric_fields_in_form(xform, field=None):
     data = {}
     for field_name in [field] if field else get_numeric_fields(xform):
         median = get_median_for_field(field_name, xform)
@@ -252,7 +252,7 @@ def get_mode_for_field(field, xform):
     return mode
 
 
-def get_mode_for_numeric_fields_in_form(xform, field):
+def get_mode_for_numeric_fields_in_form(xform, field=None):
     data = {}
     for field_name in [field] if field else get_numeric_fields(xform):
         mode = get_mode_for_field(field_name, xform)
@@ -270,7 +270,7 @@ def get_min_max_range_for_field(field, xform):
     return _min, _max, _range
 
 
-def get_min_max_range(xform, field):
+def get_min_max_range(xform, field=None):
     data = {}
     for field_name in [field] if field else get_numeric_fields(xform):
         _min, _max, _range = get_min_max_range_for_field(field_name, xform)
@@ -278,7 +278,7 @@ def get_min_max_range(xform, field):
     return data
 
 
-def get_all_stats(xform, field):
+def get_all_stats(xform, field=None):
     data = {}
     for field_name in [field] if field else get_numeric_fields(xform):
         _min, _max, _range = get_min_max_range_for_field(field_name, xform)
