@@ -76,7 +76,8 @@ Response:
                       "view data from this form."))
             else:
                 try:
-                    data = get_min_max_range(xform)
+                    field = request.QUERY_PARAMS.get('field', None)
+                    data = get_min_max_range(xform, field)
                 except ValueError as e:
                     raise exceptions.ParseError(detail=e.message)
         else:

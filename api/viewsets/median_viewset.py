@@ -74,7 +74,8 @@ Response:
                       "view data from this form."))
             else:
                 try:
-                    data = get_median_for_numeric_fields_in_form(xform)
+                    field = request.QUERY_PARAMS.get('field', None)
+                    data = get_median_for_numeric_fields_in_form(xform, field)
                 except ValueError as e:
                     raise exceptions.ParseError(detail=e.message)
         else:

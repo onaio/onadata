@@ -222,9 +222,9 @@ def get_median_for_field(field, xform):
     return numpy.median([float(i[mongo_field]) for i in cursor])
 
 
-def get_median_for_numeric_fields_in_form(xform):
+def get_median_for_numeric_fields_in_form(xform, field):
     data = {}
-    for field_name in get_numeric_fields(xform):
+    for field_name in [field] if field else get_numeric_fields(xform):
         median = get_median_for_field(field_name, xform)
         data.update({field_name: median})
     return data
@@ -236,9 +236,9 @@ def get_mean_for_field(field, xform):
     return numpy.mean([float(i[mongo_field]) for i in cursor])
 
 
-def get_mean_for_numeric_fields_in_form(xform):
+def get_mean_for_numeric_fields_in_form(xform, field):
     data = {}
-    for field_name in get_numeric_fields(xform):
+    for field_name in [field] if field else get_numeric_fields(xform):
         mean = get_mean_for_field(field_name, xform)
         data.update({field_name: round(mean, 2)})
     return data
@@ -252,9 +252,9 @@ def get_mode_for_field(field, xform):
     return mode
 
 
-def get_mode_for_numeric_fields_in_form(xform):
+def get_mode_for_numeric_fields_in_form(xform, field):
     data = {}
-    for field_name in get_numeric_fields(xform):
+    for field_name in [field] if field else get_numeric_fields(xform):
         mode = get_mode_for_field(field_name, xform)
         data.update({field_name: round(mode, 2)})
     return data
@@ -270,17 +270,17 @@ def get_min_max_range_for_field(field, xform):
     return _min, _max, _range
 
 
-def get_min_max_range(xform):
+def get_min_max_range(xform, field):
     data = {}
-    for field_name in get_numeric_fields(xform):
+    for field_name in [field] if field else get_numeric_fields(xform):
         _min, _max, _range = get_min_max_range_for_field(field_name, xform)
         data[field_name] = {'max': _max, 'min': _min, 'range': _range}
     return data
 
 
-def get_all_stats(xform):
+def get_all_stats(xform, field):
     data = {}
-    for field_name in get_numeric_fields(xform):
+    for field_name in [field] if field else get_numeric_fields(xform):
         _min, _max, _range = get_min_max_range_for_field(field_name, xform)
         mode = get_mode_for_field(field_name, xform)
         mean = get_mean_for_field(field_name, xform)

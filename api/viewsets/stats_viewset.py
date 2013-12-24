@@ -39,7 +39,7 @@ Response:
 """
     permission_classes = [permissions.IsAuthenticated, ]
     lookup_field = 'owner'
-    lookup_fields = ('owner', 'formid', 'dataid')
+    lookup_fields = ('owner', 'formid')
     extra_lookup_fields = None
     queryset = Instance.objects.all()
 
@@ -79,7 +79,8 @@ Response:
                       "view data from this form."))
             else:
                 try:
-                    data = get_all_stats(xform)
+                    field = request.QUERY_PARAMS.get('field', None)
+                    data = get_all_stats(xform, field)
                 except ValueError as e:
                     raise exceptions.ParseError(detail=e.message)
         else:

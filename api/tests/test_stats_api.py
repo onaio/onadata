@@ -156,6 +156,9 @@ class TestStatsAPI(MainTestCase):
             'min': 24,
             'range': 10
         }
+        request = self.factory.get('/?field=age', **self.extra)
+        age_response = view(request, owner='bob', formid=formid)
+        self.assertEqual(data, age_response.data)
         data['amount'] = {
             'mean': 1455,
             'median': 1100.0,
