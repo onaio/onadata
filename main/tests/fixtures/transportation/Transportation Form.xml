@@ -1,0 +1,315 @@
+<?xml version="1.0"?>
+<h:html xmlns="http://www.w3.org/2002/xforms" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:jr="http://openrosa.org/javarosa" xmlns:orx="http://openrosa.org/xforms/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <h:head>
+    <h:title>transportation_2011_07_25</h:title>
+    <model>
+      <instance>
+        <transportation id="transportation_2011_07_25">
+          <formhub>
+            <uuid/>
+          </formhub>
+          <transport>
+            <available_transportation_types_to_referral_facility/>
+            <available_transportation_types_to_referral_facility_other/>
+            <loop_over_transport_types_frequency>
+              <ambulance>
+                <frequency_to_referral_facility/>
+              </ambulance>
+              <bicycle>
+                <frequency_to_referral_facility/>
+              </bicycle>
+              <boat_canoe>
+                <frequency_to_referral_facility/>
+              </boat_canoe>
+              <bus>
+                <frequency_to_referral_facility/>
+              </bus>
+              <donkey_mule_cart>
+                <frequency_to_referral_facility/>
+              </donkey_mule_cart>
+              <keke_pepe>
+                <frequency_to_referral_facility/>
+              </keke_pepe>
+              <lorry>
+                <frequency_to_referral_facility/>
+              </lorry>
+              <motorbike>
+                <frequency_to_referral_facility/>
+              </motorbike>
+              <taxi>
+                <frequency_to_referral_facility/>
+              </taxi>
+            </loop_over_transport_types_frequency>
+          </transport>
+          <meta>
+            <instanceID/>
+          </meta>
+        </transportation>
+      </instance>
+      <bind nodeset="/transportation/transport/available_transportation_types_to_referral_facility" type="select"/>
+      <bind nodeset="/transportation/transport/available_transportation_types_to_referral_facility_other" relevant="selected(../available_transportation_types_to_referral_facility, 'other')" type="string"/>
+      <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'ambulance')" type="select1"/>
+      <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/bicycle/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'bicycle')" type="select1"/>
+      <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/boat_canoe/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'boat_canoe')" type="select1"/>
+      <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/bus/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'bus')" type="select1"/>
+      <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/donkey_mule_cart/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'donkey_mule_cart')" type="select1"/>
+      <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/keke_pepe/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'keke_pepe')" type="select1"/>
+      <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/lorry/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'lorry')" type="select1"/>
+      <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/motorbike/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'motorbike')" type="select1"/>
+      <bind nodeset="/transportation/transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility" relevant="selected( /transportation/transport/available_transportation_types_to_referral_facility , 'taxi')" type="select1"/>
+      <bind calculate="concat('uuid:', uuid())" nodeset="/transportation/meta/instanceID" readonly="true()" type="string"/>
+      <bind calculate="''" nodeset="/transportation/formhub/uuid" type="string" />
+    </model>
+  </h:head>
+  <h:body>
+    <group ref="/transportation/transport">
+      <label>Transportation</label>
+      <select ref="/transportation/transport/available_transportation_types_to_referral_facility">
+        <label>What types of transportation are available from here to the referral health facility?</label>
+        <item>
+          <label>ambulance</label>
+          <value>ambulance</value>
+        </item>
+        <item>
+          <label>bicycle</label>
+          <value>bicycle</value>
+        </item>
+        <item>
+          <label>boat/canoe</label>
+          <value>boat_canoe</value>
+        </item>
+        <item>
+          <label>bus</label>
+          <value>bus</value>
+        </item>
+        <item>
+          <label>donkey/mule/cart</label>
+          <value>donkey_mule_cart</value>
+        </item>
+        <item>
+          <label>keke napep</label>
+          <value>keke_pepe</value>
+        </item>
+        <item>
+          <label>lorry</label>
+          <value>lorry</value>
+        </item>
+        <item>
+          <label>motorbike</label>
+          <value>motorbike</value>
+        </item>
+        <item>
+          <label>taxi</label>
+          <value>taxi</value>
+        </item>
+        <item>
+          <label>Other</label>
+          <value>other</value>
+        </item>
+      </select>
+      <input ref="/transportation/transport/available_transportation_types_to_referral_facility_other">
+        <label>Specify other.</label>
+      </input>
+      <group ref="/transportation/transport/loop_over_transport_types_frequency">
+        <group ref="/transportation/transport/loop_over_transport_types_frequency/ambulance">
+          <label>ambulance</label>
+          <select1 ref="/transportation/transport/loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility">
+            <label>Is ambulance available daily or weekly?</label>
+            <item>
+              <label>Daily</label>
+              <value>daily</value>
+            </item>
+            <item>
+              <label>Weekly</label>
+              <value>weekly</value>
+            </item>
+            <item>
+              <label>Other</label>
+              <value>other</value>
+            </item>
+            <item>
+              <label>Don't know</label>
+              <value>dont_know</value>
+            </item>
+          </select1>
+        </group>
+        <group ref="/transportation/transport/loop_over_transport_types_frequency/bicycle">
+          <label>bicycle</label>
+          <select1 ref="/transportation/transport/loop_over_transport_types_frequency/bicycle/frequency_to_referral_facility">
+            <label>Is bicycle available daily or weekly?</label>
+            <item>
+              <label>Daily</label>
+              <value>daily</value>
+            </item>
+            <item>
+              <label>Weekly</label>
+              <value>weekly</value>
+            </item>
+            <item>
+              <label>Other</label>
+              <value>other</value>
+            </item>
+            <item>
+              <label>Don't know</label>
+              <value>dont_know</value>
+            </item>
+          </select1>
+        </group>
+        <group ref="/transportation/transport/loop_over_transport_types_frequency/boat_canoe">
+          <label>boat/canoe</label>
+          <select1 ref="/transportation/transport/loop_over_transport_types_frequency/boat_canoe/frequency_to_referral_facility">
+            <label>Is boat/canoe available daily or weekly?</label>
+            <item>
+              <label>Daily</label>
+              <value>daily</value>
+            </item>
+            <item>
+              <label>Weekly</label>
+              <value>weekly</value>
+            </item>
+            <item>
+              <label>Other</label>
+              <value>other</value>
+            </item>
+            <item>
+              <label>Don't know</label>
+              <value>dont_know</value>
+            </item>
+          </select1>
+        </group>
+        <group ref="/transportation/transport/loop_over_transport_types_frequency/bus">
+          <label>bus</label>
+          <select1 ref="/transportation/transport/loop_over_transport_types_frequency/bus/frequency_to_referral_facility">
+            <label>Is bus available daily or weekly?</label>
+            <item>
+              <label>Daily</label>
+              <value>daily</value>
+            </item>
+            <item>
+              <label>Weekly</label>
+              <value>weekly</value>
+            </item>
+            <item>
+              <label>Other</label>
+              <value>other</value>
+            </item>
+            <item>
+              <label>Don't know</label>
+              <value>dont_know</value>
+            </item>
+          </select1>
+        </group>
+        <group ref="/transportation/transport/loop_over_transport_types_frequency/donkey_mule_cart">
+          <label>donkey/mule/cart</label>
+          <select1 ref="/transportation/transport/loop_over_transport_types_frequency/donkey_mule_cart/frequency_to_referral_facility">
+            <label>Is donkey/mule/cart available daily or weekly?</label>
+            <item>
+              <label>Daily</label>
+              <value>daily</value>
+            </item>
+            <item>
+              <label>Weekly</label>
+              <value>weekly</value>
+            </item>
+            <item>
+              <label>Other</label>
+              <value>other</value>
+            </item>
+            <item>
+              <label>Don't know</label>
+              <value>dont_know</value>
+            </item>
+          </select1>
+        </group>
+        <group ref="/transportation/transport/loop_over_transport_types_frequency/keke_pepe">
+          <label>keke napep</label>
+          <select1 ref="/transportation/transport/loop_over_transport_types_frequency/keke_pepe/frequency_to_referral_facility">
+            <label>Is keke napep available daily or weekly?</label>
+            <item>
+              <label>Daily</label>
+              <value>daily</value>
+            </item>
+            <item>
+              <label>Weekly</label>
+              <value>weekly</value>
+            </item>
+            <item>
+              <label>Other</label>
+              <value>other</value>
+            </item>
+            <item>
+              <label>Don't know</label>
+              <value>dont_know</value>
+            </item>
+          </select1>
+        </group>
+        <group ref="/transportation/transport/loop_over_transport_types_frequency/lorry">
+          <label>lorry</label>
+          <select1 ref="/transportation/transport/loop_over_transport_types_frequency/lorry/frequency_to_referral_facility">
+            <label>Is lorry available daily or weekly?</label>
+            <item>
+              <label>Daily</label>
+              <value>daily</value>
+            </item>
+            <item>
+              <label>Weekly</label>
+              <value>weekly</value>
+            </item>
+            <item>
+              <label>Other</label>
+              <value>other</value>
+            </item>
+            <item>
+              <label>Don't know</label>
+              <value>dont_know</value>
+            </item>
+          </select1>
+        </group>
+        <group ref="/transportation/transport/loop_over_transport_types_frequency/motorbike">
+          <label>motorbike</label>
+          <select1 ref="/transportation/transport/loop_over_transport_types_frequency/motorbike/frequency_to_referral_facility">
+            <label>Is motorbike available daily or weekly?</label>
+            <item>
+              <label>Daily</label>
+              <value>daily</value>
+            </item>
+            <item>
+              <label>Weekly</label>
+              <value>weekly</value>
+            </item>
+            <item>
+              <label>Other</label>
+              <value>other</value>
+            </item>
+            <item>
+              <label>Don't know</label>
+              <value>dont_know</value>
+            </item>
+          </select1>
+        </group>
+        <group ref="/transportation/transport/loop_over_transport_types_frequency/taxi">
+          <label>taxi</label>
+          <select1 ref="/transportation/transport/loop_over_transport_types_frequency/taxi/frequency_to_referral_facility">
+            <label>Is taxi available daily or weekly?</label>
+            <item>
+              <label>Daily</label>
+              <value>daily</value>
+            </item>
+            <item>
+              <label>Weekly</label>
+              <value>weekly</value>
+            </item>
+            <item>
+              <label>Other</label>
+              <value>other</value>
+            </item>
+            <item>
+              <label>Don't know</label>
+              <value>dont_know</value>
+            </item>
+          </select1>
+        </group>
+      </group>
+    </group>
+  </h:body>
+</h:html>
