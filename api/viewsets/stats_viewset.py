@@ -15,42 +15,26 @@ from odk_logger.models import Instance
 
 class StatsViewSet(viewsets.ViewSet):
     """
-Provides submissions counts grouped by a specified field.
-It accepts query parameters `group` and `name`. Default result
-is grouped by `_submission_time`, hence you get submission counts per day.
-If a date field is used as the group, the result will be grouped by day.
-
-* *group* - field to group submission counts by
-* *name* - name to be applied to the group on results
+Stats summary for median, mean, mode, range, max, min
 
 Example:
 
-    GET /api/v1/stats/submissions/ukanga/1?
-    group=_submission_time&name=day_of_submission
+    GET /api/v1/stats/ukanga/1?
 
 Response:
 
     [
         {
-            "count": 8,
-            "day_of_submission": "2013-11-15",
-        },
-        {
-            "count": 99,
-            "day_of_submission": "2013-11-16",
-        },
-        {
-            "count": 133,
-            "day_of_submission": "2013-11-17",
-        },
-        {
-            "count": 162,
-            "day_of_submission": "2013-11-18",
-        },
-        {
-            "count": 102,
-            "day_of_submission": "2013-11-19",
-        }
+            "age":
+                {
+                    "median": 8,
+                    "mean": 23.4,
+                    "mode": 23,
+                    "range": 24,
+                    "max": 28,
+                    "min": 4
+                },
+        ...
     ]
 """
     permission_classes = [permissions.IsAuthenticated, ]

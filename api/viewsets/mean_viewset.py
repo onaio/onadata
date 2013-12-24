@@ -16,24 +16,21 @@ from odk_logger.models import Instance
 
 class MeanViewSet(viewsets.ViewSet):
     """
-Provides the median of numeric fields.
+Provides the mean of numeric fields.
 
-* *field* - field to get median for
+* *field* - field to get mean for
 
 Example:
 
-    GET /api/v1/stats/median/username/1
+    GET /api/v1/stats/mean/username/1
 
 Response:
 
-    [
-        {
-            "field_name": {
-                "median": 4.5
-            }
-        },
-        ...
-    ]
+    {
+        "field_name": {
+            "mean": 14.5
+        }, ..
+    }
 """
     permission_classes = [permissions.IsAuthenticated, ]
     lookup_field = 'owner'

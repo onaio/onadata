@@ -15,24 +15,24 @@ from odk_logger.models import Instance
 
 class RangeViewSet(viewsets.ViewSet):
     """
-Provides the median of numeric fields.
+Provides the range, max, mean of numeric fields.
 
-* *field* - field to get median for
+* *field* - field to get range, max, mean for
 
 Example:
 
-    GET /api/v1/stats/median/username/1
+    GET /api/v1/stats/range/username/1
 
 Response:
 
-    [
-        {
-            "field_name": {
-                "median": 4.5
-            }
+    {
+        "field_name": {
+            "range": 4.5,
+            "max": 12.5,
+            "min": 8.5
         },
         ...
-    ]
+    }
 """
     permission_classes = [permissions.IsAuthenticated, ]
     lookup_field = 'owner'

@@ -16,24 +16,22 @@ from odk_logger.models import Instance
 
 class ModeViewSet(viewsets.ViewSet):
     """
-Provides the median of numeric fields.
+Provides the mode of numeric fields.
 
-* *field* - field to get median for
+* *field* - field to get mode for
 
 Example:
 
-    GET /api/v1/stats/median/username/1
+    GET /api/v1/stats/mode/username/1
 
 Response:
 
-    [
-        {
-            "field_name": {
-                "median": 4.5
-            }
+    {
+        "field_name": {
+            "mode": 8
         },
         ...
-    ]
+    }
 """
     permission_classes = [permissions.IsAuthenticated, ]
     lookup_field = 'owner'

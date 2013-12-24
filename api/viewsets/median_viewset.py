@@ -26,14 +26,11 @@ Example:
 
 Response:
 
-    [
-        {
-            "field_name": {
-                "median": 4.5
-            }
-        },
-        ...
-    ]
+    {
+        "field_name": {
+            "median": 4.5
+        }, ...
+    }
 """
     permission_classes = [permissions.IsAuthenticated, ]
     lookup_field = 'owner'
