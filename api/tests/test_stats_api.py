@@ -96,7 +96,7 @@ class TestStatsAPI(MainTestCase):
         }
         self.assertDictContainsSubset(data, response.data)
         response = view(request, owner='bob', formid=formid)
-        data = {u'age': 27.67, u'amount': 1455.0}
+        data = {u'age': 28.17, u'amount': 1455.0}
         self.assertDictContainsSubset(data, response.data)
 
     def test_mode_api(self):
