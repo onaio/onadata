@@ -187,105 +187,6 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
     return records
 
 
-def get_numeric_fields(xform):
-    """List of numeric field names for specified xform"""
-    k = []
-    dd = xform.data_dictionary()
-    for element in dd.get_survey_elements_of_type('integer'):
-        name = _encode_for_mongo(element.get_abbreviated_xpath())
-        k.append(name)
-    for element in dd.get_survey_elements_of_type('decimal'):
-        name = _encode_for_mongo(element.get_abbreviated_xpath())
-        k.append(name)
-    return k
-
-
-def get_median_for_field(field, xform):
-    username = xform.user.username
-    id_string = xform.id_string
-    query = None
-    sort = None
-    query = {}
-    mongo_field = _encode_for_mongo(field)
-    query[ParsedInstance.USERFORM_ID] =\
-        u'%s_%s' % (xform.user.username, xform.id_string)
-    query[mongo_field] = {"$exists": True}
-    sort = {mongo_field: 1}
-
-    # check if requested field a datetime str
-    fields = [mongo_field]
-
-    cursor = ParsedInstance.query_mongo(
-        username, id_string, query, fields, sort)
-    return numpy.median([float(i[mongo_field]) for i in cursor])
-
-
-def get_median_for_numeric_fields_in_form(xform):
-    data = {}
-    for field_name in get_numeric_fields(xform):
-        median = get_median_for_field(field_name, xform)
-        data.update({field_name: median})
-    return data
-
-
-def get_mean_for_field(field, xform):
-    username = xform.user.username
-    id_string = xform.id_string
-    query = None
-    sort = None
-    query = {}
-    mongo_field = _encode_for_mongo(field)
-    query[ParsedInstance.USERFORM_ID] =\
-        u'%s_%s' % (xform.user.username, xform.id_string)
-    query[mongo_field] = {"$exists": True}
-    sort = {mongo_field: 1}
-
-    # check if requested field a datetime str
-    fields = [mongo_field]
-
-    cursor = ParsedInstance.query_mongo(
-        username, id_string, query, fields, sort)
-    return numpy.mean([float(i[mongo_field]) for i in cursor])
-
-
-def get_mean_for_numeric_fields_in_form(xform):
-    data = {}
-    for field_name in get_numeric_fields(xform):
-        mean = get_mean_for_field(field_name, xform)
-        data.update({field_name: round(mean, 2)})
-    return data
-
-
-def get_mode_for_field(field, xform):
-    username = xform.user.username
-    id_string = xform.id_string
-    query = None
-    sort = None
-    query = {}
-    mongo_field = _encode_for_mongo(field)
-    query[ParsedInstance.USERFORM_ID] =\
-        u'%s_%s' % (xform.user.username, xform.id_string)
-    query[mongo_field] = {"$exists": True}
-    sort = {mongo_field: 1}
-
-    # check if requested field a datetime str
-    fields = [mongo_field]
-
-    cursor = ParsedInstance.query_mongo(
-        username, id_string, query, fields, sort)
-    a = numpy.array([float(i[mongo_field]) for i in cursor])
-    mode, count = stats.mode(a)
-    return mode
-
-
-def get_mode_for_numeric_fields_in_form(xform):
-    data = {}
-    for field_name in get_numeric_fields(xform):
-        mode = get_mode_for_field(field_name, xform)
-        data.update({field_name: round(mode, 2)})
-    return data
-
-
 def get_field_records(field, xform):
     username = xform.user.username
     id_string = xform.id_string
@@ -300,6 +201,63 @@ def get_field_records(field, xform):
     fields = [mongo_field]
 
     return ParsedInstance.query_mongo(username, id_string, query, fields, sort)
+
+
+def get_numeric_fields(xform):
+    """List of numeric field names for specified xform"""
+    k = []
+    dd = xform.data_dictionary()
+    for element in dd.get_survey_elements_of_type('integer'):
+        name = element.get_abbreviated_xpath()
+        k.append(name)
+    for element in dd.get_survey_elements_of_type('decimal'):
+        name = element.get_abbreviated_xpath()
+        k.append(name)
+    return k
+
+
+def get_median_for_field(field, xform):
+    cursor = get_field_records(field, xform)
+    mongo_field = _encode_for_mongo(field)
+    return numpy.median([float(i[mongo_field]) for i in cursor])
+
+
+def get_median_for_numeric_fields_in_form(xform):
+    data = {}
+    for field_name in get_numeric_fields(xform):
+        median = get_median_for_field(field_name, xform)
+        data.update({field_name: median})
+    return data
+
+
+def get_mean_for_field(field, xform):
+    cursor = get_field_records(field, xform)
+    mongo_field = _encode_for_mongo(field)
+    return numpy.mean([float(i[mongo_field]) for i in cursor])
+
+
+def get_mean_for_numeric_fields_in_form(xform):
+    data = {}
+    for field_name in get_numeric_fields(xform):
+        mean = get_mean_for_field(field_name, xform)
+        data.update({field_name: round(mean, 2)})
+    return data
+
+
+def get_mode_for_field(field, xform):
+    cursor = get_field_records(field, xform)
+    mongo_field = _encode_for_mongo(field)
+    a = numpy.array([float(i[mongo_field]) for i in cursor])
+    mode, count = stats.mode(a)
+    return mode
+
+
+def get_mode_for_numeric_fields_in_form(xform):
+    data = {}
+    for field_name in get_numeric_fields(xform):
+        mode = get_mode_for_field(field_name, xform)
+        data.update({field_name: round(mode, 2)})
+    return data
 
 
 def get_min_max_range_for_field(field, xform):
