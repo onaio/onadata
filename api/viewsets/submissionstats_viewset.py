@@ -5,7 +5,8 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
-from api.tools import get_accessible_forms, get_all_stats
+from api.tools import get_accessible_forms,\
+    get_form_submissions_grouped_by_field
 
 from utils.user_auth import check_and_set_form_by_id, \
     check_and_set_form_by_id_string
@@ -13,7 +14,7 @@ from utils.user_auth import check_and_set_form_by_id, \
 from odk_logger.models import Instance
 
 
-class StatsViewSet(viewsets.ViewSet):
+class SubmissionStatsViewSet(viewsets.ViewSet):
     """
 Provides submissions counts grouped by a specified field.
 It accepts query parameters `group` and `name`. Default result
@@ -94,8 +95,17 @@ Response:
                     _("You do not have permission to "
                       "view data from this form."))
             else:
+                field = '_submission_time'
+                name = 'date_of_submission'
+                group = request.QUERY_PARAMS.get('group', None)
+                alt_name = request.QUERY_PARAMS.get('name', None)
+                if group:
+                    name = field = group
+                if alt_name:
+                    name = alt_name
                 try:
-                    data = get_all_stats(xform)
+                    data = get_form_submissions_grouped_by_field(
+                        xform, field, name)
                 except ValueError as e:
                     raise exceptions.ParseError(detail=e.message)
         else:

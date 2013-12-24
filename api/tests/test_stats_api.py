@@ -9,6 +9,7 @@ from api.viewsets.median_viewset import MedianViewSet
 from api.viewsets.mean_viewset import MeanViewSet
 from api.viewsets.mode_viewset import ModeViewSet
 from api.viewsets.range_viewset import RangeViewSet
+from api.viewsets.submissionstats_viewset import SubmissionStatsViewSet
 from odk_logger.models import XForm
 from utils.logger_tools import publish_xml_form, create_instance
 
@@ -25,7 +26,7 @@ class TestStatsAPI(MainTestCase):
     def test_form_list(self):
         self._publish_transportation_form()
         self._make_submissions()
-        view = StatsViewSet.as_view({'get': 'list'})
+        view = SubmissionStatsViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 200)
@@ -46,7 +47,7 @@ class TestStatsAPI(MainTestCase):
     def test_anon_form_list(self):
         self._publish_transportation_form()
         self._make_submissions()
-        view = StatsViewSet.as_view({'get': 'list'})
+        view = SubmissionStatsViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
         response = view(request)
         self.assertEqual(response.status_code, 401)
@@ -131,4 +132,36 @@ class TestStatsAPI(MainTestCase):
         response = view(request, owner='bob', formid=formid)
         data = {u'age': {u'range': 10, u'max': 34, u'min': 24},
                 u'amount': {u'range': 2770, u'max': 3200, u'min': 430}}
+        self.assertDictContainsSubset(data, response.data)
+
+    def test_all_stats_api(self):
+        self._contributions_form_submissions()
+        view = StatsViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        formid = self.xform.pk
+        data = {
+            u'contributions':
+            'http://testserver/api/v1/stats/bob/%s' % formid
+        }
+        self.assertDictContainsSubset(data, response.data)
+        response = view(request, owner='bob', formid=formid)
+        data = {}
+        data['age'] = {
+            'mean': 28.17,
+            'median': 28.5,
+            'mode': 24,
+            'max': 34,
+            'min': 24,
+            'range': 10
+        }
+        data['amount'] = {
+            'mean': 1455,
+            'median': 1100.0,
+            'mode': 430,
+            'max': 3200,
+            'min': 430,
+            'range': 2770
+        }
         self.assertDictContainsSubset(data, response.data)

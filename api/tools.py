@@ -276,3 +276,21 @@ def get_min_max_range(xform):
         _min, _max, _range = get_min_max_range_for_field(field_name, xform)
         data[field_name] = {'max': _max, 'min': _min, 'range': _range}
     return data
+
+
+def get_all_stats(xform):
+    data = {}
+    for field_name in get_numeric_fields(xform):
+        _min, _max, _range = get_min_max_range_for_field(field_name, xform)
+        mode = get_mode_for_field(field_name, xform)
+        mean = get_mean_for_field(field_name, xform)
+        median = get_median_for_field(field_name, xform)
+        data[field_name] = {
+            'mean': round(mean, 2),
+            'median': median,
+            'mode': round(mode, 2),
+            'max': _max,
+            'min': _min,
+            'range': _range
+        }
+    return data
