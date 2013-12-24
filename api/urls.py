@@ -18,6 +18,7 @@ from api.viewsets.user_viewset import UserViewSet
 from api.viewsets.median_viewset import MedianViewSet
 from api.viewsets.mean_viewset import MeanViewSet
 from api.viewsets.mode_viewset import ModeViewSet
+from api.viewsets.range_viewset import RangeViewSet
 
 
 class MultiLookupRouter(routers.DefaultRouter):
@@ -358,3 +359,4 @@ router.register(r'stats/submissions', StatsViewSet, base_name='stats')
 router.register(r'stats/median', MedianViewSet, base_name='median')
 router.register(r'stats/mean', MeanViewSet, base_name='mean')
 router.register(r'stats/mode', ModeViewSet, base_name='mode')
+router.register(r'stats/range', RangeViewSet, base_name='range')

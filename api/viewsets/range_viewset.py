@@ -5,8 +5,7 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
-from api.tools import get_accessible_forms,\
-    get_median_for_numeric_fields_in_form
+from api.tools import get_accessible_forms, get_min_max_range
 
 from utils.user_auth import check_and_set_form_by_id, \
     check_and_set_form_by_id_string
@@ -14,7 +13,7 @@ from utils.user_auth import check_and_set_form_by_id, \
 from odk_logger.models import Instance
 
 
-class MedianViewSet(viewsets.ViewSet):
+class RangeViewSet(viewsets.ViewSet):
     """
 Provides the median of numeric fields.
 
@@ -51,7 +50,7 @@ Response:
         rs = {}
         for xform in xforms.distinct():
             point = {u"%s" % xform.id_string:
-                     reverse("median-list", kwargs={
+                     reverse("range-list", kwargs={
                              "formid": xform.pk,
                              "owner": xform.user.username},
                              request=request)}
@@ -77,7 +76,7 @@ Response:
                       "view data from this form."))
             else:
                 try:
-                    data = get_median_for_numeric_fields_in_form(xform)
+                    data = get_min_max_range(xform)
                 except ValueError as e:
                     raise exceptions.ParseError(detail=e.message)
         else:

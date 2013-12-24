@@ -284,3 +284,37 @@ def get_mode_for_numeric_fields_in_form(xform):
         mode = get_mode_for_field(field_name, xform)
         data.update({field_name: round(mode, 2)})
     return data
+
+
+def get_field_records(field, xform):
+    username = xform.user.username
+    id_string = xform.id_string
+    query = None
+    sort = None
+    query = {}
+    mongo_field = _encode_for_mongo(field)
+    query[mongo_field] = {"$exists": True}
+    sort = {mongo_field: 1}
+
+    # check if requested field a datetime str
+    fields = [mongo_field]
+
+    return ParsedInstance.query_mongo(username, id_string, query, fields, sort)
+
+
+def get_min_max_range_for_field(field, xform):
+    cursor = get_field_records(field, xform)
+    mongo_field = _encode_for_mongo(field)
+    a = numpy.array([float(i[mongo_field]) for i in cursor])
+    _max = numpy.max(a)
+    _min = numpy.min(a)
+    _range = _max - _min
+    return _min, _max, _range
+
+
+def get_min_max_range(xform):
+    data = {}
+    for field_name in get_numeric_fields(xform):
+        _min, _max, _range = get_min_max_range_for_field(field_name, xform)
+        data[field_name] = {'max': _max, 'min': _min, 'range': _range}
+    return data
