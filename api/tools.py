@@ -1,4 +1,5 @@
 import numpy
+from scipy import stats
 
 from datetime import datetime
 
@@ -252,4 +253,34 @@ def get_mean_for_numeric_fields_in_form(xform):
     for field_name in get_numeric_fields(xform):
         mean = get_mean_for_field(field_name, xform)
         data.update({field_name: round(mean, 2)})
+    return data
+
+
+def get_mode_for_field(field, xform):
+    username = xform.user.username
+    id_string = xform.id_string
+    query = None
+    sort = None
+    query = {}
+    mongo_field = _encode_for_mongo(field)
+    query[ParsedInstance.USERFORM_ID] =\
+        u'%s_%s' % (xform.user.username, xform.id_string)
+    query[mongo_field] = {"$exists": True}
+    sort = {mongo_field: 1}
+
+    # check if requested field a datetime str
+    fields = [mongo_field]
+
+    cursor = ParsedInstance.query_mongo(
+        username, id_string, query, fields, sort)
+    a = numpy.array([float(i[mongo_field]) for i in cursor])
+    mode, count = stats.mode(a)
+    return mode
+
+
+def get_mode_for_numeric_fields_in_form(xform):
+    data = {}
+    for field_name in get_numeric_fields(xform):
+        mode = get_mode_for_field(field_name, xform)
+        data.update({field_name: round(mode, 2)})
     return data
