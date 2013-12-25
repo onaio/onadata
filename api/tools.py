@@ -1,5 +1,4 @@
-import numpy
-from scipy import stats
+import numpy as np
 
 from datetime import datetime
 
@@ -203,6 +202,36 @@ def get_field_records(field, xform):
     return ParsedInstance.query_mongo(username, id_string, query, fields, sort)
 
 
+def mode(a, axis=0):
+    """
+    Adapted from
+    https://github.com/scipy/scipy/blob/master/scipy/stats/stats.py#L568
+    """
+    a, axis = _chk_asarray(a, axis)
+    scores = np.unique(np.ravel(a))       # get ALL unique values
+    testshape = list(a.shape)
+    testshape[axis] = 1
+    oldmostfreq = np.zeros(testshape)
+    oldcounts = np.zeros(testshape)
+    for score in scores:
+	template = (a == score)
+	counts = np.expand_dims(np.sum(template, axis), axis)
+	mostfrequent = np.where(counts > oldcounts, score, oldmostfreq)
+	oldcounts = np.maximum(counts, oldcounts)
+	oldmostfreq = mostfrequent
+    return mostfrequent, oldcounts
+
+
+def _chk_asarray(a, axis):
+    if axis is None:
+	a = np.ravel(a)
+	outaxis = 0
+    else:
+	a = np.asarray(a)
+	outaxis = axis
+    return a, outaxis
+
+
 def get_numeric_fields(xform):
     """List of numeric field names for specified xform"""
     k = []
@@ -219,7 +248,7 @@ def get_numeric_fields(xform):
 def get_median_for_field(field, xform):
     cursor = get_field_records(field, xform)
     mongo_field = _encode_for_mongo(field)
-    return numpy.median([float(i[mongo_field]) for i in cursor])
+    return np.median([float(i[mongo_field]) for i in cursor])
 
 
 def get_median_for_numeric_fields_in_form(xform, field=None):
@@ -233,7 +262,7 @@ def get_median_for_numeric_fields_in_form(xform, field=None):
 def get_mean_for_field(field, xform):
     cursor = get_field_records(field, xform)
     mongo_field = _encode_for_mongo(field)
-    return numpy.mean([float(i[mongo_field]) for i in cursor])
+    return np.mean([float(i[mongo_field]) for i in cursor])
 
 
 def get_mean_for_numeric_fields_in_form(xform, field):
@@ -247,9 +276,9 @@ def get_mean_for_numeric_fields_in_form(xform, field):
 def get_mode_for_field(field, xform):
     cursor = get_field_records(field, xform)
     mongo_field = _encode_for_mongo(field)
-    a = numpy.array([float(i[mongo_field]) for i in cursor])
-    mode, count = stats.mode(a)
-    return mode
+    a = np.array([float(i[mongo_field]) for i in cursor])
+    m, count = mode(a)
+    return m
 
 
 def get_mode_for_numeric_fields_in_form(xform, field=None):
@@ -263,9 +292,9 @@ def get_mode_for_numeric_fields_in_form(xform, field=None):
 def get_min_max_range_for_field(field, xform):
     cursor = get_field_records(field, xform)
     mongo_field = _encode_for_mongo(field)
-    a = numpy.array([float(i[mongo_field]) for i in cursor])
-    _max = numpy.max(a)
-    _min = numpy.min(a)
+    a = np.array([float(i[mongo_field]) for i in cursor])
+    _max = np.max(a)
+    _min = np.min(a)
     _range = _max - _min
     return _min, _max, _range
 
