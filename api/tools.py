@@ -19,6 +19,8 @@ from api.models.project import Project
 from api.models.project_xform import ProjectXForm
 from api.models.team import Team
 
+DECIMAL_PRECISION = 2
+
 
 def _get_first_last_names(name):
     name_split = name.split()
@@ -214,21 +216,21 @@ def mode(a, axis=0):
     oldmostfreq = np.zeros(testshape)
     oldcounts = np.zeros(testshape)
     for score in scores:
-	template = (a == score)
-	counts = np.expand_dims(np.sum(template, axis), axis)
-	mostfrequent = np.where(counts > oldcounts, score, oldmostfreq)
-	oldcounts = np.maximum(counts, oldcounts)
-	oldmostfreq = mostfrequent
+        template = (a == score)
+        counts = np.expand_dims(np.sum(template, axis), axis)
+        mostfrequent = np.where(counts > oldcounts, score, oldmostfreq)
+        oldcounts = np.maximum(counts, oldcounts)
+        oldmostfreq = mostfrequent
     return mostfrequent, oldcounts
 
 
 def _chk_asarray(a, axis):
     if axis is None:
-	a = np.ravel(a)
-	outaxis = 0
+        a = np.ravel(a)
+        outaxis = 0
     else:
-	a = np.asarray(a)
-	outaxis = axis
+        a = np.asarray(a)
+        outaxis = axis
     return a, outaxis
 
 
@@ -269,7 +271,7 @@ def get_mean_for_numeric_fields_in_form(xform, field):
     data = {}
     for field_name in [field] if field else get_numeric_fields(xform):
         mean = get_mean_for_field(field_name, xform)
-        data.update({field_name: round(mean, 2)})
+        data.update({field_name: round(mean, DECIMAL_PRECISION)})
     return data
 
 
@@ -285,7 +287,7 @@ def get_mode_for_numeric_fields_in_form(xform, field=None):
     data = {}
     for field_name in [field] if field else get_numeric_fields(xform):
         mode = get_mode_for_field(field_name, xform)
-        data.update({field_name: round(mode, 2)})
+        data.update({field_name: round(mode, DECIMAL_PRECISION)})
     return data
 
 
@@ -315,9 +317,9 @@ def get_all_stats(xform, field=None):
         mean = get_mean_for_field(field_name, xform)
         median = get_median_for_field(field_name, xform)
         data[field_name] = {
-            'mean': round(mean, 2),
+            'mean': round(mean, DECIMAL_PRECISION),
             'median': median,
-            'mode': round(mode, 2),
+            'mode': round(mode, DECIMAL_PRECISION),
             'max': _max,
             'min': _min,
             'range': _range
