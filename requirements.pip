@@ -59,5 +59,8 @@ django-taggit==0.10
 # oath2 support
 django-oauth-toolkit==0.5.0
 
-#spss
+# spss
 -e git+https://bitbucket.org/fomcl/savreaderwriter.git#egg=savreaderwriter
+
+# JSON field support
+jsonfield
