@@ -1,11 +1,12 @@
 import json
-from api.tests.test_api import TestAPI
+
+from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from api.viewsets.user_viewset import UserViewSet
 
 
-class TestUsersAPI(TestAPI):
+class TestUserViewSet(TestAbstractViewSet):
     def setUp(self):
-        super(TestUsersAPI, self).setUp()
+        super(self.__class__, self).setUp()
 
     def test_user_list(self):
         view = UserViewSet.as_view({'get': 'list'})

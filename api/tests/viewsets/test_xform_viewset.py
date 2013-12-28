@@ -3,13 +3,13 @@ import os
 from xml.dom import minidom, Node
 from django.conf import settings
 
-from api.tests.test_api import TestAPI
+from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from api.viewsets.xform_viewset import XFormViewSet
 
 
-class TestFormsAPI(TestAPI):
+class TestXFormViewSet(TestAbstractViewSet):
     def setUp(self):
-        super(TestFormsAPI, self).setUp()
+        super(self.__class__, self).setUp()
         self.view = XFormViewSet.as_view({
             'get': 'list',
         })

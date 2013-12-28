@@ -10,7 +10,7 @@ from odk_logger.models import XForm
 from utils.logger_tools import publish_xml_form, create_instance
 
 
-class TestStatsAPI(MainTestCase):
+class TestStatsViewSet(MainTestCase):
 
     def setUp(self):
         MainTestCase.setUp(self)

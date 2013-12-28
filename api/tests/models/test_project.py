@@ -3,10 +3,10 @@ from django.db import IntegrityError
 from api import tools
 from api.models.project import Project
 from api.models.project_xform import ProjectXForm
-from api.tests.test_models import TestModels
+from api.tests.models.test_abstract_models import TestAbstractModels
 
 
-class TestProject(TestModels):
+class TestProject(TestAbstractModels):
 
     def test_create_organization_project(self):
         organization = self._create_organization("modilabs", self.user)
