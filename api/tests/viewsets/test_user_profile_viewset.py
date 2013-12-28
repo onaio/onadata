@@ -2,13 +2,13 @@ import json
 
 from main.models import UserProfile
 
-from api.tests.test_api import TestAPI
+from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from api.viewsets.user_profile_viewset import UserProfileViewSet
 
 
-class TestProfilesAPI(TestAPI):
+class TestUserProfileViewSet(TestAbstractViewSet):
     def setUp(self):
-        super(TestProfilesAPI, self).setUp()
+        super(self.__class__, self).setUp()
         self.view = UserProfileViewSet.as_view({
             'get': 'list',
             'post': 'create'

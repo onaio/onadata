@@ -17,10 +17,10 @@ from api.viewsets.project_viewset import ProjectViewSet
 from api.serializers import ProjectSerializer
 
 
-class TestAPI(TestCase):
+class TestAbstractViewSet(TestCase):
 
     def setUp(self):
-        super(TestAPI, self).setUp()
+        TestCase.setUp(self)
         self.factory = RequestFactory()
         self._login_user_and_profile()
         self.maxDiff = None

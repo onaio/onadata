@@ -2,7 +2,7 @@ from main.tests.test_base import MainTestCase
 from api import tools
 
 
-class TestModels(MainTestCase):
+class TestAbstractModels(MainTestCase):
 
     def _create_organization(self, org_name, user):
         profile = tools.create_organization(org_name, user)

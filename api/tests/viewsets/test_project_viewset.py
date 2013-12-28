@@ -1,10 +1,10 @@
-from api.tests.test_api import TestAPI
+from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from api.viewsets.project_viewset import ProjectViewSet
 
 
-class TestProjectsAPI(TestAPI):
+class TestProjectViewset(TestAbstractViewSet):
     def setUp(self):
-        super(TestProjectsAPI, self).setUp()
+        super(self.__class__, self).setUp()
         self.view = ProjectViewSet.as_view({
             'get': 'list',
             'post': 'create'

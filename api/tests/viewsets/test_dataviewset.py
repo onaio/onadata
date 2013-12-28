@@ -5,10 +5,10 @@ from api.viewsets.note_viewset import NoteViewSet
 from api.viewsets.xform_viewset import XFormViewSet
 
 
-class TestDataAPI(MainTestCase):
+class TestDataViewSet(MainTestCase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        super(self.__class__, self).setUp()
         self._create_user_and_login()
         self._publish_transportation_form()
         self._make_submissions()
@@ -35,7 +35,6 @@ class TestDataAPI(MainTestCase):
 
         data = {
             u'_bamboo_dataset_id': u'',
-#            u'_deleted_at': None,
             u'_attachments': [],
             u'_geolocation': [None, None],
             u'_xform_id_string': u'transportation_2011_07_25',

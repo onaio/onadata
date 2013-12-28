@@ -1,14 +1,13 @@
 import json
 
-from api.tests.test_api import TestAPI
-
 from api.models import Team
+from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from api.viewsets.team_viewset import TeamViewSet
 
 
-class TestTeamsAPI(TestAPI):
+class TestTeamsViewSet(TestAbstractViewSet):
     def setUp(self):
-        super(TestTeamsAPI, self).setUp()
+        super(self.__class__, self).setUp()
         self.view = TeamViewSet.as_view({
             'get': 'list',
             'post': 'create'
