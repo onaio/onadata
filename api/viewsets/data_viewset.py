@@ -145,8 +145,8 @@ parameter to apply form data specific, see
 http://www.mongodb.org/display/DOCS/Querying</a>.
 
 For more details see
-<a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)
-#api-parameters">
+<a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)#
+api-parameters">
 API Parameters</a>.
 <pre class="prettyprint">
 <b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>
