@@ -3,13 +3,15 @@ from django.db.models.signals import post_save
 from django.db.models.signals import post_delete
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .xform import XForm
-from .survey_type import SurveyType
+from django.utils.translation import ugettext as _
+from jsonfield import JSONField
+from taggit.managers import TaggableManager
+
+from odk_logger.models.survey_type import SurveyType
+from odk_logger.models.xform import XForm
 from odk_logger.xform_instance_parser import XFormInstanceParser, \
     clean_and_parse_xml, get_uuid_from_xml
 from utils.model_tools import set_uuid
-from django.utils.translation import ugettext as _
-from taggit.managers import TaggableManager
 
 
 class FormInactiveError(Exception):
@@ -25,11 +27,13 @@ class FormInactiveError(Exception):
 def get_id_string_from_xml_str(xml_str):
     xml_obj = clean_and_parse_xml(xml_str)
     root_node = xml_obj.documentElement
+
     return root_node.getAttribute(u"id")
 
 
 class Instance(models.Model):
-    # I should rename this model, maybe Survey
+    # TODO rename model to Survey
+    json = JSONField(default={}, null=False)
     xml = models.TextField()
     user = models.ForeignKey(User, related_name='surveys', null=True)
 
@@ -62,8 +66,7 @@ class Instance(models.Model):
         app_label = 'odk_logger'
 
     def _set_xform(self, id_string):
-        self.xform = XForm.objects.get(
-            id_string=id_string, user=self.user)
+        self.xform = XForm.objects.get(id_string=id_string, user=self.user)
 
     def get_root_node_name(self):
         self._set_parser()
@@ -97,9 +100,12 @@ class Instance(models.Model):
 
     def save(self, *args, **kwargs):
         self._set_xform(get_id_string_from_xml_str(self.xml))
-        doc = self.get_dict()
+
         if self.xform and not self.xform.downloadable:
             raise FormInactiveError()
+
+        doc = self.get_dict()
+        self.json = doc
         self._set_start_time(doc)
         self._set_date(doc)
         self._set_survey_type(doc)
