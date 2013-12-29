@@ -1,20 +1,18 @@
 import os
 import json
-from django.conf import settings
 
+from django.conf import settings
 from django.test import TestCase
 from django.test import RequestFactory
-
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Permission
-
-from utils.user_auth import set_api_permissions_for_user
 
 from api.models import OrganizationProfile, Project
 from api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from api.viewsets.project_viewset import ProjectViewSet
 from api.serializers import ProjectSerializer
+from utils.user_auth import set_api_permissions_for_user
 
 
 class TestAbstractViewSet(TestCase):

@@ -84,7 +84,7 @@ class Instance(models.Model):
         self.survey_type, created = \
             SurveyType.objects.get_or_create(slug=self.get_root_node_name())
 
-    # todo: get rid of these fields
+    # TODO get rid of these fields
     def _set_start_time(self, doc):
         self.start_time = None
 
