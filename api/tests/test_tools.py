@@ -13,9 +13,10 @@ class TestTools(MainTestCase):
     def test_form_submissions_grouped_by_field(self):
         xform = self.user.xforms.all()[0]
         field = '_status'
+        count_key = 'count'
         count = len(xform.surveys.all())
 
         result = get_form_submissions_grouped_by_field(xform, field)[0]
 
-        self.assertEqual(result['count'], count)
-        self.assertTrue(field in result.keys())
+        self.assertEqual([field, count_key], sorted(result.keys()))
+        self.assertEqual(result[count_key], count)
