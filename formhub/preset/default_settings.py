@@ -1,10 +1,13 @@
-# this system uses structured settings.py as defined in http://www.slideshare.net/jacobian/the-best-and-worst-of-django
+# this system uses structured settings.py as defined in
+# http://www.slideshare.net/jacobian/the-best-and-worst-of-django
 #
 # this third-level staging file overrides some definitions in staging.py
 # You may wish to alter it to agree with your local environment
 #
 
-from staging_example import *  # get most settings from staging_example.py (which in turn, imports from settings.py)
+# get most settings from staging_example.py (which in turn, imports from
+# settings.py)
+from staging_example import *  # nopep8
 
 # # # now override the settings which came from staging # # # #
 
@@ -12,8 +15,15 @@ from staging_example import *  # get most settings from staging_example.py (whic
 # sqlite
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'onadata',
+        'USER': 'onadata',
+        'PASSWORD': '',
+        'HOST': '127.0.0.1',
+        'OPTIONS': {
+            # note: this option obsolete starting with django 1.6
+            'autocommit': True,
+        }
     }
 }
 

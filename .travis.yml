@@ -11,7 +11,7 @@ before_install:
 install:
   - pip install numpy --use-mirrors
   - pip install -r requirements.pip --use-mirrors
-  - pip install -r requirements-mysql.pip --use-mirrors
+  - pip install -r requirements-postgresql_psycopg2.pip --use-mirrors
   - python manage.py syncdb --noinput --settings=formhub.preset.travis_test
   - python manage.py migrate --noinput --settings=formhub.preset.travis_test
 script:
