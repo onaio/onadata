@@ -1,4 +1,3 @@
-from django.utils.translation import ugettext as _
 from rest_framework import viewsets
 from rest_framework import exceptions
 from rest_framework import permissions
@@ -6,10 +5,7 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
 from api.tools import get_accessible_forms,\
-    get_form_submissions_grouped_by_field
-
-from utils.user_auth import check_and_set_form_by_id, \
-    check_and_set_form_by_id_string
+    get_form_submissions_grouped_by_field, get_xform
 
 from odk_logger.models import Instance
 
@@ -84,30 +80,23 @@ Response:
         data = []
 
         if formid:
+            xform = get_xform(formid, request)
+
+            field = '_submission_time'
+            name = 'date_of_submission'
+            group = request.QUERY_PARAMS.get('group', None)
+            alt_name = request.QUERY_PARAMS.get('name', None)
+
+            if group:
+                name = field = group
+            if alt_name:
+                name = alt_name
+
             try:
-                formid = int(formid)
-            except ValueError:
-                xform = check_and_set_form_by_id_string(formid, request)
-            else:
-                xform = check_and_set_form_by_id(int(formid), request)
-            if not xform:
-                raise exceptions.PermissionDenied(
-                    _("You do not have permission to "
-                      "view data from this form."))
-            else:
-                field = '_submission_time'
-                name = 'date_of_submission'
-                group = request.QUERY_PARAMS.get('group', None)
-                alt_name = request.QUERY_PARAMS.get('name', None)
-                if group:
-                    name = field = group
-                if alt_name:
-                    name = alt_name
-                try:
-                    data = get_form_submissions_grouped_by_field(
-                        xform, field, name)
-                except ValueError as e:
-                    raise exceptions.ParseError(detail=e.message)
+                data = get_form_submissions_grouped_by_field(
+                    xform, field, name)
+            except ValueError as e:
+                raise exceptions.ParseError(detail=e.message)
         else:
             data = self._get_formlist_data_points(request, owner)
 
