@@ -241,12 +241,13 @@ def get_numeric_fields(xform):
     """List of numeric field names for specified xform"""
     k = []
     dd = xform.data_dictionary()
-    for element in dd.get_survey_elements_of_type('integer'):
+    survey_elements = dd.get_survey_elements_of_type('integer') +\
+        dd.get_survey_elements_of_type('decimal')
+
+    for element in survey_elements:
         name = element.get_abbreviated_xpath()
         k.append(name)
-    for element in dd.get_survey_elements_of_type('decimal'):
-        name = element.get_abbreviated_xpath()
-        k.append(name)
+
     return k
 
 
