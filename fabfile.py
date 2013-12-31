@@ -17,7 +17,9 @@ DEPLOYMENTS = {
         'project': 'ona',
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
         'virtualenv': '/home/ubuntu/.virtualenvs/ona',
-        'celeryd': '/etc/init.d/celeryd-ona'
+        'celeryd': '/etc/init.d/celeryd-ona',
+        'django_config_module': 'formhub.local_settings',
+        'pid': '/var/run/ona.pid'
     },
     'kobocat': {
         'home': '/home/ubuntu/src/',
@@ -26,7 +28,9 @@ DEPLOYMENTS = {
         'project': 'kobocat',
         'key_filename': os.path.expanduser('~/.ssh/kobo01.pem'),
         'virtualenv': '/home/ubuntu/.virtualenvs/kobocat',
-        'celeryd': '/etc/init.d/celeryd'
+        'celeryd': '/etc/init.d/celeryd',
+        'django_config_module': 'formhub.settings',
+        'pid': '/run/kobocat.pid'
     },
 }
 
@@ -73,11 +77,13 @@ def deploy(deployment_name, branch='master'):
 
     with cd(env.code_src):
         with source(env.virtualenv):
-            run("python manage.py syncdb --settings=formhub.local_settings")
-            run("python manage.py migrate --settings=formhub.local_settings")
-            run("python manage.py collectstatic"
-                " --settings=formhub.local_settings --noinput")
+            run("python manage.py syncdb --settings=%s"
+                % env.django_config_module)
+            run("python manage.py migrate --settings=%s"
+                % env.django_config_module)
+            run("python manage.py collectstatic --settings=%s --noinput"
+                % env.django_config_module)
 
     run("sudo %s restart" % env.celeryd)
     #run("sudo /etc/init.d/celerybeat-ona restart")
-    run("sudo /usr/local/bin/uwsgi --reload /var/run/ona.pid")
+    run("sudo /usr/local/bin/uwsgi --reload %s" % env.pid)
