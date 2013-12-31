@@ -51,7 +51,7 @@ class TestStatsViewSet(MainTestCase):
     def _contributions_form_submissions(self):
         count = XForm.objects.count()
         path = os.path.join(os.path.dirname(__file__),
-                            'fixtures', 'forms', 'contributions')
+                            '..', 'fixtures', 'forms', 'contributions')
         form_path = os.path.join(path, 'contributions.xml')
         f = open(form_path)
         xml_file = ContentFile(f.read())
