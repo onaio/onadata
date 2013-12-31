@@ -24,6 +24,19 @@ class TestTools(MainTestCase):
         self.assertEqual([field, count_key], sorted(result.keys()))
         self.assertEqual(result[count_key], count)
 
+    def test_get_form_submissions_grouped_by_field_sets_name(self):
+        count_key = 'count'
+        field = '_xform_id_string'
+        name = 'my_name'
+
+        xform = self.user.xforms.all()[0]
+        count = len(xform.surveys.all())
+
+        result = get_form_submissions_grouped_by_field(xform, field, name)[0]
+
+        self.assertEqual([name, count_key], sorted(result.keys()))
+        self.assertEqual(result[count_key], count)
+
     @raises(ValueError)
     def test_get_form_submissions_grouped_by_field_bad_field(self):
         field = '_bad_field'

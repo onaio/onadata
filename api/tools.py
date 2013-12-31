@@ -51,6 +51,18 @@ def _get_id_for_type(record, mongo_field):
         else mongo_str
 
 
+def _postgres_count_group(table, field, name):
+    json_query = "json->>'%s'" % field
+    string_args = {
+        'table': table,
+        'json': json_query,
+        'name': name
+    }
+
+    return "SELECT %(json)s AS %(name)s, COUNT(%(json)s) AS count FROM "\
+           "%(table)s GROUP BY %(json)s" % string_args
+
+
 def get_accessible_forms(owner=None):
     return XForm.objects.filter(user__username=owner).distinct()
 
@@ -161,13 +173,13 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
     """Number of submissions grouped by field"""
     cursor = connection.cursor()
 
-    cursor.execute(
-        "SELECT json->>'%(f)s' AS %(f)s, "
-        "COUNT(json->>'%(f)s') AS count FROM "
-        "odk_logger_instance GROUP BY json->>'%(f)s'" % {'f': field})
+    if not name:
+        name = field
+
+    cursor.execute(_postgres_count_group('odk_logger_instance', field, name))
     result = _dictfetchall(cursor)
 
-    if result[0][field] is None:
+    if result[0][name] is None:
         raise ValueError(_(u"Field '%s' does not exist." % field))
 
     return result
