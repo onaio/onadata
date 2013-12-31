@@ -1,12 +1,12 @@
 # this preset is used for automated testing of formhub
 #
-from formhub.settings import *
+from formhub.settings import *  # nopep8
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'formhub_test',
-        'USER': 'travis',
+        'NAME': 'onadata_test',
+        'USER': 'postgres',
         'PASSWORD': '',
         'HOST': '127.0.0.1',
     }
