@@ -15,6 +15,7 @@ from api.viewsets.team_viewset import TeamViewSet
 from api.viewsets.xform_viewset import XFormViewSet
 from api.viewsets.user_profile_viewset import UserProfileViewSet
 from api.viewsets.user_viewset import UserViewSet
+from api.viewsets.submissionstats_viewset import SubmissionStatsViewSet
 
 
 class MultiLookupRouter(routers.DefaultRouter):
@@ -351,4 +352,6 @@ router.register(r'projects', ProjectViewSet)
 router.register(r'teams', TeamViewSet)
 router.register(r'notes', NoteViewSet)
 router.register(r'data', DataViewSet, base_name='data')
-router.register(r'stats/submissions', StatsViewSet, base_name='stats')
+router.register(r'stats', StatsViewSet, base_name='stats')
+router.register(r'stats/submissions', SubmissionStatsViewSet,
+                base_name='submissionstats')

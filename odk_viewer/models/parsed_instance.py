@@ -116,8 +116,9 @@ class ParsedInstance(models.Model):
         fields_to_select = {cls.USERFORM_ID: 0}
         # TODO: give more detailed error messages to 3rd parties
         # using the API when json.loads fails
-        query = json.loads(
-            query, object_hook=json_util.object_hook) if query else {}
+        if isinstance(query, basestring):
+            query = json.loads(query, object_hook=json_util.object_hook)
+        query = query if query else {}
         query = dict_for_mongo(query)
         query[cls.USERFORM_ID] = u'%s_%s' % (username, id_string)
 
@@ -129,16 +130,18 @@ class ParsedInstance(models.Model):
             #display only active elements
             # join existing query with deleted_at_query on an $and
             query = {"$and": [query, {"_deleted_at": None}]}
-        # fields must be a string array i.e. '["name", "age"]
-        fields = json.loads(
-            fields, object_hook=json_util.object_hook) if fields else []
+        # fields must be a string array i.e. '["name", "age"]'
+        if isinstance(fields, basestring):
+            fields = json.loads(fields, object_hook=json_util.object_hook)
+        fields = fields if fields else []
         # TODO: current mongo (2.0.4 of this writing)
         # cant mix including and excluding fields in a single query
         if type(fields) == list and len(fields) > 0:
             fields_to_select = dict(
                 [(_encode_for_mongo(field), 1) for field in fields])
-        sort = json.loads(
-            sort, object_hook=json_util.object_hook) if sort else {}
+        if isinstance(sort, basestring):
+            sort = json.loads(sort, object_hook=json_util.object_hook)
+        sort = sort if sort else {}
 
         cursor = xform_instances.find(query, fields_to_select)
         if count:
