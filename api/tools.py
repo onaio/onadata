@@ -10,9 +10,9 @@ from rest_framework import exceptions
 
 from main.forms import QuickConverter
 
-from odk_logger.models import ParsedInstance, XForm
-from odk_viewer.models.parsed_instance import datetime_from_str,\
-    _encode_for_mongo
+from odk_logger.models.xform import XForm
+from odk_viewer.models.parsed_instance import ParsedInstance,\
+    datetime_from_str, _encode_for_mongo
 
 from utils.logger_tools import publish_form
 from utils.user_auth import check_and_set_form_by_id, \
