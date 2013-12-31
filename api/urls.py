@@ -15,10 +15,6 @@ from api.viewsets.team_viewset import TeamViewSet
 from api.viewsets.xform_viewset import XFormViewSet
 from api.viewsets.user_profile_viewset import UserProfileViewSet
 from api.viewsets.user_viewset import UserViewSet
-from api.viewsets.median_viewset import MedianViewSet
-from api.viewsets.mean_viewset import MeanViewSet
-from api.viewsets.mode_viewset import ModeViewSet
-from api.viewsets.range_viewset import RangeViewSet
 from api.viewsets.submissionstats_viewset import SubmissionStatsViewSet
 
 
@@ -359,7 +355,3 @@ router.register(r'data', DataViewSet, base_name='data')
 router.register(r'stats', StatsViewSet, base_name='stats')
 router.register(r'stats/submissions', SubmissionStatsViewSet,
                 base_name='submissionstats')
-router.register(r'stats/median', MedianViewSet, base_name='median')
-router.register(r'stats/mean', MeanViewSet, base_name='mean')
-router.register(r'stats/mode', ModeViewSet, base_name='mode')
-router.register(r'stats/range', RangeViewSet, base_name='range')
