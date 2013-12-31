@@ -22,7 +22,9 @@ STATS_FUNCTIONS = {
 
 class StatsViewSet(viewsets.ViewSet):
     """
-Stats summary for median, mean, mode, range, max, min
+Stats summary for median, mean, mode, range, max, min.
+A query parameter `method` can be used to limit the results to either
+`mean`, `median`, `mode` or `range` only results.
 
 Example:
 
@@ -40,6 +42,21 @@ Response:
                     "range": 24,
                     "max": 28,
                     "min": 4
+                },
+        ...
+    ]
+
+Example:
+
+    GET /api/v1/stats/ukanga/1?method=median
+
+Response:
+
+    [
+        {
+            "age":
+                {
+                    "median": 8,
                 },
         ...
     ]
