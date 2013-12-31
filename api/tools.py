@@ -1,8 +1,11 @@
+import numpy as np
+
 from datetime import datetime
 
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import ugettext as _
+from rest_framework import exceptions
 
 from main.forms import QuickConverter
 
@@ -12,10 +15,14 @@ from odk_viewer.models.parsed_instance import xform_instances, \
     datetime_from_str, _encode_for_mongo
 
 from utils.logger_tools import publish_form
+from utils.user_auth import check_and_set_form_by_id, \
+    check_and_set_form_by_id_string
 from api.models.organization_profile import OrganizationProfile
 from api.models.project import Project
 from api.models.project_xform import ProjectXForm
 from api.models.team import Team
+
+DECIMAL_PRECISION = 2
 
 
 def _get_first_last_names(name):
@@ -182,3 +189,158 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
     for record in records:
         del record['_id']
     return records
+
+
+def get_field_records(field, xform):
+    username = xform.user.username
+    id_string = xform.id_string
+    query = None
+    sort = None
+    query = {}
+    mongo_field = _encode_for_mongo(field)
+    query[mongo_field] = {"$exists": True}
+    sort = {mongo_field: 1}
+
+    # check if requested field a datetime str
+    fields = [mongo_field]
+
+    return ParsedInstance.query_mongo(username, id_string, query, fields, sort)
+
+
+def mode(a, axis=0):
+    """
+    Adapted from
+    https://github.com/scipy/scipy/blob/master/scipy/stats/stats.py#L568
+    """
+    a, axis = _chk_asarray(a, axis)
+    scores = np.unique(np.ravel(a))       # get ALL unique values
+    testshape = list(a.shape)
+    testshape[axis] = 1
+    oldmostfreq = np.zeros(testshape)
+    oldcounts = np.zeros(testshape)
+    for score in scores:
+        template = (a == score)
+        counts = np.expand_dims(np.sum(template, axis), axis)
+        mostfrequent = np.where(counts > oldcounts, score, oldmostfreq)
+        oldcounts = np.maximum(counts, oldcounts)
+        oldmostfreq = mostfrequent
+    return mostfrequent, oldcounts
+
+
+def _chk_asarray(a, axis):
+    if axis is None:
+        a = np.ravel(a)
+        outaxis = 0
+    else:
+        a = np.asarray(a)
+        outaxis = axis
+    return a, outaxis
+
+
+def get_numeric_fields(xform):
+    """List of numeric field names for specified xform"""
+    k = []
+    dd = xform.data_dictionary()
+    survey_elements = dd.get_survey_elements_of_type('integer') +\
+        dd.get_survey_elements_of_type('decimal')
+
+    for element in survey_elements:
+        name = element.get_abbreviated_xpath()
+        k.append(name)
+
+    return k
+
+
+def get_median_for_field(field, xform):
+    cursor = get_field_records(field, xform)
+    mongo_field = _encode_for_mongo(field)
+    return np.median([float(i[mongo_field]) for i in cursor])
+
+
+def get_median_for_numeric_fields_in_form(xform, field=None):
+    data = {}
+    for field_name in [field] if field else get_numeric_fields(xform):
+        median = get_median_for_field(field_name, xform)
+        data.update({field_name: median})
+    return data
+
+
+def get_mean_for_field(field, xform):
+    cursor = get_field_records(field, xform)
+    mongo_field = _encode_for_mongo(field)
+    return np.mean([float(i[mongo_field]) for i in cursor])
+
+
+def get_mean_for_numeric_fields_in_form(xform, field):
+    data = {}
+    for field_name in [field] if field else get_numeric_fields(xform):
+        mean = get_mean_for_field(field_name, xform)
+        data.update({field_name: round(mean, DECIMAL_PRECISION)})
+    return data
+
+
+def get_mode_for_field(field, xform):
+    cursor = get_field_records(field, xform)
+    mongo_field = _encode_for_mongo(field)
+    a = np.array([float(i[mongo_field]) for i in cursor])
+    m, count = mode(a)
+    return m
+
+
+def get_mode_for_numeric_fields_in_form(xform, field=None):
+    data = {}
+    for field_name in [field] if field else get_numeric_fields(xform):
+        mode = get_mode_for_field(field_name, xform)
+        data.update({field_name: round(mode, DECIMAL_PRECISION)})
+    return data
+
+
+def get_min_max_range_for_field(field, xform):
+    cursor = get_field_records(field, xform)
+    mongo_field = _encode_for_mongo(field)
+    a = np.array([float(i[mongo_field]) for i in cursor])
+    _max = np.max(a)
+    _min = np.min(a)
+    _range = _max - _min
+    return _min, _max, _range
+
+
+def get_min_max_range(xform, field=None):
+    data = {}
+    for field_name in [field] if field else get_numeric_fields(xform):
+        _min, _max, _range = get_min_max_range_for_field(field_name, xform)
+        data[field_name] = {'max': _max, 'min': _min, 'range': _range}
+    return data
+
+
+def get_all_stats(xform, field=None):
+    data = {}
+    for field_name in [field] if field else get_numeric_fields(xform):
+        _min, _max, _range = get_min_max_range_for_field(field_name, xform)
+        mode = get_mode_for_field(field_name, xform)
+        mean = get_mean_for_field(field_name, xform)
+        median = get_median_for_field(field_name, xform)
+        data[field_name] = {
+            'mean': round(mean, DECIMAL_PRECISION),
+            'median': median,
+            'mode': round(mode, DECIMAL_PRECISION),
+            'max': _max,
+            'min': _min,
+            'range': _range
+        }
+    return data
+
+
+def get_xform(formid, request):
+    try:
+        formid = int(formid)
+    except ValueError:
+        xform = check_and_set_form_by_id_string(formid, request)
+    else:
+        xform = check_and_set_form_by_id(int(formid), request)
+    if not xform:
+        raise exceptions.PermissionDenied(
+            _("You do not have permission to "
+                "view data from this form."))
+    else:
+        return xform

@@ -9,7 +9,7 @@ from rest_framework.reverse import reverse
 from rest_framework.viewsets import ViewSet
 from taggit.forms import TagField
 
-from api.tools import get_accessible_forms
+from api.tools import get_accessible_forms, get_xform
 from odk_logger.models import Instance
 from odk_viewer.models import ParsedInstance
 from utils.user_auth import check_and_set_form_by_id,\
@@ -295,20 +295,14 @@ or to delete the tag "hello world"
             owner = request.user.username
         if not formid and not dataid and not tags:
             data = self._get_formlist_data_points(request, owner)
+
         if formid:
-            xform = None
-            try:
-                xform = check_and_set_form_by_id(int(formid), request)
-            except ValueError:
-                xform = check_and_set_form_by_id_string(formid, request)
-            if not xform:
-                raise exceptions.PermissionDenied(
-                    _("You do not have permission to "
-                      "view data from this form."))
-            else:
-                query = {}
-                query[ParsedInstance.USERFORM_ID] = \
-                    u'%s_%s' % (xform.user.username, xform.id_string)
+            xform = get_xform(formid, request)
+
+            query = {}
+            query[ParsedInstance.USERFORM_ID] = \
+                u'%s_%s' % (xform.user.username, xform.id_string)
+
         if xform and dataid and dataid == 'labels':
             return Response(list(xform.tags.names()))
         if dataid:
