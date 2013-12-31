@@ -4,7 +4,7 @@ services:
 python:
   - '2.7'
 before_install:
-  - mysql -e 'create database formhub_test;'
+  - psql -c 'create database onadata_test;' -U postgres
   - sudo apt-get install gfortran libatlas-base-dev libjpeg-dev zlib1g-dev
   - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so ~/virtualenv/python2.7/lib/
   - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so ~/virtualenv/python2.7/lib/
