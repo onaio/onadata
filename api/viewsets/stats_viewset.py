@@ -4,10 +4,20 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
-from api.tools import get_accessible_forms, get_all_stats, get_xform
+from api.tools import get_accessible_forms, get_all_stats, get_xform, \
+    get_mode_for_numeric_fields_in_form, get_mean_for_numeric_fields_in_form,\
+    get_median_for_numeric_fields_in_form, get_min_max_range
 
 
 from odk_logger.models import Instance
+
+
+STATS_FUNCTIONS = {
+    'mean': get_mean_for_numeric_fields_in_form,
+    'median': get_median_for_numeric_fields_in_form,
+    'mode': get_mode_for_numeric_fields_in_form,
+    'range': get_min_max_range
+}
 
 
 class StatsViewSet(viewsets.ViewSet):
@@ -66,8 +76,12 @@ Response:
         if formid:
             xform = get_xform(formid, request)
             try:
+                method = request.QUERY_PARAMS.get('method', None)
                 field = request.QUERY_PARAMS.get('field', None)
-                data = get_all_stats(xform, field)
+                if method is None:
+                    data = get_all_stats(xform, field)
+                else:
+                    data = STATS_FUNCTIONS[method.lower()](xform, field)
             except ValueError as e:
                 raise exceptions.ParseError(detail=e.message)
         else:
