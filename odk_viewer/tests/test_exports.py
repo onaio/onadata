@@ -1,4 +1,3 @@
-from sys import stdout
 import os
 import datetime
 import json
@@ -491,9 +490,8 @@ class TestExports(MainTestCase):
             new_filename = increment_index_in_filename(filename)
             self.assertEqual(new_filename, export_2.filename)
         else:
-            stdout.write("duplicate export filename test skipped "
-                         "because export times differ.")
-            self.skipTest()
+            self.skipTest("duplicate export filename test skipped "
+                          "because export times differ.")
 
     def test_export_download_url(self):
         self._publish_transportation_form()
