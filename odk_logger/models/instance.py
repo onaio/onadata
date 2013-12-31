@@ -1,3 +1,5 @@
+from time import strftime
+
 from django.db import models
 from django.db.models.signals import post_save
 from django.db.models.signals import post_delete
@@ -7,6 +9,7 @@ from django.utils.translation import ugettext as _
 from jsonfield import JSONField
 from taggit.managers import TaggableManager
 
+from common_tags import MONGO_STRFTIME, SUBMISSION_TIME
 from odk_logger.models.survey_type import SurveyType
 from odk_logger.models.xform import XForm
 from odk_logger.xform_instance_parser import XFormInstanceParser, \
@@ -29,6 +32,10 @@ def get_id_string_from_xml_str(xml_str):
     root_node = xml_obj.documentElement
 
     return root_node.getAttribute(u"id")
+
+
+def submission_time():
+    return strftime(MONGO_STRFTIME)
 
 
 class Instance(models.Model):
@@ -105,6 +112,8 @@ class Instance(models.Model):
             raise FormInactiveError()
 
         doc = self.get_dict()
+        doc[SUBMISSION_TIME] = submission_time()
+
         self.json = doc
         self._set_start_time(doc)
         self._set_date(doc)

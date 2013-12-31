@@ -1,8 +1,11 @@
 import os
+from time import strftime
 
 from django.core.files.base import ContentFile
 from django.test import RequestFactory
+from mock import patch
 
+from common_tags import MONGO_STRFTIME
 from main.tests.test_base import MainTestCase
 from api.viewsets.stats_viewset import StatsViewSet
 from api.viewsets.submissionstats_viewset import SubmissionStatsViewSet
@@ -19,7 +22,11 @@ class TestStatsViewSet(MainTestCase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
-    def test_form_list(self):
+    @patch('odk_logger.models.instance.submission_time')
+    def test_form_list(self, mock_time):
+        current_time = strftime(MONGO_STRFTIME)
+        mock_time.return_value = current_time
+
         self._publish_transportation_form()
         self._make_submissions()
         view = SubmissionStatsViewSet.as_view({'get': 'list'})
