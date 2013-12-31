@@ -408,6 +408,23 @@ try:
 except ImportError:
     pass
 
+try:
+    from django.contrib.sites.models import Site
+    site = Site.objects.get(pk=SITE_ID)
+except Exception, e:
+    SITE_NAME = 'example.com'
+    print e
+else:
+    SITE_NAME = site.name
+# site templates overrides
+TEMPLATE_DIRS = (
+    os.path.join(PROJECT_ROOT, SITE_NAME.lower(), 'templates'),
+) + TEMPLATE_DIRS
+# site static files path
+STATICFILES_DIRS += (
+    os.path.join(PROJECT_ROOT, SITE_NAME.lower(), 'static'),
+)
+
 # MongoDB
 if MONGO_DATABASE.get('USER') and MONGO_DATABASE.get('PASSWORD'):
     MONGO_CONNECTION_URL = (
