@@ -10,3 +10,8 @@ def google_analytics(request):
         'GOOGLE_ANALYTICS_DOMAIN': ga_domain,
         'GOOGLE_SITE_VERIFICATION': ga_site_verification
     }
+
+
+def site_name(request):
+    return {
+        'SITE_NAME': getattr(settings, 'SITE_NAME', 'example.org')}

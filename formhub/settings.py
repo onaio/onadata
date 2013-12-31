@@ -133,7 +133,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.static',
     'django.core.context_processors.tz',
     'django.contrib.messages.context_processors.messages',
-    'formhub.context_processors.google_analytics'
+    'formhub.context_processors.google_analytics',
+    'formhub.context_processors.site_name'
 )
 
 MIDDLEWARE_CLASSES = (
