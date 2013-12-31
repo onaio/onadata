@@ -5,6 +5,7 @@ from datetime import datetime
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import ugettext as _
+from rest_framework import exceptions
 
 from main.forms import QuickConverter
 
@@ -14,6 +15,8 @@ from odk_viewer.models.parsed_instance import xform_instances, \
     datetime_from_str, _encode_for_mongo
 
 from utils.logger_tools import publish_form
+from utils.user_auth import check_and_set_form_by_id, \
+    check_and_set_form_by_id_string
 from api.models.organization_profile import OrganizationProfile
 from api.models.project import Project
 from api.models.project_xform import ProjectXForm
@@ -325,3 +328,18 @@ def get_all_stats(xform, field=None):
             'range': _range
         }
     return data
+
+
+def get_xform(formid, request):
+    try:
+        formid = int(formid)
+    except ValueError:
+        xform = check_and_set_form_by_id_string(formid, request)
+    else:
+        xform = check_and_set_form_by_id(int(formid), request)
+    if not xform:
+        raise exceptions.PermissionDenied(
+            _("You do not have permission to "
+                "view data from this form."))
+    else:
+        return xform
