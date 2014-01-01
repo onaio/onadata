@@ -425,7 +425,7 @@ try:
     site = Site.objects.get(pk=SITE_ID)
 except Exception, e:
     SITE_NAME = 'example.com'
-    print e
+    logging.getLogger('console_logger').warn(e)
 else:
     SITE_NAME = site.name
 # site templates overrides
