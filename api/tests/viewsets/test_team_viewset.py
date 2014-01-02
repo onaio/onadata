@@ -23,8 +23,9 @@ class TestTeamViewSet(TestAbstractViewSet):
             'name': u'Owners',
             'organization': 'http://testserver/api/v1/users/denoinc',
             'projects': []}
+
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [owner_team, self.team_data])
+        self.assertEqual(sorted(response.data), [owner_team, self.team_data])
 
     def test_teams_get(self):
         self._team_create()
