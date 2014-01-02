@@ -33,6 +33,7 @@ class DuplicateUUIDError(Exception):
 
 class XForm(models.Model):
     CLONED_SUFFIX = '_cloned'
+    MAX_ID_LENGTH = 100
 
     xls = models.FileField(upload_to=upload_to, null=True)
     json = models.TextField(default=u'')
@@ -51,10 +52,13 @@ class XForm(models.Model):
     sms_id_string = models.SlugField(
         editable=False,
         verbose_name=ugettext_lazy("SMS ID"),
+        max_length=MAX_ID_LENGTH,
         default=''
     )
     id_string = models.SlugField(
-        editable=False, verbose_name=ugettext_lazy("ID"), max_length=100
+        editable=False,
+        verbose_name=ugettext_lazy("ID"),
+        max_length=MAX_ID_LENGTH
     )
     title = models.CharField(editable=False, max_length=64)
     date_created = models.DateTimeField(auto_now_add=True)
