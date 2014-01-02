@@ -27,7 +27,7 @@ class TestTools(MainTestCase):
     def test_get_form_submissions_grouped_by_field_sets_name(self):
         count_key = 'count'
         field = '_xform_id_string'
-        name = 'my_name'
+        name = '_my_name'
 
         xform = self.user.xforms.all()[0]
         count = len(xform.surveys.all())
