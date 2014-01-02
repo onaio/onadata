@@ -3,7 +3,7 @@ import os
 from odk_logger.models import XForm
 
 
-class TestUnique(MainTestCase):
+class TestUserIdStringUniqueTogether(MainTestCase):
 
     def test_unique_together(self):
         """
