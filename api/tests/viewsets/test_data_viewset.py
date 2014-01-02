@@ -1,5 +1,4 @@
 from django.test import RequestFactory
-from mock import patch
 
 from main.tests.test_base import MainTestCase
 from api.viewsets.data_viewset import DataViewSet
@@ -18,10 +17,7 @@ class TestDataViewSet(MainTestCase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
-    @patch('odk_logger.models.instance.submission_time')
-    def test_data(self, mock_time):
-        self._set_mock_time(mock_time)
-
+    def test_data(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)

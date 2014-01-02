@@ -4,8 +4,10 @@ import re
 import socket
 import urllib2
 from tempfile import NamedTemporaryFile
+from time import strftime
 
 from cStringIO import StringIO
+from common_tags import MONGO_STRFTIME
 
 from django.contrib.auth.models import User
 from django_digest.test import Client as DigestClient
@@ -219,3 +221,7 @@ class MainTestCase(TransactionTestCase):
         else:
             contents = response.content
         return contents
+
+    def _set_mock_time(self, mock_time):
+        current_time = strftime(MONGO_STRFTIME)
+        mock_time.return_value = current_time
