@@ -423,7 +423,7 @@ MONGO_DB = MONGO_CONNECTION[MONGO_DATABASE['NAME']]
 try:
     from django.contrib.sites.models import Site
     site = Site.objects.get(pk=SITE_ID)
-except Exception, e:
+except Exception as e:
     SITE_NAME = 'example.com'
     logging.getLogger('console_logger').warn(e)
 else:
