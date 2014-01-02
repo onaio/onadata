@@ -1,18 +1,18 @@
-from test_process import TestSite
+from test_process import TestProcess
 from test_base import MainTestCase
 from odk_logger.models import XForm, Instance
 import os
 
 
-class TestCSVExport(TestSite):
+class TestCSVExport(TestProcess):
     """
     We had a problem when two users published the same form that the
     CSV export would break.
     """
 
     def test_process(self):
-        TestSite.test_process(self)
-        TestSite.test_process(self, "doug", "doug")
+        TestProcess.test_process(self)
+        TestProcess.test_process(self, "doug", "doug")
 
 
 class TestInputs(MainTestCase):
@@ -65,4 +65,3 @@ class TestCascading(MainTestCase):
         self.assertEqual(XForm.objects.count(), 1)
         xform_id_string = XForm.objects.all()[0].id_string
         self.assertEqual(xform_id_string, id_string)
-
