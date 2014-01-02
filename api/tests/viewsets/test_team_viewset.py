@@ -5,7 +5,7 @@ from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from api.viewsets.team_viewset import TeamViewSet
 
 
-class TestTeamsViewSet(TestAbstractViewSet):
+class TestTeamViewSet(TestAbstractViewSet):
     def setUp(self):
         super(self.__class__, self).setUp()
         self.view = TeamViewSet.as_view({
