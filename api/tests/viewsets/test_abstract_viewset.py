@@ -1,5 +1,5 @@
-import os
 import json
+import os
 
 from django.conf import settings
 from django.test import TestCase
