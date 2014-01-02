@@ -9,6 +9,10 @@ DATABASES = {
         'USER': 'postgres',
         'PASSWORD': '',
         'HOST': '127.0.0.1',
+        'OPTIONS': {
+            # note: this option obsolete starting with django 1.6
+            'autocommit': True,
+        }
     }
 }
 
