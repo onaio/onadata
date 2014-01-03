@@ -30,8 +30,11 @@ class TestKMLExport(MainTestCase):
             kml_export,
             kwargs={
                 'username': self.user.username, 'id_string': 'gps'})
-        instances = Instance.objects.filter(xform__id_string='gps')
-        self.assertTrue(instances.count() >= 2)
+        instances = Instance.objects.filter(
+            xform__id_string='gps').order_by('id')
+
+        self.assertEqual(instances.count(), 2)
+
         first = '%s' % instances[0].pk
         second = '%s' % instances[1].pk
         response = self.client.get(url)
@@ -40,4 +43,5 @@ class TestKMLExport(MainTestCase):
             expected_content = f.read()
             expected_content = expected_content.replace('{{first}}', first)
             expected_content = expected_content.replace('{{second}}', second)
+
         self.assertMultiLineEqual(response.content, expected_content.strip())
