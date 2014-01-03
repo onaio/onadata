@@ -42,10 +42,10 @@ class TestProcess(MainTestCase):
     }
 
     def setUp(self):
-        super(MainTestCase, self).setUp()
+        super(TestProcess, self).setUp()
 
     def tearDown(self):
-        super(self.__class__, self).tearDown()
+        super(TestProcess, self).tearDown()
 
     def test_process(self, username=None, password=None):
         self._publish_xls_file()
