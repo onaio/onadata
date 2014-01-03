@@ -855,11 +855,10 @@ def generate_kml_export(
 
 def kml_export_data(id_string, user):
     from odk_viewer.models import DataDictionary, ParsedInstance
-    dd = DataDictionary.objects.get(id_string=id_string,
-                                    user=user)
-    pis = ParsedInstance.objects.filter(instance__user=user,
-                                        instance__xform__id_string=id_string,
-                                        lat__isnull=False, lng__isnull=False)
+    dd = DataDictionary.objects.get(id_string=id_string, user=user)
+    pis = ParsedInstance.objects.filter(
+        instance__user=user, instance__xform__id_string=id_string,
+        lat__isnull=False, lng__isnull=False).order_by('id')
     data_for_template = []
 
     labels = {}
