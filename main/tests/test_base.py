@@ -18,7 +18,7 @@ from odk_logger.models import XForm, Instance, Attachment
 from django.conf import settings
 
 
-class MainTestCase(TransactionTestCase):
+class TestBase(TransactionTestCase):
 
     surveys = ['transport_2011-07-25_19-05-49',
                'transport_2011-07-25_19-05-36',
@@ -71,7 +71,7 @@ class MainTestCase(TransactionTestCase):
     def _publish_xlsx_file(self):
         path = os.path.join(self.this_directory, 'fixtures', 'exp.xlsx')
         pre_count = XForm.objects.count()
-        response = MainTestCase._publish_xls_file(self, path)
+        response = TestBase._publish_xls_file(self, path)
         # make sure publishing the survey worked
         self.assertEqual(response.status_code, 200)
         self.assertEqual(XForm.objects.count(), pre_count + 1)
@@ -92,7 +92,7 @@ class MainTestCase(TransactionTestCase):
             self.this_directory, "fixtures",
             "transportation", "transportation.xls")
         count = XForm.objects.count()
-        MainTestCase._publish_xls_file(self, xls_path)
+        TestBase._publish_xls_file(self, xls_path)
         self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.order_by('pk').reverse()[0]
 

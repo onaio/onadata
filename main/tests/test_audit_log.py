@@ -1,10 +1,10 @@
 from django.test.client import RequestFactory
-from test_base import MainTestCase
+from test_base import TestBase
 from utils.log import audit_log, Actions
 from main.models import AuditLog
 
 
-class TestAuditLog(MainTestCase):
+class TestAuditLog(TestBase):
     def test_audit_log_call(self):
         account_user = self._create_user("alice", "alice")
         self._create_user_and_login("bob", "bob")

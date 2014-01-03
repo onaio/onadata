@@ -3,7 +3,7 @@ import os
 from django.test import TestCase
 from mock import patch
 
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from odk_logger.models import XForm
 
 from stats.models import StatsCount
@@ -28,7 +28,7 @@ class StatsTest(TestCase):
         self.assertTrue(result.successful())
 
 
-class TestUtils(MainTestCase):
+class TestUtils(TestBase):
     def setUp(self):
         self._create_user_and_login()
 

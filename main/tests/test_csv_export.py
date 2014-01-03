@@ -3,10 +3,10 @@ from django.core.files.storage import get_storage_class
 from django.utils.dateparse import parse_datetime
 from odk_viewer.models import DataDictionary, Export
 from utils.export_tools import generate_export
-from test_base import MainTestCase
+from test_base import TestBase
 
 
-class TestExport(MainTestCase):
+class TestExport(TestBase):
 
     def setUp(self):
         self._create_user_and_login()

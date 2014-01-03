@@ -9,14 +9,14 @@ import random
 # from django.core.urlresolvers import reverse
 
 from odk_logger.models import XForm
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from sms_support.parser import process_incoming_smses
 
 
-class TestBase(MainTestCase):
+class TestBase(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
 
     def setup_form(self, allow_sms=True):
         self.id_string = 'sms_test_form'

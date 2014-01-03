@@ -1,13 +1,13 @@
-from test_base import MainTestCase
+from test_base import TestBase
 from main.models import UserProfile
 from django.core.urlresolvers import reverse
 from main.views import profile_settings
 
 
-class TestUserSettings(MainTestCase):
+class TestUserSettings(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self.settings_url = reverse(
             profile_settings, kwargs={'username': self.user.username})
 

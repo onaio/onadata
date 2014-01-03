@@ -1,9 +1,9 @@
 from django.test.client import RequestFactory
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from utils.viewer_tools import export_def_from_filename, get_client_ip
 
 
-class TestViewerTools(MainTestCase):
+class TestViewerTools(TestBase):
     def test_export_def_from_filename(self):
         filename = "path/filename.xlsx"
         ext, mime_type = export_def_from_filename(filename)

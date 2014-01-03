@@ -1,8 +1,8 @@
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from api import tools
 
 
-class TestAbstractModels(MainTestCase):
+class TestAbstractModels(TestBase):
 
     def _create_organization(self, org_name, user):
         profile = tools.create_organization(org_name, user)

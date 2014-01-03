@@ -2,17 +2,17 @@ from datetime import datetime
 from django.core.urlresolvers import reverse
 from odk_logger.models.instance import Instance
 
-from test_base import MainTestCase
+from test_base import TestBase
 from main.views import delete_data
 from odk_viewer.models.parsed_instance import ParsedInstance
 import common_tags
 from django.conf import settings
 
 
-class TestFormAPIDelete(MainTestCase):
+class TestFormAPIDelete(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self._publish_transportation_form_and_submit_instance()
         self.delete_url = reverse(delete_data, kwargs={

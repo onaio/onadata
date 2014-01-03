@@ -5,13 +5,13 @@ from main.models import MetaData
 from main.views import edit
 from odk_logger.views import formList
 from odk_logger.models import XForm
-from test_base import MainTestCase
+from test_base import TestBase
 
 
-class TestCrowdforms(MainTestCase):
+class TestCrowdforms(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self._publish_transportation_form()
 

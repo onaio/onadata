@@ -1,13 +1,13 @@
 from django.core.urlresolvers import reverse
 from django.test.client import Client
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from main import views
 
 
-class TestBasicHttpAuthentication(MainTestCase):
+class TestBasicHttpAuthentication(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login(username='bob', password='bob')
         self._publish_transportation_form()
         self.api_url = reverse(views.api, kwargs={
