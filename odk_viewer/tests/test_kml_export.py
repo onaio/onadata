@@ -2,23 +2,20 @@ import os
 from django.core.urlresolvers import reverse
 from odk_logger.models import Instance
 from odk_viewer.views import kml_export
-from test_base import MainTestCase
+from main.tests.test_base import MainTestCase
 
 
 class TestKMLExport(MainTestCase):
     def _publish_survey(self):
         self.this_directory = os.path.dirname(__file__)
-        xls_path = os.path.join(
-            self.this_directory, "fixtures", "gps", "gps.xls")
+        xls_path = self._fixture_path("gps", "gps.xls")
         MainTestCase._publish_xls_file(self, xls_path)
 
     def _make_submissions(self):
         surveys = ['gps_1980-01-23_20-52-08',
                    'gps_1980-01-23_21-21-33', ]
         for survey in surveys:
-            path = os.path.join(
-                self.this_directory,
-                'fixtures', 'gps', 'instances', survey + '.xml')
+            path = self._fixture_path('gps', 'instances', survey + '.xml')
             self._make_submission(path)
 
     def test_kml_export(self):
