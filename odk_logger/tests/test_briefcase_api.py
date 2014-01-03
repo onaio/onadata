@@ -57,8 +57,10 @@ class TestBriefcaseAPI(MainTestCase):
         submission_list_path = os.path.join(
             self.this_directory, 'fixtures', 'transportation',
             'view', 'submissionList.xml')
-        instances = Instance.objects.filter(xform=self.xform)
-        self.assertTrue(instances.count() > 0)
+        instances = Instance.objects.filter(xform=self.xform).order_by('id')
+
+        self.assertEqual(instances.count(), 4)
+
         last_index = instances[instances.count() - 1].pk
         with codecs.open(submission_list_path, 'rb', encoding='utf-8') as f:
             expected_submission_list = f.read()
