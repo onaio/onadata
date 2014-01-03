@@ -30,7 +30,6 @@ from odk_viewer.tasks import create_async_export
 from utils.user_auth import has_permission, get_xform_and_perms,\
     helper_auth_helper
 from utils.google import google_export_xls, redirect_uri
-# TODO: using from main.views import api breaks the application, why?
 from odk_viewer.models import Export
 from utils.export_tools import generate_export, should_create_new_export
 from utils.export_tools import kml_export_data
