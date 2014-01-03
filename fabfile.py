@@ -30,7 +30,8 @@ DEPLOYMENTS = {
         'virtualenv': '/home/ubuntu/.virtualenvs/kobocat',
         'celeryd': '/etc/init.d/celeryd',
         'django_config_module': 'formhub.settings',
-        'pid': '/run/kobocat.pid'
+        'pid': '/run/kobocat.pid',
+        'template': 'https://github.com/kobotoolbox/kobocat-template.git'
     },
 }
 
@@ -68,6 +69,12 @@ def deploy(deployment_name, branch='master'):
         run("git checkout origin/%s" % branch)
         run("git submodule init")
         run("git submodule update")
+
+        if env.get('template'):
+            run("git remote add template %s || true" % env.template)
+            run("git fetch template")
+            run("git read-tree --prefix=kobocat -i template/master")
+
         run('find . -name "*.pyc" -exec rm -rf {} \;')
 
     # numpy pip install from requirements file fails
