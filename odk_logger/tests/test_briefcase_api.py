@@ -15,10 +15,16 @@ from odk_logger.views import submission
 from odk_logger.models import Instance
 from odk_logger.models import XForm
 
+NUM_INSTANCES = 4
 storage = get_storage_class()()
 
 
+def ordered_instances(xform):
+    return Instance.objects.filter(xform=xform).order_by('id')
+
+
 class TestBriefcaseAPI(MainTestCase):
+
     def _authenticated_client(
             self, url, username='bob', password='bob', extra={}):
         client = DigestClient()
@@ -47,7 +53,7 @@ class TestBriefcaseAPI(MainTestCase):
         self.client = self._authenticated_client(self._submission_list_url)
         self.anon = self.client
 
-    def test_view_submissionList(self):
+    def test_view_submission_list(self):
         self._publish_xml_form()
         self._make_submissions()
         response = self.client.get(
@@ -57,9 +63,9 @@ class TestBriefcaseAPI(MainTestCase):
         submission_list_path = os.path.join(
             self.this_directory, 'fixtures', 'transportation',
             'view', 'submissionList.xml')
-        instances = Instance.objects.filter(xform=self.xform).order_by('id')
+        instances = ordered_instances(self.xform)
 
-        self.assertEqual(instances.count(), 4)
+        self.assertEqual(instances.count(), NUM_INSTANCES)
 
         last_index = instances[instances.count() - 1].pk
         with codecs.open(submission_list_path, 'rb', encoding='utf-8') as f:
@@ -69,11 +75,11 @@ class TestBriefcaseAPI(MainTestCase):
                     '{{resumptionCursor}}', '%s' % last_index)
             self.assertEqual(response.content, expected_submission_list)
 
-    def test_view_submissionlist_w_deleted_submission(self):
+    def test_view_submission_list_w_deleted_submission(self):
         self._publish_xml_form()
         self._make_submissions()
         uuid = 'f3d8dc65-91a6-4d0f-9e97-802128083390'
-        Instance.objects.filter(uuid=uuid).delete()
+        Instance.objects.filter(uuid=uuid).order_by('id').delete()
         response = self.client.get(
             self._submission_list_url,
             data={'formId': self.xform.id_string})
@@ -81,8 +87,10 @@ class TestBriefcaseAPI(MainTestCase):
         submission_list_path = os.path.join(
             self.this_directory, 'fixtures', 'transportation',
             'view', 'submissionList-4.xml')
-        instances = Instance.objects.filter(xform=self.xform)
-        self.assertTrue(instances.count() > 0)
+        instances = ordered_instances(self.xform)
+
+        self.assertEqual(instances.count(), NUM_INSTANCES - 1)
+
         last_index = instances[instances.count() - 1].pk
         with codecs.open(submission_list_path, 'rb', encoding='utf-8') as f:
             expected_submission_list = f.read()
@@ -90,6 +98,7 @@ class TestBriefcaseAPI(MainTestCase):
                 expected_submission_list.replace(
                     '{{resumptionCursor}}', '%s' % last_index)
             self.assertEqual(response.content, expected_submission_list)
+
         formId = u'%(formId)s[@version=null and @uiVersion=null]/' \
                  u'%(formId)s[@key=uuid:%(instanceId)s]' % {
                      'formId': self.xform.id_string,
@@ -98,7 +107,7 @@ class TestBriefcaseAPI(MainTestCase):
         response = self.client.get(self._download_submission_url, data=params)
         self.assertTrue(response.status_code, 404)
 
-    def test_view_submissionList_OtherUser(self):
+    def test_view_submission_list_OtherUser(self):
         self._publish_xml_form()
         self._make_submissions()
         # deno cannot view bob's submissionList
@@ -110,9 +119,9 @@ class TestBriefcaseAPI(MainTestCase):
             data={'formId': self.xform.id_string})
         self.assertEqual(response.status_code, 403)
 
-    def test_view_submissionList_numEntries(self):
+    def test_view_submission_list_num_entries(self):
         def get_last_index(xform, last_index=None):
-            instances = Instance.objects.filter(xform=xform)
+            instances = ordered_instances(xform)
             if not last_index and instances.count():
                 return instances[instances.count() - 1].pk
             elif last_index:
@@ -122,12 +131,15 @@ class TestBriefcaseAPI(MainTestCase):
                 else:
                     return get_last_index(xform)
             return 0
+
         self._publish_xml_form()
         self._make_submissions()
         params = {'formId': self.xform.id_string}
         params['numEntries'] = 2
-        instances = Instance.objects.filter(xform=self.xform)
-        self.assertTrue(instances.count() > 1)
+        instances = ordered_instances(self.xform)
+
+        self.assertEqual(instances.count(), NUM_INSTANCES)
+
         last_index = instances[:2][1].pk
         last_expected_submission_list = ""
         for index in range(1, 5):
