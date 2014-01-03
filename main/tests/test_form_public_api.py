@@ -2,14 +2,14 @@ import json
 
 from django.core.urlresolvers import reverse
 
-from test_base import MainTestCase
+from test_base import TestBase
 from main.views import public_api
 
 
-class TestFormPublicAPI(MainTestCase):
+class TestFormPublicAPI(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self._publish_transportation_form_and_submit_instance()
         self.public_api_url = reverse(public_api, kwargs={

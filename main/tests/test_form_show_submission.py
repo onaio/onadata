@@ -1,14 +1,14 @@
-from test_base import MainTestCase
+from test_base import TestBase
 from main.views import home, show_submission
 from odk_viewer.views import survey_responses
 from django.core.urlresolvers import reverse
 from guardian.shortcuts import assign_perm
 
 
-class TestFormShowSubmission(MainTestCase):
+class TestFormShowSubmission(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self._publish_transportation_form_and_submit_instance()
         self.submission = self.xform.surveys.reverse()[0]

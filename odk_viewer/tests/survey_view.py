@@ -4,7 +4,7 @@ import re
 from django.core.urlresolvers import reverse
 from pyxform import create_survey_from_xls
 
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from odk_logger.models import Instance
 from odk_viewer.models import ParsedInstance, DataDictionary
 from odk_viewer.views import survey_responses
@@ -13,10 +13,10 @@ from odk_viewer.xls_writer import XlsWriter
 from utils.export_tools import DictOrganizer
 
 
-class TestSurveyView(MainTestCase):
+class TestSurveyView(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self.survey = create_survey_from_xls(
             "odk_viewer/tests/name_survey.xls")
         json_str = json.dumps(self.survey.to_json_dict())

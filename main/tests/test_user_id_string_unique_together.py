@@ -1,9 +1,9 @@
-from test_base import MainTestCase
+from test_base import TestBase
 import os
 from odk_logger.models import XForm
 
 
-class TestUserIdStringUniqueTogether(MainTestCase):
+class TestUserIdStringUniqueTogether(TestBase):
 
     def test_unique_together(self):
         """

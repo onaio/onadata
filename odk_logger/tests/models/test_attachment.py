@@ -10,10 +10,10 @@ from odk_logger.models import Attachment, Instance
 
 from utils.image_tools import image_url
 
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 
 
-class TestAttachment(MainTestCase):
+class TestAttachment(TestBase):
 
     def setUp(self):
         super(self.__class__, self).setUp()

@@ -3,7 +3,7 @@ import requests
 
 from django.core.urlresolvers import reverse
 
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from odk_logger.models.instance import Instance
 from odk_logger.views import edit_data
 from odk_logger.xform_instance_parser import get_uuid_from_xml
@@ -20,7 +20,7 @@ def enketo_edit_mock(url, request):
     return response
 
 
-class TestWebforms(MainTestCase):
+class TestWebforms(TestBase):
     def setUp(self):
         super(TestWebforms, self).setUp()
         self._publish_transportation_form_and_submit_instance()

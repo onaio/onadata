@@ -9,7 +9,7 @@ import shutil
 from openpyxl import load_workbook
 from time import sleep
 from pyxform.builder import create_survey_from_xls
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from django.utils.dateparse import parse_datetime
 from django.core.urlresolvers import reverse
 from django.core.files.temp import NamedTemporaryFile
@@ -28,7 +28,7 @@ from odk_viewer.models.parsed_instance import _encode_for_mongo
 from savReaderWriter import SavReader
 
 
-class TestExportList(MainTestCase):
+class TestExportList(TestBase):
     def setUp(self):
         super(TestExportList, self).setUp()
         self._publish_transportation_form()
@@ -97,7 +97,7 @@ class TestExportList(MainTestCase):
         self.assertEqual(response.status_code, 200)
 
 
-class TestDataExportURL(MainTestCase):
+class TestDataExportURL(TestBase):
     def setUp(self):
         super(TestDataExportURL, self).setUp()
         self._publish_transportation_form()
@@ -175,7 +175,7 @@ class TestDataExportURL(MainTestCase):
         self.assertEqual(ext, '.zip')
 
 
-class TestExports(MainTestCase):
+class TestExports(TestBase):
     def setUp(self):
         super(TestExports, self).setUp()
         self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
@@ -1128,7 +1128,7 @@ class TestExports(MainTestCase):
         self.assertEqual(ext, '.zip')
 
 
-class TestExportBuilder(MainTestCase):
+class TestExportBuilder(TestBase):
     data = [
         {
             'name': 'Abe',

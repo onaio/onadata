@@ -1,5 +1,5 @@
 from test_process import TestProcess
-from test_base import MainTestCase
+from test_base import TestBase
 from odk_logger.models import XForm, Instance
 import os
 
@@ -15,7 +15,7 @@ class TestCSVExport(TestProcess):
         TestProcess.test_process(self, "doug", "doug")
 
 
-class TestInputs(MainTestCase):
+class TestInputs(TestBase):
     """
     This is where I'll input all files that proved problematic for
     users when uploading.
@@ -41,7 +41,7 @@ class TestInputs(MainTestCase):
             self._publish_xls_file(os.path.join('fixtures', 'bug_fixes', name))
 
 
-class TestSubmissionBugs(MainTestCase):
+class TestSubmissionBugs(TestBase):
 
     def test_submission_with_mixed_case_username(self):
         self._publish_transportation_form()
@@ -54,7 +54,7 @@ class TestSubmissionBugs(MainTestCase):
         self.assertEqual(Instance.objects.count(), count + 1)
 
 
-class TestCascading(MainTestCase):
+class TestCascading(TestBase):
 
     def test_correct_id_string_picked(self):
         XForm.objects.all().delete()

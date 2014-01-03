@@ -1,8 +1,8 @@
 from odk_logger.models import Instance
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 
 
-class TestInstance(MainTestCase):
+class TestInstance(TestBase):
 
     def setUp(self):
         super(self.__class__, self).setUp()

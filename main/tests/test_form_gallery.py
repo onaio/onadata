@@ -1,15 +1,15 @@
 import os
 
-from test_base import MainTestCase
+from test_base import TestBase
 from main.views import clone_xlsform
 from odk_logger.models import XForm
 from django.core.urlresolvers import reverse
 
 
-class TestFormGallery(MainTestCase):
+class TestFormGallery(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self._publish_transportation_form()
         self.url = reverse(clone_xlsform,
@@ -40,7 +40,7 @@ class TestFormGallery(MainTestCase):
                                 "transportation",
                                 "transportation.id_starts_with_num.xls")
         count = XForm.objects.count()
-        MainTestCase._publish_xls_file(self, xls_path)
+        TestBase._publish_xls_file(self, xls_path)
 
         self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.all().reverse()[0]

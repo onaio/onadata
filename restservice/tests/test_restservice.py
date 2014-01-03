@@ -7,7 +7,7 @@ from pybamboo.connection import Connection
 from pybamboo.dataset import Dataset
 
 from main.views import show, link_to_bamboo
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from odk_logger.models.xform import XForm
 from restservice.views import add_service, delete_service
 from restservice.RestServiceInterface import RestServiceInterface
@@ -15,7 +15,7 @@ from restservice.models import RestService
 from nose import SkipTest
 
 
-class RestServiceTest(MainTestCase):
+class RestServiceTest(TestBase):
     def setUp(self):
         self.service_url = u'http://0.0.0.0:8001/%(id_string)s/post/%(uuid)s'
         self.service_name = u'f2dhis2'

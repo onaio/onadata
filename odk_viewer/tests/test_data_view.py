@@ -1,13 +1,13 @@
 from django.core.urlresolvers import reverse
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from odk_viewer.views import data_view
 from guardian.shortcuts import assign_perm, remove_perm
 
 
-class TestDataView(MainTestCase):
+class TestDataView(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self._publish_transportation_form_and_submit_instance()
         self.url = reverse(data_view, kwargs={

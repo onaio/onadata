@@ -1,14 +1,14 @@
-from test_base import MainTestCase
+from test_base import TestBase
 from main.views import edit
 from django.core.urlresolvers import reverse
 from odk_logger.models import XForm
 from main.models import MetaData
 from odk_logger.views import delete_xform
 
-class TestFormEdit(MainTestCase):
+class TestFormEdit(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self._publish_transportation_form_and_submit_instance()
         self.edit_url = reverse(edit, kwargs={

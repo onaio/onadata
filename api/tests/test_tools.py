@@ -1,10 +1,10 @@
 from nose.tools import raises
 
 from api.tools import get_form_submissions_grouped_by_field
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 
 
-class TestTools(MainTestCase):
+class TestTools(TestBase):
 
     def setUp(self):
         super(self.__class__, self).setUp()

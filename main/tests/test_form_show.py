@@ -10,13 +10,13 @@ from odk_logger.views import download_xlsform, download_jsonform,\
 from odk_viewer.models import ParsedInstance
 from odk_viewer.views import export_list, map_view
 from utils.user_auth import http_auth_string
-from test_base import MainTestCase
+from test_base import TestBase
 
 
-class TestFormShow(MainTestCase):
+class TestFormShow(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self._publish_transportation_form()
         self.url = reverse(show, kwargs={

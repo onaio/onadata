@@ -15,7 +15,7 @@ from odk_logger.models import XForm
 from odk_logger.views import submission
 from odk_viewer.models import DataDictionary
 from main.models import MetaData
-from test_base import MainTestCase
+from test_base import TestBase
 from common_tags import UUID, SUBMISSION_TIME
 from odk_logger.xform_instance_parser import clean_and_parse_xml
 
@@ -25,7 +25,7 @@ uuid_regex = re.compile(
 xform_instances = settings.MONGO_DB.instances
 
 
-class TestProcess(MainTestCase):
+class TestProcess(TestBase):
     loop_str = 'loop_over_transport_types_frequency'
     frequency_str = 'frequency_to_referral_facility'
     ambulance_key = '%s/ambulance/%s' % (loop_str, frequency_str)
@@ -154,7 +154,7 @@ class TestProcess(MainTestCase):
         Returns False if not strict and publish fails
         """
         pre_count = XForm.objects.count()
-        self.response = MainTestCase._publish_xls_file(self, xls_path)
+        self.response = TestBase._publish_xls_file(self, xls_path)
         # make sure publishing the survey worked
         self.assertEqual(self.response.status_code, 200)
         if XForm.objects.count() != pre_count + 1:
@@ -463,7 +463,7 @@ class TestProcess(MainTestCase):
         path = os.path.join(
             self.this_directory, 'fixtures',
             'form_with_unicode_in_relevant_column.xlsx')
-        response = MainTestCase._publish_xls_file(self, path)
+        response = TestBase._publish_xls_file(self, path)
         # make sure we get a 200 response
         self.assertEqual(response.status_code, 200)
 
@@ -493,7 +493,7 @@ class TestProcess(MainTestCase):
             self.this_directory, "fixtures", "cascading_selects",
             "new_cascading_select.xls")
         file_name, file_ext = os.path.splitext(os.path.split(xls_path)[1])
-        self.response = MainTestCase._publish_xls_file(self, xls_path)
+        self.response = TestBase._publish_xls_file(self, xls_path)
         post_count = XForm.objects.count()
         self.assertEqual(post_count, pre_count + 1)
         xform = XForm.objects.latest('date_created')

@@ -1,4 +1,4 @@
-from test_base import MainTestCase
+from test_base import TestBase
 from odk_logger.views import formList
 from django.core.urlresolvers import reverse
 from main.models import UserProfile
@@ -6,10 +6,10 @@ from main.views import login_redirect
 import base64
 
 
-class TestFormAuth(MainTestCase):
+class TestFormAuth(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login('bob', 'bob')
         self._publish_transportation_form()
         self.url = reverse(formList, kwargs={'username': self.user.username})

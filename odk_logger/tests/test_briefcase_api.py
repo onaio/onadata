@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
 from django_digest.test import Client as DigestClient
 
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 
 from odk_logger.views import view_submission_list
 from odk_logger.views import view_download_submission
@@ -23,7 +23,7 @@ def ordered_instances(xform):
     return Instance.objects.filter(xform=xform).order_by('id')
 
 
-class TestBriefcaseAPI(MainTestCase):
+class TestBriefcaseAPI(TestBase):
 
     def _authenticated_client(
             self, url, username='bob', password='bob', extra={}):
@@ -36,7 +36,7 @@ class TestBriefcaseAPI(MainTestCase):
         return client
 
     def setUp(self):
-        super(MainTestCase, self).setUp()
+        super(TestBase, self).setUp()
         self._create_user_and_login()
         self._logout()
         self.form_def_path = os.path.join(

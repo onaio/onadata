@@ -5,13 +5,13 @@ from datetime import datetime
 from django.conf import settings
 from odk_logger.models import Instance
 from odk_logger.import_tools import django_file
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from odk_logger.import_tools import create_instance
 from utils.backup_tools import _date_created_from_filename,\
     create_zip_backup, restore_backup_from_zip
 
 
-class TestBackupTools(MainTestCase):
+class TestBackupTools(TestBase):
     def setUp(self):
         super(TestBackupTools, self).setUp()
         self._publish_xls_file_and_set_xform(

@@ -1,6 +1,6 @@
 import os
 
-from test_base import MainTestCase
+from test_base import TestBase
 from django.core.urlresolvers import reverse
 from odk_logger.models import XForm
 from odk_viewer.views import map_view, survey_responses
@@ -9,10 +9,10 @@ from main.views import set_perm, show, edit, api, profile
 from main.models import MetaData
 
 
-class TestFormPermissions(MainTestCase):
+class TestFormPermissions(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self._publish_transportation_form()
         s = 'transport_2011-07-25_19-05-49'
