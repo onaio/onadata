@@ -24,6 +24,7 @@ class MainTestCase(TransactionTestCase):
                'transport_2011-07-25_19-05-36',
                'transport_2011-07-25_19-06-01',
                'transport_2011-07-25_19-06-14']
+    this_directory = os.path.dirname(__file__)
 
     def setUp(self):
         self.maxDiff = None
@@ -33,6 +34,9 @@ class MainTestCase(TransactionTestCase):
     def tearDown(self):
         # clear mongo db after each test
         settings.MONGO_DB.instances.drop()
+
+    def _fixture_path(self, *args):
+        return os.path.join(os.path.dirname(__file__), 'fixtures', *args)
 
     def _create_user(self, username, password):
         user, created = User.objects.get_or_create(username=username)
@@ -56,8 +60,6 @@ class MainTestCase(TransactionTestCase):
         self.user = self._create_user(username, password)
         self.client = self._login(username, password)
         self.anon = Client()
-
-    this_directory = os.path.dirname(__file__)
 
     def _publish_xls_file(self, path):
         if not path.startswith('/%s/' % self.user.username):
