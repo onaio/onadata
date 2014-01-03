@@ -287,14 +287,18 @@ class TestProcess(MainTestCase):
         self.assertEquals(data, [])
 
     def _check_group_xpaths_do_not_appear_in_dicts_for_export(self):
-        # todo: not sure which order the instances are getting put
-        # into the database, the hard coded index below should be
-        # fixed.
-        instance = self.xform.surveys.all().order_by('id')[0]
+        uuid = u'uuid:f3d8dc65-91a6-4d0f-9e97-802128083390'
+        instances = self.xform.surveys.all()
+        instance = None
+
+        for i in instances:
+            if i.get_dict()['meta/instanceID'] == uuid:
+                instance = i
+
         expected_dict = {
             u"transportation": {
                 u"meta": {
-                    u"instanceID": u"uuid:f3d8dc65-91a6-4d0f-9e97-802128083390"
+                    u"instanceID": uuid
                 },
                 u"transport": {
                     u"loop_over_transport_types_frequency": {u"bicycle": {
@@ -316,7 +320,7 @@ class TestProcess(MainTestCase):
             self.transport_ambulance_key: u"daily",
             self.transport_bicycle_key: u"weekly",
             u"_xform_id_string": u"transportation_2011_07_25",
-            u"meta/instanceID": u"uuid:f3d8dc65-91a6-4d0f-9e97-802128083390"
+            u"meta/instanceID": uuid
         }
         self.assertEqual(instance.get_dict(), expected_dict)
 
