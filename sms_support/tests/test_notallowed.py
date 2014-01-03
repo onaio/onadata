@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 # vim: ai ts=4 sts=4 et sw=4 nu
 
-from test_base import TestBase
+from test_base_sms import TestBaseSMS
 from sms_support.tools import SMS_SUBMISSION_REFUSED
 
 
-class TestNotAllowed(TestBase):
+class TestNotAllowed(TestBaseSMS):
 
     def setUp(self):
-        TestBase.setUp(self)
+        TestBaseSMS.setUp(self)
         self.setup_form(allow_sms=False)
 
     def test_refused_not_enabled(self):

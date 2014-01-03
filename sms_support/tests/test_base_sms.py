@@ -13,7 +13,7 @@ from main.tests.test_base import TestBase
 from sms_support.parser import process_incoming_smses
 
 
-class TestBase(TestBase):
+class TestBaseSMS(TestBase):
 
     def setUp(self):
         TestBase.setUp(self)
