@@ -17,7 +17,7 @@ install:
   - python manage.py migrate --noinput --settings=formhub.preset.travis_test
 script:
   - python manage.py test --noinput --settings=formhub.preset.travis_test
-  - ./js_tests/EnvJasmine/bin/run_all_tests.sh --testDir=../ --configFile=../env_jasmine.conf.js
+  - ./script/run_js_tests
 notifications:
   email:
     - tech@ona.io
