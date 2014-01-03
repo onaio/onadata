@@ -1,6 +1,7 @@
 import os
 
 from django.test import TestCase
+from mock import patch
 
 from main.tests.test_base import MainTestCase
 from odk_logger.models import XForm
@@ -39,7 +40,9 @@ class TestUtils(MainTestCase):
         self.xform = XForm.objects.latest('date_created')
         self.assertEqual(self.xform.id_string, "transportation_2011_07_25")
 
-    def test_form_submission_count_by_day(self):
+    @patch('odk_logger.models.instance.submission_time')
+    def test_form_submission_count_by_day(self, mock_time):
+        self._set_mock_time(mock_time)
         self._publish_xls_file()
         self._make_submissions()
         data = get_form_submissions_per_day(self.xform)
