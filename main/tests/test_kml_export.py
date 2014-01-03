@@ -28,20 +28,19 @@ class TestKMLExport(MainTestCase):
             self.this_directory, 'fixtures', 'kml_export')
         url = reverse(
             kml_export,
-            kwargs={
-                'username': self.user.username, 'id_string': 'gps'})
+            kwargs={'username': self.user.username, 'id_string': 'gps'})
+        response = self.client.get(url)
         instances = Instance.objects.filter(
             xform__id_string='gps').order_by('id')
 
         self.assertEqual(instances.count(), 2)
 
-        first = '%s' % instances[0].pk
-        second = '%s' % instances[1].pk
-        response = self.client.get(url)
-        expected_content = ''
+        first, second = [str(i.pk) for i in instances]
+
         with open(os.path.join(self.fixtures, 'export.kml')) as f:
             expected_content = f.read()
             expected_content = expected_content.replace('{{first}}', first)
             expected_content = expected_content.replace('{{second}}', second)
 
-        self.assertMultiLineEqual(response.content, expected_content.strip())
+            self.assertMultiLineEqual(
+                response.content, expected_content.strip())
