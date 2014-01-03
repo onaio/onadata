@@ -42,7 +42,7 @@ class TestProcess(MainTestCase):
     }
 
     def setUp(self):
-        super(self.__class__, self).setUp()
+        super(MainTestCase, self).setUp()
 
     def tearDown(self):
         super(self.__class__, self).tearDown()
