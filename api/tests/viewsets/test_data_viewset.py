@@ -4,6 +4,7 @@ from main.tests.test_base import MainTestCase
 from api.viewsets.data_viewset import DataViewSet
 from api.viewsets.note_viewset import NoteViewSet
 from api.viewsets.xform_viewset import XFormViewSet
+from odk_logger.models import XForm
 
 
 class TestDataViewSet(MainTestCase):
@@ -74,6 +75,8 @@ class TestDataViewSet(MainTestCase):
         """Test that when a tag is applied on an xform,
         it propagates to the instance submissions
         """
+        xform = XForm.objects.all()[0]
+        pk = _id = xform.id
         view = XFormViewSet.as_view({
             'get': 'labels',
             'post': 'labels',
@@ -81,11 +84,11 @@ class TestDataViewSet(MainTestCase):
         })
         # no tags
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=1, formid=1)
+        response = view(request, owner='bob', pk=pk, formid=_id)
         self.assertEqual(response.data, [])
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
-        response = view(request, owner='bob', pk=1, formid=1)
+        response = view(request, owner='bob', pk=pk, formid=_id)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'hello'])
         for i in self.xform.surveys.all():
@@ -93,7 +96,7 @@ class TestDataViewSet(MainTestCase):
         # remove tag "hello"
         request = self.factory.delete('/', data={"tags": "hello"},
                                       **self.extra)
-        response = view(request, owner='bob', pk=1, formid=1, label='hello')
+        response = view(request, owner='bob', pk=pk, formid=_id, label='hello')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
         for i in self.xform.surveys.all():
