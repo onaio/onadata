@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from optparse import make_option
 from django.utils.translation import ugettext_lazy, ugettext as _
-from common_tags import DELETEDAT, USERFORM_ID, XFORM_ID_STRING, ID
+from utils.common_tags import DELETEDAT, USERFORM_ID, XFORM_ID_STRING, ID
 from odk_logger.models.instance import Instance
 from odk_viewer.models import ParsedInstance
 from odk_viewer.models.parsed_instance import xform_instances, datetime_from_str

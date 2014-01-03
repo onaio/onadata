@@ -9,7 +9,7 @@ from django.utils.translation import ugettext as _
 from jsonfield import JSONField
 from taggit.managers import TaggableManager
 
-from common_tags import MONGO_STRFTIME, SUBMISSION_TIME
+from utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME
 from odk_logger.models.survey_type import SurveyType
 from odk_logger.models.xform import XForm
 from odk_logger.xform_instance_parser import XFormInstanceParser, \

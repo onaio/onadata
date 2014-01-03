@@ -37,7 +37,7 @@ from utils.export_tools import newset_export_for
 from utils.viewer_tools import export_def_from_filename
 from utils.viewer_tools import create_attachments_zipfile
 from utils.log import audit_log, Actions
-from common_tags import SUBMISSION_TIME
+from utils.common_tags import SUBMISSION_TIME
 
 
 def encode(time_str):

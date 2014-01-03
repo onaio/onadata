@@ -4,7 +4,7 @@ from xml.dom import minidom, Node
 from django.utils.encoding import smart_unicode, smart_str
 from django.utils.translation import ugettext as _
 
-from common_tags import XFORM_ID_STRING
+from utils.common_tags import XFORM_ID_STRING
 
 
 class XLSFormError(Exception):

@@ -11,7 +11,7 @@ from odk_viewer.models.parsed_instance import GLOBAL_SUBMISSION_STATS,\
     ParsedInstance
 from stats.models import StatsCount
 from odk_logger.xform_instance_parser import clean_and_parse_xml
-from common_tags import GEOLOCATION
+from utils.common_tags import GEOLOCATION
 
 
 class TestFormSubmission(TestBase):

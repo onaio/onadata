@@ -7,7 +7,7 @@ from odk_logger.models.xform import XForm
 from main.tests.test_base import TestBase
 from odk_logger.xform_instance_parser import xform_instance_to_dict
 from odk_viewer.pandas_mongo_bridge import *
-from common_tags import NA_REP
+from utils.common_tags import NA_REP
 
 def xls_filepath_from_fixture_name(fixture_name):
     """

@@ -23,7 +23,7 @@ from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
 import sys
-import common_tags
+from utils import common_tags
 
 from odk_logger.models import Attachment
 from odk_logger.models import Instance
