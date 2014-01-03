@@ -9,7 +9,7 @@ from pyxform.question import Question
 from pyxform.section import RepeatingSection
 from pyxform.xform2json import create_survey_element_from_xml
 
-from common_tags import ID, UUID, SUBMISSION_TIME, TAGS, NOTES
+from utils.common_tags import ID, UUID, SUBMISSION_TIME, TAGS, NOTES
 from odk_logger.models import XForm
 from odk_viewer.models import ParsedInstance
 from odk_viewer.models.parsed_instance import _encode_for_mongo

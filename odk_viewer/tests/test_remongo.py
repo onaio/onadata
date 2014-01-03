@@ -5,7 +5,7 @@ from main.tests.test_base import TestBase
 from odk_viewer.models import ParsedInstance
 from odk_viewer.management.commands.remongo import Command
 from django.core.management import call_command
-from common_tags import USERFORM_ID
+from utils.common_tags import USERFORM_ID
 
 
 class TestRemongo(TestBase):

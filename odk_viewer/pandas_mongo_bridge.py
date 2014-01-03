@@ -10,7 +10,7 @@ from pyxform.question import Question
 from odk_viewer.models.data_dictionary import ParsedInstance, DataDictionary
 from utils.export_tools import question_types_to_exclude
 from collections import OrderedDict
-from common_tags import ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,\
+from utils.common_tags import ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,\
     UUID, SUBMISSION_TIME, NA_REP, BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES
 
 

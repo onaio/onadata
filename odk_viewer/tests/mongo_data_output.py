@@ -4,7 +4,7 @@ import os
 from django.conf import settings
 from django.test import TestCase, Client
 
-import common_tags
+from utils import common_tags
 from main.tests.test_base import TestBase
 from odk_logger.models import XForm
 from datetime import date

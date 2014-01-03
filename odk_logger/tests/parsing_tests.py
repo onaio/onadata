@@ -3,7 +3,7 @@ from xml.dom import minidom
 import os
 import re
 
-from common_tags import XFORM_ID_STRING
+from utils.common_tags import XFORM_ID_STRING
 from main.tests.test_base import TestBase
 from odk_logger.xform_instance_parser import XFormInstanceParser,\
     xpath_from_xml_node

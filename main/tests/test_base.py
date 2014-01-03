@@ -7,7 +7,7 @@ from tempfile import NamedTemporaryFile
 from time import strftime
 
 from cStringIO import StringIO
-from common_tags import MONGO_STRFTIME
+from utils.common_tags import MONGO_STRFTIME
 
 from django.contrib.auth.models import User
 from django_digest.test import Client as DigestClient

@@ -19,7 +19,7 @@ from odk_logger.models import XForm, Attachment
 from utils.viewer_tools import create_attachments_zipfile
 from utils.viewer_tools import image_urls
 from zipfile import ZipFile
-from common_tags import ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,\
+from utils.common_tags import ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,\
     BAMBOO_DATASET_ID, DELETEDAT, USERFORM_ID, INDEX, PARENT_INDEX,\
     PARENT_TABLE_NAME, SUBMISSION_TIME, UUID, TAGS, NOTES
 from odk_viewer.models.parsed_instance import _is_invalid_for_mongo,\

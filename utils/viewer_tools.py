@@ -3,17 +3,17 @@ import traceback
 import requests
 import zipfile
 
-from xml.dom import minidom
 from tempfile import NamedTemporaryFile
 from urlparse import urljoin
+from xml.dom import minidom
 
 from django.conf import settings
+from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.mail import mail_admins
 from django.utils.translation import ugettext as _
-from django.core.files.storage import get_storage_class
 
-import common_tags as tag
+from utils import common_tags
 
 
 SLASH = u"/"
@@ -62,8 +62,8 @@ def parse_xform_instance(xml_str):
     assert len(list(_all_attributes(root_node))) == 1, \
         _(u"There should be exactly one attribute in this document.")
     survey_data.update({
-        tag.XFORM_ID_STRING: root_node.getAttribute(u"id"),
-        tag.INSTANCE_DOC_NAME: root_node.nodeName,
+        common_tags.XFORM_ID_STRING: root_node.getAttribute(u"id"),
+        common_tags.INSTANCE_DOC_NAME: root_node.nodeName,
     })
     return survey_data
 
@@ -123,8 +123,8 @@ def report_exception(subject, info, exc_info=None):
 
 
 def django_file(path, field_name, content_type):
-    # adapted from here:
-    # http://groups.google.com/group/django-users/browse_thread/thread/834f988876ff3c45/
+    # adapted from here: http://groups.google.com/group/django-users/browse_th\
+    # read/thread/834f988876ff3c45/
     f = open(path)
     return InMemoryUploadedFile(
         file=f,

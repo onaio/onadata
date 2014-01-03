@@ -2,7 +2,7 @@ from test_base import TestBase
 from odk_viewer.views import zip_export, kml_export, export_download
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from common_tags import MONGO_STRFTIME
+from utils.common_tags import MONGO_STRFTIME
 
 import os
 import time

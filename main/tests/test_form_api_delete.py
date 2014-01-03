@@ -5,7 +5,7 @@ from odk_logger.models.instance import Instance
 from test_base import TestBase
 from main.views import delete_data
 from odk_viewer.models.parsed_instance import ParsedInstance
-import common_tags
+from utils import common_tags
 from django.conf import settings
 
 

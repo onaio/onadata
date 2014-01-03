@@ -16,7 +16,7 @@ from odk_logger.views import submission
 from odk_viewer.models import DataDictionary
 from main.models import MetaData
 from test_base import TestBase
-from common_tags import UUID, SUBMISSION_TIME
+from utils.common_tags import UUID, SUBMISSION_TIME
 from odk_logger.xform_instance_parser import clean_and_parse_xml
 
 

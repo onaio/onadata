@@ -14,7 +14,7 @@ from utils.decorators import apply_form_field_names
 from utils.model_tools import queryset_iterator
 from odk_logger.models import Instance, XForm
 from celery import task
-from common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION, SUBMISSION_TIME,\
+from utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION, SUBMISSION_TIME,\
     MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES
 from django.utils.translation import ugettext as _
 from odk_logger.models import Note
