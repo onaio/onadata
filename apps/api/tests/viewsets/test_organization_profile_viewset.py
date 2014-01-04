@@ -1,5 +1,5 @@
-from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from api.viewsets.organization_profile_viewset import\
+from apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 
 

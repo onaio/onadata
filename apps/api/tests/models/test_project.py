@@ -1,9 +1,9 @@
 from django.db import IntegrityError
 
-from api import tools
-from api.models.project import Project
-from api.models.project_xform import ProjectXForm
-from api.tests.models.test_abstract_models import TestAbstractModels
+from apps.api import tools
+from apps.api.models.project import Project
+from apps.api.models.project_xform import ProjectXForm
+from apps.api.tests.models.test_abstract_models import TestAbstractModels
 
 
 class TestProject(TestAbstractModels):

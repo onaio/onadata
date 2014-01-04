@@ -6,16 +6,13 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
-from main.models import UserProfile
-from main.forms import UserProfileForm, RegistrationFormUserProfile
-
-from odk_logger.models import XForm, Note
-
-from api.models import Project, OrganizationProfile, Team
-from api.fields import HyperlinkedMultiIdentityField,\
+from apps.api.models import Project, OrganizationProfile, Team
+from apps.api.fields import HyperlinkedMultiIdentityField,\
     HyperlinkedMultiRelatedField
-
-from api import tools as utils
+from apps.api import tools
+from apps.main.models import UserProfile
+from apps.main.forms import UserProfileForm, RegistrationFormUserProfile
+from apps.odk_logger.models import XForm, Note
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -205,7 +202,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             creator = self.context['request'].user
         if org and creator and not org_exists:
             attrs['organization'] = attrs.get('name')
-            orgprofile = utils.create_organization_object(org, creator, attrs)
+            orgprofile = tools.create_organization_object(org, creator, attrs)
             return orgprofile
         if not org:
             self.errors['org'] = u'org is required!'

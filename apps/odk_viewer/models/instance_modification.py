@@ -1,6 +1,7 @@
-from odk_logger.models import Instance
 from django.contrib.auth.models import User
 from django.db import models
+
+from apps.odk_logger.models import Instance
 
 
 class InstanceModification(models.Model):

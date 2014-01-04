@@ -4,11 +4,11 @@ import unicodecsv
 from pybamboo.dataset import Dataset
 from pybamboo.connection import Connection
 from pybamboo.exceptions import ErrorParsingBambooData
-from restservice.models import RestService
 
 from apps.odk_viewer.models import ParsedInstance
 from apps.odk_viewer.pandas_mongo_bridge import CSVDataFrameBuilder,\
     NoRecordsFoundError
+from apps.restservice.models import RestService
 
 
 def get_bamboo_url(xform):

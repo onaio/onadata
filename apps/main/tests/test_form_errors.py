@@ -1,10 +1,12 @@
+import os
 from unittest import skip
-from test_base import TestBase
-from odk_logger.models import XForm
+
 from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
-from main.views import show
-import os
+
+from apps.main.views import show
+from apps.odk_logger.models import XForm
+from test_base import TestBase
 
 
 class TestFormErrors(TestBase):
@@ -21,7 +23,7 @@ class TestFormErrors(TestBase):
         self._create_user_and_login()
         count = XForm.objects.count()
         xls_path = os.path.join(self.this_directory, "fixtures",
-                "transportation", "transportation.bad_id.xls")
+                                "transportation", "transportation.bad_id.xls")
         response = self._publish_xls_file(xls_path)
         self.assertEquals(response.status_code, 200)
         self.assertEquals(XForm.objects.count(), count)

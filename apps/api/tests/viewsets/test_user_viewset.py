@@ -1,7 +1,7 @@
 import json
 
-from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from api.viewsets.user_viewset import UserViewSet
+from apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from apps.api.viewsets.user_viewset import UserViewSet
 
 
 class TestUserViewSet(TestAbstractViewSet):

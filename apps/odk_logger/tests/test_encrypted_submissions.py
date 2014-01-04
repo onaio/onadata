@@ -2,12 +2,12 @@ import os
 import codecs
 
 from django.core.urlresolvers import reverse
-from main.tests.test_base import TestBase
 
-from odk_logger.models import Attachment
-from odk_logger.models import Instance
-from odk_logger.models import XForm
-from odk_logger.views import submission
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.models import Attachment
+from apps.odk_logger.models import Instance
+from apps.odk_logger.models import XForm
+from apps.odk_logger.views import submission
 
 
 class TestEncryptedForms(TestBase):

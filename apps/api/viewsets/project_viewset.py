@@ -8,11 +8,11 @@ from rest_framework.mixins import CreateModelMixin, ListModelMixin,\
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from api import serializers
-from api.mixins import MultiLookupMixin
-from api.models import Project, ProjectXForm
-from api import tools as utils
-from odk_logger.models import XForm
+from apps.api import serializers
+from apps.api.mixins import MultiLookupMixin
+from apps.api.models import Project, ProjectXForm
+from apps.api import tools as utils
+from apps.odk_logger.models import XForm
 
 
 class ProjectViewSet(MultiLookupMixin,

@@ -14,11 +14,11 @@ from django.contrib.auth.models import AnonymousUser
 
 from nose import SkipTest
 
+from apps.main.views import set_perm, show, qrcode
+from apps.main.models import MetaData
+from apps.odk_logger.views import enter_data
+from libs.utils.viewer_tools import enketo_url
 from test_base import TestBase
-from main.views import set_perm, show, qrcode
-from main.models import MetaData
-from odk_logger.views import enter_data
-from utils.viewer_tools import enketo_url
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')

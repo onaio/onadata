@@ -1,8 +1,8 @@
 from django.contrib.auth.models import Permission
 
-from api import tools
-from api.models.team import Team
-from api.tests.test_abstract_models import TestAbstractModels
+from apps.api import tools
+from apps.api.models.team import Team
+from apps.api.tests.test_abstract_models import TestAbstractModels
 
 
 class TestTeam(TestAbstractModels):

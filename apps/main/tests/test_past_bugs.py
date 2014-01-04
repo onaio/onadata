@@ -1,7 +1,8 @@
-from test_process import TestProcess
-from test_base import TestBase
-from odk_logger.models import XForm, Instance
 import os
+from test_process import TestProcess
+
+from apps.odk_logger.models import XForm, Instance
+from test_base import TestBase
 
 
 class TestCSVExport(TestProcess):

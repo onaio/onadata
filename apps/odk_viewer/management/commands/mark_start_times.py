@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext_lazy, ugettext as _
-from odk_viewer.models import DataDictionary
+
+from apps.odk_viewer.models import DataDictionary
 
 
 class Command(BaseCommand):
@@ -12,6 +13,6 @@ class Command(BaseCommand):
             try:
                 dd._mark_start_time_boolean()
                 dd.save()
-            except Exception, e:
-                print (_("Could not mark start time for DD: %(data)s") 
-                       % {'data': repr(dd)})
+            except Exception:
+                print (_("Could not mark start time for DD: %(data)s") % {
+                    'data': repr(dd)})

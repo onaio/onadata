@@ -9,10 +9,10 @@ from rest_framework.reverse import reverse
 from rest_framework.viewsets import ViewSet
 from taggit.forms import TagField
 
-from api.tools import get_accessible_forms, get_xform
-from odk_logger.models import Instance
-from odk_viewer.models import ParsedInstance
-from utils.user_auth import check_and_set_form_by_id,\
+from apps.api.tools import get_accessible_forms, get_xform
+from apps.odk_logger.models import Instance
+from apps.odk_viewer.models import ParsedInstance
+from libs.utils.user_auth import check_and_set_form_by_id,\
     check_and_set_form_by_id_string
 
 

@@ -1,8 +1,8 @@
 import json
 
-from api.models import Team
-from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from api.viewsets.team_viewset import TeamViewSet
+from apps.api.models import Team
+from apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from apps.api.viewsets.team_viewset import TeamViewSet
 
 
 class TestTeamViewSet(TestAbstractViewSet):

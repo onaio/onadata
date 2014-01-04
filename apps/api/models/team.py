@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User, Group
 
-from api.models.project import Project
+from apps.api.models.project import Project
 
 
 class Team(Group):

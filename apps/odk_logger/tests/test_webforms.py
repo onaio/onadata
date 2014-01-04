@@ -3,11 +3,11 @@ import requests
 
 from django.core.urlresolvers import reverse
 
-from main.tests.test_base import TestBase
-from odk_logger.models.instance import Instance
-from odk_logger.views import edit_data
-from odk_logger.xform_instance_parser import get_uuid_from_xml
-from utils.logger_tools import inject_instanceid
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.models.instance import Instance
+from apps.odk_logger.views import edit_data
+from apps.odk_logger.xform_instance_parser import get_uuid_from_xml
+from libs.utils.logger_tools import inject_instanceid
 
 from httmock import urlmatch, HTTMock
 

@@ -9,7 +9,7 @@ from django.core.files.base import ContentFile
 
 from tempfile import NamedTemporaryFile
 
-from utils.viewer_tools import get_path
+from libs.utils.viewer_tools import get_path
 
 
 def flat(*nums):

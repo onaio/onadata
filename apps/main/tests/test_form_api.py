@@ -1,11 +1,12 @@
+import base64
 import json
+
 from django.core.urlresolvers import reverse
 
-from test_base import TestBase
-from main.views import api
-from odk_viewer.models.parsed_instance import ParsedInstance, \
+from apps.main.views import api
+from apps.odk_viewer.models.parsed_instance import ParsedInstance, \
     _encode_for_mongo, _decode_from_mongo
-import base64
+from test_base import TestBase
 
 
 def dict_for_mongo_without_userform_id(parsed_instance):

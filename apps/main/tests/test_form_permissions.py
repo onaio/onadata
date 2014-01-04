@@ -1,12 +1,13 @@
 import os
 
-from test_base import TestBase
 from django.core.urlresolvers import reverse
-from odk_logger.models import XForm
-from odk_viewer.views import map_view, survey_responses
 from guardian.shortcuts import assign_perm, remove_perm
-from main.views import set_perm, show, edit, api, profile
-from main.models import MetaData
+
+from apps.odk_logger.models import XForm
+from apps.odk_viewer.views import map_view, survey_responses
+from apps.main.views import set_perm, show, edit, api, profile
+from apps.main.models import MetaData
+from test_base import TestBase
 
 
 class TestFormPermissions(TestBase):

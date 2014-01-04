@@ -1,10 +1,10 @@
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
-from main.models import MetaData
-from main.views import edit
-from odk_logger.views import formList
-from odk_logger.models import XForm
+from apps.main.models import MetaData
+from apps.main.views import edit
+from apps.odk_logger.views import formList
+from apps.odk_logger.models import XForm
 from test_base import TestBase
 
 

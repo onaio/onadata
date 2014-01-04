@@ -1,5 +1,5 @@
-from odk_logger.models import Instance
-from main.tests.test_base import TestBase
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.models import Instance
 
 
 class TestInstance(TestBase):

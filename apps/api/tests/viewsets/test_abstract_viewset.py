@@ -7,12 +7,12 @@ from django.test import RequestFactory
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Permission
 
-from api.models import OrganizationProfile, Project
-from api.viewsets.organization_profile_viewset import\
+from apps.api.models import OrganizationProfile, Project
+from apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
-from api.viewsets.project_viewset import ProjectViewSet
-from api.serializers import ProjectSerializer
-from utils.user_auth import set_api_permissions_for_user
+from apps.api.viewsets.project_viewset import ProjectViewSet
+from apps.api.serializers import ProjectSerializer
+from libs.utils.user_auth import set_api_permissions_for_user
 
 
 class TestAbstractViewSet(TestCase):

@@ -1,6 +1,7 @@
-from test_base import TestBase
 import os
-from odk_logger.models import XForm
+
+from test_base import TestBase
+from apps.odk_logger.models import XForm
 
 
 class TestUserIdStringUniqueTogether(TestBase):

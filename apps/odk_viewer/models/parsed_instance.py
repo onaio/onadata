@@ -10,11 +10,11 @@ from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_save, pre_delete
 from django.utils.translation import ugettext as _
-from restservice.utils import call_service
 
 from apps.stats.tasks import stat_log
 from apps.odk_logger.models import Instance, XForm
 from apps.odk_logger.models import Note
+from apps.restservice.utils import call_service
 from libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES
 from libs.utils.decorators import apply_form_field_names
@@ -293,8 +293,8 @@ class ParsedInstance(models.Model):
                 return item['name']
 
     def get_data_dictionary(self):
-        # todo: import here is a hack to get around a circular import
-        from odk_viewer.models import DataDictionary
+        # TODO: import here is a hack to get around a circular import
+        from apps.odk_viewer.models import DataDictionary
         return DataDictionary.objects.get(
             user=self.instance.xform.user,
             id_string=self.instance.xform.id_string

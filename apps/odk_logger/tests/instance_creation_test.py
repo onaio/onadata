@@ -1,8 +1,10 @@
 import glob
 import os
+
 from django.test import TestCase
 from django.contrib.auth.models import User
-from odk_logger.models import XForm, Instance
+
+from apps.odk_logger.models import XForm, Instance
 
 
 def open_all_files(path):
@@ -48,7 +50,7 @@ class TestWaterSubmission(TestCase):
                     '"name": "Water_2011_03_17", ' \
                     '"title": "Water_2011_03_17", "type": "survey"}'
         for path, open_file in open_forms.items():
-            xform = XForm.objects.create(
+            XForm.objects.create(
                 xml=open_file.read(), user=self.user, json=self.json)
             open_file.close()
 

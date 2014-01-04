@@ -4,13 +4,13 @@ import re
 from django.core.urlresolvers import reverse
 from pyxform import create_survey_from_xls
 
-from main.tests.test_base import TestBase
-from odk_logger.models import Instance
-from odk_viewer.models import ParsedInstance, DataDictionary
-from odk_viewer.views import survey_responses
-from odk_logger.xform_instance_parser import xform_instance_to_dict
-from odk_viewer.xls_writer import XlsWriter
-from utils.export_tools import DictOrganizer
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.models import Instance
+from apps.odk_viewer.models import ParsedInstance, DataDictionary
+from apps.odk_viewer.views import survey_responses
+from apps.odk_logger.xform_instance_parser import xform_instance_to_dict
+from apps.odk_viewer.xls_writer import XlsWriter
+from libs.utils.export_tools import DictOrganizer
 
 
 class TestSurveyView(TestBase):

@@ -2,10 +2,10 @@ from django.test import TestCase
 from django.test.client import Client
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from main.models import UserProfile
-from main.views import profile
 
-# do not inherit from TestBase because we don't want auto login
+from apps.main.views import profile
+
+
 class TestUserProfile(TestCase):
     def setup(self):
         self.client = Client()
@@ -40,8 +40,8 @@ class TestUserProfile(TestCase):
     def test_create_user_profile_for_user(self):
         self._login_user_and_profile()
         self.assertEqual(self.response.status_code, 302)
-        profile = self.user.profile
-        self.assertEqual(profile.city, 'Bobville')
+        user_profile = self.user.profile
+        self.assertEqual(user_profile.city, 'Bobville')
 
     def test_disallow_non_alpha_numeric(self):
         invalid_usernames = [
@@ -61,17 +61,17 @@ class TestUserProfile(TestCase):
         ]
         users_before = User.objects.count()
         for username in invalid_usernames:
-            self._login_user_and_profile({ 'username': username })
+            self._login_user_and_profile({'username': username})
             self.assertEqual(User.objects.count(), users_before)
 
     def test_disallow_reserved_name(self):
         users_before = User.objects.count()
-        self._login_user_and_profile({ 'username': 'admin' })
+        self._login_user_and_profile({'username': 'admin'})
         self.assertEqual(User.objects.count(), users_before)
 
     def test_404_if_user_does_not_exist(self):
         response = self.client.get(reverse(profile,
-            kwargs={'username': 'nonuser'}))
+                                   kwargs={'username': 'nonuser'}))
         self.assertEqual(response.status_code, 404)
 
     def test_show_single_at_sign_in_twitter_link(self):

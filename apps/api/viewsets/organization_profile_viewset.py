@@ -1,8 +1,8 @@
 from django.contrib.auth.models import User
 from rest_framework.viewsets import ModelViewSet
 
-from api import mixins, serializers
-from api.models import OrganizationProfile
+from apps.api import mixins, serializers
+from apps.api.models import OrganizationProfile
 
 
 class OrganizationProfileViewSet(mixins.ObjectLookupMixin, ModelViewSet):

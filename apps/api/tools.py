@@ -9,19 +9,17 @@ from django.db import connection
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions
 
-from main.forms import QuickConverter
-
-from odk_logger.models.xform import XForm
-from odk_viewer.models.parsed_instance import ParsedInstance,\
+from apps.api.models.organization_profile import OrganizationProfile
+from apps.api.models.project import Project
+from apps.api.models.project_xform import ProjectXForm
+from apps.api.models.team import Team
+from apps.main.forms import QuickConverter
+from apps.odk_logger.models.xform import XForm
+from apps.odk_viewer.models.parsed_instance import ParsedInstance,\
     datetime_from_str, _encode_for_mongo
-
-from utils.logger_tools import publish_form
-from utils.user_auth import check_and_set_form_by_id, \
+from libs.utils.logger_tools import publish_form
+from libs.utils.user_auth import check_and_set_form_by_id, \
     check_and_set_form_by_id_string
-from api.models.organization_profile import OrganizationProfile
-from api.models.project import Project
-from api.models.project_xform import ProjectXForm
-from api.models.team import Team
 
 DECIMAL_PRECISION = 2
 

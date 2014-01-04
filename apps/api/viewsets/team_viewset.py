@@ -4,8 +4,8 @@ from rest_framework import exceptions
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from api import serializers
-from api.models import Team
+from apps.api import serializers
+from apps.api.models import Team
 
 
 class TeamViewSet(ModelViewSet):

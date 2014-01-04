@@ -1,8 +1,7 @@
-from test_base import TestBase
 import os
-from odk_viewer.models import ParsedInstance, DataDictionary
-from django.core.urlresolvers import reverse
-import odk_viewer
+
+from apps.odk_viewer.models import DataDictionary
+from test_base import TestBase
 
 
 class TestGPS(TestBase):

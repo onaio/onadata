@@ -3,12 +3,16 @@ from django.contrib.contenttypes.models import ContentType
 import os
 import json
 from bson import json_util
-from django.db import IntegrityError
+
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.files.storage import default_storage, get_storage_class
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.db import IntegrityError
+from django.dispatch import receiver
+from rest_framework.authtoken.models import Token
 from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseRedirect, HttpResponseForbidden, HttpResponseNotFound,\
     HttpResponseServerError
@@ -19,40 +23,36 @@ from django.views.decorators.http import require_GET, require_POST,\
     require_http_methods
 from google_doc import GoogleDoc
 from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
+from registration.signals import user_registered
 
-from main.forms import UserProfileForm, FormLicenseForm, DataLicenseForm,\
+from apps.main.forms import UserProfileForm, FormLicenseForm, DataLicenseForm,\
     SupportDocForm, QuickConverterFile, QuickConverterURL, QuickConverter,\
     SourceForm, PermissionForm, MediaForm, MapboxLayerForm, \
     ActivateSMSSupportFom
-from main.models import UserProfile, MetaData
-from odk_logger.models import Instance, XForm
-from odk_logger.views import enter_data
-from odk_viewer.models import DataDictionary, ParsedInstance
-from odk_viewer.models.data_dictionary import upload_to
-from odk_viewer.models.parsed_instance import GLOBAL_SUBMISSION_STATS,\
+from apps.main.models import AuditLog, UserProfile, MetaData
+from apps.odk_logger.models import Instance, XForm
+from apps.odk_logger.views import enter_data
+from apps.odk_viewer.models import DataDictionary, ParsedInstance
+from apps.odk_viewer.models.data_dictionary import upload_to
+from apps.odk_viewer.models.parsed_instance import GLOBAL_SUBMISSION_STATS,\
     DATETIME_FORMAT
-from odk_viewer.views import survey_responses, attachment_url
-from stats.models import StatsCount
-from stats.tasks import stat_log
-from utils.decorators import is_owner
-from utils.logger_tools import response_with_mimetype_and_name, publish_form
-from utils.user_auth import check_and_set_user, set_profile_data,\
+from apps.odk_viewer.views import survey_responses, attachment_url
+from apps.sms_support.tools import check_form_sms_compatibility, is_sms_related
+from apps.sms_support.autodoc import get_autodoc_for
+from apps.sms_support.providers import providers_doc
+from apps.stats.models import StatsCount
+from apps.stats.tasks import stat_log
+from libs.utils.bamboo import get_new_bamboo_dataset, delete_bamboo_dataset,\
+    ensure_rest_service
+from libs.utils.decorators import is_owner
+from libs.utils.logger_tools import response_with_mimetype_and_name,\
+    publish_form
+from libs.utils.user_auth import check_and_set_user, set_profile_data,\
     has_permission, helper_auth_helper, get_xform_and_perms,\
     check_and_set_user_and_form, add_cors_headers
-from utils.log import audit_log, Actions
-from main.models import AuditLog
-from django.conf import settings
-
-from utils.viewer_tools import enketo_url
-from utils.qrcode import generate_qrcode
-
-from sms_support.tools import check_form_sms_compatibility, is_sms_related
-from sms_support.autodoc import get_autodoc_for
-from sms_support.providers import providers_doc
-
-from registration.signals import user_registered
-from django.dispatch import receiver
-from rest_framework.authtoken.models import Token
+from libs.utils.log import audit_log, Actions
+from libs.utils.qrcode import generate_qrcode
+from libs.utils.viewer_tools import enketo_url
 
 
 @receiver(user_registered, dispatch_uid='auto_add_crowdform')
@@ -1120,9 +1120,6 @@ def link_to_bamboo(request, username, id_string):
     xform = get_object_or_404(XForm,
                               user__username=username, id_string=id_string)
     owner = xform.user
-    from utils.bamboo import (get_new_bamboo_dataset,
-                              delete_bamboo_dataset, ensure_rest_service)
-
     audit = {
         'xform': xform.id_string
     }

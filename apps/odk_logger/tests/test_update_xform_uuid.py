@@ -1,9 +1,11 @@
 import os
 import csv
-from main.tests.test_base import TestBase
-from odk_logger.models.xform import XForm, DuplicateUUIDError
-from odk_logger.management.commands.update_xform_uuids import Command
-from utils.model_tools import update_xform_uuid
+
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.models.xform import XForm, DuplicateUUIDError
+from apps.odk_logger.management.commands.update_xform_uuids import Command
+from libs.utils.model_tools import update_xform_uuid
+
 
 class TestUpdateXFormUUID(TestBase):
     def setUp(self):
@@ -32,7 +34,7 @@ class TestUpdateXFormUUID(TestBase):
         self.xform.save()
         try:
             update_xform_uuid(self.user.username, self.xform.id_string,
-                self.new_uuid)
+                              self.new_uuid)
         except DuplicateUUIDError:
             self.assertTrue(True)
         else:

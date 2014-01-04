@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext_lazy
 
-from odk_logger.models.instance import Instance
-from odk_viewer.models.parsed_instance import xform_instances,\
+from apps.odk_logger.models.instance import Instance
+from apps.odk_viewer.models.parsed_instance import xform_instances,\
     datetime_from_str
 from libs.utils.common_tags import DELETEDAT, ID
 

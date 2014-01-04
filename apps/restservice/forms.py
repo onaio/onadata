@@ -1,7 +1,7 @@
 from django import forms
 from django.utils.translation import ugettext_lazy
 
-from restservice import SERVICE_CHOICES
+from apps.restservice import SERVICE_CHOICES
 
 
 class RestServiceForm(forms.Form):

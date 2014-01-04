@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-# vim: ai ts=4 sts=4 et sw=4 fileencoding=utf-8
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
-from optparse import make_option
 from django.utils.translation import ugettext as _
-from utils.briefcase_client import BriefcaseClient
+from optparse import make_option
+
+from libs.utils.briefcase_client import BriefcaseClient
 
 
 class Command(BaseCommand):

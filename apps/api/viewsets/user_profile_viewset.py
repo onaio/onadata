@@ -3,8 +3,8 @@ from django.db.models import Q
 from rest_framework import permissions
 from rest_framework.viewsets import ModelViewSet
 
-from api import mixins, serializers
-from main.models import UserProfile
+from apps.api import mixins, serializers
+from apps.main.models import UserProfile
 
 
 class UserProfileViewSet(mixins.ObjectLookupMixin, ModelViewSet):

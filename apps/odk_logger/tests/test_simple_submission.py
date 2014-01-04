@@ -1,14 +1,11 @@
-import os
-import glob
-
 from django.contrib.auth.models import User
 from django.test import TestCase
 from pyxform import SurveyElementBuilder
-from odk_logger.xform_instance_parser import DuplicateInstance
 
-from utils.logger_tools import create_instance
-from odk_logger.models import Instance
-from odk_viewer.models import DataDictionary
+
+from apps.odk_logger.xform_instance_parser import DuplicateInstance
+from apps.odk_viewer.models import DataDictionary
+from libs.utils.logger_tools import create_instance
 
 
 class TempFileProxy(object):
@@ -18,25 +15,32 @@ class TempFileProxy(object):
     """
     def __init__(self, content):
         self.content = content
+
     def read(self):
         return self.content
+
     def close(self):
         pass
 
+
 class TestSimpleSubmission(TestCase):
     def setUp(self):
-        self.user = User.objects.create(username="admin", email="sample@example.com")
+        self.user = User.objects.create(
+            username="admin", email="sample@example.com")
         self.user.set_password("pass")
         self.xform1 = DataDictionary()
         self.xform1.user = self.user
-        self.xform1.json = """
-        {"id_string": "yes_or_no", "children": [{"name": "yesno", "label": "Yes or no?", "type": "text"}], "name": "yes_or_no", "title": "yes_or_no", "type": "survey"}
-        """.strip()
+        self.xform1.json = '{"id_string": "yes_or_no", "children": [{"name": '\
+                           '"yesno", "label": "Yes or no?", "type": "text"}],'\
+                           ' "name": "yes_or_no", "title": "yes_or_no", "type'\
+                           '": "survey"}'.strip()
         self.xform2 = DataDictionary()
         self.xform2.user = self.user
-        self.xform2.json = """
-        {"id_string": "start_time", "children": [{"name": "start_time", "type": "start"}], "name": "start_time", "title": "start_time", "type": "survey"}
-        """.strip()
+        self.xform2.json = '{"id_string": "start_time", "children": [{"name":'\
+                           '"start_time", "type": "start"}], "name": "start_t'\
+                           'ime", "title": "start_time", "type": "survey"}'\
+                           .strip()
+
         def get_xml_for_form(xform):
             builder = SurveyElementBuilder()
             sss = builder.create_survey_element_from_json(xform.json)
@@ -51,8 +55,8 @@ class TestSimpleSubmission(TestCase):
         self.user.delete()
 
     def test_start_time_boolean_properly_set(self):
-        self.assertTrue(self.xform1.has_start_time == False)
-        self.assertTrue(self.xform2.has_start_time == True)
+        self.assertFalse(self.xform1.has_start_time)
+        self.assertTrue(self.xform2.has_start_time)
 
     def test_simple_yes_submission(self):
         def submit_simple_yes():
@@ -84,6 +88,7 @@ class TestSimpleSubmission(TestCase):
         self.assertEquals(1, self.xform2.surveys.count())
         submit_at_hour(12)
         self.assertEquals(2, self.xform2.surveys.count())
-        # an instance from 11 AM already exists in the database, so it *SHOULD NOT* increment the survey count.
+        # an instance from 11 AM already exists in the database, so it
+        # *SHOULD NOT* increment the survey count.
         submit_at_hour(11)
         self.assertEquals(2, self.xform2.surveys.count())

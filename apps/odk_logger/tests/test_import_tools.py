@@ -1,10 +1,9 @@
-from main.tests.test_base import TestBase
-#from django.test import TestCase
-from odk_logger.models import Instance
 import os
 import glob
 
-from odk_logger.import_tools import import_instances_from_zip
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.models import Instance
+from apps.odk_logger.import_tools import import_instances_from_zip
 
 CUR_PATH = os.path.abspath(__file__)
 CUR_DIR = os.path.dirname(CUR_PATH)
@@ -33,8 +32,8 @@ class TestImportingDatabase(TestBase):
         Instance.objects.all().delete()  # ?
         if settings.TESTING_MODE:
             images = glob.glob(
-                os.path.join(
-                    settings.MEDIA_ROOT, self.user.username, 'attachments', '*'))
+                os.path.join(settings.MEDIA_ROOT, self.user.username,
+                             'attachments', '*'))
             for image in images:
                 os.remove(image)
 

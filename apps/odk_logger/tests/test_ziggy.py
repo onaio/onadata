@@ -3,16 +3,17 @@ import re
 import json
 import requests
 
-from django.conf import settings
-from main.tests.test_base import TestBase
-from django.core.urlresolvers import reverse
-from odk_logger.models import ZiggyInstance
-from odk_logger.models.ziggy_instance import (
-    ziggy_to_formhub_instance, rest_service_ziggy_submission)
-from odk_logger.views import ziggy_submissions
-from restservice.models import RestService
-from httmock import urlmatch, HTTMock
 from bson import ObjectId
+from httmock import urlmatch, HTTMock
+from django.conf import settings
+from django.core.urlresolvers import reverse
+
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.models import ZiggyInstance
+from apps.odk_logger.models.ziggy_instance import (
+    ziggy_to_formhub_instance, rest_service_ziggy_submission)
+from apps.odk_logger.views import ziggy_submissions
+from apps.restservice.models import RestService
 
 mongo_ziggys = settings.MONGO_DB.ziggys
 ziggy_submission_url = reverse(ziggy_submissions, kwargs={'username': 'bob'})
@@ -64,7 +65,7 @@ class TestZiggySubmissions(TestBase):
         self._ziggy_submissions_post_url()
         response = self.client.get(
             ziggy_submission_url,
-            data={'timestamp':0,'reporter-id': self.user.username}
+            data={'timestamp': 0, 'reporter-id': self.user.username}
         )
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
@@ -74,7 +75,7 @@ class TestZiggySubmissions(TestBase):
         with open(village_profile_json_path) as f:
             expected_data = json.load(f)
             expected_data[0]['formInstance'] = json.loads(
-                    expected_data[0]['formInstance'])
+                expected_data[0]['formInstance'])
             data[0]['formInstance'] = json.loads(data[0]['formInstance'])
             self.assertEqual(expected_data, data)
 
@@ -82,7 +83,7 @@ class TestZiggySubmissions(TestBase):
         self._ziggy_submissions_post_url()
         response = self.client.get(
             ziggy_submission_url,
-            data={'timestamp': 'k','reporter-id': self.user.username}
+            data={'timestamp': 'k', 'reporter-id': self.user.username}
         )
         self.assertEqual(response.status_code, 400)
 
@@ -172,7 +173,8 @@ def f2dhis_mock(url, request):
     match = re.match(r'.*f2dhis2/(.+)/post/(.+)$', request.url)
     if match is not None:
         id_string, uuid = match.groups()
-        record = settings.MONGO_DB.instances.find_one({'_uuid': ObjectId(uuid)})
+        record = settings.MONGO_DB.instances.find_one(
+            {'_uuid': ObjectId(uuid)})
         if record is not None:
             res = requests.Response()
             res.status_code = 200
@@ -189,7 +191,8 @@ class TestZiggyRestService(TestBase):
         RestService.objects.create(
             name='f2dhis2',
             xform=self.xform,
-            service_url='http://example.com/f2dhis2/%(id_string)s/post/%(uuid)s')
+            service_url=
+            'http://example.com/f2dhis2/%(id_string)s/post/%(uuid)s')
 
     def test_rest_service_ziggy_submission(self):
         with open(cc_monthly_json_path) as f:
@@ -231,4 +234,3 @@ class TestZiggyRestService(TestBase):
             '_userform_id': 'bob_cc_monthly_report_form'
         }
         self.assertDictEqual(formhub_dict, expected_formhub_dict)
-

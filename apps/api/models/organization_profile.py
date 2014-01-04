@@ -4,8 +4,8 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models.signals import post_save
 
-from api.models.team import Team
-from main.models import UserProfile
+from apps.api.models.team import Team
+from apps.main.models import UserProfile
 
 
 def create_owner_team_and_permissions(sender, instance, created, **kwargs):

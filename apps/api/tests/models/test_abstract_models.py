@@ -1,5 +1,5 @@
-from main.tests.test_base import TestBase
-from api import tools
+from apps.main.tests.test_base import TestBase
+from apps.api import tools
 
 
 class TestAbstractModels(TestBase):

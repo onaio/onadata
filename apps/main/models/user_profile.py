@@ -1,11 +1,12 @@
 from django.contrib.auth.models import User
 from django.db import models
-from django.utils.translation import ugettext_lazy
-from utils.country_field import COUNTRIES
-from utils.gravatar import get_gravatar_img_link, gravatar_exists
 from django.db.models.signals import post_save
+from django.utils.translation import ugettext_lazy
 from rest_framework.authtoken.models import Token
-from main.signals import set_api_permissions
+
+from libs.utils.country_field import COUNTRIES
+from libs.utils.gravatar import get_gravatar_img_link, gravatar_exists
+from apps.main.signals import set_api_permissions
 
 
 class UserProfile(models.Model):

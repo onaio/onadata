@@ -1,8 +1,10 @@
 import os
+
 from django.core.urlresolvers import reverse
-from odk_viewer.models import ParsedInstance
-from odk_viewer.views import kml_export
-from main.tests.test_base import TestBase
+
+from apps.main.tests.test_base import TestBase
+from apps.odk_viewer.models import ParsedInstance
+from apps.odk_viewer.views import kml_export
 
 
 class TestKMLExport(TestBase):

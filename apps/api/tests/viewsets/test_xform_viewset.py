@@ -3,8 +3,8 @@ import os
 from xml.dom import minidom, Node
 from django.conf import settings
 
-from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from api.viewsets.xform_viewset import XFormViewSet
+from apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from apps.api.viewsets.xform_viewset import XFormViewSet
 
 
 class TestXFormViewSet(TestAbstractViewSet):

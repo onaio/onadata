@@ -1,8 +1,8 @@
 from rest_framework import permissions
 from rest_framework.viewsets import ModelViewSet
 
-from api import serializers
-from odk_logger.models import Note
+from apps.api import serializers
+from apps.odk_logger.models import Note
 
 
 class NoteViewSet(ModelViewSet):

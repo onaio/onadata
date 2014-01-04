@@ -1,5 +1,6 @@
 import httplib2
-from restservice.RestServiceInterface import RestServiceInterface
+
+from apps.restservice.RestServiceInterface import RestServiceInterface
 
 
 class ServiceDefinition(RestServiceInterface):

@@ -12,9 +12,9 @@ from rest_framework.settings import api_settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from taggit.forms import TagField
 
-from api import mixins, serializers
-from api.signals import xform_tags_add, xform_tags_delete
-from odk_logger.models import XForm
+from apps.api import mixins, serializers
+from apps.api.signals import xform_tags_add, xform_tags_delete
+from apps.odk_logger.models import XForm
 
 
 class SurveyRenderer(BaseRenderer):

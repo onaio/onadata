@@ -1,8 +1,9 @@
 from datetime import datetime
 from django.utils import timezone
 from django.core.management import call_command
-from main.tests.test_base import TestBase
-from odk_logger.models import Instance
+
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.models import Instance
 
 
 class CommandSyncDeletedTests(TestBase):

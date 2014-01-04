@@ -1,10 +1,12 @@
 import os
-from django.db import models
-from django.core.files.storage import get_storage_class
-from django.db.models.signals import post_delete
-from odk_logger.models import XForm
-from django.utils.translation import ugettext as _
 from tempfile import NamedTemporaryFile
+
+from django.core.files.storage import get_storage_class
+from django.db import models
+from django.db.models.signals import post_delete
+from django.utils.translation import ugettext as _
+
+from apps.odk_logger.models import XForm
 
 
 def export_delete_callback(sender, **kwargs):

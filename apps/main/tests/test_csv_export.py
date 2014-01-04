@@ -1,8 +1,10 @@
 import os
+
 from django.core.files.storage import get_storage_class
 from django.utils.dateparse import parse_datetime
-from odk_viewer.models import DataDictionary, Export
-from utils.export_tools import generate_export
+
+from apps.odk_viewer.models import DataDictionary, Export
+from apps.utils.export_tools import generate_export
 from test_base import TestBase
 
 

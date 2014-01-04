@@ -9,13 +9,12 @@ URLConf to include this URLConf for any URL beginning with
 
 
 from django.conf.urls import patterns, url
-from django.views.generic import TemplateView
 from django.contrib.auth import views as auth_views
-
+from django.views.generic import TemplateView
 from registration.backends.default.views import ActivationView
-from main.registration_views import FHRegistrationView
 
-from main.forms import RegistrationFormUserProfile
+from apps.main.registration_views import FHRegistrationView
+from apps.main.forms import RegistrationFormUserProfile
 
 urlpatterns = patterns(
     '',

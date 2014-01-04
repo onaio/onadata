@@ -1,9 +1,8 @@
+from hashlib import md5
 import os
 
 from django.db import models
-from odk_logger.models import XForm
-
-from hashlib import md5
+from apps.odk_logger.models import XForm
 
 
 def upload_to(instance, filename):

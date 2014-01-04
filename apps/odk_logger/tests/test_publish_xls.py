@@ -4,9 +4,10 @@ import codecs
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from main.tests.test_base import TestBase
-from odk_logger.models.xform import XForm
-from utils.logger_tools import report_exception
+
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.models.xform import XForm
+from libs.utils.logger_tools import report_exception
 
 
 class TestPublishXLS(TestBase):
@@ -56,14 +57,18 @@ class TestPublishXLS(TestBase):
         xforms = XForm.objects.filter(id_string='exp_line_break')
         self.assertTrue(xforms.count() > 0)
         xform = xforms[0]
-        xform.xml = xform.xml.replace(xform.uuid, '663123a849e54bffa8f9832ef016bfac')
+        xform.xml = xform.xml.replace(
+            xform.uuid, '663123a849e54bffa8f9832ef016bfac')
         xform.save()
         f = codecs.open(test_xml_file_path, 'w', encoding="utf-8")
         f.write(xform.xml)
         f.close()
-        with codecs.open(xml_file_path, 'rb', encoding="utf-8") as expected_file:
-            with codecs.open(test_xml_file_path, 'rb', encoding="utf-8") as actual_file:
-                self.assertMultiLineEqual(expected_file.read(), actual_file.read())
+        with codecs.open(
+                xml_file_path, 'rb', encoding="utf-8") as expected_file:
+            with codecs.open(
+                    test_xml_file_path, 'rb', encoding="utf-8") as actual_file:
+                self.assertMultiLineEqual(
+                    expected_file.read(), actual_file.read())
         os.remove(test_xml_file_path)
 
     def test_report_exception_with_exc_info(self):
@@ -84,4 +89,3 @@ class TestPublishXLS(TestBase):
             report_exception(subject="Test report exception", info=e)
         except Exception as e:
             raise AssertionError("%s" % e)
-

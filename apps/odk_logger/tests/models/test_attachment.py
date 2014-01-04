@@ -1,16 +1,13 @@
-import os
-
 from datetime import datetime
+import os
 
 from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.management import call_command
 
-from odk_logger.models import Attachment, Instance
-
-from utils.image_tools import image_url
-
-from main.tests.test_base import TestBase
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.models import Attachment, Instance
+from apps.utils.image_tools import image_url
 
 
 class TestAttachment(TestBase):

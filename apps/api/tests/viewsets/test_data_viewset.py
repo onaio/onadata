@@ -1,10 +1,10 @@
 from django.test import RequestFactory
 
-from main.tests.test_base import TestBase
-from api.viewsets.data_viewset import DataViewSet
-from api.viewsets.note_viewset import NoteViewSet
-from api.viewsets.xform_viewset import XFormViewSet
-from odk_logger.models import XForm
+from apps.api.viewsets.data_viewset import DataViewSet
+from apps.api.viewsets.note_viewset import NoteViewSet
+from apps.api.viewsets.xform_viewset import XFormViewSet
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.models import XForm
 
 
 class TestDataViewSet(TestBase):

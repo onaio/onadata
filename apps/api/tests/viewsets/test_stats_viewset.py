@@ -4,11 +4,11 @@ from django.core.files.base import ContentFile
 from django.test import RequestFactory
 from mock import patch
 
-from main.tests.test_base import TestBase
-from api.viewsets.stats_viewset import StatsViewSet
-from api.viewsets.submissionstats_viewset import SubmissionStatsViewSet
-from odk_logger.models import XForm
-from utils.logger_tools import publish_xml_form, create_instance
+from apps.main.tests.test_base import TestBase
+from apps.api.viewsets.stats_viewset import StatsViewSet
+from apps.api.viewsets.submissionstats_viewset import SubmissionStatsViewSet
+from apps.odk_logger.models import XForm
+from libs.utils.logger_tools import publish_xml_form, create_instance
 
 
 class TestStatsViewSet(TestBase):

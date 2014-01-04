@@ -5,17 +5,17 @@ from rest_framework.reverse import reverse
 from rest_framework.urlpatterns import format_suffix_patterns
 from rest_framework.views import APIView
 
-from api.viewsets.data_viewset import DataViewSet
-from api.viewsets.organization_profile_viewset import\
+from apps.api.viewsets.data_viewset import DataViewSet
+from apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
-from api.viewsets.note_viewset import NoteViewSet
-from api.viewsets.project_viewset import ProjectViewSet
-from api.viewsets.stats_viewset import StatsViewSet
-from api.viewsets.team_viewset import TeamViewSet
-from api.viewsets.xform_viewset import XFormViewSet
-from api.viewsets.user_profile_viewset import UserProfileViewSet
-from api.viewsets.user_viewset import UserViewSet
-from api.viewsets.submissionstats_viewset import SubmissionStatsViewSet
+from apps.api.viewsets.note_viewset import NoteViewSet
+from apps.api.viewsets.project_viewset import ProjectViewSet
+from apps.api.viewsets.stats_viewset import StatsViewSet
+from apps.api.viewsets.team_viewset import TeamViewSet
+from apps.api.viewsets.xform_viewset import XFormViewSet
+from apps.api.viewsets.user_profile_viewset import UserProfileViewSet
+from apps.api.viewsets.user_viewset import UserViewSet
+from apps.api.viewsets.submissionstats_viewset import SubmissionStatsViewSet
 
 
 class MultiLookupRouter(routers.DefaultRouter):

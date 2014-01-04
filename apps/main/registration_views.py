@@ -1,5 +1,6 @@
-from main.models import UserProfile
 from registration.backends.default.views import RegistrationView
+
+from apps.main.models import UserProfile
 
 
 class FHRegistrationView(RegistrationView):

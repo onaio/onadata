@@ -1,5 +1,6 @@
 from django.contrib import admin
-from odk_logger.models import XForm
+
+from apps.odk_logger.models import XForm
 
 
 class FormAdmin(admin.ModelAdmin):

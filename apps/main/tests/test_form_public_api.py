@@ -2,8 +2,8 @@ import json
 
 from django.core.urlresolvers import reverse
 
+from apps.main.views import public_api
 from test_base import TestBase
-from main.views import public_api
 
 
 class TestFormPublicAPI(TestBase):

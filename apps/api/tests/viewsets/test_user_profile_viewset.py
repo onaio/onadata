@@ -1,9 +1,8 @@
 import json
 
-from main.models import UserProfile
-
-from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from api.viewsets.user_profile_viewset import UserProfileViewSet
+from apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from apps.api.viewsets.user_profile_viewset import UserProfileViewSet
+from apps.main.models import UserProfile
 
 
 class TestUserProfileViewSet(TestAbstractViewSet):

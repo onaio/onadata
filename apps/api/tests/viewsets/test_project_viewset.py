@@ -1,5 +1,5 @@
-from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
-from api.viewsets.project_viewset import ProjectViewSet
+from apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from apps.api.viewsets.project_viewset import ProjectViewSet
 
 
 class TestProjectViewset(TestAbstractViewSet):

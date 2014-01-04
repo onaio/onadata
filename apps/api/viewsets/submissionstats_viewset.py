@@ -4,10 +4,9 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
-from api.tools import get_accessible_forms,\
+from apps.api.tools import get_accessible_forms,\
     get_form_submissions_grouped_by_field, get_xform
-
-from odk_logger.models import Instance
+from apps.odk_logger.models import Instance
 
 
 class SubmissionStatsViewSet(viewsets.ViewSet):

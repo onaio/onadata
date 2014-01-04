@@ -1,9 +1,11 @@
-from test_base import TestBase
-from main.views import edit
 from django.core.urlresolvers import reverse
-from odk_logger.models import XForm
-from main.models import MetaData
-from odk_logger.views import delete_xform
+
+from apps.main.models import MetaData
+from apps.main.views import edit
+from apps.odk_logger.models import XForm
+from apps.odk_logger.views import delete_xform
+from test_base import TestBase
+
 
 class TestFormEdit(TestBase):
 
@@ -21,7 +23,7 @@ class TestFormEdit(TestBase):
         self.xform.save()
         desc = 'Snooky'
         response = self.anon.post(self.edit_url, {'description': desc},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                  HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertNotEqual(
             XForm.objects.get(pk=self.xform.pk).description, desc)
         self.assertEqual(response.status_code, 302)
@@ -32,7 +34,7 @@ class TestFormEdit(TestBase):
         desc = 'Snooky'
         self._create_user_and_login("jo")
         response = self.client.post(self.edit_url, {'description': desc},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 403)
         self.assertNotEqual(
             XForm.objects.get(pk=self.xform.pk).description, desc)
@@ -40,35 +42,35 @@ class TestFormEdit(TestBase):
     def test_user_description_edit_updates(self):
         desc = 'Snooky'
         response = self.client.post(self.edit_url, {'description': desc},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(XForm.objects.get(pk=self.xform.pk).description, desc)
 
     def test_user_title_edit_updates(self):
         desc = 'Snooky'
         response = self.client.post(self.edit_url, {'title': desc},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(XForm.objects.get(pk=self.xform.pk).title, desc)
 
     def test_user_form_license_edit_updates(self):
         desc = 'Snooky'
         response = self.client.post(self.edit_url, {'form-license': desc},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(MetaData.form_license(self.xform).data_value, desc)
 
     def test_user_data_license_edit_updates(self):
         desc = 'Snooky'
         response = self.client.post(self.edit_url, {'data-license': desc},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(MetaData.data_license(self.xform).data_value, desc)
 
     def test_user_toggle_data_privacy(self):
         self.assertEqual(self.xform.shared, False)
         response = self.client.post(self.edit_url, {'toggle_shared': 'data'},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(XForm.objects.get(pk=self.xform.pk).shared_data, True)
 
@@ -76,14 +78,15 @@ class TestFormEdit(TestBase):
         self.xform.shared_data = True
         self.xform.save()
         response = self.client.post(self.edit_url, {'toggle_shared': 'data'},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(XForm.objects.get(pk=self.xform.pk).shared_data, False)
+        self.assertEqual(
+            XForm.objects.get(pk=self.xform.pk).shared_data, False)
 
     def test_user_toggle_form_privacy(self):
         self.assertEqual(self.xform.shared, False)
         response = self.client.post(self.edit_url, {'toggle_shared': 'form'},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(XForm.objects.get(pk=self.xform.pk).shared, True)
 
@@ -91,7 +94,7 @@ class TestFormEdit(TestBase):
         self.xform.shared = True
         self.xform.save()
         response = self.client.post(self.edit_url, {'toggle_shared': 'form'},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(XForm.objects.get(pk=self.xform.pk).shared, False)
 
@@ -100,17 +103,19 @@ class TestFormEdit(TestBase):
         self.xform.save()
         self.assertEqual(self.xform.downloadable, False)
         response = self.client.post(self.edit_url, {'toggle_shared': 'active'},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(XForm.objects.get(pk=self.xform.pk).downloadable, True)
+        self.assertEqual(
+            XForm.objects.get(pk=self.xform.pk).downloadable, True)
 
     def test_user_toggle_form_downloadable_off(self):
         self.xform.downloadable = True
         self.xform.save()
         response = self.client.post(self.edit_url, {'toggle_shared': 'active'},
-            HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+                                    HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(XForm.objects.get(pk=self.xform.pk).downloadable, False)
+        self.assertEqual(
+            XForm.objects.get(pk=self.xform.pk).downloadable, False)
 
     def test_delete_404(self):
         bad_delete_url = reverse(delete_xform, kwargs={

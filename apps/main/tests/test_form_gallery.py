@@ -1,9 +1,10 @@
 import os
 
-from test_base import TestBase
-from main.views import clone_xlsform
-from odk_logger.models import XForm
 from django.core.urlresolvers import reverse
+
+from apps.main.views import clone_xlsform
+from apps.odk_logger.models import XForm
+from test_base import TestBase
 
 
 class TestFormGallery(TestBase):

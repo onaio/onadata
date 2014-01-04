@@ -1,9 +1,11 @@
-from test_base import TestBase
-from odk_logger.views import formList
-from django.core.urlresolvers import reverse
-from main.models import UserProfile
-from main.views import login_redirect
 import base64
+
+from django.core.urlresolvers import reverse
+
+from apps.main.models import UserProfile
+from apps.main.views import login_redirect
+from apps.odk_logger.views import formList
+from test_base import TestBase
 
 
 class TestFormAuth(TestBase):

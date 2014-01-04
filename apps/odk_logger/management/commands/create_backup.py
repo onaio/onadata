@@ -1,9 +1,12 @@
 import os
+
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext_lazy, ugettext as _
 from django.contrib.auth.models import User
-from odk_logger.models import XForm
-from utils.backup_tools import create_zip_backup
+
+from apps.odk_logger.models import XForm
+from libs.utils.backup_tools import create_zip_backup
+
 
 class Command(BaseCommand):
     args = 'username id_string output_file'
@@ -25,7 +28,8 @@ class Command(BaseCommand):
         try:
             id_string = args[1]
         except IndexError:
-            raise CommandError(_("You must provide the id_string of the form."))
+            raise CommandError(_(
+                "You must provide the id_string of the form."))
             # make sure user exists
         try:
             xform = XForm.objects.get(user=user, id_string=id_string)

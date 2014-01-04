@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext_lazy
 from optparse import make_option
 
-from libs.odk_viewer.models import ParsedInstance
+from apps.odk_viewer.models import ParsedInstance
 from libs.utils.common_tags import USERFORM_ID
 
 
@@ -28,7 +28,7 @@ class Command(BaseCommand):
             raise CommandError("username and id_string must either both be "
                                "specified or neither")
         elif kwargs.get('username') and kwargs.get('id_string'):
-            from odk_logger.models import XForm, Instance
+            from apps.odk_logger.models import XForm, Instance
             xform = XForm.objects.get(user__username=kwargs.get('username'),
                                       id_string=kwargs.get('id_string'))
             ids = [i.pk for i in Instance.objects.filter(xform=xform)]

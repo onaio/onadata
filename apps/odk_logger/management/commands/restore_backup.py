@@ -1,9 +1,11 @@
 import os
 import sys
+
+from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext_lazy, ugettext as _
-from django.contrib.auth.models import User
-from utils.backup_tools import restore_backup_from_zip
+
+from libs.utils.backup_tools import restore_backup_from_zip
 
 
 class Command(BaseCommand):
@@ -19,7 +21,7 @@ class Command(BaseCommand):
                                  " form to."))
             # make sure user exists
         try:
-            user = User.objects.get(username=username)
+            User.objects.get(username=username)
         except User.DoesNotExist:
             raise CommandError(_("The user '%s' does not exist.") % username)
 

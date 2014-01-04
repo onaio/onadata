@@ -1,5 +1,5 @@
 import celery
-from stats.models import StatsCount
+from apps.stats.models import StatsCount
 
 
 @celery.task

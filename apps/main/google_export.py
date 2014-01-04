@@ -8,9 +8,9 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 
-from main.models import TokenStorageModel
-from main.views import home
-from utils.google import oauth2_token, get_refreshed_token, redirect_uri
+from apps.main.models import TokenStorageModel
+from apps.main.views import home
+from libs.utils.google import oauth2_token, get_refreshed_token, redirect_uri
 
 
 def google_oauth2_request(request):

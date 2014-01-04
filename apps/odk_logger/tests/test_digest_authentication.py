@@ -1,8 +1,9 @@
 import os
 
 from django_digest.test import Client as DigestClient
-from main.tests.test_base import TestBase
-from main.models import UserProfile
+
+from apps.main.tests.test_base import TestBase
+from apps.main.models import UserProfile
 
 
 class TestDigestAuthentication(TestBase):

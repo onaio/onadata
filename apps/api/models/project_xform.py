@@ -1,8 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-from api.models.project import Project
-from odk_logger.models import XForm
+from apps.api.models.project import Project
+from apps.odk_logger.models import XForm
 
 
 class ProjectXForm(models.Model):

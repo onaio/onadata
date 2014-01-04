@@ -5,8 +5,10 @@ from django.db.models.signals import post_save
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.conf import settings
-from odk_logger.models import XForm
-from utils import common_tags
+
+from apps.odk_logger.models import XForm
+from apps.restservice.utils import call_ziggy_services
+from libs.utils import common_tags
 
 xform_instances = settings.MONGO_DB.instances
 mongo_ziggys = settings.MONGO_DB.ziggys
@@ -145,7 +147,7 @@ class ZiggyInstance(models.Model):
     @classmethod
     def merge_ziggy_form_instances(cls, source_data, update_data):
         for item in update_data:
-            # check for the item in a, update if it exists otherwise append to a
+            # check for the item in a, update if it exists otherwise append
             matches = filter(
                 cls.field_by_name_exists(item['name']), source_data)
             if len(matches) > 0:
@@ -171,8 +173,8 @@ def ziggy_to_formhub_instance(ziggy_instance):
 
 def rest_service_ziggy_submission(sender, instance, raw, created,
                                   update_fields, **kwargs):
-    from restservice.utils import call_ziggy_services
-    # todo: this only works if the formName within ziggy matches this form's name
+    # TODO: this only works if the formName within ziggy matches this form's
+    # name
     if created and instance.xform:
         # convert instance to a mongo style record
         formhub_instance = ziggy_to_formhub_instance(instance)

@@ -3,9 +3,10 @@
 
 from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext_lazy
-from odk_logger.models import XForm
-from odk_viewer.models import ParsedInstance
-from utils.model_tools import queryset_iterator
+
+from apps.odk_logger.models import XForm
+from apps.odk_viewer.models import ParsedInstance
+from libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):

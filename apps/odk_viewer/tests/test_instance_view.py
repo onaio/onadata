@@ -1,7 +1,8 @@
 from django.core.urlresolvers import reverse
-from main.tests.test_base import TestBase
-from odk_viewer.views import instance
 from guardian.shortcuts import assign_perm, remove_perm
+
+from apps.main.tests.test_base import TestBase
+from apps.odk_viewer.views import instance
 
 
 class TestInstanceView(TestBase):

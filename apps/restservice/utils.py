@@ -1,4 +1,4 @@
-from restservice.models import RestService
+from apps.restservice.models import RestService
 
 
 def call_service(parsed_instance):

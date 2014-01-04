@@ -24,7 +24,6 @@ from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
 import sys
-from utils import common_tags
 
 from apps.odk_logger.models import Attachment
 from apps.odk_logger.models import Instance
@@ -39,6 +38,7 @@ from apps.odk_logger.xform_instance_parser import InstanceInvalidUserError, \
 from apps.odk_viewer.models.parsed_instance import _remove_from_mongo
 from apps.odk_viewer.models.parsed_instance import xform_instances
 from apps.odk_viewer.models import ParsedInstance, DataDictionary
+from libs.utils import common_tags
 from libs.utils.model_tools import queryset_iterator, set_uuid
 
 

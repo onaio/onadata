@@ -13,14 +13,12 @@ from django.core.urlresolvers import reverse
 from django.test import RequestFactory
 from django_digest.test import Client as DigestClient
 
-from main.models import MetaData
-from main.tests.test_base import TestBase
-from main.views import profile, download_media_data
-
-from odk_logger.models import Instance, XForm
-from odk_logger.views import formList, download_xform, xformsManifest
-
-from utils.briefcase_client import BriefcaseClient
+from apps.main.models import MetaData
+from apps.main.tests.test_base import TestBase
+from apps.main.views import profile, download_media_data
+from apps.odk_logger.models import Instance, XForm
+from apps.odk_logger.views import formList, download_xform, xformsManifest
+from libs.utils.briefcase_client import BriefcaseClient
 
 storage = get_storage_class()()
 

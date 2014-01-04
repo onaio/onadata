@@ -2,9 +2,10 @@ import os
 
 from django.core.urlresolvers import reverse
 from django.conf import settings
-from main.tests.test_base import TestBase
-from odk_logger.models import Attachment
-from odk_viewer.views import attachment_url
+
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.models import Attachment
+from apps.odk_viewer.views import attachment_url
 
 
 class TestAttachmentUrl(TestBase):

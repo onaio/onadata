@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
 
 """ Ushaidi's SMSSync gateway
 
@@ -17,8 +16,8 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.translation import ugettext as _
 
-from sms_support.tools import SMS_API_ERROR, SMS_SUBMISSION_ACCEPTED
-from sms_support.parser import process_incoming_smses
+from apps.sms_support.tools import SMS_API_ERROR, SMS_SUBMISSION_ACCEPTED
+from apps.sms_support.parser import process_incoming_smses
 
 
 def autodoc(url_root, username, id_string):

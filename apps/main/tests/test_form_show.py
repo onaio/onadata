@@ -3,13 +3,14 @@ from unittest import skip
 
 from django.core.urlresolvers import reverse
 
-from main.views import show, form_photos, update_xform, profile, enketo_preview
-from odk_logger.models import XForm
-from odk_logger.views import download_xlsform, download_jsonform,\
+from apps.main.views import show, form_photos, update_xform, profile,\
+    enketo_preview
+from apps.odk_logger.models import XForm
+from apps.odk_logger.views import download_xlsform, download_jsonform,\
     download_xform, delete_xform
-from odk_viewer.models import ParsedInstance
-from odk_viewer.views import export_list, map_view
-from utils.user_auth import http_auth_string
+from apps.odk_viewer.models import ParsedInstance
+from apps.odk_viewer.views import export_list, map_view
+from libs.utils.user_auth import http_auth_string
 from test_base import TestBase
 
 

@@ -1,6 +1,7 @@
+from hashlib import md5
+import json
 import os
 import re
-import json
 
 from django.conf import settings
 from django.db import models
@@ -9,15 +10,11 @@ from django.core.urlresolvers import reverse
 from django.db.models.signals import post_save, post_delete
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy, ugettext as _
-
 from guardian.shortcuts import assign_perm, get_perms_for_model
-
 from taggit.managers import TaggableManager
 
-from odk_logger.xform_instance_parser import XLSFormError
-from stats.tasks import stat_log
-
-from hashlib import md5
+from apps.odk_logger.xform_instance_parser import XLSFormError
+from apps.stats.tasks import stat_log
 
 
 def upload_to(instance, filename):
@@ -102,7 +99,7 @@ class XForm(models.Model):
         )
 
     def data_dictionary(self):
-        from odk_viewer.models import DataDictionary
+        from apps.odk_viewer.models import DataDictionary
         return DataDictionary.objects.get(pk=self.pk)
 
     @property
@@ -174,7 +171,7 @@ class XForm(models.Model):
     submission_count.short_description = ugettext_lazy("Submission Count")
 
     def geocoded_submission_count(self):
-        from odk_viewer.models import ParsedInstance
+        from apps.odk_viewer.models import ParsedInstance
         return ParsedInstance.objects.filter(
             instance__in=self.surveys.filter(is_deleted=False),
             lat__isnull=False).count()

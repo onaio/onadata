@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # vim: ai ts=4 sts=4 et sw=4 fileencoding=utf-8
 import json
+
 from django.conf import settings
 from django.core.management import BaseCommand
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.translation import ugettext_lazy
-from odk_logger.models import Instance
+
+from apps.odk_logger.models import Instance
 
 
 class Command(BaseCommand):

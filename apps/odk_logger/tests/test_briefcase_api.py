@@ -6,14 +6,13 @@ from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
 from django_digest.test import Client as DigestClient
 
-from main.tests.test_base import TestBase
-
-from odk_logger.views import view_submission_list
-from odk_logger.views import view_download_submission
-from odk_logger.views import form_upload
-from odk_logger.views import submission
-from odk_logger.models import Instance
-from odk_logger.models import XForm
+from apps.main.tests.test_base import TestBase
+from apps.odk_logger.views import view_submission_list
+from apps.odk_logger.views import view_download_submission
+from apps.odk_logger.views import form_upload
+from apps.odk_logger.views import submission
+from apps.odk_logger.models import Instance
+from apps.odk_logger.models import XForm
 
 NUM_INSTANCES = 4
 storage = get_storage_class()()

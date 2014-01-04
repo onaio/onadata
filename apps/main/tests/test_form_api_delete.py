@@ -1,12 +1,13 @@
 from datetime import datetime
-from django.core.urlresolvers import reverse
-from odk_logger.models.instance import Instance
 
-from test_base import TestBase
-from main.views import delete_data
-from odk_viewer.models.parsed_instance import ParsedInstance
-from utils import common_tags
 from django.conf import settings
+from django.core.urlresolvers import reverse
+
+from apps.main.views import delete_data
+from apps.odk_viewer.models.parsed_instance import ParsedInstance
+from apps.odk_logger.models.instance import Instance
+from libs.utils import common_tags
+from test_base import TestBase
 
 
 class TestFormAPIDelete(TestBase):
@@ -77,7 +78,7 @@ class TestFormAPIDelete(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             Instance.objects.filter(deleted_at=None).count(), count - 1)
-        instance  = Instance.objects.get(id=instance.id)
+        instance = Instance.objects.get(id=instance.id)
         self.assertTrue(isinstance(instance.deleted_at, datetime))
         self.assertTrue(instance.is_deleted, True)
         query = '{"_id": %s}' % instance.id
@@ -99,10 +100,11 @@ class TestFormAPIDelete(TestBase):
             Instance.objects.filter(
                 xform=self.xform, deleted_at=None).count(), count - 1)
         # check that instance's deleted_at is set
-        instance  = Instance.objects.get(id=instance.id)
+        instance = Instance.objects.get(id=instance.id)
         self.assertTrue(isinstance(instance.deleted_at, datetime))
         # check mongo record was marked as deleted
-        cursor = settings.MONGO_DB.instances.find({common_tags.ID: instance.id})
+        cursor = settings.MONGO_DB.instances.find(
+            {common_tags.ID: instance.id})
         self.assertEqual(cursor.count(), 1)
         record = cursor.next()
         self.assertIsNotNone(record[common_tags.DELETEDAT])

@@ -6,8 +6,8 @@ import zipfile
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
-from utils.logger_tools import create_instance
-from odk_logger.xform_fs import XFormInstanceFS
+from apps.odk_logger.xform_fs import XFormInstanceFS
+from libs.utils.logger_tools import create_instance
 
 # odk
 # ├── forms

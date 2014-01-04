@@ -1,7 +1,7 @@
-from main.tests.test_base import TestBase
-from api import tools
-from api.models.organization_profile import OrganizationProfile
-from api.models.team import Team
+from apps.main.tests.test_base import TestBase
+from apps.api import tools
+from apps.api.models.organization_profile import OrganizationProfile
+from apps.api.models.team import Team
 
 
 class TestOrganizationProfile(TestBase):

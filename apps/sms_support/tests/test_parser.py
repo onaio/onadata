@@ -1,12 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# vim: ai ts=4 sts=4 et sw=4 nu
-
-# from django.core.urlresolvers import reverse
+from apps.sms_support.tools import SMS_API_ERROR, SMS_PARSING_ERROR,\
+    SMS_SUBMISSION_ACCEPTED, SMS_SUBMISSION_REFUSED
 from test_base_sms import TestBaseSMS
-from sms_support.tools import (SMS_API_ERROR, SMS_PARSING_ERROR,
-                               SMS_SUBMISSION_ACCEPTED,
-                               SMS_SUBMISSION_REFUSED)
 
 
 class TestParser(TestBaseSMS):

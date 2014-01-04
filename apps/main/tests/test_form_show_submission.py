@@ -1,8 +1,9 @@
-from test_base import TestBase
-from main.views import home, show_submission
-from odk_viewer.views import survey_responses
 from django.core.urlresolvers import reverse
 from guardian.shortcuts import assign_perm
+
+from apps.main.views import home, show_submission
+from apps.odk_viewer.views import survey_responses
+from test_base import TestBase
 
 
 class TestFormShowSubmission(TestBase):

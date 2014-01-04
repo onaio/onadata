@@ -1,7 +1,7 @@
 from django.core.urlresolvers import reverse
-from django.test.client import Client
-from main.tests.test_base import TestBase
-from main import views
+
+from apps.main.tests.test_base import TestBase
+from apps.main import views
 
 
 class TestBasicHttpAuthentication(TestBase):
@@ -21,11 +21,11 @@ class TestBasicHttpAuthentication(TestBase):
         self.assertEqual(response.status_code, 403)
         # headers with invalid user/pass
         response = self.client.get(self.api_url,
-                                    **self._set_auth_headers('x', 'y'))
+                                   **self._set_auth_headers('x', 'y'))
         self.assertEqual(response.status_code, 403)
         # headers with valid user/pass
         response = self.client.get(self.api_url,
-            **self._set_auth_headers('bob', 'bob'))
+                                   **self._set_auth_headers('bob', 'bob'))
         self.assertEqual(response.status_code, 200)
 
     def test_http_auth_shared_data(self):

@@ -1,7 +1,8 @@
-from test_base import TestBase
-from main.models import UserProfile
 from django.core.urlresolvers import reverse
-from main.views import profile_settings
+
+from apps.main.models import UserProfile
+from apps.main.views import profile_settings
+from test_base import TestBase
 
 
 class TestUserSettings(TestBase):
