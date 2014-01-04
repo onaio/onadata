@@ -2,6 +2,7 @@ import numpy as np
 
 from datetime import datetime
 
+from django.conf import settings
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection
@@ -49,6 +50,20 @@ def _get_id_for_type(record, mongo_field):
 
     return {"$substr": [mongo_str, 0, 10]} if isinstance(date_field, datetime)\
         else mongo_str
+
+
+@property
+def using_postgres():
+    return settings.DATABASES[
+        'default']['ENGINE'] == 'django.db.backends.postgresql_psycopg2'
+
+
+def _count_group(table, field, name):
+    if using_postgres:
+        result = _postgres_count_group(table, field, name)
+    else:
+        raise Exception("Unsopported Database")
+    return result
 
 
 def _postgres_count_group(table, field, name):
@@ -176,7 +191,7 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
     if not name:
         name = field
 
-    cursor.execute(_postgres_count_group('odk_logger_instance', field, name))
+    cursor.execute(_count_group('odk_logger_instance', field, name))
     result = _dictfetchall(cursor)
 
     if result[0][name] is None:
