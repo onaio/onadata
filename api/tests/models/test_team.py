@@ -2,10 +2,10 @@ from django.contrib.auth.models import Permission
 
 from api import tools
 from api.models.team import Team
-from api.tests.test_models import TestModels
+from api.tests.test_abstract_models import TestAbstractModels
 
 
-class TestTeam(TestModels):
+class TestTeam(TestAbstractModels):
 
     def test_create_organization_team(self):
         profile = tools.create_organization("modilabs", self.user)

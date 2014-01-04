@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from main.models import UserProfile
 from main.views import profile
 
-# do not inherit from MainTestCase because we don't want auto login
+# do not inherit from TestBase because we don't want auto login
 class TestUserProfile(TestCase):
     def setup(self):
         self.client = Client()

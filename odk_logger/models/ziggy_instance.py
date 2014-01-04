@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 from odk_logger.models import XForm
-import common_tags
+from utils import common_tags
 
 xform_instances = settings.MONGO_DB.instances
 mongo_ziggys = settings.MONGO_DB.ziggys

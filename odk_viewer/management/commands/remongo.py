@@ -4,7 +4,7 @@ from optparse import make_option
 from django.utils.translation import ugettext_lazy, ugettext as _
 from odk_viewer.models import ParsedInstance
 from utils.model_tools import queryset_iterator
-from common_tags import USERFORM_ID
+from utils.common_tags import USERFORM_ID
 
 class Command(BaseCommand):
     help = ugettext_lazy("Insert all existing parsed instances into MongoDB")

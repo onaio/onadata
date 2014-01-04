@@ -1,14 +1,13 @@
 import json
 
-from api.tests.test_api import TestAPI
-
 from api.models import Team
+from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from api.viewsets.team_viewset import TeamViewSet
 
 
-class TestTeamsAPI(TestAPI):
+class TestTeamViewSet(TestAbstractViewSet):
     def setUp(self):
-        super(TestTeamsAPI, self).setUp()
+        super(self.__class__, self).setUp()
         self.view = TeamViewSet.as_view({
             'get': 'list',
             'post': 'create'
@@ -24,8 +23,9 @@ class TestTeamsAPI(TestAPI):
             'name': u'Owners',
             'organization': 'http://testserver/api/v1/users/denoinc',
             'projects': []}
+
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [owner_team, self.team_data])
+        self.assertEqual(sorted(response.data), [owner_team, self.team_data])
 
     def test_teams_get(self):
         self._team_create()

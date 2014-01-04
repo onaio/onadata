@@ -1,11 +1,11 @@
-from test_base import MainTestCase
+from test_base import TestBase
 import os
 from odk_viewer.models import ParsedInstance, DataDictionary
 from django.core.urlresolvers import reverse
 import odk_viewer
 
 
-class TestGPS(MainTestCase):
+class TestGPS(TestBase):
 
     def test_gps(self):
         self._create_user_and_login()
@@ -18,7 +18,7 @@ class TestGPS(MainTestCase):
         self.this_directory = os.path.dirname(__file__)
         xls_path = os.path.join(
             self.this_directory, "fixtures", "gps", "gps.xls")
-        MainTestCase._publish_xls_file(self, xls_path)
+        TestBase._publish_xls_file(self, xls_path)
 
     def _make_submissions(self):
         surveys = ['gps_1980-01-23_20-52-08',

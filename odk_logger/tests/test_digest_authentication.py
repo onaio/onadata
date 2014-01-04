@@ -1,13 +1,13 @@
 import os
 
 from django_digest.test import Client as DigestClient
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from main.models import UserProfile
 
 
-class TestDigestAuthentication(MainTestCase):
+class TestDigestAuthentication(TestBase):
     def setUp(self):
-        super(MainTestCase, self).setUp()
+        super(TestBase, self).setUp()
         self._create_user_and_login()
         self._publish_transportation_form()
 

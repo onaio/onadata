@@ -4,10 +4,10 @@ from django.utils.dateparse import parse_datetime
 from django.core.urlresolvers import reverse
 from tempfile import NamedTemporaryFile
 from odk_logger.models.xform import XForm
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from odk_logger.xform_instance_parser import xform_instance_to_dict
 from odk_viewer.pandas_mongo_bridge import *
-from common_tags import NA_REP
+from utils.common_tags import NA_REP
 
 def xls_filepath_from_fixture_name(fixture_name):
     """
@@ -27,7 +27,7 @@ def xml_inst_filepath_from_fixture_name(fixture_name, instance_name):
     )
 
 
-class TestPandasMongoBridge(MainTestCase):
+class TestPandasMongoBridge(TestBase):
     def setUp(self):
         self._create_user_and_login()
         self._submission_time=parse_datetime('2013-02-18 15:54:01Z')

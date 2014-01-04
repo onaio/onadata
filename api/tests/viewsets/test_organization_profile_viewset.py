@@ -1,12 +1,12 @@
-from api.tests.test_api import TestAPI
+from api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
 from api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 
 
-class TestOrgsAPI(TestAPI):
+class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
     def setUp(self):
-        super(TestOrgsAPI, self).setUp()
+        super(self.__class__, self).setUp()
         self.view = OrganizationProfileViewSet.as_view({
             'get': 'list',
             'post': 'create'

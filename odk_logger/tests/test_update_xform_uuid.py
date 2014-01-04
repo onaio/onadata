@@ -1,13 +1,13 @@
 import os
 import csv
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from odk_logger.models.xform import XForm, DuplicateUUIDError
 from odk_logger.management.commands.update_xform_uuids import Command
 from utils.model_tools import update_xform_uuid
 
-class TestUpdateXFormUUID(MainTestCase):
+class TestUpdateXFormUUID(TestBase):
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._publish_transportation_form()
         #
         self.csv_filepath = os.path.join(

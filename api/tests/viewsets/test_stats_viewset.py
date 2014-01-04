@@ -2,24 +2,27 @@ import os
 
 from django.core.files.base import ContentFile
 from django.test import RequestFactory
+from mock import patch
 
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from api.viewsets.stats_viewset import StatsViewSet
 from api.viewsets.submissionstats_viewset import SubmissionStatsViewSet
 from odk_logger.models import XForm
 from utils.logger_tools import publish_xml_form, create_instance
 
 
-class TestStatsAPI(MainTestCase):
+class TestStatsViewSet(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self.factory = RequestFactory()
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
-    def test_form_list(self):
+    @patch('odk_logger.models.instance.submission_time')
+    def test_form_list(self, mock_time):
+        self._set_mock_time(mock_time)
         self._publish_transportation_form()
         self._make_submissions()
         view = SubmissionStatsViewSet.as_view({'get': 'list'})
@@ -51,7 +54,7 @@ class TestStatsAPI(MainTestCase):
     def _contributions_form_submissions(self):
         count = XForm.objects.count()
         path = os.path.join(os.path.dirname(__file__),
-                            'fixtures', 'forms', 'contributions')
+                            '..', 'fixtures', 'forms', 'contributions')
         form_path = os.path.join(path, 'contributions.xml')
         f = open(form_path)
         xml_file = ContentFile(f.read())

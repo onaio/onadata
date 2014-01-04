@@ -1,4 +1,4 @@
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 #from django.test import TestCase
 from odk_logger.models import Instance
 import os
@@ -19,10 +19,10 @@ def images_count(username="bob"):
     return len(images)
 
 
-class TestImportingDatabase(MainTestCase):
+class TestImportingDatabase(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._publish_xls_file(
             os.path.join(
                 settings.PROJECT_ROOT,

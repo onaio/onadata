@@ -5,9 +5,9 @@ from utils.google import oauth2_token as token
 from main.google_export import refresh_access_token
 from odk_viewer.views import google_xls_export
 
-from test_base import MainTestCase
+from test_base import TestBase
 
-class TestGoogleDocsExport(MainTestCase):
+class TestGoogleDocsExport(TestBase):
 
     def setUp(self):
         self.token = token

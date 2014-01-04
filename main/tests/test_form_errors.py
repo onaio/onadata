@@ -1,5 +1,5 @@
 from unittest import skip
-from test_base import MainTestCase
+from test_base import TestBase
 from odk_logger.models import XForm
 from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
@@ -7,7 +7,7 @@ from main.views import show
 import os
 
 
-class TestFormErrors(MainTestCase):
+class TestFormErrors(TestBase):
 
     def _create_xform(self):
         self.xls_path = os.path.join(

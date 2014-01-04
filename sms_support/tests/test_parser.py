@@ -3,16 +3,16 @@
 # vim: ai ts=4 sts=4 et sw=4 nu
 
 # from django.core.urlresolvers import reverse
-from test_base import TestBase
+from test_base_sms import TestBaseSMS
 from sms_support.tools import (SMS_API_ERROR, SMS_PARSING_ERROR,
                                SMS_SUBMISSION_ACCEPTED,
                                SMS_SUBMISSION_REFUSED)
 
 
-class TestParser(TestBase):
+class TestParser(TestBaseSMS):
 
     def setUp(self):
-        TestBase.setUp(self)
+        TestBaseSMS.setUp(self)
         self.setup_form(allow_sms=True)
 
     def test_api_error(self):

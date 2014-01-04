@@ -4,25 +4,27 @@ import re
 import socket
 import urllib2
 from tempfile import NamedTemporaryFile
+from time import strftime
 
 from cStringIO import StringIO
+from utils.common_tags import MONGO_STRFTIME
 
 from django.contrib.auth.models import User
 from django_digest.test import Client as DigestClient
-from django.test import TestCase
-# from django_nose import FastFixtureTestCase as TestCase
+from django.test import TransactionTestCase
 from django.test.client import Client
 
 from odk_logger.models import XForm, Instance, Attachment
 from django.conf import settings
 
 
-class MainTestCase(TestCase):
+class TestBase(TransactionTestCase):
 
     surveys = ['transport_2011-07-25_19-05-49',
                'transport_2011-07-25_19-05-36',
                'transport_2011-07-25_19-06-01',
                'transport_2011-07-25_19-06-14']
+    this_directory = os.path.dirname(__file__)
 
     def setUp(self):
         self.maxDiff = None
@@ -32,6 +34,9 @@ class MainTestCase(TestCase):
     def tearDown(self):
         # clear mongo db after each test
         settings.MONGO_DB.instances.drop()
+
+    def _fixture_path(self, *args):
+        return os.path.join(os.path.dirname(__file__), 'fixtures', *args)
 
     def _create_user(self, username, password):
         user, created = User.objects.get_or_create(username=username)
@@ -56,8 +61,6 @@ class MainTestCase(TestCase):
         self.client = self._login(username, password)
         self.anon = Client()
 
-    this_directory = os.path.dirname(__file__)
-
     def _publish_xls_file(self, path):
         if not path.startswith('/%s/' % self.user.username):
             path = os.path.join(self.this_directory, path)
@@ -68,7 +71,7 @@ class MainTestCase(TestCase):
     def _publish_xlsx_file(self):
         path = os.path.join(self.this_directory, 'fixtures', 'exp.xlsx')
         pre_count = XForm.objects.count()
-        response = MainTestCase._publish_xls_file(self, path)
+        response = TestBase._publish_xls_file(self, path)
         # make sure publishing the survey worked
         self.assertEqual(response.status_code, 200)
         self.assertEqual(XForm.objects.count(), pre_count + 1)
@@ -89,7 +92,7 @@ class MainTestCase(TestCase):
             self.this_directory, "fixtures",
             "transportation", "transportation.xls")
         count = XForm.objects.count()
-        MainTestCase._publish_xls_file(self, xls_path)
+        TestBase._publish_xls_file(self, xls_path)
         self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.order_by('pk').reverse()[0]
 
@@ -220,3 +223,7 @@ class MainTestCase(TestCase):
         else:
             contents = response.content
         return contents
+
+    def _set_mock_time(self, mock_time):
+        current_time = strftime(MONGO_STRFTIME)
+        mock_time.return_value = current_time

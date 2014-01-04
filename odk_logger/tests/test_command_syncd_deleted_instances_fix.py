@@ -1,14 +1,14 @@
 from datetime import datetime
 from django.utils import timezone
 from django.core.management import call_command
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from odk_logger.models import Instance
 
 
-class CommandSyncDeletedTests(MainTestCase):
+class CommandSyncDeletedTests(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self._publish_transportation_form_and_submit_instance()
 

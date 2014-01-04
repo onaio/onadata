@@ -4,8 +4,8 @@ import os
 from django.conf import settings
 from django.test import TestCase, Client
 
-import common_tags
-from main.tests.test_base import MainTestCase
+from utils import common_tags
+from main.tests.test_base import TestBase
 from odk_logger.models import XForm
 from datetime import date
 
@@ -14,9 +14,9 @@ Testing that data in parsed instance's mongo_dict is properly categorized.
 '''
 
 
-class TestMongoData(MainTestCase):
+class TestMongoData(TestBase):
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self.instances = settings.MONGO_DB.instances
         self.instances.remove()
         self.assertEquals(list(self.instances.find()), [])

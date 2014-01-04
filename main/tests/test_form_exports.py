@@ -1,8 +1,8 @@
-from test_base import MainTestCase
+from test_base import TestBase
 from odk_viewer.views import zip_export, kml_export, export_download
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from common_tags import MONGO_STRFTIME
+from utils.common_tags import MONGO_STRFTIME
 
 import os
 import time
@@ -14,10 +14,10 @@ from utils.export_tools import generate_export
 from odk_viewer.models import Export
 
 
-class TestFormExports(MainTestCase):
+class TestFormExports(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self._publish_transportation_form_and_submit_instance()
         self.csv_url = reverse('csv_export', kwargs={

@@ -1,15 +1,18 @@
 # this preset is used for automated testing of formhub
 #
-from formhub.settings import *
+from formhub.settings import *  # nopep8
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'formhub_test',
-        'USER': 'travis',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'onadata_test',
+        'USER': 'postgres',
         'PASSWORD': '',
         'HOST': '127.0.0.1',
-        'PORT': '3306',
+        'OPTIONS': {
+            # note: this option obsolete starting with django 1.6
+            'autocommit': True,
+        }
     }
 }
 

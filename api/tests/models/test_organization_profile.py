@@ -1,10 +1,10 @@
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from api import tools
 from api.models.organization_profile import OrganizationProfile
 from api.models.team import Team
 
 
-class TestOrganizationProfile(MainTestCase):
+class TestOrganizationProfile(TestBase):
     def test_create_organization_creates_team_and_perms(self):
         # create a user - bob
         profile = tools.create_organization("modilabs", self.user)

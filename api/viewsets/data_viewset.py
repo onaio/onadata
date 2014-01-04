@@ -145,8 +145,8 @@ parameter to apply form data specific, see
 http://www.mongodb.org/display/DOCS/Querying</a>.
 
 For more details see
-<a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)
-#api-parameters">
+<a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)#
+api-parameters">
 API Parameters</a>.
 <pre class="prettyprint">
 <b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>
@@ -350,8 +350,7 @@ or to delete the tag "hello world"
             xform = check_and_set_form_by_id_string(formid, request)
         if not xform:
             raise exceptions.PermissionDenied(
-                _("You do not have permission to "
-                    "view data from this form."))
+                _("You do not have permission to view data from this form."))
         status = 400
         instance = get_object_or_404(ParsedInstance, instance__pk=int(dataid))
         if request.method == 'POST':

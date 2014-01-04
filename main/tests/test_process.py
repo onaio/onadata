@@ -15,8 +15,8 @@ from odk_logger.models import XForm
 from odk_logger.views import submission
 from odk_viewer.models import DataDictionary
 from main.models import MetaData
-from test_base import MainTestCase
-from common_tags import UUID, SUBMISSION_TIME
+from test_base import TestBase
+from utils.common_tags import UUID, SUBMISSION_TIME
 from odk_logger.xform_instance_parser import clean_and_parse_xml
 
 
@@ -25,7 +25,15 @@ uuid_regex = re.compile(
 xform_instances = settings.MONGO_DB.instances
 
 
-class TestSite(MainTestCase):
+class TestProcess(TestBase):
+    loop_str = 'loop_over_transport_types_frequency'
+    frequency_str = 'frequency_to_referral_facility'
+    ambulance_key = '%s/ambulance/%s' % (loop_str, frequency_str)
+    bicycle_key = '%s/bicycle/%s' % (loop_str, frequency_str)
+    other_key = '%s/other/%s' % (loop_str, frequency_str)
+    taxi_key = '%s/taxi/%s' % (loop_str, frequency_str)
+    transport_ambulance_key = u'transport/%s' % ambulance_key
+    transport_bicycle_key = u'transport/%s' % bicycle_key
     uuid_to_submission_times = {
         '5b2cc313-fc09-437e-8149-fcd32f695d41': '2013-02-14T15:37:21',
         'f3d8dc65-91a6-4d0f-9e97-802128083390': '2013-02-14T15:37:22',
@@ -34,10 +42,10 @@ class TestSite(MainTestCase):
     }
 
     def setUp(self):
-        super(TestSite, self).setUp()
+        super(TestProcess, self).setUp()
 
     def tearDown(self):
-        super(TestSite, self).tearDown()
+        super(TestProcess, self).tearDown()
 
     def test_process(self, username=None, password=None):
         self._publish_xls_file()
@@ -146,7 +154,7 @@ class TestSite(MainTestCase):
         Returns False if not strict and publish fails
         """
         pre_count = XForm.objects.count()
-        self.response = MainTestCase._publish_xls_file(self, xls_path)
+        self.response = TestBase._publish_xls_file(self, xls_path)
         # make sure publishing the survey worked
         self.assertEqual(self.response.status_code, 200)
         if XForm.objects.count() != pre_count + 1:
@@ -246,25 +254,26 @@ class TestSite(MainTestCase):
         self.assertEqual(sorted(actual_csv.next()), sorted(expected_list))
 
     def _check_data_for_csv_export(self):
+
         data = [
             {"available_transportation_types_to_referral_facility/ambulance":
              True,
              "available_transportation_types_to_referral_facility/bicycle":
                 True,
-             "loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility": "daily",
-             "loop_over_transport_types_frequency/bicycle/frequency_to_referral_facility": "weekly"
+             self.ambulance_key: "daily",
+             self.bicycle_key: "weekly"
              },
             {},
             {"available_transportation_types_to_referral_facility/ambulance":
              True,
-             "loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility": "weekly",
+             self.ambulance_key: "weekly",
              },
             {"available_transportation_types_to_referral_facility/taxi": True,
              "available_transportation_types_to_referral_facility/other": True,
              "available_transportation_types_to_referral_facility_other":
              "camel",
-             "loop_over_transport_types_frequency/taxi/frequency_to_referral_facility": "daily",
-             "loop_over_transport_types_frequency/other/frequency_to_referral_facility": "other",
+             self.taxi_key: "daily",
+             self.other_key: "other",
              }
         ]
         for d_from_db in self.data_dictionary.get_data_for_excel():
@@ -278,14 +287,18 @@ class TestSite(MainTestCase):
         self.assertEquals(data, [])
 
     def _check_group_xpaths_do_not_appear_in_dicts_for_export(self):
-        # todo: not sure which order the instances are getting put
-        # into the database, the hard coded index below should be
-        # fixed.
-        instance = self.xform.surveys.all()[1]
+        uuid = u'uuid:f3d8dc65-91a6-4d0f-9e97-802128083390'
+        instances = self.xform.surveys.all()
+        instance = None
+
+        for i in instances:
+            if i.get_dict()['meta/instanceID'] == uuid:
+                instance = i
+
         expected_dict = {
             u"transportation": {
                 u"meta": {
-                    u"instanceID": u"uuid:f3d8dc65-91a6-4d0f-9e97-802128083390"
+                    u"instanceID": uuid
                 },
                 u"transport": {
                     u"loop_over_transport_types_frequency": {u"bicycle": {
@@ -304,10 +317,10 @@ class TestSite(MainTestCase):
         expected_dict = {
             u"transport/available_transportation_types_to_referral_facility":
             u"ambulance bicycle",
-            u"transport/loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility": u"daily",
-            u"transport/loop_over_transport_types_frequency/bicycle/frequency_to_referral_facility": u"weekly",
+            self.transport_ambulance_key: u"daily",
+            self.transport_bicycle_key: u"weekly",
             u"_xform_id_string": u"transportation_2011_07_25",
-            u"meta/instanceID": u"uuid:f3d8dc65-91a6-4d0f-9e97-802128083390"
+            u"meta/instanceID": uuid
         }
         self.assertEqual(instance.get_dict(), expected_dict)
 
@@ -352,8 +365,8 @@ class TestSite(MainTestCase):
              "True",
              "available_transportation_types_to_referral_facility/bicycle":
              "True",
-             "loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility": "daily",
-             "loop_over_transport_types_frequency/bicycle/frequency_to_referral_facility": "weekly",
+             self.ambulance_key: "daily",
+             self.bicycle_key: "weekly",
              "meta/instanceID": "uuid:f3d8dc65-91a6-4d0f-9e97-802128083390",
              '_uuid': 'f3d8dc65-91a6-4d0f-9e97-802128083390',
              '_submission_time': '2013-02-14T15:37:22',
@@ -361,7 +374,7 @@ class TestSite(MainTestCase):
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
-             "loop_over_transport_types_frequency/ambulance/frequency_to_referral_facility": "weekly",
+             self.ambulance_key: "weekly",
              "meta/instanceID": "uuid:9c6f3468-cfda-46e8-84c1-75458e72805d",
              '_uuid': '9c6f3468-cfda-46e8-84c1-75458e72805d',
              '_submission_time': '2013-02-14T15:37:23',
@@ -373,7 +386,7 @@ class TestSite(MainTestCase):
              "True",
              "available_transportation_types_to_referral_facility_other":
              "camel",
-             "loop_over_transport_types_frequency/taxi/frequency_to_referral_facility": "daily",
+             self.taxi_key: "daily",
              "meta/instanceID": "uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf",
              '_uuid': '9f0a1508-c3b7-4c99-be00-9b237c26bcbf',
              '_submission_time': '2013-02-14T15:37:24',
@@ -450,7 +463,7 @@ class TestSite(MainTestCase):
         path = os.path.join(
             self.this_directory, 'fixtures',
             'form_with_unicode_in_relevant_column.xlsx')
-        response = MainTestCase._publish_xls_file(self, path)
+        response = TestBase._publish_xls_file(self, path)
         # make sure we get a 200 response
         self.assertEqual(response.status_code, 200)
 
@@ -480,7 +493,7 @@ class TestSite(MainTestCase):
             self.this_directory, "fixtures", "cascading_selects",
             "new_cascading_select.xls")
         file_name, file_ext = os.path.splitext(os.path.split(xls_path)[1])
-        self.response = MainTestCase._publish_xls_file(self, xls_path)
+        self.response = TestBase._publish_xls_file(self, xls_path)
         post_count = XForm.objects.count()
         self.assertEqual(post_count, pre_count + 1)
         xform = XForm.objects.latest('date_created')
@@ -498,7 +511,8 @@ class TestSite(MainTestCase):
         self.assertEqual(len(instance_nodes), 1)
         instance_node = instance_nodes[0]
 
-        # get the first element whose id attribute is equal to our form's id_string
+        # get the first element whose id attribute is equal to our form's
+        # id_string
         form_nodes = [node for node in instance_node.childNodes if
                       node.nodeType == Node.ELEMENT_NODE and
                       node.getAttribute("id") == xform.id_string]
@@ -522,7 +536,9 @@ class TestSite(MainTestCase):
             calculate_bind_node.getAttribute("calculate"), "'%s'" % xform.uuid)
 
     def test_csv_publishing(self):
-        csv_text = 'survey,,\n,type,name,label\n,text,whatsyourname,"What is your name?"\nchoices,,'
+        csv_text = '\n'.join([
+            'survey,,', ',type,name,label',
+            ',text,whatsyourname,"What is your name?"', 'choices,,'])
         url = reverse('main.views.profile',
                       kwargs={'username': self.user.username})
         num_xforms = XForm.objects.count()

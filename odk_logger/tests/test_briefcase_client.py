@@ -14,7 +14,7 @@ from django.test import RequestFactory
 from django_digest.test import Client as DigestClient
 
 from main.models import MetaData
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from main.views import profile, download_media_data
 
 from odk_logger.models import Instance, XForm
@@ -76,10 +76,10 @@ def instances_xml(url, request, **kwargs):
     return response
 
 
-class TestBriefcaseClient(MainTestCase):
+class TestBriefcaseClient(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._publish_transportation_form()
         self._submit_transport_instance_w_attachment()
         src = os.path.join(self.this_directory, "fixtures",

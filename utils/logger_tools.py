@@ -1,5 +1,4 @@
 from datetime import date, datetime
-import decimal
 import os
 import pytz
 import re
@@ -13,8 +12,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.files.storage import get_storage_class
 from django.core.mail import mail_admins
 from django.core.servers.basehttp import FileWrapper
-from django.db import IntegrityError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models.signals import pre_delete
 from django.http import HttpResponse, HttpResponseNotFound, \
     StreamingHttpResponse
@@ -25,7 +23,7 @@ from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
 import sys
-import common_tags
+from utils import common_tags
 
 from odk_logger.models import Attachment
 from odk_logger.models import Instance
@@ -210,6 +208,7 @@ def report_exception(subject, info, exc_info=None):
     else:
         mail_admins(subject=subject, message=message)
 
+
 def response_with_mimetype_and_name(
         mimetype, name, extension=None, show_date=True, file_path=None,
         use_local_filesystem=False, full_mime=False):
@@ -267,6 +266,7 @@ def publish_form(callback):
             'text': e
         }
     except IntegrityError as e:
+        transaction.rollback()
         return {
             'type': 'alert-error',
             'text': _(u'Form with this id or SMS-keyword already exists.'),
@@ -463,9 +463,11 @@ def mongo_sync_status(remongo=False, update_all=False, user=None, xform=None):
     Optionally, take action to correct the differences, based on these
     parameters, if present and defined:
 
-    remongo    -> if True, update the records missing in mongodb (default: False)
+    remongo    -> if True, update the records missing in mongodb
+                  (default: False)
     update_all -> if True, update all the relevant records (default: False)
-    user       -> if specified, apply only to the forms for the given user (default: None)
+    user       -> if specified, apply only to the forms for the given user
+                  (default: None)
     xform      -> if specified, apply only to the given form (default: None)
 
     """

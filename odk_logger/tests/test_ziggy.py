@@ -4,7 +4,7 @@ import json
 import requests
 
 from django.conf import settings
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from django.core.urlresolvers import reverse
 from odk_logger.models import ZiggyInstance
 from odk_logger.models.ziggy_instance import (
@@ -29,7 +29,7 @@ cc_monthly_json_path = os.path.join(
 ENTITY_ID = '9e7ee7c3-3071-4cb5-881f-f71572101f35'
 
 
-class TestZiggySubmissions(MainTestCase):
+class TestZiggySubmissions(TestBase):
     def setUp(self):
         super(TestZiggySubmissions, self).setUp()
         # publish xforms
@@ -180,7 +180,7 @@ def f2dhis_mock(url, request):
             return res
 
 
-class TestZiggyRestService(MainTestCase):
+class TestZiggyRestService(TestBase):
     def setUp(self):
         super(TestZiggyRestService, self).setUp()
         # publish xform

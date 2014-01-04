@@ -4,20 +4,20 @@ Testing POSTs to "/submission"
 from django.db.models import Sum
 import os
 import re
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from odk_logger.models import XForm, Instance
 from odk_logger.models.instance import InstanceHistory
 from odk_viewer.models.parsed_instance import GLOBAL_SUBMISSION_STATS,\
     ParsedInstance
 from stats.models import StatsCount
 from odk_logger.xform_instance_parser import clean_and_parse_xml
-from common_tags import GEOLOCATION
+from utils.common_tags import GEOLOCATION
 
 
-class TestFormSubmission(MainTestCase):
+class TestFormSubmission(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         xls_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "../fixtures/tutorial/tutorial.xls"

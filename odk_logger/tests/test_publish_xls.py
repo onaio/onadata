@@ -4,12 +4,12 @@ import codecs
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from odk_logger.models.xform import XForm
 from utils.logger_tools import report_exception
 
 
-class TestPublishXLS(MainTestCase):
+class TestPublishXLS(TestBase):
 
     def test_publish_xls(self):
         xls_file_path = os.path.join(

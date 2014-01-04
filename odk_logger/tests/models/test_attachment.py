@@ -10,13 +10,13 @@ from odk_logger.models import Attachment, Instance
 
 from utils.image_tools import image_url
 
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 
 
-class AttachmentTest(MainTestCase):
+class TestAttachment(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        super(self.__class__, self).setUp()
         self._publish_transportation_form_and_submit_instance()
         self.media_file = "1335783522563.jpg"
         media_file = os.path.join(

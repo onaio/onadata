@@ -2,16 +2,17 @@ import numpy as np
 
 from datetime import datetime
 
+from django.conf import settings
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
+from django.db import connection
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions
 
 from main.forms import QuickConverter
 
-from odk_logger.models import XForm
-from odk_viewer.models import ParsedInstance
-from odk_viewer.models.parsed_instance import xform_instances, \
+from odk_logger.models.xform import XForm
+from odk_viewer.models.parsed_instance import ParsedInstance,\
     datetime_from_str, _encode_for_mongo
 
 from utils.logger_tools import publish_form
@@ -23,6 +24,15 @@ from api.models.project_xform import ProjectXForm
 from api.models.team import Team
 
 DECIMAL_PRECISION = 2
+
+
+def _dictfetchall(cursor):
+    "Returns all rows from a cursor as a dict"
+    desc = cursor.description
+    return [
+        dict(zip([col[0] for col in desc], row))
+        for row in cursor.fetchall()
+    ]
 
 
 def _get_first_last_names(name):
@@ -40,6 +50,32 @@ def _get_id_for_type(record, mongo_field):
 
     return {"$substr": [mongo_str, 0, 10]} if isinstance(date_field, datetime)\
         else mongo_str
+
+
+@property
+def using_postgres():
+    return settings.DATABASES[
+        'default']['ENGINE'] == 'django.db.backends.postgresql_psycopg2'
+
+
+def _count_group(table, field, name):
+    if using_postgres:
+        result = _postgres_count_group(table, field, name)
+    else:
+        raise Exception("Unsopported Database")
+    return result
+
+
+def _postgres_count_group(table, field, name):
+    json_query = "json->>'%s'" % field
+    string_args = {
+        'table': table,
+        'json': json_query,
+        'name': name
+    }
+
+    return "SELECT %(json)s AS %(name)s, COUNT(%(json)s) AS count FROM "\
+           "%(table)s GROUP BY %(json)s" % string_args
 
 
 def get_accessible_forms(owner=None):
@@ -150,45 +186,18 @@ def publish_project_xform(request, project):
 
 def get_form_submissions_grouped_by_field(xform, field, name=None):
     """Number of submissions grouped by field"""
-    query = {}
-    mongo_field = _encode_for_mongo(field)
-    query[ParsedInstance.USERFORM_ID] =\
-        u'%s_%s' % (xform.user.username, xform.id_string)
-    query[mongo_field] = {"$exists": True}
+    cursor = connection.cursor()
 
-    # check if requested field a datetime str
-    record = xform_instances.find_one(query, {mongo_field: 1})
+    if not name:
+        name = field
 
-    if not record:
+    cursor.execute(_count_group('odk_logger_instance', field, name))
+    result = _dictfetchall(cursor)
+
+    if result[0][name] is None:
         raise ValueError(_(u"Field '%s' does not exist." % field))
 
-    group = {"count": {"$sum": 1}}
-    group["_id"] = _get_id_for_type(record, mongo_field)
-    field_name = field if name is None else name
-    pipeline = [
-        {
-            "$group": group
-        },
-        {
-            "$sort": {"_id": 1}
-        },
-        {
-            "$project": {
-                field_name: "$_id",
-                "count": 1
-            }
-        }
-    ]
-    kargs = {
-        'query': query,
-        'pipeline': pipeline
-    }
-    records = ParsedInstance.mongo_aggregate(**kargs)
-    # delete mongodb's _id field from records
-    # TODO: is there an elegant way to do this? should we remove the field?
-    for record in records:
-        del record['_id']
-    return records
+    return result
 
 
 def get_field_records(field, xform):
@@ -338,9 +347,9 @@ def get_xform(formid, request):
         xform = check_and_set_form_by_id_string(formid, request)
     else:
         xform = check_and_set_form_by_id(int(formid), request)
+
     if not xform:
-        raise exceptions.PermissionDenied(
-            _("You do not have permission to "
-                "view data from this form."))
-    else:
-        return xform
+        raise exceptions.PermissionDenied(_(
+            "You do not have permission to view data from this form."))
+
+    return xform

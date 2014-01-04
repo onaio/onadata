@@ -1,14 +1,14 @@
 import os
 
 from django.conf import settings
-from main.tests.test_base import MainTestCase
+from main.tests.test_base import TestBase
 from odk_viewer.models import ParsedInstance
 from odk_viewer.management.commands.remongo import Command
 from django.core.management import call_command
-from common_tags import USERFORM_ID
+from utils.common_tags import USERFORM_ID
 
 
-class TestRemongo(MainTestCase):
+class TestRemongo(TestBase):
     def test_remongo_in_batches(self):
       self._publish_transportation_form()
       # submit 4 instances

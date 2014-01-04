@@ -1,10 +1,10 @@
-from test_base import MainTestCase
+from test_base import TestBase
 from test_user_profile import TestUserProfile
 from django.test.client import Client
 from django.contrib.auth.models import User
 from main.models import UserProfile
 
-class TestUserLogin(MainTestCase):
+class TestUserLogin(TestBase):
     def test_any_case_login_ok(self):
         username = 'bob'
         password = 'bobbob'

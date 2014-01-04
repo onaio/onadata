@@ -3,8 +3,8 @@ from xml.dom import minidom
 import os
 import re
 
-from common_tags import XFORM_ID_STRING
-from main.tests.test_base import MainTestCase
+from utils.common_tags import XFORM_ID_STRING
+from main.tests.test_base import TestBase
 from odk_logger.xform_instance_parser import XFormInstanceParser,\
     xpath_from_xml_node
 from odk_logger.xform_instance_parser import get_uuid_from_xml,\
@@ -16,7 +16,7 @@ FLAT_DICT = u"flat_dict"
 ID = XFORM_ID_STRING
 
 
-class TestXFormInstanceParser(MainTestCase):
+class TestXFormInstanceParser(TestBase):
     def _publish_and_submit_new_repeats(self):
         self._create_user_and_login()
         # publish our form which contains some some repeats

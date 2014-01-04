@@ -19,7 +19,7 @@ from odk_logger.models import XForm, Attachment
 from utils.viewer_tools import create_attachments_zipfile
 from utils.viewer_tools import image_urls
 from zipfile import ZipFile
-from common_tags import ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,\
+from utils.common_tags import ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,\
     BAMBOO_DATASET_ID, DELETEDAT, USERFORM_ID, INDEX, PARENT_INDEX,\
     PARENT_TABLE_NAME, SUBMISSION_TIME, UUID, TAGS, NOTES
 from odk_viewer.models.parsed_instance import _is_invalid_for_mongo,\
@@ -855,11 +855,10 @@ def generate_kml_export(
 
 def kml_export_data(id_string, user):
     from odk_viewer.models import DataDictionary, ParsedInstance
-    dd = DataDictionary.objects.get(id_string=id_string,
-                                    user=user)
-    pis = ParsedInstance.objects.filter(instance__user=user,
-                                        instance__xform__id_string=id_string,
-                                        lat__isnull=False, lng__isnull=False)
+    dd = DataDictionary.objects.get(id_string=id_string, user=user)
+    pis = ParsedInstance.objects.filter(
+        instance__user=user, instance__xform__id_string=id_string,
+        lat__isnull=False, lng__isnull=False).order_by('id')
     data_for_template = []
 
     labels = {}

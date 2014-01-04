@@ -14,7 +14,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from nose import SkipTest
 
-from test_base import MainTestCase
+from test_base import TestBase
 from main.views import set_perm, show, qrcode
 from main.models import MetaData
 from odk_logger.views import enter_data
@@ -38,10 +38,10 @@ def enketo_error_mock(url, request):
     return response
 
 
-class TestFormEnterData(MainTestCase):
+class TestFormEnterData(TestBase):
 
     def setUp(self):
-        MainTestCase.setUp(self)
+        TestBase.setUp(self)
         self._create_user_and_login()
         self._publish_transportation_form_and_submit_instance()
         self.perm_url = reverse(set_perm, kwargs={
