@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # encoding=utf-8
 from __future__ import print_function
+import logging
 import os
 import sys
 
+south_logger = logging.getLogger('south')
+south_logger.setLevel(logging.INFO)
 
 if __name__ == "__main__":
     # altered for new settings layout
