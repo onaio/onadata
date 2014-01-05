@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.management import call_command
 
 from apps.main.tests.test_base import TestBase
-from apps.odk_viewer.models import ParsedInstance
+from apps.odk_viewer.models.parsed_instance import ParsedInstance
 from apps.odk_viewer.management.commands.remongo import Command
 from libs.utils.common_tags import USERFORM_ID
 

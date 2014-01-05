@@ -133,26 +133,26 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.static',
     'django.core.context_processors.tz',
     'django.contrib.messages.context_processors.messages',
-    'formhub.context_processors.google_analytics',
-    'formhub.context_processors.site_name'
+    'apps.formhub.context_processors.google_analytics',
+    'apps.formhub.context_processors.site_name'
 )
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     # 'django.middleware.locale.LocaleMiddleware',
-    'utils.middleware.LocaleMiddlewareWithTweaks',
+    'libs.utils.middleware.LocaleMiddlewareWithTweaks',
     'django.middleware.csrf.CsrfViewMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.transaction.TransactionMiddleware',
-    'utils.middleware.HTTPResponseNotAllowedMiddleware',
+    'libs.utils.middleware.HTTPResponseNotAllowedMiddleware',
 )
 
-LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'formhub', 'locale'), )
+LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'apps.formhub', 'locale'), )
 
-ROOT_URLCONF = 'formhub.urls'
+ROOT_URLCONF = 'apps.formhub.urls'
 USE_TZ = True
 
 
@@ -248,11 +248,11 @@ USE_THOUSAND_SEPARATOR = True
 COMPRESS = True
 
 # extra data stored with users
-AUTH_PROFILE_MODULE = 'main.UserProfile'
+AUTH_PROFILE_MODULE = 'apps.main.UserProfile'
 
 # case insensitive usernames
 AUTHENTICATION_BACKENDS = (
-    'main.backends.ModelBackend',
+    'apps.main.backends.ModelBackend',
     'guardian.backends.ObjectPermissionBackend',
 )
 
@@ -321,7 +321,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'libs.utils.log.AuditLogHandler',
             'formatter': 'verbose',
-            'model': 'main.models.audit.AuditLog'
+            'model': 'apps.main.models.audit.AuditLog'
         },
     },
     'loggers': {

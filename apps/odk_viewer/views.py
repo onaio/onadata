@@ -19,9 +19,10 @@ from django.views.decorators.http import require_POST
 from apps.main.models import UserProfile, MetaData, TokenStorageModel
 from apps.odk_logger.models import XForm, Attachment
 from apps.odk_logger.views import download_jsonform
-from apps.odk_viewer.models import DataDictionary, ParsedInstance
+from apps.odk_viewer.models.data_dictionary import DataDictionary
+from apps.odk_viewer.models.export import Export
+from apps.odk_viewer.models.parsed_instance import ParsedInstance
 from apps.odk_viewer.pandas_mongo_bridge import NoRecordsFoundError
-from apps.odk_viewer.models import Export
 from apps.odk_viewer.tasks import create_async_export
 from libs.utils.common_tags import SUBMISSION_TIME
 from libs.utils.export_tools import generate_export, should_create_new_export

@@ -1,7 +1,7 @@
 from django import forms
 from django.utils.translation import ugettext_lazy
 
-from apps.odk_viewer.models import DataDictionary
+from apps.odk_viewer.models.data_dictionary import DataDictionary
 
 
 class QuickConverter(forms.Form):

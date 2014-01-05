@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext_lazy
 
 from apps.odk_logger.models import XForm
-from apps.odk_viewer.models import ParsedInstance
+from apps.odk_viewer.models.parsed_instance import ParsedInstance
 from libs.utils.model_tools import queryset_iterator
 
 

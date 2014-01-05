@@ -3,7 +3,7 @@ import os
 from django.core.urlresolvers import reverse
 
 from apps.main.tests.test_base import TestBase
-from apps.odk_viewer.models import ParsedInstance
+from apps.odk_viewer.models.parsed_instance import ParsedInstance
 from apps.odk_viewer.views import kml_export
 
 

@@ -6,7 +6,8 @@ from pyxform import create_survey_from_xls
 
 from apps.main.tests.test_base import TestBase
 from apps.odk_logger.models import Instance
-from apps.odk_viewer.models import ParsedInstance, DataDictionary
+from apps.odk_viewer.models.data_dictionary import DataDictionary
+from apps.odk_viewer.models.parsed_instance import ParsedInstance
 from apps.odk_viewer.views import survey_responses
 from apps.odk_logger.xform_instance_parser import xform_instance_to_dict
 from apps.odk_viewer.xls_writer import XlsWriter

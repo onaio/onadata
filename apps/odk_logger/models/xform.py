@@ -99,7 +99,7 @@ class XForm(models.Model):
         )
 
     def data_dictionary(self):
-        from apps.odk_viewer.models import DataDictionary
+        from apps.odk_viewer.models.data_dictionary import DataDictionary
         return DataDictionary.objects.get(pk=self.pk)
 
     @property
@@ -171,7 +171,7 @@ class XForm(models.Model):
     submission_count.short_description = ugettext_lazy("Submission Count")
 
     def geocoded_submission_count(self):
-        from apps.odk_viewer.models import ParsedInstance
+        from apps.odk_viewer.models.parsed_instance import ParsedInstance
         return ParsedInstance.objects.filter(
             instance__in=self.surveys.filter(is_deleted=False),
             lat__isnull=False).count()

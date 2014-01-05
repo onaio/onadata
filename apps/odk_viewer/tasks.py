@@ -5,7 +5,7 @@ from django.db import transaction
 from django.conf import settings
 from django.core.mail import mail_admins
 
-from apps.odk_viewer.models import Export
+from apps.odk_viewer.models.export import Export
 from pandas_mongo_bridge import NoRecordsFoundError
 from libs.utils.export_tools import generate_export,\
     generate_attachments_zip_export, generate_kml_export

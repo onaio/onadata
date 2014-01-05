@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext_lazy, ugettext as _
 
-from apps.odk_viewer.models import DataDictionary
+from apps.odk_viewer.models.data_dictionary import DataDictionary
 
 
 class Command(BaseCommand):

@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext_lazy
 from optparse import make_option
 
-from apps.odk_viewer.models import ParsedInstance
+from apps.odk_viewer.models.parsed_instance import ParsedInstance
 from libs.utils.common_tags import USERFORM_ID
 
 

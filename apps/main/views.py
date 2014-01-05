@@ -32,10 +32,9 @@ from apps.main.forms import UserProfileForm, FormLicenseForm, DataLicenseForm,\
 from apps.main.models import AuditLog, UserProfile, MetaData
 from apps.odk_logger.models import Instance, XForm
 from apps.odk_logger.views import enter_data
-from apps.odk_viewer.models import DataDictionary, ParsedInstance
-from apps.odk_viewer.models.data_dictionary import upload_to
+from apps.odk_viewer.models.data_dictionary import DataDictionary, upload_to
 from apps.odk_viewer.models.parsed_instance import GLOBAL_SUBMISSION_STATS,\
-    DATETIME_FORMAT
+    DATETIME_FORMAT, ParsedInstance
 from apps.odk_viewer.views import survey_responses, attachment_url
 from apps.sms_support.tools import check_form_sms_compatibility, is_sms_related
 from apps.sms_support.autodoc import get_autodoc_for

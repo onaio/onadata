@@ -1,6 +1,6 @@
 import os
 
-from apps.odk_viewer.models import DataDictionary
+from apps.odk_viewer.models.data_dictionary import DataDictionary
 from test_base import TestBase
 
 

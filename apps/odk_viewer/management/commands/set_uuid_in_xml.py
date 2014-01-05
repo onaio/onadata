@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext as _, ugettext_lazy
 
-from apps.odk_viewer.models import DataDictionary
+from apps.odk_viewer.models.data_dictionary import DataDictionary
 from libs.utils.model_tools import queryset_iterator
 
 

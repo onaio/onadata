@@ -11,7 +11,7 @@ from taggit.forms import TagField
 
 from apps.api.tools import get_accessible_forms, get_xform
 from apps.odk_logger.models import Instance
-from apps.odk_viewer.models import ParsedInstance
+from apps.odk_viewer.models.parsed_instance import ParsedInstance
 from libs.utils.user_auth import check_and_set_form_by_id,\
     check_and_set_form_by_id_string
 

@@ -15,7 +15,7 @@ from apps.main.models import MetaData
 from apps.odk_logger.models import XForm
 from apps.odk_logger.views import submission
 from apps.odk_logger.xform_instance_parser import clean_and_parse_xml
-from apps.odk_viewer.models import DataDictionary
+from apps.odk_viewer.models.data_dictionary import DataDictionary
 from libs.utils.common_tags import UUID, SUBMISSION_TIME
 from test_base import TestBase
 

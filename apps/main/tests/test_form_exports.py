@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse
 from django.utils import timezone
 from xlrd import open_workbook
 
-from apps.odk_viewer.models import Export
+from apps.odk_viewer.models.export import Export
 from apps.odk_viewer.views import zip_export, kml_export, export_download
 from libs.utils.export_tools import generate_export
 from libs.utils.user_auth import http_auth_string

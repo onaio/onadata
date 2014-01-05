@@ -4,7 +4,7 @@ from pyxform import SurveyElementBuilder
 
 
 from apps.odk_logger.xform_instance_parser import DuplicateInstance
-from apps.odk_viewer.models import DataDictionary
+from apps.odk_viewer.models.data_dictionary import DataDictionary
 from libs.utils.logger_tools import create_instance
 
 

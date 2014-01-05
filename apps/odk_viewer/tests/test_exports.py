@@ -22,7 +22,8 @@ from apps.main.tests.test_base import TestBase
 from apps.odk_viewer.xls_writer import XlsWriter
 from apps.odk_viewer.views import delete_export, export_list, create_export,\
     export_progress, export_download
-from apps.odk_viewer.models import Export, ParsedInstance
+from apps.odk_viewer.models.export import Export
+from apps.odk_viewer.models.parsed_instance import ParsedInstance
 from apps.odk_logger.models import Instance
 from apps.odk_viewer.tasks import create_xls_export
 from apps.odk_viewer.models.parsed_instance import _encode_for_mongo

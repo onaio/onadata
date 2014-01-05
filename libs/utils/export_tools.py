@@ -19,11 +19,8 @@ from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
 
 from apps.odk_logger.models import XForm, Attachment
-from apps.odk_viewer.models.data_dictionary import DataDictionary
-from apps.odk_viewer.models.export import Export
 from apps.odk_viewer.models.parsed_instance import _is_invalid_for_mongo,\
-    _encode_for_mongo, dict_for_mongo, _decode_from_mongo, ParsedInstance
-from apps.odk_viewer.pandas_mongo_bridge import CSVDataFrameBuilder
+    _encode_for_mongo, dict_for_mongo, _decode_from_mongo
 from libs.utils.viewer_tools import create_attachments_zipfile
 from libs.utils.viewer_tools import image_urls
 from libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS, ATTACHMENTS,\
@@ -186,6 +183,9 @@ class ExportBuilder(object):
         return abbreviated_xpath
 
     def set_survey(self, survey):
+        # TODO resolve circular import
+        from apps.odk_viewer.models.data_dictionary import DataDictionary
+
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
                 gps_fields, encoded_fields, field_delimiter='/'):
@@ -542,6 +542,8 @@ class ExportBuilder(object):
 
     def to_flat_csv_export(
             self, path, data, username, id_string, filter_query):
+        # TODO resolve circular import
+        from apps.odk_viewer.pandas_mongo_bridge import CSVDataFrameBuilder
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
@@ -652,6 +654,8 @@ def generate_export(export_type, extension, username, id_string,
     """
     Create appropriate export object given the export type
     """
+    # TODO resolve circular import
+    from apps.odk_viewer.models.export import Export
     export_type_func_map = {
         Export.XLS_EXPORT: 'to_xls_export',
         Export.CSV_EXPORT: 'to_flat_csv_export',
@@ -730,6 +734,8 @@ def query_mongo(username, id_string, query=None, hide_deleted=True):
 
 
 def should_create_new_export(xform, export_type):
+    # TODO resolve circular import
+    from apps.odk_viewer.models.export import Export
     if Export.objects.filter(
             xform=xform, export_type=export_type).count() == 0\
             or Export.exports_outdated(xform, export_type=export_type):
@@ -742,6 +748,8 @@ def newset_export_for(xform, export_type):
     Make sure you check that an export exists before calling this,
     it will a DoesNotExist exception otherwise
     """
+    # TODO resolve circular import
+    from apps.odk_viewer.models.export import Export
     return Export.objects.filter(xform=xform, export_type=export_type)\
         .latest('created_on')
 
@@ -769,6 +777,8 @@ def increment_index_in_filename(filename):
 def generate_attachments_zip_export(
         export_type, extension, username, id_string, export_id=None,
         filter_query=None):
+    # TODO resolve circular import
+    from apps.odk_viewer.models.export import Export
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     attachments = Attachment.objects.filter(instance__xform=xform)
     zip_file = create_attachments_zipfile(attachments)
@@ -807,6 +817,8 @@ def generate_attachments_zip_export(
 def generate_kml_export(
         export_type, extension, username, id_string, export_id=None,
         filter_query=None):
+    # TODO resolve circular import
+    from apps.odk_viewer.models.export import Export
     user = User.objects.get(username=username)
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     response = render_to_response(
@@ -848,6 +860,9 @@ def generate_kml_export(
 
 
 def kml_export_data(id_string, user):
+    # TODO resolve circular import
+    from apps.odk_viewer.models.data_dictionary import DataDictionary
+    from apps.odk_viewer.models.parsed_instance import ParsedInstance
     dd = DataDictionary.objects.get(id_string=id_string, user=user)
     pis = ParsedInstance.objects.filter(
         instance__user=user, instance__xform__id_string=id_string,
