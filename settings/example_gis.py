@@ -23,10 +23,6 @@ DATABASES = {
     }
 }
 
-# DATABASE_ROUTERS = ['settings.dbrouter.GisRouter']
-
-# TIME_ZONE = 'UTC'
-
 TOUCHFORMS_URL = 'http://localhost:9000/'
 
 SECRET_KEY = 'mlfs33^s1l4xf6a36$0#srgcpj%dd*sisfo6HOktYXB9y'
@@ -45,12 +41,12 @@ if TESTING_MODE:
     CELERY_ALWAYS_EAGER = True
     BROKER_BACKEND = 'memory'
     ENKETO_API_TOKEN = 'abc'
-    #TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner'
 else:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media/')
 
 if PRINT_EXCEPTION and DEBUG:
     MIDDLEWARE_CLASSES += ('utils.middleware.ExceptionLoggingMiddleware',)
+
 # Clear out the test database
 if TESTING_MODE:
     MONGO_DB.instances.drop()
