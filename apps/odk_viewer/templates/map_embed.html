@@ -38,7 +38,7 @@ var mongoAPIUrl = "{{ mongo_api_url }}";
 var deleteAPIUrl = "{{ delete_data_url }}";
 var enketoAddWithUrl = "{{ enketo_add_with_url }}";
 var language_code = "{{LANGUAGE_CODE}}";
-var attachmentsBaseUrl = "{% url "odk_viewer.views.attachment_url" %}";
+var attachmentsBaseUrl = "{% url "apps.odk_viewer.views.attachment_url" %}";
 var modalVisible = null;
 var idToDelete = null;
 
@@ -50,7 +50,7 @@ var mapDescription = '<table class="table table-condensed table-striped"><tr><th
 
 var csv_url = "{% url "csv_export" content_user.username xform.id_string %}";
 var xls_url = "{% url "xls_export" content_user.username xform.id_string %}";
-var kml_url = "{% url "odk_viewer.views.kml_export" content_user.username xform.id_string %}";
+var kml_url = "{% url "apps.odk_viewer.views.kml_export" content_user.username xform.id_string %}";
 
 $(document).ready(function() {
     setMapHeight();

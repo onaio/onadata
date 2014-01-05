@@ -4,9 +4,9 @@
 {% block content %}
 <div class="page-header">
     <h1>{% trans "Browse Form Data" %}
-        <small><a href="{% url "main.views.show" username id_string %}">{{ xform.title }}</a></small>
+        <small><a href="{% url "apps.main.views.show" username id_string %}">{{ xform.title }}</a></small>
         <small> | </small>
-        <small><a href="{% url "odk_viewer.views.data_view" username id_string %}">{% trans "Data View" %}</a></small>
+        <small><a href="{% url "apps.odk_viewer.views.data_view" username id_string %}">{% trans "Data View" %}</a></small>
     </h1>
 </div>
 
@@ -22,7 +22,7 @@
 <div id="notes" style="display: none">
     <div id='notes-section'>
     </div>
-    <form action="{% url "odk_viewer.views.instance" username id_string %}" method="post" name="notesform" id="notesform">
+    <form action="{% url "apps.odk_viewer.views.instance" username id_string %}" method="post" name="notesform" id="notesform">
         {% csrf_token %}
         <input type="hidden" value="" name="instance_id" id="instance_id" />
         Add a note:
@@ -40,9 +40,9 @@
 <script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/sammy-plugins/sammy.meld-0.7.1.min.js"></script>
 
 <script type="text/javascript">
-var formJSONUrl = "{% url "odk_logger.views.download_jsonform" username id_string %}";
-var mongoAPIUrl = "{% url "main.views.api" username id_string %}";
-var deleteAPIUrl = "{% url "main.views.delete_data" username id_string %}";
+var formJSONUrl = "{% url "apps.odk_logger.views.download_jsonform" username id_string %}";
+var mongoAPIUrl = "{% url "apps.main.views.api" username id_string %}";
+var deleteAPIUrl = "{% url "apps.main.views.delete_data" username id_string %}";
 var app; // sammy app
 var questions = {};
 var languages = [];
@@ -291,7 +291,7 @@ function updatePrevNextControls(data)
 
 function _attachment_url(name, size)
 {
-    return '{% url "odk_viewer.views.attachment_url" %}' + size + '?media_file=' + '{{ username }}/attachments/' + name;
+    return '{% url "apps.odk_viewer.views.attachment_url" %}' + size + '?media_file=' + '{{ username }}/attachments/' + name;
 }
 
 function reDraw(context, data)

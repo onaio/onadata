@@ -35,8 +35,8 @@
     <script src="{{STATIC_URL}}js/widget.activity-filter-editor.js" type="text/javascript"></script>
     <script src="{{STATIC_URL}}js/datetimepicker/datepicker.js" type="text/javascript"></script>
 <script type="text/javascript">
-    var fieldUrl = "{% url "main.views.activity_fields" %}";
-    var apiUrl = "{% url "main.views.activity_api" user.username %}";
+    var fieldUrl = "{% url "apps.main.views.activity_fields" %}";
+    var apiUrl = "{% url "apps.main.views.activity_api" user.username %}";
     var dataset = new recline.Model.Dataset({
         fieldUrl: fieldUrl,
         url: apiUrl,

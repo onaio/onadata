@@ -16,7 +16,7 @@
 
   <div class="row">
     <div class="span6">
-      <form class="well" method="post" action="{% url "main.views.profile_settings" content_user.username %}">
+      <form class="well" method="post" action="{% url "apps.main.views.profile_settings" content_user.username %}">
         {% csrf_token %}
         <table>
           <tr>

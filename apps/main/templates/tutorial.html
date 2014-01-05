@@ -44,7 +44,7 @@
       <img src="{{ STATIC_URL }}tutorial/choices_sheet.png" alt="Choices Sheet" width="100%" /><br />
     </div>
   </div>
-  {% url "main.views.syntax" as syntax_url %}
+  {% url "apps.main.views.syntax" as syntax_url %}
   {%  blocktrans %}For more in depth information about the XLSForm syntax go <a href="{{ syntax_url }}">here</a>.{% endblocktrans %}
 </section>
 
