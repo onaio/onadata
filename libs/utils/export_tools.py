@@ -21,8 +21,7 @@ from savReaderWriter import SavWriter
 from apps.odk_logger.models import XForm, Attachment
 from apps.odk_viewer.models.parsed_instance import _is_invalid_for_mongo,\
     _encode_for_mongo, dict_for_mongo, _decode_from_mongo
-from libs.utils.viewer_tools import create_attachments_zipfile
-from libs.utils.viewer_tools import image_urls
+from libs.utils.viewer_tools import create_attachments_zipfile, image_urls
 from libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS, ATTACHMENTS,\
     GEOLOCATION, BAMBOO_DATASET_ID, DELETEDAT, USERFORM_ID, INDEX,\
     PARENT_INDEX, PARENT_TABLE_NAME, SUBMISSION_TIME, UUID, TAGS, NOTES

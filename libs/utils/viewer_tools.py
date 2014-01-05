@@ -13,7 +13,6 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.mail import mail_admins
 from django.utils.translation import ugettext as _
 
-from apps.odk_viewer.models.export import Export
 from libs.utils import common_tags
 
 
@@ -138,6 +137,8 @@ def django_file(path, field_name, content_type):
 
 
 def export_def_from_filename(filename):
+    # TODO fix circular import and move to top
+    from apps.odk_viewer.models.export import Export
     path, ext = os.path.splitext(filename)
     ext = ext[1:]
     # try get the def from extension
