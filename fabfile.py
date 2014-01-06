@@ -31,7 +31,8 @@ DEPLOYMENTS = {
         'celeryd': '/etc/init.d/celeryd',
         'django_config_module': 'formhub.settings',
         'pid': '/run/kobocat.pid',
-        'template': 'https://github.com/kobotoolbox/kobocat-template.git'
+        'template': 'https://github.com/kobotoolbox/kobocat-template.git',
+        'template_dir': 'kobocat'
     },
 }
 
@@ -73,7 +74,9 @@ def deploy(deployment_name, branch='master'):
         if env.get('template'):
             run("git remote add template %s || true" % env.template)
             run("git fetch template")
-            run("git read-tree --prefix=kobocat -i template/master")
+            run("git reset HEAD %s" % env.template_dir)
+            run("git read-tree --prefix=%s -i template/master"
+                % env.template_dir)
 
         run('find . -name "*.pyc" -exec rm -rf {} \;')
 
