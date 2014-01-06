@@ -1,9 +1,9 @@
-[submodule "app/main/static/bootstrap/src"]
-	path = app/main/static/bootstrap/src
+[submodule "apps/main/static/bootstrap/src"]
+	path = apps/main/static/bootstrap/src
 	url = git://github.com/twbs/bootstrap.git
 [submodule "js_tests/EnvJasmine"]
 	path = js_tests/EnvJasmine
 	url = git://github.com/trevmex/EnvJasmine.git
-[submodule "app/main/static/recline"]
-	path = app/main/static/recline
+[submodule "apps/main/static/recline"]
+	path = apps/main/static/recline
 	url = git://github.com/modilabs/recline.git
