@@ -4,12 +4,15 @@ import sys
 from fabric.api import cd, env, prefix, run
 
 DEPLOYMENTS = {
-    'dev': {
+    'stage': {
         'home': '/home/ubuntu/src/',
-        'host_string': 'ubuntu@dev.ona.io',
+        'host_string': 'ubuntu@stage.ona.io',
         'project': 'ona',
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
-        'celeryd': '/etc/init.d/celeryd-ona'
+        'virtualenv': '/home/ubuntu/.virtualenvs/ona',
+        'celeryd': '/etc/init.d/celeryd-ona',
+        'django_config_module': 'onadata.settings.local',
+        'pid': '/var/run/ona.pid'
     },
     'prod': {
         'home': '/home/ubuntu/src/',
@@ -18,7 +21,7 @@ DEPLOYMENTS = {
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
         'virtualenv': '/home/ubuntu/.virtualenvs/ona',
         'celeryd': '/etc/init.d/celeryd-ona',
-        'django_config_module': 'formhub.local_settings',
+        'django_config_module': 'onadata.settings.local',
         'pid': '/var/run/ona.pid'
     },
     'kobocat': {
@@ -29,7 +32,7 @@ DEPLOYMENTS = {
         'key_filename': os.path.expanduser('~/.ssh/kobo01.pem'),
         'virtualenv': '/home/ubuntu/.virtualenvs/kobocat',
         'celeryd': '/etc/init.d/celeryd',
-        'django_config_module': 'formhub.settings',
+        'django_config_module': 'onadata.settings.local',
         'pid': '/run/kobocat.pid',
         'template': 'https://github.com/kobotoolbox/kobocat-template.git',
         'template_dir': 'kobocat'
