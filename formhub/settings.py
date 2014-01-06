@@ -402,6 +402,10 @@ RECAPTCHA_USE_SSL = False
 RECAPTCHA_PRIVATE_KEY = ''
 RECAPTCHA_PUBLIC_KEY = '6Ld52OMSAAAAAJJ4W-0TFDTgbznnWWFf0XuOSaB6'
 
+# specify the root folder which may contain a templates folder and a static
+# folder used to override templates for site specific details
+TEMPLATE_OVERRIDE_ROOT_DIR = None
+
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:
@@ -420,19 +424,12 @@ MONGO_CONNECTION = MongoClient(
     MONGO_CONNECTION_URL, safe=True, j=True, tz_aware=True)
 MONGO_DB = MONGO_CONNECTION[MONGO_DATABASE['NAME']]
 
-try:
-    from django.contrib.sites.models import Site
-    site = Site.objects.get(pk=SITE_ID)
-except Exception as e:
-    SITE_NAME = 'example.com'
-    logging.getLogger('console_logger').warn(e)
-else:
-    SITE_NAME = site.name
-# site templates overrides
-TEMPLATE_DIRS = (
-    os.path.join(PROJECT_ROOT, SITE_NAME.lower(), 'templates'),
-) + TEMPLATE_DIRS
-# site static files path
-STATICFILES_DIRS += (
-    os.path.join(PROJECT_ROOT, SITE_NAME.lower(), 'static'),
-)
+if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
+    # site templates overrides
+    TEMPLATE_DIRS = (
+        os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'templates'),
+    ) + TEMPLATE_DIRS
+    # site static files path
+    STATICFILES_DIRS += (
+        os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'static'),
+    )
