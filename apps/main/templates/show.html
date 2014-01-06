@@ -667,7 +667,7 @@ $(document).ready(function() {
 
         // REST Service
             $(document).ready(function() {
-                $.get('{% url "restservice.views.add_service" content_user.username xform.id_string %}', function(data){
+                $.get('{% url "apps.restservice.views.add_service" content_user.username xform.id_string %}', function(data){
                     $('#restservice_tab').html(data);
                 });
             });
