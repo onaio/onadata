@@ -75,7 +75,7 @@ def deploy(deployment_name, branch='master'):
             run("git remote add template %s || true" % env.template)
             run("git fetch template")
             run("git reset HEAD %s" % env.template_dir)
-            run("git read-tree --prefix=%s -i template/master"
+            run("git read-tree --prefix=%s -u template/master"
                 % env.template_dir)
 
         run('find . -name "*.pyc" -exec rm -rf {} \;')
