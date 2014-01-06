@@ -159,7 +159,13 @@
                 // mode pageable collection's cache.
                 var filter = new Backgrid.Extension.ClientSideFilter({
                     collection: this.data,
-                    fields: ['pizza_type']
+                    fields: this.form.fields
+                        .filter(function (f) {
+                            // Ignore select fields
+                            return !f.isA(FH.types.SELECT_ONE) && !f.isA(FH.types.SELECT_MULTIPLE);
+                        }).map(function (f) {
+                            return f.get(FH.constants.XPATH);
+                        })
                 });
 
                 // Render the filter
