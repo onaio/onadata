@@ -2,13 +2,17 @@
     width: 100%;
 }
 
+.table-control-container {
+    float: left;
+    margin: 20px;
+}
+
+.language-picker-container {
+    margin-left: 0px;
+}
+
 .data-table-container table {
     display: block;
     width: 100%;
     overflow-x: auto;
-}
-
-.label-toggle-container {
-    float: left;
-    margin: 20px 20px 20px 0px;
 }
