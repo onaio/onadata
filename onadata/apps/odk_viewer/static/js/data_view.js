@@ -40,29 +40,41 @@
         }
     });
 
+    var NameLabelToggle = Backbone.View.extend({
+        className: 'label-toggle-container',
+
+        template: _.template('' +
+            '<span>' +
+              '<label class="checkbox">' +
+                '<input class="name-label-toggle" type="checkbox" name="toggle_labels" aria-controls="data-table" <% if (isChecked) { %>checked="checked" <% } %> />' +
+                ' Show select labels' +
+              '</label>' +
+            '</span>'),
+
+        events: {
+            'click .name-label-toggle': "toggleLabels"
+        },
+
+        render: function () {
+            this.$el.empty().append(this.template({
+                isChecked: false
+            }));
+            this.delegateEvents();
+            return this;
+        },
+
+        toggleLabels: function (e) {
+            var enabled = !!$(e.currentTarget).attr('checked');
+            this.trigger('toggled', enabled);
+        }
+    });
+
     var DataView = FH.DataView = Backbone.View.extend({
         // Instance of the `Form` object
         form: void 0,
 
         // Instance of the `Data` object
         data: void 0,
-
-        // Table header template
-        headerTemplate: _.template('' +
-            '<tr>' +
-            '<% _.each(columns, function (column){ %>' +
-            '<th><%= column %></th>' +
-            '<% }); %>' +
-            '</tr>'),
-
-        // toggle label template
-        labelToggleTemplate: _.template('' +
-            '<span>' +
-            '<label>' +
-            '<input class="toggle-labels" type="checkbox" name="toggle_labels" aria-controls="data-table" <% if (isChecked) { %>checked="checked" <% } %> />' +
-            ' Show select labels' +
-            '</label>' +
-            '</span>'),
 
         // Whether to show select names or labels
         showLabels: false,
@@ -82,12 +94,13 @@
             // Setup the data
             this.data = new FH.PageableDataset([], {
                 url: options.dataUrl,
-                state: {
-                    pageSize: 5
-                }
+                /*state: {
+                    pageSize: 10
+                }*/
             });
 
             this.form.on('load', function () {
+                var dataView = this
                 // Render the columns
                 /*this.$('table thead')
                     .empty()
@@ -99,7 +112,6 @@
 
                 // Initialize the data
                 this.data.on('load', function () {
-                    var dataView = this;
 
                     // Disable this callback - infinite loop
                     this.data.off('load');
@@ -115,12 +127,20 @@
                 // Initialize the grid
                 this.dataGrid = new Backgrid.Grid({
                     columns: this.form.fields.map(function (f) {
-                        return {
+                        var column = {
                             name: f.get(FH.constants.XPATH),
                             label: f.get(FH.constants.LABEL),
                             editable: false,
                             cell: "string"//FHToBackgridTypes[f.get(FH.constants.TYPE)] || "string"
                         };
+                        if(f.isA(FH.types.SELECT_ONE) || f.isA(FH.types.SELECT_MULTIPLE)) {
+                            column.formatter = {
+                                fromRaw: function (rawData) {
+                                    return DataView.NameOrLabel(f, rawData, dataView.showLabels);
+                                }
+                            };
+                        }
+                        return column;
                     }),
                     collection: this.data
                 });
@@ -139,7 +159,7 @@
                 // mode pageable collection's cache.
                 var filter = new Backgrid.Extension.ClientSideFilter({
                     collection: this.data,
-                    fields: ['name']
+                    fields: ['pizza_type']
                 });
 
                 // Render the filter
@@ -148,66 +168,38 @@
                 // Add some space to the filter and move it to the right
                 filter.$el.css({float: "right", margin: "20px"});
 
+                // Initialize the name/label toggle
+                var labelToggle = new NameLabelToggle();
+
+                // catch the `toggled` event
+                labelToggle.on('toggled', function (enabled) {
+                    this.showLabels = enabled;
+                    this.dataGrid.render();
+                }, this);
+
+                this.$el.prepend(labelToggle.render().$el);
+
                 // Fetch some data
                 this.data.fetch({reset: true});
 
             }, this);
             this.form.load();
-        },
-
-        onToggleLabels: function (evt) {
-            var target = evt.currentTarget;
-            if (target.checked) {
-                this.showLabels = true;
-            } else {
-                this.showLabels = false;
-            }
-            this.dynatable.dom.update();
         }
     });
 
-    DataView.dataTableColumns = function (form) {
-        var dataView = this;
-        return form.fields.map(function (field) {
-            var funcOrNull,
-                cleanedXPath = field.get(FH.constants.XPATH).replace(/\./g, "-");
-
-            if (FH.Field.isA(field.get(FH.constants.TYPE), FH.types.SELECT_ONE) ||
-                FH.Field.isA(field.get(FH.constants.TYPE), FH.types.SELECT_MULTIPLE)) {
-                funcOrNull = DataView.NameOrLabel.call(dataView, field);
-            } else {
-                funcOrNull = cleanedXPath;
-            }
-            return {
-                // Replace dots with dashes, datatables dont like them dots
-                // If the field is a select, use a function to
-                mData: funcOrNull,
-                //mRender: funcOrNull,
-                sTitle: field.get(FH.constants.LABEL)
-            };
-        });
-    };
-
-    // Called by dataTables to retrieve a value for a select column,
-    // we determine whether to use the name or label here
-    DataView.NameOrLabel = function (field, data) {
-        var dataView = this,
-            xpath,
+    // Used by select formatters to return wither name the name or label for a response
+    DataView.NameOrLabel = function (field, value, showLabels) {
+        var xpath,
             choices,
             selections,
-            results,
-            response;
+            results;
 
         // if showLabels === true, get the label for the selected value(s)
-        if (dataView.showLabels) {
-            xpath = field.get(FH.constants.XPATH);//.replace(/\./g, '-');
+        if (showLabels) {
             choices = new FH.FieldSet(field.get(FH.constants.CHILDREN));
 
-            // get the value from the data
-            response = data && data[xpath] || null;
-
             // Split the value on a space to get a list for multiple choices
-            selections = response && response.split(' ') || [];
+            selections = value && value.split(' ') || [];
             results = [];
 
             _.each(selections, function (selection) {
@@ -220,28 +212,7 @@
             });
             return results.join(', ');
         } else {
-            return data && data[field.get(FH.constants.XPATH)] || null;
+            return value;
         }
-    };
-
-    DataView.dataSetToDataTables = function (form, dataSet) {
-        // For each column, set the value or undefined
-        return dataSet.map(function (row) {
-            var data = row.toJSON();
-
-            // for each column, replace dots with dashes
-            _.each(data, function (v, k) {
-                if (k.match(/\./g)) {
-                    data[k.replace(/\./g, '-')] = v;
-                    delete(data[k]);
-                }
-            });
-
-            form.fields.each(function (f) {
-                var cleanedXPath = f.get(FH.constants.XPATH).replace(/\./g, "-");
-                data[cleanedXPath] = data[cleanedXPath] || null;
-            });
-            return data;
-        });
     };
 }).call(this);

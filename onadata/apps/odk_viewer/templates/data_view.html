@@ -2,9 +2,9 @@
 {% load i18n %}
 
 {% block additional-headers %}
-    <link href="/static/bower_components/backgrid/lib/backgrid.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/bower_components/backgrid/lib/extensions/filter/backgrid-filter.css" />
-    <link rel="stylesheet" href="/static/bower_components/backgrid/lib/extensions/paginator/backgrid-paginator.css" />
+    <link href="/static/bower_components/backgrid/lib/backgrid.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/bower_components/backgrid/lib/extensions/filter/backgrid-filter.min.css" />
+    <link rel="stylesheet" href="/static/bower_components/backgrid/lib/extensions/paginator/backgrid-paginator.min.css" />
     <link href="/static/css/data_view.css" rel="stylesheet">
 {% endblock %}
 
@@ -29,13 +29,13 @@
 {% block javascript %}
     {{ block.super }}
     <script type="text/javascript" src="/static/bower_components/underscore/underscore-min.js"></script>
-    <script type="text/javascript" src="/static/bower_components/backbone/backbone.js"></script>
+    <script type="text/javascript" src="/static/bower_components/backbone/backbone-min.js"></script>
     <script type="text/javascript" src="/static/js/json2.js"></script>
-    <script type="text/javascript" src="/static/bower_components/backgrid/lib/backgrid.js"></script>
+    <script type="text/javascript" src="/static/bower_components/backgrid/lib/backgrid.min.js"></script>
     <script src="/static/bower_components/backgrid/assets/js/lunr.js"></script>
     <script src="/static/bower_components/backgrid/assets/js/backbone-pageable.js"></script>
-    <script src="/static/bower_components/backgrid/lib/extensions/filter/backgrid-filter.js"></script>
-    <script src="/static/bower_components/backgrid/lib/extensions/paginator/backgrid-paginator.js"></script>
+    <script src="/static/bower_components/backgrid/lib/extensions/filter/backgrid-filter.min.js"></script>
+    <script src="/static/bower_components/backgrid/lib/extensions/paginator/backgrid-paginator.min.js"></script>
     <script type="text/javascript" src="/static/js/xform.js"></script>
     <script type="text/javascript">
         var formJSONUrl = "{% url "odk_logger.views.download_jsonform" owner.username xform.id_string %}";
