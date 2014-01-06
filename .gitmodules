@@ -1,8 +1,8 @@
 [submodule "apps/main/static/bootstrap/src"]
 	path = apps/main/static/bootstrap/src
 	url = git://github.com/twbs/bootstrap.git
-[submodule "js_tests/EnvJasmine"]
-	path = js_tests/EnvJasmine
+[submodule "libs/javascript/tests/EnvJasmine"]
+	path = libs/javascript/tests/EnvJasmine
 	url = git://github.com/trevmex/EnvJasmine.git
 [submodule "apps/main/static/recline"]
 	path = apps/main/static/recline
