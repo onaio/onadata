@@ -56,7 +56,7 @@
             return val;
         },
 
-        isA: function (type, typeConstant) {
+        isA: function (typeConstant) {
             return typeConstant.indexOf(this.get(FH.constants.TYPE).toLowerCase()) !== -1;
         }
     });
