@@ -133,7 +133,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.static',
     'django.core.context_processors.tz',
     'django.contrib.messages.context_processors.messages',
-    'formhub.context_processors.google_analytics'
+    'formhub.context_processors.google_analytics',
+    'formhub.context_processors.site_name'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -401,6 +402,10 @@ RECAPTCHA_USE_SSL = False
 RECAPTCHA_PRIVATE_KEY = ''
 RECAPTCHA_PUBLIC_KEY = '6Ld52OMSAAAAAJJ4W-0TFDTgbznnWWFf0XuOSaB6'
 
+# specify the root folder which may contain a templates folder and a static
+# folder used to override templates for site specific details
+TEMPLATE_OVERRIDE_ROOT_DIR = None
+
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:
@@ -418,3 +423,13 @@ else:
 MONGO_CONNECTION = MongoClient(
     MONGO_CONNECTION_URL, safe=True, j=True, tz_aware=True)
 MONGO_DB = MONGO_CONNECTION[MONGO_DATABASE['NAME']]
+
+if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
+    # site templates overrides
+    TEMPLATE_DIRS = (
+        os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'templates'),
+    ) + TEMPLATE_DIRS
+    # site static files path
+    STATICFILES_DIRS += (
+        os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'static'),
+    )
