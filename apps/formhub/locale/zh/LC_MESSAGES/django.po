@@ -1099,8 +1099,8 @@ msgstr "把所有本地文件移至亚马逊s3"
 
 #: odk_logger/management/commands/move_media_to_s3.py:23
 msgid ""
-"Missing necessary libraries. Try running: pip install -r requirements-s3.pip"
-msgstr "缺失必要程序库。试一试 pip install -r requirements-s3.pip"
+"Missing necessary libraries. Try running: pip install -r requirements/s3.pip"
+msgstr "缺失必要程序库。试一试 pip install -r requirements/s3.pip"
 
 #: odk_logger/management/commands/move_media_to_s3.py:28
 msgid ""

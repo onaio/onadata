@@ -1,6 +1,6 @@
 pip install numpy --use-mirrors
-pip install -r requirements.pip --use-mirrors
-pip install -r requirements-mysql.pip --use-mirrors
+pip install -r requirements/common.pip --use-mirrors
+pip install -r requirements/postgresql_psycopg2.pip --use-mirrors
 
 python manage.py syncdb --noinput
-python manage.py migrate
+python manage.py migrate --noinput

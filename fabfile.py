@@ -60,7 +60,8 @@ def setup_env(deployment_name):
                                   env.project, 'bin', 'activate')
 
     env.code_src = os.path.join(env.home, env.project)
-    env.pip_requirements_file = os.path.join(env.code_src, 'requirements.pip')
+    env.pip_requirements_file = os.path.join(env.code_src,
+                                             'requirements/common.pip')
 
 
 def deploy(deployment_name, branch='master'):
