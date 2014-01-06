@@ -1,6 +1,6 @@
 EnvJasmine.load(EnvJasmine.mocksDir + "instance_view.mock.js");
-EnvJasmine.load(EnvJasmine.jsDir + "main/static/js/fh_utils.js");
-EnvJasmine.load(EnvJasmine.jsDir + "odk_viewer/static/js/instance.js");
+EnvJasmine.load(EnvJasmine.jsDir + "apps/main/static/js/fh_utils.js");
+EnvJasmine.load(EnvJasmine.jsDir + "apps/odk_viewer/static/js/instance.js");
 
 describe("Instance View tests", function() {
     it("checks that parseQuestions builds hierachy's as expected", function() {

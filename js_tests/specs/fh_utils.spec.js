@@ -1,5 +1,5 @@
 EnvJasmine.load(EnvJasmine.mocksDir + "fh_utils.mock.js");
-EnvJasmine.load(EnvJasmine.jsDir + "main/static/js/fh_utils.js");
+EnvJasmine.load(EnvJasmine.jsDir + "apps/main/static/js/fh_utils.js");
 
 describe("Formhub JS utils tests", function() {
     it("tests that timezone without minute component get a 00 minute appended", function() {
