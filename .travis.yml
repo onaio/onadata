@@ -13,10 +13,10 @@ before_install:
 install:
   - pip install -r requirements/common.pip --use-mirrors
   - pip install -r requirements/postgresql_psycopg2.pip --use-mirrors
-  - python manage.py syncdb --noinput --settings=settings.travis_test
-  - python manage.py migrate --noinput --settings=settings.travis_test
+  - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
+  - python manage.py migrate --noinput --settings=onadata.settings.travis_test
 script:
-  - python manage.py test --noinput --settings=settings.travis_test
+  - python manage.py test --noinput --settings=onadata.settings.travis_test
   - ./script/run_js_tests
 notifications:
   email:
