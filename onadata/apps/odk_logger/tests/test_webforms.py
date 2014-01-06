@@ -30,8 +30,6 @@ class TestWebforms(TestBase):
             return f.read()
 
     def test_edit_url(self):
-        ''' mock_urlopen.return_value.read.return_value = self.__load_fixture(
-            'fixtures', 'enketo_response.json')'''
         instance = Instance.objects.order_by('id').reverse()[0]
         edit_url = reverse(edit_data, kwargs={
             'username': self.user.username,

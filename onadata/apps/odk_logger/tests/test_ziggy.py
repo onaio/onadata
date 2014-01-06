@@ -4,9 +4,9 @@ import json
 import requests
 
 from bson import ObjectId
-from httmock import urlmatch, HTTMock
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from httmock import urlmatch, HTTMock
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.odk_logger.models import ZiggyInstance
