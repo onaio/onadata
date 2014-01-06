@@ -5,8 +5,6 @@ load_script.pid
 local_settings.py
 pyxform
 search_index
-site_media/attachments
-site_media/css/sass/.sass-cache/*
 tmp/*
 xform_manager_dataset.json
 
@@ -17,16 +15,8 @@ csvs
 build
 
 # media folder used by tests
-# todo: figure out a way to clean this up rather than ignore it.
-/test_media
-/media
-/static
-
-# file created by tests
-registration.xml
-
-# for a local virtualenv (as done in mangrove repo)
-ve/
+# TODO figure out a way to clean this up rather than ignore it.
+/onadata/test_media
 
 .~lock.*
 .DS_Store
@@ -36,7 +26,6 @@ ve/
 .pydevproject
 .sass-cache
 .settings
-mongo_vs_instance_counts_report.txt
 
 *.bak
 *.pyc
