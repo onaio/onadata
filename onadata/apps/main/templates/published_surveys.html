@@ -2,11 +2,6 @@
 {% load i18n %}
 {% if all_forms or forms_shared_with or crowdforms%}
 
-<section id="published-forms">
-  <div class="page-header">
-    <h1>{% blocktrans %}Published Forms <small>Export, map, and view submissions.</small>{% endblocktrans %}</h1>
-  </div>
-
 {% if message and message.preview_url %}
     <div id="preview-modal" class="modal hide fade">
         <div class="modal-header">
@@ -19,24 +14,27 @@
         <div class="modal-footer"></div>
     </div>
 {% endif %}
-{% if all_forms %}
-  <table id="forms-table" class="table table-bordered table-striped forms-table">
+
+{% for xform_list in xforms_list %}
+<section id="{{ xform_list.id }}-forms">
+  <div class="page-header">
+      <h1>{{ xform_list.title }}<small>{{ xform_list.small }}</small></h1>
+  </div>
+{% if xform_list.xforms %}
+<table id="{{ xform_list.id }}-table" class="table table-bordered table-striped">
     <thead>
       <tr>
         <th>{%  trans "Name" %}</th>
-        <th>{%  trans "Submissions" %}</th>
-        <th>{%  trans "Enter Data" %}</th>
-        <th>{%  trans "View" %}</th>
+        <th>{%  trans "Stats" %}</th>
+        <th>{%  trans "Data" %}</th>
         <th>{%  trans "Download" %}</th>
-        <th>{%  trans "Last Submission" %}</th>
-        <th>{%  trans "Active" %}</th>
         <th>&nbsp;</th>
       </tr>
     </thead>
     <tbody>
-      {% for xform in user_xforms %}
+    {% for xform in xform_list.xforms %}
           {% with submission_count=xform.submission_count time_of_last_submission=xform.time_of_last_submission has_surveys_with_geopoints=xform.has_surveys_with_geopoints %}
-      <tr>
+    <tr>
         <td>
             <a href="{% url "onadata.apps.main.views.show" content_user.username xform.id_string %}">{{ xform.title }}</a>
             {% if xform.shared %}
@@ -49,10 +47,18 @@
                 <span class="label label-important icon-lock label-encrypted">&nbsp;&nbsp;{%  trans "ENCRYPTED" %}</span>
             {% endif %}
         </td>
-        <td class="centered">{{ submission_count|intcomma }}</td>
-        <td class="centered">
-                <a class="btn" href="{% url "onadata.apps.odk_logger.views.enter_data" xform.user.username xform.id_string %}"><i class="icon-edit"></i> {% trans "Web" %}</a>
-                <a data-toggle="modal" data-target="#popupmodal" class="showqr btn" href="{% url "get_qrcode" xform.user.username xform.id_string %}"><i class="icon-tablet"></i> {% trans "Mobile" %}</a>
+        <td>
+                <dl class='dl-horizontal'>
+                    <dt>Submissions</dt>
+                    <dd>{{ submission_count|intcomma }}</dd>
+                    <dt>Created</dt>
+                    <dd>{{ xform.date_created|date:"N d, Y" }}
+                    </dd>
+                      {% if time_of_last_submission %}
+                      <dt>Last Submission</dt>
+                      <dd>{{ time_of_last_submission|date:"N d, Y" }}</dd>
+                      {% endif %}
+                  </dl>
         </td>
         <td class="centered">
                 {% if not xform.encrypted and has_surveys_with_geopoints %}
@@ -76,6 +82,9 @@
                     <span><i class="icon-list icon-large inactive"></i></span>
                     <span><i class="icon-bar-chart icon-large inactive"></i></span>
                 {% endif %}
+        <br />
+                <a class="btn" href="{% url "odk_logger.views.enter_data" xform.user.username xform.id_string %}"><i class="icon-edit"></i> {% trans "Web" %}</a>
+                <a data-toggle="modal" data-target="#popupmodal" class="showqr btn" href="{% url "get_qrcode" xform.user.username xform.id_string %}"><i class="icon-tablet"></i> {% trans "Mobile" %}</a>
         </td>
         <td>
             {% if  not xform.encrypted and submission_count %}
@@ -92,12 +101,6 @@
                 {% endif %}
             {% endif %}
         </td>
-        <td>
-          {% if time_of_last_submission %}
-              {{ time_of_last_submission|date:"N d, Y" }}
-          {% endif %}
-        </td>
-        <td>{{ xform.downloadable|lower }}</td>
         <td>
             {% if submission_count <= 0 %}
             <div class="dropdown">
@@ -148,15 +151,14 @@
               {% endif %}
         </td>
       </tr>
+    </tr>
       {% endwith %}
-      {% endfor %}
-
+    {% endfor %}
     </tbody>
-  </table>
-
-  {% endif %}
+</table>
   <hr />
     </section>
+<<<<<<< HEAD:onadata/apps/main/templates/published_surveys.html
     {% if forms_shared_with %}
     <section id="forms-shared-with-you">
   <div class="page-header">
@@ -350,7 +352,12 @@
     </section>
     <hr />
 {% endif %}
+=======
+    {% endif %}
+    {% endfor %}
+>>>>>>> UK: refactored survey projects view, inclued date created:main/templates/published_surveys.html
 
+    {% endif %}
 <div class="modal hide fade" id="popupmodal" style="width: auto; left:36%; margin-left: auto; margin-right: auto;" tabindex="-1" role="dialog">
      <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>

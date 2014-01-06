@@ -1099,3 +1099,6 @@ body.authenticated {
 	background-image: url("images/background.jpg");
 	background-repeat: repeat;
 }
+td dl {
+    margin-bottom: 0px;
+}
