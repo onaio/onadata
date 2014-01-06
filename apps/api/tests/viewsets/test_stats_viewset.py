@@ -20,7 +20,7 @@ class TestStatsViewSet(TestBase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
-    @patch('odk_logger.models.instance.submission_time')
+    @patch('apps.odk_logger.models.instance.submission_time')
     def test_form_list(self, mock_time):
         self._set_mock_time(mock_time)
         self._publish_transportation_form()

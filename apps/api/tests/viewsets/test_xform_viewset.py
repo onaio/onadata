@@ -92,7 +92,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         response_doc = minidom.parseString(response.data)
 
         xml_path = os.path.join(
-            settings.PROJECT_ROOT, "main", "tests", "fixtures",
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xml")
         with open(xml_path) as xml_file:
             expected_doc = minidom.parse(xml_file)

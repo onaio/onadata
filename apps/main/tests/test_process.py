@@ -539,7 +539,7 @@ class TestProcess(TestBase):
         csv_text = '\n'.join([
             'survey,,', ',type,name,label',
             ',text,whatsyourname,"What is your name?"', 'choices,,'])
-        url = reverse('main.views.profile',
+        url = reverse('apps.main.views.profile',
                       kwargs={'username': self.user.username})
         num_xforms = XForm.objects.count()
         params = {

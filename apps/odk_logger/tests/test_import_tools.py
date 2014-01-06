@@ -1,6 +1,8 @@
 import os
 import glob
 
+from django.conf import settings
+
 from apps.main.tests.test_base import TestBase
 from apps.odk_logger.models import Instance
 from apps.odk_logger.import_tools import import_instances_from_zip
@@ -8,8 +10,6 @@ from apps.odk_logger.import_tools import import_instances_from_zip
 CUR_PATH = os.path.abspath(__file__)
 CUR_DIR = os.path.dirname(CUR_PATH)
 DB_FIXTURES_PATH = os.path.join(CUR_DIR, 'data_from_sdcard')
-
-from django.conf import settings
 
 
 def images_count(username="bob"):
@@ -24,8 +24,8 @@ class TestImportingDatabase(TestBase):
         TestBase.setUp(self)
         self._publish_xls_file(
             os.path.join(
-                settings.PROJECT_ROOT,
-                "odk_logger", "fixtures", "test_forms", "tutorial.xls"))
+                settings.PROJECT_ROOT, "apps", "odk_logger", "fixtures",
+                "test_forms", "tutorial.xls"))
 
     def tearDown(self):
         # delete everything we imported

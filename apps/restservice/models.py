@@ -19,7 +19,7 @@ class RestService(models.Model):
         return u"%s:%s - %s" % (self.xform, self.long_name, self.service_url)
 
     def get_service_definition(self):
-        m = __import__(''.join(['restservice.services.', self.name]),
+        m = __import__(''.join(['apps.restservice.services.', self.name]),
                        globals(), locals(), ['ServiceDefinition'])
         return m.ServiceDefinition
 

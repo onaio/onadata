@@ -8,6 +8,7 @@ import tempfile
 from time import sleep
 import zipfile
 
+from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.core.files.temp import NamedTemporaryFile
 from django.core.urlresolvers import reverse
@@ -29,6 +30,27 @@ from apps.odk_viewer.tasks import create_xls_export
 from apps.odk_viewer.models.parsed_instance import _encode_for_mongo
 from libs.utils.export_tools import generate_export,\
     increment_index_in_filename, dict_to_joined_export, ExportBuilder
+
+AMBULANCE_KEY = 'transport/available_transportation_types_to_referral_fac'\
+                'ility/ambulance'
+AMBULANCE_KEY_DOTS = 'transport.available_transportation_types_to_referra'\
+                     'l_facility.ambulance'
+
+
+def _logger_fixture_path(*args):
+    return os.path.join(settings.PROJECT_ROOT, 'apps', 'odk_logger',
+                        'tests', 'fixtures', *args)
+
+
+def _main_fixture_path(instance_name):
+    return os.path.join(settings.PROJECT_ROOT, 'apps', 'main', 'tests',
+                        'fixtures', 'transportation', 'instances_w_uuid',
+                        instance_name, instance_name + '.xml')
+
+
+def _viewer_fixture_path(*args):
+    return os.path.join(settings.PROJECT_ROOT, 'apps', 'odk_viewer',
+                        'tests', 'fixtures', *args)
 
 
 class TestExportList(TestBase):
@@ -206,8 +228,7 @@ class TestExports(TestBase):
                 'id_string': self.xform.id_string
             }))
         self.assertEqual(response.status_code, 200)
-        test_file_path = os.path.join(
-            os.path.dirname(__file__), 'fixtures', 'transportation.csv')
+        test_file_path = _viewer_fixture_path('transportation.csv')
         content = self._get_response_content(response)
         with open(test_file_path, 'r') as test_file:
             self.assertEqual(content, test_file.read())
@@ -584,9 +605,7 @@ class TestExports(TestBase):
             self.user.username, self.xform.id_string, '{}', '[]', '{}',
             count=True)[0]['count']
         instance_name = 'transport_2011-07-25_19-05-36'
-        path = os.path.join(
-            'main', 'tests', 'fixtures', 'transportation', 'instances_w_uuid',
-            instance_name, instance_name + '.xml')
+        path = _main_fixture_path(instance_name)
         self._make_submission(path)
         count = ParsedInstance.query_mongo(
             self.user.username, self.xform.id_string, '{}', '[]', '{}',
@@ -594,9 +613,7 @@ class TestExports(TestBase):
         self.assertEqual(count, initial_count + 1)
         # make edited submission - simulating what enketo would return
         instance_name = 'transport_2011-07-25_19-05-36-edited'
-        path = os.path.join(
-            'main', 'tests', 'fixtures', 'transportation', 'instances_w_uuid',
-            instance_name, instance_name + '.xml')
+        path = _main_fixture_path(instance_name)
         self._make_submission(path)
         count = ParsedInstance.query_mongo(
             self.user.username, self.xform.id_string, '{}', '[]', '{}',
@@ -826,9 +843,8 @@ class TestExports(TestBase):
             xform=self.xform, export_type='csv').latest('created_on')
         self.assertTrue(bool(export.filepath))
         data = self._get_csv_data(export.filepath)
-        key = 'transport/available_transportation_types_to_referral_facility/ambulance'
-        self.assertTrue(key in data)
-        self.assertEqual(data[key], 'True')
+        self.assertTrue(AMBULANCE_KEY in data)
+        self.assertEqual(data[AMBULANCE_KEY], 'True')
 
         sleep(1)
         # test csv with dot delimiter
@@ -838,9 +854,8 @@ class TestExports(TestBase):
             xform=self.xform, export_type='csv').latest('created_on')
         self.assertTrue(bool(export.filepath))
         data = self._get_csv_data(export.filepath)
-        key = 'transport.available_transportation_types_to_referral_facility.ambulance'
-        self.assertTrue(key in data)
-        self.assertEqual(data[key], 'True')
+        self.assertTrue(AMBULANCE_KEY_DOTS in data)
+        self.assertEqual(data[AMBULANCE_KEY_DOTS], 'True')
 
         # test xls with default group delimiter
         create_csv_export_url = reverse(create_export, kwargs={
@@ -854,10 +869,9 @@ class TestExports(TestBase):
             xform=self.xform, export_type='xls').latest('created_on')
         self.assertTrue(bool(export.filepath))
         data = self._get_xls_data(export.filepath)
-        key = "transport/available_transportation_types_to_referral_facility/ambulance"
-        self.assertTrue(key in data)
+        self.assertTrue(AMBULANCE_KEY in data)
         # xlrd reader seems to convert bools into integers i.e. 0 or 1
-        self.assertEqual(data[key], 1)
+        self.assertEqual(data[AMBULANCE_KEY], 1)
 
         sleep(1)
         # test xls with dot delimiter
@@ -867,10 +881,9 @@ class TestExports(TestBase):
             xform=self.xform, export_type='xls').latest('created_on')
         self.assertTrue(bool(export.filepath))
         data = self._get_xls_data(export.filepath)
-        key = "transport.available_transportation_types_to_referral_facility.ambulance"
-        self.assertTrue(key in data)
+        self.assertTrue(AMBULANCE_KEY_DOTS in data)
         # xlrd reader seems to convert bools into integers i.e. 0 or 1
-        self.assertEqual(data[key], 1)
+        self.assertEqual(data[AMBULANCE_KEY_DOTS], 1)
 
     def test_split_select_multiple_export_option(self):
         self._publish_transportation_form()
@@ -891,9 +904,9 @@ class TestExports(TestBase):
             xform=self.xform, export_type='csv').latest('created_on')
         self.assertTrue(bool(export.filepath))
         data = self._get_csv_data(export.filepath)
-        # we should have transport/available_transportation_types_to_referral_facility/ambulance as a separate column
-        self.assertTrue(
-                'transport/available_transportation_types_to_referral_facility/ambulance' in data)
+        # we should have transport/available_transportation_types_to_referral_f
+        # acility/ambulance as a separate column
+        self.assertTrue(AMBULANCE_KEY in data)
 
         sleep(1)
         # test csv without default split select multiples
@@ -903,14 +916,19 @@ class TestExports(TestBase):
             xform=self.xform, export_type='csv').latest('created_on')
         self.assertTrue(bool(export.filepath))
         data = self._get_csv_data(export.filepath)
-        # transport/available_transportation_types_to_referral_facility/ambulance should not be in its own column
-        self.assertFalse(
-            'transport/available_transportation_types_to_referral_facility/ambulance' in data)
-        # transport/available_transportation_types_to_referral_facility should be a column
+        # transport/available_transportation_types_to_referral_facility/ambulan
+        # ce should not be in its own column
+        self.assertFalse(AMBULANCE_KEY in data)
+        # transport/available_transportation_types_to_referral_facility should
+        # be a column
         self.assertTrue(
-            'transport/available_transportation_types_to_referral_facility' in data)
-        # check that ambulance is one the values within the transport/available_transportation_types_to_referral_facility column
-        self.assertTrue("ambulance" in data['transport/available_transportation_types_to_referral_facility'].split(" "))
+            'transport/available_transportation_types_to_referral_facility' in
+            data)
+        # check that ambulance is one the values within the transport/available
+        # _transportation_types_to_referral_facility column
+        self.assertTrue("ambulance" in data[
+            'transport/available_transportation_types_to_referral_facility'
+        ].split(" "))
 
         create_xls_export_url = reverse(create_export, kwargs={
             'username': self.user.username,
@@ -924,9 +942,9 @@ class TestExports(TestBase):
             xform=self.xform, export_type='xls').latest('created_on')
         self.assertTrue(bool(export.filepath))
         data = self._get_xls_data(export.filepath)
-        # we should have transport/available_transportation_types_to_referral_facility/ambulance as a separate column
-        self.assertTrue(
-            'transport/available_transportation_types_to_referral_facility/ambulance' in data)
+        # we should have transport/available_transportation_types_to_referral_f
+        # acility/ambulance as a separate column
+        self.assertTrue(AMBULANCE_KEY in data)
 
         sleep(1)
         # test xls without default split select multiples
@@ -936,14 +954,19 @@ class TestExports(TestBase):
             xform=self.xform, export_type='xls').latest('created_on')
         self.assertTrue(bool(export.filepath))
         data = self._get_xls_data(export.filepath)
-        # transport/available_transportation_types_to_referral_facility/ambulance should NOT be in its own column
-        self.assertFalse(
-            'transport/available_transportation_types_to_referral_facility/ambulance' in data)
-        # transport/available_transportation_types_to_referral_facility should be a column
+        # transport/available_transportation_types_to_referral_facility/ambulan
+        # ce should NOT be in its own column
+        self.assertFalse(AMBULANCE_KEY in data)
+        # transport/available_transportation_types_to_referral_facility should
+        # be a column
         self.assertTrue(
-            'transport/available_transportation_types_to_referral_facility' in data)
-        # check that ambulance is one the values within the transport/available_transportation_types_to_referral_facility column
-        self.assertTrue("ambulance" in data['transport/available_transportation_types_to_referral_facility'].split(" "))
+            'transport/available_transportation_types_to_referral_facility'
+            in data)
+        # check that ambulance is one the values within the transport/available
+        # _transportation_types_to_referral_facility column
+        self.assertTrue("ambulance" in data[
+            'transport/available_transportation_types_to_referral_facility'
+        ].split(" "))
 
     def test_dict_to_joined_export_works(self):
         data =\
@@ -990,12 +1013,16 @@ class TestExports(TestBase):
                                 'children/cartoons/characters':
                                 [
                                     {
-                                        'children/cartoons/characters/name': 'Dee Dee',
-                                        'children/cartoons/characters/good_or_evil': 'good'
+                                        'children/cartoons/characters/name':
+                                        'Dee Dee',
+                                        'children/cartoons/characters/good_or_'
+                                        'evil': 'good'
                                     },
                                     {
-                                        'children/cartoons/characters/name': 'Dexter',
-                                        'children/cartoons/characters/good_or_evil': 'evil'
+                                        'children/cartoons/characters/name':
+                                        'Dexter',
+                                        'children/cartoons/characters/good_or_'
+                                        'evil': 'evil'
                                     },
                                 ]
                             }
@@ -1178,12 +1205,16 @@ class TestExportBuilder(TestBase):
                             'children/cartoons/characters':
                             [
                                 {
-                                    'children/cartoons/characters/name': 'Dee Dee',
-                                    'children/cartoons/characters/good_or_evil': 'good'
+                                    'children/cartoons/characters/name':
+                                    'Dee Dee',
+                                    'children/cartoons/characters/good_or_evi'
+                                    'l': 'good'
                                 },
                                 {
-                                    'children/cartoons/characters/name': 'Dexter',
-                                    'children/cartoons/characters/good_or_evil': 'evil'
+                                    'children/cartoons/characters/name':
+                                    'Dexter',
+                                    'children/cartoons/characters/good_or_evi'
+                                    'l': 'evil'
                                 },
                             ]
                         }
@@ -1209,12 +1240,16 @@ class TestExportBuilder(TestBase):
                     'childrens_survey_with_a_very_lo/cartoons':
                     [
                         {
-                            'childrens_survey_with_a_very_lo/cartoons/name': 'Tom & Jerry',
-                            'childrens_survey_with_a_very_lo/cartoons/why': 'Tom is silly',
+                            'childrens_survey_with_a_very_lo/cartoons/name':
+                            'Tom & Jerry',
+                            'childrens_survey_with_a_very_lo/cartoons/why':
+                            'Tom is silly',
                         },
                         {
-                            'childrens_survey_with_a_very_lo/cartoons/name': 'Flinstones',
-                            'childrens_survey_with_a_very_lo/cartoons/why': u"I like bam bam\u0107"
+                            'childrens_survey_with_a_very_lo/cartoons/name':
+                            'Flinstones',
+                            'childrens_survey_with_a_very_lo/cartoons/why':
+                            u"I like bam bam\u0107"
                             # throw in a unicode character
                         }
                     ]
@@ -1230,21 +1265,30 @@ class TestExportBuilder(TestBase):
                     'childrens_survey_with_a_very_lo/cartoons':
                     [
                         {
-                            'childrens_survey_with_a_very_lo/cartoons/name': 'Shrek',
-                            'childrens_survey_with_a_very_lo/cartoons/why': 'He\'s so funny'
+                            'childrens_survey_with_a_very_lo/cartoons/name':
+                            'Shrek',
+                            'childrens_survey_with_a_very_lo/cartoons/why':
+                            'He\'s so funny'
                         },
                         {
-                            'childrens_survey_with_a_very_lo/cartoons/name': 'Dexter\'s Lab',
-                            'childrens_survey_with_a_very_lo/cartoons/why': 'He thinks hes smart',
-                            'childrens_survey_with_a_very_lo/cartoons/characters':
+                            'childrens_survey_with_a_very_lo/cartoons/name':
+                            'Dexter\'s Lab',
+                            'childrens_survey_with_a_very_lo/cartoons/why':
+                            'He thinks hes smart',
+                            'childrens_survey_with_a_very_lo/cartoons/characte'
+                            'rs':
                             [
                                 {
-                                    'childrens_survey_with_a_very_lo/cartoons/characters/name': 'Dee Dee',
-                                    'children/cartoons/characters/good_or_evil': 'good'
+                                    'childrens_survey_with_a_very_lo/cartoons/'
+                                    'characters/name': 'Dee Dee',
+                                    'children/cartoons/characters/good_or_evi'
+                                    'l': 'good'
                                 },
                                 {
-                                    'childrens_survey_with_a_very_lo/cartoons/characters/name': 'Dexter',
-                                    'children/cartoons/characters/good_or_evil': 'evil'
+                                    'childrens_survey_with_a_very_lo/cartoons/'
+                                    'characters/name': 'Dexter',
+                                    'children/cartoons/characters/good_or_evi'
+                                    'l': 'evil'
                                 },
                             ]
                         }
@@ -1273,7 +1317,8 @@ class TestExportBuilder(TestBase):
                         },
                         {
                             'childrenLg==info/cartoons/name': 'Flinstones',
-                            'childrenLg==info/cartoons/why': u"I like bam bam\u0107"
+                            'childrenLg==info/cartoons/why':
+                            u"I like bam bam\u0107"
                             # throw in a unicode character
                         }
                     ]
@@ -1283,11 +1328,8 @@ class TestExportBuilder(TestBase):
     ]
 
     def _create_childrens_survey(self):
-        survey = create_survey_from_xls(
-            os.path.join(
-                os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
-                'childrens_survey.xls'))
-        return survey
+        return create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey.xls'))
 
     def test_build_sections_from_survey(self):
         survey = self._create_childrens_survey()
@@ -1373,9 +1415,7 @@ class TestExportBuilder(TestBase):
             rows = [r for r in reader]
 
             # open comparison file
-            with open(
-                os.path.join(
-                    os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
+            with open(_logger_fixture_path(
                     'csvs', 'childrens_survey.csv')) as fixture_csv:
                 fixture_reader = csv.reader(fixture_csv)
                 expected_rows = [r for r in fixture_reader]
@@ -1389,9 +1429,7 @@ class TestExportBuilder(TestBase):
             rows = [r for r in reader]
 
             # open comparison file
-            with open(
-                os.path.join(
-                    os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
+            with open(_logger_fixture_path(
                     'csvs', 'children.csv')) as fixture_csv:
                 fixture_reader = csv.reader(fixture_csv)
                 expected_rows = [r for r in fixture_reader]
@@ -1405,9 +1443,7 @@ class TestExportBuilder(TestBase):
             rows = [r for r in reader]
 
             # open comparison file
-            with open(
-                os.path.join(
-                    os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
+            with open(_logger_fixture_path(
                     'csvs', 'children_cartoons.csv')) as fixture_csv:
                 fixture_reader = csv.reader(fixture_csv)
                 expected_rows = [r for r in fixture_reader]
@@ -1422,10 +1458,9 @@ class TestExportBuilder(TestBase):
             rows = [r for r in reader]
 
             # open comparison file
-            with open(
-                os.path.join(
-                    os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
-                    'csvs', 'children_cartoons_characters.csv')) as fixture_csv:
+            with open(_logger_fixture_path(
+                    'csvs',
+                    'children_cartoons_characters.csv')) as fixture_csv:
                 fixture_reader = csv.reader(fixture_csv)
                 expected_rows = [r for r in fixture_reader]
                 self.assertEqual(rows, expected_rows)
@@ -1450,10 +1485,8 @@ class TestExportBuilder(TestBase):
         """
         cvs writer doesnt handle unicode we we have to encode to ascii
         """
-        survey = create_survey_from_xls(
-            os.path.join(
-                os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
-                'childrens_survey_unicode.xls'))
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_unicode.xls'))
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
@@ -1501,10 +1534,8 @@ class TestExportBuilder(TestBase):
         shutil.rmtree(temp_dir)
 
     def test_xls_export_works_with_unicode(self):
-        survey = create_survey_from_xls(
-            os.path.join(
-                os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
-                'childrens_survey_unicode.xls'))
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_unicode.xls'))
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
@@ -1615,8 +1646,10 @@ class TestExportBuilder(TestBase):
                 {
                     'geo/geolocation':
                     [
-                        'geo/_geolocation_latitude', 'geo/_geolocation_longitude',
-                        'geo/_geolocation_altitude', 'geo/_geolocation_precision'
+                        'geo/_geolocation_latitude',
+                        'geo/_geolocation_longitude',
+                        'geo/_geolocation_altitude',
+                        'geo/_geolocation_precision'
                     ]
                 }
             }
@@ -1702,9 +1735,11 @@ class TestExportBuilder(TestBase):
             {
                 'name': 'Abe',
                 'age': 35,
-                'tel/{0}'.format(_encode_for_mongo('tel.office')): '123-456-789'
+                'tel/{0}'.format(
+                    _encode_for_mongo('tel.office')): '123-456-789'
             }
-        new_row = ExportBuilder.decode_mongo_encoded_fields(row, encoded_fields)
+        new_row = ExportBuilder.decode_mongo_encoded_fields(
+            row, encoded_fields)
         expected_row = \
             {
                 'name': 'Abe',
@@ -1895,10 +1930,8 @@ class TestExportBuilder(TestBase):
         self.assertEqual(generated_sheet_name, expected_sheet_name)
 
     def test_to_xls_export_generates_valid_sheet_names(self):
-        survey = create_survey_from_xls(
-            os.path.join(
-                os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
-                'childrens_survey_with_a_very_long_name.xls'))
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_with_a_very_long_name.xls'))
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         xls_file = NamedTemporaryFile(suffix='.xls')
@@ -1916,10 +1949,8 @@ class TestExportBuilder(TestBase):
         xls_file.close()
 
     def test_child_record_parent_table_is_updated_when_sheet_is_renamed(self):
-        survey = create_survey_from_xls(
-            os.path.join(
-                os.path.abspath('./'), 'odk_logger', 'tests', 'fixtures',
-                'childrens_survey_with_a_very_long_name.xls'))
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_with_a_very_long_name.xls'))
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         xls_file = NamedTemporaryFile(suffix='.xlsx')
@@ -1955,7 +1986,6 @@ class TestExportBuilder(TestBase):
             "age": "107",
             "_uuid": "2a8129f5-3091-44e1-a579-bed2b07a12cf",
             "when": "2013-07-03",
-#            "_deleted_at": None,
             "amount": "250.0",
             "_geolocation": [
                 "-1.2625482",
@@ -1973,7 +2003,6 @@ class TestExportBuilder(TestBase):
             "_submission_time": "2013-07-03T08:26:10",
             "_uuid": "5b4752eb-e13c-483e-87cb-e67ca6bb61e5",
             "_bamboo_dataset_id": "",
-#            "_deleted_at": None,
             "_xform_id_string": "test_data_types",
             "_userform_id": "larryweya_test_data_types",
             "_status": "submitted_via_web",
@@ -1982,10 +2011,8 @@ class TestExportBuilder(TestBase):
             "amount": "",
         }
 
-        survey = create_survey_from_xls(
-            os.path.join(
-                os.path.abspath('./'), 'odk_viewer', 'tests', 'fixtures',
-                'test_data_types/test_data_types.xls'))
+        survey = create_survey_from_xls(_viewer_fixture_path(
+            'test_data_types/test_data_types.xls'))
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         # format submission 1 for export
@@ -2010,10 +2037,8 @@ class TestExportBuilder(TestBase):
         self.assertEqual(new_row['amount'], '')
 
     def test_xls_convert_dates_before_1900(self):
-        survey = create_survey_from_xls(
-            os.path.join(
-                os.path.abspath('./'), 'odk_viewer', 'tests', 'fixtures',
-                'test_data_types/test_data_types.xls'))
+        survey = create_survey_from_xls(_viewer_fixture_path(
+            'test_data_types/test_data_types.xls'))
         export_builder = ExportBuilder()
         export_builder.set_survey(survey)
         data = [
@@ -2085,10 +2110,8 @@ class TestExportBuilder(TestBase):
                 rows = [r for r in reader]
 
                 # open comparison file
-                with SavReader(
-                    os.path.join(
-                        os.path.abspath('./'), 'odk_logger', 'tests',
-                        'fixtures', 'spss', "{0}.sav".format(section)),
+                with SavReader(_logger_fixture_path(
+                        'spss', "{0}.sav".format(section)),
                         returnHeader=True) as fixture_reader:
                     fixture_header = next(fixture_reader)
                     self.assertEqual(header, fixture_header)

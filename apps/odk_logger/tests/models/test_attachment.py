@@ -7,7 +7,7 @@ from django.core.management import call_command
 
 from apps.main.tests.test_base import TestBase
 from apps.odk_logger.models import Attachment, Instance
-from apps.utils.image_tools import image_url
+from libs.utils.image_tools import image_url
 
 
 class TestAttachment(TestBase):

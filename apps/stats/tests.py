@@ -39,7 +39,7 @@ class TestUtils(TestBase):
         self.xform = XForm.objects.latest('date_created')
         self.assertEqual(self.xform.id_string, "transportation_2011_07_25")
 
-    @patch('odk_logger.models.instance.submission_time')
+    @patch('apps.odk_logger.models.instance.submission_time')
     def test_form_submission_count_by_day(self, mock_time):
         self._set_mock_time(mock_time)
         self._publish_xls_file()

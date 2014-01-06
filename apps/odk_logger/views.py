@@ -520,7 +520,7 @@ def edit_data(request, username, id_string, data_id):
     injected_xml = inject_instanceid(instance.xml, instance.uuid)
     return_url = request.build_absolute_uri(
         reverse(
-            'odk_viewer.views.instance',
+            'apps.odk_viewer.views.instance',
             kwargs={
                 'username': username,
                 'id_string': id_string}

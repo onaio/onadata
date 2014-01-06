@@ -20,7 +20,7 @@ class Command(BaseCommand):
         make_option('-r', '--replace',
                     action='store_true',
                     dest='replace',
-                    help=ugettext_lazy("Replace existing form if any")))
+                    help=ugettext_lazy("Replace existing form if any")),)
 
     def handle(self, *args, **options):
         try:

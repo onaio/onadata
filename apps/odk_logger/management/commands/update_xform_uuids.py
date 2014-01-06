@@ -17,7 +17,7 @@ class Command(BaseCommand):
     )
     option_list = BaseCommand.option_list + (
         make_option('-f', '--file',
-                    help=ugettext_lazy("Path to csv file")))
+                    help=ugettext_lazy("Path to csv file")),)
 
     def handle(self, *args, **kwargs):
         # all options are required

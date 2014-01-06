@@ -137,7 +137,7 @@ class TestAbstractViewSet(TestCase):
             'bamboo_dataset': u''
         }
         path = os.path.join(
-            settings.PROJECT_ROOT, "main", "tests", "fixtures",
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
         with open(path) as xls_file:
             post_data = {'xls_file': xls_file}

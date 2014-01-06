@@ -29,8 +29,6 @@ class TestWebforms(TestBase):
         with open(os.path.join(os.path.dirname(__file__), *path), 'r') as f:
             return f.read()
 
-    # @patch('urllib2.urlopen')
-    # def test_edit_url(self, mock_urlopen):
     def test_edit_url(self):
         ''' mock_urlopen.return_value.read.return_value = self.__load_fixture(
             'fixtures', 'enketo_response.json')'''

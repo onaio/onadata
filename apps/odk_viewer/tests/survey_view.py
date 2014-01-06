@@ -1,6 +1,8 @@
 import json
+import os
 import re
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from pyxform import create_survey_from_xls
 
@@ -18,8 +20,9 @@ class TestSurveyView(TestBase):
 
     def setUp(self):
         TestBase.setUp(self)
-        self.survey = create_survey_from_xls(
-            "odk_viewer/tests/name_survey.xls")
+        self.survey = create_survey_from_xls(os.path.join(
+            settings.PROJECT_ROOT, "apps", "odk_viewer", "tests",
+            "name_survey.xls"))
         json_str = json.dumps(self.survey.to_json_dict())
         self.data_dictionary = DataDictionary.objects.create(
             xml=self.survey.to_xml(), json=json_str, user=self.user)
@@ -78,7 +81,9 @@ class TestSurveyView(TestBase):
         # doesn't seem worth it.
 
     def test_dict_organizer(self):
-        self.survey = create_survey_from_xls("odk_viewer/tests/household.xls")
+        self.survey = create_survey_from_xls(os.path.join(
+            settings.PROJECT_ROOT, "apps", "odk_viewer", "tests",
+            "household.xls"))
         json_str = json.dumps(self.survey.to_json_dict())
         self.data_dictionary = DataDictionary.objects.create(
             xml=self.survey.to_xml(), json=json_str, user=self.user)
