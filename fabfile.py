@@ -9,7 +9,6 @@ DEPLOYMENTS = {
         'host_string': 'ubuntu@stage.ona.io',
         'project': 'ona',
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
-        'virtualenv': '/home/ubuntu/.virtualenvs/ona',
         'celeryd': '/etc/init.d/celeryd-ona',
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/var/run/ona.pid'
@@ -19,7 +18,6 @@ DEPLOYMENTS = {
         'host_string': 'ubuntu@ona.io',
         'project': 'ona',
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
-        'virtualenv': '/home/ubuntu/.virtualenvs/ona',
         'celeryd': '/etc/init.d/celeryd-ona',
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/var/run/ona.pid'
@@ -30,7 +28,6 @@ DEPLOYMENTS = {
         'ubuntu@ec2-54-200-151-185.us-west-2.compute.amazonaws.com',
         'project': 'kobocat',
         'key_filename': os.path.expanduser('~/.ssh/kobo01.pem'),
-        'virtualenv': '/home/ubuntu/.virtualenvs/kobocat',
         'celeryd': '/etc/init.d/celeryd',
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/run/kobocat.pid',
