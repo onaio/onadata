@@ -123,7 +123,10 @@
                 });
 
                 // Set languages
-                this.set('languages', languages);
+                this.set({'languages': languages});
+
+                // Set the current language
+                this.set({'language': languages[0]});
             }
 
             // Check if we're setting children and parse fields
@@ -326,4 +329,38 @@
             return dv.type.unknown;
         }
     };
+
+    FH.LanguagePicker = Backbone.View.extend({
+        languages: [],
+
+        currentLang: void 0,
+
+        template: _.template(
+            '<select class="language-selector">' +
+                '<% _.each(languages, function(lang){ %>' +
+                '<option value="<%= lang %>" <% if(lang === currentLang){ %> selected="" <% } %>><%= lang %></option>' +
+                '<% }); %>' +
+            '</select>'),
+
+        events: {
+            'change .language-selector': 'languageChanged'
+        },
+
+        initialize: function (options) {
+            Backbone.View.prototype.initialize.apply(this, arguments);
+        },
+
+        render: function () {
+            this.$el.empty().append(this.template({
+                languages: this.model.get('languages'),
+                currentLang: this.model.get('language')
+            }));
+            return this;
+        },
+
+        languageChanged: function (e) {
+            var language = $(e.currentTarget).val();
+            this.model.set({'language': language});
+        }
+    });
 }).call(this);

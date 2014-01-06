@@ -41,7 +41,7 @@
     });
 
     var NameLabelToggle = Backbone.View.extend({
-        className: 'label-toggle-container',
+        className: 'table-control-container label-toggle-container',
 
         template: _.template('' +
             '<span>' +
@@ -100,15 +100,7 @@
             });
 
             this.form.on('load', function () {
-                var dataView = this
-                // Render the columns
-                /*this.$('table thead')
-                    .empty()
-                    .append(this.headerTemplate({
-                        columns: this.form.fields.map(function (field) {
-                            return field.get(FH.constants.LABEL);
-                        })
-                    }));*/
+                var dataView = this;
 
                 // Initialize the data
                 this.data.on('load', function () {
@@ -129,14 +121,14 @@
                     columns: this.form.fields.map(function (f) {
                         var column = {
                             name: f.get(FH.constants.XPATH),
-                            label: f.get(FH.constants.LABEL),
+                            label: f.get(FH.constants.LABEL, dataView.form.get('language')),
                             editable: false,
                             cell: "string"//FHToBackgridTypes[f.get(FH.constants.TYPE)] || "string"
                         };
                         if(f.isA(FH.types.SELECT_ONE) || f.isA(FH.types.SELECT_MULTIPLE)) {
                             column.formatter = {
                                 fromRaw: function (rawData) {
-                                    return DataView.NameOrLabel(f, rawData, dataView.showLabels);
+                                    return DataView.NameOrLabel(f, rawData, dataView.showLabels, dataView.form.get('language'));
                                 }
                             };
                         }
@@ -185,16 +177,44 @@
 
                 this.$el.prepend(labelToggle.render().$el);
 
+                // Initialize the language selector
+                var languagePicker = new FH.LanguagePicker({
+                    model: this.form,
+                    className: 'table-control-container language-picker-container'
+                });
+
+                languagePicker.render().$el.insertBefore(this.$('.label-toggle-container'));
+
                 // Fetch some data
                 this.data.fetch({reset: true});
 
             }, this);
+
+            // Catch langauge change events
+            this.form.on('change:language', function (model, language) {
+                var dataView = this;
+                if(this.dataGrid) {
+                    this.dataGrid.columns.each(function (column) {
+                        var field = dataView.form.fields
+                            .find(function (f) {
+                                return f.get(FH.constants.XPATH) === column.get('name');
+                            }),
+                            label;
+
+                        label = field.get(FH.constants.LABEL, language);
+                        console.log(label);
+                        column.set({'label': label});
+                    });
+                    this.dataGrid.header.render();
+                }
+            }, this);
+
             this.form.load();
         }
     });
 
     // Used by select formatters to return wither name the name or label for a response
-    DataView.NameOrLabel = function (field, value, showLabels) {
+    DataView.NameOrLabel = function (field, value, showLabels, language) {
         var xpath,
             choices,
             selections,
@@ -213,7 +233,7 @@
                     return c.get(FH.constants.NAME) === selection;
                 });
                 if (choice) {
-                    results.push(choice.get(FH.constants.LABEL));
+                    results.push(choice.get(FH.constants.LABEL, language));
                 }
             });
             return results.join(', ');
