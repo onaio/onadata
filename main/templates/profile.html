@@ -166,22 +166,12 @@
 
         });
 
-	  var tbl = $('#forms-table').dataTable({
+	  var tbl = $('#published-table').dataTable({
         "bPaginate": false,
         "sPaginationType": "bootstrap",
         "bSort": true,
         "oLanguage": {"sSearch": "{% trans 'Search:' %}"},
-        "oSearch": {"sSearch": ""},
-        "aoColumnDefs": [
-            { "bVisible": false, "aTargets": [ 6 ] }
-        ]
-      });
-      tbl.fnFilter( 'true', 6, true);
-      var tblFilter = $('#forms-table_filter');
-      tblFilter.addClass('row');
-      tblFilter.prepend('{% trans "Show inactive:" %} <input id="active-select" type="checkbox" />&nbsp;&nbsp;');
-      $('#active-select').change(function() {
-          tbl.fnFilter('(true' + ($(this).is(':checked') ? '|false)' : ')'), 6, true);
+        "oSearch": {"sSearch": ""}
       });
 
         // remove shared forms

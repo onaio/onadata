@@ -240,6 +240,26 @@ def profile(request, username):
         context.forms_shared_with = XForm.objects.filter(
             pk__in=shared_forms_pks).exclude(user=content_user)\
             .select_related('user')
+        context.xforms_list = [
+            {
+                'id': 'published',
+                'xforms': context.user_xforms,
+                'title': _(u"Published Forms"),
+                'small': _("Export, map, and view submissions.")
+            },
+            {
+                'id': 'shared',
+                'xforms': context.forms_shared_with,
+                'title': _(u"Shared Forms"),
+                'small': _("List of forms shared with you.")
+            },
+            {
+                'id': 'crowd',
+                'xforms': context.crowdforms,
+                'title': _(u"Crowd Forms"),
+                'small': _("List of crowdforms you have joined.")
+            }
+        ]
     # for any other user -> profile
     set_profile_data(context, content_user)
     return render_to_response("profile.html", context_instance=context)
