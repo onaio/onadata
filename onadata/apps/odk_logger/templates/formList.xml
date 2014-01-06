@@ -1,0 +1,12 @@
+<forms>
+  {% for i in urls %}
+  <form url="{{ i.url }}">{{ i.text }}
+  {% if i.media %} 
+  {% for mdi in i.media.m %}
+  <formid-media url="{{ host }}{% url "onadata.apps.main.views.download_media_data" i.media.user.username i.media.id mdi.id %}">{{ mdi.data_value }}
+  </formid-media>
+  {% endfor %}
+  {% endif %}
+  </form>
+  {% endfor %}
+</forms>

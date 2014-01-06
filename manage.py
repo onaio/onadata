@@ -12,7 +12,7 @@ if __name__ == "__main__":
     # altered for new settings layout
     if not any([arg.startswith('--settings=') for arg in sys.argv]):
         os.environ.setdefault("DJANGO_SETTINGS_MODULE",
-                              "settings.default_settings")
+                              "onadata.settings.default_settings")
         print('Your environment is:"{}"'.format(
             os.environ['DJANGO_SETTINGS_MODULE']))
 
