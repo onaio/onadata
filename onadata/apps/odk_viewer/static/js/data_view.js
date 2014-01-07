@@ -47,7 +47,7 @@
             '<span>' +
               '<label class="checkbox">' +
                 '<input class="name-label-toggle" type="checkbox" name="toggle_labels" aria-controls="data-table" <% if (isChecked) { %>checked="checked" <% } %> />' +
-                ' Show select labels' +
+                ' Toggle between choice names and choice labels' +
               '</label>' +
             '</span>'),
 
