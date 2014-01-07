@@ -2,6 +2,7 @@ import os
 import sys
 
 from fabric.api import cd, env, prefix, run
+from fabric.contrib import files
 
 DEPLOYMENTS = {
     'stage': {
@@ -35,6 +36,20 @@ DEPLOYMENTS = {
         'template_dir': 'kobocat'
     },
 }
+
+CONFIG_PATH_DEPRECATED = 'formhub/local_settings.py'
+
+
+def local_settings_check(config_module):
+    config_path = config_module.replace('.', '/') + '.py'
+    if not files.exists(config_path):
+        if files.exists(CONFIG_PATH_DEPRECATED):
+            run('mv %s %s' % (CONFIG_PATH_DEPRECATED, config_path))
+            files.sed(config_path, 'formhub\.settings',
+                      'onadata\.settings\.common')
+        else:
+            raise RuntimeError('Django config module not found in %s or %s' % (
+                config_path, CONFIG_PATH_DEPRECATED))
 
 
 def source(path):
@@ -87,13 +102,14 @@ def deploy(deployment_name, branch='master'):
         run("pip install -r %s" % env.pip_requirements_file)
 
     with cd(env.code_src):
+        config_module = env.django_config_module
+        local_settings_check(config_module)
+
         with source(env.virtualenv):
-            run("python manage.py syncdb --settings=%s"
-                % env.django_config_module)
-            run("python manage.py migrate --settings=%s"
-                % env.django_config_module)
+            run("python manage.py syncdb --settings=%s" % config_module)
+            run("python manage.py migrate --settings=%s" % config_module)
             run("python manage.py collectstatic --settings=%s --noinput"
-                % env.django_config_module)
+                % config_module)
 
     run("sudo %s restart" % env.celeryd)
     #run("sudo /etc/init.d/celerybeat-ona restart")
