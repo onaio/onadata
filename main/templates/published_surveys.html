@@ -25,18 +25,21 @@
     <thead>
       <tr>
         <th>{%  trans "Name" %}</th>
-        <th>{%  trans "Stats" %}</th>
-        <th>{%  trans "Data" %}</th>
+        <th>{%  trans "Submissions" %}</th>
+        <th>{%  trans "Enter Data" %}</th>
+        <th>{%  trans "View" %}</th>
         <th>{%  trans "Download" %}</th>
+        <th>{%  trans "Last Submissions" %}</th>
+        <th>{%  trans "Active" %}</th>
         <th>&nbsp;</th>
       </tr>
     </thead>
     <tbody>
     {% for xform in xform_list.xforms %}
           {% with submission_count=xform.submission_count time_of_last_submission=xform.time_of_last_submission has_surveys_with_geopoints=xform.has_surveys_with_geopoints %}
-    <tr>
+      <tr>
         <td>
-            <a 1href="{% url "main.views.show" content_user.username xform.id_string %}">{{ xform.title }}</a>
+            <a href="{% url "main.views.show" content_user.username xform.id_string %}">{{ xform.title }}</a>
             {% if xform.shared %}
                 <span class="label label-info label-public">{%  trans "PUBLIC" %}</span>
             {% endif %}
@@ -46,19 +49,11 @@
             {% if xform.encrypted %}
                 <span class="label label-important icon-lock label-encrypted">&nbsp;&nbsp;{%  trans "ENCRYPTED" %}</span>
             {% endif %}
+            <div class="info text-right">CREATED: {{ xform.date_created|date:"N d, Y" }}</div>
         </td>
-        <td>
-                <dl class='dl-horizontal'>
-                    <dt>Submissions</dt>
-                    <dd>{{ submission_count|intcomma }}</dd>
-                    <dt>Created</dt>
-                    <dd>{{ xform.date_created|date:"N d, Y" }}
-                    </dd>
-                      {% if time_of_last_submission %}
-                      <dt>Last Submission</dt>
-                      <dd>{{ time_of_last_submission|date:"N d, Y" }}</dd>
-                      {% endif %}
-                  </dl>
+        <td class="centered">{{ submission_count|intcomma }}</td>
+        <td class="centered">
+                <a class="btn" href="{% url "odk_logger.views.enter_data" xform.user.username xform.id_string %}"><i class="icon-edit"></i> {% trans "Web" %}</a>
         </td>
         <td class="centered">
                 {% if not xform.encrypted and has_surveys_with_geopoints %}
@@ -82,9 +77,6 @@
                     <span><i class="icon-list icon-large inactive"></i></span>
                     <span><i class="icon-bar-chart icon-large inactive"></i></span>
                 {% endif %}
-        <br />
-                <a class="btn" href="{% url "odk_logger.views.enter_data" xform.user.username xform.id_string %}"><i class="icon-edit"></i> {% trans "Web" %}</a>
-                <a data-toggle="modal" data-target="#popupmodal" class="showqr btn" href="{% url "get_qrcode" xform.user.username xform.id_string %}"><i class="icon-tablet"></i> {% trans "Mobile" %}</a>
         </td>
         <td>
             {% if  not xform.encrypted and submission_count %}
@@ -101,6 +93,12 @@
                 {% endif %}
             {% endif %}
         </td>
+        <td>
+          {% if time_of_last_submission %}
+              {{ time_of_last_submission|date:"N d, Y" }}
+          {% endif %}
+        </td>
+        <td>{{ xform.downloadable|lower }}</td>
         <td>
             {% if submission_count <= 0 %}
             <div class="dropdown">
@@ -151,7 +149,6 @@
               {% endif %}
         </td>
       </tr>
-    </tr>
       {% endwith %}
     {% endfor %}
     </tbody>
