@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from django.core.exceptions import ValidationError
 from south.v2 import DataMigration
 
 class Migration(DataMigration):
@@ -6,14 +7,15 @@ class Migration(DataMigration):
     def forwards(self, orm):
         """Add parsed JSON to JSON instance column."""
         for instance in orm.Instance.objects.all():
-            json = instance.get_dict
+            json = instance.get_dict()
             instance.json = json
             instance.save()
 
     def backwards(self, orm):
-        """Do nothing. A column drop or truncation will better remove the
-        JSON content."""
-        pass
+        """Remove JSON content."""
+        for instance in orm.Instance.objects.all():
+            instance.json = ''
+            instance.save()
 
     models = {
         u'auth.group': {

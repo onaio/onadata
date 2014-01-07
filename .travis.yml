@@ -12,7 +12,6 @@ before_install:
   - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so ~/virtualenv/python2.7/lib/
 install:
   - pip install -r requirements/common.pip --use-mirrors
-  - pip install -r requirements/postgresql_psycopg2.pip --use-mirrors
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
 script:
