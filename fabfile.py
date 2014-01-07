@@ -2,6 +2,7 @@ import os
 import sys
 
 from fabric.api import cd, env, prefix, run
+from fabric.contrib import files
 
 DEPLOYMENTS = {
     'stage': {
@@ -9,9 +10,8 @@ DEPLOYMENTS = {
         'host_string': 'ubuntu@stage.ona.io',
         'project': 'ona',
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
-        'virtualenv': '/home/ubuntu/.virtualenvs/ona',
         'celeryd': '/etc/init.d/celeryd-ona',
-        'django_config_module': 'onadata.settings.local',
+        'django_config_module': 'onadata.settings.local_settings',
         'pid': '/var/run/ona.pid'
     },
     'prod': {
@@ -19,9 +19,8 @@ DEPLOYMENTS = {
         'host_string': 'ubuntu@ona.io',
         'project': 'ona',
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
-        'virtualenv': '/home/ubuntu/.virtualenvs/ona',
         'celeryd': '/etc/init.d/celeryd-ona',
-        'django_config_module': 'onadata.settings.local',
+        'django_config_module': 'onadata.settings.local_settings',
         'pid': '/var/run/ona.pid'
     },
     'kobocat': {
@@ -30,14 +29,27 @@ DEPLOYMENTS = {
         'ubuntu@ec2-54-200-151-185.us-west-2.compute.amazonaws.com',
         'project': 'kobocat',
         'key_filename': os.path.expanduser('~/.ssh/kobo01.pem'),
-        'virtualenv': '/home/ubuntu/.virtualenvs/kobocat',
         'celeryd': '/etc/init.d/celeryd',
-        'django_config_module': 'onadata.settings.local',
+        'django_config_module': 'onadata.settings.local_settings',
         'pid': '/run/kobocat.pid',
         'template': 'https://github.com/kobotoolbox/kobocat-template.git',
         'template_dir': 'kobocat'
     },
 }
+
+CONFIG_PATH_DEPRECATED = 'formhub/local_settings.py'
+
+
+def local_settings_check(config_module):
+    config_path = config_module.replace('.', '/') + '.py'
+    if not files.exists(config_path):
+        if files.exists(CONFIG_PATH_DEPRECATED):
+            run('mv %s %s' % (CONFIG_PATH_DEPRECATED, config_path))
+            files.sed(config_path, 'formhub\.settings',
+                      'onadata\.settings\.common')
+        else:
+            raise RuntimeError('Django config module not found in %s or %s' % (
+                config_path, CONFIG_PATH_DEPRECATED))
 
 
 def source(path):
@@ -90,13 +102,14 @@ def deploy(deployment_name, branch='master'):
         run("pip install -r %s" % env.pip_requirements_file)
 
     with cd(env.code_src):
+        config_module = env.django_config_module
+        local_settings_check(config_module)
+
         with source(env.virtualenv):
-            run("python manage.py syncdb --settings=%s"
-                % env.django_config_module)
-            run("python manage.py migrate --settings=%s"
-                % env.django_config_module)
+            run("python manage.py syncdb --settings=%s" % config_module)
+            run("python manage.py migrate --settings=%s" % config_module)
             run("python manage.py collectstatic --settings=%s --noinput"
-                % env.django_config_module)
+                % config_module)
 
     run("sudo %s restart" % env.celeryd)
     #run("sudo /etc/init.d/celerybeat-ona restart")
