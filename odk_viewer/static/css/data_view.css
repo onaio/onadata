@@ -16,3 +16,7 @@
     width: 100%;
     overflow-x: auto;
 }
+
+.data-table-container div:first-child {
+    margin-left: 2px;
+}
