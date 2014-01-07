@@ -49,7 +49,7 @@
             {% if xform.encrypted %}
                 <span class="label label-important icon-lock label-encrypted">&nbsp;&nbsp;{%  trans "ENCRYPTED" %}</span>
             {% endif %}
-            <div class="info text-right">CREATED: {{ xform.date_created|date:"N d, Y" }}</div>
+            <div class="created text-right">CREATED: {{ xform.date_created|date:"N d, Y" }}</div>
         </td>
         <td class="centered">{{ submission_count|intcomma }}</td>
         <td class="centered">
