@@ -1,0 +1,35 @@
+{% if message %}
+<div class="row">
+    <div class="span12">
+        <div class="alert alert-block {{ message.type }} fade in">
+            <a class="close" href="#" data-dismiss="alert">×</a>
+            <p>{{ message.text|safe }}</p>
+        </div>
+    </div>
+</div>
+{% else %}
+{% if message_list %}
+<div class="row">
+    <div class="span12">
+        {% for message in message_list %}
+        <div class="alert alert-block {{ message.type}} fade in">
+            <a class="close" href="#" data-dismiss="alert">×</a>
+            <p>{{ message.text|safe }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% if messages %}
+<div class="row">
+    <div class="span12">
+        {% for message in messages %}
+        <div class="alert alert-block {{ message.tags}} fade in">
+            <a class="close" href="#" data-dismiss="alert">×</a>
+            <p>{{ message|safe }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endif %}

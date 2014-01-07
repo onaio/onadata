@@ -1,0 +1,10 @@
+clint
+django-extensions
+django-statsd-mozilla
+fabric
+gunicorn
+ipdb
+ipython
+shell_command
+statsd
+twill
