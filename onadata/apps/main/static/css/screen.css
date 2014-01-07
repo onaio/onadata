@@ -1102,3 +1102,8 @@ body.authenticated {
 td dl {
     margin-bottom: 0px;
 }
+td div.info{
+    color: #999999;
+    font-size: 11px;
+    font-weight: 100;
+}
