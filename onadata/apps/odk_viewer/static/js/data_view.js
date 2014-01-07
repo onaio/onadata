@@ -23,7 +23,7 @@
 
     var PageableDataset = FH.PageableDataset = Backbone.PageableCollection.extend({
         state: {
-            pageSize: 15
+            pageSize: 50
         },
         mode: "client", // page entirely on the client side,
         model: FH.Data,
@@ -118,6 +118,7 @@
 
                 // Initialize the grid
                 this.dataGrid = new Backgrid.Grid({
+                    className: 'backgrid table table-striped table-hover',
                     columns: this.form.fields.map(function (f) {
                         var column = {
                             name: f.get(FH.constants.XPATH),
