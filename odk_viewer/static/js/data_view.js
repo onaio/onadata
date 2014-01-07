@@ -177,13 +177,17 @@
 
                 this.$el.prepend(labelToggle.render().$el);
 
-                // Initialize the language selector
-                var languagePicker = new FH.LanguagePicker({
-                    model: this.form,
-                    className: 'table-control-container language-picker-container'
-                });
+                // only add the language picker if we have multiple languages
 
-                languagePicker.render().$el.insertBefore(this.$('.label-toggle-container'));
+                if(this.form.get('languages') && this.form.get('languages').length > 1) {
+                    // Initialize the language selector
+                    var languagePicker = new FH.LanguagePicker({
+                        model: this.form,
+                        className: 'table-control-container language-picker-container'
+                    });
+
+                    languagePicker.render().$el.insertBefore(this.$('.label-toggle-container'));
+                }
 
                 // Fetch some data
                 this.data.fetch({reset: true});
@@ -202,7 +206,6 @@
                             label;
 
                         label = field.get(FH.constants.LABEL, language);
-                        console.log(label);
                         column.set({'label': label});
                     });
                     this.dataGrid.header.render();
