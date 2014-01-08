@@ -13,8 +13,8 @@
         'integer': 'integer',
         'decimal': 'number',
         /*'select': '',
-        'select all that apply': '',
-        'select one': '',*/
+         'select all that apply': '',
+         'select one': '',*/
         'photo': '',
         'image': '',
         'date': 'date',
@@ -30,9 +30,9 @@
         initialize: function (models, options) {
             // set the url
             /*if(! options.url) {
-                throw new Error(
-                    "You must specify the dataset's url within the options");
-            }*/
+             throw new Error(
+             "You must specify the dataset's url within the options");
+             }*/
             this.url = options && options.url;
 
             // Call super
@@ -45,10 +45,10 @@
 
         template: _.template('' +
             '<span>' +
-              '<label class="checkbox">' +
-                '<input class="name-label-toggle" type="checkbox" name="toggle_labels" aria-controls="data-table" <% if (isChecked) { %>checked="checked" <% } %> />' +
-                ' Toggle between choice names and choice labels' +
-              '</label>' +
+            '<label class="checkbox">' +
+            '<input class="name-label-toggle" type="checkbox" name="toggle_labels" aria-controls="data-table" <% if (isChecked) { %>checked="checked" <% } %> />' +
+            ' Toggle between choice names and choice labels' +
+            '</label>' +
             '</span>'),
 
         events: {
@@ -66,6 +66,23 @@
         toggleLabels: function (e) {
             var enabled = !!$(e.currentTarget).attr('checked');
             this.trigger('toggled', enabled);
+        }
+    });
+
+    var ClickableRow = Backgrid.Row.extend({
+        highlightColor: 'lightYellow',
+        /*events: {
+            'click': 'rowClicked',
+            'focusout': 'rowLostFocus'
+        },*/
+        initialize: function (options) {
+            return Backgrid.Row.prototype.initialize.apply(this, arguments);
+        },
+        rowClicked: function () {
+            this.$el.css('background-color', this.highlightColor);
+        },
+        rowLostFocus: function () {
+            this.$el.removeAttr('style');
         }
     });
 
@@ -93,10 +110,7 @@
 
             // Setup the data
             this.data = new FH.PageableDataset([], {
-                url: options.dataUrl,
-                /*state: {
-                    pageSize: 10
-                }*/
+                url: options.dataUrl
             });
 
             this.form.on('load', function () {
@@ -118,6 +132,7 @@
 
                 // Initialize the grid
                 this.dataGrid = new Backgrid.Grid({
+                    row: ClickableRow,
                     className: 'backgrid table table-striped table-hover',
                     columns: this.form.fields.map(function (f) {
                         var column = {
@@ -126,7 +141,7 @@
                             editable: false,
                             cell: "string"//FHToBackgridTypes[f.get(FH.constants.TYPE)] || "string"
                         };
-                        if(f.isA(FH.types.SELECT_ONE) || f.isA(FH.types.SELECT_MULTIPLE)) {
+                        if (f.isA(FH.types.SELECT_ONE) || f.isA(FH.types.SELECT_MULTIPLE)) {
                             column.formatter = {
                                 fromRaw: function (rawData) {
                                     return DataView.NameOrLabel(f, rawData, dataView.showLabels, dataView.form.get('language'));
@@ -180,7 +195,7 @@
 
                 // only add the language picker if we have multiple languages
 
-                if(this.form.get('languages') && this.form.get('languages').length > 1) {
+                if (this.form.get('languages') && this.form.get('languages').length > 1) {
                     // Initialize the language selector
                     var languagePicker = new FH.LanguagePicker({
                         model: this.form,
@@ -195,15 +210,15 @@
 
             }, this);
 
-            // Catch langauge change events
+            // Catch language change events
             this.form.on('change:language', function (model, language) {
                 var dataView = this;
-                if(this.dataGrid) {
+                if (this.dataGrid) {
                     this.dataGrid.columns.each(function (column) {
                         var field = dataView.form.fields
-                            .find(function (f) {
-                                return f.get(FH.constants.XPATH) === column.get('name');
-                            }),
+                                .find(function (f) {
+                                    return f.get(FH.constants.XPATH) === column.get('name');
+                                }),
                             label;
 
                         label = field.get(FH.constants.LABEL, language);
