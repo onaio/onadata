@@ -61,6 +61,6 @@ class OrganizationProfile(UserProfile):
         return True if has_owner_group else False
 
 
-post_save.connect(
-    create_owner_team_and_permissions, sender=OrganizationProfile,
-    dispatch_uid='create_owner_team_and_permissions')
+# post_save.connect(
+#     create_owner_team_and_permissions, sender=OrganizationProfile,
+#     dispatch_uid='create_owner_team_and_permissions')

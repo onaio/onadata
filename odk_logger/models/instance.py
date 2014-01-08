@@ -154,8 +154,8 @@ def update_xform_submission_count(sender, instance, created, **kwargs):
             profile.num_of_submissions += 1
             profile.save()
 
-post_save.connect(update_xform_submission_count, sender=Instance,
-                  dispatch_uid='update_xform_submission_count')
+# post_save.connect(update_xform_submission_count, sender=Instance,
+#                   dispatch_uid='update_xform_submission_count')
 
 
 def update_xform_submission_count_delete(sender, instance, **kwargs):

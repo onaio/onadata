@@ -217,7 +217,7 @@ def stats_forms_created(sender, instance, created, **kwargs):
     if created:
         stat_log.delay('formhub-forms-created', 1)
 
-post_save.connect(stats_forms_created, sender=XForm)
+# post_save.connect(stats_forms_created, sender=XForm)
 
 
 def update_profile_num_submissions(sender, instance, **kwargs):

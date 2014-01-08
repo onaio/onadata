@@ -52,6 +52,6 @@ class UserProfile(models.Model):
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
-post_save.connect(create_auth_token, sender=User)
+# post_save.connect(create_auth_token, sender=User)
 
-post_save.connect(set_api_permissions, sender=User)
+# post_save.connect(set_api_permissions, sender=User)

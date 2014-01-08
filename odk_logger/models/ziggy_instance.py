@@ -185,4 +185,4 @@ def rest_service_ziggy_submission(sender, instance, raw, created,
         services_called = call_ziggy_services(instance, object_id_str)
         return services_called
 
-post_save.connect(rest_service_ziggy_submission, sender=ZiggyInstance)
+#post_save.connect(rest_service_ziggy_submission, sender=ZiggyInstance)

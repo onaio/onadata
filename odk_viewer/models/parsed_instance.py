@@ -361,7 +361,7 @@ def rest_service_form_submission(sender, **kwargs):
         call_service(parsed_instance)
 
 
-post_save.connect(rest_service_form_submission, sender=ParsedInstance)
+# post_save.connect(rest_service_form_submission, sender=ParsedInstance)
 
 
 def submission_count(sender, **kwargs):
@@ -374,4 +374,4 @@ def submission_count(sender, **kwargs):
                "xform_id_string": parsed_instance.instance.xform.id_string}
         stat_log.delay(key, 1)
 
-post_save.connect(submission_count, sender=ParsedInstance)
+# post_save.connect(submission_count, sender=ParsedInstance)
