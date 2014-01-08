@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from django.core.exceptions import ValidationError
 from south.v2 import DataMigration
+from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.apps.odk_logger.models import Instance
 
 class Migration(DataMigration):
 
     def forwards(self, orm):
         """Add parsed JSON to JSON instance column."""
-        for instance in orm.Instance.objects.all():
-            json = instance.get_dict()
+        for instance in queryset_iterator(orm.Instance.objects.all()):
+            json = Instance.objects.get(pk=instance.pk).get_dict()
             instance.json = json
             instance.save()
 
