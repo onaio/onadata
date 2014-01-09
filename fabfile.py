@@ -6,10 +6,13 @@ from fabric.api import cd, env, prefix, run
 DEPLOYMENTS = {
     'dev': {
         'home': '/home/ubuntu/src/',
-        'host_string': 'ubuntu@dev.ona.io',
+        'host_string': 'ubuntu@stage.ona.io',
         'project': 'ona',
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
-        'celeryd': '/etc/init.d/celeryd-ona'
+        'virtualenv': '/home/ubuntu/.virtualenvs/ona',
+        'celeryd': '/etc/init.d/celeryd-ona',
+        'django_config_module': 'formhub.local_settings',
+        'pid': '/var/run/ona.pid'
     },
     'prod': {
         'home': '/home/ubuntu/src/',
