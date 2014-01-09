@@ -133,6 +133,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.static',
     'django.core.context_processors.tz',
     'django.contrib.messages.context_processors.messages',
+    'readonly.context_processors.readonly',
     'onadata.apps.formhub.context_processors.google_analytics',
     'onadata.apps.formhub.context_processors.site_name'
 )
@@ -148,6 +149,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.transaction.TransactionMiddleware',
     'onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware',
+    'readonly.middleware.DatabaseReadOnlyMiddleware',
 )
 
 LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'onadata.apps.formhub', 'locale'), )
@@ -186,6 +188,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework.authtoken',
     'taggit',
+    'readonly',
     'onadata.apps.odk_logger',
     'onadata.apps.odk_viewer',
     'onadata.apps.main',
