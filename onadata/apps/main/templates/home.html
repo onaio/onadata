@@ -38,6 +38,9 @@
 {% endblock %}
 
 {% block content %}
+{% if SITE_READ_ONLY%}
+<h1>{% blocktrans %}We're down for maintenance. We will be back shortly.{% endblocktrans %}</h1>
+{% endif %}
 <div id="ona-tagline">
     <h1>Collect, Analyze and Share Data.
     </h1>
