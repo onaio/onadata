@@ -2,11 +2,6 @@
 {% load i18n %}
 {% if all_forms or forms_shared_with or crowdforms%}
 
-<section id="published-forms">
-  <div class="page-header">
-    <h1>{% blocktrans %}Published Forms <small>Export, map, and view submissions.</small>{% endblocktrans %}</h1>
-  </div>
-
 {% if message and message.preview_url %}
     <div id="preview-modal" class="modal hide fade">
         <div class="modal-header">
@@ -19,8 +14,14 @@
         <div class="modal-footer"></div>
     </div>
 {% endif %}
-{% if all_forms %}
-  <table id="forms-table" class="table table-bordered table-striped forms-table">
+
+{% for xform_list in xforms_list %}
+<section id="{{ xform_list.id }}-forms">
+  <div class="page-header">
+      <h1>{{ xform_list.title }}<small>{{ xform_list.small }}</small></h1>
+  </div>
+{% if xform_list.xforms %}
+<table id="{{ xform_list.id }}-table" class="table table-bordered table-striped">
     <thead>
       <tr>
         <th>{%  trans "Name" %}</th>
@@ -34,11 +35,12 @@
       </tr>
     </thead>
     <tbody>
-      {% for xform in user_xforms %}
+    {% for xform in xform_list.xforms %}
           {% with submission_count=xform.submission_count time_of_last_submission=xform.time_of_last_submission has_surveys_with_geopoints=xform.has_surveys_with_geopoints %}
       <tr>
         <td>
-            <a href="{% url "onadata.apps.main.views.show" content_user.username xform.id_string %}">{{ xform.title }}</a>
+            <a href="{% url "onadata.apps.main.views.show" content_user.username xform.id_string %}">{{ xform.title }}</a> {% if xform_list.id == 'shared'%}<span class="label label-shared">{% trans "Shared by" %} {{ xform.user.username }}</span>
+            {% endif %}
             {% if xform.shared %}
                 <span class="label label-info label-public">{%  trans "PUBLIC" %}</span>
             {% endif %}
@@ -48,11 +50,11 @@
             {% if xform.encrypted %}
                 <span class="label label-important icon-lock label-encrypted">&nbsp;&nbsp;{%  trans "ENCRYPTED" %}</span>
             {% endif %}
+            <div class="created text-right">CREATED: {{ xform.date_created|date:"N d, Y" }}</div>
         </td>
         <td class="centered">{{ submission_count|intcomma }}</td>
         <td class="centered">
                 <a class="btn" href="{% url "onadata.apps.odk_logger.views.enter_data" xform.user.username xform.id_string %}"><i class="icon-edit"></i> {% trans "Web" %}</a>
-                <a data-toggle="modal" data-target="#popupmodal" class="showqr btn" href="{% url "get_qrcode" xform.user.username xform.id_string %}"><i class="icon-tablet"></i> {% trans "Mobile" %}</a>
         </td>
         <td class="centered">
                 {% if not xform.encrypted and has_surveys_with_geopoints %}
@@ -149,208 +151,15 @@
         </td>
       </tr>
       {% endwith %}
-      {% endfor %}
-
+    {% endfor %}
     </tbody>
-  </table>
-
-  {% endif %}
+</table>
   <hr />
     </section>
-    {% if forms_shared_with %}
-    <section id="forms-shared-with-you">
-  <div class="page-header">
-      <h1>{% blocktrans %}Shared Forms <small>List of forms shared with you.</small>{% endblocktrans %}</h1>
-  </div>
-  <table id="shared-forms-table" class="table table-bordered table-striped forms-table">
-      <thead>
-      <tr>
-          <th>{%  trans "Name" %}</th>
-          <th>{%  trans "Submissions" %}</th>
-          <th>{%  trans "Preview" %}</th>
-          <th>{%  trans "View" %}</th>
-          <th>{%  trans "Data" %}</th>
-          <th>{%  trans "Last Submission" %}</th>
-          <th>&nbsp;</th>
-      </tr>
-      </thead>
-      <tbody>
-      {% for xform in forms_shared_with %}
-          {% with submission_count=xform.submission_count time_of_last_submission=xform.time_of_last_submission has_surveys_with_geopoints=xform.has_surveys_with_geopoints %}
-          <tr>
-              <td>
-                  <a href="{% url "onadata.apps.main.views.show" xform.user.username xform.id_string %}">{{ xform.title }}</a> <span class="label label-shared">{% trans "Shared by" %} {{ xform.user.username }}</span>
-                  {% if xform.shared %}
-                      <span class="label label-info label-public">{%  trans "PUBLIC" %}</span>
-                  {% endif %}
-                  {% if xform.is_crowd_form %}
-                      <span class="label label-crowdform">{%  trans "CROWDFORM" %}</span>
-                  {% endif %}
-                    {% if xform.encrypted %}
-                        <span class="label label-important icon-lock label-encrypted">&nbsp;&nbsp;{%  trans "ENCRYPTED" %}</span>
-                    {% endif %}
+    {% endif %}
+    {% endfor %}
 
-              </td>
-              <td class="centered">{{ submission_count|intcomma }}</td>
-          <td class="centered">
-                      <a class="btn btn-info" rel="tooltip" title="{% trans 'Preview Form' %}" href="{% url "onadata.apps.main.views.enketo_preview" xform.user.username xform.id_string %}" target="_blank">
-                      <i class="icon-check icon-white"></i> {% trans "Preview Form" %}
-                  </a>
-              </td>
-              <td class="centered">
-                      {% if not xform.encrypted and has_surveys_with_geopoints %}
-                          <a href="{% url "onadata.apps.odk_viewer.views.map_view" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Map' %}" rel="tooltip">
-                              <i class="icon-map-marker icon-large"></i>
-                          </a>
-                      {% else %}
-                          <span><i class="icon-map-marker icon-large inactive"></i></span>
-                      {% endif %}
-                      {% if submission_count > 0 %}
-                          <a href="{% url "onadata.apps.main.views.form_photos" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Photo' %}" rel="tooltip" >
-                          <i class="icon-camera icon-large"></i>
-                          <a href="{% url "onadata.apps.odk_viewer.views.data_view" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
-                              <i class="icon-list icon-large inactive"></i>
-                          </a>
-                          <a href="{% url "form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
-                          <i class="icon-bar-chart icon-large inactive"></i>
-                          </a>
-                      {% else %}
-                          <span><i class="icon-camera icon-large inactive"></i></span>
-                          <span><i class="icon-list icon-large inactive"></i></span>
-                          <span><i class="icon-bar-chart icon-large inactive"></i></span>
-                      {% endif %}
-              </td>
-              <td>
-                  {% if not xform.encrypted and submission_count > 0 %}
-                      <a href="{% url "onadata.apps.odk_viewer.views.export_list"  xform.user.username xform.id_string 'csv' %}" class="download"><i class="icon-file-alt"></i> csv</a>
-                      <a href="{% url "onadata.apps.odk_viewer.views.export_list"  xform.user.username xform.id_string 'xls' %}" class="download"><i class="icon-table"></i> xls</a>
-                      {% if has_surveys_with_geopoints %}
-                          <a href="{% url "onadata.apps.odk_viewer.views.kml_export"  xform.user.username xform.id_string %}" class="download"><i class="icon-globe"></i> kml</a>
-                      {% endif %}
-                      {% if xform.shared_data %}
-                          <span class="label label-info label-public">{%  trans "PUBLIC" %}</span>
-                      {% endif %}
-                  {% endif %}
-              </td>
-              <td>
-                  {% if time_of_last_submission %}
-                      {{ time_of_last_submission|date:"N d, Y" }}
-                  {% endif %}
-              </td>
-              <td>
-                  <div class="dropdown">
-                      <a class="btn btn-flat dropdown-toggle" data-toggle="dropdown" href="#" data-original-title="{% trans 'Options' %}" rel="tooltip">
-                          <i class="icon-cog"></i>
-                      </a>
-                      <ul class="dropdown-menu form-options left-arrow" role="menu" aria-labelledby="dropdownMenu">
-                          <li><a tabindex="-1" class='remove-shared-form' data-url="{% url "onadata.apps.main.views.set_perm" xform.user.username xform.id_string %}" data-username="{{ content_user.username }}" href="{% url "onadata.apps.main.views.set_perm" xform.user.username xform.id_string %}">{% trans 'Remove Shared Form' %}</a></li>
-                      </ul>
-                  </div>
-              </td>
-          </tr>
-          {% endwith %}
-      {% endfor %}
-    </tbody>
-  </table>
-<hr />
-</section>
-        {% endif %}
-{% endif %}
-{% if crowdforms %}
-    <section id="crowdforms">
-        <div class="page-header">
-            <h1>{% blocktrans %}Crowdforms <small>List of crowdforms you have joined.</small>{% endblocktrans %}</h1>
-        </div>
-
-        <table id="crowdforms-table" class="table table-bordered table-striped forms-table">
-            <thead>
-            <tr>
-                <th>{%  trans "Name" %}</th>
-                <th>{%  trans "Submissions" %}</th>
-                <th>{%  trans "Enter Data" %}</th>
-                <th>{%  trans "View" %}</th>
-                <th>{%  trans "Data" %}</th>
-                <th>{%  trans "Last Submission" %}</th>
-                <th>&nbsp;</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for xform in crowdforms %}
-                {% with submission_count=xform.submission_count has_surveys_with_geopoints=xform.has_surveys_with_geopoints %}
-                    <tr>
-                        <td>
-                            <a href="{% url "onadata.apps.main.views.show" xform.user.username xform.id_string %}">{{ xform.title }}</a>
-                            {% if xform.shared %}
-                                <span class="label label-info">{%  trans "PUBLIC" %}</span>
-                            {% endif %}
-                            {% if xform.is_crowd_form %}
-                                <span class="label">{%  trans "CROWDFORM" %}</span>
-                            {% endif %}
-                        </td>
-                        <td class="centered">{{ submission_count|intcomma }}</td>
-                        <td class="centered"><a class="btn" href="{% url "onadata.apps.odk_logger.views.enter_data" xform.user.username xform.id_string %}"><i class="icon-edit"></i> {% trans "Web" %}</a></td>
-                        <!-- view options -->
-                        <td class="centered">
-                                {% if not xform.encrypted and has_surveys_with_geopoints %}
-                                    <a href="{% url "onadata.apps.odk_viewer.views.map_view" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Map' %}" rel="tooltip">
-                                        <i class="icon-map-marker icon-large"></i>
-                                    </a>
-                                {% else %}
-                                    <span><i class="icon-map-marker icon-large inactive"></i></span>
-                                {% endif %}
-                                {% if submission_count > 0 %}
-                                    <a href="{% url "onadata.apps.main.views.form_photos" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Photo' %}" rel="tooltip" >
-                                    <i class="icon-camera icon-large"></i>
-                                    <a href="{% url "onadata.apps.odk_viewer.views.data_view" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
-                                        <i class="icon-list icon-large inactive"></i>
-                                    </a>
-                                    <a href="{% url "form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
-                                    <i class="icon-bar-chart icon-large inactive"></i>
-                                    </a>
-                                {% else %}
-                                    <span><i class="icon-camera icon-large inactive"></i></span>
-                                    <span><i class="icon-list icon-large inactive"></i></span>
-                                    <span><i class="icon-bar-chart icon-large inactive"></i></span>
-                                {% endif %}
-                        </td>
-                        <!-- end view options -->
-                        <td>
-                            {% if not xform.encrypted and submission_count > 0 %}
-                                <a href="{% url "onadata.apps.odk_viewer.views.export_list"  xform.user.username xform.id_string 'csv' %}" class="download"><i class="icon-file-alt"></i> csv</a>
-                                <a href="{% url "onadata.apps.odk_viewer.views.export_list"  xform.user.username xform.id_string 'xls' %}" class="download"><i class="icon-table"></i> xls</a>
-                                {% if has_surveys_with_geopoints %}
-                                    <a href="{% url "onadata.apps.odk_viewer.views.kml_export"  xform.user.username xform.id_string %}" class="download"><i class="icon-globe"></i> kml</a>
-                                {% endif %}
-                                {% if xform.shared_data %}
-                                    <span class="label label-info label-public">{%  trans "PUBLIC" %}</span>
-                                {% endif %}
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if xform.time_of_last_submission %}
-                                {{ xform.time_of_last_submission|date:"N d, Y" }}
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="dropdown">
-                                <a class="btn btn-flat dropdown-toggle" data-toggle="dropdown" href="#" data-original-title="{% trans 'Options' %}" rel="tooltip">
-                                    <i class="icon-cog"></i>
-                                </a>
-                                <ul class="dropdown-menu form-options left-arrow" role="menu" aria-labelledby="dropdownMenu">
-                                    <li><a tabindex="-1" href="{% url "onadata.apps.main.views.edit" xform.user.username xform.id_string %}?crowdform=delete">{% trans 'Remove Crowdform' %}</a></li>
-                                </ul>
-                            </div>
-                            </div>
-                        </td>
-                    </tr>
-                {% endwith %}
-               {% endfor %}
-            </tbody>
-        </table>
-    </section>
-    <hr />
-{% endif %}
-
+    {% endif %}
 <div class="modal hide fade" id="popupmodal" style="width: auto; left:36%; margin-left: auto; margin-right: auto;" tabindex="-1" role="dialog">
      <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>

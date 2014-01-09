@@ -90,7 +90,8 @@ def deploy(deployment_name, branch='master'):
         if env.get('template'):
             run("git remote add template %s || true" % env.template)
             run("git fetch template")
-            run("git reset HEAD %s" % env.template_dir)
+            run("git reset HEAD %s && rm -rf %s" % (env.template_dir,
+                                                    env.template_dir))
             run("git read-tree --prefix=%s -u template/master"
                 % env.template_dir)
 

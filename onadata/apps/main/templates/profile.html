@@ -166,7 +166,7 @@
 
         });
 
-	  var tbl = $('#forms-table').dataTable({
+	  var tbl = $('#published-table').dataTable({
         "bPaginate": false,
         "sPaginationType": "bootstrap",
         "bSort": true,
@@ -177,7 +177,7 @@
         ]
       });
       tbl.fnFilter( 'true', 6, true);
-      var tblFilter = $('#forms-table_filter');
+      var tblFilter = $('#published-table_filter');
       tblFilter.addClass('row');
       tblFilter.prepend('{% trans "Show inactive:" %} <input id="active-select" type="checkbox" />&nbsp;&nbsp;');
       $('#active-select').change(function() {

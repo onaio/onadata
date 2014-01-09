@@ -1099,3 +1099,11 @@ body.authenticated {
 	background-image: url("images/background.jpg");
 	background-repeat: repeat;
 }
+td dl {
+    margin-bottom: 0px;
+}
+td div.created{
+    color: #999999;
+    font-size: 11px;
+    font-weight: 100;
+}
