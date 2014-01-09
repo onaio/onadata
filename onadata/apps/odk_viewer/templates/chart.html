@@ -1,0 +1,21 @@
+{% load lookup_filter %}
+
+<head>
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="http://dimplejs.org/dist/dimple.v1.1.2.min.js"></script>
+</head>
+<body>
+  <script type="text/javascript">
+    var svg = dimple.newSvg("body", 800, 600);
+    var data = [
+      {% for item in data %}
+        { "{{ field.name }}": "{{ item|lookup:field.name }}", "count": "{{ item.count }}" },
+      {% endfor %}
+    ];
+    var chart = new dimple.chart(svg, data);
+    chart.addCategoryAxis("x", "{{ field.name }}");
+    chart.addMeasureAxis("y", "count");
+    chart.addSeries(null, dimple.plot.bar);
+    chart.draw();
+  </script>
+</body>

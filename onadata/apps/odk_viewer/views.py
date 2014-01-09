@@ -738,3 +738,37 @@ def instance(request, username, id_string):
         'xform': xform,
         'can_edit': can_edit
     }, context_instance=context)
+
+
+def chart(request, username, id_string, field_name):
+    from onadata.apps.api.tools import get_form_submissions_grouped_by_field
+    xform, is_owner, can_edit, can_view = get_xform_and_perms(
+        username, id_string, request)
+    # no access
+    if not (xform.shared_data or can_view or
+            request.session.get('public_link') == xform.uuid):
+        return HttpResponseForbidden(_(u'Not shared.'))
+
+    context = RequestContext(request)
+
+    # use specified field to get summary
+    dd = xform.data_dictionary()
+    fields = filter(lambda f: f.name == field_name, [e for e in dd.survey_elements])
+
+    if len(fields) == 0:
+        return HttpResponseNotFound("Field {} doesnt not exist on the form".format(field_name))
+
+    field = fields[0]
+
+    # if the field is a select, get a summary of the choices
+    choices = [c for c in field.get('children')]
+
+    result = get_form_submissions_grouped_by_field(xform, field.name)
+
+    return render_to_response('chart.html', {
+        'username': username,
+        'id_string': id_string,
+        'xform': xform,
+        'field': field,
+        'data': result
+    }, context_instance=context)
