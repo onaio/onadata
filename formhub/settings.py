@@ -134,7 +134,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.tz',
     'django.contrib.messages.context_processors.messages',
     'formhub.context_processors.google_analytics',
-    'formhub.context_processors.site_name'
+    'formhub.context_processors.site_name',
+    'readonly.context_processors.readonly'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -148,6 +149,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.transaction.TransactionMiddleware',
     'utils.middleware.HTTPResponseNotAllowedMiddleware',
+    'readonly.middleware.DatabaseReadOnlyMiddleware',
 )
 
 LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'formhub', 'locale'), )
@@ -188,6 +190,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework.authtoken',
     'taggit',
+    'readonly',
     'odk_logger',
     'odk_viewer',
     'main',
