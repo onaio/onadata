@@ -474,7 +474,7 @@ def enter_data(request, username, id_string):
     try:
         url = enketo_url(form_url, xform.id_string)
         if not url:
-            return HttpResponseRedirect(reverse('main.views.show',
+            return HttpResponseRedirect(reverse('onadata.apps.main.views.show',
                                         kwargs={'username': username,
                                                 'id_string': id_string}))
         return HttpResponseRedirect(url)
@@ -493,7 +493,7 @@ def enter_data(request, username, id_string):
             request, messages.WARNING,
             _("Enketo error: enketo replied %s") % e, fail_silently=True)
         return render_to_response("profile.html", context_instance=context)
-    return HttpResponseRedirect(reverse('main.views.show',
+    return HttpResponseRedirect(reverse('onadata.apps.main.views.show',
                                 kwargs={'username': username,
                                         'id_string': id_string}))
 
@@ -508,12 +508,9 @@ def edit_data(request, username, id_string, data_id):
     if not has_edit_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
     if not hasattr(settings, 'ENKETO_URL'):
-        return HttpResponseRedirect(
-            reverse(
-                'main.views.show', kwargs={'username': username,
-                                           'id_string': id_string}
-            )
-        )
+        return HttpResponseRedirect(reverse(
+            'onadata.apps.main.views.show',
+            kwargs={'username': username, 'id_string': id_string}))
 
     url = '%sdata/edit_url' % settings.ENKETO_URL
     # see commit 220f2dad0e for tmp file creation
@@ -544,7 +541,7 @@ def edit_data(request, username, id_string, data_id):
             context.enketo = url
             return HttpResponseRedirect(url)
     return HttpResponseRedirect(
-        reverse('main.views.show',
+        reverse('onadata.apps.main.views.show',
                 kwargs={'username': username,
                         'id_string': id_string}))
 
