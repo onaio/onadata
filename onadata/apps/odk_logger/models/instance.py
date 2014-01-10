@@ -113,12 +113,6 @@ class Instance(models.Model):
 
         doc = self.get_dict()
 
-        if not self.date_created:
-            now = timezone.now()
-            self.date_created = now
-            doc[SUBMISSION_TIME] = now.strftime(MONGO_STRFTIME)
-            doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
-
         self.json = doc
         self._set_start_time(doc)
         self._set_date(doc)
@@ -135,8 +129,15 @@ class Instance(models.Model):
         """Return a python object representation of this instance's XML."""
         self._set_parser()
 
-        return self._parser.get_flat_dict_with_attributes() if flat else\
+        doc = self._parser.get_flat_dict_with_attributes() if flat else\
             self._parser.to_dict()
+
+        if not self.date_created:
+            now = timezone.now()
+            self.date_created = now
+        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
+        doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
+        return doc
 
     def set_deleted(self, deleted_at=timezone.now()):
         self.deleted_at = deleted_at
