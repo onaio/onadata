@@ -1,5 +1,4 @@
 import os
-import time
 
 from django.core.files.base import ContentFile
 from django.test import RequestFactory
@@ -36,10 +35,11 @@ class TestStatsViewSet(TestBase):
             'http://testserver/api/v1/stats/submissions/bob/%s' % formid
         }
         self.assertDictEqual(response.data, data)
+        request = self.factory.get('/?group=_xform_id_string', **self.extra)
+        response = view(request)
         response = view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
-        time.sleep(4)
         data = {
             u'count': 4
         }
