@@ -1,5 +1,3 @@
-from time import strftime
-
 from django.db import models
 from django.db.models.signals import post_save
 from django.db.models.signals import post_delete
@@ -36,7 +34,7 @@ def get_id_string_from_xml_str(xml_str):
 
 
 def submission_time():
-    return strftime(MONGO_STRFTIME)
+    return timezone.now()
 
 
 class Instance(models.Model):
@@ -114,7 +112,7 @@ class Instance(models.Model):
         doc = self.get_dict()
 
         if not self.date_created:
-            now = timezone.now()
+            now = submission_time()
             self.date_created = now
         doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
         doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()

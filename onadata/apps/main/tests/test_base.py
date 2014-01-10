@@ -4,7 +4,6 @@ import re
 import socket
 import urllib2
 from tempfile import NamedTemporaryFile
-from time import strftime
 
 from cStringIO import StringIO
 
@@ -13,9 +12,9 @@ from django.contrib.auth.models import User
 from django.test import TransactionTestCase
 from django.test.client import Client
 from django_digest.test import Client as DigestClient
+from django.utils import timezone
 
 from onadata.apps.odk_logger.models import XForm, Instance, Attachment
-from onadata.libs.utils.common_tags import MONGO_STRFTIME
 
 
 class TestBase(TransactionTestCase):
@@ -225,5 +224,5 @@ class TestBase(TransactionTestCase):
         return contents
 
     def _set_mock_time(self, mock_time):
-        current_time = strftime(MONGO_STRFTIME)
+        current_time = timezone.now()
         mock_time.return_value = current_time
