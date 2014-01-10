@@ -11,7 +11,7 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.odk_logger.models.survey_type import SurveyType
 from onadata.apps.odk_logger.models.xform import XForm
-from onadata.apps.odk_logger.xform_instance_parser import XFormInstanceParser, \
+from onadata.apps.odk_logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME
 from onadata.libs.utils.model_tools import set_uuid
@@ -112,7 +112,6 @@ class Instance(models.Model):
             raise FormInactiveError()
 
         doc = self.get_dict()
-        doc[SUBMISSION_TIME] = submission_time()
 
         self.json = doc
         self._set_start_time(doc)
@@ -129,10 +128,12 @@ class Instance(models.Model):
     def get_dict(self, force_new=False, flat=True):
         """Return a python object representation of this instance's XML."""
         self._set_parser()
-        if flat:
-            return self._parser.get_flat_dict_with_attributes()
-        else:
-            return self._parser.to_dict()
+
+        _dict = self._parser.get_flat_dict_with_attributes() if flat else\
+            self._parser.to_dict()
+        _dict[SUBMISSION_TIME] = submission_time()
+
+        return _dict
 
     def set_deleted(self, deleted_at=timezone.now()):
         self.deleted_at = deleted_at
