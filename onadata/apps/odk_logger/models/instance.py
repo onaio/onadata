@@ -116,8 +116,8 @@ class Instance(models.Model):
         if not self.date_created:
             now = timezone.now()
             self.date_created = now
-            doc[SUBMISSION_TIME] = now.strftime(MONGO_STRFTIME)
-            doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
+        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
+        doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
 
         self.json = doc
         self._set_start_time(doc)
