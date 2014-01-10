@@ -2,6 +2,7 @@
 from django.core.exceptions import ValidationError
 from south.v2 import DataMigration
 from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME, XFORM_ID_STRING
 from onadata.apps.odk_logger.models import Instance
 
 class Migration(DataMigration):
@@ -9,7 +10,11 @@ class Migration(DataMigration):
     def forwards(self, orm):
         """Add parsed JSON to JSON instance column."""
         for instance in queryset_iterator(orm.Instance.objects.all()):
-            json = Instance.objects.get(pk=instance.pk).get_dict()
+            obj = Instance.objects.get(pk=instance.pk)
+            json = obj.get_dict()
+            json[SUBMISSION_TIME] = instance.date_created.strftime(
+                MONGO_STRFTIME)
+            json[XFORM_ID_STRING] = obj._parser.get_xform_id_string()
             instance.json = json
             instance.save()
 
