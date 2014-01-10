@@ -18,14 +18,14 @@ class TestInstance(TestBase):
             self.assertNotEqual(instance.json, {})
 
     @patch('onadata.apps.odk_logger.models.instance.submission_time')
-    def test_get_dict_assigns_attributes(self, mock_time):
+    def test_json_assigns_attributes(self, mock_time):
         self._set_mock_time(mock_time)
 
         xform_id_string = XForm.objects.all()[0].id_string
         instances = Instance.objects.all()
 
         for instance in instances:
-            self.assertEqual(instance.get_dict()[SUBMISSION_TIME],
+            self.assertEqual(instance.json[SUBMISSION_TIME],
                              mock_time.return_value)
-            self.assertEqual(instance.get_dict()[XFORM_ID_STRING],
+            self.assertEqual(instance.json[XFORM_ID_STRING],
                              xform_id_string)
