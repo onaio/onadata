@@ -40,7 +40,6 @@ def submission_time():
 
 
 class Instance(models.Model):
-    # TODO rename model to Survey
     json = JSONField(default={}, null=False)
     xml = models.TextField()
     user = models.ForeignKey(User, related_name='surveys', null=True)
@@ -115,7 +114,9 @@ class Instance(models.Model):
         doc = self.get_dict()
 
         if not self.date_created:
-            doc[SUBMISSION_TIME] = submission_time()
+            now = timezone.now()
+            self.date_created = now
+            doc[SUBMISSION_TIME] = now.strftime(MONGO_STRFTIME)
             doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
 
         self.json = doc
