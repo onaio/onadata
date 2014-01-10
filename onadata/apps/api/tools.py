@@ -191,10 +191,11 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
 
     cursor.execute(_count_group('odk_logger_instance', field, name))
     result = _dictfetchall(cursor)
-
-    if result[0][name] is None:
+    if result[0][name] is None and len(result) == 0:
         raise ValueError(_(u"Field '%s' does not exist." % field))
-
+    elif result[0][name] is None and result[0]['count'] == 0 \
+            and len(result) > 0:
+        result = result[1:]
     return result
 
 
