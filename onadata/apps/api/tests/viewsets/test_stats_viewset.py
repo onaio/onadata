@@ -1,4 +1,5 @@
 import os
+import time
 
 from django.core.files.base import ContentFile
 from django.test import RequestFactory
@@ -38,6 +39,7 @@ class TestStatsViewSet(TestBase):
         response = view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
+        time.sleep(4)
         data = {
             u'count': 4
         }
