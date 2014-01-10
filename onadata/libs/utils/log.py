@@ -4,7 +4,8 @@ from onadata.libs.utils.viewer_tools import get_client_ip
 
 
 class Enum(object):
-    __name__= "Enum"
+    __name__ = "Enum"
+
     def __init__(self, **enums):
         self.enums = enums
 
@@ -67,7 +68,8 @@ class AuditLogHandler(logging.Handler):
             'account': record.account_username,
             'audit': {},
             'msg': record.msg,
-            # save as python datetime object to have mongo convert to ISO date and allow queries
+            # save as python datetime object
+            # to have mongo convert to ISO date and allow queries
             'created_on': datetime.utcfromtimestamp(record.created),
             'levelno': record.levelno,
             'levelname': record.levelname,
@@ -88,7 +90,7 @@ class AuditLogHandler(logging.Handler):
             'processName': record.processName
         }
         if hasattr(record, 'audit') and isinstance(record.audit, dict):
-            data['audit']= record.audit
+            data['audit'] = record.audit
         return data
 
     def emit(self, record):
@@ -107,7 +109,9 @@ class AuditLogHandler(logging.Handler):
         mod = __import__('.'.join(names[:-1]), fromlist=names[-1:])
         return getattr(mod, names[-1])
 
-def audit_log(action, request_user, account_user, message, audit, request, level=logging.DEBUG):
+
+def audit_log(action, request_user, account_user, message, audit, request,
+              level=logging.DEBUG):
     """
     Create a log message based on these params
 
@@ -116,16 +120,17 @@ def audit_log(action, request_user, account_user, message, audit, request, level
     @param account_username: The formhub account the action was performed on
     @param message: The message to be displayed on the log
     @param level: log level
-    @param audit: a dict of key/values of other info pertaining to the action e.g. form's id_string, submission uuid
+    @param audit: a dict of key/values of other info pertaining to the action
+                  e.g. form's id_string, submission uuid
     @return: None
     """
     logger = logging.getLogger("audit_logger")
     extra = {
         'formhub_action': action,
-        'request_username': request_user.username if request_user.username
-            else str(request_user),
-        'account_username': account_user.username if account_user.username
-            else str(account_user),
+        'request_username':
+        request_user.username if request_user.username else str(request_user),
+        'account_username':
+        account_user.username if account_user.username else str(account_user),
         'client_ip': get_client_ip(request),
         'audit': audit
     }

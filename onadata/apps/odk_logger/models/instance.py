@@ -1,5 +1,3 @@
-from time import strftime
-
 from django.db import models
 from django.db.models.signals import post_save
 from django.db.models.signals import post_delete
@@ -11,9 +9,10 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.odk_logger.models.survey_type import SurveyType
 from onadata.apps.odk_logger.models.xform import XForm
-from onadata.apps.odk_logger.xform_instance_parser import XFormInstanceParser, \
+from onadata.apps.odk_logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
-from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME
+from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME,\
+    XFORM_ID_STRING
 from onadata.libs.utils.model_tools import set_uuid
 
 
@@ -35,11 +34,10 @@ def get_id_string_from_xml_str(xml_str):
 
 
 def submission_time():
-    return strftime(MONGO_STRFTIME)
+    return timezone.now()
 
 
 class Instance(models.Model):
-    # TODO rename model to Survey
     json = JSONField(default={}, null=False)
     xml = models.TextField()
     user = models.ForeignKey(User, related_name='surveys', null=True)
@@ -112,7 +110,12 @@ class Instance(models.Model):
             raise FormInactiveError()
 
         doc = self.get_dict()
-        doc[SUBMISSION_TIME] = submission_time()
+
+        if not self.date_created:
+            now = submission_time()
+            self.date_created = now
+        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
+        doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
 
         self.json = doc
         self._set_start_time(doc)
@@ -129,10 +132,9 @@ class Instance(models.Model):
     def get_dict(self, force_new=False, flat=True):
         """Return a python object representation of this instance's XML."""
         self._set_parser()
-        if flat:
-            return self._parser.get_flat_dict_with_attributes()
-        else:
-            return self._parser.to_dict()
+
+        return self._parser.get_flat_dict_with_attributes() if flat else\
+            self._parser.to_dict()
 
     def set_deleted(self, deleted_at=timezone.now()):
         self.deleted_at = deleted_at
