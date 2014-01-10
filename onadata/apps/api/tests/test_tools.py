@@ -1,6 +1,7 @@
 from datetime import datetime
 from mock import patch
 from nose.tools import raises
+import os
 
 from onadata.apps.api.tools import get_form_submissions_grouped_by_field
 from onadata.apps.main.tests.test_base import TestBase
@@ -17,6 +18,30 @@ class TestTools(TestBase):
     def test_get_form_submissions_grouped_by_field(self, mock_time):
         mock_time.return_value = datetime.now()
         self._make_submissions()
+
+        count_key = 'count'
+        fields = ['_submission_time', '_xform_id_string']
+
+        xform = self.user.xforms.all()[0]
+        count = len(xform.surveys.all())
+
+        for field in fields:
+            result = get_form_submissions_grouped_by_field(xform, field)[0]
+
+            self.assertEqual([field, count_key], sorted(result.keys()))
+            self.assertEqual(result[count_key], count)
+
+    @patch('django.utils.timezone.now')
+    def test_get_form_submissions_two_xforms(self, mock_time):
+        mock_time.return_value = datetime.now()
+        self._make_submissions()
+        self._publish_xls_file(os.path.join(
+            "fixtures",
+            "transportation", "transportation.id_starts_with_num.xls"))
+        self._make_submission(os.path.join(
+            'onadata', 'apps', 'main', 'tests', 'fixtures', 'transportation',
+            'instances_w_uuid', 'transport_2011-07-25_19-05-36',
+            'transport_2011-07-25_19-05-36.xml'))
 
         count_key = 'count'
         fields = ['_submission_time', '_xform_id_string']

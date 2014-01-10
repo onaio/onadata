@@ -56,24 +56,25 @@ def using_postgres():
         'default']['ENGINE'] == 'django.db.backends.postgresql_psycopg2'
 
 
-def _count_group(table, field, name):
+def _count_group(table, field, name, restriction):
     if using_postgres:
-        result = _postgres_count_group(table, field, name)
+        result = _postgres_count_group(table, field, name, restriction)
     else:
         raise Exception("Unsopported Database")
     return result
 
 
-def _postgres_count_group(table, field, name):
+def _postgres_count_group(table, field, name, restriction):
     json_query = "json->>'%s'" % field
-    string_args = {
+    string_args = dict({
         'table': table,
         'json': json_query,
         'name': name
-    }
+    }.items() + restriction.items())
 
     return "SELECT %(json)s AS %(name)s, COUNT(%(json)s) AS count FROM "\
-           "%(table)s GROUP BY %(json)s" % string_args
+           "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
+           "GROUP BY %(json)s" % string_args
 
 
 def get_accessible_forms(owner=None):
@@ -189,7 +190,11 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
     if not name:
         name = field
 
-    cursor.execute(_count_group('odk_logger_instance', field, name))
+    restriction = {'restrict_field': 'xform_id',
+                   'restrict_value': xform.pk}
+
+    cursor.execute(_count_group(
+        'odk_logger_instance', field, name, restriction))
     result = _dictfetchall(cursor)
 
     if result[0][name] is None:
