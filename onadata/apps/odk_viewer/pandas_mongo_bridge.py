@@ -76,18 +76,19 @@ class AbstractDataFrameBuilder(object):
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields NOT within the form def that we want to include
     ADDITIONAL_COLUMNS = [UUID, SUBMISSION_TIME, TAGS, NOTES]
-
+    BINARY_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
     """
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
-                 split_select_multiples=True):
+                 split_select_multiples=True, binary_select_multiples=False):
         self.username = username
         self.id_string = id_string
         self.filter_query = filter_query
         self.group_delimiter = group_delimiter
         self.split_select_multiples = split_select_multiples
+        self.BINARY_SELECT_MULTIPLES = binary_select_multiples
         self._setup()
 
     def _setup(self):
@@ -125,10 +126,17 @@ class AbstractDataFrameBuilder(object):
                 # remove the column since we are adding separate columns
                 # for each choice
                 record.pop(key)
-                # add columns to record for every choice, with default
-                # False and set to True for items in selections
-                record.update(dict([(choice, choice in selections)
-                                    for choice in choices]))
+                if not cls.BINARY_SELECT_MULTIPLES:
+                    # add columns to record for every choice, with default
+                    # False and set to True for items in selections
+                    record.update(dict([(choice, choice in selections)
+                                        for choice in choices]))
+                else:
+                    YES = 1
+                    NO = 0
+                    record.update(
+                        dict([(choice, YES if choice in selections else NO)
+                              for choice in choices]))
 
             # recurs into repeats
             for record_key, record_item in record.items():
@@ -237,10 +245,10 @@ class XLSDataFrameBuilder(AbstractDataFrameBuilder):
 
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
-                 split_select_multiples=True):
+                 split_select_multiples=True, binary_select_multiples=False):
         super(XLSDataFrameBuilder, self).__init__(
-            username, id_string,
-            filter_query, group_delimiter, split_select_multiples)
+            username, id_string, filter_query, group_delimiter,
+            split_select_multiples, binary_select_multiples)
 
     def _setup(self):
         super(XLSDataFrameBuilder, self)._setup()
@@ -469,10 +477,10 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
-                 split_select_multiples=True):
+                 split_select_multiples=True, binary_select_multiples=False):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
-            split_select_multiples)
+            split_select_multiples, binary_select_multiples)
         self.ordered_columns = OrderedDict()
 
     def _setup(self):
