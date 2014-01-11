@@ -14,10 +14,8 @@ before_install:
   - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so ~/virtualenv/python2.7/lib/
   - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so ~/virtualenv/python2.7/lib/
 env:
-  - TESTFOLDER="onadata/apps/api onadata/apps/odk_logger"
   - TESTFOLDER=onadata/apps/main
-  - TESTFOLDER=onadata/apps/odk_viewer
-  - TESTFOLDER="onadata/apps/formhub onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats"
+  - TESTFOLDER="onadata/apps/api onadata/apps/odk_logger onadata/apps/odk_viewer onadata/apps/formhub onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats"
 install:
   - pip install -r requirements/common.pip --download-cache $HOME/.pip-cache --use-mirrors
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
