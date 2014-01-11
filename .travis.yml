@@ -1,6 +1,9 @@
 language: python
 addons:
-    postgresql: 9.3
+  postgresql: 9.3
+cache:
+  directories:
+    - $HOME/.pip-cache/
 services:
   - mongodb
 python:
@@ -10,12 +13,17 @@ before_install:
   - sudo apt-get install -qq gfortran libatlas-base-dev libjpeg-dev python-numpy zlib1g-dev
   - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so ~/virtualenv/python2.7/lib/
   - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so ~/virtualenv/python2.7/lib/
+env:
+  - TESTFOLDER="onadata/apps/api onadata/apps/odk_logger"
+  - TESTFOLDER=onadata/apps/main
+  - TESTFOLDER=onadata/apps/odk_viewer
+  - TESTFOLDER="onadata/apps/formhub onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats"
 install:
-  - pip install -r requirements/common.pip --use-mirrors
+  - pip install -r requirements/common.pip --download-cache $HOME/.pip-cache --use-mirrors
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
 script:
-  - python manage.py test --noinput --settings=onadata.settings.travis_test
+  - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test
   - ./script/run_js_tests
 notifications:
   email:
