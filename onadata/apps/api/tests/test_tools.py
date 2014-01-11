@@ -22,11 +22,11 @@ class TestTools(TestBase):
         count_key = 'count'
         fields = ['_submission_time', '_xform_id_string']
 
-        xform = self.user.xforms.all()[0]
-        count = len(xform.surveys.all())
+        count = len(self.xform.surveys.all())
 
         for field in fields:
-            result = get_form_submissions_grouped_by_field(xform, field)[0]
+            result = get_form_submissions_grouped_by_field(
+                self.xform, field)[0]
 
             self.assertEqual([field, count_key], sorted(result.keys()))
             self.assertEqual(result[count_key], count)
@@ -37,23 +37,54 @@ class TestTools(TestBase):
         self._make_submissions()
         self._publish_xls_file(os.path.join(
             "fixtures",
-            "transportation", "transportation.id_starts_with_num.xls"))
+            "gps", "gps.xls"))
+
+        first_xform = self.xform
+        self.xform = self.user.xforms.all().order_by('-pk')[0]
+
         self._make_submission(os.path.join(
-            'onadata', 'apps', 'main', 'tests', 'fixtures', 'transportation',
-            'instances_w_uuid', 'transport_2011-07-25_19-05-36',
-            'transport_2011-07-25_19-05-36.xml'))
+            'onadata', 'apps', 'main', 'tests', 'fixtures', 'gps',
+            'instances', 'gps_1980-01-23_20-52-08.xml'))
 
         count_key = 'count'
         fields = ['_submission_time', '_xform_id_string']
 
-        xform = self.user.xforms.all()[0]
-        count = len(xform.surveys.all())
+        count = len(self.xform.surveys.all())
 
         for field in fields:
-            result = get_form_submissions_grouped_by_field(xform, field)[0]
+            result = get_form_submissions_grouped_by_field(
+                self.xform, field)[0]
 
             self.assertEqual([field, count_key], sorted(result.keys()))
             self.assertEqual(result[count_key], count)
+
+        count = len(first_xform.surveys.all())
+
+        for field in fields:
+            result = get_form_submissions_grouped_by_field(
+                first_xform, field)[0]
+
+            self.assertEqual([field, count_key], sorted(result.keys()))
+            self.assertEqual(result[count_key], count)
+
+    @patch('django.utils.timezone.now')
+    def test_get_form_submissions_xform_no_submissions(self, mock_time):
+        mock_time.return_value = datetime.now()
+        self._make_submissions()
+        self._publish_xls_file(os.path.join(
+            "fixtures",
+            "gps", "gps.xls"))
+
+        self.xform = self.user.xforms.all().order_by('-pk')[0]
+
+        fields = ['_submission_time', '_xform_id_string']
+
+        count = len(self.xform.surveys.all())
+        self.assertEqual(count, 0)
+        for field in fields:
+            result = get_form_submissions_grouped_by_field(
+                self.xform, field)
+            self.assertEqual(result, [])
 
     @patch('django.utils.timezone.now')
     def test_get_form_submissions_grouped_by_field_sets_name(self, mock_time):

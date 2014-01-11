@@ -197,7 +197,7 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
         'odk_logger_instance', field, name, restriction))
     result = _dictfetchall(cursor)
 
-    if result[0][name] is None:
+    if len(result) and result[0][name] is None:
         raise ValueError(_(u"Field '%s' does not exist." % field))
 
     return result
