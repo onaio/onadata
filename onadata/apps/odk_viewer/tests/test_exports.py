@@ -21,8 +21,8 @@ from xlrd import open_workbook
 from onadata.apps.main.views import delete_data
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.odk_viewer.xls_writer import XlsWriter
-from onadata.apps.odk_viewer.views import delete_export, export_list, create_export,\
-    export_progress, export_download
+from onadata.apps.odk_viewer.views import delete_export, export_list,\
+    create_export, export_progress, export_download
 from onadata.apps.odk_viewer.models.export import Export
 from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.odk_logger.models import Instance
@@ -498,18 +498,23 @@ class TestExports(TestBase):
     def test_duplicate_export_filename_is_renamed(self):
         self._publish_transportation_form()
         self._submit_transport_instance()
-        # create an export object in the db
-        # TODO: only works if the time we time we generate the basename
+
+        # TODO: mock the time
+        # only works if the time we time we generate the basename
         # is exact to the second with the time the 2nd export is created
+
+        # create an export object in the db
         basename = "%s_%s" % (
             self.xform.id_string,
             datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
         filename = basename + ".csv"
         export = Export.objects.create(
             xform=self.xform, export_type=Export.CSV_EXPORT, filename=filename)
+
         # 2nd export
         export_2 = generate_export(
             Export.CSV_EXPORT, 'csv', self.user.username, self.xform.id_string)
+
         if export.created_on.timetuple() == export_2.created_on.timetuple():
             new_filename = increment_index_in_filename(filename)
             self.assertEqual(new_filename, export_2.filename)
