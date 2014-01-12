@@ -44,8 +44,6 @@ class Instance(models.Model):
 
     # using instances instead of surveys breaks django
     xform = models.ForeignKey(XForm, null=True, related_name='surveys')
-    start_time = models.DateTimeField(null=True)
-    date = models.DateField(null=True)
     survey_type = models.ForeignKey(SurveyType)
 
     # shows when we first received this instance
@@ -89,13 +87,6 @@ class Instance(models.Model):
         self.survey_type, created = \
             SurveyType.objects.get_or_create(slug=self.get_root_node_name())
 
-    # TODO get rid of these fields
-    def _set_start_time(self, doc):
-        self.start_time = None
-
-    def _set_date(self, doc):
-        self.date = None
-
     def _set_uuid(self):
         if self.xml and not self.uuid:
             uuid = get_uuid_from_xml(self.xml)
@@ -118,8 +109,6 @@ class Instance(models.Model):
         doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
 
         self.json = doc
-        self._set_start_time(doc)
-        self._set_date(doc)
         self._set_survey_type(doc)
         self._set_uuid()
         super(Instance, self).save(*args, **kwargs)
