@@ -188,13 +188,13 @@ describe("DataView", function () {
         });
     });
 
-    it("creates a template from the specified fieldSet", function () {
+    xit("creates a template from the specified fieldSet", function () {
         var dataView = new FH.DataView();
         dataView.renderTemplate(fieldSet);
         expect(dataView.template).toBeDefined();
     });
 
-    describe("templateFromFields", function () {
+    xdescribe("templateFromFields", function () {
         it("creates a table row for each question", function () {
             var result;
 
