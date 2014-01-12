@@ -5,7 +5,7 @@ module.exports = function(config) {
   config.set({
 
     // base path, that will be used to resolve files and exclude
-    basePath: '../../',
+    basePath: '../../../../',
 
 
     // frameworks to use
@@ -14,34 +14,33 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      'main/static/bower_components/jquery/jquery.js',
-      'main/static/bower_components/underscore/underscore.js',
-      'main/static/bower_components/backbone/backbone.js',
-      'main/static/bower_components/backgrid/lib/backgrid.js',
-      'main/static/bower_components/backgrid/assets/js/lunr.js',
-      'main/static/bower_components/backgrid/assets/js/backbone-pageable.js',
-      'main/static/bower_components/backgrid/lib/extensions/filter/backgrid-filter.js',
-      'main/static/bower_components/backgrid/lib/extensions/paginator/backgrid-paginator.js',
-      'main/static/bower_components/leaflet-dist/leaflet-src.js',
+      'onadata/apps/main/static/bower_components/jquery/jquery.js',
+      'onadata/apps/main/static/bower_components/underscore/underscore.js',
+      'onadata/apps/main/static/bower_components/backbone/backbone.js',
+      'onadata/apps/main/static/bower_components/backgrid/lib/backgrid.js',
+      'onadata/apps/main/static/bower_components/backgrid/assets/js/lunr.js',
+      'onadata/apps/main/static/bower_components/backgrid/assets/js/backbone-pageable.js',
+      'onadata/apps/main/static/bower_components/backgrid/lib/extensions/filter/backgrid-filter.js',
+      'onadata/apps/main/static/bower_components/backgrid/lib/extensions/paginator/backgrid-paginator.js',
+      'onadata/apps/main/static/bower_components/leaflet-dist/leaflet-src.js',
       'https://maps.google.com/maps/api/js?v=3.2&sensor=false',
-      'main/static/js/dv.js',
-      'main/static/js/Google.js',
+      'onadata/apps/main/static/js/dv.js',
+      'onadata/apps/main/static/js/Google.js',
       'node_modules/sinon/lib/sinon.js',
       'node_modules/sinon/lib/sinon/util/event.js',
       'node_modules/sinon/lib/sinon/util/fake_xml_http_request.js',
       'node_modules/sinon/lib/sinon/util/fake_server.js',
-      'odk_viewer/static/js/map.js',
-      'odk_viewer/static/js/xform.js',
-      'odk_viewer/static/js/data_view.js',
-      'odk_viewer/static/js/ajax_mock.js',
-      'odk_viewer/js_tests/spec/*.js',
-      'odk_viewer/js_tests/mock/*.js'
+      'onadata/apps/odk_viewer/static/js/map.js',
+      'onadata/apps/odk_viewer/static/js/xform.js',
+      'onadata/apps/odk_viewer/static/js/data_view.js',
+      'onadata/libs/javascript/tests/spec/*.spec.js',
+      'onadata/libs/javascript/tests/mock/*.js'
     ],
 
 
     // list of files to exclude
     exclude: [
-      
+
     ],
 
 
@@ -64,7 +63,7 @@ module.exports = function(config) {
 
 
     // enable / disable watching file and executing tests whenever any file changes
-    autoWatch: false,
+    autoWatch: true,
 
 
     // Start these browsers, currently available:
@@ -75,7 +74,7 @@ module.exports = function(config) {
     // - Safari (only Mac)
     // - PhantomJS
     // - IE (only Windows)
-    browsers: ['PhantomJS'],
+    browsers: ['Chrome', 'PhantomJS'],
 
 
     // If browser does not capture in given timeout [ms], kill it
@@ -84,6 +83,6 @@ module.exports = function(config) {
 
     // Continuous Integration mode
     // if true, it capture browsers, run tests and exit
-    singleRun: true
+    singleRun: false
   });
 };

@@ -46,4 +46,4 @@ run_gunicorn.sh
 celerybeat-schedule
 
 # bower
-main/static/bower_components
+/onadata/apps/main/static/bower_components
