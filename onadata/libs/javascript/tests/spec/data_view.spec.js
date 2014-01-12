@@ -1,5 +1,5 @@
-describe("FH.DataView", function () {
-    describe("FH.DataView.NameOrLabel on select one", function () {
+describe("FH.DataTableView", function () {
+    describe("FH.DataTableView.NameOrLabel on select one", function () {
         var field = new FH.Field({
             _id: 'yes_no',
             xpath: 'group/yes_no',
@@ -18,23 +18,23 @@ describe("FH.DataView", function () {
         });
 
         it("should return the raw value when showLabels is disabled", function () {
-            var result = FH.DataView.NameOrLabel(field, "0", false);
+            var result = FH.DataTableView.NameOrLabel(field, "0", false);
             expect(result).toEqual("0");
 
-            result = FH.DataView.NameOrLabel(field, "1", false);
+            result = FH.DataTableView.NameOrLabel(field, "1", false);
             expect(result).toEqual("1");
         });
 
         it("should return the select label when showLabels is enabled", function () {
-            var result = FH.DataView.NameOrLabel(field, "0", true);
+            var result = FH.DataTableView.NameOrLabel(field, "0", true);
             expect(result).toEqual("No");
 
-            result = FH.DataView.NameOrLabel(field, "1", true);
+            result = FH.DataTableView.NameOrLabel(field, "1", true);
             expect(result).toEqual("Yes");
         });
     });
 
-    describe("FH.DataView.NameOrLabel on select multiple", function () {
+    describe("FH.DataTableView.NameOrLabel on select multiple", function () {
         var field = new FH.Field({
             _id: 'browsers',
             xpath: 'group/browsers',
@@ -57,7 +57,7 @@ describe("FH.DataView", function () {
         });
 
         it("should return a comma separated list of labels when showLabels is true", function(){
-           var result = FH.DataView.NameOrLabel(field, "chrome ie", true).split(", ");
+           var result = FH.DataTableView.NameOrLabel(field, "chrome ie", true).split(", ");
             expect(result).toContain("Google Chrome");
             expect(result).toContain("Internet Explorer");
         });

@@ -86,7 +86,7 @@
         }
     });
 
-    var DataView = FH.DataView = Backbone.View.extend({
+    var DataTableView = FH.DataTableView = Backbone.View.extend({
         // Instance of the `Form` object
         form: void 0,
 
@@ -114,7 +114,7 @@
             });
 
             this.form.on('load', function () {
-                var dataView = this;
+                var dataTableView = this;
 
                 // Initialize the data
                 this.data.on('load', function () {
@@ -137,14 +137,14 @@
                     columns: this.form.fields.map(function (f) {
                         var column = {
                             name: f.get(FH.constants.XPATH),
-                            label: f.get(FH.constants.LABEL, dataView.form.get('language')),
+                            label: f.get(FH.constants.LABEL, dataTableView.form.get('language')),
                             editable: false,
                             cell: "string"//FHToBackgridTypes[f.get(FH.constants.TYPE)] || "string"
                         };
                         if (f.isA(FH.types.SELECT_ONE) || f.isA(FH.types.SELECT_MULTIPLE)) {
                             column.formatter = {
                                 fromRaw: function (rawData) {
-                                    return DataView.NameOrLabel(f, rawData, dataView.showLabels, dataView.form.get('language'));
+                                    return DataTableView.NameOrLabel(f, rawData, dataTableView.showLabels, dataTableView.form.get('language'));
                                 }
                             };
                         }
@@ -212,10 +212,10 @@
 
             // Catch language change events
             this.form.on('change:language', function (model, language) {
-                var dataView = this;
+                var dataTableView = this;
                 if (this.dataGrid) {
                     this.dataGrid.columns.each(function (column) {
-                        var field = dataView.form.fields
+                        var field = dataTableView.form.fields
                                 .find(function (f) {
                                     return f.get(FH.constants.XPATH) === column.get('name');
                                 }),
@@ -233,7 +233,7 @@
     });
 
     // Used by select formatters to return wither name the name or label for a response
-    DataView.NameOrLabel = function (field, value, showLabels, language) {
+    DataTableView.NameOrLabel = function (field, value, showLabels, language) {
         var xpath,
             choices,
             selections,
