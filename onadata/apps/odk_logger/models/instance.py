@@ -83,7 +83,18 @@ class Instance(models.Model):
         self._set_parser()
         return self._parser.get(abbreviated_xpath)
 
-    def _set_survey_type(self, doc):
+    def _set_json(self):
+        doc = self.get_dict()
+
+        if not self.date_created:
+            now = submission_time()
+            self.date_created = now
+
+        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
+        doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
+        self.json = doc
+
+    def _set_survey_type(self):
         self.survey_type, created = \
             SurveyType.objects.get_or_create(slug=self.get_root_node_name())
 
@@ -100,16 +111,8 @@ class Instance(models.Model):
         if self.xform and not self.xform.downloadable:
             raise FormInactiveError()
 
-        doc = self.get_dict()
-
-        if not self.date_created:
-            now = submission_time()
-            self.date_created = now
-        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
-        doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
-
-        self.json = doc
-        self._set_survey_type(doc)
+        self._set_json()
+        self._set_survey_type()
         self._set_uuid()
         super(Instance, self).save(*args, **kwargs)
 
