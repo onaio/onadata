@@ -110,7 +110,8 @@ class AbstractDataFrameBuilder(object):
                     if e.bind.get("type") == "select"])
 
     @classmethod
-    def _split_select_multiples(cls, record, select_multiples):
+    def _split_select_multiples(cls, record, select_multiples,
+                                binary_select_multiples=False):
         """ Prefix contains the xpath and slash if we are within a repeat so
         that we can figure out which select multiples belong to which repeat
         """
@@ -126,7 +127,7 @@ class AbstractDataFrameBuilder(object):
                 # remove the column since we are adding separate columns
                 # for each choice
                 record.pop(key)
-                if not cls.BINARY_SELECT_MULTIPLES:
+                if not binary_select_multiples:
                     # add columns to record for every choice, with default
                     # False and set to True for items in selections
                     record.update(dict([(choice, choice in selections)
@@ -585,7 +586,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             # split select multiples
             if self.split_select_multiples:
                 record = self._split_select_multiples(
-                    record, self.select_multiples)
+                    record, self.select_multiples,
+                    self.BINARY_SELECT_MULTIPLES)
             # check for gps and split into components i.e. latitude, longitude,
             # altitude, precision
             self._split_gps_fields(record, self.gps_fields)

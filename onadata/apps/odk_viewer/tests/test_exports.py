@@ -907,6 +907,22 @@ class TestExports(TestBase):
         # we should have transport/available_transportation_types_to_referral_f
         # acility/ambulance as a separate column
         self.assertTrue(AMBULANCE_KEY in data)
+        self.assertEqual(data[AMBULANCE_KEY], 'True')
+
+        sleep(1)
+        # test csv with default split select multiples, binary select multiples
+        settings.BINARY_SELECT_MULTIPLES = True
+        response = self.client.post(create_csv_export_url, default_params)
+        self.assertEqual(response.status_code, 302)
+        export = Export.objects.filter(
+            xform=self.xform, export_type='csv').latest('created_on')
+        self.assertTrue(bool(export.filepath))
+        data = self._get_csv_data(export.filepath)
+        # we should have transport/available_transportation_types_to_referral_f
+        # acility/ambulance as a separate column
+        self.assertTrue(AMBULANCE_KEY in data)
+        self.assertEqual(data[AMBULANCE_KEY], '1')
+        settings.BINARY_SELECT_MULTIPLES = False
 
         sleep(1)
         # test csv without default split select multiples
