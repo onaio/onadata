@@ -12,7 +12,7 @@ from onadata.apps.api.tools import get_xform, get_form_submissions_grouped_by_fi
 
 class ChartDetail(APIView):
     authentication_classes = (authentication.SessionAuthentication, authentication.TokenAuthentication)
-    #permission_classes = (permissions.IsAdminUser,)
+    #permission_classes = (permissions.AllowAny,)
     renderer_classes = (BrowsableAPIRenderer, TemplateHTMLRenderer)
     model = XForm
 
