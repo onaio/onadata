@@ -18,6 +18,7 @@ build
 # TODO figure out a way to clean this up rather than ignore it.
 /onadata/test_media
 /onadata/media
+/onadata/static
 
 .~lock.*
 .DS_Store
