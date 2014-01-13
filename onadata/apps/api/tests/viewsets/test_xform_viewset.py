@@ -1,10 +1,23 @@
 import os
+import requests
 
+from httmock import urlmatch, HTTMock
 from xml.dom import minidom, Node
 from django.conf import settings
 
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+
+
+@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+def enketo_mock(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = \
+        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform",\n'\
+        '  "code": "200"\n}'
+    return response
 
 
 class TestXFormViewSet(TestAbstractViewSet):
@@ -138,3 +151,16 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request, owner='bob', pk=formid, label='hello')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
+
+    def test_enketo_url(self):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({
+            'get': 'enketo'
+        })
+        formid = self.xform.pk
+        # no tags
+        request = self.factory.get('/', **self.extra)
+        with HTTMock(enketo_mock):
+            response = view(request, owner='bob', pk=formid)
+            data = {"enketo_url": "https://dmfrm.enketo.org/webform"}
+            self.assertEqual(response.data, data)
