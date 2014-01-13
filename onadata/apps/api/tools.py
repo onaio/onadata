@@ -173,6 +173,16 @@ def add_xform_to_project(xform, project, creator):
     return instance
 
 
+def publish_xlsform(request, user=None):
+    user = request.user if user is None else user
+
+    def set_form():
+        form = QuickConverter(request.POST, request.FILES)
+        return form.publish(user)
+
+    return publish_form(set_form)
+
+
 def publish_project_xform(request, project):
     def set_form():
         form = QuickConverter(request.POST, request.FILES)
