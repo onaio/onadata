@@ -1,9 +1,11 @@
 import json
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils.translation import ugettext as _
 from rest_framework import permissions
 from rest_framework.decorators import action
 from rest_framework.renderers import BaseRenderer
@@ -15,6 +17,18 @@ from taggit.forms import TagField
 from onadata.apps.api import mixins, serializers
 from onadata.apps.api.signals import xform_tags_add, xform_tags_delete
 from onadata.apps.odk_logger.models import XForm
+from onadata.libs.utils.viewer_tools import enketo_url
+
+
+def _get_form_url(request, username):
+    # TODO store strings as constants elsewhere
+    if settings.TESTING_MODE:
+        http_host = 'testserver.com'
+        username = 'bob'
+    else:
+        http_host = request.META.get('HTTP_HOST') or 'ona.io'
+
+    return 'https://%s/%s' % (http_host, username)
 
 
 class SurveyRenderer(BaseRenderer):
@@ -207,6 +221,24 @@ Payload
 > Response
 >
 >        HTTP 200 OK
+
+## Get webform/enketo link
+
+<pre class="prettyprint">
+<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>
+/enketo</pre>
+
+> Request
+>
+>       curl -X GET
+>       https://ona.io/api/v1/forms/modilabs/28058/enketo
+>
+> Response
+>
+>       {"enketo_url": "https://h6ic6.enketo.org/webform"}
+>
+>        HTTP 200 OK
+
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [SurveyRenderer]
     queryset = XForm.objects.all()
@@ -288,3 +320,15 @@ Payload
         else:
             data = list(self.object.tags.names())
         return Response(data, status=status)
+
+    @action(methods=['GET'])
+    def enketo(self, request, **kwargs):
+        self.object = self.get_object()
+        form_url = _get_form_url(request, self.object.user.username)
+        url = enketo_url(form_url, self.object.id_string)
+        data = {'message': _(u"Enketo not properly configured.")}
+        status = 400
+        if url:
+            status = 200
+            data = {"enketo_url": url}
+        return Response(data, status)
