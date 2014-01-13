@@ -1,5 +1,3 @@
-from time import strftime
-
 from django.db import models
 from django.db.models.signals import post_save
 from django.db.models.signals import post_delete
@@ -11,9 +9,10 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.odk_logger.models.survey_type import SurveyType
 from onadata.apps.odk_logger.models.xform import XForm
-from onadata.apps.odk_logger.xform_instance_parser import XFormInstanceParser, \
+from onadata.apps.odk_logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
-from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME
+from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME,\
+    XFORM_ID_STRING
 from onadata.libs.utils.model_tools import set_uuid
 
 
@@ -35,19 +34,16 @@ def get_id_string_from_xml_str(xml_str):
 
 
 def submission_time():
-    return strftime(MONGO_STRFTIME)
+    return timezone.now()
 
 
 class Instance(models.Model):
-    # TODO rename model to Survey
     json = JSONField(default={}, null=False)
     xml = models.TextField()
     user = models.ForeignKey(User, related_name='surveys', null=True)
 
     # using instances instead of surveys breaks django
     xform = models.ForeignKey(XForm, null=True, related_name='surveys')
-    start_time = models.DateTimeField(null=True)
-    date = models.DateField(null=True)
     survey_type = models.ForeignKey(SurveyType)
 
     # shows when we first received this instance
@@ -87,16 +83,20 @@ class Instance(models.Model):
         self._set_parser()
         return self._parser.get(abbreviated_xpath)
 
-    def _set_survey_type(self, doc):
+    def _set_json(self):
+        doc = self.get_dict()
+
+        if not self.date_created:
+            now = submission_time()
+            self.date_created = now
+
+        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
+        doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
+        self.json = doc
+
+    def _set_survey_type(self):
         self.survey_type, created = \
             SurveyType.objects.get_or_create(slug=self.get_root_node_name())
-
-    # TODO get rid of these fields
-    def _set_start_time(self, doc):
-        self.start_time = None
-
-    def _set_date(self, doc):
-        self.date = None
 
     def _set_uuid(self):
         if self.xml and not self.uuid:
@@ -111,13 +111,8 @@ class Instance(models.Model):
         if self.xform and not self.xform.downloadable:
             raise FormInactiveError()
 
-        doc = self.get_dict()
-        doc[SUBMISSION_TIME] = submission_time()
-
-        self.json = doc
-        self._set_start_time(doc)
-        self._set_date(doc)
-        self._set_survey_type(doc)
+        self._set_json()
+        self._set_survey_type()
         self._set_uuid()
         super(Instance, self).save(*args, **kwargs)
 
@@ -129,10 +124,9 @@ class Instance(models.Model):
     def get_dict(self, force_new=False, flat=True):
         """Return a python object representation of this instance's XML."""
         self._set_parser()
-        if flat:
-            return self._parser.get_flat_dict_with_attributes()
-        else:
-            return self._parser.to_dict()
+
+        return self._parser.get_flat_dict_with_attributes() if flat else\
+            self._parser.to_dict()
 
     def set_deleted(self, deleted_at=timezone.now()):
         self.deleted_at = deleted_at

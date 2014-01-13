@@ -1,28 +1,31 @@
 # -*- coding: utf-8 -*-
-from django.core.exceptions import ValidationError
-from south.v2 import DataMigration
-from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME, XFORM_ID_STRING
-from onadata.apps.odk_logger.models import Instance
+import datetime
+from south.db import db
+from south.v2 import SchemaMigration
+from django.db import models
 
-class Migration(DataMigration):
+
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        """Add parsed JSON to JSON instance column."""
-        for instance in queryset_iterator(orm.Instance.objects.all()):
-            obj = Instance.objects.get(pk=instance.pk)
-            json = obj.get_dict()
-            json[SUBMISSION_TIME] = instance.date_created.strftime(
-                MONGO_STRFTIME)
-            json[XFORM_ID_STRING] = obj._parser.get_xform_id_string()
-            instance.json = json
-            instance.save()
+        # Deleting field 'Instance.start_time'
+        db.delete_column(u'odk_logger_instance', 'start_time')
+
+        # Deleting field 'Instance.date'
+        db.delete_column(u'odk_logger_instance', 'date')
+
 
     def backwards(self, orm):
-        """Remove JSON content."""
-        for instance in orm.Instance.objects.all():
-            instance.json = ''
-            instance.save()
+        # Adding field 'Instance.start_time'
+        db.add_column(u'odk_logger_instance', 'start_time',
+                      self.gf('django.db.models.fields.DateTimeField')(null=True),
+                      keep_default=False)
+
+        # Adding field 'Instance.date'
+        db.add_column(u'odk_logger_instance', 'date',
+                      self.gf('django.db.models.fields.DateField')(null=True),
+                      keep_default=False)
+
 
     models = {
         u'auth.group': {
@@ -70,14 +73,12 @@ class Migration(DataMigration):
         },
         'odk_logger.instance': {
             'Meta': {'object_name': 'Instance'},
-            'date': ('django.db.models.fields.DateField', [], {'null': 'True'}),
             'date_created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'date_modified': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
             'deleted_at': ('django.db.models.fields.DateTimeField', [], {'default': 'None', 'null': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'is_deleted': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'json': ('jsonfield.fields.JSONField', [], {'default': '{}'}),
-            'start_time': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'status': ('django.db.models.fields.CharField', [], {'default': "u'submitted_via_web'", 'max_length': '20'}),
             'survey_type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['odk_logger.SurveyType']"}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'surveys'", 'null': 'True', 'to': u"orm['auth.User']"}),
@@ -125,7 +126,7 @@ class Migration(DataMigration):
             'num_of_submissions': ('django.db.models.fields.IntegerField', [], {'default': '-1'}),
             'shared': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'shared_data': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'sms_id_string': ('django.db.models.fields.SlugField', [], {'default': "''", 'max_length': '50'}),
+            'sms_id_string': ('django.db.models.fields.SlugField', [], {'default': "''", 'max_length': '100'}),
             'surveys_with_geopoints': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'title': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'xforms'", 'null': 'True', 'to': u"orm['auth.User']"}),
@@ -164,4 +165,3 @@ class Migration(DataMigration):
     }
 
     complete_apps = ['odk_logger']
-    symmetrical = True

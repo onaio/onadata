@@ -405,6 +405,9 @@ RECAPTCHA_PUBLIC_KEY = '6Ld52OMSAAAAAJJ4W-0TFDTgbznnWWFf0XuOSaB6'
 # folder used to override templates for site specific details
 TEMPLATE_OVERRIDE_ROOT_DIR = None
 
+# Use 1 or 0 for multiple selects instead of True or False for csv, xls exports
+BINARY_SELECT_MULTIPLES = False
+
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:

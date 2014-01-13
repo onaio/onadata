@@ -1,6 +1,9 @@
 language: python
 addons:
-    postgresql: 9.3
+  postgresql: 9.3
+cache:
+  directories:
+    - $HOME/.pip-cache/
 services:
   - mongodb
 python:
@@ -15,14 +18,17 @@ before_install:
   - sudo apt-get update -y
   - sudo apt-get install -y nodejs
   - sudo npm install -g karma grunt-cli
+env:
+  - TESTFOLDER=onadata/apps/main
+  - TESTFOLDER="onadata/apps/api onadata/apps/odk_logger onadata/apps/odk_viewer onadata/apps/formhub onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats"
 install:
-  - pip install -r requirements/common.pip --use-mirrors
+  - pip install -r requirements/common.pip --download-cache $HOME/.pip-cache --use-mirrors
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
   - npm install
   - bower install
 script:
-  - python manage.py test --noinput --settings=onadata.settings.travis_test
+  - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test
   - karma onadata/lib/javascript/tests/karma.conf.js
 notifications:
   email:

@@ -309,6 +309,22 @@ class TestPandasMongoBridge(TestBase):
         result = dict([(key, result[key]) for key in result.keys() if key in
                       expected_result.keys()])
         self.assertEqual(expected_result, result)
+        csv_df_builder = CSVDataFrameBuilder(self.user.username,
+                                             self.xform.id_string,
+                                             binary_select_multiples=True)
+        result = csv_df_builder._split_select_multiples(record,
+                                                        select_multiples)
+        expected_result = {
+            u'web_browsers/ie': 1,
+            u'web_browsers/safari': 1,
+            u'web_browsers/firefox': 0,
+            u'web_browsers/chrome': 0
+        }
+        # build a new dictionary only composed of the keys we want to use in
+        # the comparison
+        result = dict([(key, result[key]) for key in result.keys() if key in
+                      expected_result.keys()])
+        self.assertEqual(expected_result, result)
 
     def test_split_select_multiples_within_repeats(self):
         self.maxDiff = None

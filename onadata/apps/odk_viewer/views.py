@@ -4,6 +4,7 @@ from datetime import datetime
 from tempfile import NamedTemporaryFile
 from time import strftime, strptime
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage
 from django.core.files.storage import get_storage_class
@@ -142,7 +143,6 @@ def add_submission_with(request, username, id_string):
     import uuid
     import requests
 
-    from django.conf import settings
     from django.template import loader, Context
     from dpath import util as dpath_util
     from dict2xml import dict2xml
@@ -337,9 +337,13 @@ def create_export(request, username, id_string, export_type):
     split_select_multiples = request.POST.get(
         "options[dont_split_select_multiples]", "no") == "no"
 
+    binary_select_multiples = getattr(settings, 'BINARY_SELECT_MULTIPLES',
+                                      False)
+
     options = {
         'group_delimiter': group_delimiter,
-        'split_select_multiples': split_select_multiples
+        'split_select_multiples': split_select_multiples,
+        'binary_select_multiples': binary_select_multiples
     }
 
     try:
