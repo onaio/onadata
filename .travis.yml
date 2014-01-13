@@ -30,7 +30,7 @@ install:
   # make ~/tmp dir writable for npm downloads
   - sudo chmod a+w $HOME/tmp
   - npm install
-  - bower install
+  - bower install --force-latest
 script:
 #  - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test
   - karma onadata/lib/javascript/tests/karma.conf.js
