@@ -25,24 +25,26 @@ from google_doc import GoogleDoc
 from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
 from registration.signals import user_registered
 
-from onadata.apps.main.forms import UserProfileForm, FormLicenseForm, DataLicenseForm,\
-    SupportDocForm, QuickConverterFile, QuickConverterURL, QuickConverter,\
-    SourceForm, PermissionForm, MediaForm, MapboxLayerForm, \
+from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
+    DataLicenseForm, SupportDocForm, QuickConverterFile, QuickConverterURL,\
+    QuickConverter, SourceForm, PermissionForm, MediaForm, MapboxLayerForm,\
     ActivateSMSSupportFom
 from onadata.apps.main.models import AuditLog, UserProfile, MetaData
 from onadata.apps.odk_logger.models import Instance, XForm
 from onadata.apps.odk_logger.views import enter_data
-from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary, upload_to
-from onadata.apps.odk_viewer.models.parsed_instance import GLOBAL_SUBMISSION_STATS,\
-    DATETIME_FORMAT, ParsedInstance
-from onadata.apps.odk_viewer.views import survey_responses, attachment_url
-from onadata.apps.sms_support.tools import check_form_sms_compatibility, is_sms_related
+from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary,\
+    upload_to
+from onadata.apps.odk_viewer.models.parsed_instance import\
+    GLOBAL_SUBMISSION_STATS, DATETIME_FORMAT, ParsedInstance
+from onadata.apps.odk_viewer.views import attachment_url
+from onadata.apps.sms_support.tools import check_form_sms_compatibility,\
+    is_sms_related
 from onadata.apps.sms_support.autodoc import get_autodoc_for
 from onadata.apps.sms_support.providers import providers_doc
 from onadata.apps.stats.models import StatsCount
 from onadata.apps.stats.tasks import stat_log
-from onadata.libs.utils.bamboo import get_new_bamboo_dataset, delete_bamboo_dataset,\
-    ensure_rest_service
+from onadata.libs.utils.bamboo import get_new_bamboo_dataset,\
+    delete_bamboo_dataset, ensure_rest_service
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
     publish_form
@@ -1077,29 +1079,6 @@ def set_perm(request, username, id_string):
         'username': username,
         'id_string': id_string
     }))
-
-
-def show_submission(request, username, id_string, uuid):
-    xform, is_owner, can_edit, can_view = get_xform_and_perms(
-        username, id_string, request)
-    owner = xform.user
-    # no access
-    if not (xform.shared_data or can_view or
-            request.session.get('public_link') == xform.uuid):
-        return HttpResponseRedirect(reverse(home))
-    submission = get_object_or_404(Instance, uuid=uuid)
-    audit = {
-        'xform': xform.id_string
-    }
-    audit_log(
-        Actions.SUBMISSION_ACCESSED, request.user, owner,
-        _("Submission '%(uuid)s' on '%(id_string)s' accessed.") %
-        {
-            'id_string': xform.id_string,
-            'uuid': uuid
-        }, audit, request)
-    return HttpResponseRedirect(reverse(
-        survey_responses, kwargs={'instance_id': submission.pk}))
 
 
 @require_POST

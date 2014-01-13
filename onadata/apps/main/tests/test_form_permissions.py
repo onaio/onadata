@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from guardian.shortcuts import assign_perm, remove_perm
 
 from onadata.apps.odk_logger.models import XForm
-from onadata.apps.odk_viewer.views import map_view, survey_responses
+from onadata.apps.odk_viewer.views import map_view
 from onadata.apps.main.views import set_perm, show, edit, api, profile
 from onadata.apps.main.models import MetaData
 from test_base import TestBase
@@ -202,17 +202,6 @@ class TestFormPermissions(TestBase):
         self.assertEqual(response.status_code, 302)
         response = self.client.get(self.show_normal_url)
         self.assertContains(response, new_username)
-
-    def test_anon_uuid_get_survey(self):
-        survey_url = reverse(survey_responses, kwargs={
-                             'instance_id': self.submission.pk})
-        response = self.client.post(self.perm_url, {'for_user': 'toggle',
-                                    'perm_type': 'link'})
-        self.assertEqual(response.status_code, 302)
-        response = self.anon.get(self.show_url)
-        self.assertEqual(response.status_code, 302)
-        response = self.anon.get(survey_url)
-        self.assertEquals(response.status_code, 200)
 
     def test_anon_reject_api(self):
         response = self.anon.get(self.api_url)
