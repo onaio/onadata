@@ -44,7 +44,7 @@ class SurveyRenderer(BaseRenderer):
 
 class XFormViewSet(mixins.MultiLookupMixin, ModelViewSet):
     """
-Publish xlsformz, List, Retrieve Published Forms.
+Publish XLSForms, List, Retrieve Published Forms.
 
 Where:
 
