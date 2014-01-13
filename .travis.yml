@@ -33,7 +33,7 @@ install:
   - bower install --force-latest
 script:
 #  - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test
-  - karma start onadata/lib/javascript/tests/karma.conf.js
+  - karma start onadata/libs/javascript/tests/karma.conf.js
 notifications:
   email:
     - tech@ona.io
