@@ -25,6 +25,8 @@ install:
   - pip install -r requirements/common.pip --download-cache $HOME/.pip-cache --use-mirrors
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
+  # make ~/tmp dir writable for npm downloads
+  - sudo chmod a+w $HOME/tmp
   - npm install
   - bower install
 script:
