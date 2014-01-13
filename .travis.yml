@@ -7,16 +7,22 @@ python:
   - '2.7'
 before_install:
   - psql -c 'create database onadata_test;' -U postgres
-  - sudo apt-get install -qq gfortran libatlas-base-dev libjpeg-dev python-numpy zlib1g-dev
+  - sudo apt-get install -qq gfortran libatlas-base-dev libjpeg-dev python-numpy zlib1g-dev python-software-properties
   - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so ~/virtualenv/python2.7/lib/
   - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so ~/virtualenv/python2.7/lib/
+  - sudo add-apt-repository -y ppa:chris-lea/node.js
+  - sudo apt-get update -y
+  - sudo apt-get install -y nodejs
+  - sudo npm install -g karma grunt-cli
 install:
   - pip install -r requirements/common.pip --use-mirrors
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
+  - npm install
+  - bower install
 script:
   - python manage.py test --noinput --settings=onadata.settings.travis_test
-  - ./script/run_js_tests
+  - karma onadata/lib/javascript/tests/karma.conf.js
 notifications:
   email:
     - tech@ona.io
