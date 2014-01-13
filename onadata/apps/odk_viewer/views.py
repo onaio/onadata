@@ -26,7 +26,8 @@ from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.odk_viewer.pandas_mongo_bridge import NoRecordsFoundError
 from onadata.apps.odk_viewer.tasks import create_async_export
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
-from onadata.libs.utils.export_tools import generate_export, should_create_new_export
+from onadata.libs.utils.export_tools import generate_export,\
+    should_create_new_export
 from onadata.libs.utils.export_tools import kml_export_data
 from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.image_tools import image_url
