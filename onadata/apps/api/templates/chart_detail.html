@@ -13,8 +13,8 @@
       {% endfor %}
     ];
     var chart = new dimple.chart(svg, data);
-    var categoryAxisLocation = {% if data_type == "numeric" or data_type == 'time' %} "{{ "x" }}" {% else %} "{{ "y" }}" {% endif %};
-    var countAxisLocation = {% if data_type == "numeric" or data_type == 'time' %} "{{ "y" }}" {% else %} "{{ "x" }}" {% endif %};
+    var categoryAxisLocation = {% if data_type == "numeric" or data_type == 'time_based' %} "{{ "x" }}" {% else %} "{{ "y" }}" {% endif %};
+    var countAxisLocation = {% if data_type == "numeric" or data_type == 'time_based' %} "{{ "y" }}" {% else %} "{{ "x" }}" {% endif %};
     var categoryAxis = chart.addAxis(categoryAxisLocation, "{{ field_name }}", null{% if field_type == 'datetime' or field_type == 'date' %} , "{{ field_name }}" {% endif %});
     {% if field_type == 'datetime' or field_type == 'date' %}
     categoryAxis.tickFormat = "%Y-%m-%d";

@@ -50,9 +50,9 @@ class ChartDetail(APIView):
             'integer': 'numeric',
             'decimal': 'numeric',
             'datetime': 'time',
-            'date': 'time',
-            'start': 'time',
-            'end': 'time'
+            'date': 'time_based',
+            'start': 'time_based',
+            'end': 'time_based'
         }
         data_type = data_type_map.get(field_type, 'categorized')
 
