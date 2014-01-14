@@ -23,6 +23,17 @@ DEPLOYMENTS = {
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/var/run/ona.pid'
     },
+    'formhub': {
+        'home': '/home/ubuntu/src/',
+        'host_string': 'ubuntu@formhub.org',
+        'project': 'formhub',
+        'key_filename': os.path.expanduser('~/.ssh/modilabs.pem'),
+        'celeryd': '/etc/init.d/celeryd',
+        'django_config_module': 'onadata.settings.local_settings',
+        'pid': '/run/formhub.pid',
+        'template': 'https://github.com/SEL-Columbia/formhub-template.git',
+        'template_dir': 'formhub'
+    },
     'kobocat': {
         'home': '/home/ubuntu/src/',
         'host_string':
