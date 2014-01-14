@@ -9,7 +9,7 @@ CHART_FIELDS = ['select one', 'integer', 'decimal', 'date', 'datetime', 'start',
 DATA_TYPE_MAP = {
     'integer': 'numeric',
     'decimal': 'numeric',
-    'datetime': 'time',
+    'datetime': 'time_based',
     'date': 'time_based',
     'start': 'time_based',
     'end': 'time_based'
@@ -42,15 +42,15 @@ def build_chart_data_for_field(xform, field):
 
 
 def build_chart_data(xform):
-    # use specified field to get summary
     dd = xform.data_dictionary()
+    # only use chart-able fields
     fields = filter(
         lambda f: f.type in CHART_FIELDS, [e for e in dd.survey_elements])
 
     data = []
 
     for field in fields:
-        d = build_chart_data_for_field(xform, field.name)
+        d = build_chart_data_for_field(xform, field)
         data.append(d)
 
     return data

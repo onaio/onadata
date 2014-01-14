@@ -39,6 +39,7 @@ from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
 from onadata.libs.utils.user_auth import has_permission, get_xform_and_perms,\
     helper_auth_helper
 from xls_writer import XlsWriter
+from onadata.libs.utils.chart_tools import build_chart_data
 
 
 def encode(time_str):
@@ -740,8 +741,7 @@ def instance(request, username, id_string):
     }, context_instance=context)
 
 
-def chart(request, username, id_string, field_name):
-    from onadata.apps.api.tools import get_form_submissions_grouped_by_field
+def charts(request, username, id_string):
     xform, is_owner, can_edit, can_view = get_xform_and_perms(
         username, id_string, request)
     # no access
@@ -751,24 +751,9 @@ def chart(request, username, id_string, field_name):
 
     context = RequestContext(request)
 
-    # use specified field to get summary
-    dd = xform.data_dictionary()
-    fields = filter(lambda f: f.name == field_name, [e for e in dd.survey_elements])
+    summaries = build_chart_data(xform)
 
-    if len(fields) == 0:
-        return HttpResponseNotFound("Field {} doesnt not exist on the form".format(field_name))
-
-    field = fields[0]
-
-    # if the field is a select, get a summary of the choices
-    choices = [c for c in field.get('children')]
-
-    result = get_form_submissions_grouped_by_field(xform, field.name)
-
-    return render_to_response('chart.html', {
-        'username': username,
-        'id_string': id_string,
+    return render_to_response('charts.html', {
         'xform': xform,
-        'field': field,
-        'data': result
+        'summaries': summaries
     }, context_instance=context)

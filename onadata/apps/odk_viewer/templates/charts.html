@@ -1,12 +1,16 @@
 {% load lookup_filter %}
 
+<html>
 <head>
   <script src="http://d3js.org/d3.v3.min.js"></script>
   <script src="http://dimplejs.org/dist/dimple.v1.1.2.min.js"></script>
 </head>
 <body>
+  {% for summary in summaries  %}
+  {% with field_name=summary.field_name data_type=summary.data_type field_type=summary.field_type data=summary.data %}
+  <div id="{{ field_name }}"></div>
   <script type="text/javascript">
-      (function(elmSelector){
+    (function(elmSelector){
           var svg = dimple.newSvg(elmSelector, 800, 600);
           var data = [
             {% for item in data %}
@@ -16,14 +20,18 @@
           var chart = new dimple.chart(svg, data);
           var categoryAxisLocation = {% if data_type == "numeric" or data_type == 'time_based' %} "{{ "x" }}" {% else %} "{{ "y" }}" {% endif %};
           var countAxisLocation = {% if data_type == "numeric" or data_type == 'time_based' %} "{{ "y" }}" {% else %} "{{ "x" }}" {% endif %};
-          var categoryAxis = chart.addAxis(categoryAxisLocation, "{{ field_name }}", null{% if field_type == 'datetime' or field_type == 'date' %} , "{{ field_name }}" {% endif %});
-          {% if field_type == 'datetime' or field_type == 'date' %}
+          var categoryAxis = chart.addAxis(categoryAxisLocation, "{{ field_name }}", null{% if data_type == 'time_based' %} , "{{ field_name }}" {% endif %});
+          {% if data_type == 'time_based' %}
           categoryAxis.tickFormat = "%Y-%m-%d";
-          categoryAxis.timePeriod = d3.time.day;
+          categoryAxis.timePeriod = d3.time.hour;
+          categoryAxis.timeInterval = 12;
           {% endif %}
           var countAxis = chart.addMeasureAxis(countAxisLocation, "count");
           chart.addSeries(null, dimple.plot.bar);
           chart.draw();
-      })('body');
+      })('#{{ field_name }}')
   </script>
+  {% endwith %}
+  {% endfor %}
 </body>
+</html>
