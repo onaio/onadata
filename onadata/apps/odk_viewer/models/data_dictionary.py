@@ -13,8 +13,9 @@ from onadata.apps.odk_logger.models import XForm
 from onadata.apps.odk_logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.odk_viewer.models.parsed_instance import _encode_for_mongo,\
     ParsedInstance
-from onadata.libs.utils.common_tags import ID, UUID, SUBMISSION_TIME, TAGS, NOTES
-from onadata.libs.utils.export_tools import question_types_to_exclude, DictOrganizer
+from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES
+from onadata.libs.utils.export_tools import question_types_to_exclude,\
+    DictOrganizer
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 
 
@@ -363,24 +364,12 @@ class DataDictionary(XForm):
                 new_key = "%s_%s" % (key, self.geodata_suffixes[i])
                 d[new_key] = geodata[i]
 
-    def _add_list_of_potential_duplicates(self, d):
-        parsed_instance = ParsedInstance.objects.get(instance__id=d[ID])
-        if parsed_instance.phone is not None and \
-                parsed_instance.start_time is not None:
-            qs = ParsedInstance.objects.filter(
-                phone=parsed_instance.phone,
-                start_time=parsed_instance.start_time
-            ).exclude(id=parsed_instance.id)
-            d['_potential_duplicates'] = \
-                ';'.join([str(pi.instance.id) for pi in qs])
-
     def get_data_for_excel(self):
         for d in self.get_list_of_parsed_instances():
             for key in d.keys():
                 e = self.get_element(key)
                 self._expand_select_all_that_apply(d, key, e)
                 self._expand_geocodes(d, key, e)
-            # self._add_list_of_potential_duplicates(d)
             yield d
 
     def _mark_start_time_boolean(self):
