@@ -4,6 +4,7 @@ from datetime import datetime
 from tempfile import NamedTemporaryFile
 from time import strftime, strptime
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage
 from django.core.files.storage import get_storage_class
@@ -21,11 +22,11 @@ from onadata.apps.odk_logger.models import XForm, Attachment
 from onadata.apps.odk_logger.views import download_jsonform
 from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
 from onadata.apps.odk_viewer.models.export import Export
-from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.odk_viewer.pandas_mongo_bridge import NoRecordsFoundError
 from onadata.apps.odk_viewer.tasks import create_async_export
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
-from onadata.libs.utils.export_tools import generate_export, should_create_new_export
+from onadata.libs.utils.export_tools import generate_export,\
+    should_create_new_export
 from onadata.libs.utils.export_tools import kml_export_data
 from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.image_tools import image_url
@@ -34,7 +35,7 @@ from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
     disposition_ext_and_date
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
-    export_def_from_filename, image_urls
+    export_def_from_filename
 from onadata.libs.utils.user_auth import has_permission, get_xform_and_perms,\
     helper_auth_helper
 from xls_writer import XlsWriter
@@ -141,7 +142,6 @@ def add_submission_with(request, username, id_string):
     import uuid
     import requests
 
-    from django.conf import settings
     from django.template import loader, Context
     from dpath import util as dpath_util
     from dict2xml import dict2xml
@@ -186,50 +186,6 @@ def add_submission_with(request, username, id_string):
 
 def thank_you_submission(request, username, id_string):
     return HttpResponse("Thank You")
-
-
-# TODO: do a good job of displaying hierarchical data
-def survey_responses(request, instance_id):
-    pi = get_object_or_404(ParsedInstance, instance=instance_id)
-    xform, is_owner, can_edit, can_view = \
-        get_xform_and_perms(pi.instance.user.username,
-                            pi.instance.xform.id_string, request)
-    # no access
-    if not (xform.shared_data or can_view or
-            request.session.get('public_link') == xform.uuid):
-        return HttpResponseRedirect('/')
-    data = pi.to_dict()
-
-    # get rid of keys with leading underscores
-    data_for_display = {}
-    for k, v in data.items():
-        if not k.startswith(u"_"):
-            data_for_display[k] = v
-
-    xpaths = data_for_display.keys()
-    xpaths.sort(cmp=pi.data_dictionary.get_xpath_cmp())
-    label_value_pairs = [
-        (parse_label_for_display(pi, xpath),
-         data_for_display[xpath]) for xpath in xpaths
-    ]
-    languages = label_value_pairs[-1][0]
-    audit = {
-        "xform": xform.id_string,
-        "instance_id": instance_id
-    }
-    audit_log(
-        Actions.FORM_DATA_VIEWED, request.user, xform.user,
-        _("Requested survey with id '%(instance_id)s' on '%(id_string)s'.") %
-        {
-            'id_string': xform.id_string,
-            'instance_id': instance_id
-        }, audit, request)
-    return render_to_response('survey.html', {
-        'label_value_pairs': label_value_pairs,
-        'image_urls': image_urls(pi.instance),
-        'languages': languages,
-        'default_language': languages[0][0]
-    })
 
 
 def data_export(request, username, id_string, export_type):
@@ -336,9 +292,13 @@ def create_export(request, username, id_string, export_type):
     split_select_multiples = request.POST.get(
         "options[dont_split_select_multiples]", "no") == "no"
 
+    binary_select_multiples = getattr(settings, 'BINARY_SELECT_MULTIPLES',
+                                      False)
+
     options = {
         'group_delimiter': group_delimiter,
-        'split_select_multiples': split_select_multiples
+        'split_select_multiples': split_select_multiples,
+        'binary_select_multiples': binary_select_multiples
     }
 
     try:

@@ -14,12 +14,11 @@ import os
 import subprocess  # nopep8, used by included files
 import sys  # nopep8, used by included files
 
-
-from django.utils.log import AdminEmailHandler
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
-from pymongo import MongoClient
+from django.utils.log import AdminEmailHandler
 import djcelery
+from pymongo import MongoClient
 
 
 djcelery.setup_loader()
@@ -273,7 +272,6 @@ def skip_suspicious_operations(record):
     background and more information:
     http://www.tiwoc.de/blog/2013/03/django-prevent-email-notification-on-susp\
     iciousoperation/
-
     """
     if record.exc_info:
         exc_value = record.exc_info[1]
@@ -406,6 +404,9 @@ RECAPTCHA_PUBLIC_KEY = '6Ld52OMSAAAAAJJ4W-0TFDTgbznnWWFf0XuOSaB6'
 # specify the root folder which may contain a templates folder and a static
 # folder used to override templates for site specific details
 TEMPLATE_OVERRIDE_ROOT_DIR = None
+
+# Use 1 or 0 for multiple selects instead of True or False for csv, xls exports
+BINARY_SELECT_MULTIPLES = False
 
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/

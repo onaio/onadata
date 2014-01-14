@@ -149,6 +149,7 @@ class ExportBuilder(object):
     EXTRA_FIELDS = [ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME,
                     PARENT_INDEX, TAGS, NOTES]
     SPLIT_SELECT_MULTIPLES = True
+    BINARY_SELECT_MULTIPLES = False
 
     # column group delimiters
     GROUP_DELIMITER_SLASH = '/'
@@ -297,8 +298,15 @@ class ExportBuilder(object):
                 selections = [
                     u'{0}/{1}'.format(
                         xpath, selection) for selection in data.split()]
-            row.update(
-                dict([(choice, choice in selections) for choice in choices]))
+            if not cls.BINARY_SELECT_MULTIPLES:
+                row.update(dict(
+                    [(choice, choice in selections) for choice in choices]))
+            else:
+                YES = 1
+                NO = 0
+                row.update(dict(
+                    [(choice, YES if choice in selections else NO)
+                     for choice in choices]))
         return row
 
     @classmethod
@@ -546,7 +554,7 @@ class ExportBuilder(object):
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
-            self.SPLIT_SELECT_MULTIPLES)
+            self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES)
         csv_builder.export_to(path)
 
     def to_zipped_sav(self, path, data, *args):
@@ -649,7 +657,8 @@ def dict_to_flat_export(d, parent_index=0):
 
 def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
-                    split_select_multiples=True):
+                    split_select_multiples=True,
+                    binary_select_multiples=False):
     """
     Create appropriate export object given the export type
     """
@@ -670,6 +679,7 @@ def generate_export(export_type, extension, username, id_string,
     export_builder = ExportBuilder()
     export_builder.GROUP_DELIMITER = group_delimiter
     export_builder.SPLIT_SELECT_MULTIPLES = split_select_multiples
+    export_builder.BINARY_SELECT_MULTIPLES = binary_select_multiples
     export_builder.set_survey(xform.data_dictionary().survey)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))

@@ -2,6 +2,7 @@ language: python
 addons:
   postgresql: 9.3
 cache:
+  apt: true
   directories:
     - $HOME/.pip-cache/
 services:
@@ -10,9 +11,13 @@ python:
   - '2.7'
 before_install:
   - psql -c 'create database onadata_test;' -U postgres
-  - sudo apt-get install -qq gfortran libatlas-base-dev libjpeg-dev python-numpy zlib1g-dev
+  - sudo add-apt-repository -y ppa:chris-lea/node.js
+  - sudo apt-get update -y
+  - sudo apt-get install -qq gfortran libatlas-base-dev libjpeg-dev python-numpy zlib1g-dev python-software-properties
+  - sudo apt-get install -qqy nodejs
   - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so ~/virtualenv/python2.7/lib/
   - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so ~/virtualenv/python2.7/lib/
+  - sudo npm install -g bower karma grunt-cli
 env:
   - TESTFOLDER=onadata/apps/main
   - TESTFOLDER="onadata/apps/api onadata/apps/odk_logger onadata/apps/odk_viewer onadata/apps/formhub onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats"
@@ -20,9 +25,13 @@ install:
   - pip install -r requirements/common.pip --download-cache $HOME/.pip-cache --use-mirrors
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
+  # make ~/tmp dir writable for npm downloads
+  - sudo chmod a+w $HOME/tmp
+  - npm install
+  - bower install --force-latest
 script:
   - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test
-  - ./script/run_js_tests
+  - karma start onadata/libs/javascript/tests/karma.conf.js
 notifications:
   email:
     - tech@ona.io

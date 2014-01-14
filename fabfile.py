@@ -79,6 +79,16 @@ def setup_env(deployment_name):
                                              'requirements/common.pip')
 
 
+def deploy_template(env):
+    if env.get('template'):
+        run("git remote add template %s || true" % env.template)
+        run("git fetch template")
+        run("git reset HEAD %s && rm -rf %s" % (env.template_dir,
+                                                env.template_dir))
+        run("git read-tree --prefix=%s -u template/master"
+            % env.template_dir)
+
+
 def deploy(deployment_name, branch='master'):
     setup_env(deployment_name)
     with cd(env.code_src):
@@ -87,13 +97,7 @@ def deploy(deployment_name, branch='master'):
         run("git submodule init")
         run("git submodule update")
 
-        if env.get('template'):
-            run("git remote add template %s || true" % env.template)
-            run("git fetch template")
-            run("git reset HEAD %s && rm -rf %s" % (env.template_dir,
-                                                    env.template_dir))
-            run("git read-tree --prefix=%s -u template/master"
-                % env.template_dir)
+        deploy_template(env)
 
         run('find . -name "*.pyc" -exec rm -rf {} \;')
 
