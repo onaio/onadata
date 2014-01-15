@@ -1,3 +1,4 @@
 #!/bin/bash
 psql -c "CREATE DATABASE $1;" -U postgres
-psql -c "CREATE EXTENSION IF NOT EXISTS postgis;" -U postgres
+psql -c "CREATE EXTENSION IF NOT EXISTS postgis;" -d $1 -U postgres
+psql -c "CREATE EXTENSION IF NOT EXISTS postgis_topology;" -d $1 -U postgres
