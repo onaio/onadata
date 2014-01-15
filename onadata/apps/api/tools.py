@@ -87,7 +87,7 @@ def _postgres_select_key(field, name, xform):
 def _postgres_count_group(field, name, xform):
     string_args = _query_args(field, name, xform)
 
-    return "SELECT %(json)s AS %(name)s, COUNT(%(json)s) AS count FROM "\
+    return "SELECT %(json)s AS \"%(name)s\", COUNT(%(json)s) AS count FROM "\
            "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
            "GROUP BY %(json)s" % string_args
 
