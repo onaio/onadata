@@ -1,19 +1,10 @@
 # add node repo
 sudo add-apt-repository -y ppa:chris-lea/node.js
-<<<<<<< HEAD
 sudo apt-get update -qqy
-sudo apt-get install -qq gfortran libatlas-base-dev libjpeg-dev python-numpy zlib1g-dev python-software-properties
-sudo apt-get install -qqy nodejs
-sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so ~/virtualenv/python2.7/lib/
-sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so ~/virtualenv/python2.7/lib/
-sudo npm install -g --silent bower karma grunt-cli
-=======
-sudo apt-get update -y
 sudo apt-get install -qq gfortran libatlas-base-dev libjpeg-dev python-numpy zlib1g-dev python-software-properties
 sudo apt-get install -qqy nodejs
 # install Geospatial libraries for GeoDjango
 sudo apt-get install -qq binutils libproj-dev gdal-bin
 sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so ~/virtualenv/python2.7/lib/
 sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so ~/virtualenv/python2.7/lib/
-sudo npm install -g bower karma grunt-cli
->>>>>>> PLD: add geospatial libs, move to install file, #111
+sudo npm install -g --silent bower karma grunt-cli
