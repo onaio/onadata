@@ -73,13 +73,13 @@
 
     <!-- Le javascript -->
 	<script type="text/javascript" src="{% url "django.views.i18n.javascript_catalog" %}"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-migrate/1.2.1/jquery-migrate.min.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.13.3/jquery.tablesorter.min.js"></script>
-    <script src="//netdna.bootstrapcdn.com/bootstrap/2.3.2/js/bootstrap.js"></script>
+    <script src="{{STATIC_URL}}bower_components/jquery/jquery.min.js"></script>
+    <script src="{{STATIC_URL}}bower_components/jquery/jquery-migrate.min.js"></script>
+    <script src="{{STATIC_URL}}js/jquery.tablesorter.min.js"></script>
+    <script src="{{STATIC_URL}}bootstrap/js/bootstrap.js"></script>
     <script src="{{STATIC_URL}}bootstrap/js/bootstrapx-clickover.js"></script>
     <script src="{{STATIC_URL}}bootstrap/js/bootstrapx-clickover-btns.js"></script>
-     <script src="{{STATIC_URL}}js/application.js?v=201307251039"></script>
+    <script src="{{STATIC_URL}}js/application.js?v=201307251039"></script>
 
     {% endblock %}
 

@@ -23,6 +23,17 @@ DEPLOYMENTS = {
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/var/run/ona.pid'
     },
+    'formhub': {
+        'home': '/home/ubuntu/src/',
+        'host_string': 'ubuntu@formhub.org',
+        'project': 'formhub',
+        'key_filename': os.path.expanduser('~/.ssh/modilabs.pem'),
+        'celeryd': '/etc/init.d/celeryd',
+        'django_config_module': 'onadata.settings.local_settings',
+        'pid': '/run/formhub.pid',
+        'template': 'https://github.com/SEL-Columbia/formhub-template.git',
+        'template_dir': 'formhub'
+    },
     'kobocat': {
         'home': '/home/ubuntu/src/',
         'host_string':
@@ -56,20 +67,27 @@ def source(path):
     return prefix('source %s' % path)
 
 
+def exit_with_error(message):
+    print message
+    sys.exit(1)
+
+
 def check_key_filename(deployment_name):
     if 'key_filename' in DEPLOYMENTS[deployment_name] and \
        not os.path.exists(DEPLOYMENTS[deployment_name]['key_filename']):
-        print "Cannot find required permissions file: %s" % \
-            DEPLOYMENTS[deployment_name]['key_filename']
-        return False
-    return True
+        exit_with_error("Cannot find required permissions file: %s" %
+                        DEPLOYMENTS[deployment_name]['key_filename'])
 
 
 def setup_env(deployment_name):
-    env.update(DEPLOYMENTS[deployment_name])
+    deployment = DEPLOYMENTS.get(deployment_name)
 
-    if not check_key_filename(deployment_name):
-        sys.exit(1)
+    if deployment is None:
+        exit_with_error('Deployment "%s" not found.' % deployment_name)
+
+    env.update(deployment)
+
+    check_key_filename(deployment_name)
 
     env.virtualenv = os.path.join('/home', 'ubuntu', '.virtualenvs',
                                   env.project, 'bin', 'activate')
@@ -77,6 +95,16 @@ def setup_env(deployment_name):
     env.code_src = os.path.join(env.home, env.project)
     env.pip_requirements_file = os.path.join(env.code_src,
                                              'requirements/common.pip')
+
+
+def deploy_template(env):
+    if env.get('template'):
+        run("git remote add template %s || true" % env.template)
+        run("git fetch template")
+        run("git reset HEAD %s && rm -rf %s" % (env.template_dir,
+                                                env.template_dir))
+        run("git read-tree --prefix=%s -u template/master"
+            % env.template_dir)
 
 
 def deploy(deployment_name, branch='master'):
@@ -87,13 +115,7 @@ def deploy(deployment_name, branch='master'):
         run("git submodule init")
         run("git submodule update")
 
-        if env.get('template'):
-            run("git remote add template %s || true" % env.template)
-            run("git fetch template")
-            run("git reset HEAD %s && rm -rf %s" % (env.template_dir,
-                                                    env.template_dir))
-            run("git read-tree --prefix=%s -u template/master"
-                % env.template_dir)
+        deploy_template(env)
 
         run('find . -name "*.pyc" -exec rm -rf {} \;')
 

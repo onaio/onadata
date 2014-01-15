@@ -15,8 +15,7 @@ from onadata.apps.api.models.project_xform import ProjectXForm
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.odk_logger.models.xform import XForm
-from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance,\
-    datetime_from_str, _encode_for_mongo
+from onadata.apps.odk_viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.user_auth import check_and_set_form_by_id, \
     check_and_set_form_by_id_string
@@ -56,25 +55,47 @@ def using_postgres():
         'default']['ENGINE'] == 'django.db.backends.postgresql_psycopg2'
 
 
-def _count_group(table, field, name, restriction):
+def _count_group(field, name, xform):
     if using_postgres:
-        result = _postgres_count_group(table, field, name, restriction)
+        result = _postgres_count_group(field, name, xform)
     else:
         raise Exception("Unsopported Database")
     return result
 
 
-def _postgres_count_group(table, field, name, restriction):
-    json_query = "json->>'%s'" % field
-    string_args = dict({
-        'table': table,
-        'json': json_query,
-        'name': name
-    }.items() + restriction.items())
+def _json_query(field):
+    return "json->>'%s'" % field
+
+
+def _query_args(field, name, xform):
+    return {
+        'table': 'odk_logger_instance',
+        'json': _json_query(field),
+        'name': name,
+        'restrict_field': 'xform_id',
+        'restrict_value': xform.pk
+    }
+
+
+def _postgres_select_key(field, name, xform):
+    string_args = _query_args(field, name, xform)
+
+    return "SELECT %(json)s AS %(name)s FROM %(table)s WHERE "\
+           "%(restrict_field)s=%(restrict_value)s" % string_args
+
+
+def _postgres_count_group(field, name, xform):
+    string_args = _query_args(field, name, xform)
 
     return "SELECT %(json)s AS %(name)s, COUNT(%(json)s) AS count FROM "\
            "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
            "GROUP BY %(json)s" % string_args
+
+
+def _execute_query(query, to_dict=True):
+    cursor = connection.cursor()
+    cursor.execute(query)
+    return _dictfetchall(cursor) if to_dict else cursor
 
 
 def get_accessible_forms(owner=None):
@@ -173,6 +194,16 @@ def add_xform_to_project(xform, project, creator):
     return instance
 
 
+def publish_xlsform(request, user=None):
+    user = request.user if user is None else user
+
+    def set_form():
+        form = QuickConverter(request.POST, request.FILES)
+        return form.publish(user)
+
+    return publish_form(set_form)
+
+
 def publish_project_xform(request, project):
     def set_form():
         form = QuickConverter(request.POST, request.FILES)
@@ -185,17 +216,10 @@ def publish_project_xform(request, project):
 
 def get_form_submissions_grouped_by_field(xform, field, name=None):
     """Number of submissions grouped by field"""
-    cursor = connection.cursor()
-
     if not name:
         name = field
 
-    restriction = {'restrict_field': 'xform_id',
-                   'restrict_value': xform.pk}
-
-    cursor.execute(_count_group(
-        'odk_logger_instance', field, name, restriction))
-    result = _dictfetchall(cursor)
+    result = _execute_query(_count_group(field, name, xform))
 
     # TODO: raises if result[0] does not have the response in cases when it was simply not provided
     #if len(result) and result[0][name] is None:
@@ -205,19 +229,9 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
 
 
 def get_field_records(field, xform):
-    username = xform.user.username
-    id_string = xform.id_string
-    query = None
-    sort = None
-    query = {}
-    mongo_field = _encode_for_mongo(field)
-    query[mongo_field] = {"$exists": True}
-    sort = {mongo_field: 1}
-
-    # check if requested field a datetime str
-    fields = [mongo_field]
-
-    return ParsedInstance.query_mongo(username, id_string, query, fields, sort)
+    result = _execute_query(_postgres_select_key(field, field, xform),
+                            to_dict=False)
+    return [float(i[0]) for i in result]
 
 
 def mode(a, axis=0):
@@ -265,9 +279,7 @@ def get_numeric_fields(xform):
 
 
 def get_median_for_field(field, xform):
-    cursor = get_field_records(field, xform)
-    mongo_field = _encode_for_mongo(field)
-    return np.median([float(i[mongo_field]) for i in cursor])
+    return np.median(get_field_records(field, xform))
 
 
 def get_median_for_numeric_fields_in_form(xform, field=None):
@@ -279,9 +291,7 @@ def get_median_for_numeric_fields_in_form(xform, field=None):
 
 
 def get_mean_for_field(field, xform):
-    cursor = get_field_records(field, xform)
-    mongo_field = _encode_for_mongo(field)
-    return np.mean([float(i[mongo_field]) for i in cursor])
+    return np.mean(get_field_records(field, xform))
 
 
 def get_mean_for_numeric_fields_in_form(xform, field):
@@ -293,9 +303,7 @@ def get_mean_for_numeric_fields_in_form(xform, field):
 
 
 def get_mode_for_field(field, xform):
-    cursor = get_field_records(field, xform)
-    mongo_field = _encode_for_mongo(field)
-    a = np.array([float(i[mongo_field]) for i in cursor])
+    a = np.array(get_field_records(field, xform))
     m, count = mode(a)
     return m
 
@@ -309,9 +317,7 @@ def get_mode_for_numeric_fields_in_form(xform, field=None):
 
 
 def get_min_max_range_for_field(field, xform):
-    cursor = get_field_records(field, xform)
-    mongo_field = _encode_for_mongo(field)
-    a = np.array([float(i[mongo_field]) for i in cursor])
+    a = np.array(get_field_records(field, xform))
     _max = np.max(a)
     _min = np.min(a)
     _range = _max - _min

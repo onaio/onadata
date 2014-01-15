@@ -1,20 +1,36 @@
 import json
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils.translation import ugettext as _
 from rest_framework import permissions
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.renderers import BaseRenderer
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
-from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.viewsets import ModelViewSet
 from taggit.forms import TagField
 
 from onadata.apps.api import mixins, serializers
 from onadata.apps.api.signals import xform_tags_add, xform_tags_delete
+from onadata.apps.api import tools as utils
 from onadata.apps.odk_logger.models import XForm
+from onadata.libs.utils.viewer_tools import enketo_url
+
+
+def _get_form_url(request, username):
+    # TODO store strings as constants elsewhere
+    if settings.TESTING_MODE:
+        http_host = 'testserver.com'
+        username = 'bob'
+    else:
+        http_host = request.META.get('HTTP_HOST') or 'ona.io'
+
+    return 'https://%s/%s' % (http_host, username)
 
 
 class SurveyRenderer(BaseRenderer):
@@ -26,9 +42,9 @@ class SurveyRenderer(BaseRenderer):
         return data
 
 
-class XFormViewSet(mixins.MultiLookupMixin, ReadOnlyModelViewSet):
+class XFormViewSet(mixins.MultiLookupMixin, ModelViewSet):
     """
-List, Retrieve Published Forms.
+Publish XLSForms, List, Retrieve Published Forms.
 
 Where:
 
@@ -36,6 +52,41 @@ Where:
 - `pk` - is the project id
 - `formid` - is the form id
 
+## Upload XLSForm
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms</pre>
+> Example
+>
+>       curl -X POST -F xls_file=@/path/to/form.xls
+>       https://ona.io/api/v1/forms
+>
+> OR
+>
+>       curl -X POST -d "xls_url=https://ona.io/ukanga/forms/tutorial/form.xls"
+>       https://ona.io/api/v1/forms
+
+> Response
+>
+>       {
+>           "url": "https://ona.io/api/v1/forms/28058",
+>           "formid": 28058,
+>           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
+>           "id_string": "Birds",
+>           "sms_id_string": "Birds",
+>           "title": "Birds",
+>           "allows_sms": false,
+>           "bamboo_dataset": "",
+>           "description": "",
+>           "downloadable": true,
+>           "encrypted": false,
+>           "is_crowd_form": false,
+>           "owner": "modilabs",
+>           "public": false,
+>           "public_data": false,
+>           "date_created": "2013-07-25T14:14:22.892Z",
+>           "date_modified": "2013-07-25T14:14:22.892Z"
+>       }
 ## Get Form Information
 
 <pre class="prettyprint">
@@ -207,6 +258,24 @@ Payload
 > Response
 >
 >        HTTP 200 OK
+
+## Get webform/enketo link
+
+<pre class="prettyprint">
+<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>
+/enketo</pre>
+
+> Request
+>
+>       curl -X GET
+>       https://ona.io/api/v1/forms/modilabs/28058/enketo
+>
+> Response
+>
+>       {"enketo_url": "https://h6ic6.enketo.org/webform"}
+>
+>        HTTP 200 OK
+
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [SurveyRenderer]
     queryset = XForm.objects.all()
@@ -215,6 +284,17 @@ Payload
     lookup_field = 'owner'
     extra_lookup_fields = None
     permission_classes = [permissions.DjangoModelPermissions, ]
+
+    def create(self, request, *args, **kwargs):
+        survey = utils.publish_xlsform(request, request.user)
+        if isinstance(survey, XForm):
+            xform = XForm.objects.get(pk=survey.pk)
+            serializer = serializers.XFormSerializer(
+                xform, context={'request': request})
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED,
+                            headers=headers)
+        return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
     def get_queryset(self):
         owner = self.kwargs.get('owner', None)
@@ -288,3 +368,15 @@ Payload
         else:
             data = list(self.object.tags.names())
         return Response(data, status=status)
+
+    @action(methods=['GET'])
+    def enketo(self, request, **kwargs):
+        self.object = self.get_object()
+        form_url = _get_form_url(request, self.object.user.username)
+        url = enketo_url(form_url, self.object.id_string)
+        data = {'message': _(u"Enketo not properly configured.")}
+        status = 400
+        if url:
+            status = 200
+            data = {"enketo_url": url}
+        return Response(data, status)

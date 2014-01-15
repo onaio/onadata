@@ -131,10 +131,12 @@ class ParsedInstance(models.Model):
             #display only active elements
             # join existing query with deleted_at_query on an $and
             query = {"$and": [query, {"_deleted_at": None}]}
+
         # fields must be a string array i.e. '["name", "age"]'
         if isinstance(fields, basestring):
             fields = json.loads(fields, object_hook=json_util.object_hook)
         fields = fields if fields else []
+
         # TODO: current mongo (2.0.4 of this writing)
         # cant mix including and excluding fields in a single query
         if type(fields) == list and len(fields) > 0:
@@ -293,8 +295,9 @@ class ParsedInstance(models.Model):
                 return item['name']
 
     def get_data_dictionary(self):
-        # TODO: import here is a hack to get around a circular import
-        from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
+        # TODO: fix hack to get around a circular import
+        from onadata.apps.odk_viewer.models.data_dictionary import\
+            DataDictionary
         return DataDictionary.objects.get(
             user=self.instance.xform.user,
             id_string=self.instance.xform.id_string
