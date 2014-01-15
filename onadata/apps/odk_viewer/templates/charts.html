@@ -15,10 +15,10 @@
 <div>
   {% for summary in summaries  %}
   {% with field_name=summary.field_name data_type=summary.data_type field_type=summary.field_type data=summary.data %}
-  <div id="chart-{{ forloop.counter }}" style="width: 600px; height: 400px; margin-bottom: 30px;"></div>
+  <div id="chart-{{ forloop.counter }}" style="width: 640px; height: 480px; margin-bottom: 30px;"></div>
   <script type="text/javascript">
     (function(elmSelector){
-          var svg = dimple.newSvg(elmSelector, 600, 400);
+          var svg = dimple.newSvg(elmSelector, 640, 480);
           var data = [
             {% for item in data %}
               { "{{ field_name }}": "{{ item|lookup:field_name }}", "count": "{{ item.count }}" },
