@@ -1,0 +1,5 @@
+brew install node
+brew install postgresql
+# install Geospatial libraries for GeoDjango
+brew install postgis gdal libgeoip
+sudo npm install -g bower karma grunt-cli
