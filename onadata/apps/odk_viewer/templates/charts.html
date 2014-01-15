@@ -1,14 +1,11 @@
+{% extends 'base.html' %}
 {% load lookup_filter %}
 
-<html>
-<head>
-  <script src="http://d3js.org/d3.v3.min.js"></script>
-  <script src="http://dimplejs.org/dist/dimple.v1.1.2.min.js"></script>
-</head>
-<body>
+{% block content %}
+        <div>
   {% for summary in summaries  %}
   {% with field_name=summary.field_name data_type=summary.data_type field_type=summary.field_type data=summary.data %}
-  <div id="{{ field_name }}"></div>
+  <div id="{{ field_name }}" style="width: 800px; height: 600px;"></div>
   <script type="text/javascript">
     (function(elmSelector){
           var svg = dimple.newSvg(elmSelector, 800, 600);
@@ -33,5 +30,10 @@
   </script>
   {% endwith %}
   {% endfor %}
-</body>
-</html>
+            </div>
+{% endblock %}
+
+{% block additional-headers %}
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://dimplejs.org/dist/dimple.v1.1.2.min.js"></script>
+{% endblock %}
