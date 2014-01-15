@@ -1,4 +1,4 @@
-from django.db import models
+from django.contrib.gis.db import models
 from django.db.models.signals import post_save
 from django.db.models.signals import post_delete
 from django.contrib.auth.models import User
@@ -55,10 +55,14 @@ class Instance(models.Model):
 
     # ODK keeps track of three statuses for an instance:
     # incomplete, submitted, complete
-    # we will add a fourth status: submitted_via_web
+    # we add a fourth status: submitted_via_web
     status = models.CharField(max_length=20,
                               default=u'submitted_via_web')
     uuid = models.CharField(max_length=249, default=u'')
+
+    # store an geographic objects associated with this instance
+    geom = models.GeometryCollectionField(null=True)
+    objects = models.GeoManager()
 
     tags = TaggableManager()
 
