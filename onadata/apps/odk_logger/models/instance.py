@@ -2,6 +2,7 @@ from django.contrib.gis.db import models
 from django.db.models.signals import post_save
 from django.db.models.signals import post_delete
 from django.contrib.auth.models import User
+from django.contrib.gis.geos import GeometryCollection, Point
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from jsonfield import JSONField
@@ -69,6 +70,32 @@ class Instance(models.Model):
     class Meta:
         app_label = 'odk_logger'
 
+    def _set_geom(self):
+        data_dictionary = self.xform.data_dictionary()
+        geo_xpaths = data_dictionary.geopoint_xpaths()
+        doc = self.get_dict()
+        points = []
+
+        if len(geo_xpaths):
+            for xpath in geo_xpaths:
+                # TODO store the precision somewhere
+                lat, lng, alt, precision = [float(s) for s in
+                                            doc.get(xpath, u'').split()]
+                points.append(Point(lat, lng, alt))
+
+            self.geom = GeometryCollection(points)
+
+    def _set_json(self):
+        doc = self.get_dict()
+
+        if not self.date_created:
+            now = submission_time()
+            self.date_created = now
+
+        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
+        doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
+        self.json = doc
+
     def _set_xform(self, id_string):
         self.xform = XForm.objects.get(id_string=id_string, user=self.user)
 
@@ -83,17 +110,6 @@ class Instance(models.Model):
     def get(self, abbreviated_xpath):
         self._set_parser()
         return self._parser.get(abbreviated_xpath)
-
-    def _set_json(self):
-        doc = self.get_dict()
-
-        if not self.date_created:
-            now = submission_time()
-            self.date_created = now
-
-        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
-        doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
-        self.json = doc
 
     def _set_survey_type(self):
         self.survey_type, created = \
@@ -113,6 +129,7 @@ class Instance(models.Model):
             raise FormInactiveError()
 
         self._set_json()
+        self._set_geom()
         self._set_survey_type()
         self._set_uuid()
         super(Instance, self).save(*args, **kwargs)
