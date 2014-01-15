@@ -32,6 +32,11 @@ def build_chart_data_for_field(xform, field):
 
     result = get_form_submissions_grouped_by_field(xform, field_name)
     data_type = DATA_TYPE_MAP.get(field_type, 'categorized')
+
+    # for date fields, strip out None values
+    if data_type == 'time_based':
+        result = [r for r in result if r[field_name] is not None]
+
     data = {
         'field_name': field_name,
         'field_type': field_type,

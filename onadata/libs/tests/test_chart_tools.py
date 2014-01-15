@@ -56,3 +56,16 @@ class TestChartTools(TestBase):
         data_field_names = [f['field_name'] for f in data]
         self.assertTrue(
             all([f for f in expected_fields if f in data_field_names]))
+
+    def test_build_chart_data_strips_none_from_dates(self):
+        # make the 3rd submission that doesnt have a date
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "apps",
+                            "api", "tests", "fixtures", "forms", "tutorial",
+                            "instances", "3.xml")
+        self._make_submission(path)
+        dd = self.xform.data_dictionary()
+        field = find_field_by_name(dd, 'date')
+        data = build_chart_data_for_field(self.xform, field)
+        # create a list with comparisons to the dict values
+        values = [d['date'] is not None for d in data['data']]
+        self.assertTrue(all(values))
