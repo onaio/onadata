@@ -67,20 +67,27 @@ def source(path):
     return prefix('source %s' % path)
 
 
+def exit_with_error(message):
+    print message
+    sys.exit(1)
+
+
 def check_key_filename(deployment_name):
     if 'key_filename' in DEPLOYMENTS[deployment_name] and \
        not os.path.exists(DEPLOYMENTS[deployment_name]['key_filename']):
-        print "Cannot find required permissions file: %s" % \
-            DEPLOYMENTS[deployment_name]['key_filename']
-        return False
-    return True
+        exit_with_error("Cannot find required permissions file: %s" %
+                        DEPLOYMENTS[deployment_name]['key_filename'])
 
 
 def setup_env(deployment_name):
-    env.update(DEPLOYMENTS[deployment_name])
+    deployment = DEPLOYMENTS.get(deployment_name)
 
-    if not check_key_filename(deployment_name):
-        sys.exit(1)
+    if deployment is None:
+        exit_with_error('Deployment "%s" not found.' % deployment_name)
+
+    env.update(deployment)
+
+    check_key_filename(deployment_name)
 
     env.virtualenv = os.path.join('/home', 'ubuntu', '.virtualenvs',
                                   env.project, 'bin', 'activate')
