@@ -2,13 +2,18 @@
 {% load lookup_filter %}
 
 {% block content %}
-        <div>
+<section>
+  <div class="page-header">
+      <h1>Charts <small><a href="{% url "onadata.apps.main.views.show" xform.user.username xform.id_string %}">{{ xform.title }}</a></small></h1>
+  </div>
+
+<div>
   {% for summary in summaries  %}
   {% with field_name=summary.field_name data_type=summary.data_type field_type=summary.field_type data=summary.data %}
-  <div id="{{ field_name }}" style="width: 800px; height: 600px;"></div>
+  <div id="{{ field_name }}" style="width: 600px; height: 400px; margin-bottom: 30px;"></div>
   <script type="text/javascript">
     (function(elmSelector){
-          var svg = dimple.newSvg(elmSelector, 800, 600);
+          var svg = dimple.newSvg(elmSelector, 600, 400);
           var data = [
             {% for item in data %}
               { "{{ field_name }}": "{{ item|lookup:field_name }}", "count": "{{ item.count }}" },
@@ -30,7 +35,9 @@
   </script>
   {% endwith %}
   {% endfor %}
-            </div>
+</div>
+
+</section>
 {% endblock %}
 
 {% block additional-headers %}
