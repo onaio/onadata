@@ -6,7 +6,7 @@ from onadata.apps.api.viewsets.export_viewset import ExportViewSet
 from onadata.apps.main.tests.test_base import TestBase
 
 
-class TestDataViewSet(TestBase):
+class TestExportViewSet(TestBase):
 
     def setUp(self):
         super(self.__class__, self).setUp()
@@ -66,3 +66,15 @@ class TestDataViewSet(TestBase):
         basename, ext = os.path.splitext(filename)
         self.assertEqual(headers['Content-Type'], 'application/csv')
         self.assertEqual(ext, '.csv')
+
+        # xls
+        request = self.factory.get('/', **self.extra)
+        response = view(request, owner='bob', pk=self.xform.id_string)
+        self.assertEqual(response.status_code, 200)
+        headers = dict(response.items())
+        content_disposition = headers['Content-Disposition']
+        filename = self._filename_from_disposition(content_disposition)
+        basename, ext = os.path.splitext(filename)
+        self.assertEqual(headers['Content-Type'],
+                         'application/vnd.openxmlformats')
+        self.assertEqual(ext, '.xlsx')
