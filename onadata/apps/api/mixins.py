@@ -72,7 +72,7 @@ class MultiLookupMixin(object):
         for field in lookup_fields:
             lookup_field = field
             if lookup_field in serializer.get_fields():
-                k = serializer.get_fields()[self.lookup_field]
+                k = serializer.get_fields()[lookup_field]
                 if isinstance(k, serializers.HyperlinkedRelatedField):
                     if k.source:
                         lookup_field = k.source
