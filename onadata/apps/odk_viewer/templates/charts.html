@@ -30,7 +30,7 @@
           var categoryAxis = chart.addAxis(categoryAxisLocation, "{{ field_name }}", null{% if data_type == 'time_based' %} , "{{ field_name }}" {% endif %});
           {% if data_type == 'time_based' %}
           categoryAxis.tickFormat = "%Y-%m-%d";
-          categoryAxis.timePeriod = d3.time.day;
+          //categoryAxis.timePeriod = d3.time.day;
           //categoryAxis.timeInterval = 7;
           {% endif %}
           var countAxis = chart.addMeasureAxis(countAxisLocation, "count");
