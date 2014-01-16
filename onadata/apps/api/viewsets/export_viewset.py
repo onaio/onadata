@@ -83,12 +83,11 @@ Where:
 ## Get Form Information
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/export/<code>{formid}?format=xls</code>
-<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}
-</code>/export/<code>{formid}?format=xls</code></pre>
+<b>GET</b> /api/v1/exports/<code>{owner}/{formid}.{format}</code>
+</pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/export/28058?format=xls
+>       curl -X GET https://ona.io/api/v1/exports/onademo/28058.xls
 
 > binary file export of the format specied is returned as the response for the
 > download.
