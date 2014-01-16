@@ -77,11 +77,6 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         formid = self.xform.pk
         request = self.factory.get('/', **self.extra)
-        response = view(request)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data,
-                         {'detail': 'Expected URL keyword argument `owner`.'})
-        request = self.factory.get('/', **self.extra)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.form_data)

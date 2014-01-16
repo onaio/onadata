@@ -37,6 +37,14 @@ from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 
+EXPORT_EXT = {
+    'xls': Export.XLS_EXPORT,
+    'xlsx': Export.XLS_EXPORT,
+    'csv': Export.CSV_EXPORT,
+    'csvzip': Export.CSV_ZIP_EXPORT,
+    'savzip': Export.SAV_ZIP_EXPORT,
+}
+
 
 def _get_form_url(request, username):
     # TODO store strings as constants elsewhere
@@ -48,13 +56,11 @@ def _get_form_url(request, username):
 
     return 'https://%s/%s' % (http_host, username)
 
-EXPORT_EXT = {
-    'xls': Export.XLS_EXPORT,
-    'xlsx': Export.XLS_EXPORT,
-    'csv': Export.CSV_EXPORT,
-    'csvzip': Export.CSV_ZIP_EXPORT,
-    'savzip': Export.SAV_ZIP_EXPORT,
-}
+
+def should_regenerate_export(xform, export_type, request):
+    return should_create_new_export(xform, export_type) or\
+        'start' in request.GET or 'end' in request.GET or\
+        'query' in request.GET
 
 
 class XLSRenderer(BaseRenderer):
@@ -375,9 +381,7 @@ Where:
     def get_object(self, queryset=None):
         owner, pk = self.lookup_fields
         try:
-            if self.kwargs.get(pk, None):
-                int(self.kwargs[pk])
-                # continue peacefully
+            int(self.kwargs[pk])
         except ValueError:
             self.lookup_fields = ('owner', 'id_string')
             self.kwargs['id_string'] = self.kwargs[pk]
@@ -481,7 +485,7 @@ Where:
 
     def retrieve(self, request, *args, **kwargs):
         xform = self.get_object()
-        query = request.GET.get("query")
+        query = request.GET.get("query", {})
         export_type = kwargs.get('format')
         if export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
@@ -506,15 +510,13 @@ Where:
         }
         # check if we need to re-generate,
         # we always re-generate if a filter is specified
-        if should_create_new_export(xform, export_type) or query or\
-                'start' in request.GET or 'end' in request.GET:
+        if should_regenerate_export(xform, export_type, request):
             format_date_for_mongo = lambda x, datetime: datetime.strptime(
                 x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
             # check for start and end params
             if 'start' in request.GET or 'end' in request.GET:
-                if not query:
-                    query = '{}'
-                query = json.loads(query)
+                query = json.loads(query) \
+                    if isinstance(query, basestring) else query
                 query[SUBMISSION_TIME] = {}
                 try:
                     if request.GET.get('start'):
@@ -562,10 +564,7 @@ Where:
         # xlsx if it exceeds limits
         path, ext = os.path.splitext(export.filename)
         ext = ext[1:]
-        if request.GET.get('raw'):
-            id_string = None
-        else:
-            id_string = xform.id_string
+        id_string = None if request.GET.get('raw') else xform.id_string
         response = response_with_mimetype_and_name(
             Export.EXPORT_MIMES[ext], id_string, extension=ext,
             file_path=export.filepath)
