@@ -31,7 +31,7 @@
           {% if data_type == 'time_based' %}
           categoryAxis.tickFormat = "%Y-%m-%d";
           categoryAxis.timePeriod = d3.time.day;
-          //categoryAxis.timeInterval = 1;
+          //categoryAxis.timeInterval = 7;
           {% endif %}
           var countAxis = chart.addMeasureAxis(countAxisLocation, "count");
           chart.addSeries(null, dimple.plot.bar);

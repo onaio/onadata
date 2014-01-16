@@ -50,12 +50,12 @@ class TestChartTools(TestBase):
         data = build_chart_data(self.xform)
         self.assertIsInstance(data, list)
         # check expected fields
-        expected_fields = ['_submission_type', 'age', 'gender', 'date',
-                           'pizza_fan', 'pizza_type', 'net_worth', 'start',
-                           'end']
-        data_field_names = [f['field_name'] for f in data]
-        self.assertTrue(
-            all([f for f in expected_fields if f in data_field_names]))
+        expected_fields = sorted(['_submission_time', 'pizza_type', 'age',
+                                  'gender', 'date', 'pizza_fan', 'net_worth',
+                                  'start_time', 'end_time'])
+        data_field_names = sorted([f['field_name'] for f in data])
+        #import ipdb; ipdb.set_trace()
+        self.assertEqual(expected_fields, data_field_names)
 
     def test_build_chart_data_strips_none_from_dates(self):
         # make the 3rd submission that doesnt have a date

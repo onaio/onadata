@@ -52,6 +52,9 @@ def build_chart_data(xform):
     fields = filter(
         lambda f: f.type in CHART_FIELDS, [e for e in dd.survey_elements])
 
+    # prepend submission time
+    fields[:0] = [common_tags.SUBMISSION_TIME]
+
     data = []
 
     for field in fields:
