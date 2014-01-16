@@ -108,6 +108,17 @@ Where:
     extra_lookup_fields = None
     permission_classes = [permissions.DjangoModelPermissions, ]
 
+    def get_object(self, queryset=None):
+        owner, pk = self.lookup_fields
+        try:
+            if self.kwargs.get(pk, None):
+                int(self.kwargs[pk])
+                # continue peacefully
+        except ValueError:
+            self.lookup_fields = ('owner', 'id_string')
+            self.kwargs['id_string'] = self.kwargs[pk]
+        return super(ExportViewSet, self).get_object(queryset)
+
     def get_queryset(self):
         owner = self.kwargs.get('owner', None)
         user = self.request.user
