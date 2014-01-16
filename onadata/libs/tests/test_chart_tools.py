@@ -1,9 +1,10 @@
 import os
+import unittest
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.chart_tools import build_chart_data_for_field,\
-    build_chart_data
+    build_chart_data, utc_time_string_for_javascript
 
 
 def find_field_by_name(dd, field_name):
@@ -69,3 +70,35 @@ class TestChartTools(TestBase):
         # create a list with comparisons to the dict values
         values = [d['date'] is not None for d in data['data']]
         self.assertTrue(all(values))
+
+    def test_format_start_end_fields_for_javascript(self):
+        # javascript errors on incomplete timezones i.e.
+        # 2014-01-16T12:07:23.322+03 needs to become
+        # 2014-01-16T12:07:23.322+03:00
+        dd = self.xform.data_dictionary()
+        start_time_data = build_chart_data_for_field(
+            self.xform, find_field_by_name(dd, 'start_time'))
+        end_time_data = build_chart_data_for_field(
+            self.xform, find_field_by_name(dd, 'end_time'))
+        self.assertEqual(
+            start_time_data['data'][0]['start_time'],
+            '2014-01-09T11:51:38.008+0300')
+        self.assertEqual(
+            end_time_data['data'][0]['end_time'],
+            '2014-01-09T11:52:02.906+0300')
+
+
+class TestChartUtilFunctions(unittest.TestCase):
+    def test_utc_time_string_for_javascript(self):
+        time_str = '2014-01-16T12:07:23.322+03'
+        expected_time_str = '2014-01-16T12:07:23.322+0300'
+        result = utc_time_string_for_javascript(time_str)
+        self.assertEqual(result, expected_time_str)
+
+    def test_raise_value_error_if_no_match(self):
+        time_str = '2014-01-16T12:07:23.322'
+        self.assertRaises(ValueError, utc_time_string_for_javascript, time_str)
+
+    def test_raise_value_error_if_bad_time_zone(self):
+        time_str = '2014-01-16T12:07:23.322+033'
+        self.assertRaises(ValueError, utc_time_string_for_javascript, time_str)

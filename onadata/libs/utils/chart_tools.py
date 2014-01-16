@@ -1,3 +1,6 @@
+import re
+from datetime import datetime
+
 from onadata.apps.api.tools import get_form_submissions_grouped_by_field
 from onadata.libs.utils import common_tags
 
@@ -14,6 +17,33 @@ DATA_TYPE_MAP = {
     'start': 'time_based',
     'end': 'time_based'
 }
+
+
+timezone_re = re.compile(r'(.+)\+(\d+)')
+
+
+def utc_time_string_for_javascript(date_string):
+    """
+    Convert 2014-01-16T12:07:23.322+03 to 2014-01-16T12:07:23.322+03:00
+
+    Cant use datetime.str[fp]time here since python 2.7's %z is platform
+    dependant - http://stackoverflow.com/questions/2609259/converting-string-to-datetime-object-in-python
+
+    """
+    match = timezone_re.match(date_string)
+    if not match:
+        raise ValueError(
+            "{} fos not match the format 2014-01-16T12:07:23.322+03".format(
+                date_string))
+
+    date_time = match.groups()[0]
+    tz = match.groups()[1]
+    if len(tz) == 2:
+        tz += '00'
+    elif len(tz) != 4:
+        raise ValueError("len of {} must either be 2 or 4")
+
+    return "{}+{}".format(date_time, tz)
 
 
 def build_chart_data_for_field(xform, field):
@@ -36,6 +66,14 @@ def build_chart_data_for_field(xform, field):
     # for date fields, strip out None values
     if data_type == 'time_based':
         result = [r for r in result if r[field_name] is not None]
+        # for each check if it matches the timezone regexp and convert for js
+        for r in result:
+            if timezone_re.match(r[field_name]):
+                try:
+                    r[field_name] = utc_time_string_for_javascript(
+                        r[field_name])
+                except ValueError:
+                    pass
 
     data = {
         'field_name': field_name,
