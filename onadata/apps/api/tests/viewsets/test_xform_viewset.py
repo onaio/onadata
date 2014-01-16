@@ -82,6 +82,10 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.form_data)
+        # using id_string
+        response = view(request, owner='bob', pk=self.xform.id_string)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.form_data)
 
     def test_form_format(self):
         self._publish_xls_form_to_project()

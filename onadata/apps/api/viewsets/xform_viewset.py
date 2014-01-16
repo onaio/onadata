@@ -285,16 +285,16 @@ Payload
     extra_lookup_fields = None
     permission_classes = [permissions.DjangoModelPermissions, ]
 
-    def create(self, request, *args, **kwargs):
-        survey = utils.publish_xlsform(request, request.user)
-        if isinstance(survey, XForm):
-            xform = XForm.objects.get(pk=survey.pk)
-            serializer = serializers.XFormSerializer(
-                xform, context={'request': request})
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_201_CREATED,
-                            headers=headers)
-        return Response(survey, status=status.HTTP_400_BAD_REQUEST)
+    def get_object(self, queryset=None):
+        owner, pk = self.lookup_fields
+        try:
+            if self.kwargs.get(pk, None):
+                int(self.kwargs[pk])
+                # continue peacefully
+        except ValueError:
+            self.lookup_fields = ('owner', 'id_string')
+            self.kwargs['id_string'] = self.kwargs[pk]
+        return super(XFormViewSet, self).get_object(queryset)
 
     def get_queryset(self):
         owner = self.kwargs.get('owner', None)
@@ -326,6 +326,17 @@ Payload
             tags = tags.split(',')
             queryset = queryset.filter(tags__name__in=tags)
         return queryset.distinct()
+
+    def create(self, request, *args, **kwargs):
+        survey = utils.publish_xlsform(request, request.user)
+        if isinstance(survey, XForm):
+            xform = XForm.objects.get(pk=survey.pk)
+            serializer = serializers.XFormSerializer(
+                xform, context={'request': request})
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED,
+                            headers=headers)
+        return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['GET'])
     def form(self, request, format='json', **kwargs):
