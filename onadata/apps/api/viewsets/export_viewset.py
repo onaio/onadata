@@ -149,6 +149,11 @@ Where:
         export_type = kwargs.get('format', 'xls')
         if export_type in EXPORT_EXT.keys():
             export_type = EXPORT_EXT[export_type]
+        else:
+            raise exceptions.ParseError(
+                _(u"'%(export_type)s' format not known or not implemented!" %
+                  {'export_type': export_type})
+            )
         if export_type == Export.XLS_EXPORT:
             extension = 'xlsx'
         elif export_type in [Export.CSV_ZIP_EXPORT, Export.SAV_ZIP_EXPORT]:
