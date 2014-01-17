@@ -12,7 +12,9 @@ DEPLOYMENTS = {
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
         'celeryd': '/etc/init.d/celeryd-ona',
         'django_config_module': 'onadata.settings.local_settings',
-        'pid': '/var/run/ona.pid'
+        'pid': '/var/run/ona.pid',
+        'template': 'https://github.com/onaio/onadata-template.git',
+        'template_dir': 'custom_template'
     },
     'prod': {
         'home': '/home/ubuntu/src/',
@@ -21,7 +23,9 @@ DEPLOYMENTS = {
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
         'celeryd': '/etc/init.d/celeryd-ona',
         'django_config_module': 'onadata.settings.local_settings',
-        'pid': '/var/run/ona.pid'
+        'pid': '/var/run/ona.pid',
+        'template': 'https://github.com/onaio/onadata-template.git',
+        'template_dir': 'custom_template'
     },
     'formhub': {
         'home': '/home/ubuntu/src/',
