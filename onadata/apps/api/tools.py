@@ -86,10 +86,12 @@ def _postgres_select_key(field, name, xform):
 
 def _postgres_count_group(field, name, xform):
     string_args = _query_args(field, name, xform)
+    string_args['group'] = "date_trunc('day', %(json)s)" % string_args if\
+        is_date_field(xform, field) else string_args['json']
 
     return "SELECT %(json)s AS %(name)s, COUNT(%(json)s) AS count FROM "\
            "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
-           "GROUP BY %(json)s" % string_args
+           "GROUP BY %(group)s" % string_args
 
 
 def _execute_query(query, to_dict=True):
@@ -263,18 +265,35 @@ def _chk_asarray(a, axis):
     return a, outaxis
 
 
-def get_numeric_fields(xform):
-    """List of numeric field names for specified xform"""
+def flatten(l):
+    return [item for sublist in l for item in sublist]
+
+
+def _get_fields_of_type(xform, types):
     k = []
     dd = xform.data_dictionary()
-    survey_elements = dd.get_survey_elements_of_type('integer') +\
-        dd.get_survey_elements_of_type('decimal')
+    survey_elements = flatten(
+        [dd.get_survey_elements_of_type(t) for t in types])
 
     for element in survey_elements:
         name = element.get_abbreviated_xpath()
         k.append(name)
 
     return k
+
+
+def get_date_fields(xform):
+    """List of date field names for specified xform"""
+    return _get_fields_of_type(xform, ['date'])
+
+
+def get_numeric_fields(xform):
+    """List of numeric field names for specified xform"""
+    return _get_fields_of_type(xform, ['decimal', 'integer'])
+
+
+def is_date_field(xform, field):
+    return field in get_date_fields(xform)
 
 
 def get_median_for_field(field, xform):
