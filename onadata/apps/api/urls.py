@@ -15,7 +15,8 @@ from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.api.viewsets.user_viewset import UserViewSet
-from onadata.apps.api.viewsets.submissionstats_viewset import SubmissionStatsViewSet
+from onadata.apps.api.viewsets.submissionstats_viewset import \
+    SubmissionStatsViewSet
 
 
 class MultiLookupRouter(routers.DefaultRouter):
