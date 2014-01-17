@@ -383,6 +383,7 @@ Where:
         try:
             int(self.kwargs[pk])
         except ValueError:
+            # implies pk is a string, assume this represents the id_string
             self.lookup_fields = ('owner', 'id_string')
             self.kwargs['id_string'] = self.kwargs[pk]
         return super(XFormViewSet, self).get_object(queryset)
