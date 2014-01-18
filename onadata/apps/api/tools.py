@@ -16,6 +16,7 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.odk_logger.models.xform import XForm
 from onadata.apps.odk_viewer.models.parsed_instance import datetime_from_str
+from onadata.libs.utils.common_tags import SUBMISSION_TIME
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.user_auth import check_and_set_form_by_id, \
     check_and_set_form_by_id_string
@@ -86,12 +87,12 @@ def _postgres_select_key(field, name, xform):
 
 def _postgres_count_group(field, name, xform):
     string_args = _query_args(field, name, xform)
-    string_args['group'] = "date_trunc('day', %(json)s)" % string_args if\
-        is_date_field(xform, field) else string_args['json']
+    if is_date_field(xform, field):
+        string_args['json'] = "to_date(%(json)s, 'YYYY-MM-DD')" % string_args
 
     return "SELECT %(json)s AS %(name)s, COUNT(%(json)s) AS count FROM "\
            "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
-           "GROUP BY %(group)s" % string_args
+           "GROUP BY %(json)s" % string_args
 
 
 def _execute_query(query, to_dict=True):
@@ -284,7 +285,7 @@ def _get_fields_of_type(xform, types):
 
 def get_date_fields(xform):
     """List of date field names for specified xform"""
-    return _get_fields_of_type(xform, ['date'])
+    return [SUBMISSION_TIME] + _get_fields_of_type(xform, ['date'])
 
 
 def get_numeric_fields(xform):
