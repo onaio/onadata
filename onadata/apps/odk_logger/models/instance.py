@@ -12,8 +12,8 @@ from onadata.apps.odk_logger.models.survey_type import SurveyType
 from onadata.apps.odk_logger.models.xform import XForm
 from onadata.apps.odk_logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
-from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME,\
-    XFORM_ID_STRING
+from onadata.libs.utils.common_tags import GEOLOCATION, MONGO_STRFTIME,\
+    SUBMISSION_TIME, XFORM_ID_STRING
 from onadata.libs.utils.model_tools import set_uuid
 
 
@@ -36,6 +36,49 @@ def get_id_string_from_xml_str(xml_str):
 
 def submission_time():
     return timezone.now()
+
+
+def update_xform_submission_count(sender, instance, created, **kwargs):
+    if created:
+        xform = XForm.objects.select_related().select_for_update()\
+            .get(pk=instance.xform.pk)
+        if xform.num_of_submissions == -1:
+            xform.num_of_submissions = 0
+        xform.num_of_submissions += 1
+        xform.last_submission_time = instance.date_created
+        xform.save()
+        profile_qs = User.profile.get_query_set()
+        try:
+            profile = profile_qs.select_for_update()\
+                .get(pk=xform.user.profile.pk)
+        except profile_qs.model.DoesNotExist:
+            pass
+        else:
+            profile.num_of_submissions += 1
+            profile.save()
+
+
+def update_xform_submission_count_delete(sender, instance, **kwargs):
+    try:
+        xform = XForm.objects.select_for_update().get(pk=instance.xform.pk)
+    except XForm.DoesNotExist:
+        pass
+    else:
+        xform.num_of_submissions -= 1
+        if xform.num_of_submissions < 0:
+            xform.num_of_submissions = 0
+        xform.save()
+        profile_qs = User.profile.get_query_set()
+        try:
+            profile = profile_qs.select_for_update()\
+                .get(pk=xform.user.profile.pk)
+        except profile_qs.model.DoesNotExist:
+            pass
+        else:
+            profile.num_of_submissions -= 1
+            if profile.num_of_submissions < 0:
+                profile.num_of_submissions = 0
+            profile.save()
 
 
 class Instance(models.Model):
@@ -70,6 +113,15 @@ class Instance(models.Model):
     class Meta:
         app_label = 'odk_logger'
 
+    @classmethod
+    def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):
+        try:
+            instance = cls.objects.get(id=instance_id)
+        except cls.DoesNotExist:
+            pass
+        else:
+            instance.set_deleted(deleted_at)
+
     def _set_geom(self):
         data_dictionary = self.xform.data_dictionary()
         geo_xpaths = data_dictionary.geopoint_xpaths()
@@ -92,24 +144,18 @@ class Instance(models.Model):
             now = submission_time()
             self.date_created = now
 
+        point = self.point()
+        if point:
+            doc[GEOLOCATION] = [point.y, point.x]
+
         doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
         doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
         self.json = doc
 
-    def _set_xform(self, id_string):
-        self.xform = XForm.objects.get(id_string=id_string, user=self.user)
-
-    def get_root_node_name(self):
-        self._set_parser()
-        return self._parser.get_root_node_name()
-
-    def get_root_node(self):
-        self._set_parser()
-        return self._parser.get_root_node()
-
-    def get(self, abbreviated_xpath):
-        self._set_parser()
-        return self._parser.get(abbreviated_xpath)
+    def _set_parser(self):
+        if not hasattr(self, "_parser"):
+            self._parser = XFormInstanceParser(
+                self.xml, self.xform.data_dictionary())
 
     def _set_survey_type(self):
         self.survey_type, created = \
@@ -122,22 +168,12 @@ class Instance(models.Model):
                 self.uuid = uuid
         set_uuid(self)
 
-    def save(self, *args, **kwargs):
-        self._set_xform(get_id_string_from_xml_str(self.xml))
+    def _set_xform(self, id_string):
+        self.xform = XForm.objects.get(id_string=id_string, user=self.user)
 
-        if self.xform and not self.xform.downloadable:
-            raise FormInactiveError()
-
-        self._set_json()
-        self._set_geom()
-        self._set_survey_type()
-        self._set_uuid()
-        super(Instance, self).save(*args, **kwargs)
-
-    def _set_parser(self):
-        if not hasattr(self, "_parser"):
-            self._parser = XFormInstanceParser(
-                self.xml, self.xform.data_dictionary())
+    def get(self, abbreviated_xpath):
+        self._set_parser()
+        return self._parser.get(abbreviated_xpath)
 
     def get_dict(self, force_new=False, flat=True):
         """Return a python object representation of this instance's XML."""
@@ -146,65 +182,40 @@ class Instance(models.Model):
         return self._parser.get_flat_dict_with_attributes() if flat else\
             self._parser.to_dict()
 
+    def get_root_node(self):
+        self._set_parser()
+        return self._parser.get_root_node()
+
+    def get_root_node_name(self):
+        self._set_parser()
+        return self._parser.get_root_node_name()
+
+    def point(self):
+        gc = self.geom
+
+        if gc and len(gc):
+            return gc[0]
+
+    def save(self, *args, **kwargs):
+        self._set_xform(get_id_string_from_xml_str(self.xml))
+
+        if self.xform and not self.xform.downloadable:
+            raise FormInactiveError()
+
+        self._set_geom()
+        self._set_json()
+        self._set_survey_type()
+        self._set_uuid()
+        super(Instance, self).save(*args, **kwargs)
+
     def set_deleted(self, deleted_at=timezone.now()):
         self.deleted_at = deleted_at
         self.save()
         self.parsed_instance.save()
 
-    @classmethod
-    def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):
-        try:
-            instance = cls.objects.get(id=instance_id)
-        except cls.DoesNotExist:
-            pass
-        else:
-            instance.set_deleted(deleted_at)
-
-
-def update_xform_submission_count(sender, instance, created, **kwargs):
-    if created:
-        xform = XForm.objects.select_related().select_for_update()\
-            .get(pk=instance.xform.pk)
-        if xform.num_of_submissions == -1:
-            xform.num_of_submissions = 0
-        xform.num_of_submissions += 1
-        xform.last_submission_time = instance.date_created
-        xform.save()
-        profile_qs = User.profile.get_query_set()
-        try:
-            profile = profile_qs.select_for_update()\
-                .get(pk=xform.user.profile.pk)
-        except profile_qs.model.DoesNotExist:
-            pass
-        else:
-            profile.num_of_submissions += 1
-            profile.save()
 
 post_save.connect(update_xform_submission_count, sender=Instance,
                   dispatch_uid='update_xform_submission_count')
-
-
-def update_xform_submission_count_delete(sender, instance, **kwargs):
-    try:
-        xform = XForm.objects.select_for_update().get(pk=instance.xform.pk)
-    except XForm.DoesNotExist:
-        pass
-    else:
-        xform.num_of_submissions -= 1
-        if xform.num_of_submissions < 0:
-            xform.num_of_submissions = 0
-        xform.save()
-        profile_qs = User.profile.get_query_set()
-        try:
-            profile = profile_qs.select_for_update()\
-                .get(pk=xform.user.profile.pk)
-        except profile_qs.model.DoesNotExist:
-            pass
-        else:
-            profile.num_of_submissions -= 1
-            if profile.num_of_submissions < 0:
-                profile.num_of_submissions = 0
-            profile.save()
 
 post_delete.connect(update_xform_submission_count_delete, sender=Instance,
                     dispatch_uid='update_xform_submission_count_delete')
