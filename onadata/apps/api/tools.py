@@ -88,7 +88,8 @@ def _postgres_select_key(field, name, xform):
 def _postgres_count_group(field, name, xform):
     string_args = _query_args(field, name, xform)
     if is_date_field(xform, field):
-        string_args['json'] = "to_date(%(json)s, 'YYYY-MM-DD')" % string_args
+        string_args['json'] = "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY"\
+                              "-MM-DD')" % string_args
 
     return "SELECT %(json)s AS %(name)s, COUNT(%(json)s) AS count FROM "\
            "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
