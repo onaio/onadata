@@ -4,7 +4,6 @@ import re
 import socket
 import urllib2
 from tempfile import NamedTemporaryFile
-from time import sleep
 
 from cStringIO import StringIO
 
@@ -169,13 +168,12 @@ class TestBase(TransactionTestCase):
             self.response = self.anon.post(url, post_data)
 
     def _make_submissions(self, username=None, add_uuid=False,
-                          should_store=True, pause=False):
+                          should_store=True):
         """Make test fixture submissions to current xform.
 
         :param username: submit under this username, default None.
         :param add_uuid: add UUID to submission, default False.
         :param should_store: should submissions be save, default True.
-        :param pause: Add pause of this many seconds, default False.
         """
         paths = [os.path.join(
             self.this_directory, 'fixtures', 'transportation',
@@ -184,9 +182,6 @@ class TestBase(TransactionTestCase):
 
         for path in paths:
             self._make_submission(path, username, add_uuid)
-
-            if pause:
-                sleep(pause)
 
         post_count = pre_count + len(self.surveys) if should_store\
             else pre_count

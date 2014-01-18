@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 from mock import patch
@@ -32,8 +32,14 @@ class TestTools(TestBase):
             self.assertEqual([field, count_key], sorted(result.keys()))
             self.assertEqual(result[count_key], count)
 
-    def test_get_form_submissions_grouped_by_field_datetime_to_date(self):
-        self._make_submissions(pause=1)
+    @patch('onadata.apps.odk_logger.models.instance.submission_time')
+    def test_get_form_submissions_grouped_by_field_datetime_to_date(
+            self, mock_time):
+        now = datetime(2014, 01, 01)
+        times = [now, now + timedelta(seconds=1), now + timedelta(seconds=2),
+                 now + timedelta(seconds=3)]
+        mock_time.side_effect = times
+        self._make_submissions()
 
         count_key = 'count'
         fields = ['_submission_time']
@@ -45,6 +51,7 @@ class TestTools(TestBase):
                 self.xform, field)[0]
 
             self.assertEqual([field, count_key], sorted(result.keys()))
+            self.assertEqual(result[field], str(now.date()))
             self.assertEqual(result[count_key], count)
 
     @patch('django.utils.timezone.now')
