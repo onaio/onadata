@@ -1,7 +1,8 @@
 from datetime import datetime
+import os
+
 from mock import patch
 from nose.tools import raises
-import os
 
 from onadata.apps.api.tools import get_form_submissions_grouped_by_field
 from onadata.apps.main.tests.test_base import TestBase
@@ -27,6 +28,21 @@ class TestTools(TestBase):
         for field in fields:
             result = get_form_submissions_grouped_by_field(
                 self.xform, field)[0]
+
+            self.assertEqual([field, count_key], sorted(result.keys()))
+            self.assertEqual(result[count_key], count)
+
+    def test_get_form_submissions_grouped_by_field_datetime_to_date(self):
+        self._make_submissions(pause=1)
+
+        count_key = 'count'
+        fields = ['_submission_time']
+
+        count = len(self.xform.surveys.all())
+
+        for field in fields:
+            result = get_form_submissions_grouped_by_field(
+                self.xform, field)
 
             self.assertEqual([field, count_key], sorted(result.keys()))
             self.assertEqual(result[count_key], count)
