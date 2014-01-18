@@ -42,7 +42,7 @@ class TestTools(TestBase):
 
         for field in fields:
             result = get_form_submissions_grouped_by_field(
-                self.xform, field)
+                self.xform, field)[0]
 
             self.assertEqual([field, count_key], sorted(result.keys()))
             self.assertEqual(result[count_key], count)
