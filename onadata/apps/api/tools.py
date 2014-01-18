@@ -1,11 +1,8 @@
+from datetime import datetime
 import numpy as np
 
-from datetime import datetime
-
-from django.conf import settings
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
-from django.db import connection
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions
 
@@ -16,21 +13,12 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.odk_logger.models.xform import XForm
 from onadata.apps.odk_viewer.models.parsed_instance import datetime_from_str
-from onadata.libs.utils.common_tags import SUBMISSION_TIME
+from onadata.libs.data.query import get_field_records, get_numeric_fields
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.user_auth import check_and_set_form_by_id, \
     check_and_set_form_by_id_string
 
 DECIMAL_PRECISION = 2
-
-
-def _dictfetchall(cursor):
-    "Returns all rows from a cursor as a dict"
-    desc = cursor.description
-    return [
-        dict(zip([col[0] for col in desc], row))
-        for row in cursor.fetchall()
-    ]
 
 
 def _get_first_last_names(name):
@@ -48,58 +36,6 @@ def _get_id_for_type(record, mongo_field):
 
     return {"$substr": [mongo_str, 0, 10]} if isinstance(date_field, datetime)\
         else mongo_str
-
-
-@property
-def using_postgres():
-    return settings.DATABASES[
-        'default']['ENGINE'] == 'django.db.backends.postgresql_psycopg2'
-
-
-def _count_group(field, name, xform):
-    if using_postgres:
-        result = _postgres_count_group(field, name, xform)
-    else:
-        raise Exception("Unsopported Database")
-    return result
-
-
-def _json_query(field):
-    return "json->>'%s'" % field
-
-
-def _query_args(field, name, xform):
-    return {
-        'table': 'odk_logger_instance',
-        'json': _json_query(field),
-        'name': name,
-        'restrict_field': 'xform_id',
-        'restrict_value': xform.pk
-    }
-
-
-def _postgres_select_key(field, name, xform):
-    string_args = _query_args(field, name, xform)
-
-    return "SELECT %(json)s AS %(name)s FROM %(table)s WHERE "\
-           "%(restrict_field)s=%(restrict_value)s" % string_args
-
-
-def _postgres_count_group(field, name, xform):
-    string_args = _query_args(field, name, xform)
-    if is_date_field(xform, field):
-        string_args['json'] = "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY"\
-                              "-MM-DD')" % string_args
-
-    return "SELECT %(json)s AS %(name)s, COUNT(%(json)s) AS count FROM "\
-           "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
-           "GROUP BY %(json)s" % string_args
-
-
-def _execute_query(query, to_dict=True):
-    cursor = connection.cursor()
-    cursor.execute(query)
-    return _dictfetchall(cursor) if to_dict else cursor
 
 
 def get_accessible_forms(owner=None):
@@ -218,25 +154,6 @@ def publish_project_xform(request, project):
     return xform
 
 
-def get_form_submissions_grouped_by_field(xform, field, name=None):
-    """Number of submissions grouped by field"""
-    if not name:
-        name = field
-
-    result = _execute_query(_count_group(field, name, xform))
-
-    if len(result) and result[0][name] is None:
-        raise ValueError(_(u"Field '%s' does not exist." % field))
-
-    return result
-
-
-def get_field_records(field, xform):
-    result = _execute_query(_postgres_select_key(field, field, xform),
-                            to_dict=False)
-    return [float(i[0]) for i in result]
-
-
 def mode(a, axis=0):
     """
     Adapted from
@@ -265,37 +182,6 @@ def _chk_asarray(a, axis):
         a = np.asarray(a)
         outaxis = axis
     return a, outaxis
-
-
-def flatten(l):
-    return [item for sublist in l for item in sublist]
-
-
-def _get_fields_of_type(xform, types):
-    k = []
-    dd = xform.data_dictionary()
-    survey_elements = flatten(
-        [dd.get_survey_elements_of_type(t) for t in types])
-
-    for element in survey_elements:
-        name = element.get_abbreviated_xpath()
-        k.append(name)
-
-    return k
-
-
-def get_date_fields(xform):
-    """List of date field names for specified xform"""
-    return [SUBMISSION_TIME] + _get_fields_of_type(xform, ['date'])
-
-
-def get_numeric_fields(xform):
-    """List of numeric field names for specified xform"""
-    return _get_fields_of_type(xform, ['decimal', 'integer'])
-
-
-def is_date_field(xform, field):
-    return field in get_date_fields(xform)
 
 
 def get_median_for_field(field, xform):

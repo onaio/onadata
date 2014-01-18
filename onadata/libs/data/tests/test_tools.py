@@ -4,8 +4,8 @@ import os
 from mock import patch
 from nose.tools import raises
 
-from onadata.apps.api.tools import get_form_submissions_grouped_by_field
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.data.query import get_form_submissions_grouped_by_field
 
 
 class TestTools(TestBase):
