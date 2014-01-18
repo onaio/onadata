@@ -12,7 +12,8 @@ DEPLOYMENTS = {
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
         'celeryd': '/etc/init.d/celeryd-ona',
         'django_config_module': 'onadata.settings.local_settings',
-        'pid': '/var/run/ona.pid'
+        'pid': '/var/run/ona.pid',
+        'template': 'https://github.com/onaio/onadata-template.git',
     },
     'prod': {
         'home': '/home/ubuntu/src/',
@@ -21,7 +22,8 @@ DEPLOYMENTS = {
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
         'celeryd': '/etc/init.d/celeryd-ona',
         'django_config_module': 'onadata.settings.local_settings',
-        'pid': '/var/run/ona.pid'
+        'pid': '/var/run/ona.pid',
+        'template': 'https://github.com/onaio/onadata-template.git',
     },
     'formhub': {
         'home': '/home/ubuntu/src/',
@@ -32,7 +34,6 @@ DEPLOYMENTS = {
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/run/formhub.pid',
         'template': 'https://github.com/SEL-Columbia/formhub-template.git',
-        'template_dir': 'formhub'
     },
     'kobocat': {
         'home': '/home/ubuntu/src/',
@@ -44,7 +45,6 @@ DEPLOYMENTS = {
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/run/kobocat.pid',
         'template': 'https://github.com/kobotoolbox/kobocat-template.git',
-        'template_dir': 'kobocat'
     },
 }
 
@@ -95,6 +95,7 @@ def setup_env(deployment_name):
     env.code_src = os.path.join(env.home, env.project)
     env.pip_requirements_file = os.path.join(env.code_src,
                                              'requirements/common.pip')
+    env.template_dir = 'onadata/libs/custom_template'
 
 
 def deploy_template(env):
