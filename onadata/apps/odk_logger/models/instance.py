@@ -138,7 +138,7 @@ class Instance(models.Model):
 
                 if len(geometry):
                     lat, lng, alt, precision = geometry
-                    points.append(Point(lat, lng))
+                    points.append(Point(lng, lat))
 
             self.geom = GeometryCollection(points)
 
@@ -149,7 +149,7 @@ class Instance(models.Model):
             now = submission_time()
             self.date_created = now
 
-        point = self.point()
+        point = self.point
         if point:
             doc[GEOLOCATION] = [point.y, point.x]
 
@@ -222,6 +222,7 @@ class Instance(models.Model):
         self._set_parser()
         return self._parser.get_root_node_name()
 
+    @property
     def point(self):
         gc = self.geom
 
