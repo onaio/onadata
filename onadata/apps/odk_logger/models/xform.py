@@ -13,7 +13,6 @@ from django.utils.translation import ugettext_lazy, ugettext as _
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from taggit.managers import TaggableManager
 
-from onadata.apps.odk_logger.models.instance import Instance
 from onadata.apps.odk_logger.xform_instance_parser import XLSFormError
 from onadata.apps.stats.tasks import stat_log
 
@@ -174,9 +173,8 @@ class XForm(models.Model):
 
     def geocoded_submission_count(self):
         """Number of geocoded submissions."""
-        return Instance.objects.filter(
-            xform=self, deleted_at__isnull=True,
-            geom__isnull=False).count()
+        return self.surveys.filter(deleted_at__isnull=True,
+                                   geom__isnull=False).count()
 
     def time_of_last_submission(self):
         if self.last_submission_time is None and self.num_of_submissions > 0:
