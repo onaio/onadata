@@ -9,10 +9,10 @@ from pyxform.section import RepeatingSection
 from pyxform.xform2json import create_survey_element_from_xml
 from xml.dom import Node
 
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.odk_logger.models.instance import Instance
+from onadata.apps.odk_logger.models.xform import XForm
 from onadata.apps.odk_logger.xform_instance_parser import clean_and_parse_xml
-from onadata.apps.odk_viewer.models.parsed_instance import _encode_for_mongo,\
-    ParsedInstance
+from onadata.apps.odk_viewer.models.parsed_instance import _encode_for_mongo
 from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES
 from onadata.libs.utils.export_tools import question_types_to_exclude,\
     DictOrganizer
@@ -201,8 +201,8 @@ class DataDictionary(XForm):
         return len(geo_xpaths) > 0 and geo_xpaths[0]
 
     def has_instances_with_geopoints(self):
-        return ParsedInstance.objects.filter(
-            instance__xform=self, lat__isnull=False).count() > 0
+        return Instance.objects.filter(
+            xform=self, geom__isnull=False).count() > 0
 
     def xpaths(self, prefix='', survey_element=None, result=None,
                repeat_iterations=4):
