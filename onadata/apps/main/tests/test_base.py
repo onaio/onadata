@@ -169,12 +169,20 @@ class TestBase(TransactionTestCase):
 
     def _make_submissions(self, username=None, add_uuid=False,
                           should_store=True):
+        """Make test fixture submissions to current xform.
+
+        :param username: submit under this username, default None.
+        :param add_uuid: add UUID to submission, default False.
+        :param should_store: should submissions be save, default True.
+        """
         paths = [os.path.join(
             self.this_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
+
         for path in paths:
             self._make_submission(path, username, add_uuid)
+
         post_count = pre_count + len(self.surveys) if should_store\
             else pre_count
         self.assertEqual(Instance.objects.count(), post_count)

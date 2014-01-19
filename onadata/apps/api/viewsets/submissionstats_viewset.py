@@ -4,9 +4,9 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
-from onadata.apps.api.tools import get_accessible_forms,\
-    get_form_submissions_grouped_by_field, get_xform
+from onadata.apps.api.tools import get_accessible_forms, get_xform
 from onadata.apps.odk_logger.models import Instance
+from onadata.libs.data.query import get_form_submissions_grouped_by_field
 
 
 class SubmissionStatsViewSet(viewsets.ViewSet):
