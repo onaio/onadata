@@ -80,7 +80,7 @@ class TestFormAPIDelete(TestBase):
             Instance.objects.filter(deleted_at=None).count(), count - 1)
         instance = Instance.objects.get(id=instance.id)
         self.assertTrue(isinstance(instance.deleted_at, datetime))
-        self.assertTrue(instance.is_deleted, True)
+        self.assertFalse(instance.deleted_at, None)
         query = '{"_id": %s}' % instance.id
         self.mongo_args.update({"query": query})
         #check that query_mongo will not return the deleted record

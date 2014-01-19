@@ -99,7 +99,8 @@ class XForm(models.Model):
         )
 
     def data_dictionary(self):
-        from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
+        from onadata.apps.odk_viewer.models.data_dictionary import\
+            DataDictionary
         return DataDictionary.objects.get(pk=self.pk)
 
     @property
@@ -164,16 +165,17 @@ class XForm(models.Model):
 
     def submission_count(self):
         if self.num_of_submissions == -1:
-            count = self.surveys.filter(is_deleted=False).count()
+            count = self.surveys.filter(deleted_at__isnull=True).count()
             self.num_of_submissions = count
             self.save()
         return self.num_of_submissions
     submission_count.short_description = ugettext_lazy("Submission Count")
 
     def geocoded_submission_count(self):
-        from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance
+        from onadata.apps.odk_viewer.models.parsed_instance import\
+            ParsedInstance
         return ParsedInstance.objects.filter(
-            instance__in=self.surveys.filter(is_deleted=False),
+            instance__in=self.surveys.filter(deleted_at__isnull=True),
             lat__isnull=False).count()
     geocoded_submission_count.short_description = \
         ugettext_lazy("Geocoded Submission Count")
@@ -182,7 +184,7 @@ class XForm(models.Model):
         if self.last_submission_time is None and self.num_of_submissions > 0:
             try:
                 last_submission = self.surveys.\
-                    filter(is_deleted=False).latest("date_created")
+                    filter(deleted_at__isnull=True).latest("date_created")
             except ObjectDoesNotExist:
                 pass
             else:
