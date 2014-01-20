@@ -4,6 +4,7 @@ import os
 from mock import patch
 from nose.tools import raises
 
+from onadata.apps.odk_logger.models.instance import Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
 
@@ -136,3 +137,37 @@ class TestTools(TestBase):
         xform = self.user.xforms.all()[0]
 
         get_form_submissions_grouped_by_field(xform, field)
+
+    def test_get_form_submissions_when_response_not_provided(self):
+        """
+        Test that the None value is stripped when of the submissions
+        doesnt have a response for the specified field
+        """
+        self._make_submissions()
+
+        count = Instance.objects.count()
+
+        # make submission that doesnt have a response for
+        # `available_transportation_types_to_referral_facility`
+        path = os.path.join(
+            self.this_directory, 'fixtures', 'transportation',
+            'instances', 'transport_no_response', 'transport_no_response.xml')
+        self._make_submission(path, self.user.username)
+        self.assertEqual(Instance.objects.count(), count + 1)
+
+        field = 'transport/available_transportation_types_to_referral_facility'
+        xform = self.user.xforms.all()[0]
+
+        results = get_form_submissions_grouped_by_field(
+            xform, field,
+            'available_transportation_types_to_referral_facility')
+
+        # we should have a similar number of aggregates as submissions as each
+        # submission has a unique value for the field
+        self.assertEqual(len(results), count + 1)
+
+        # the count where the value is None should have a count of 1
+        result = filter(
+            lambda r: r['available_transportation_types_to_referral_facility']
+            is None, results)[0]
+        self.assertEqual(result['count'], 1)

@@ -54,7 +54,7 @@ def _postgres_count_group(field, name, xform):
         string_args['json'] = "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY"\
                               "-MM-DD')" % string_args
 
-    return "SELECT %(json)s AS %(name)s, COUNT(%(json)s) AS count FROM "\
+    return "SELECT %(json)s AS %(name)s, COUNT(*) AS count FROM "\
            "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
            "GROUP BY %(json)s" % string_args
 
@@ -106,7 +106,8 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
 
     result = _execute_query(_count_group(field, name, xform))
 
-    if len(result) and result[0][name] is None:
+    # if we have a single None result, the field doesnt exist
+    if len(result) == 1 and result[0][name] is None:
         raise ValueError(_(u"Field '%s' does not exist." % field))
 
     return result
