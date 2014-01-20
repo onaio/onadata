@@ -20,7 +20,7 @@ class Command(BaseCommand):
             has_geo = ParsedInstance.objects.filter(
                 instance__xform=xform, lat__isnull=False).count() > 0
             try:
-                xform.surveys_with_geopoints = has_geo
+                xform.instances_with_geopoints = has_geo
                 xform.save()
             except Exception as e:
                 print e

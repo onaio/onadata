@@ -94,7 +94,7 @@ class XlsWriter(object):
         self._data_dictionary = data_dictionary
         self.reset_workbook()
         self._add_sheets()
-        observations = self._data_dictionary.add_surveys()
+        observations = self._data_dictionary.add_instances()
         for obs in observations:
             self.add_obs(obs)
 

@@ -288,7 +288,7 @@ class TestProcess(TestBase):
 
     def _check_group_xpaths_do_not_appear_in_dicts_for_export(self):
         uuid = u'uuid:f3d8dc65-91a6-4d0f-9e97-802128083390'
-        instances = self.xform.surveys.all()
+        instances = self.xform.instances.all()
         instance = None
 
         for i in instances:

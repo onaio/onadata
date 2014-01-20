@@ -60,8 +60,8 @@ def dd_for_params(id_string, owner, request):
                     HttpResponseBadRequest(
                         _(u'Start time format must be YY_MM_DD_hh_mm_ss'))
                     ]
-        dd.surveys_for_export = \
-            lambda d: d.surveys.filter(date_created__gte=start)
+        dd.instances_for_export = \
+            lambda d: d.instances.filter(date_created__gte=start)
     if request.GET.get('end'):
         try:
             end = encode(request.GET['end'])
@@ -71,12 +71,12 @@ def dd_for_params(id_string, owner, request):
                     HttpResponseBadRequest(
                         _(u'End time format must be YY_MM_DD_hh_mm_ss'))
                     ]
-        dd.surveys_for_export = \
-            lambda d: d.surveys.filter(date_created__lte=end)
+        dd.instances_for_export = \
+            lambda d: d.instances.filter(date_created__lte=end)
     if start and end:
-        dd.surveys_for_export = \
-            lambda d: d.surveys.filter(date_created__lte=end,
-                                       date_created__gte=start)
+        dd.instances_for_export = \
+            lambda d: d.instances.filter(date_created__lte=end,
+                                         date_created__gte=start)
     return [True, dd]
 
 

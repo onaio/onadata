@@ -24,7 +24,7 @@ class TestTools(TestBase):
         count_key = 'count'
         fields = ['_submission_time', '_xform_id_string']
 
-        count = len(self.xform.surveys.all())
+        count = len(self.xform.instances.all())
 
         for field in fields:
             result = get_form_submissions_grouped_by_field(
@@ -45,7 +45,7 @@ class TestTools(TestBase):
         count_key = 'count'
         fields = ['_submission_time']
 
-        count = len(self.xform.surveys.all())
+        count = len(self.xform.instances.all())
 
         for field in fields:
             result = get_form_submissions_grouped_by_field(
@@ -73,7 +73,7 @@ class TestTools(TestBase):
         count_key = 'count'
         fields = ['_submission_time', '_xform_id_string']
 
-        count = len(self.xform.surveys.all())
+        count = len(self.xform.instances.all())
 
         for field in fields:
             result = get_form_submissions_grouped_by_field(
@@ -82,7 +82,7 @@ class TestTools(TestBase):
             self.assertEqual([field, count_key], sorted(result.keys()))
             self.assertEqual(result[count_key], count)
 
-        count = len(first_xform.surveys.all())
+        count = len(first_xform.instances.all())
 
         for field in fields:
             result = get_form_submissions_grouped_by_field(
@@ -103,7 +103,7 @@ class TestTools(TestBase):
 
         fields = ['_submission_time', '_xform_id_string']
 
-        count = len(self.xform.surveys.all())
+        count = len(self.xform.instances.all())
         self.assertEqual(count, 0)
         for field in fields:
             result = get_form_submissions_grouped_by_field(
@@ -120,7 +120,7 @@ class TestTools(TestBase):
         name = '_my_name'
 
         xform = self.user.xforms.all()[0]
-        count = len(xform.surveys.all())
+        count = len(xform.instances.all())
 
         for field in fields:
             result = get_form_submissions_grouped_by_field(
@@ -138,8 +138,6 @@ class TestTools(TestBase):
 
         get_form_submissions_grouped_by_field(xform, field)
 
-    # TODO: should fix query logic so value is returned as 1, in which case the
-    # test should check that the count is 1 and not stripped
     def test_get_form_submissions_when_response_not_provided(self):
         """
         Test that the None value is stripped when of the submissions
@@ -161,7 +159,8 @@ class TestTools(TestBase):
         xform = self.user.xforms.all()[0]
 
         results = get_form_submissions_grouped_by_field(
-            xform, field, 'available_transportation_types_to_referral_facility')
+            xform, field,
+            'available_transportation_types_to_referral_facility')
 
         # we should have a similar number of aggregates as submissions as each
         # submission has a unique value for the field

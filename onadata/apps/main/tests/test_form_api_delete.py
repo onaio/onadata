@@ -72,6 +72,7 @@ class TestFormAPIDelete(TestBase):
         count = Instance.objects.filter(deleted_at=None).count()
         instance = Instance.objects.filter(
             xform=self.xform).latest('date_created')
+        self.assertEqual(instance.deleted_at, None)
         # delete
         params = {'id': instance.id}
         response = self.client.post(self.delete_url, params)
@@ -80,7 +81,7 @@ class TestFormAPIDelete(TestBase):
             Instance.objects.filter(deleted_at=None).count(), count - 1)
         instance = Instance.objects.get(id=instance.id)
         self.assertTrue(isinstance(instance.deleted_at, datetime))
-        self.assertTrue(instance.is_deleted, True)
+        self.assertNotEqual(instance.deleted_at, None)
         query = '{"_id": %s}' % instance.id
         self.mongo_args.update({"query": query})
         #check that query_mongo will not return the deleted record
