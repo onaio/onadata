@@ -109,9 +109,6 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
     # if we have a single None result, the field doesnt exist
     if len(result) == 1 and result[0][name] is None:
         raise ValueError(_(u"Field '%s' does not exist." % field))
-    #elif len(result) > 0 and result[0][name] is None:
-    #    # strip out the first result if it has a count of 0 and value of None
-    #    result = result[1:]
 
     return result
 
