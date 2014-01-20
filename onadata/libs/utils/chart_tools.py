@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 
-from onadata.apps.api.tools import get_form_submissions_grouped_by_field
+from onadata.libs.data.query import get_form_submissions_grouped_by_field
 from onadata.libs.utils import common_tags
 
 

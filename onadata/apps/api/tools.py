@@ -1,3 +1,4 @@
+import warnings
 from datetime import datetime
 import numpy as np
 
@@ -205,6 +206,7 @@ def publish_project_xform(request, project):
 
 def get_form_submissions_grouped_by_field(xform, field, name=None):
     """Number of submissions grouped by field"""
+    warnings.warn("use the function within onadata.libs.data.query", DeprecationWarning)
     if not name:
         name = field
 
