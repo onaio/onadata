@@ -138,8 +138,6 @@ class TestTools(TestBase):
 
         get_form_submissions_grouped_by_field(xform, field)
 
-    # TODO: test will pass when count query is fixed to return actual count of
-    # missing/None values, it currently always returns 0 for None i.e. no responses
     def test_get_form_submissions_when_response_not_provided(self):
         """
         Test that the None value is stripped when of the submissions
@@ -161,7 +159,8 @@ class TestTools(TestBase):
         xform = self.user.xforms.all()[0]
 
         results = get_form_submissions_grouped_by_field(
-            xform, field, 'available_transportation_types_to_referral_facility')
+            xform, field,
+            'available_transportation_types_to_referral_facility')
 
         # we should have a similar number of aggregates as submissions as each
         # submission has a unique value for the field
