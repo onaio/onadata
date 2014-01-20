@@ -197,6 +197,7 @@ INSTALLED_APPS = (
     'djcelery',
     'onadata.apps.stats',
     'onadata.apps.sms_support',
+    'onadata.libs',
 )
 
 OAUTH2_PROVIDER = {
