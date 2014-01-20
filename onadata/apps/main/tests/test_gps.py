@@ -31,8 +31,9 @@ class TestGPS(TestBase):
     def _check_has_geopoints(self):
         self.assertEqual(DataDictionary.objects.count(), 1)
         dd = DataDictionary.objects.all()[0]
-        # should have been saved to dd.surveys_with_geopoints during submission
-        self.assertTrue(dd.has_surveys_with_geopoints())
+        # should have been saved to dd.instances_with_geopoints during
+        # submission
+        self.assertTrue(dd.has_instances_with_geopoints())
 
     def _check_link_to_map_view(self):
         response = self.client.get("/%s/" % self.user.username)

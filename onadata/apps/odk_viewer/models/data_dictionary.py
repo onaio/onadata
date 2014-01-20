@@ -53,7 +53,7 @@ class DataDictionary(XForm):
     PREFIX_NAME_REGEX = re.compile(r'(?P<prefix>.+/)(?P<name>[^/]+)$')
 
     def __init__(self, *args, **kwargs):
-        self.surveys_for_export = lambda d: d.surveys.all()
+        self.instances_for_export = lambda d: d.instances.all()
         super(DataDictionary, self).__init__(*args, **kwargs)
 
     def _set_uuid_in_xml(self, file_name=None):
@@ -136,7 +136,7 @@ class DataDictionary(XForm):
         app_label = "odk_viewer"
         proxy = True
 
-    def add_surveys(self):
+    def add_instances(self):
         if not hasattr(self, "_dict_organizer"):
             _dict_organizer = DictOrganizer()
         obs = []
@@ -191,7 +191,7 @@ class DataDictionary(XForm):
             if e.bind.get(u'type') == u'geopoint':
                 return e.get_abbreviated_xpath()
 
-    def has_surveys_with_geopoints(self):
+    def has_instances_with_geopoints(self):
         return ParsedInstance.objects.filter(
             instance__xform=self, lat__isnull=False).count() > 0
 
@@ -337,7 +337,7 @@ class DataDictionary(XForm):
         return header
 
     def get_list_of_parsed_instances(self, flat=True):
-        for i in queryset_iterator(self.surveys_for_export(self)):
+        for i in queryset_iterator(self.instances_for_export(self)):
             # TODO: there is information we want to add in parsed xforms.
             yield i.get_dict(flat=flat)
 

@@ -219,7 +219,7 @@
         </p>
         <p><a id="data-license_info" style="display:none" href="">{% trans "License information" %}</a></p>
 	    <div class="btn-group" style="margin-bottom: 9px">
-				{% if xform.has_surveys_with_geopoints %}
+				{% if xform.has_instances_with_geopoints %}
 			<a class="btn btn-info" rel="tooltip" title="{% trans 'View Map' %}" href="{% url "onadata.apps.odk_viewer.views.map_view" content_user.username xform.id_string %}">
 				<i class="icon-map-marker icon-white"></i> {% trans "Map" %}
 			</a>

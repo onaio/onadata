@@ -32,8 +32,8 @@ class TestDataViewSet(TestBase):
         response = view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
-        self.assertTrue(self.xform.surveys.count())
-        dataid = self.xform.surveys.all().order_by('id')[0].pk
+        self.assertTrue(self.xform.instances.count())
+        dataid = self.xform.instances.all().order_by('id')[0].pk
 
         data = {
             u'_bamboo_dataset_id': u'',
@@ -55,7 +55,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
-        dataid = self.xform.surveys.all()[0].pk
+        dataid = self.xform.instances.all()[0].pk
         response = view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
@@ -91,7 +91,7 @@ class TestDataViewSet(TestBase):
         response = view(request, owner='bob', pk=pk, formid=_id)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'hello'])
-        for i in self.xform.surveys.all():
+        for i in self.xform.instances.all():
             self.assertIn(u'hello', i.tags.names())
         # remove tag "hello"
         request = self.factory.delete('/', data={"tags": "hello"},
@@ -99,7 +99,7 @@ class TestDataViewSet(TestBase):
         response = view(request, owner='bob', pk=pk, formid=_id, label='hello')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
-        for i in self.xform.surveys.all():
+        for i in self.xform.instances.all():
             self.assertNotIn(u'hello', i.tags.names())
 
     def test_add_notes_to_data_point(self):
@@ -109,10 +109,10 @@ class TestDataViewSet(TestBase):
             'post': 'create',
         })
         note = {'note': u"Road Warrior"}
-        dataid = self.xform.surveys.all()[0].pk
+        dataid = self.xform.instances.all()[0].pk
         note['instance'] = dataid
         request = self.factory.post('/', data=note, **self.extra)
-        self.assertTrue(self.xform.surveys.count())
+        self.assertTrue(self.xform.instances.count())
         response = view(request)
         self.assertEqual(response.status_code, 201)
         pk = response.data['id']

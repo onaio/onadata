@@ -186,7 +186,7 @@ class TestBase(TransactionTestCase):
         post_count = pre_count + len(self.surveys) if should_store\
             else pre_count
         self.assertEqual(Instance.objects.count(), post_count)
-        self.assertEqual(self.xform.surveys.count(), post_count)
+        self.assertEqual(self.xform.instances.count(), post_count)
         xform = XForm.objects.get(pk=self.xform.pk)
         self.assertEqual(xform.num_of_submissions, post_count)
         self.assertEqual(xform.user.profile.num_of_submissions, post_count)
