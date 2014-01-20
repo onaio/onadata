@@ -53,7 +53,7 @@
     <div class="col-md-4">
         {% url "auth_login" as login_url %}
         <form role="form" method="post" action="{{ login_url }}">
-                        <input type="text" class="form-control" autocomplete="off" name="username" placeholder="Username">
+                        <input type="text" class="form-control" autocomplete="off" autofocus="autofocus" name="username" placeholder="Username">
                         <br/>
                         <input type="password" class="form-control" autocomplete="off" name="password" placeholder="Password">
                         <br/>

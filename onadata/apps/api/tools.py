@@ -1,11 +1,8 @@
+from datetime import datetime
 import numpy as np
 
-from datetime import datetime
-
-from django.conf import settings
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
-from django.db import connection
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions
 
@@ -16,20 +13,12 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.odk_logger.models.xform import XForm
 from onadata.apps.odk_viewer.models.parsed_instance import datetime_from_str
+from onadata.libs.data.query import get_field_records, get_numeric_fields
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.user_auth import check_and_set_form_by_id, \
     check_and_set_form_by_id_string
 
 DECIMAL_PRECISION = 2
-
-
-def _dictfetchall(cursor):
-    "Returns all rows from a cursor as a dict"
-    desc = cursor.description
-    return [
-        dict(zip([col[0] for col in desc], row))
-        for row in cursor.fetchall()
-    ]
 
 
 def _get_first_last_names(name):
@@ -262,20 +251,6 @@ def _chk_asarray(a, axis):
         a = np.asarray(a)
         outaxis = axis
     return a, outaxis
-
-
-def get_numeric_fields(xform):
-    """List of numeric field names for specified xform"""
-    k = []
-    dd = xform.data_dictionary()
-    survey_elements = dd.get_survey_elements_of_type('integer') +\
-        dd.get_survey_elements_of_type('decimal')
-
-    for element in survey_elements:
-        name = element.get_abbreviated_xpath()
-        k.append(name)
-
-    return k
 
 
 def get_median_for_field(field, xform):

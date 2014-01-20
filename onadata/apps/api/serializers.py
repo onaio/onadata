@@ -11,7 +11,8 @@ from onadata.apps.api.fields import HyperlinkedMultiIdentityField,\
     HyperlinkedMultiRelatedField
 from onadata.apps.api import tools
 from onadata.apps.main.models import UserProfile
-from onadata.apps.main.forms import UserProfileForm, RegistrationFormUserProfile
+from onadata.apps.main.forms import UserProfileForm,\
+    RegistrationFormUserProfile
 from onadata.apps.odk_logger.models import XForm, Note
 
 
