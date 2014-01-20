@@ -20,7 +20,7 @@ class TestFormPermissions(TestBase):
         self._make_submission(os.path.join(
             self.this_directory, 'fixtures',
             'transportation', 'instances', s, s + '.xml'))
-        self.submission = self.xform.surveys.reverse()[0]
+        self.submission = self.xform.instances.reverse()[0]
         self.url = reverse(map_view, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string})

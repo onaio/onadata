@@ -561,7 +561,7 @@ def view_submission_list(request, username):
         return HttpResponseForbidden('Not shared.')
     num_entries = request.GET.get('numEntries', None)
     cursor = request.GET.get('cursor', None)
-    instances = xform.surveys.filter(deleted_at=None).order_by('pk')
+    instances = xform.instances.filter(deleted_at=None).order_by('pk')
 
     cursor = _parse_int(cursor)
     if cursor:

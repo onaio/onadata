@@ -420,7 +420,7 @@ class TestExports(TestBase):
                                     export_type=Export.XLS_EXPORT))
         sleep(1)
         # force new  last submission date on xform
-        last_submission = self.xform.surveys.order_by('-date_created')[0]
+        last_submission = self.xform.instances.order_by('-date_created')[0]
         last_submission.date_created += datetime.timedelta(hours=1)
         last_submission.save()
         # check that our function knows data has changed

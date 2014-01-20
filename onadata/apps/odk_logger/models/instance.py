@@ -40,10 +40,8 @@ def submission_time():
 class Instance(models.Model):
     json = JSONField(default={}, null=False)
     xml = models.TextField()
-    user = models.ForeignKey(User, related_name='surveys', null=True)
-
-    # using instances instead of surveys breaks django
-    xform = models.ForeignKey(XForm, null=True, related_name='surveys')
+    user = models.ForeignKey(User, related_name='instances', null=True)
+    xform = models.ForeignKey(XForm, null=True, related_name='instances')
     survey_type = models.ForeignKey(SurveyType)
 
     # shows when we first received this instance

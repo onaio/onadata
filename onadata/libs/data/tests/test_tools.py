@@ -24,7 +24,7 @@ class TestTools(TestBase):
         count_key = 'count'
         fields = ['_submission_time', '_xform_id_string']
 
-        count = len(self.xform.surveys.all())
+        count = len(self.xform.instances.all())
 
         for field in fields:
             result = get_form_submissions_grouped_by_field(
@@ -45,7 +45,7 @@ class TestTools(TestBase):
         count_key = 'count'
         fields = ['_submission_time']
 
-        count = len(self.xform.surveys.all())
+        count = len(self.xform.instances.all())
 
         for field in fields:
             result = get_form_submissions_grouped_by_field(
@@ -73,7 +73,7 @@ class TestTools(TestBase):
         count_key = 'count'
         fields = ['_submission_time', '_xform_id_string']
 
-        count = len(self.xform.surveys.all())
+        count = len(self.xform.instances.all())
 
         for field in fields:
             result = get_form_submissions_grouped_by_field(
@@ -82,7 +82,7 @@ class TestTools(TestBase):
             self.assertEqual([field, count_key], sorted(result.keys()))
             self.assertEqual(result[count_key], count)
 
-        count = len(first_xform.surveys.all())
+        count = len(first_xform.instances.all())
 
         for field in fields:
             result = get_form_submissions_grouped_by_field(
@@ -103,7 +103,7 @@ class TestTools(TestBase):
 
         fields = ['_submission_time', '_xform_id_string']
 
-        count = len(self.xform.surveys.all())
+        count = len(self.xform.instances.all())
         self.assertEqual(count, 0)
         for field in fields:
             result = get_form_submissions_grouped_by_field(
@@ -120,7 +120,7 @@ class TestTools(TestBase):
         name = '_my_name'
 
         xform = self.user.xforms.all()[0]
-        count = len(xform.surveys.all())
+        count = len(xform.instances.all())
 
         for field in fields:
             result = get_form_submissions_grouped_by_field(

@@ -63,17 +63,18 @@ class TestSimpleSubmission(TestCase):
             create_instance(self.user.username, TempFileProxy("""
                 <?xml version='1.0' ?><yes_or_no id="yes_or_no"><yesno>Yes</yesno></yes_or_no>
                 """.strip()), [])
-        self.assertEquals(0, self.xform1.surveys.count())
+        self.assertEquals(0, self.xform1.instances.count())
         submit_simple_yes()
-        self.assertEquals(1, self.xform1.surveys.count())
+        self.assertEquals(1, self.xform1.instances.count())
         # a simple "yes" submission *SHOULD* increment the survey count
         submit_simple_yes()
-        self.assertEquals(2, self.xform1.surveys.count())
+        self.assertEquals(2, self.xform1.instances.count())
 
     def test_start_time_submissions(self):
         """
-        This test checks to make sure that surveys *with start_time available*
-        are marked as duplicates when the XML is a direct match.
+        This test checks to make sure that instances
+        *with start_time available* are marked as duplicates when the XML is a
+        direct match.
         """
         def submit_at_hour(hour):
             st_xml = """
@@ -83,12 +84,12 @@ class TestSimpleSubmission(TestCase):
                 create_instance(self.user.username, TempFileProxy(st_xml), [])
             except DuplicateInstance:
                 pass
-        self.assertEquals(0, self.xform2.surveys.count())
+        self.assertEquals(0, self.xform2.instances.count())
         submit_at_hour(11)
-        self.assertEquals(1, self.xform2.surveys.count())
+        self.assertEquals(1, self.xform2.instances.count())
         submit_at_hour(12)
-        self.assertEquals(2, self.xform2.surveys.count())
+        self.assertEquals(2, self.xform2.instances.count())
         # an instance from 11 AM already exists in the database, so it
         # *SHOULD NOT* increment the survey count.
         submit_at_hour(11)
-        self.assertEquals(2, self.xform2.surveys.count())
+        self.assertEquals(2, self.xform2.instances.count())

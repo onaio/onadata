@@ -6,7 +6,8 @@ from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.api.viewsets.stats_viewset import StatsViewSet
-from onadata.apps.api.viewsets.submissionstats_viewset import SubmissionStatsViewSet
+from onadata.apps.api.viewsets.submissionstats_viewset import\
+    SubmissionStatsViewSet
 from onadata.apps.odk_logger.models import XForm
 from onadata.libs.utils.logger_tools import publish_xml_form, create_instance
 
@@ -68,7 +69,7 @@ class TestStatsViewSet(TestBase):
         for uuid in os.listdir(instances_path):
             s_path = os.path.join(instances_path, uuid, 'submission.xml')
             create_instance(self.user.username, open(s_path), [])
-        self.assertEqual(self.xform.surveys.count(), 6)
+        self.assertEqual(self.xform.instances.count(), 6)
 
     def test_median_api(self):
         self._contributions_form_submissions()

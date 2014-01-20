@@ -35,14 +35,12 @@ from onadata.apps.odk_logger.views import enter_data
 from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary,\
     upload_to
 from onadata.apps.odk_viewer.models.parsed_instance import\
-    GLOBAL_SUBMISSION_STATS, DATETIME_FORMAT, ParsedInstance
+    DATETIME_FORMAT, ParsedInstance
 from onadata.apps.odk_viewer.views import attachment_url
 from onadata.apps.sms_support.tools import check_form_sms_compatibility,\
     is_sms_related
 from onadata.apps.sms_support.autodoc import get_autodoc_for
 from onadata.apps.sms_support.providers import providers_doc
-from onadata.apps.stats.models import StatsCount
-from onadata.apps.stats.tasks import stat_log
 from onadata.libs.utils.bamboo import get_new_bamboo_dataset,\
     delete_bamboo_dataset, ensure_rest_service
 from onadata.libs.utils.decorators import is_owner
@@ -220,7 +218,7 @@ def profile(request, username):
         context.odk_url = request.build_absolute_uri(
             "/%s" % request.user.username)
         xforms = XForm.objects.filter(user=content_user)\
-            .select_related('user', 'surveys')
+            .select_related('user', 'instances')
         context.user_xforms = xforms
         crowdforms = XForm.objects.filter(
             metadata__data_type=MetaData.CROWDFORM_USERS,
@@ -960,7 +958,7 @@ def form_photos(request, username, id_string):
     context.xform = xform
     image_urls = []
 
-    for instance in xform.surveys.all():
+    for instance in xform.instances.all():
         for attachment in instance.attachments.all():
             # skip if not image e.g video or file
             if not attachment.mimetype.startswith('image'):

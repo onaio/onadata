@@ -32,8 +32,8 @@ def submissions(request):
     users = User.objects.all()
     for user in users:
         stats['submission_count'][user.username] = 0
-        stats['submission_count'][user.username] += user.surveys.count()
+        stats['submission_count'][user.username] += user.instances.count()
         stats['submission_count'][
-            'total_submission_count'] += user.surveys.count()
+            'total_submission_count'] += user.instances.count()
     context.stats = stats
     return render_to_response("submissions.html", context_instance=context)

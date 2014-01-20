@@ -25,7 +25,7 @@ class MyError(Exception):
 
 def image_urls_for_form(xform):
     return sum([
-        image_urls(s) for s in xform.surveys.all()
+        image_urls(s) for s in xform.instances.all()
     ], [])
 
 

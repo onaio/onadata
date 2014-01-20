@@ -71,7 +71,7 @@ class XForm(models.Model):
     uuid_node_location = 2
     uuid_bind_location = 4
     bamboo_dataset = models.CharField(max_length=60, default=u'')
-    surveys_with_geopoints = models.BooleanField(default=False)
+    instances_with_geopoints = models.BooleanField(default=False)
     num_of_submissions = models.IntegerField(default=-1)
 
     tags = TaggableManager()
@@ -104,8 +104,8 @@ class XForm(models.Model):
         return DataDictionary.objects.get(pk=self.pk)
 
     @property
-    def has_surveys_with_geopoints(self):
-        return self.surveys_with_geopoints
+    def has_instances_with_geopoints(self):
+        return self.instances_with_geopoints
 
     def _set_id_string(self):
         matches = self.instance_id_regex.findall(self.xml)
@@ -165,7 +165,7 @@ class XForm(models.Model):
 
     def submission_count(self):
         if self.num_of_submissions == -1:
-            count = self.surveys.filter(deleted_at__isnull=True).count()
+            count = self.instances.filter(deleted_at__isnull=True).count()
             self.num_of_submissions = count
             self.save()
         return self.num_of_submissions
@@ -175,7 +175,7 @@ class XForm(models.Model):
         from onadata.apps.odk_viewer.models.parsed_instance import\
             ParsedInstance
         return ParsedInstance.objects.filter(
-            instance__in=self.surveys.filter(deleted_at__isnull=True),
+            instance__in=self.instances.filter(deleted_at__isnull=True),
             lat__isnull=False).count()
     geocoded_submission_count.short_description = \
         ugettext_lazy("Geocoded Submission Count")
@@ -183,7 +183,7 @@ class XForm(models.Model):
     def time_of_last_submission(self):
         if self.last_submission_time is None and self.num_of_submissions > 0:
             try:
-                last_submission = self.surveys.\
+                last_submission = self.instances.\
                     filter(deleted_at__isnull=True).latest("date_created")
             except ObjectDoesNotExist:
                 pass
@@ -194,8 +194,8 @@ class XForm(models.Model):
 
     def time_of_last_submission_update(self):
         try:
-            # we also consider deleted surveys in this case
-            return self.surveys.latest("date_modified").date_modified
+            # we also consider deleted instances in this case
+            return self.instances.latest("date_modified").date_modified
         except ObjectDoesNotExist:
             pass
 
