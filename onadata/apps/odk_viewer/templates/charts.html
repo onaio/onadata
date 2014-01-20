@@ -3,8 +3,10 @@
 
 {% block additional-headers %}
 <link rel="stylesheet" href="/static/css/charts.css" />
+<script src="{{STATIC_URL}}bower_components/underscore/underscore-min.js"></script>
 <script src="{{STATIC_URL}}bower_components/d3/d3.min.js"></script>
 <script src="{{STATIC_URL}}bower_components/dimple/dist/dimple.v1.1.3.min.js"></script>
+<script src="{{STATIC_URL}}/js/charts.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -15,8 +17,10 @@
 
 <div>
   {% for summary in summaries  %}
+  <div class="row">
   {% with field_name=summary.field_name data_type=summary.data_type field_type=summary.field_type data=summary.data %}
-  <div id="chart-{{ forloop.counter }}" class="chart" style="width: 590px; height: 400px; margin-bottom: 30px;"></div>
+  <div id="chart-{{ forloop.counter }}" class="span6 chart"></div>
+  <div id="grid-{{ forloop.counter }}" class="span4 chart-data-grid"></div>
   <script type="text/javascript">
     (function(elmSelector){
           // append the heading
@@ -42,9 +46,18 @@
           chart.draw();
           countAxis.titleShape.style('font-size', '12px');
           categoryAxis.titleShape.style('font-size', '12px');
-      })('#chart-{{ forloop.counter }}')
+
+          // add table data
+          var tableMarkup = ChartGridTemplate({
+              field_name: "{{ field_name }}",
+              data: data
+          });
+
+          d3.select('#grid-{{ forloop.counter }}').html(tableMarkup);
+      })('#chart-{{ forloop.counter }}');
   </script>
   {% endwith %}
+        </div>
   {% endfor %}
 </div>
 
