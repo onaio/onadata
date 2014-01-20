@@ -138,8 +138,8 @@ class TestTools(TestBase):
 
         get_form_submissions_grouped_by_field(xform, field)
 
-    # TODO: should fix query logic so value is returned as 1, in which case the
-    # test should check that the count is 1 and not stripped
+    # TODO: test will pass when count query is fixed to return actual count of
+    # missing/None values, it currently always returns 0 for None i.e. no responses
     def test_get_form_submissions_when_response_not_provided(self):
         """
         Test that the None value is stripped when of the submissions
