@@ -220,12 +220,6 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
     return result
 
 
-def get_field_records(field, xform):
-    result = _execute_query(_postgres_select_key(field, field, xform),
-                            to_dict=False)
-    return [float(i[0]) for i in result]
-
-
 def mode(a, axis=0):
     """
     Adapted from

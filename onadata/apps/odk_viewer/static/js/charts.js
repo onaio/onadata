@@ -3,15 +3,17 @@
 
     root.ChartGridTemplate = _.template('<table class="table table-striped table-bordered table-condensed">' +
           '<thead>' +
+            '<% if(show_header) { %>' +
             '<tr>' +
-              '<th><%= field_name %></th>' +
+              '<th width="60%"><%= field_name %></th>' +
               '<th>count</th>' +
             '</tr>' +
+            '<% } %>' +
           '</thead>' +
           '<tbody>' +
             '<% _.each(data, function(d) {%>' +
             '<tr>' +
-              '<td><%= d[field_name] %></td>' +
+              '<td width="60%"><%= d[field_name] %></td>' +
               '<td><%= d["count"] %></td>' +
             '</tr>' +
             '<% }) %>' +
