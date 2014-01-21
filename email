@@ -1,0 +1,13 @@
+set mail-format {
+    from: noreply@SITE_DOMAIN
+    subject: $SERVICE $EVENT at $DATE on $HOST
+    message:
+Alert from $HOST
+Date: $DATE
+For $SERVICE ($EVENT) and take $ACTION
+--------------------------------------
+$DESCRIPTION
+}
+
+# alert recepients
+set alert ALERT_RECIPIENTS
