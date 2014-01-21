@@ -6,7 +6,8 @@ from nose.tools import raises
 
 from onadata.apps.odk_logger.models.instance import Instance
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.data.query import get_form_submissions_grouped_by_field
+from onadata.libs.data.query import get_form_submissions_grouped_by_field,\
+    get_date_fields
 
 
 class TestTools(TestBase):
@@ -171,3 +172,13 @@ class TestTools(TestBase):
             lambda r: r['available_transportation_types_to_referral_facility']
             is None, results)[0]
         self.assertEqual(result['count'], 1)
+
+    def test_get_date_fields_includes_start_end(self):
+        path = os.path.join(
+            os.path.dirname(__file__), "fixtures", "tutorial", "tutorial.xls")
+        self._publish_xls_file_and_set_xform(path)
+        fields = get_date_fields(self.xform)
+        expected_fields = sorted(
+            ['_submission_time', 'date', 'start_time', 'end_time', 'today',
+             'exactly'])
+        self.assertEqual(sorted(fields), expected_fields)

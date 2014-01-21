@@ -7,7 +7,7 @@ from onadata.libs.utils import common_tags
 
 # list of fields we can chart
 CHART_FIELDS = ['select one', 'integer', 'decimal', 'date', 'datetime', 'start',
-                'end']
+                'end', 'today']
 # numeric, categorized
 DATA_TYPE_MAP = {
     'integer': 'numeric',
@@ -15,7 +15,8 @@ DATA_TYPE_MAP = {
     'datetime': 'time_based',
     'date': 'time_based',
     'start': 'time_based',
-    'end': 'time_based'
+    'end': 'time_based',
+    'today': 'time_based',
 }
 
 

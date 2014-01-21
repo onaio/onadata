@@ -90,7 +90,8 @@ def flatten(l):
 
 def get_date_fields(xform):
     """List of date field names for specified xform"""
-    return [SUBMISSION_TIME] + _get_fields_of_type(xform, ['date'])
+    return [SUBMISSION_TIME] + _get_fields_of_type(
+        xform, ['date', 'datetime', 'start', 'end', 'today'])
 
 
 def get_field_records(field, xform):
