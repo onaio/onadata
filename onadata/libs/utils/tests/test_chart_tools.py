@@ -2,7 +2,6 @@ import os
 import unittest
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.chart_tools import build_chart_data_for_field,\
     build_chart_data, utc_time_string_for_javascript
 
@@ -16,15 +15,15 @@ class TestChartTools(TestBase):
     def setUp(self):
         super(TestChartTools, self).setUp()
         # create an xform
-        path = os.path.join(os.path.dirname(__file__), "..", "..", "apps",
-                            "api", "tests", "fixtures", "forms", "tutorial",
-                            "tutorial.xls")
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "apps", "api", "tests", "fixtures", "forms",
+                            "tutorial", "tutorial.xls")
         self._publish_xls_file_and_set_xform(path)
         # make a couple of submissions
         for i in range(1, 3):
-            path = os.path.join(os.path.dirname(__file__), "..", "..", "apps",
-                            "api", "tests", "fixtures", "forms", "tutorial",
-                            "instances", "{}.xml".format(i))
+            path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                                "apps", "api", "tests", "fixtures", "forms",
+                                "tutorial", "instances", "{}.xml".format(i))
             self._make_submission(path)
 
     def test_build_chart_data_for_field_on_submission_time(self):
@@ -55,14 +54,13 @@ class TestChartTools(TestBase):
                                   'gender', 'date', 'pizza_fan', 'net_worth',
                                   'start_time', 'end_time'])
         data_field_names = sorted([f['field_name'] for f in data])
-        #import ipdb; ipdb.set_trace()
         self.assertEqual(expected_fields, data_field_names)
 
     def test_build_chart_data_strips_none_from_dates(self):
         # make the 3rd submission that doesnt have a date
-        path = os.path.join(os.path.dirname(__file__), "..", "..", "apps",
-                            "api", "tests", "fixtures", "forms", "tutorial",
-                            "instances", "3.xml")
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "apps", "api", "tests", "fixtures", "forms",
+                            "tutorial", "instances", "3.xml")
         self._make_submission(path)
         dd = self.xform.data_dictionary()
         field = find_field_by_name(dd, 'date')
@@ -86,6 +84,24 @@ class TestChartTools(TestBase):
         self.assertEqual(
             end_time_data['data'][0]['end_time'],
             '2014-01-09T11:52:02.906+0300')
+
+    def test_build_field_data_returns_stats_for_numeric_fields(self):
+        field_name = 'age'
+        dd = self.xform.data_dictionary()
+        data = build_chart_data_for_field(
+            self.xform, find_field_by_name(dd, field_name))
+        # check stats data
+        expected_stats = [
+            {'age': 'max', 'count': 35},
+            {'age': 'mean', 'count': 29},
+            {'age': 'median', 'count': 29},
+            {'age': 'min', 'count': 23},
+            {'age': 'mode', 'count': 23},
+            {'age': 'range', 'count': 12},
+        ]
+        data_field_names = sorted(
+            [f for f in data['stats']], key=lambda x: x[field_name])
+        self.assertEqual(expected_stats, data_field_names)
 
 
 class TestChartUtilFunctions(unittest.TestCase):

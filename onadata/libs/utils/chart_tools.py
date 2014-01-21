@@ -3,6 +3,7 @@ from datetime import datetime
 
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
 from onadata.libs.utils import common_tags
+from onadata.apps.api.tools import get_all_stats
 
 
 # list of fields we can chart
@@ -76,11 +77,17 @@ def build_chart_data_for_field(xform, field):
                 except ValueError:
                     pass
 
+    stats = []
+    if data_type == 'numeric':
+        stats = [{'age': k, 'count': v} for k, v in get_all_stats(
+            xform, field_name)[field_name].items()]
+
     data = {
         'field_name': field_name,
         'field_type': field_type,
         'data_type': data_type,
-        'data': result
+        'data': result,
+        'stats': stats
     }
     return data
 
