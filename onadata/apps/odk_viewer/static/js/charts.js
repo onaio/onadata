@@ -1,11 +1,11 @@
 (function(){
     var root = this;
 
-    root.ChartGridTemplate = _.template('<table class="table table-striped">' +
+    root.ChartGridTemplate = _.template('<table class="table table-striped table-bordered table-condensed">' +
           '<thead>' +
             '<tr>' +
               '<th><%= field_name %></th>' +
-              '<th>Count</th>' +
+              '<th>count</th>' +
             '</tr>' +
           '</thead>' +
           '<tbody>' +
