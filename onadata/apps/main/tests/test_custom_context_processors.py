@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.test import TestCase
-from onadata.apps.formhub.context_processors import site_name
+from onadata.apps.main.context_processors import site_name
 
 
 class CustomContextProcessorsTest(TestCase):

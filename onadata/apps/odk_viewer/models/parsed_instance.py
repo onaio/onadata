@@ -325,8 +325,8 @@ class ParsedInstance(models.Model):
         # update xform incase we have a latitude
         xform = XForm.objects.select_related().select_for_update()\
             .get(pk=self.instance.xform.pk)
-        if self.lat is not None and not xform.surveys_with_geopoints:
-            xform.surveys_with_geopoints = True
+        if self.lat is not None and not xform.instances_with_geopoints:
+            xform.instances_with_geopoints = True
             xform.save()
 
     def save(self, async=False, *args, **kwargs):

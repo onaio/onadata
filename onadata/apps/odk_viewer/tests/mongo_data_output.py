@@ -27,7 +27,7 @@ class TestMongoData(TestBase):
         self._make_submission(os.path.join(
             self.this_directory, 'fixtures', 'transportation', 'mongo',
             'transport_2011-07-25_19-05-36' + '.xml'))
-        self.pi = self.xform.surveys.all()[0].parsed_instance
+        self.pi = self.xform.instances.all()[0].parsed_instance
 
     def test_mongo_find_one(self):
         self.assertEquals(self.pi.to_dict_for_mongo(),

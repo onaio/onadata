@@ -1,4 +1,4 @@
-from onadata.apps.api.tools import get_form_submissions_grouped_by_field
+from onadata.libs.data.query import get_form_submissions_grouped_by_field
 
 
 def get_form_submissions_per_day(xform):

@@ -12,7 +12,7 @@ def add_tags_to_xform_instances(sender, **kwargs):
     tags = kwargs.get('tags', None)
     if isinstance(xform, XForm) and isinstance(tags, list):
         # update existing instances with the new tag
-        for instance in xform.surveys.all():
+        for instance in xform.instances.all():
             for tag in tags:
                 if tag not in instance.tags.names():
                     instance.tags.add(tag)
@@ -26,7 +26,7 @@ def delete_tag_from_xform_instances(sender, **kwargs):
     tag = kwargs.get('tag', None)
     if isinstance(xform, XForm) and isinstance(tag, basestring):
         # update existing instances with the new tag
-        for instance in xform.surveys.all():
+        for instance in xform.instances.all():
             if tag in instance.tags.names():
                 instance.tags.remove(tag)
                 # ensure mongodb is updated

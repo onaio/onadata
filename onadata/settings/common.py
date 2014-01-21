@@ -133,8 +133,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.tz',
     'django.contrib.messages.context_processors.messages',
     'readonly.context_processors.readonly',
-    'onadata.apps.formhub.context_processors.google_analytics',
-    'onadata.apps.formhub.context_processors.site_name'
+    'onadata.apps.main.context_processors.google_analytics',
+    'onadata.apps.main.context_processors.site_name'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -151,9 +151,9 @@ MIDDLEWARE_CLASSES = (
     'readonly.middleware.DatabaseReadOnlyMiddleware',
 )
 
-LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'onadata.apps.formhub', 'locale'), )
+LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'onadata.apps.main', 'locale'), )
 
-ROOT_URLCONF = 'onadata.apps.formhub.urls'
+ROOT_URLCONF = 'onadata.apps.main.urls'
 USE_TZ = True
 
 
@@ -197,6 +197,7 @@ INSTALLED_APPS = (
     'djcelery',
     'onadata.apps.stats',
     'onadata.apps.sms_support',
+    'onadata.libs',
 )
 
 OAUTH2_PROVIDER = {

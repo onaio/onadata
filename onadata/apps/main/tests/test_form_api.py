@@ -32,7 +32,7 @@ class TestFormAPI(TestBase):
         response = self.client.get(self.api_url, {})
         self.assertEqual(response.status_code, 200)
         d = dict_for_mongo_without_userform_id(
-            self.xform.surveys.all()[0].parsed_instance)
+            self.xform.instances.all()[0].parsed_instance)
         find_d = json.loads(response.content)[0]
         self.assertEqual(find_d, d)
 
@@ -42,7 +42,7 @@ class TestFormAPI(TestBase):
         data = {'query': query}
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
-        d = dict_for_mongo_without_userform_id(self.xform.surveys.all()[0].parsed_instance)
+        d = dict_for_mongo_without_userform_id(self.xform.instances.all()[0].parsed_instance)
         find_d = json.loads(response.content)[0]
         self.assertEqual(find_d, d)
 
@@ -69,7 +69,7 @@ class TestFormAPI(TestBase):
         start = callback.__len__() + 1
         end = response.content.__len__() - 1
         content = response.content[start: end]
-        d = dict_for_mongo_without_userform_id(self.xform.surveys.all()[0].parsed_instance)
+        d = dict_for_mongo_without_userform_id(self.xform.instances.all()[0].parsed_instance)
         find_d = json.loads(content)[0]
         self.assertEqual(find_d, d)
 
@@ -79,7 +79,7 @@ class TestFormAPI(TestBase):
         data = {'query': query, 'start': 0, 'limit': 10}
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
-        d = dict_for_mongo_without_userform_id(self.xform.surveys.all()[0].parsed_instance)
+        d = dict_for_mongo_without_userform_id(self.xform.instances.all()[0].parsed_instance)
         find_d = json.loads(response.content)[0]
         self.assertEqual(find_d, d)
 
