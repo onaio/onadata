@@ -1,0 +1,6 @@
+check process celeryd
+    with pidfile /var/run/celery/w1-ona.pid
+    start program = "/etc/init.d/celeryd-ona start" as uid root and gid root
+    stop program = "/etc/init.d/celeryd-ona stop" as uid root and gid root
+    if 5 restarts within 10 cycles then timeout
+    group celery
