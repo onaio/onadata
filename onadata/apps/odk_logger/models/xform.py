@@ -173,8 +173,8 @@ class XForm(models.Model):
 
     def geocoded_submission_count(self):
         """Number of geocoded submissions."""
-        return self.surveys.filter(deleted_at__isnull=True,
-                                   geom__isnull=False).count()
+        return self.instances.filter(deleted_at__isnull=True,
+                                     geom__isnull=False).count()
 
     def time_of_last_submission(self):
         if self.last_submission_time is None and self.num_of_submissions > 0:
