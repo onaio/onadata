@@ -1,0 +1,9 @@
+check process uwsgi
+    with pidfile /var/run/ona.pid
+    start program = "/sbin/start ona" as uid root and gid root
+    stop program = "/sbin/stop ona" as uid root and gid root
+    if totalmem is greater than 1960.0 MB for 3 cycles then restart
+    if cpu > 50% for 2 cycles then alert
+    if loadavg(5min) greater than 10 for 8 cycles then restart
+    if 20 restarts within 20 cycles then timeout
+    group uwsgi
