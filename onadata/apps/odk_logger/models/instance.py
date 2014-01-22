@@ -125,6 +125,22 @@ class Instance(models.Model):
         else:
             instance.set_deleted(deleted_at)
 
+    def _check_active(self, kwargs):
+        """Check that form is active and raise exception if not.
+
+        :param kwargs: The kwargs passed to save, if it contains a 'force' key
+            ignore restrictions on saving.
+        """
+        force = kwargs.get('force')
+
+        if force:
+            del kwargs['force']
+
+        if not force and self.xform and not self.xform.downloadable:
+            raise FormInactiveError()
+
+        return kwargs
+
     def _set_geom(self):
         data_dictionary = self.xform.data_dictionary()
         geo_xpaths = data_dictionary.geopoint_xpaths()
@@ -230,11 +246,9 @@ class Instance(models.Model):
             return gc[0]
 
     def save(self, *args, **kwargs):
+        kwargs = self._check_active(kwargs)
+
         self._set_xform(get_id_string_from_xml_str(self.xml))
-
-        if self.xform and not self.xform.downloadable:
-            raise FormInactiveError()
-
         self._set_geom()
         self._set_json()
         self._set_survey_type()

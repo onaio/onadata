@@ -10,8 +10,8 @@ class Migration(DataMigration):
     def forwards(self, orm):
         "Parse all instance to add geoms."
         for obj in queryset_iterator(orm.Instance.objects.all()):
-            instance = Instance.objects.get(pd=obj.pk)
-            instance.save()
+            instance = Instance.objects.get(pk=obj.pk)
+            instance.save(force=True)
 
     def backwards(self, orm):
         "Write your backwards methods here."
@@ -67,7 +67,6 @@ class Migration(DataMigration):
             'deleted_at': ('django.db.models.fields.DateTimeField', [], {'default': 'None', 'null': 'True'}),
             'geom': ('django.contrib.gis.db.models.fields.GeometryCollectionField', [], {'null': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_deleted': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'json': ('jsonfield.fields.JSONField', [], {'default': '{}'}),
             'status': ('django.db.models.fields.CharField', [], {'default': "u'submitted_via_web'", 'max_length': '20'}),
             'survey_type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['odk_logger.SurveyType']"}),
