@@ -1,0 +1,8 @@
+check process nginx
+    with pidfile /var/run/nginx.pid
+    start program = "/etc/init.d/nginx start" as uid root and gid root
+    stop program = "/etc/init.d/nginx stop" as uid root and gid root
+    if totalmem is greater than 1960.0 MB for 2 cycles then restart
+    if loadavg(5min) greater than 10 for 8 cycles then restart
+    if 20 restarts within 20 cycles then timeout
+    group www-data #(for ubuntu, debian)

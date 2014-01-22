@@ -1,0 +1,9 @@
+check process mongodb
+    with pidfile "/var/lib/mongodb/mongod.lock"
+    start program "/etc/init.d/mongodb start"
+    stop program "/etc/init.d/mongodb stop"
+    if failed port 28017 protocol http
+        and request "/" with timeout 10 seconds then restart
+    if 5 restarts within 5 cycles then timeout
+    group database
+

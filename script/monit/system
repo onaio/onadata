@@ -1,0 +1,7 @@
+check system localhost
+    if memory usage > 85% then alert
+    if cpu usage (user) > 80% for 3 cycles then alert
+    if cpu usage (system) > 80% for 3 cycles then alert
+
+check filesystem rootfs with path /
+    if space usage > 80% then alert

@@ -9,10 +9,9 @@ from pyxform.section import RepeatingSection
 from pyxform.xform2json import create_survey_element_from_xml
 from xml.dom import Node
 
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.odk_logger.models.xform import XForm
 from onadata.apps.odk_logger.xform_instance_parser import clean_and_parse_xml
-from onadata.apps.odk_viewer.models.parsed_instance import _encode_for_mongo,\
-    ParsedInstance
+from onadata.apps.odk_viewer.models.parsed_instance import _encode_for_mongo
 from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES
 from onadata.libs.utils.export_tools import question_types_to_exclude,\
     DictOrganizer
@@ -186,14 +185,22 @@ class DataDictionary(XForm):
 
     survey_elements = property(get_survey_elements)
 
-    def xpath_of_first_geopoint(self):
+    def geopoint_xpaths(self):
+        geo_xpaths = []
+
         for e in self.get_survey_elements():
             if e.bind.get(u'type') == u'geopoint':
-                return e.get_abbreviated_xpath()
+                geo_xpaths.append(e.get_abbreviated_xpath())
+
+        return geo_xpaths
+
+    def xpath_of_first_geopoint(self):
+        geo_xpaths = self.geopoint_xpaths()
+
+        return len(geo_xpaths) > 0 and geo_xpaths[0]
 
     def has_instances_with_geopoints(self):
-        return ParsedInstance.objects.filter(
-            instance__xform=self, lat__isnull=False).count() > 0
+        return self.geocoded_submission_count() > 0
 
     def xpaths(self, prefix='', survey_element=None, result=None,
                repeat_iterations=4):
