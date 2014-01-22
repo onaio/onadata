@@ -97,7 +97,7 @@ def get_date_fields(xform):
 def get_field_records(field, xform):
     result = _execute_query(_select_key(field, field, xform),
                             to_dict=False)
-    return [float(i[0]) for i in result]
+    return [float(i[0]) for i in result if i[0] is not None]
 
 
 def get_form_submissions_grouped_by_field(xform, field, name=None):
