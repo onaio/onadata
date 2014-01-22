@@ -18,7 +18,7 @@
 <div>
   {% for summary in summaries  %}
   <div class="row">
-  {% with field_name=summary.field_name data_type=summary.data_type field_type=summary.field_type data=summary.data stats=summary.stats %}
+  {% with field_name=summary.field_name data_type=summary.data_type field_type=summary.field_type data=summary.data %}
   <div id="chart-{{ forloop.counter }}" class="span6 chart"></div>
   <div class="span4">
       <div class="row-fluid">
@@ -64,22 +64,6 @@
           });
 
           d3.select('#grid-{{ forloop.counter }}').html(tableMarkup);
-
-          // if data is numeric add the min/mode/median etc
-          {% if data_type == "numeric" %}
-              var stats = [
-                {% for stat in stats %}
-                  { "{{ field_name }}": "{{ stat|lookup:field_name }}", "count": "{{ stat.count }}" },
-                {% endfor %}
-              ];
-              var statsMarkup = ChartGridTemplate({
-                  field_name: "{{ field_name }}",
-                  data: stats,
-                  show_header: false
-              });
-
-              d3.select('#stats-{{ forloop.counter }}').html(statsMarkup);
-          {% endif %}
 
 
       })('#chart-{{ forloop.counter }}');

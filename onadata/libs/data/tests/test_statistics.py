@@ -18,8 +18,3 @@ class TestStatistics(unittest.TestCase):
         values = [1, 2, 3, 2, 5, 5]
         result = stats.get_median(values)
         self.assertEqual(result, 2.5)
-
-    def test_get_mode(self):
-        values = [1, 2, 3, 2, 5, 5, 5]
-        result = stats.get_mode(values)
-        self.assertEqual(result, 5)

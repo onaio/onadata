@@ -69,40 +69,6 @@ class TestChartTools(TestBase):
         values = [d['date'] is not None for d in data['data']]
         self.assertTrue(all(values))
 
-    def test_format_start_end_fields_for_javascript(self):
-        # javascript errors on incomplete timezones i.e.
-        # 2014-01-16T12:07:23.322+03 needs to become
-        # 2014-01-16T12:07:23.322+03:00
-        dd = self.xform.data_dictionary()
-        start_time_data = build_chart_data_for_field(
-            self.xform, find_field_by_name(dd, 'start_time'))
-        end_time_data = build_chart_data_for_field(
-            self.xform, find_field_by_name(dd, 'end_time'))
-        self.assertEqual(
-            start_time_data['data'][0]['start_time'],
-            '2014-01-09T11:51:38.008+0300')
-        self.assertEqual(
-            end_time_data['data'][0]['end_time'],
-            '2014-01-09T11:52:02.906+0300')
-
-    def test_build_field_data_returns_stats_for_numeric_fields(self):
-        field_name = 'age'
-        dd = self.xform.data_dictionary()
-        data = build_chart_data_for_field(
-            self.xform, find_field_by_name(dd, field_name))
-        # check stats data
-        expected_stats = [
-            {'age': 'max', 'count': 35},
-            {'age': 'mean', 'count': 29},
-            {'age': 'median', 'count': 29},
-            {'age': 'min', 'count': 23},
-            {'age': 'mode', 'count': 23},
-            {'age': 'range', 'count': 12},
-        ]
-        data_field_names = sorted(
-            [f for f in data['stats']], key=lambda x: x[field_name])
-        self.assertEqual(expected_stats, data_field_names)
-
 
 class TestChartUtilFunctions(unittest.TestCase):
     def test_utc_time_string_for_javascript(self):

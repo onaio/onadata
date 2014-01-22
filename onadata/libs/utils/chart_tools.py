@@ -77,17 +77,11 @@ def build_chart_data_for_field(xform, field):
                 except ValueError:
                     pass
 
-    stats = []
-    if data_type == 'numeric':
-        stats = [{'age': k, 'count': v} for k, v in get_all_stats(
-            xform, field_name)[field_name].items()]
-
     data = {
         'field_name': field_name,
         'field_type': field_type,
         'data_type': data_type,
         'data': result,
-        'stats': stats
     }
     return data
 
