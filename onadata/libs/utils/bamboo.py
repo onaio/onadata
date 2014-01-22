@@ -5,7 +5,7 @@ from pybamboo.dataset import Dataset
 from pybamboo.connection import Connection
 from pybamboo.exceptions import ErrorParsingBambooData
 
-from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.odk_logger.models.instance import Instance
 from onadata.apps.odk_viewer.pandas_mongo_bridge import CSVDataFrameBuilder,\
     NoRecordsFoundError
 from onadata.apps.restservice.models import RestService
@@ -89,10 +89,10 @@ def get_csv_data(xform, force_last=False):
         # when form has only one submission, CSVDFB is empty.
         # we still want to create the BB ds with row 1
         # so we extract is and CSV it.
-        pifilter = ParsedInstance.objects.filter(instance__xform=xform) \
-                                 .order_by('-instance__date_modified')
+        instances = Instance.objects.filter(xform=xform).order_by(
+            '-date_modified')
 
-        if pifilter.count() == 0:
+        if instances.count() == 0:
             raise NoRecordsFoundError
         else:
             # we should only do it for count == 1 but eh.
@@ -100,9 +100,9 @@ def get_csv_data(xform, force_last=False):
             csv_buf = getbuff()
 
             if only_last:
-                pifilter = [pifilter[0]]
+                instances = instances[0:1]
 
-            rows = [pi.to_dict_for_mongo() for pi in pifilter]
+            rows = [instance.get_full_dict() for instance in instances]
 
             if headers_to_use is None:
                 headers_to_use = [key for key in rows[0].keys()

@@ -18,13 +18,15 @@ from pyxform.question import Question
 from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
 
-from onadata.apps.odk_logger.models import XForm, Attachment
-from onadata.apps.odk_viewer.models.parsed_instance import _is_invalid_for_mongo,\
-    _encode_for_mongo, dict_for_mongo, _decode_from_mongo
-from onadata.libs.utils.viewer_tools import create_attachments_zipfile, image_urls
-from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS, ATTACHMENTS,\
-    GEOLOCATION, BAMBOO_DATASET_ID, DELETEDAT, USERFORM_ID, INDEX,\
-    PARENT_INDEX, PARENT_TABLE_NAME, SUBMISSION_TIME, UUID, TAGS, NOTES
+from onadata.apps.odk_logger.models import Attachment, Instance, XForm
+from onadata.apps.odk_viewer.models.parsed_instance import\
+    _is_invalid_for_mongo, _encode_for_mongo, dict_for_mongo,\
+    _decode_from_mongo
+from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
+    image_urls
+from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
+    ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID, DELETEDAT, USERFORM_ID,\
+    INDEX, PARENT_INDEX, PARENT_TABLE_NAME, SUBMISSION_TIME, UUID, TAGS, NOTES
 
 
 # this is Mongo Collection where we will store the parsed submissions
@@ -184,7 +186,8 @@ class ExportBuilder(object):
 
     def set_survey(self, survey):
         # TODO resolve circular import
-        from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
+        from onadata.apps.odk_viewer.models.data_dictionary import\
+            DataDictionary
 
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
@@ -550,7 +553,8 @@ class ExportBuilder(object):
     def to_flat_csv_export(
             self, path, data, username, id_string, filter_query):
         # TODO resolve circular import
-        from onadata.apps.odk_viewer.pandas_mongo_bridge import CSVDataFrameBuilder
+        from onadata.apps.odk_viewer.pandas_mongo_bridge import\
+            CSVDataFrameBuilder
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
@@ -871,11 +875,10 @@ def generate_kml_export(
 def kml_export_data(id_string, user):
     # TODO resolve circular import
     from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
-    from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance
     dd = DataDictionary.objects.get(id_string=id_string, user=user)
-    pis = ParsedInstance.objects.filter(
-        instance__user=user, instance__xform__id_string=id_string,
-        lat__isnull=False, lng__isnull=False).order_by('id')
+    instances = Instance.objects.filter(
+        user=user, xform__id_string=id_string, geom__isnull=False
+    ).order_by('id')
     data_for_template = []
 
     labels = {}
@@ -886,11 +889,11 @@ def kml_export_data(id_string, user):
         labels[xpath] = dd.get_label(xpath)
         return labels[xpath]
 
-    for pi in pis:
+    for instance in instances:
         # read the survey instances
-        data_for_display = pi.to_dict()
+        data_for_display = instance.get_dict()
         xpaths = data_for_display.keys()
-        xpaths.sort(cmp=pi.data_dictionary.get_xpath_cmp())
+        xpaths.sort(cmp=instance.xform.data_dictionary().get_xpath_cmp())
         label_value_pairs = [
             (cached_get_labels(xpath),
              data_for_display[xpath]) for xpath in xpaths
@@ -898,13 +901,14 @@ def kml_export_data(id_string, user):
         table_rows = []
         for key, value in label_value_pairs:
             table_rows.append('<tr><td>%s</td><td>%s</td></tr>' % (key, value))
-        img_urls = image_urls(pi.instance)
+        img_urls = image_urls(instance)
         img_url = img_urls[0] if img_urls else ""
+        point = instance.point
         data_for_template.append({
             'name': id_string,
-            'id': pi.id,
-            'lat': pi.lat,
-            'lng': pi.lng,
+            'id': instance.id,
+            'lat': point.y,
+            'lng': point.x,
             'image_urls': img_urls,
             'table': '<table border="1"><a href="#"><img width="210" '
                      'class="thumbnail" src="%s" alt=""></a>%s'

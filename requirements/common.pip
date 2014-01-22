@@ -33,7 +33,6 @@ pandas==0.12.0
 requests==2.0.1
 elaphe==0.5.6
 
-
 # sms support
 dict2xml==1.1
 
