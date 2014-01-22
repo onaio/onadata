@@ -149,11 +149,10 @@ class Instance(models.Model):
 
         if len(geo_xpaths):
             for xpath in geo_xpaths:
-                # TODO store the altitude and precision
                 geometry = [float(s) for s in doc.get(xpath, u'').split()]
 
                 if len(geometry):
-                    lat, lng, alt, precision = geometry
+                    lat, lng = geometry[0:2]
                     points.append(Point(lng, lat))
 
             self.geom = GeometryCollection(points)
