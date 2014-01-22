@@ -3,7 +3,7 @@ import os
 from django.core.urlresolvers import reverse
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.odk_logger.models.instance import Instance
 from onadata.apps.odk_viewer.views import kml_export
 
 
@@ -31,13 +31,13 @@ class TestKMLExport(TestBase):
             kml_export,
             kwargs={'username': self.user.username, 'id_string': id_string})
         response = self.client.get(url)
-        pis = ParsedInstance.objects.filter(
-            instance__user=self.user, instance__xform__id_string=id_string,
-            lat__isnull=False, lng__isnull=False).order_by('id')
+        instances = Instance.objects.filter(
+            user=self.user, xform__id_string=id_string, geom__isnull=False
+        ).order_by('id')
 
-        self.assertEqual(pis.count(), 2)
+        self.assertEqual(instances.count(), 2)
 
-        first, second = [str(i.pk) for i in pis]
+        first, second = [str(i.pk) for i in instances]
 
         with open(os.path.join(self.fixtures, 'export.kml')) as f:
             expected_content = f.read()

@@ -9,10 +9,10 @@ from pyxform.survey_element import SurveyElement
 from pyxform.section import Section, RepeatingSection
 from pyxform.question import Question
 
-from onadata.apps.odk_viewer.models.data_dictionary import ParsedInstance,\
-    DataDictionary
-from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS, \
-    ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP, \
+from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
+from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance
+from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
+    ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES
 from onadata.libs.utils.export_tools import question_types_to_exclude
 

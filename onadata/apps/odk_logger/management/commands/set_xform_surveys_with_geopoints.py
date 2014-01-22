@@ -4,8 +4,7 @@
 from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext_lazy
 
-from onadata.apps.odk_logger.models import XForm
-from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.odk_logger.models.xform import XForm
 from onadata.libs.utils.model_tools import queryset_iterator
 
 
@@ -17,8 +16,7 @@ class Command(BaseCommand):
         total = xforms.count()
         count = 0
         for xform in queryset_iterator(XForm.objects.all()):
-            has_geo = ParsedInstance.objects.filter(
-                instance__xform=xform, lat__isnull=False).count() > 0
+            has_geo = xform.geocoded_submission_count() > 0
             try:
                 xform.instances_with_geopoints = has_geo
                 xform.save()

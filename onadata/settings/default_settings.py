@@ -10,12 +10,9 @@
 from staging_example import *  # nopep8
 
 # # # now override the settings which came from staging # # # #
-
-# choose a different database...
-# sqlite
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'onadata',
         'USER': 'onadata',
         'PASSWORD': '',

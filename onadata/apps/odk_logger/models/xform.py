@@ -172,13 +172,9 @@ class XForm(models.Model):
     submission_count.short_description = ugettext_lazy("Submission Count")
 
     def geocoded_submission_count(self):
-        from onadata.apps.odk_viewer.models.parsed_instance import\
-            ParsedInstance
-        return ParsedInstance.objects.filter(
-            instance__in=self.instances.filter(deleted_at__isnull=True),
-            lat__isnull=False).count()
-    geocoded_submission_count.short_description = \
-        ugettext_lazy("Geocoded Submission Count")
+        """Number of geocoded submissions."""
+        return self.instances.filter(deleted_at__isnull=True,
+                                     geom__isnull=False).count()
 
     def time_of_last_submission(self):
         if self.last_submission_time is None and self.num_of_submissions > 0:

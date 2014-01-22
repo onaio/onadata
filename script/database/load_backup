@@ -1,0 +1,3 @@
+scp ona:~/onadata.sql.tar.gz 
+tar -xzvf onadata.sql.tar.gz
+psql -U onadata -h 127.0.0.1 onadata -f backups/postgres/onadata.sql
