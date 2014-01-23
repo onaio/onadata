@@ -58,10 +58,6 @@ def build_chart_data_for_field(xform, field):
         field_type = field.type
         field_name = field.name
 
-    if field_type == 'select one':
-        # TODO: if the field is a select, get a summary of the choices
-        choices = [c for c in field.get('children')]
-
     result = get_form_submissions_grouped_by_field(xform, field_name)
     data_type = DATA_TYPE_MAP.get(field_type, 'categorized')
 
