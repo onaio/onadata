@@ -299,12 +299,12 @@
 
     NameLabelLanguagePicker.LanguagesForSelect = function (model) {
         var languages = model.get('languages').length == 0?
-            [{name: null, value: 'Labels'}]:
+            [{name: null, value: 'Show Labels'}]:
             model.get('languages').map(
                 function(lang){
-                    return {name: lang, value: lang};
+                    return {name: lang, value: "Show Labels in " + lang};
                 });
-        languages.unshift({name: '-1', value: 'XML Values'});
+        languages.unshift({name: '-1', value: 'Show XML Values'});
         return languages
     };
 
