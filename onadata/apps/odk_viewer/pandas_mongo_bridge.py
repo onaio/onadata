@@ -678,5 +678,6 @@ class CSVDataFrameWriter(object):
                 del(self.dataframe[col])
 
     def write_to_csv(self, csv_file, header=True, index=False):
+        na_rep = getattr(settings, 'NA_REP', NA_REP)
         self.dataframe.to_csv(csv_file, header=header, index=index,
-                              na_rep=NA_REP, encoding='utf-8')
+                              na_rep=na_rep, encoding='utf-8')

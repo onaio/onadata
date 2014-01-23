@@ -410,6 +410,9 @@ TEMPLATE_OVERRIDE_ROOT_DIR = None
 # Use 1 or 0 for multiple selects instead of True or False for csv, xls exports
 BINARY_SELECT_MULTIPLES = False
 
+# Use 'n/a' for empty values by default on csv exports
+NA_REP = 'n/a'
+
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:

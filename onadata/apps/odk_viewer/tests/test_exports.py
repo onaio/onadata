@@ -233,6 +233,29 @@ class TestExports(TestBase):
         with open(test_file_path, 'r') as test_file:
             self.assertEqual(content, test_file.read())
 
+    def test_csv_without_na_values(self):
+        self._publish_transportation_form()
+        survey = self.surveys[0]
+        self._make_submission(
+            os.path.join(
+                self.this_directory, 'fixtures', 'transportation',
+                'instances', survey, survey + '.xml'),
+            forced_submission_time=self._submission_time)
+        na_rep_restore = settings.NA_REP
+        settings.NA_REP = u''
+        response = self.client.get(reverse(
+            'csv_export',
+            kwargs={
+                'username': self.user.username,
+                'id_string': self.xform.id_string
+            }))
+        self.assertEqual(response.status_code, 200)
+        test_file_path = _viewer_fixture_path('transportation_without_na.csv')
+        content = self._get_response_content(response)
+        with open(test_file_path, 'r') as test_file:
+            self.assertEqual(content, test_file.read())
+        settings.NA_REP = na_rep_restore
+
     def test_responses_for_empty_exports(self):
         self._publish_transportation_form()
         # test csv though xls uses the same view
