@@ -93,6 +93,9 @@
         // Instance of the `Data` object
         data: void 0,
 
+        // Whether to show header names or labels
+        showHeaderLabels: false,
+
         // Whether to show select names or labels
         showLabels: false,
 
@@ -111,6 +114,18 @@
             // Setup the data
             this.data = new FH.PageableDataset([], {
                 url: options.dataUrl
+            });
+
+            // Initialize the header name/label toggle
+            var headerLangSwitcher = new NameLabelLanguagePicker({
+                label: "Column Headers",
+                model: this.form
+            });
+
+            // Initialize the data name/label toggle
+            var dataLangSwitcher = new NameLabelLanguagePicker({
+                label: "Answer Values",
+                model: this.form
             });
 
             this.form.on('load', function () {
@@ -137,7 +152,8 @@
                     columns: this.form.fields.map(function (f) {
                         var column = {
                             name: f.get(FH.constants.XPATH),
-                            label: f.get(FH.constants.LABEL, dataTableView.form.get('language')),
+                            //label: f.get(FH.constants.LABEL, dataTableView.form.get('language')),
+                            label: f.get(FH.constants.NAME),
                             editable: false,
                             cell: "string"//FHToBackgridTypes[f.get(FH.constants.TYPE)] || "string"
                         };
@@ -182,19 +198,30 @@
                 // Add some space to the filter and move it to the right
                 filter.$el.css({float: "right", margin: "20px"});
 
-                // Initialize the name/label toggle
-                var labelToggle = new NameLabelToggle();
-
-                // catch the `toggled` event
-                labelToggle.on('toggled', function (enabled) {
-                    this.showLabels = enabled;
+                // catch the `switched` event
+                dataLangSwitcher.on('switch', function (language) {
+                    // if the new language is `0`, we want to show xml values, otherwise, we want labels in whatever language is specified
+                    this.showLabels = language !== '-1';
+                    // set the language if we're showing labels
+                    if(this.showLabels) {
+                        this.form.set({language: language}, {silent: true});
+                    }
                     this.dataGrid.render();
                 }, this);
 
-                this.$el.prepend(labelToggle.render().$el);
+                this.$el.prepend(dataLangSwitcher.render().$el);
+
+                // catch the `switched` event
+                headerLangSwitcher.on('switch', function (language) {
+                    // if the new language is `0`, we want to show xml values, otherwise, we want labels in whatever language is specified
+                    this.showHeaderLabels = language !== '-1';
+                    // set the language if we're showing labels
+                    this.form.set({header_language: language});
+                }, this);
+
+                this.$el.prepend(headerLangSwitcher.render().$el);
 
                 // only add the language picker if we have multiple languages
-
                 if (this.form.get('languages') && this.form.get('languages').length > 1) {
                     // Initialize the language selector
                     var languagePicker = new FH.LanguagePicker({
@@ -211,17 +238,21 @@
             }, this);
 
             // Catch language change events
-            this.form.on('change:language', function (model, language) {
+            this.form.on('change:header_language', function (model, language) {
                 var dataTableView = this;
                 if (this.dataGrid) {
                     this.dataGrid.columns.each(function (column) {
-                        var field = dataTableView.form.fields
+                        var label,
+                            field = dataTableView.form.fields
                                 .find(function (f) {
                                     return f.get(FH.constants.XPATH) === column.get('name');
-                                }),
-                            label;
+                                });
 
-                        label = field.get(FH.constants.LABEL, language);
+                        if(dataTableView.showHeaderLabels) {
+                            label = field.get(FH.constants.LABEL, language);
+                        } else {
+                            label = field.get(FH.constants.NAME);
+                        }
                         column.set({'label': label});
                     });
                     this.dataGrid.header.render();
@@ -231,6 +262,51 @@
             this.form.load();
         }
     });
+
+    var NameLabelLanguagePicker = Backbone.View.extend({
+        label: void 0,
+
+        className: 'table-control-container',
+
+        template: _.template(
+            '<label><%= label %></label><select><% _.each(languages, function(lang){ %>' +
+                '<option value="<%= lang["name"] %>"><%= lang["value"] %></option> ' +
+            '<% }); %></select>'),
+
+        events: {
+            'change select': function (evt) {
+                var value = $(evt.currentTarget).val() || undefined;
+                this.trigger('switch', value);
+            }
+        },
+
+        initialize: function (options) {
+            this.label = options.label || "&nbsp;";
+            Backbone.View.prototype.initialize.apply(this, arguments);
+        },
+
+        render: function () {
+            //this.$el.html(this.template());
+            var languages = NameLabelLanguagePicker.LanguagesForSelect(
+                this.model);
+            this.$el.empty().append(this.template({
+                languages: languages,
+                label: this.label
+            }));
+            return this;
+        }
+    });
+
+    NameLabelLanguagePicker.LanguagesForSelect = function (model) {
+        var languages = model.get('languages').length == 0?
+            [{name: null, value: 'Labels'}]:
+            model.get('languages').map(
+                function(lang){
+                    return {name: lang, value: lang};
+                });
+        languages.unshift({name: '-1', value: 'XML Values'});
+        return languages
+    };
 
     // Used by select formatters to return wither name the name or label for a response
     DataTableView.NameOrLabel = function (field, value, showLabels, language) {
