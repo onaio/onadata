@@ -1,0 +1,3 @@
+set mailserver email-smtp.us-east-1.amazonaws.com port 465
+    username "AWS_ACCESS_KEY_ID" password "AWS_SECRETE_ACCESS_KEY"
+    using sslv3 with timeout 15 seconds using hostname SITE_DOMAIN

@@ -1,0 +1,8 @@
+check process apache
+    with pidfile /var/run/apache2.pid
+    start program = "/usr/sbin/apache2ctl start" as uid root and gid root
+    stop program = "/usr/sbin/apache2ctl stop" as uid root and gid root
+    if totalmem is greater than 1960.0 MB for 2 cycles then restart
+    if loadavg(5min) greater thab 10 for 8 cycles then restart
+    if 20 restarts within 20 cycles then timeout
+    group apache

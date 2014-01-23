@@ -10,22 +10,22 @@ services:
 python:
   - '2.7'
 before_install:
-  - psql -c 'create database onadata_test;' -U postgres
+  - ./script/database/install_postgis onadata_test
   - ./script/install_ubuntu
 env:
   - TESTFOLDER=onadata/apps/main
-  - TESTFOLDER="onadata/apps/api onadata/apps/odk_logger onadata/apps/odk_viewer onadata/apps/formhub onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats onadata/libs"
+  - TESTFOLDER="onadata/apps/api onadata/apps/odk_logger onadata/apps/odk_viewer onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats onadata/libs"
 install:
   - pip install -r requirements/common.pip --download-cache $HOME/.pip-cache --use-mirrors
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
   # make ~/tmp dir writable for npm downloads
-  - sudo chmod a+w $HOME/tmp
-  - npm install
-  - bower install --force-latest
+  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then sudo chmod a+w $HOME/tmp ; fi
+  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then npm install ; fi
+  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then bower install --force-latest ; fi
 script:
   - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test
-  - karma start onadata/libs/javascript/tests/karma.conf.js
+  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then karma start onadata/libs/javascript/tests/karma.conf.js ; fi
 notifications:
   email:
     - tech@ona.io

@@ -133,8 +133,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.tz',
     'django.contrib.messages.context_processors.messages',
     'readonly.context_processors.readonly',
-    'onadata.apps.formhub.context_processors.google_analytics',
-    'onadata.apps.formhub.context_processors.site_name'
+    'onadata.apps.main.context_processors.google_analytics',
+    'onadata.apps.main.context_processors.site_name'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -151,9 +151,9 @@ MIDDLEWARE_CLASSES = (
     'readonly.middleware.DatabaseReadOnlyMiddleware',
 )
 
-LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'onadata.apps.formhub', 'locale'), )
+LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'onadata.apps.main', 'locale'), )
 
-ROOT_URLCONF = 'onadata.apps.formhub.urls'
+ROOT_URLCONF = 'onadata.apps.main.urls'
 USE_TZ = True
 
 
@@ -178,6 +178,7 @@ INSTALLED_APPS = (
     'django.contrib.humanize',
     'django.contrib.admin',
     'django.contrib.admindocs',
+    'django.contrib.gis',
     'registration',
     'south',
     'django_nose',
@@ -408,6 +409,9 @@ TEMPLATE_OVERRIDE_ROOT_DIR = None
 
 # Use 1 or 0 for multiple selects instead of True or False for csv, xls exports
 BINARY_SELECT_MULTIPLES = False
+
+# Use 'n/a' for empty values by default on csv exports
+NA_REP = 'n/a'
 
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/

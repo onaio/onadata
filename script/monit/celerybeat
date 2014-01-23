@@ -1,0 +1,6 @@
+check process celerybeat
+    with pidfile /var/run/celery/beat.pid
+    start program = "/etc/init.d/celerybeat start" as uid root and gid root
+    stop program = "/etc/init.d/celerybeat stop" as uid root and gid root
+    if 5 restarts within 10 cycles then timeout
+    group celery
