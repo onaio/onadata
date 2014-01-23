@@ -113,8 +113,6 @@ def deploy(deployment_name, branch='master'):
     with cd(env.code_src):
         run("git fetch origin")
         run("git checkout origin/%s" % branch)
-        run("git submodule init")
-        run("git submodule update")
 
         deploy_template(env)
 
