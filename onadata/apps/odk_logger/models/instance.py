@@ -189,7 +189,11 @@ class Instance(models.Model):
         set_uuid(self)
 
     def _set_xform(self, id_string):
-        self.xform = XForm.objects.get(id_string=id_string, user=self.user)
+        try:
+            self.xform = XForm.objects.get(id_string=id_string, user=self.user)
+        except XForm.DoesNotExist:
+            # TODO log this error
+            pass
 
     def get(self, abbreviated_xpath):
         self._set_parser()
