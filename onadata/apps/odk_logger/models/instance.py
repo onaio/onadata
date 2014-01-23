@@ -125,21 +125,13 @@ class Instance(models.Model):
         else:
             instance.set_deleted(deleted_at)
 
-    def _check_active(self, kwargs):
+    def _check_active(self, force):
         """Check that form is active and raise exception if not.
 
-        :param kwargs: The kwargs passed to save, if it contains a 'force' key
-            ignore restrictions on saving.
+        :param force: Ignore restrictions on saving.
         """
-        force = kwargs.get('force')
-
-        if force:
-            del kwargs['force']
-
         if not force and self.xform and not self.xform.downloadable:
             raise FormInactiveError()
-
-        return kwargs
 
     def _set_geom(self):
         data_dictionary = self.xform.data_dictionary()
@@ -189,11 +181,7 @@ class Instance(models.Model):
         set_uuid(self)
 
     def _set_xform(self, id_string):
-        try:
-            self.xform = XForm.objects.get(id_string=id_string, user=self.user)
-        except XForm.DoesNotExist:
-            # TODO log this error
-            pass
+        self.xform = XForm.objects.get(id_string=id_string, user=self.user)
 
     def get(self, abbreviated_xpath):
         self._set_parser()
@@ -249,9 +237,19 @@ class Instance(models.Model):
             return gc[0]
 
     def save(self, *args, **kwargs):
-        kwargs = self._check_active(kwargs)
+        force = kwargs.get('force')
 
-        self._set_xform(get_id_string_from_xml_str(self.xml))
+        if force:
+            del kwargs['force']
+
+        self._check_active(force)
+
+        try:
+            self._set_xform(get_id_string_from_xml_str(self.xml))
+        except XForm.DoesNotExist:
+            if not force:
+                raise XForm.DoesNotExist
+
         self._set_geom()
         self._set_json()
         self._set_survey_type()
