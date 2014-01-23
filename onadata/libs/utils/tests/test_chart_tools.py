@@ -52,7 +52,7 @@ class TestChartTools(TestBase):
         # check expected fields
         expected_fields = sorted(['_submission_time', 'pizza_type', 'age',
                                   'gender', 'date', 'pizza_fan', 'net_worth',
-                                  'start_time', 'end_time'])
+                                  'start_time', 'end_time', 'today'])
         data_field_names = sorted([f['field_name'] for f in data])
         self.assertEqual(expected_fields, data_field_names)
 
