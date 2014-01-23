@@ -1,9 +1,7 @@
 import re
-from datetime import datetime
 
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
 from onadata.libs.utils import common_tags
-from onadata.apps.api.tools import get_all_stats
 
 
 # list of fields we can chart
@@ -29,7 +27,8 @@ def utc_time_string_for_javascript(date_string):
     Convert 2014-01-16T12:07:23.322+03 to 2014-01-16T12:07:23.322+03:00
 
     Cant use datetime.str[fp]time here since python 2.7's %z is platform
-    dependant - http://stackoverflow.com/questions/2609259/converting-string-to-datetime-object-in-python
+    dependant - http://stackoverflow.com/questions/2609259/converting-string-t\
+        o-datetime-object-in-python
 
     """
     match = timezone_re.match(date_string)
