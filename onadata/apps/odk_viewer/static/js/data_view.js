@@ -152,7 +152,6 @@
                     columns: this.form.fields.map(function (f) {
                         var column = {
                             name: f.get(FH.constants.XPATH),
-                            //label: f.get(FH.constants.LABEL, dataTableView.form.get('language')),
                             label: f.get(FH.constants.NAME),
                             editable: false,
                             cell: "string"//FHToBackgridTypes[f.get(FH.constants.TYPE)] || "string"
@@ -286,7 +285,6 @@
         },
 
         render: function () {
-            //this.$el.html(this.template());
             var languages = NameLabelLanguagePicker.LanguagesForSelect(
                 this.model);
             this.$el.empty().append(this.template({
