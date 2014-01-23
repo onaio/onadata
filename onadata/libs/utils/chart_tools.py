@@ -7,8 +7,8 @@ from onadata.apps.api.tools import get_all_stats
 
 
 # list of fields we can chart
-CHART_FIELDS = ['select one', 'integer', 'decimal', 'date', 'datetime', 'start',
-                'end', 'today']
+CHART_FIELDS = ['select one', 'integer', 'decimal', 'date', 'datetime',
+                'start', 'end', 'today']
 # numeric, categorized
 DATA_TYPE_MAP = {
     'integer': 'numeric',
@@ -54,7 +54,8 @@ def build_chart_data_for_field(xform, field):
         field_type = 'datetime'
         field_name = common_tags.SUBMISSION_TIME
     else:
-        # TODO: merge choices with results and set 0's on any missing fields, i.e. they didn't have responses
+        # TODO: merge choices with results and set 0's on any missing fields,
+        # i.e. they didn't have responses
         field_type = field.type
         field_name = field.name
 
