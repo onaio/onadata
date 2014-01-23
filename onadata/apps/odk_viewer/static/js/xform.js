@@ -125,8 +125,11 @@
                 // Set languages
                 this.set({'languages': languages});
 
-                // Set the current language
+                // Set the current data language
                 this.set({'language': languages[0]});
+
+                // set current header language
+                this.set({'header_language': '-1'});
             }
 
             // Check if we're setting children and parse fields
