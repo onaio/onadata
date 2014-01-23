@@ -13,7 +13,7 @@ DEPLOYMENTS = {
         'celeryd': '/etc/init.d/celeryd-ona',
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/var/run/ona.pid',
-        'template': 'https://github.com/onaio/onadata-template.git',
+        'template': 'git@github.com:onaio/onadata-template.git',
     },
     'prod': {
         'home': '/home/ubuntu/src/',
@@ -23,7 +23,7 @@ DEPLOYMENTS = {
         'celeryd': '/etc/init.d/celeryd-ona',
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/var/run/ona.pid',
-        'template': 'https://github.com/onaio/onadata-template.git',
+        'template': 'git@github.com:onaio/onadata-template.git',
     },
     'formhub': {
         'home': '/home/ubuntu/src/',
