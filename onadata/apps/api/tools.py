@@ -1,4 +1,3 @@
-import warnings
 from datetime import datetime
 import numpy as np
 
@@ -38,55 +37,6 @@ def _get_id_for_type(record, mongo_field):
 
     return {"$substr": [mongo_str, 0, 10]} if isinstance(date_field, datetime)\
         else mongo_str
-
-
-@property
-def using_postgres():
-    return settings.DATABASES[
-        'default']['ENGINE'] == 'django.db.backends.postgresql_psycopg2'
-
-
-def _count_group(field, name, xform):
-    if using_postgres:
-        result = _postgres_count_group(field, name, xform)
-    else:
-        raise Exception("Unsopported Database")
-    return result
-
-
-def _json_query(field):
-    return "json->>'%s'" % field
-
-
-def _query_args(field, name, xform):
-    return {
-        'table': 'odk_logger_instance',
-        'json': _json_query(field),
-        'name': name,
-        'restrict_field': 'xform_id',
-        'restrict_value': xform.pk
-    }
-
-
-def _postgres_select_key(field, name, xform):
-    string_args = _query_args(field, name, xform)
-
-    return "SELECT %(json)s AS %(name)s FROM %(table)s WHERE "\
-           "%(restrict_field)s=%(restrict_value)s" % string_args
-
-
-def _postgres_count_group(field, name, xform):
-    string_args = _query_args(field, name, xform)
-
-    return "SELECT %(json)s AS \"%(name)s\", COUNT(%(json)s) AS count FROM "\
-           "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
-           "GROUP BY %(json)s" % string_args
-
-
-def _execute_query(query, to_dict=True):
-    cursor = connection.cursor()
-    cursor.execute(query)
-    return _dictfetchall(cursor) if to_dict else cursor
 
 
 def get_accessible_forms(owner=None):
@@ -203,21 +153,6 @@ def publish_project_xform(request, project):
     if isinstance(xform, XForm):
         add_xform_to_project(xform, project, request.user)
     return xform
-
-
-def get_form_submissions_grouped_by_field(xform, field, name=None):
-    """Number of submissions grouped by field"""
-    warnings.warn("use the function within onadata.libs.data.query", DeprecationWarning)
-    if not name:
-        name = field
-
-    result = _execute_query(_count_group(field, name, xform))
-
-    # TODO: raises if result[0] does not have the response in cases when it was simply not provided
-    #if len(result) and result[0][name] is None:
-    #    raise ValueError(_(u"Field '%s' does not exist." % field))
-
-    return result
 
 
 def mode(a, axis=0):
