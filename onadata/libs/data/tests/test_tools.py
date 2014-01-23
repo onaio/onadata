@@ -130,15 +130,6 @@ class TestTools(TestBase):
             self.assertEqual([name, count_key], sorted(result.keys()))
             self.assertEqual(result[count_key], count)
 
-    @raises(ValueError)
-    def test_get_form_submissions_grouped_by_field_bad_field(self):
-        self._make_submissions()
-
-        field = '_bad_field'
-        xform = self.user.xforms.all()[0]
-
-        get_form_submissions_grouped_by_field(xform, field)
-
     def test_get_form_submissions_when_response_not_provided(self):
         """
         Test that the None value is stripped when of the submissions
