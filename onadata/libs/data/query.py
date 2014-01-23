@@ -54,7 +54,7 @@ def _postgres_count_group(field, name, xform):
         string_args['json'] = "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY"\
                               "-MM-DD')" % string_args
 
-    return "SELECT %(json)s AS %(name)s, COUNT(*) AS count FROM "\
+    return "SELECT %(json)s AS \"%(name)s\", COUNT(*) AS count FROM "\
            "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
            "GROUP BY %(json)s" % string_args
 
@@ -62,7 +62,7 @@ def _postgres_count_group(field, name, xform):
 def _postgres_select_key(field, name, xform):
     string_args = _query_args(field, name, xform)
 
-    return "SELECT %(json)s AS %(name)s FROM %(table)s WHERE "\
+    return "SELECT %(json)s AS \"%(name)s\" FROM %(table)s WHERE "\
            "%(restrict_field)s=%(restrict_value)s" % string_args
 
 
@@ -90,13 +90,14 @@ def flatten(l):
 
 def get_date_fields(xform):
     """List of date field names for specified xform"""
-    return [SUBMISSION_TIME] + _get_fields_of_type(xform, ['date'])
+    return [SUBMISSION_TIME] + _get_fields_of_type(
+        xform, ['date', 'datetime', 'start', 'end', 'today'])
 
 
 def get_field_records(field, xform):
     result = _execute_query(_select_key(field, field, xform),
                             to_dict=False)
-    return [float(i[0]) for i in result]
+    return [float(i[0]) for i in result if i[0] is not None]
 
 
 def get_form_submissions_grouped_by_field(xform, field, name=None):
@@ -105,10 +106,6 @@ def get_form_submissions_grouped_by_field(xform, field, name=None):
         name = field
 
     result = _execute_query(_count_group(field, name, xform))
-
-    # if we have a single None result, the field doesnt exist
-    if len(result) == 1 and result[0][name] is None:
-        raise ValueError(_(u"Field '%s' does not exist." % field))
 
     return result
 

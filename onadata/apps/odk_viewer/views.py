@@ -39,6 +39,7 @@ from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
 from onadata.libs.utils.user_auth import has_permission, get_xform_and_perms,\
     helper_auth_helper
 from xls_writer import XlsWriter
+from onadata.libs.utils.chart_tools import build_chart_data
 
 
 def encode(time_str):
@@ -693,4 +694,22 @@ def instance(request, username, id_string):
         'id_string': id_string,
         'xform': xform,
         'can_edit': can_edit
+    }, context_instance=context)
+
+
+def charts(request, username, id_string):
+    xform, is_owner, can_edit, can_view = get_xform_and_perms(
+        username, id_string, request)
+    # no access
+    if not (xform.shared_data or can_view or
+            request.session.get('public_link') == xform.uuid):
+        return HttpResponseForbidden(_(u'Not shared.'))
+
+    context = RequestContext(request)
+
+    summaries = build_chart_data(xform)
+
+    return render_to_response('charts.html', {
+        'xform': xform,
+        'summaries': summaries
     }, context_instance=context)

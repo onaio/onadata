@@ -6,7 +6,8 @@ from nose.tools import raises
 
 from onadata.apps.odk_logger.models.instance import Instance
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.data.query import get_form_submissions_grouped_by_field
+from onadata.libs.data.query import get_form_submissions_grouped_by_field,\
+    get_date_fields, get_field_records
 
 
 class TestTools(TestBase):
@@ -129,15 +130,6 @@ class TestTools(TestBase):
             self.assertEqual([name, count_key], sorted(result.keys()))
             self.assertEqual(result[count_key], count)
 
-    @raises(ValueError)
-    def test_get_form_submissions_grouped_by_field_bad_field(self):
-        self._make_submissions()
-
-        field = '_bad_field'
-        xform = self.user.xforms.all()[0]
-
-        get_form_submissions_grouped_by_field(xform, field)
-
     def test_get_form_submissions_when_response_not_provided(self):
         """
         Test that the None value is stripped when of the submissions
@@ -171,3 +163,28 @@ class TestTools(TestBase):
             lambda r: r['available_transportation_types_to_referral_facility']
             is None, results)[0]
         self.assertEqual(result['count'], 1)
+
+    def test_get_date_fields_includes_start_end(self):
+        path = os.path.join(
+            os.path.dirname(__file__), "fixtures", "tutorial", "tutorial.xls")
+        self._publish_xls_file_and_set_xform(path)
+        fields = get_date_fields(self.xform)
+        expected_fields = sorted(
+            ['_submission_time', 'date', 'start_time', 'end_time', 'today',
+             'exactly'])
+        self.assertEqual(sorted(fields), expected_fields)
+
+    def test_get_field_records_when_some_responses_are_empty(self):
+        submissions = ['1', '2', '3', 'no_age']
+        path = os.path.join(
+            os.path.dirname(__file__), "fixtures", "tutorial", "tutorial.xls")
+        self._publish_xls_file_and_set_xform(path)
+
+        for i in submissions:
+            self._make_submission(os.path.join(
+                'onadata', 'apps', 'api', 'tests', 'fixtures', 'forms',
+                'tutorial', 'instances', '{}.xml'.format(i)))
+
+        field = 'age'
+        records = get_field_records(field, self.xform)
+        self.assertEqual(records, [23, 23, 35])

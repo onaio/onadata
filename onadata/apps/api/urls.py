@@ -1,4 +1,4 @@
-from django.conf.urls import url
+from django.conf.urls import url, patterns
 from rest_framework import routers
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -15,8 +15,9 @@ from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.api.viewsets.user_viewset import UserViewSet
-from onadata.apps.api.viewsets.submissionstats_viewset import \
+from onadata.apps.api.viewsets.submissionstats_viewset import\
     SubmissionStatsViewSet
+from onadata.apps.api.views import chart_views
 
 
 class MultiLookupRouter(routers.DefaultRouter):
@@ -356,3 +357,7 @@ router.register(r'data', DataViewSet, base_name='data')
 router.register(r'stats', StatsViewSet, base_name='stats')
 router.register(r'stats/submissions', SubmissionStatsViewSet,
                 base_name='submissionstats')
+urlpatterns = router.urls
+urlpatterns += patterns('', url(
+    r'^charts/(?P<formid>[^/]+)/(?P<field_name>[^/]+)$',
+    chart_views.ChartDetail.as_view()))

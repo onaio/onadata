@@ -50,3 +50,11 @@ NA_REP = 'n/a'
 TAGS = u"_tags"
 
 NOTES = u"_notes"
+
+# statistics
+MEAN = u"mean"
+MIN = u"min"
+MAX = u"max"
+RANGE = u"range"
+MEDIAN = u"median"
+MODE = u"mode"
