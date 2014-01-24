@@ -476,8 +476,8 @@ $(document).ready(function(){
         if (note == ""){
             return false;
         }
-        var notes_url = '/api/v1/data/{{username}}/{{id_string}}/' + instance_id + '/notes';
-        $.post(notes_url, {'note': note}).done(function(data){
+        var notes_url = '/api/v1/notes';
+        $.post(notes_url, {'note': note, 'instance': instance_id}).done(function(data){
                 if(data.status && data.status == 'success'){
                     $("#notes-section ul").append("<li>" + data.note + "</li>");
                 }
