@@ -2,12 +2,13 @@ from guardian.shortcuts import assign_perm
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api import serializers
-from onadata.apps.api.tools import get_xform
 from onadata.apps.api import permissions
+from onadata.apps.api import mixins
+from onadata.apps.api.tools import get_xform
 from onadata.apps.odk_logger.models import Note
 
 
-class NoteViewSet(ModelViewSet):
+class NoteViewSet(mixins.ViewPermissionMixin, ModelViewSet):
     """## Add Notes to a submission
 
 A `POST` payload of parameters:
