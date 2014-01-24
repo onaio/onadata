@@ -338,12 +338,12 @@ function reDraw(context, data)
         });
 
         $("#notes").show();
-        var notes = data['_notes'], notesHTML = '<ul>';
+        var notes = data['_notes'], notesHTML = '<table>';
         if(notes.length > 0){
             for(note in notes){
-                notesHTML += '<li>' + notes[note] + '</li>';
+                notesHTML += '<tr><td>' + notes[note]['note'] + '</td><td>' + notes[note]['date_modified'] + '</td></tr>';
             }
-            var nHTML = notesHTML + '</ul>';
+            var nHTML = notesHTML + '</table>';
             $('#notes-section').html(nHTML);
         } else{
             $('#notes-section').empty();
