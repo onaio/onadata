@@ -1,8 +1,9 @@
-from rest_framework import permissions
+from guardian.shortcuts import assign_perm
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api import serializers
 from onadata.apps.api.tools import get_xform
+from onadata.apps.api import permissions
 from onadata.apps.odk_logger.models import Note
 
 
@@ -54,12 +55,19 @@ A `GET` request will return the list of notes applied to a data point.
 """
     queryset = Note.objects.all()
     serializer_class = serializers.NoteSerializer
-    permission_classes = [permissions.DjangoModelPermissions,
+    permission_classes = [permissions.ViewDjangoObjectPermissions,
                           permissions.IsAuthenticated, ]
 
     def pre_save(self, obj):
         # throws PermissionDenied if request.user has no permission to xform
         get_xform(obj.instance.xform.pk, self.request)
+
+    def post_save(self, obj, created=False):
+        if created:
+            assign_perm('add_note', self.request.user, obj)
+            assign_perm('change_note', self.request.user, obj)
+            assign_perm('delete_note', self.request.user, obj)
+            assign_perm('view_note', self.request.user, obj)
 
     def create(self, request, *args, **kwargs):
         return super(self.__class__, self).create(request, *args, **kwargs)
