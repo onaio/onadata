@@ -348,13 +348,15 @@ class ParsedInstance(models.Model):
         note.delete()
 
     def get_notes(self):
-        notes = self.instance.notes.values(
+        notes = []
+        note_qs = self.instance.notes.values(
             'id', 'note', 'date_created', 'date_modified')
-        for note in notes:
+        for note in note_qs:
             note['date_created'] = \
                 note['date_created'].strftime(MONGO_STRFTIME)
             note['date_modified'] = \
                 note['date_modified'].strftime(MONGO_STRFTIME)
+            notes.append(note)
         return notes
 
 
