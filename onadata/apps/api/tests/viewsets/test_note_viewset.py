@@ -54,6 +54,28 @@ class TestNoteViewSet(TestBase):
     def test_add_notes_to_data_point(self):
         self._add_notes_to_data_point()
 
+    def test_other_user_notes_access(self):
+        # Other user 'lilly' should not be able to create notes
+        # to xform instance owned by 'bob'
+        self._create_user_and_login('lilly', '1234')
+        extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        note = {'note': u"Road Warrior"}
+        dataid = self.xform.instances.all()[0].pk
+        note['instance'] = dataid
+        request = self.factory.post('/', data=note, **extra)
+        self.assertTrue(self.xform.instances.count())
+        response = self.view(request)
+        self.assertEqual(response.status_code, 403)
+        # Other user 'lilly' should not have access to bob's instance notes
+        self._add_notes_to_data_point()
+        view = NoteViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **extra)
+        response = view(request, pk=self.pk)
+        self.assertEqual(response.status_code, 403)
+
     def test_delete_note(self):
         self._add_notes_to_data_point()
         request = self.factory.delete('/', **self.extra)

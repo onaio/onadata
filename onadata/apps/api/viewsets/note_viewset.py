@@ -2,6 +2,7 @@ from rest_framework import permissions
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api import serializers
+from onadata.apps.api.tools import get_xform
 from onadata.apps.odk_logger.models import Note
 
 
@@ -56,5 +57,9 @@ A `GET` request will return the list of notes applied to a data point.
     permission_classes = [permissions.DjangoModelPermissions,
                           permissions.IsAuthenticated, ]
 
-    def get_queryset(self):
-        return Note.objects.filter(instance__xform__user=self.request.user)
+    def pre_save(self, obj):
+        # throws PermissionDenied if request.user has no permission to xform
+        get_xform(obj.instance.xform.pk, self.request)
+
+    def create(self, request, *args, **kwargs):
+        return super(self.__class__, self).create(request, *args, **kwargs)
