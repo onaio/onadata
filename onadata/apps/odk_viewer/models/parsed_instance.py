@@ -348,7 +348,14 @@ class ParsedInstance(models.Model):
         note.delete()
 
     def get_notes(self):
-        return [note['note'] for note in self.instance.notes.values('note')]
+        notes = self.instance.notes.values(
+            'id', 'note', 'date_created', 'date_modified')
+        for note in notes:
+            note['date_created'] = \
+                note['date_created'].strftime(MONGO_STRFTIME)
+            note['date_modified'] = \
+                note['date_modified'].strftime(MONGO_STRFTIME)
+        return notes
 
 
 def _remove_from_mongo(sender, **kwargs):
