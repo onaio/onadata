@@ -69,6 +69,3 @@ A `GET` request will return the list of notes applied to a data point.
             assign_perm('change_note', self.request.user, obj)
             assign_perm('delete_note', self.request.user, obj)
             assign_perm('view_note', self.request.user, obj)
-
-    def create(self, request, *args, **kwargs):
-        return super(self.__class__, self).create(request, *args, **kwargs)
