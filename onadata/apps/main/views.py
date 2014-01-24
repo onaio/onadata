@@ -220,11 +220,6 @@ def profile(request, username):
         xforms = XForm.objects.filter(user=content_user)\
             .select_related('user', 'instances')
         context.user_xforms = xforms
-        crowdforms = XForm.objects.filter(
-            metadata__data_type=MetaData.CROWDFORM_USERS,
-            metadata__data_value=username,)\
-            .select_related('user')
-        context.crowdforms = crowdforms
         # forms shared with user
         xfct = ContentType.objects.get(app_label='odk_logger', model='xform')
         xfs = content_user.userobjectpermission_set.filter(content_type=xfct)
@@ -244,12 +239,6 @@ def profile(request, username):
                 'xforms': context.forms_shared_with,
                 'title': _(u"Shared Forms"),
                 'small': _("List of forms shared with you.")
-            },
-            {
-                'id': 'crowd',
-                'xforms': context.crowdforms,
-                'title': _(u"Crowd Forms"),
-                'small': _("List of crowdforms you have joined.")
             }
         ]
     # for any other user -> profile
