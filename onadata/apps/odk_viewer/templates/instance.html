@@ -18,18 +18,6 @@
 <div>{{messages}}</div>
 {% endif %}
 <div id="data"></div>
-
-<div id="notes" style="display: none">
-    <div id='notes-section'>
-    </div>
-    <form action="{% url "onadata.apps.odk_viewer.views.instance" username id_string %}" method="post" name="notesform" id="notesform">
-        {% csrf_token %}
-        <input type="hidden" value="" name="instance_id" id="instance_id" />
-        Add a note:
-        <textarea id="note" class="form-control" rows="3" name="note" autocomplete="off"></textarea>
-        <button type="submit" id="note_save" class="btn small btn-primary" >{% trans "save" %}</button>
-    </form>
-</div>
 {% endblock %}
 
 {% block javascript %}
@@ -338,7 +326,7 @@ function reDraw(context, data)
         });
 
         $("#notes").show();
-        var notes = data['_notes'], notesHTML = '<table>';
+        var notes = data['_notes'], notesHTML = '<table class="table">';
         if(notes.length > 0){
             for(note in notes){
                 notesHTML += '<tr><td>' + notes[note]['note'] + '</td><td>' + notes[note]['date_modified'] + '</td></tr>';
@@ -397,6 +385,15 @@ function createTable()
         var editDelete = '<div class="row"><div class="span6"><a id="title_edit" href="#kate" class="btn small bind-edit disabled">{% trans "edit" %}</a>&nbsp;<a href="#"class="btn btn-small btn-danger">{% trans "Delete" %}</a></div></div>';
         dataContainer.append(editDelete);
     {% endif %}
+    var notesSection = '<div id="notes" style="display: none"> \
+    <form action="{% url "onadata.apps.odk_viewer.views.instance" username id_string %}" method="post" name="notesform" id="notesform"> \
+        '+ "{% csrf_token %}" + ' <input type="hidden" value="" name="instance_id" id="instance_id" /> \
+        Add a note: \
+        <textarea id="note" class="form-control" rows="2" name="note" autocomplete="off" style="width: 80%"></textarea> \
+        <button type="submit" id="note_save" class="btn small btn-primary" >{% trans "save" %}</button> \
+    </form> \
+    <div id="notes-section"></div></div>';
+    dataContainer.append(notesSection);
 
     var table = $('<table id="data-table" class="table table-bordered table-striped"></table');
     var tHead = $('<thead><tr><th class="header" width="50%">{% trans "Question" %}</th><th class="header">{% trans "Response" %}</th></tr></thead>');
