@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load lookup_filter %}
+
+{% block additional-headers %}
+<link rel="stylesheet" href="{{STATIC_URL}}css/stats_tables.css" />
+<link rel="stylesheet" href="{{STATIC_URL}}bower_components/backgrid/lib/backgrid.min.css" />
+{% endblock %}
+
+{% block content %}
+<section>
+  <div class="page-header">
+      <h1>Create Tables <small><a href="{% url "onadata.apps.main.views.show" xform.user.username xform.id_string %}">{{ xform.title }}</a></small></h1>
+  </div>
+
+  <div>
+      <form id="table-create-form" class="form-horizontal">
+          <div id="step-1" class="control-group">
+              <label class="control-label" for="question">1. Select a question</label>
+
+              <div class="controls">
+                  <select id="question"></select>
+              </div>
+          </div>
+          <div id="step-2" class="control-group">
+              <label class="control-label">2. Select summary method</label>
+
+              <div class="controls">
+                  <label class="checkbox">
+                      <input id="frequencies" type="checkbox" value="2">
+                      Frequencies
+                  </label>
+                  <label class="checkbox">
+                      <input id="percentages" type="checkbox" value="4">
+                      Percentage of total respondents
+                  </label>
+                  <label class="checkbox">
+                      <input id="mean" type="checkbox" value="8">
+                      Mean (Average)
+                  </label>
+                  <label class="checkbox">
+                      <input id="median" type="checkbox" value="16">
+                      Median
+                  </label>
+                  <label class="checkbox">
+                      <input id="mode" type="checkbox" value="32">
+                      Mode
+                  </label>
+              </div>
+          </div>
+          <div id="step-3" class="control-group">
+              <label class="control-label">3. Which labels should be displayed?</label>
+
+              <div class="controls">
+              </div>
+          </div>
+          <div id="step-4" class="control-group">
+              <div class="controls">
+                  <button id="create" type="button" class="btn btn-primary">Create</button>
+              </div>
+          </div>
+      </form>
+  </div>
+  <div id="stats-tables-container"></div>
+
+</section>
+{% endblock %}
+
+{% block javascript %}
+{{ block.super }}
+<script src="{{STATIC_URL}}bower_components/underscore/underscore-min.js"></script>
+<script src="{{STATIC_URL}}bower_components/backbone/backbone-min.js"></script>
+<script src="{{STATIC_URL}}bower_components/backgrid/lib/backgrid.js"></script>
+<script src="{{STATIC_URL}}js/stats_tables.js"></script>
+{% endblock %}

@@ -223,8 +223,8 @@ urlpatterns = patterns(
         name='sms_submission'),
 
     # Charts
-    url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/charts$",
-        'onadata.apps.odk_viewer.views.charts'),
+    url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/tables",
+        'onadata.apps.odk_viewer.views.stats_tables'),
 
     # Ziggy
     url(r"^(?P<username>[^/]+)/form-submissions$",
