@@ -32,12 +32,24 @@
 
         events: {
             'change select': function (evt) {
-                var val = $(evt.currentTarget).val()
+                var val = $(evt.currentTarget).val();
                 this.model.set({'selected_field': this.model.get('fields').find(
                     function (f) {
-                        return f.get('id') === val;
+                        return f.id === val;
                     })});
             }
+        },
+
+        initialize: function (options) {
+            Backbone.View.prototype.initialize.apply(this, arguments);
+
+            this.listenTo(this.model, 'change:fields', function () {
+                this.render();
+            });
+
+            this.listenTo(this.model, 'change:selected_field', function () {
+                this.render();
+            });
         },
 
         render: function () {
@@ -45,7 +57,7 @@
                 .empty()
                 .html(this.template({
                     fields: this.model.get('fields').map(function (f) {
-                        return {id: f.get('id'), label: f.get('label')}
+                        return {id: f.id, label: f.get('name')}
                     })
                 }));
         }
@@ -103,12 +115,12 @@
                 className: 'backgrid table table-striped table-hover table-bordered summary-table',
                 columns: [
                     {name: 'age', label: "Age", editable: false, cell: "string"},
-                    {name: 'count', label: "Count", editable: false, cell: "string"},
-                    {name: 'percentage', label: "%", editable: false, cell: "string"}
+                    {name: 'count', label: "Count", editable: false, cell: "integer"},
+                    {name: 'percentage', label: "%", editable: false, cell: "integer"}
                 ],
                 collection: new Backbone.Collection([
-                    {age: 20, count: 12},
-                    {age: 25, count: 31}
+                    {age: 5, count: 12, percentage: 28},
+                    {age: 25, count: 31, percentage: 72}
                 ])
             });
 
@@ -162,6 +174,26 @@
 
             this.$statsEl = Backbone.$(options.statsEl);
 
+            // load the form
+            this.form = new FH.Form({}, {
+                url: options.formUrl
+            });
+
+            // on load, set our model's fields attribute
+            this.form.on('sync', function (model, response, options) {
+                this.model.set({fields: model.fields})
+            }, this);
+
+            // when `fields` change reset `selected_fields` and `summary_method`
+            this.model.on('change:fields', function () {
+                this.model.set({
+                    selected_field: void 0,
+                    summary_methods: 0
+                });
+            }, this);
+
+            this.form.load();
+
             this.questionView = new Ona.QuestionView({
                 el: this.$('#step-1'),
                 model: this.model
@@ -189,11 +221,12 @@
     var tableBuilder = new Ona.TableBuilderView({
         el: '#table-create-form',
         statsEl: '#stats-tables-container',
+        formUrl: '/larryweya/forms/tutorial/form.json',
         model: new Backbone.Model({
             fields: new Backbone.Collection([
-                {id: 'name', label: 'Your Name', type: 'text'},
+                /*{id: 'name', label: 'Your Name', type: 'text'},
                 {id: 'age', label: 'How old are you?', type: 'integer'},
-                {id: 'gender', label: 'Gender', type: 'select one'}
+                {id: 'gender', label: 'Gender', type: 'select one'}*/
             ]),
             selected_field: void 0,
             summary_methods: 0,
