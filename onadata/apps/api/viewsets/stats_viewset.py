@@ -4,8 +4,9 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
-from onadata.apps.api.tools import get_accessible_forms, get_all_stats, get_xform, \
-    get_mode_for_numeric_fields_in_form, get_mean_for_numeric_fields_in_form,\
+from onadata.apps.api.tools import get_accessible_forms, get_all_stats,\
+    get_xform, get_mode_for_numeric_fields_in_form,\
+    get_mean_for_numeric_fields_in_form,\
     get_median_for_numeric_fields_in_form, get_min_max_range
 from onadata.apps.odk_logger.models import Instance
 

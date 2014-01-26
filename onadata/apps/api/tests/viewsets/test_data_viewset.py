@@ -38,7 +38,7 @@ class TestDataViewSet(TestBase):
         data = {
             u'_bamboo_dataset_id': u'',
             u'_attachments': [],
-            u'_geolocation': [None, None],
+            u'_geolocation': None,
             u'_xform_id_string': u'transportation_2011_07_25',
             u'transport/available_transportation_types_to_referral_facility':
             u'none',

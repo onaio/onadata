@@ -102,7 +102,7 @@ def get_csv_data(xform, force_last=False):
             if only_last:
                 instances = instances[0:1]
 
-            rows = [instance.get_full_dict() for instance in instances]
+            rows = [instance.json_full for instance in instances]
 
             if headers_to_use is None:
                 headers_to_use = [key for key in rows[0].keys()

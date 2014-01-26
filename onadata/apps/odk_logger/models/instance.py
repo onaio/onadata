@@ -15,8 +15,8 @@ from onadata.apps.odk_logger.models.xform import XForm
 from onadata.apps.odk_logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
-    DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
-    UUID, XFORM_ID_STRING
+    DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, STATUS,\
+    SUBMISSION_TIME, TAGS, UUID, XFORM_ID_STRING
 from onadata.libs.utils.model_tools import set_uuid
 
 
@@ -194,30 +194,6 @@ class Instance(models.Model):
         return self._parser.get_flat_dict_with_attributes() if flat else\
             self._parser.to_dict()
 
-    def get_full_dict(self):
-        # TODO should we store all of these in the JSON no matter what?
-        d = self.json
-        data = {
-            UUID: self.uuid,
-            ID: self.id,
-            BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
-            self.USERFORM_ID: u'%s_%s' % (
-                self.user.username,
-                self.xform.id_string),
-            ATTACHMENTS: [a.media_file.name for a in
-                          self.attachments.all()],
-            self.STATUS: self.status,
-            TAGS: list(self.tags.names()),
-            NOTES: self.get_notes()
-        }
-
-        if isinstance(self.instance.deleted_at, datetime):
-            data[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
-
-        d.update(data)
-
-        return d
-
     def get_notes(self):
         return [note['note'] for note in self.notes.values('note')]
 
@@ -228,6 +204,28 @@ class Instance(models.Model):
     def get_root_node_name(self):
         self._set_parser()
         return self._parser.get_root_node_name()
+
+    @property
+    def json_full(self):
+        d = self.json
+        data = {
+            ATTACHMENTS: [a.media_file.name for a in
+                          self.attachments.all()],
+            BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
+            GEOLOCATION: self.point,
+            ID: self.id,
+            NOTES: self.get_notes(),
+            STATUS: self.status,
+            TAGS: list(self.tags.names()),
+            UUID: self.uuid
+        }
+
+        if isinstance(self.deleted_at, datetime):
+            data[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
+
+        d.update(data)
+
+        return d
 
     @property
     def point(self):

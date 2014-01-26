@@ -270,21 +270,17 @@ or to delete the tag "hello world"
             rs.update(point)
         return rs
 
-    def _get_form_data(self, xform, **kwargs):
-        query = kwargs.get('query', {})
-        query = query if query is not None else {}
-        if xform:
-            query[ParsedInstance.USERFORM_ID] =\
-                u'%s_%s' % (xform.user.username, xform.id_string)
-        query = json.dumps(query) if isinstance(query, dict) else query
-        margs = {
-            'query': query,
-            'fields': kwargs.get('fields', None),
-            'sort': kwargs.get('sort', None)
-        }
-        cursor = ParsedInstance.query_mongo_minimal(**margs)
-        records = list(record for record in cursor)
-        return records
+    def _get_instance_json(self, xform_ids, user, query):
+        """Return instances for these xform IDS and owner.
+
+        :param xform_ids: The XForm IDs to restrict results to.
+        :param user: The user to restrict results to.
+        :param query: A query to restrict results to.
+        """
+        instances = Instance.objects.filter(xform__in=xform_ids,
+                                            user__username=user).order_by('pk')
+        # TODO add JSON query here
+        return [i.json_full for i in instances]
 
     def list(self, request, owner=None, formid=None, dataid=None, **kwargs):
         data = None
@@ -321,7 +317,7 @@ or to delete the tag "hello world"
             query = query if query else {}
             query['_tags'] = {'$all': tags.split(',')}
         if xform:
-            data = self._get_form_data(xform, query=query)
+            data = self._get_instance_json([xform.pk], owner, query)
         if not xform and not data:
             xforms = get_accessible_forms(owner)
             if not query:
@@ -331,8 +327,8 @@ or to delete the tag "hello world"
                     u'%s_%s' % (form.user.username, form.id_string)
                     for form in xforms]
             }
-            # query['_id'] = {'$in': [form.pk for form in xforms]}
-            data = self._get_form_data(xform, query=query)
+            xform_ids = [x.pk for x in xforms]
+            data = self._get_instance_json(xform_ids, owner, query)
         if dataid and len(data):
             data = data[0]
         return Response(data)
