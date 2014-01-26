@@ -326,10 +326,13 @@ function reDraw(context, data)
         });
 
         $("#notes").show();
-        var notes = data['_notes'], notesHTML = '<table class="table">';
+
+        var notes = data['_notes'], notesHTML = '<table class="table table-hover table-condensed">';
         if(notes.length > 0){
             for(note in notes){
-                notesHTML += '<tr><td>' + notes[note]['note'] + '</td><td>' + notes[note]['date_modified'] + '</td></tr>';
+                var n = notes[note];
+                notesHTML += '<tr><td>' + n['note'] + '</td><td>' + n['date_modified'] +
+                    '</td><td><i onclick="deleteNote(this)" data-instance="' + n["instance"] + '" data-note="' + n['note'] + '" data-note-id="' + n['id'] + '" class="remove-note icon-remove"></i></td></tr>';
             }
             var nHTML = notesHTML + '</table>';
             $('#notes-section').html(nHTML);
@@ -344,6 +347,26 @@ function reDraw(context, data)
         $('#data').html("<h3>{% trans 'The requested content was not found.' %}<h3>");
         $('#notes-section').empty();
         $("#notes").hide();
+    }
+}
+
+
+function deleteNote(obj){
+    var note = $(obj).data('note');
+    var note_id = $(obj).data('note-id');
+    if(confirm("Are you sure you want to delete \"" + note + "\"?") == true){
+        $.ajax({
+            url: "/api/v1/notes/" + note_id,
+            type: "DELETE",
+            statusCode: {
+                404: function(){
+                    alert("Note \"" + note + "\" not found or already deleted.");
+                    app.refresh();
+                }
+            }
+        }).done(function(data){
+            app.refresh();
+        });
     }
 }
 
@@ -382,15 +405,19 @@ function createTable()
     dataContainer.append(topStatusNavRows);
 
     {% if can_edit %}
-        var editDelete = '<div class="row"><div class="span6"><a id="title_edit" href="#kate" class="btn small bind-edit disabled">{% trans "edit" %}</a>&nbsp;<a href="#"class="btn btn-small btn-danger">{% trans "Delete" %}</a></div></div>';
+        var editDelete = '<div class="row"><div class="span6"><a id="title_edit" href="#kate" class="btn btn-small bind-edit disabled">{% trans "edit" %}</a>&nbsp;<a href="#"class="btn btn-small btn-danger">{% trans "Delete" %}</a></div></div>';
         dataContainer.append(editDelete);
     {% endif %}
-    var notesSection = '<div id="notes" style="display: none"> \
-    <form action="{% url "onadata.apps.odk_viewer.views.instance" username id_string %}" method="post" name="notesform" id="notesform"> \
+    var notesSection = '<div id="notes" style="display: none; margin: 10px"> \
+    <form action="{% url "onadata.apps.odk_viewer.views.instance" username id_string %}" onsubmit="return addNote()" method="post" name="notesform" id="notesform"> \
         '+ "{% csrf_token %}" + ' <input type="hidden" value="" name="instance_id" id="instance_id" /> \
-        Add a note: \
-        <textarea id="note" class="form-control" rows="2" name="note" autocomplete="off" style="width: 80%"></textarea> \
-        <button type="submit" id="note_save" class="btn small btn-primary" >{% trans "save" %}</button> \
+        <div class="controls"> \
+        <textarea id="note" class="form-control" rows="2" name="note"\
+        placeholder="{% trans "Add note to instance" %}" autocomplete="off" style="width: 80%"></textarea> \
+        </div> \
+        <div class="controls controls-row"> \
+        <button type="submit" id="note_save" class="btn btn-small btn-primary" >{% trans "Save note" %}</button> \
+        </div>\
     </form> \
     <div id="notes-section"></div></div>';
     dataContainer.append(notesSection);
@@ -465,9 +492,10 @@ function parseLanguages(children)
     }
 }
 
-$(document).ready(function(){
-    $('#notesform').submit(function(event){
-        event.preventDefault();
+//$(document).ready(function(){
+//    $('#notesform').submit(function(event){
+//        event.preventDefault();
+function addNote(){
         var instance_id = $("#instance_id").val(),
             note = $("#note").val().trim();
         if (note == ""){
@@ -479,10 +507,11 @@ $(document).ready(function(){
                     $("#notes-section ul").append("<li>" + data.note + "</li>");
                 }
                 $("#notesform")[0].reset();
+                app.refresh();
         }).fail(function(data){console.log(data);})
         return false;
-    });
-});
+    }//);
+//});
 </script>
 
 
