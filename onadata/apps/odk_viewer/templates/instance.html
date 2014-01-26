@@ -331,8 +331,10 @@ function reDraw(context, data)
         if(notes.length > 0){
             for(note in notes){
                 var n = notes[note];
-                notesHTML += '<tr><td>' + n['note'] + '</td><td>' + n['date_modified'] +
-                    '</td><td><i onclick="deleteNote(this)" data-instance="' + n["instance"] + '" data-note="' + n['note'] + '" data-note-id="' + n['id'] + '" class="remove-note icon-remove"></i></td></tr>';
+                notesHTML += '<tr><td>' + n['note'] + '</td><td>' + n['date_modified'] + '</td><td>'
+                    + '<button  onclick="editNote(this)" data-instance="' + n["instance"] + '" data-note="' + n['note'] + '" data-note-id="' + n['id'] + '" type="button" id="edit_note_' + n["id"] + '" class="btn btn-small btn-primary" >{% trans "Edit note" %}</button>'
+                    + '&nbsp;&nbsp;<i onclick="deleteNote(this)" data-instance="' + n["instance"] + '" data-note="' + n['note'] + '" data-note-id="' + n['id'] + '" class="remove-note icon-remove"></i>'
+                    + '</td></tr>';
             }
             var nHTML = notesHTML + '</table>';
             $('#notes-section').html(nHTML);
@@ -350,6 +352,13 @@ function reDraw(context, data)
     }
 }
 
+
+function editNote(obj){
+    var note = $(obj).data('note')
+        , note_id = $(obj).data('note-id');
+    $('<input>').attr({ type: 'hidden', id: 'note-id', name: 'id', value: note_id}).appendTo('#notesform');
+    $("#notesform [name=note]").val(note);
+}
 
 function deleteNote(obj){
     var note = $(obj).data('note');
@@ -409,7 +418,7 @@ function createTable()
         dataContainer.append(editDelete);
     {% endif %}
     var notesSection = '<div id="notes" style="display: none; margin: 10px"> \
-    <form action="{% url "onadata.apps.odk_viewer.views.instance" username id_string %}" onsubmit="return addNote()" method="post" name="notesform" id="notesform"> \
+    <form action="{% url "onadata.apps.odk_viewer.views.instance" username id_string %}" onsubmit="return addOrEditNote()" method="post" name="notesform" id="notesform"> \
         '+ "{% csrf_token %}" + ' <input type="hidden" value="" name="instance_id" id="instance_id" /> \
         <div class="controls"> \
         <textarea id="note" class="form-control" rows="2" name="note"\
@@ -495,20 +504,42 @@ function parseLanguages(children)
 //$(document).ready(function(){
 //    $('#notesform').submit(function(event){
 //        event.preventDefault();
-function addNote(){
+function addOrEditNote(){
         var instance_id = $("#instance_id").val(),
             note = $("#note").val().trim();
         if (note == ""){
             return false;
         }
-        var notes_url = '/api/v1/notes';
-        $.post(notes_url, {'note': note, 'instance': instance_id}).done(function(data){
-                if(data.status && data.status == 'success'){
-                    $("#notes-section ul").append("<li>" + data.note + "</li>");
+        var notes_url = '/api/v1/notes',
+            post_data = {'note': note, 'instance': instance_id};
+        if($("#notesform #note-id").val() != undefined){
+            // Edit Note
+            post_data.pk = $("#notesform #note-id").val();
+            notes_url += "/" + post_data.pk;
+            $.ajax({
+                url: notes_url,
+                type: "PUT",
+                data: post_data,
+                statusCode: {
+                    404: function(){
+                        alert("Note \"" + note + "\" not found or already deleted.");
+                        app.refresh();
+                    }
                 }
+            }).done(function(data){
                 $("#notesform")[0].reset();
+                $("#notesform #note-id").remove()
                 app.refresh();
-        }).fail(function(data){console.log(data);})
+            });
+        } else {
+            // Add New Note
+            $.post(notes_url, post_data).done(function(data){
+                    if(data.status && data.status == 'success'){
+                        $("#notesform")[0].reset();
+                        app.refresh();
+                    }
+            }).fail(function(data){console.log(data);})
+        }
         return false;
     }//);
 //});
