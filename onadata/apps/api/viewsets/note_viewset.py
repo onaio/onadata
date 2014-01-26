@@ -1,4 +1,7 @@
 from guardian.shortcuts import assign_perm
+
+from rest_framework import status
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api import serializers
@@ -72,3 +75,11 @@ A `GET` request will return the list of notes applied to a data point.
 
             # make sure parsed_instance saves to mongo db
             obj.instance.parsed_instance.save()
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        instance = obj.instance
+        obj.delete()
+        # update mongo data
+        instance.parsed_instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
