@@ -1107,3 +1107,6 @@ td div.created{
     font-size: 11px;
     font-weight: 100;
 }
+i.icon-remove{
+    cursor: pointer;
+}
