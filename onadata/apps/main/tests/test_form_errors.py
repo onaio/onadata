@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
 
 from onadata.apps.main.views import show
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 from test_base import TestBase
 
 

@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.views import login_redirect
-from onadata.apps.odk_logger.views import formList
+from onadata.apps.logger.views import formList
 from test_base import TestBase
 
 

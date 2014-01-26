@@ -3,8 +3,8 @@ import os
 from django.core.files.storage import get_storage_class
 from django.utils.dateparse import parse_datetime
 
-from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
-from onadata.apps.odk_viewer.models.export import Export
+from onadata.apps.viewer.models.data_dictionary import DataDictionary
+from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.export_tools import generate_export
 from test_base import TestBase
 

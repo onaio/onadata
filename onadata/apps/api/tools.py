@@ -11,8 +11,8 @@ from onadata.apps.api.models.project import Project
 from onadata.apps.api.models.project_xform import ProjectXForm
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
-from onadata.apps.odk_logger.models.xform import XForm
-from onadata.apps.odk_viewer.models.parsed_instance import datetime_from_str
+from onadata.apps.logger.models.xform import XForm
+from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.data.query import get_field_records, get_numeric_fields
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.user_auth import check_and_set_form_by_id, \

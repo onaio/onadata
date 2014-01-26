@@ -3,7 +3,7 @@ import string
 import random
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 from onadata.apps.sms_support.parser import process_incoming_smses
 
 

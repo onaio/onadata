@@ -16,7 +16,7 @@ from nose import SkipTest
 
 from onadata.apps.main.views import set_perm, show, qrcode
 from onadata.apps.main.models import MetaData
-from onadata.apps.odk_logger.views import enter_data
+from onadata.apps.logger.views import enter_data
 from onadata.libs.utils.viewer_tools import enketo_url
 from test_base import TestBase
 

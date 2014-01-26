@@ -8,7 +8,7 @@ from onadata.apps.api import serializers
 from onadata.apps.api import permissions
 from onadata.apps.api import mixins
 from onadata.apps.api.tools import get_xform
-from onadata.apps.odk_logger.models import Note
+from onadata.apps.logger.models import Note
 
 
 class NoteViewSet(mixins.ViewPermissionMixin, ModelViewSet):

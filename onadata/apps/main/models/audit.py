@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from django.conf import settings
 
-from onadata.apps.odk_viewer.models.parsed_instance import dict_for_mongo,\
+from onadata.apps.viewer.models.parsed_instance import dict_for_mongo,\
     _encode_for_mongo, DATETIME_FORMAT
 
 audit = settings.MONGO_DB.auditlog

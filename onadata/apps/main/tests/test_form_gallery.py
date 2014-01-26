@@ -3,7 +3,7 @@ import os
 from django.core.urlresolvers import reverse
 
 from onadata.apps.main.views import clone_xlsform
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 from test_base import TestBase
 
 

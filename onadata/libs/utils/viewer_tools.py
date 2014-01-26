@@ -138,7 +138,7 @@ def django_file(path, field_name, content_type):
 
 def export_def_from_filename(filename):
     # TODO fix circular import and move to top
-    from onadata.apps.odk_viewer.models.export import Export
+    from onadata.apps.viewer.models.export import Export
     path, ext = os.path.splitext(filename)
     ext = ext[1:]
     # try get the def from extension

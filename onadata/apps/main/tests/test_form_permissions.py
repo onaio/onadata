@@ -3,8 +3,8 @@ import os
 from django.core.urlresolvers import reverse
 from guardian.shortcuts import assign_perm, remove_perm
 
-from onadata.apps.odk_logger.models import XForm
-from onadata.apps.odk_viewer.views import map_view
+from onadata.apps.logger.models import XForm
+from onadata.apps.viewer.views import map_view
 from onadata.apps.main.views import set_perm, show, edit, api, profile
 from onadata.apps.main.models import MetaData
 from test_base import TestBase

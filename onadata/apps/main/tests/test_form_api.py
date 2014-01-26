@@ -4,7 +4,7 @@ import json
 from django.core.urlresolvers import reverse
 
 from onadata.apps.main.views import api
-from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance, \
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance, \
     _encode_for_mongo, _decode_from_mongo
 from test_base import TestBase
 

@@ -14,7 +14,7 @@ from django.test.client import Client
 from django_digest.test import Client as DigestClient
 from django.utils import timezone
 
-from onadata.apps.odk_logger.models import XForm, Instance, Attachment
+from onadata.apps.logger.models import XForm, Instance, Attachment
 
 
 class TestBase(TransactionTestCase):

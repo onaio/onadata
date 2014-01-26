@@ -5,11 +5,11 @@ from django.core.urlresolvers import reverse
 
 from onadata.apps.main.views import show, form_photos, update_xform, profile,\
     enketo_preview
-from onadata.apps.odk_logger.models import XForm
-from onadata.apps.odk_logger.views import download_xlsform, download_jsonform,\
+from onadata.apps.logger.models import XForm
+from onadata.apps.logger.views import download_xlsform, download_jsonform,\
     download_xform, delete_xform
-from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance
-from onadata.apps.odk_viewer.views import export_list, map_view
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.viewer.views import export_list, map_view
 from onadata.libs.utils.user_auth import http_auth_string
 from test_base import TestBase
 

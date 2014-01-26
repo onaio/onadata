@@ -15,7 +15,7 @@ from registration.forms import RegistrationFormUniqueEmail
 from registration.models import RegistrationProfile
 
 from onadata.apps.main.models import UserProfile
-from onadata.apps.odk_viewer.models.data_dictionary import upload_to
+from onadata.apps.viewer.models.data_dictionary import upload_to
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.logger_tools import publish_xls_form
 
