@@ -73,8 +73,8 @@ A `GET` request will return the list of notes applied to a data point.
             assign_perm('delete_note', self.request.user, obj)
             assign_perm('view_note', self.request.user, obj)
 
-            # make sure parsed_instance saves to mongo db
-            obj.instance.parsed_instance.save()
+        # make sure parsed_instance saves to mongo db
+        obj.instance.parsed_instance.save()
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
