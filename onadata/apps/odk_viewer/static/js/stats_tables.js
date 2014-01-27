@@ -46,6 +46,11 @@
                     function (f) {
                         return f.id === val;
                     })});
+
+                // if selected field is blank, reset the summary Method
+                if(!this.model.get('selected_field')) {
+                    this.model.set({'summary_methods': 0});
+                }
             }
         },
 
@@ -101,13 +106,17 @@
 
             // check the models `selected_field` to determine if we should enable our checkboxes
             var disabled = (selectedField || void 0) === void 0;
-            _.each(['frequencies', 'percentages'], function (method){
+            _.each(['frequencies', 'percentages'], function (method) {
+                var checked = (Ona.SummaryMethod[method.toUpperCase()] & self.model.get('summary_methods')) !== 0;
                 self.$('.controls #' + method).prop('disabled', disabled);
+                self.$('.controls #' + method).prop('checked', checked);
             });
 
             disabled = (selectedField || void 0) === void 0 || (selectedField && (selectedField.get('type') !== 'integer' && selectedField.get('type') !== 'decimal'));
-            _.each(['mean', 'median', 'mode'], function (method){
+            _.each(['mean', 'median', 'mode'], function (method) {
+                var checked = (Ona.SummaryMethod[method.toUpperCase()] & self.model.get('summary_methods')) !== 0;
                 self.$('.controls #' + method).prop('disabled', disabled);
+                self.$('.controls #' + method).prop('checked', checked);
             });
         }
     });
@@ -182,6 +191,38 @@
         }
     });
 
+    Ona.FrequenciesCollection = Backbone.Collection.extend({
+        initialize: function (models, options) {
+            Backbone.Collection.prototype.initialize.apply(this, arguments);
+
+            this.baseUrl = options.baseUrl;
+            this.field = options.field;
+            this.summaryMethods = options.summaryMethods || 0;
+        },
+
+        url: function () {
+            return this.baseUrl + '?group=' + this.field.id;
+        },
+
+        parse: function(response) {
+            var self = this,
+                sum = _.reduce(
+                _.map(
+                    response, function(o){
+                        return o.count || 0;
+                    }), function(memo, val){
+                    return memo + val;
+                });
+
+            // Calculate percentages
+            return _.map(response, function (obj) {
+                var objWithPercentage = {count: obj.count, percentage: (obj.count/sum) * 100};
+                objWithPercentage[self.field.id] = obj[self.field.id];
+                return objWithPercentage;
+            });
+        }
+    });
+
     Ona.SummaryView = Backbone.View.extend({
         initialize: function (options) {
             var field = this.model.get('selected_field');
@@ -191,15 +232,25 @@
             // Do we use the XML value (if selected language is -1) or the language
             var selected_language = this.model.get('selected_language');
             var label = selected_language === '-1'?field.get('name'):field.get('label', selected_language);
+
+            var frequenciesCollection = new Ona.FrequenciesCollection([], {
+                baseUrl: options.submissionStatsUrl,
+                field: field,
+                summaryMethods: this.model.get('summary_methods')
+            });
+            var frequencyColumns = [
+                {name: field.get('name'), label: "Answers", editable: false, cell: "string"},
+                {name: 'count', label: "Frequencies", editable: false, cell: "integer"}
+            ];
+            if(this.model.get('summary_methods') & Ona.SummaryMethod.PERCENTAGES) {
+                frequencyColumns.push({'name': 'percentage', label: "Percentage of Total", editable: false, cell: "number"});
+            }
             this.frequencyTable = new Backgrid.Grid({
                 className: 'backgrid table table-striped table-hover table-bordered summary-table',
-                columns: [
-                    {name: field.get('name'), label: label, editable: false, cell: "string"},
-                    {name: 'count', label: "Count", editable: false, cell: "integer"},
-                    {name: 'percentage', label: "%", editable: false, cell: "integer"}
-                ],
-                collection: new Backbone.Collection()
+                columns: frequencyColumns,
+                collection: frequenciesCollection
             });
+            frequenciesCollection.fetch();
 
 
             var statsCollection = new Ona.StatsCollection([], {
@@ -220,9 +271,13 @@
         },
 
         render: function () {
+            var field = this.model.get('selected_field'),
+                selected_language = this.model.get('selected_language'),
+                label = selected_language === '-1'?field.get('name'):field.get('label', selected_language);
+
             this.$el
                 .empty()
-                .append('<h3>'+ "Age" +'</h3>')
+                .append('<h3>'+ label +'</h3>')
                 .append('<h4>' + "Frequency" +'</h3>')
                 .append(this.frequencyTable.render().$el);
 
@@ -247,6 +302,7 @@
         events: {
             'click button#create': function (evt) {
                 var statsTable = new Ona.SummaryView({
+                    submissionStatsUrl: this.submissionStatsUrl,
                     url: this.statsUrl,
                     model: new Backbone.Model({
                         selected_field: this.model.get('selected_field'),
@@ -263,6 +319,7 @@
 
             this.$statsEl = Backbone.$(options.statsEl);
             this.$createButton = Backbone.$(options.createButtonSelector);
+            this.submissionStatsUrl = options.submissionStatsUrl;
             this.statsUrl = options.statsUrl;
 
             // make sure we have a model
