@@ -46,10 +46,6 @@
             this.listenTo(this.model, 'change:fields', function () {
                 this.render();
             });
-
-            this.listenTo(this.model, 'change:selected_field', function () {
-                this.render();
-            });
         },
 
         render: function () {
