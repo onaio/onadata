@@ -149,43 +149,76 @@
         }
     });
 
+    Ona.StatsCollection = Backbone.Collection.extend({
+        initialize: function (models, options) {
+            Backbone.Collection.prototype.initialize.apply(this, arguments);
+
+            this.url = options.url;
+            this.field = options.field;
+            this.summaryMethods = options.summaryMethods || 0;
+        },
+
+        parse: function(response) {
+            var data = [],
+                field_name = this.field.id,
+                self = this;
+
+            _.each(response[field_name], function(val, key) {
+                // Check if this summary method is enabled
+                if(self.summaryMethods & Ona.SummaryMethod[key.toUpperCase()]) {
+                    data.push({stat: key, value: val});
+                }
+            });
+            return data;
+        }
+    });
+
     Ona.SummaryView = Backbone.View.extend({
         initialize: function (options) {
+            var field = this.model.get('selected_field');
+
             Backbone.View.prototype.initialize.apply(this, arguments);
 
+            // Do we use the XML value (if selected language is -1) or the language
+            var selected_language = this.model.get('selected_language');
+            var label = selected_language === '-1'?field.get('name'):field.get('label', selected_language);
             this.frequencyTable = new Backgrid.Grid({
                 className: 'backgrid table table-striped table-hover table-bordered summary-table',
                 columns: [
-                    {name: 'age', label: "Age", editable: false, cell: "string"},
+                    {name: field.get('name'), label: label, editable: false, cell: "string"},
                     {name: 'count', label: "Count", editable: false, cell: "integer"},
                     {name: 'percentage', label: "%", editable: false, cell: "integer"}
                 ],
-                collection: new Backbone.Collection([
-                    {age: 5, count: 12, percentage: 28},
-                    {age: 25, count: 31, percentage: 72}
-                ])
+                collection: new Backbone.Collection()
+            });
+
+
+            var statsCollection = new Ona.StatsCollection([], {
+                url: options.url,
+                field: field,
+                summaryMethods: this.model.get('summary_methods')
             });
 
             this.statsTable = new Backgrid.Grid({
                 className: 'backgrid table table-striped table-hover table-bordered stats-table',
                 columns: [
                     {name: 'stat', label: "Statistic", editable: false, cell: "string"},
-                    {name: 'value', label: "Value", editable: false, cell: "string"}
+                    {name: 'value', label: "Value", editable: false, cell: "number"}
                 ],
-                collection: new Backbone.Collection([
-                    {stat: "Mean", value: 12},
-                    {stat: "Median", value: 31},
-                    {stat: "Mode", value: 31}
-                ])
+                collection: statsCollection
             });
+            statsCollection.fetch();
         },
 
         render: function () {
+            var summaryMethods = this.model.get('summary_methods');
+
             this.$el
                 .empty()
                 .append('<h3>'+ "Age" +'</h3>')
                 .append('<h4>' + "Frequency" +'</h3>')
                 .append(this.frequencyTable.render().$el);
+
             if(true) {
                 this.$el
                     .append('<h4>' + "Statistics" +'</h3>')
@@ -205,6 +238,7 @@
         events: {
             'click button#create': function (evt) {
                 var statsTable = new Ona.SummaryView({
+                    url: this.statsUrl,
                     model: new Backbone.Model({
                         selected_field: this.model.get('selected_field'),
                         summary_methods: this.model.get('summary_methods'),
@@ -220,6 +254,7 @@
 
             this.$statsEl = Backbone.$(options.statsEl);
             this.$createButton = Backbone.$(options.createButtonSelector);
+            this.statsUrl = options.statsUrl;
 
             // make sure we have a model
             this.model = new Backbone.Model({
@@ -241,7 +276,7 @@
                 this.model.set({languages: model.get('languages')})
             }, this);
 
-            // when `fields` change reset `selected_fields` and `summary_method`
+            // when `fields` change reset `selected_fields` and `summary_methods`
             this.model.on('change:fields', function () {
                 this.model.set({
                     selected_field: void 0,
@@ -303,7 +338,8 @@
         statsEl: '#stats-tables-container',
         createButtonSelector: 'button#create',
         //TODO: this is now a global var, should be set explicitly
-        formUrl: formUrl
+        formUrl: formUrl,
+        statsUrl: statsUrl
     });
 
     tableBuilder.render();
