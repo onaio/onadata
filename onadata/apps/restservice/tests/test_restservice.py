@@ -8,7 +8,7 @@ from pybamboo.dataset import Dataset
 
 from onadata.apps.main.views import show, link_to_bamboo
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.odk_logger.models.xform import XForm
+from onadata.apps.logger.models.xform import XForm
 from onadata.apps.restservice.views import add_service, delete_service
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 from onadata.apps.restservice.models import RestService

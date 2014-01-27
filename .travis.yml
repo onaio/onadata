@@ -14,7 +14,7 @@ before_install:
   - ./script/install_ubuntu
 env:
   - TESTFOLDER=onadata/apps/main
-  - TESTFOLDER="onadata/apps/api onadata/apps/odk_logger onadata/apps/odk_viewer onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats onadata/libs"
+  - TESTFOLDER="onadata/apps/api onadata/apps/logger onadata/apps/viewer onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats onadata/libs"
 install:
   - pip install -r requirements/common.pip --download-cache $HOME/.pip-cache --use-mirrors
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test

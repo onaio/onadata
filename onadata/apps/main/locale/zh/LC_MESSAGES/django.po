@@ -105,10 +105,10 @@ msgid "Successfully published %s."
 msgstr " %s 发表成功"
 
 #: main/views.py:262 main/views.py:521 main/views.py:581
-#: odk_logger/views.py:284 odk_logger/views.py:316 odk_viewer/views.py:98
-#: odk_viewer/views.py:168 odk_viewer/views.py:191 odk_viewer/views.py:228
-#: odk_viewer/views.py:260 odk_viewer/views.py:327 odk_viewer/views.py:346
-#: odk_viewer/views.py:376
+#: logger/views.py:284 logger/views.py:316 viewer/views.py:98
+#: viewer/views.py:168 viewer/views.py:191 viewer/views.py:228
+#: viewer/views.py:260 viewer/views.py:327 viewer/views.py:346
+#: viewer/views.py:376
 msgid "Not shared."
 msgstr "非共享"
 
@@ -187,11 +187,11 @@ msgstr "提交"
 #, python-format
 msgid ""
 "\n"
-"The url of this web application <strong>%(odk_url)s</strong>\n"
+"The url of this web application <strong>%(url)s</strong>\n"
 "must be given to ODK Collect before it will get forms from and\n"
 "submit data to formhub. In Collect's Main Menu, press the Menu\n"
 "button. Select Server Preferences, then Server. Enter\n"
-"<strong>%(odk_url)s</strong> as the server. "
+"<strong>%(url)s</strong> as the server. "
 msgstr ""
 
 #: main/templates/form_gallery.html:9
@@ -464,7 +464,7 @@ msgid "Enter Web Form"
 msgstr "输入网络表格"
 
 #: main/templates/published_surveys.html:102 main/templates/show.html:417
-#: odk_viewer/templates/instance.html:443
+#: viewer/templates/instance.html:443
 msgid "Delete Confirmation"
 msgstr "删除确认"
 
@@ -509,7 +509,7 @@ msgstr "所有人"
 
 #: main/templates/show.html:25 main/templates/show.html.py:44
 #: main/templates/show.html:100 main/templates/show.html.py:193
-#: main/templates/show.html:289 odk_viewer/templates/instance.html:349
+#: main/templates/show.html:289 viewer/templates/instance.html:349
 msgid "edit"
 msgstr "编辑"
 
@@ -527,7 +527,7 @@ msgstr "表格ID"
 msgid "None"
 msgstr "无"
 
-#: main/templates/show.html:70 odk_logger/models/xform.py:60
+#: main/templates/show.html:70 logger/models/xform.py:60
 msgid "XForm"
 msgstr "XForm"
 
@@ -657,13 +657,13 @@ msgid "Delete Form"
 msgstr "删除表格"
 
 #: main/templates/show.html:423 main/templates/show.html.py:428
-#: odk_viewer/templates/instance.html:349
-#: odk_viewer/templates/instance.html:449
+#: viewer/templates/instance.html:349
+#: viewer/templates/instance.html:449
 #: restservice/templates/add-service.html:22
 msgid "Delete"
 msgstr "删除"
 
-#: main/templates/show.html:424 odk_viewer/templates/instance.html:450
+#: main/templates/show.html:424 viewer/templates/instance.html:450
 msgid "Cancel"
 msgstr "取消"
 
@@ -714,9 +714,9 @@ msgid "Turn on"
 msgstr "开启"
 
 #: main/templates/show.html:477
-#: odk_logger/templates/bulk_submission_form.html:13
-#: odk_logger/templates/form.html:18
-#: odk_logger/templates/submission_test_form.html:10
+#: logger/templates/bulk_submission_form.html:13
+#: logger/templates/form.html:18
+#: logger/templates/submission_test_form.html:10
 #: templates/registration/password_reset_confirm.html:12
 #: templates/registration/password_reset_form.html:22
 msgid "Submit"
@@ -883,7 +883,7 @@ msgid ""
 "The url of this web application must be given to ODK Collect before it will "
 "get forms from and submit data to formhub. In ODK Collect's Main Menu, press"
 " the Menu button. Select Server Preferences, then Server. Enter "
-"<strong>%(odk_url)s</strong> as the server."
+"<strong>%(url)s</strong> as the server."
 msgstr ""
 
 #: main/templates/tutorial.html:98
@@ -954,297 +954,297 @@ msgid ""
 "<strong>other</strong> to download the converted XForm"
 msgstr "如果你想下载XForm表，点击表格名称然后点击<strong>其他</strong>"
 
-#: odk_logger/import_tools.py:49
+#: logger/import_tools.py:49
 msgid "Too many XML files."
 msgstr "太多XML文件"
 
-#: odk_logger/views.py:55
+#: logger/views.py:55
 #, python-format
 msgid "User %s not found"
 msgstr "用户：%s 没有找到"
 
-#: odk_logger/views.py:62
+#: logger/views.py:62
 msgid ""
 "There was a problem receiving your ODK submission. [Error: IO Error reading "
 "data]"
 msgstr "接受ODK提交有误。[错误：IO读取数据]"
 
-#: odk_logger/views.py:77
+#: logger/views.py:77
 #, python-format
 msgid ""
 "Submission successful. Out of %(total)d survey instances, %(success)d were "
 "imported (%(rejected)d were rejected--duplicates, missing forms, etc.)"
 msgstr "提交成功。在所有%(total)d 调查问卷中，有%(success)d提交了(%(rejected)d被拒绝－重复，无表等等)"
 
-#: odk_logger/views.py:90
+#: logger/views.py:90
 msgid ""
 "There was a problem receiving your ODK submission. [Error: multiple "
 "submission files (?)]"
 msgstr "接受ODK提交有误。[错误：多个提交文件(?)]"
 
-#: odk_logger/views.py:177
+#: logger/views.py:177
 msgid "There should be a single XML submission file."
 msgstr "XML提交应为一个文件"
 
-#: odk_logger/views.py:195
+#: logger/views.py:195
 msgid "Username or ID required."
 msgstr "需要用户名或ID"
 
-#: odk_logger/views.py:198
+#: logger/views.py:198
 msgid "Sorry but the crowd form you submitted to is closed."
 msgstr "对不起，您要提交的crowdform已经关闭。"
 
-#: odk_logger/views.py:202
+#: logger/views.py:202
 msgid "Received empty submission. No instance was created"
 msgstr "提交空白。不创建新数据"
 
-#: odk_logger/views.py:205
+#: logger/views.py:205
 msgid "Form is not active"
 msgstr "表格没有激活"
 
-#: odk_logger/views.py:208
+#: logger/views.py:208
 msgid "Form does not exist on this account"
 msgstr "该账户没有任何表格"
 
-#: odk_logger/views.py:211
+#: logger/views.py:211
 msgid "Improperly formatted XML."
 msgstr "XML格式有误"
 
-#: odk_logger/views.py:213
+#: logger/views.py:213
 msgid "Duplicate submission"
 msgstr "重复的提交"
 
-#: odk_logger/views.py:219
+#: logger/views.py:219
 msgid "Unable to create submission."
 msgstr "不能生成提交"
 
-#: odk_logger/views.py:237
+#: logger/views.py:237
 msgid "File transfer interruption."
 msgstr "上传中断"
 
-#: odk_logger/views.py:273
+#: logger/views.py:273
 #, python-format
 msgid "No XLS file for your form <strong>%(id)s</strong>"
 msgstr "你的表格<strong>%(id)s</strong>没有xls文件"
 
-#: odk_logger/management/commands/create_image_thumbnails.py:15
+#: logger/management/commands/create_image_thumbnails.py:15
 msgid "Creates thumbnails for all form images and stores them"
 msgstr "生成并储存所有图片的缩略图"
 
-#: odk_logger/management/commands/create_image_thumbnails.py:34
+#: logger/management/commands/create_image_thumbnails.py:34
 #, python-format
 msgid "Thumbnails created for %(file)s"
 msgstr "%(file)s的缩略图生成了"
 
-#: odk_logger/management/commands/create_image_thumbnails.py:37
+#: logger/management/commands/create_image_thumbnails.py:37
 #, python-format
 msgid "Problem with the file %(file)s"
 msgstr "%(file)s文件出问题了"
 
-#: odk_logger/management/commands/create_image_thumbnails.py:40
+#: logger/management/commands/create_image_thumbnails.py:40
 #, python-format
 msgid "Error on %(filename)s: %(error)s"
 msgstr "%(filename)s错误: %(error)s"
 
-#: odk_logger/management/commands/export_xforms_and_instances.py:17
+#: logger/management/commands/export_xforms_and_instances.py:17
 msgid "Export ODK forms and instances to JSON."
 msgstr "将ODK表输出为JSON"
 
-#: odk_logger/management/commands/import.py:11
-#: odk_logger/management/commands/import_tools.py:20
-#: odk_viewer/management/commands/import.py:11
+#: logger/management/commands/import.py:11
+#: logger/management/commands/import_tools.py:20
+#: viewer/management/commands/import.py:11
 msgid "Import ODK forms and instances."
 msgstr "上传ODK表"
 
-#: odk_logger/management/commands/import_forms.py:11
-#: odk_viewer/management/commands/import_forms.py:11
+#: logger/management/commands/import_forms.py:11
+#: viewer/management/commands/import_forms.py:11
 msgid "Import a folder of XForms for ODK."
 msgstr "上传ODK的XForm文件夹"
 
-#: odk_logger/management/commands/import_instances.py:12
-#: odk_viewer/management/commands/import_instances.py:12
+#: logger/management/commands/import_instances.py:12
+#: viewer/management/commands/import_instances.py:12
 msgid "Import a folder of ODK instances."
 msgstr "上传ODK文件夹"
 
-#: odk_logger/management/commands/import_tools.py:26
+#: logger/management/commands/import_tools.py:26
 #, python-format
 msgid "[Importing XForm Instances from %(path)s]\n"
 msgstr "[从%(path)s上传XForm]\n"
 
-#: odk_logger/management/commands/import_tools.py:30
+#: logger/management/commands/import_tools.py:30
 msgid "Before Parse:"
 msgstr "解析前:"
 
-#: odk_logger/management/commands/import_tools.py:31
-#: odk_logger/management/commands/import_tools.py:38
+#: logger/management/commands/import_tools.py:31
+#: logger/management/commands/import_tools.py:38
 #, python-format
 msgid " --> Images:    %(nb)d"
 msgstr "-->图像:  %(nb)d"
 
-#: odk_logger/management/commands/import_tools.py:32
-#: odk_logger/management/commands/import_tools.py:39
+#: logger/management/commands/import_tools.py:32
+#: logger/management/commands/import_tools.py:39
 #, python-format
 msgid " --> Instances: %(nb)d"
 msgstr "-->单表: %(nb)d"
 
-#: odk_logger/management/commands/import_tools.py:37
+#: logger/management/commands/import_tools.py:37
 msgid "After Parse:"
 msgstr "解析后"
 
-#: odk_logger/management/commands/move_media_to_s3.py:15
+#: logger/management/commands/move_media_to_s3.py:15
 msgid ""
 "Moves all attachments and xls files to s3 from the local file system "
 "storage."
 msgstr "把所有本地文件移至亚马逊s3"
 
-#: odk_logger/management/commands/move_media_to_s3.py:23
+#: logger/management/commands/move_media_to_s3.py:23
 msgid ""
 "Missing necessary libraries. Try running: pip install -r requirements/s3.pip"
 msgstr "缺失必要程序库。试一试 pip install -r requirements/s3.pip"
 
-#: odk_logger/management/commands/move_media_to_s3.py:28
+#: logger/management/commands/move_media_to_s3.py:28
 msgid ""
 "You must first set your default storage to s3 in your local_settings.py "
 "file."
 msgstr "你需要在local_settings.py文件里指定s3默认储存"
 
-#: odk_logger/management/commands/move_media_to_s3.py:37
+#: logger/management/commands/move_media_to_s3.py:37
 #, python-format
 msgid "Moving %(class)ss to s3..."
 msgstr "将%(class)ss 移至s3..."
 
-#: odk_logger/management/commands/move_media_to_s3.py:43
+#: logger/management/commands/move_media_to_s3.py:43
 #, python-format
 msgid ""
 "\t+ '%(fname)s'\n"
 "\t---> '%(url)s'"
 msgstr "»+ '%(fname)s'\\n »---> '%(url)s'"
 
-#: odk_logger/models/xform.py:41
+#: logger/models/xform.py:41
 msgid "ID"
 msgstr "ID"
 
-#: odk_logger/models/xform.py:61
+#: logger/models/xform.py:61
 msgid "XForms"
 msgstr "XForm表"
 
-#: odk_logger/models/xform.py:64
+#: logger/models/xform.py:64
 msgid "Can view associated data"
 msgstr "可以查看相关数据"
 
-#: odk_logger/models/xform.py:86
+#: logger/models/xform.py:86
 msgid "There should be a single id string."
 msgstr "只能有一个ID"
 
-#: odk_logger/models/xform.py:93
+#: logger/models/xform.py:93
 msgid "There should be a single title."
 msgstr "只能有一个标题"
 
-#: odk_logger/models/xform.py:104
+#: logger/models/xform.py:104
 msgid ""
 "In strict mode, the XForm ID must be a valid slug and contain no spaces."
 msgstr ""
 
-#: odk_logger/models/xform.py:113
+#: logger/models/xform.py:113
 msgid "Submission Count"
 msgstr "提交条目总数"
 
-#: odk_logger/templates/base.html:9
+#: logger/templates/base.html:9
 msgid "XForm Manager:"
 msgstr "XForm表管理员"
 
-#: odk_logger/templates/base.html:15
+#: logger/templates/base.html:15
 msgid "XForm Manager"
 msgstr "XForm表管理员"
 
-#: odk_logger/templates/bulk_submission_form.html:4
-#: odk_logger/templates/form.html:4
+#: logger/templates/bulk_submission_form.html:4
+#: logger/templates/form.html:4
 msgid "Update XForm"
 msgstr "更新XForm"
 
-#: odk_logger/templates/list_xforms.html:6
+#: logger/templates/list_xforms.html:6
 msgid "Downloadable by Phone"
 msgstr "可以下载到手机"
 
-#: odk_logger/templates/list_xforms.html:7
+#: logger/templates/list_xforms.html:7
 msgid "Form ID"
 msgstr "表格ID"
 
-#: odk_logger/templates/list_xforms.html:8
+#: logger/templates/list_xforms.html:8
 msgid "Number of Submissions"
 msgstr "提交条目总数"
 
-#: odk_logger/templates/list_xforms.html:9
+#: logger/templates/list_xforms.html:9
 msgid "Time of Last Submission"
 msgstr "上个提交时间"
 
-#: odk_logger/templates/list_xforms.html:10
+#: logger/templates/list_xforms.html:10
 msgid "CSV"
 msgstr "CSV"
 
-#: odk_logger/templates/list_xforms.html:19
+#: logger/templates/list_xforms.html:19
 msgid "yes"
 msgstr "是"
 
-#: odk_logger/templates/list_xforms.html:21
+#: logger/templates/list_xforms.html:21
 msgid "no"
 msgstr "不是"
 
-#: odk_logger/templates/list_xforms.html:32
+#: logger/templates/list_xforms.html:32
 msgid "Download CSV"
 msgstr "下载CSV"
 
-#: odk_logger/templates/submission.html:3
+#: logger/templates/submission.html:3
 msgid "Your submission was successful!"
 msgstr "提交成功"
 
-#: odk_logger/templates/submission.html:5
+#: logger/templates/submission.html:5
 msgid "Return to the form page"
 msgstr "回到表格页"
 
-#: odk_logger/templates/submission.html:6
+#: logger/templates/submission.html:6
 msgid "Fill the form out again"
 msgstr "重新填写表格"
 
-#: odk_logger/templates/submission_test_form.html:4
+#: logger/templates/submission_test_form.html:4
 msgid "List XForms"
 msgstr "XForm列表"
 
-#: odk_viewer/reparse.py:33
+#: viewer/reparse.py:33
 msgid "[Reparsing XForm Instances]\n"
 msgstr "[重新解析XForm]\n"
 
-#: odk_viewer/reparse.py:52
+#: viewer/reparse.py:52
 #, python-format
 msgid "That process took [%(nb)d ticks]"
 msgstr "这个过程共用[%(nb)d ticks]"
 
-#: odk_viewer/views.py:59
+#: viewer/views.py:59
 msgid "Start time format must be YY_MM_DD_hh_mm_ss"
 msgstr "开始时间格式应为年_月_日_时_分_秒（每个数字两位）"
 
-#: odk_viewer/views.py:70
+#: viewer/views.py:70
 msgid "End time format must be YY_MM_DD_hh_mm_ss"
 msgstr "结束时间格式应为年_月_日_时_分_秒（每个数字两位）"
 
-#: odk_viewer/views.py:185 odk_viewer/views.py:222
+#: viewer/views.py:185 viewer/views.py:222
 msgid "No records found to export"
 msgstr "没有可输出的记录"
 
-#: odk_viewer/views.py:364
+#: viewer/views.py:364
 msgid "Attachment not found"
 msgstr "没有找到附件"
 
-#: odk_viewer/management/commands/mark_start_times.py:7
+#: viewer/management/commands/mark_start_times.py:7
 msgid "This is a one-time command to mark start times of old surveys."
 msgstr "这是一个用来标示旧调查问卷起始时间的一次性命令"
 
-#: odk_viewer/management/commands/mark_start_times.py:16
+#: viewer/management/commands/mark_start_times.py:16
 #, python-format
 msgid "Could not mark start time for DD: %(data)s"
 msgstr "不能标示起始时间 DD:%(data)s"
 
-#: odk_viewer/management/commands/push_develop.py:7
+#: viewer/management/commands/push_develop.py:7
 msgid ""
 "\n"
 "    Run the tests locally. If there are no errors push to\n"
@@ -1253,112 +1253,112 @@ msgid ""
 "    "
 msgstr ""
 
-#: odk_viewer/management/commands/relink.py:6
+#: viewer/management/commands/relink.py:6
 msgid "Relink all instances with the current forms."
 msgstr "以当前表格重新连接有关数据"
 
-#: odk_viewer/management/commands/remongo.py:9
+#: viewer/management/commands/remongo.py:9
 msgid "Insert all existing parsed instances into MongoDB"
 msgstr "将所有解析的数据输入到MongoDB里面"
 
-#: odk_viewer/management/commands/remongo.py:14
+#: viewer/management/commands/remongo.py:14
 msgid "Number of records to process per query"
 msgstr ""
 
-#: odk_viewer/management/commands/remongo.py:16
+#: viewer/management/commands/remongo.py:16
 msgid "Username of the form user"
 msgstr "表格用户的用户名"
 
-#: odk_viewer/management/commands/remongo.py:18
+#: viewer/management/commands/remongo.py:18
 msgid "id string of the form"
 msgstr "表格的ID"
 
-#: odk_viewer/management/commands/reparse.py:9
+#: viewer/management/commands/reparse.py:9
 msgid "Delete and recreate parsed instances."
 msgstr "删除并重新解析数据"
 
-#: odk_viewer/management/commands/set_uuid_in_xml.py:9
+#: viewer/management/commands/set_uuid_in_xml.py:9
 msgid "Insert UUID into XML of all existing XForms"
 msgstr ""
 
-#: odk_viewer/management/commands/set_uuid_in_xml.py:12
+#: viewer/management/commands/set_uuid_in_xml.py:12
 #, python-format
 msgid "%(nb)d XForms to update"
 msgstr "%(nb)d XForm要更新..."
 
-#: odk_viewer/management/commands/set_uuid_in_xml.py:19
+#: viewer/management/commands/set_uuid_in_xml.py:19
 #, python-format
 msgid "Updated %(nb)d XForms..."
 msgstr "%(nb)d XForm已更新..."
 
-#: odk_viewer/management/commands/update_delete_from_mongo.py:12
+#: viewer/management/commands/update_delete_from_mongo.py:12
 msgid "Update deleted records from mongo to sql instances"
 msgstr ""
 
-#: odk_viewer/templates/data_view.html:16
+#: viewer/templates/data_view.html:16
 msgid "Display Fields"
 msgstr "显示项"
 
-#: odk_viewer/templates/data_view.html:45
+#: viewer/templates/data_view.html:45
 msgid ""
 "Your survey has <strong>{numquestions}</strong> question(s) and "
 "<strong>{numsubmissions}</strong> submission(s). Please click on Display "
 "Fields above and select the questions you want to view responses for."
 msgstr ""
 
-#: odk_viewer/templates/data_view.html:46
+#: viewer/templates/data_view.html:46
 msgid ""
 "NOTE: This is a beta feature and your survey contains more than "
 "<strong>{threshold}</strong> responses, search and sort features will not "
 "work."
 msgstr ""
 
-#: odk_viewer/templates/data_view.html:115
+#: viewer/templates/data_view.html:115
 msgid "_MENU_ records per page"
 msgstr ""
 
-#: odk_viewer/templates/instance.html:18
+#: viewer/templates/instance.html:18
 msgid "Browse Form Data"
 msgstr "浏览表格数据"
 
-#: odk_viewer/templates/instance.html:31
+#: viewer/templates/instance.html:31
 msgid "Record {pos} of {total}"
 msgstr ""
 
-#: odk_viewer/templates/instance.html:166
-#: odk_viewer/templates/instance.html:203
+#: viewer/templates/instance.html:166
+#: viewer/templates/instance.html:203
 msgid "BAD REQUEST"
 msgstr "不良请求"
 
-#: odk_viewer/templates/instance.html:310
+#: viewer/templates/instance.html:310
 msgid "The requested content was not found."
 msgstr "需求内容没找到"
 
-#: odk_viewer/templates/instance.html:322
+#: viewer/templates/instance.html:322
 msgid "Change Language:"
 msgstr "更换语言"
 
-#: odk_viewer/templates/instance.html:338
+#: viewer/templates/instance.html:338
 msgid "Record 1 of 6"
 msgstr "1至6"
 
-#: odk_viewer/templates/instance.html:342
+#: viewer/templates/instance.html:342
 msgid "← Previous"
 msgstr "上页"
 
-#: odk_viewer/templates/instance.html:342
+#: viewer/templates/instance.html:342
 msgid "Next →"
 msgstr "下页"
 
-#: odk_viewer/templates/instance.html:354 odk_viewer/templates/survey.html:20
+#: viewer/templates/instance.html:354 viewer/templates/survey.html:20
 msgid "Question"
 msgstr "问题"
 
-#: odk_viewer/templates/instance.html:354 odk_viewer/templates/survey.html:21
+#: viewer/templates/instance.html:354 viewer/templates/survey.html:21
 msgid "Response"
 msgstr "答复"
 
-#: odk_viewer/templates/instance.html:446
+#: viewer/templates/instance.html:446
 msgid ""
 "Are you sure you want to delete this data. If you are unsure about deleting "
 "this form press 'Cancel'."

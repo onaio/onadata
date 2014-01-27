@@ -100,11 +100,11 @@
 </section>
 {% include "published_surveys.html" %}
 <p>
-{% blocktrans with odk_url=odk_url %}
-The url "of" this web application <strong>{{ odk_url }}</strong>
+{% blocktrans with url=url %}
+The url "of" this web application <strong>{{ url }}</strong>
 must be given to ODK Collect before it will get forms from and
 submit data to formhub. In Collect's Main Menu, press the Menu
 button. Select Server Preferences, then Server. Enter
-<strong>{{ odk_url }}</strong> as the server. {% endblocktrans %}
+<strong>{{ url }}</strong> as the server. {% endblocktrans %}
 </p>
 {% endblock %}

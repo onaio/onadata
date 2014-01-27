@@ -4,7 +4,7 @@ from django.test import TestCase
 from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 from onadata.apps.stats.models import StatsCount
 from onadata.apps.stats.tasks import stat_log
 from onadata.apps.stats.utils import get_form_submissions_per_day
@@ -39,7 +39,7 @@ class TestUtils(TestBase):
         self.xform = XForm.objects.latest('date_created')
         self.assertEqual(self.xform.id_string, "transportation_2011_07_25")
 
-    @patch('onadata.apps.odk_logger.models.instance.submission_time')
+    @patch('onadata.apps.logger.models.instance.submission_time')
     def test_form_submission_count_by_day(self, mock_time):
         self._set_mock_time(mock_time)
         self._publish_xls_file()

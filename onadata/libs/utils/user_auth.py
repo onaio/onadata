@@ -11,7 +11,7 @@ from guardian.shortcuts import get_perms_for_model, assign_perm
 
 from onadata.apps.api.models import Project, Team, OrganizationProfile
 from onadata.apps.main.models import UserProfile
-from onadata.apps.odk_logger.models import XForm, Note
+from onadata.apps.logger.models import XForm, Note
 
 
 class HttpResponseNotAuthorized(HttpResponse):
@@ -60,14 +60,14 @@ def has_permission(xform, owner, request, shared=False):
         (hasattr(request, 'session') and
          request.session.get('public_link') == xform.uuid) or\
         owner == user or\
-        user.has_perm('odk_logger.view_xform', xform) or\
-        user.has_perm('odk_logger.change_xform', xform)
+        user.has_perm('logger.view_xform', xform) or\
+        user.has_perm('logger.change_xform', xform)
 
 
 def has_edit_permission(xform, owner, request, shared=False):
     user = request.user
     return (shared and xform.shared_data) or owner == user or\
-        user.has_perm('odk_logger.change_xform', xform)
+        user.has_perm('logger.change_xform', xform)
 
 
 def check_and_set_user_and_form(username, id_string, request):
@@ -95,9 +95,9 @@ def get_xform_and_perms(username, id_string, request):
         XForm, user__username=username, id_string=id_string)
     is_owner = xform.user == request.user
     can_edit = is_owner or\
-        request.user.has_perm('odk_logger.change_xform', xform)
+        request.user.has_perm('logger.change_xform', xform)
     can_view = can_edit or\
-        request.user.has_perm('odk_logger.view_xform', xform)
+        request.user.has_perm('logger.view_xform', xform)
     return [xform, is_owner, can_edit, can_view]
 
 

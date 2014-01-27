@@ -18,8 +18,8 @@ from pyxform.question import Question
 from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
 
-from onadata.apps.odk_logger.models import Attachment, Instance, XForm
-from onadata.apps.odk_viewer.models.parsed_instance import\
+from onadata.apps.logger.models import Attachment, Instance, XForm
+from onadata.apps.viewer.models.parsed_instance import\
     _is_invalid_for_mongo, _encode_for_mongo, dict_for_mongo,\
     _decode_from_mongo
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
@@ -186,7 +186,7 @@ class ExportBuilder(object):
 
     def set_survey(self, survey):
         # TODO resolve circular import
-        from onadata.apps.odk_viewer.models.data_dictionary import\
+        from onadata.apps.viewer.models.data_dictionary import\
             DataDictionary
 
         def build_sections(
@@ -553,7 +553,7 @@ class ExportBuilder(object):
     def to_flat_csv_export(
             self, path, data, username, id_string, filter_query):
         # TODO resolve circular import
-        from onadata.apps.odk_viewer.pandas_mongo_bridge import\
+        from onadata.apps.viewer.pandas_mongo_bridge import\
             CSVDataFrameBuilder
 
         csv_builder = CSVDataFrameBuilder(
@@ -667,7 +667,7 @@ def generate_export(export_type, extension, username, id_string,
     Create appropriate export object given the export type
     """
     # TODO resolve circular import
-    from onadata.apps.odk_viewer.models.export import Export
+    from onadata.apps.viewer.models.export import Export
     export_type_func_map = {
         Export.XLS_EXPORT: 'to_xls_export',
         Export.CSV_EXPORT: 'to_flat_csv_export',
@@ -748,7 +748,7 @@ def query_mongo(username, id_string, query=None, hide_deleted=True):
 
 def should_create_new_export(xform, export_type):
     # TODO resolve circular import
-    from onadata.apps.odk_viewer.models.export import Export
+    from onadata.apps.viewer.models.export import Export
     if Export.objects.filter(
             xform=xform, export_type=export_type).count() == 0\
             or Export.exports_outdated(xform, export_type=export_type):
@@ -762,7 +762,7 @@ def newset_export_for(xform, export_type):
     it will a DoesNotExist exception otherwise
     """
     # TODO resolve circular import
-    from onadata.apps.odk_viewer.models.export import Export
+    from onadata.apps.viewer.models.export import Export
     return Export.objects.filter(xform=xform, export_type=export_type)\
         .latest('created_on')
 
@@ -791,7 +791,7 @@ def generate_attachments_zip_export(
         export_type, extension, username, id_string, export_id=None,
         filter_query=None):
     # TODO resolve circular import
-    from onadata.apps.odk_viewer.models.export import Export
+    from onadata.apps.viewer.models.export import Export
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     attachments = Attachment.objects.filter(instance__xform=xform)
     zip_file = create_attachments_zipfile(attachments)
@@ -831,7 +831,7 @@ def generate_kml_export(
         export_type, extension, username, id_string, export_id=None,
         filter_query=None):
     # TODO resolve circular import
-    from onadata.apps.odk_viewer.models.export import Export
+    from onadata.apps.viewer.models.export import Export
     user = User.objects.get(username=username)
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     response = render_to_response(
@@ -874,7 +874,7 @@ def generate_kml_export(
 
 def kml_export_data(id_string, user):
     # TODO resolve circular import
-    from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
+    from onadata.apps.viewer.models.data_dictionary import DataDictionary
     dd = DataDictionary.objects.get(id_string=id_string, user=user)
     instances = Instance.objects.filter(
         user=user, xform__id_string=id_string, geom__isnull=False

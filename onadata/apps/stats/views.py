@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.template import RequestContext
 from django.shortcuts import render_to_response, get_object_or_404
 
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 from onadata.apps.stats.utils import get_form_submissions_per_day
 
 

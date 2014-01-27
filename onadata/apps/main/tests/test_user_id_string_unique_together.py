@@ -1,7 +1,7 @@
 import os
 
 from test_base import TestBase
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 
 
 class TestUserIdStringUniqueTogether(TestBase):

@@ -13,7 +13,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
-from onadata.apps.odk_logger.xform_instance_parser import clean_and_parse_xml
+from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.libs.utils.logger_tools import publish_xml_form, publish_form, \
     create_instance
 

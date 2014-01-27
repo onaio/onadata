@@ -4,7 +4,7 @@ import os
 from mock import patch
 from nose.tools import raises
 
-from onadata.apps.odk_logger.models.instance import Instance
+from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.data.query import get_form_submissions_grouped_by_field,\
     get_date_fields, get_field_records
@@ -34,7 +34,7 @@ class TestTools(TestBase):
             self.assertEqual([field, count_key], sorted(result.keys()))
             self.assertEqual(result[count_key], count)
 
-    @patch('onadata.apps.odk_logger.models.instance.submission_time')
+    @patch('onadata.apps.logger.models.instance.submission_time')
     def test_get_form_submissions_grouped_by_field_datetime_to_date(
             self, mock_time):
         now = datetime(2014, 01, 01)

@@ -106,10 +106,10 @@ msgid "Successfully published %s."
 msgstr "%s pubblicato con successo."
 
 #: main/views.py:262 main/views.py:521 main/views.py:581
-#: odk_logger/views.py:284 odk_logger/views.py:316 odk_viewer/views.py:98
-#: odk_viewer/views.py:168 odk_viewer/views.py:191 odk_viewer/views.py:228
-#: odk_viewer/views.py:260 odk_viewer/views.py:327 odk_viewer/views.py:346
-#: odk_viewer/views.py:376
+#: logger/views.py:284 logger/views.py:316 viewer/views.py:98
+#: viewer/views.py:168 viewer/views.py:191 viewer/views.py:228
+#: viewer/views.py:260 viewer/views.py:327 viewer/views.py:346
+#: viewer/views.py:376
 msgid "Not shared."
 msgstr "Non condiviso."
 
@@ -188,12 +188,12 @@ msgstr "RISPOSTE"
 #, python-format
 msgid ""
 "\n"
-"The url of this web application <strong>%(odk_url)s</strong>\n"
+"The url of this web application <strong>%(url)s</strong>\n"
 "must be given to ODK Collect before it will get forms from and\n"
 "submit data to formhub. In Collect's Main Menu, press the Menu\n"
 "button. Select Server Preferences, then Server. Enter\n"
-"<strong>%(odk_url)s</strong> as the server. "
-msgstr "\n⏎ L'indirizzo url di questa applicazione web <strong>%(odk_url)s</strong>⏎ deve essere inserito in ODK Collect prima che possa scaricare moduli da e⏎ inviare dati a formhub. Nel Menu principale di Collect, premi il pulsante Menu⏎. Seleziona Server Preferences, e poi Server. Inserisci⏎ <strong>%(odk_url)s</strong> come server."
+"<strong>%(url)s</strong> as the server. "
+msgstr "\n⏎ L'indirizzo url di questa applicazione web <strong>%(url)s</strong>⏎ deve essere inserito in ODK Collect prima che possa scaricare moduli da e⏎ inviare dati a formhub. Nel Menu principale di Collect, premi il pulsante Menu⏎. Seleziona Server Preferences, e poi Server. Inserisci⏎ <strong>%(url)s</strong> come server."
 
 #: main/templates/form_gallery.html:9
 msgid "Form Gallery <small>Shared Forms</small>"
@@ -467,7 +467,7 @@ msgid "Enter Web Form"
 msgstr "Apri Modulo Web"
 
 #: main/templates/published_surveys.html:102 main/templates/show.html:417
-#: odk_viewer/templates/instance.html:443
+#: viewer/templates/instance.html:443
 msgid "Delete Confirmation"
 msgstr "Conferma Elimina"
 
@@ -512,7 +512,7 @@ msgstr "Proprietario"
 
 #: main/templates/show.html:25 main/templates/show.html.py:44
 #: main/templates/show.html:100 main/templates/show.html.py:193
-#: main/templates/show.html:289 odk_viewer/templates/instance.html:349
+#: main/templates/show.html:289 viewer/templates/instance.html:349
 msgid "edit"
 msgstr "Modifica"
 
@@ -530,7 +530,7 @@ msgstr "Modulo ID:"
 msgid "None"
 msgstr "Nessuna"
 
-#: main/templates/show.html:70 odk_logger/models/xform.py:60
+#: main/templates/show.html:70 logger/models/xform.py:60
 msgid "XForm"
 msgstr "XForm"
 
@@ -660,13 +660,13 @@ msgid "Delete Form"
 msgstr "Elimina Modulo"
 
 #: main/templates/show.html:423 main/templates/show.html.py:428
-#: odk_viewer/templates/instance.html:349
-#: odk_viewer/templates/instance.html:449
+#: viewer/templates/instance.html:349
+#: viewer/templates/instance.html:449
 #: restservice/templates/add-service.html:22
 msgid "Delete"
 msgstr "Elimina"
 
-#: main/templates/show.html:424 odk_viewer/templates/instance.html:450
+#: main/templates/show.html:424 viewer/templates/instance.html:450
 msgid "Cancel"
 msgstr "Annulla"
 
@@ -717,9 +717,9 @@ msgid "Turn on"
 msgstr "Attiva"
 
 #: main/templates/show.html:477
-#: odk_logger/templates/bulk_submission_form.html:13
-#: odk_logger/templates/form.html:18
-#: odk_logger/templates/submission_test_form.html:10
+#: logger/templates/bulk_submission_form.html:13
+#: logger/templates/form.html:18
+#: logger/templates/submission_test_form.html:10
 #: templates/registration/password_reset_confirm.html:12
 #: templates/registration/password_reset_form.html:22
 msgid "Submit"
@@ -886,8 +886,8 @@ msgid ""
 "The url of this web application must be given to ODK Collect before it will "
 "get forms from and submit data to formhub. In ODK Collect's Main Menu, press"
 " the Menu button. Select Server Preferences, then Server. Enter "
-"<strong>%(odk_url)s</strong> as the server."
-msgstr "L'indirizzo URL di questa applicazione web deve essere fornito a ODK Collect prima di poter scaricare moduli da e inviare dati a formhub. Nel menú principale di ODK Collect, clicca su Menu. Seleziona Server Preferences e successivamente Server. Inserisci <strong>%(odk_url)s</strong> come server."
+"<strong>%(url)s</strong> as the server."
+msgstr "L'indirizzo URL di questa applicazione web deve essere fornito a ODK Collect prima di poter scaricare moduli da e inviare dati a formhub. Nel menú principale di ODK Collect, clicca su Menu. Seleziona Server Preferences e successivamente Server. Inserisci <strong>%(url)s</strong> come server."
 
 #: main/templates/tutorial.html:98
 msgid "Download your published form to your phone."
@@ -957,297 +957,297 @@ msgid ""
 "<strong>other</strong> to download the converted XForm"
 msgstr "Se vuoi scaricare il file XForm, clicca sul nome del modulo e clicca su  <strong>altro</strong> per scaricare il file XForm convertito"
 
-#: odk_logger/import_tools.py:49
+#: logger/import_tools.py:49
 msgid "Too many XML files."
 msgstr "Troppi file XML."
 
-#: odk_logger/views.py:55
+#: logger/views.py:55
 #, python-format
 msgid "User %s not found"
 msgstr "Utente %s non trovato"
 
-#: odk_logger/views.py:62
+#: logger/views.py:62
 msgid ""
 "There was a problem receiving your ODK submission. [Error: IO Error reading "
 "data]"
 msgstr "C'è stato un problema nel ricevere la tua risposta ODK. [Errore: IO Errore nel leggere i dati]"
 
-#: odk_logger/views.py:77
+#: logger/views.py:77
 #, python-format
 msgid ""
 "Submission successful. Out of %(total)d survey instances, %(success)d were "
 "imported (%(rejected)d were rejected--duplicates, missing forms, etc.)"
 msgstr "Invio avvenuto con successo. Di %(total)d istanze di sondaggio, %(success)d sono state importate (%(rejected)d sono state respinte--duplicati, moduli mancanti, etc.)"
 
-#: odk_logger/views.py:90
+#: logger/views.py:90
 msgid ""
 "There was a problem receiving your ODK submission. [Error: multiple "
 "submission files (?)]"
 msgstr "C'è stato un problema nella ricezione delle tue risposte ODK. [Errore: file multipli di risposta (?)]"
 
-#: odk_logger/views.py:177
+#: logger/views.py:177
 msgid "There should be a single XML submission file."
 msgstr "Ci dovrebbe essere un unico file XML di risposte. "
 
-#: odk_logger/views.py:195
+#: logger/views.py:195
 msgid "Username or ID required."
 msgstr "Nome utente o ID richiesti."
 
-#: odk_logger/views.py:198
+#: logger/views.py:198
 msgid "Sorry but the crowd form you submitted to is closed."
 msgstr "Spiacenti, ma il crowdform al quale hai inviato risposte è chiuso."
 
-#: odk_logger/views.py:202
+#: logger/views.py:202
 msgid "Received empty submission. No instance was created"
 msgstr "Ricevuta una risposta vuota. Non è stata creata nessuna istanza"
 
-#: odk_logger/views.py:205
+#: logger/views.py:205
 msgid "Form is not active"
 msgstr "Il modulo non è attivo"
 
-#: odk_logger/views.py:208
+#: logger/views.py:208
 msgid "Form does not exist on this account"
 msgstr "Il modulo non esiste in questo account"
 
-#: odk_logger/views.py:211
+#: logger/views.py:211
 msgid "Improperly formatted XML."
 msgstr "XML non formattato correttamente. "
 
-#: odk_logger/views.py:213
+#: logger/views.py:213
 msgid "Duplicate submission"
 msgstr "Risposte doppie"
 
-#: odk_logger/views.py:219
+#: logger/views.py:219
 msgid "Unable to create submission."
 msgstr "Impossibile creare le tue risposte. "
 
-#: odk_logger/views.py:237
+#: logger/views.py:237
 msgid "File transfer interruption."
 msgstr "Interruzione del transfer del file. "
 
-#: odk_logger/views.py:273
+#: logger/views.py:273
 #, python-format
 msgid "No XLS file for your form <strong>%(id)s</strong>"
 msgstr "No file XLS per il tuo modulo <strong>%(id)s</strong>"
 
-#: odk_logger/management/commands/create_image_thumbnails.py:15
+#: logger/management/commands/create_image_thumbnails.py:15
 msgid "Creates thumbnails for all form images and stores them"
 msgstr "Crea icone per tutte le immagini dei moduli e le memorizza"
 
-#: odk_logger/management/commands/create_image_thumbnails.py:34
+#: logger/management/commands/create_image_thumbnails.py:34
 #, python-format
 msgid "Thumbnails created for %(file)s"
 msgstr "Create icone per %(file)s"
 
-#: odk_logger/management/commands/create_image_thumbnails.py:37
+#: logger/management/commands/create_image_thumbnails.py:37
 #, python-format
 msgid "Problem with the file %(file)s"
 msgstr "Problema con i file %(file)s"
 
-#: odk_logger/management/commands/create_image_thumbnails.py:40
+#: logger/management/commands/create_image_thumbnails.py:40
 #, python-format
 msgid "Error on %(filename)s: %(error)s"
 msgstr "Errore in %(filename)s: %(error)s"
 
-#: odk_logger/management/commands/export_xforms_and_instances.py:17
+#: logger/management/commands/export_xforms_and_instances.py:17
 msgid "Export ODK forms and instances to JSON."
 msgstr "Esporta moduli e istanze ODK a JSON."
 
-#: odk_logger/management/commands/import.py:11
-#: odk_logger/management/commands/import_tools.py:20
-#: odk_viewer/management/commands/import.py:11
+#: logger/management/commands/import.py:11
+#: logger/management/commands/import_tools.py:20
+#: viewer/management/commands/import.py:11
 msgid "Import ODK forms and instances."
 msgstr "Importa moduli e istanze ODK."
 
-#: odk_logger/management/commands/import_forms.py:11
-#: odk_viewer/management/commands/import_forms.py:11
+#: logger/management/commands/import_forms.py:11
+#: viewer/management/commands/import_forms.py:11
 msgid "Import a folder of XForms for ODK."
 msgstr "Importa cartella di XForms per ODK."
 
-#: odk_logger/management/commands/import_instances.py:12
-#: odk_viewer/management/commands/import_instances.py:12
+#: logger/management/commands/import_instances.py:12
+#: viewer/management/commands/import_instances.py:12
 msgid "Import a folder of ODK instances."
 msgstr "Importa cartella di istanze ODK."
 
-#: odk_logger/management/commands/import_tools.py:26
+#: logger/management/commands/import_tools.py:26
 #, python-format
 msgid "[Importing XForm Instances from %(path)s]\n"
 msgstr "[Importazione di istanze XForm da %(path)s]⏎\n"
 
-#: odk_logger/management/commands/import_tools.py:30
+#: logger/management/commands/import_tools.py:30
 msgid "Before Parse:"
 msgstr "Prima dell'analisi: "
 
-#: odk_logger/management/commands/import_tools.py:31
-#: odk_logger/management/commands/import_tools.py:38
+#: logger/management/commands/import_tools.py:31
+#: logger/management/commands/import_tools.py:38
 #, python-format
 msgid " --> Images:    %(nb)d"
 msgstr "--> Immagini: %(nb)d"
 
-#: odk_logger/management/commands/import_tools.py:32
-#: odk_logger/management/commands/import_tools.py:39
+#: logger/management/commands/import_tools.py:32
+#: logger/management/commands/import_tools.py:39
 #, python-format
 msgid " --> Instances: %(nb)d"
 msgstr "--> Istanze: %(nb)d"
 
-#: odk_logger/management/commands/import_tools.py:37
+#: logger/management/commands/import_tools.py:37
 msgid "After Parse:"
 msgstr "Dopo l'analisi:"
 
-#: odk_logger/management/commands/move_media_to_s3.py:15
+#: logger/management/commands/move_media_to_s3.py:15
 msgid ""
 "Moves all attachments and xls files to s3 from the local file system "
 "storage."
 msgstr "Sposta tutti gli allegati e file xls dal sistema locale di memoria a s3. "
 
-#: odk_logger/management/commands/move_media_to_s3.py:23
+#: logger/management/commands/move_media_to_s3.py:23
 msgid ""
 "Missing necessary libraries. Try running: pip install -r requirements/s3.pip"
 msgstr "Mancano le librerie necessarie. Prova ad eseguire: pip install -r requirements/s3.pip"
 
-#: odk_logger/management/commands/move_media_to_s3.py:28
+#: logger/management/commands/move_media_to_s3.py:28
 msgid ""
 "You must first set your default storage to s3 in your local_settings.py "
 "file."
 msgstr "È necessario impostare la memoria predefinita a s3 all'interno del file local_settings.py. "
 
-#: odk_logger/management/commands/move_media_to_s3.py:37
+#: logger/management/commands/move_media_to_s3.py:37
 #, python-format
 msgid "Moving %(class)ss to s3..."
 msgstr "Spostando %(class)ss a s3..."
 
-#: odk_logger/management/commands/move_media_to_s3.py:43
+#: logger/management/commands/move_media_to_s3.py:43
 #, python-format
 msgid ""
 "\t+ '%(fname)s'\n"
 "\t---> '%(url)s'"
 msgstr "»+ '%(fname)s'⏎ »---> '%(url)s'"
 
-#: odk_logger/models/xform.py:41
+#: logger/models/xform.py:41
 msgid "ID"
 msgstr "ID"
 
-#: odk_logger/models/xform.py:61
+#: logger/models/xform.py:61
 msgid "XForms"
 msgstr "XForms"
 
-#: odk_logger/models/xform.py:64
+#: logger/models/xform.py:64
 msgid "Can view associated data"
 msgstr "Puoi visualizzare i dati associati"
 
-#: odk_logger/models/xform.py:86
+#: logger/models/xform.py:86
 msgid "There should be a single id string."
 msgstr "Ci dovrebbe essere una sola stringa id. "
 
-#: odk_logger/models/xform.py:93
+#: logger/models/xform.py:93
 msgid "There should be a single title."
 msgstr "Ci dovrebbe essere un solo titolo. "
 
-#: odk_logger/models/xform.py:104
+#: logger/models/xform.py:104
 msgid ""
 "In strict mode, the XForm ID must be a valid slug and contain no spaces."
 msgstr "In modalità strict, la XForm ID deve essere un valido slug e non deve contenere spazi. "
 
-#: odk_logger/models/xform.py:113
+#: logger/models/xform.py:113
 msgid "Submission Count"
 msgstr "Conto Risposte"
 
-#: odk_logger/templates/base.html:9
+#: logger/templates/base.html:9
 msgid "XForm Manager:"
 msgstr "XForm Manager:"
 
-#: odk_logger/templates/base.html:15
+#: logger/templates/base.html:15
 msgid "XForm Manager"
 msgstr "XForm Manager"
 
-#: odk_logger/templates/bulk_submission_form.html:4
-#: odk_logger/templates/form.html:4
+#: logger/templates/bulk_submission_form.html:4
+#: logger/templates/form.html:4
 msgid "Update XForm"
 msgstr "Aggiorna XForm"
 
-#: odk_logger/templates/list_xforms.html:6
+#: logger/templates/list_xforms.html:6
 msgid "Downloadable by Phone"
 msgstr "Scaricabile da Telefono"
 
-#: odk_logger/templates/list_xforms.html:7
+#: logger/templates/list_xforms.html:7
 msgid "Form ID"
 msgstr "Modulo ID"
 
-#: odk_logger/templates/list_xforms.html:8
+#: logger/templates/list_xforms.html:8
 msgid "Number of Submissions"
 msgstr "Numero di Risposte"
 
-#: odk_logger/templates/list_xforms.html:9
+#: logger/templates/list_xforms.html:9
 msgid "Time of Last Submission"
 msgstr "Ora dell'Ultima Risposta"
 
-#: odk_logger/templates/list_xforms.html:10
+#: logger/templates/list_xforms.html:10
 msgid "CSV"
 msgstr "CSV"
 
-#: odk_logger/templates/list_xforms.html:19
+#: logger/templates/list_xforms.html:19
 msgid "yes"
 msgstr "si"
 
-#: odk_logger/templates/list_xforms.html:21
+#: logger/templates/list_xforms.html:21
 msgid "no"
 msgstr "no"
 
-#: odk_logger/templates/list_xforms.html:32
+#: logger/templates/list_xforms.html:32
 msgid "Download CSV"
 msgstr "Scarica CSV"
 
-#: odk_logger/templates/submission.html:3
+#: logger/templates/submission.html:3
 msgid "Your submission was successful!"
 msgstr "La tua risposta è stata inviata con successo! "
 
-#: odk_logger/templates/submission.html:5
+#: logger/templates/submission.html:5
 msgid "Return to the form page"
 msgstr "Ritorna alla pagina contenente il modulo"
 
-#: odk_logger/templates/submission.html:6
+#: logger/templates/submission.html:6
 msgid "Fill the form out again"
 msgstr "Riempi il modulo nuovamente"
 
-#: odk_logger/templates/submission_test_form.html:4
+#: logger/templates/submission_test_form.html:4
 msgid "List XForms"
 msgstr "Elenco XForms"
 
-#: odk_viewer/reparse.py:33
+#: viewer/reparse.py:33
 msgid "[Reparsing XForm Instances]\n"
 msgstr "[Rileggendo Istanze XForm]⏎\n"
 
-#: odk_viewer/reparse.py:52
+#: viewer/reparse.py:52
 #, python-format
 msgid "That process took [%(nb)d ticks]"
 msgstr "Questo processo ha richiesto [%(nb)d ticks]"
 
-#: odk_viewer/views.py:59
+#: viewer/views.py:59
 msgid "Start time format must be YY_MM_DD_hh_mm_ss"
 msgstr "Il formato dell'ora iniziale deve essere YY_MM_DD_hh_mm_ss"
 
-#: odk_viewer/views.py:70
+#: viewer/views.py:70
 msgid "End time format must be YY_MM_DD_hh_mm_ss"
 msgstr "L'ora finale deve essere YY_MM_DD_hh_mm_ss"
 
-#: odk_viewer/views.py:185 odk_viewer/views.py:222
+#: viewer/views.py:185 viewer/views.py:222
 msgid "No records found to export"
 msgstr "Non ci sono record da esportare"
 
-#: odk_viewer/views.py:364
+#: viewer/views.py:364
 msgid "Attachment not found"
 msgstr "Allegato non trovato"
 
-#: odk_viewer/management/commands/mark_start_times.py:7
+#: viewer/management/commands/mark_start_times.py:7
 msgid "This is a one-time command to mark start times of old surveys."
 msgstr "Questo è un comando singolo per registrare gli orari iniziali di vecchi sondaggi. "
 
-#: odk_viewer/management/commands/mark_start_times.py:16
+#: viewer/management/commands/mark_start_times.py:16
 #, python-format
 msgid "Could not mark start time for DD: %(data)s"
 msgstr "Non è stato possible registrare il tempo iniziale per DD: %(data)s"
 
-#: odk_viewer/management/commands/push_develop.py:7
+#: viewer/management/commands/push_develop.py:7
 msgid ""
 "\n"
 "    Run the tests locally. If there are no errors push to\n"
@@ -1256,112 +1256,112 @@ msgid ""
 "    "
 msgstr "\n    Esegui i test a livello locale. Se non ci sono errori, carica per\n    sviluppare, e aggiorna lo staging server. (Questo dovrebbe \n    aggiornare anche il develop server)\n    "
 
-#: odk_viewer/management/commands/relink.py:6
+#: viewer/management/commands/relink.py:6
 msgid "Relink all instances with the current forms."
 msgstr "Ricollega tutte le istanze con i moduli attuali. "
 
-#: odk_viewer/management/commands/remongo.py:9
+#: viewer/management/commands/remongo.py:9
 msgid "Insert all existing parsed instances into MongoDB"
 msgstr "Inserisci tutte le istanze esistenti analizzate in MongoDB"
 
-#: odk_viewer/management/commands/remongo.py:14
+#: viewer/management/commands/remongo.py:14
 msgid "Number of records to process per query"
 msgstr "Numero di record da da elaborare per query"
 
-#: odk_viewer/management/commands/remongo.py:16
+#: viewer/management/commands/remongo.py:16
 msgid "Username of the form user"
 msgstr "Username dell'utente del modulo"
 
-#: odk_viewer/management/commands/remongo.py:18
+#: viewer/management/commands/remongo.py:18
 msgid "id string of the form"
 msgstr "stringa id del modulo"
 
-#: odk_viewer/management/commands/reparse.py:9
+#: viewer/management/commands/reparse.py:9
 msgid "Delete and recreate parsed instances."
 msgstr "Elimina e ricrea i casi analizzati."
 
-#: odk_viewer/management/commands/set_uuid_in_xml.py:9
+#: viewer/management/commands/set_uuid_in_xml.py:9
 msgid "Insert UUID into XML of all existing XForms"
 msgstr "Inserisci UUID nel XML di ogni XForms esistente. "
 
-#: odk_viewer/management/commands/set_uuid_in_xml.py:12
+#: viewer/management/commands/set_uuid_in_xml.py:12
 #, python-format
 msgid "%(nb)d XForms to update"
 msgstr "%(nb)d XForms da aggiornare"
 
-#: odk_viewer/management/commands/set_uuid_in_xml.py:19
+#: viewer/management/commands/set_uuid_in_xml.py:19
 #, python-format
 msgid "Updated %(nb)d XForms..."
 msgstr "Aggiornati %(nb)d file XForms..."
 
-#: odk_viewer/management/commands/update_delete_from_mongo.py:12
+#: viewer/management/commands/update_delete_from_mongo.py:12
 msgid "Update deleted records from mongo to sql instances"
 msgstr "Aggiorna archivi eliminati da mongo alle istanze sql"
 
-#: odk_viewer/templates/data_view.html:16
+#: viewer/templates/data_view.html:16
 msgid "Display Fields"
 msgstr "Mostra Campi"
 
-#: odk_viewer/templates/data_view.html:45
+#: viewer/templates/data_view.html:45
 msgid ""
 "Your survey has <strong>{numquestions}</strong> question(s) and "
 "<strong>{numsubmissions}</strong> submission(s). Please click on Display "
 "Fields above and select the questions you want to view responses for."
 msgstr "Il tuo sondaggio ha <strong>{numquestions}</strong> domanda/e e <strong>{numsubmissions}</strong> risposta/e. Clicca su Mostra Campi qui sopra e seleziona le domande per le quali vuoi visualizzare responsi. "
 
-#: odk_viewer/templates/data_view.html:46
+#: viewer/templates/data_view.html:46
 msgid ""
 "NOTE: This is a beta feature and your survey contains more than "
 "<strong>{threshold}</strong> responses, search and sort features will not "
 "work."
 msgstr "NOTA: Questa é una funzionalità beta e il tuo sondaggio contiene più di <strong>{threshold}</strong> risposte, le funzionalità di ricerca e ordinamento non potranno funzionare. "
 
-#: odk_viewer/templates/data_view.html:115
+#: viewer/templates/data_view.html:115
 msgid "_MENU_ records per page"
 msgstr "_MENU_ record per pagina"
 
-#: odk_viewer/templates/instance.html:18
+#: viewer/templates/instance.html:18
 msgid "Browse Form Data"
 msgstr "Sfoglia Dati Modulo"
 
-#: odk_viewer/templates/instance.html:31
+#: viewer/templates/instance.html:31
 msgid "Record {pos} of {total}"
 msgstr "Record {pos} di {total}"
 
-#: odk_viewer/templates/instance.html:166
-#: odk_viewer/templates/instance.html:203
+#: viewer/templates/instance.html:166
+#: viewer/templates/instance.html:203
 msgid "BAD REQUEST"
 msgstr "RICHIESTA NON VALIDA"
 
-#: odk_viewer/templates/instance.html:310
+#: viewer/templates/instance.html:310
 msgid "The requested content was not found."
 msgstr "Il contenuto richiesto non è stato trovato. "
 
-#: odk_viewer/templates/instance.html:322
+#: viewer/templates/instance.html:322
 msgid "Change Language:"
 msgstr "Cambia Lingua:"
 
-#: odk_viewer/templates/instance.html:338
+#: viewer/templates/instance.html:338
 msgid "Record 1 of 6"
 msgstr "Record 1 di 6"
 
-#: odk_viewer/templates/instance.html:342
+#: viewer/templates/instance.html:342
 msgid "← Previous"
 msgstr "← Precedente"
 
-#: odk_viewer/templates/instance.html:342
+#: viewer/templates/instance.html:342
 msgid "Next →"
 msgstr "Successivo →"
 
-#: odk_viewer/templates/instance.html:354 odk_viewer/templates/survey.html:20
+#: viewer/templates/instance.html:354 viewer/templates/survey.html:20
 msgid "Question"
 msgstr "Domanda"
 
-#: odk_viewer/templates/instance.html:354 odk_viewer/templates/survey.html:21
+#: viewer/templates/instance.html:354 viewer/templates/survey.html:21
 msgid "Response"
 msgstr "Risposta"
 
-#: odk_viewer/templates/instance.html:446
+#: viewer/templates/instance.html:446
 msgid ""
 "Are you sure you want to delete this data. If you are unsure about deleting "
 "this form press 'Cancel'."

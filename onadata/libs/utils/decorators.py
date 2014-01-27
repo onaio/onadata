@@ -7,7 +7,7 @@ from django.conf import settings
 from django.http import HttpResponseRedirect
 from pymongo.cursor import Cursor
 
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 
 
 def is_owner(view_func):

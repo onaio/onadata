@@ -8,7 +8,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.api.viewsets.stats_viewset import StatsViewSet
 from onadata.apps.api.viewsets.submissionstats_viewset import\
     SubmissionStatsViewSet
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 from onadata.libs.utils.logger_tools import publish_xml_form, create_instance
 
 
@@ -21,7 +21,7 @@ class TestStatsViewSet(TestBase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
-    @patch('onadata.apps.odk_logger.models.instance.submission_time')
+    @patch('onadata.apps.logger.models.instance.submission_time')
     def test_form_list(self, mock_time):
         self._set_mock_time(mock_time)
         self._publish_transportation_form()

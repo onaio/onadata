@@ -26,10 +26,10 @@ from taggit.forms import TagField
 from onadata.apps.api import mixins, serializers
 from onadata.apps.api.signals import xform_tags_add, xform_tags_delete
 from onadata.apps.api import tools as utils
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 from onadata.libs.utils.viewer_tools import enketo_url
-from onadata.apps.odk_viewer.models import Export
-from onadata.apps.odk_viewer.pandas_mongo_bridge import NoRecordsFoundError
+from onadata.apps.viewer.models import Export
+from onadata.apps.viewer.pandas_mongo_bridge import NoRecordsFoundError
 from onadata.libs.utils.export_tools import generate_export,\
     should_create_new_export
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
@@ -398,7 +398,7 @@ Where:
             owner = get_object_or_404(User, username=owner)
             if owner != user:
                 xfct = ContentType.objects.get(
-                    app_label='odk_logger', model='xform')
+                    app_label='logger', model='xform')
                 xfs = user.userobjectpermission_set.filter(content_type=xfct)
                 user_forms = XForm.objects.filter(
                     Q(pk__in=[xf.object_pk for xf in xfs]) | Q(shared=True),

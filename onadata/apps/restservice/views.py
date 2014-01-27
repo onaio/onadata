@@ -10,7 +10,7 @@ from django.template.context import RequestContext, Context
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext as _
 
-from onadata.apps.odk_logger.models.xform import XForm
+from onadata.apps.logger.models.xform import XForm
 from onadata.apps.restservice.forms import RestServiceForm
 from onadata.apps.restservice.models import RestService
 
