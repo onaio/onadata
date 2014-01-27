@@ -71,8 +71,9 @@
 <script src="{{STATIC_URL}}bower_components/backbone/backbone-min.js"></script>
 <script src="{{STATIC_URL}}bower_components/backgrid/lib/backgrid.js"></script>
 <script src="{{STATIC_URL}}js/xform.js"></script>
-<script src="{{STATIC_URL}}js/stats_tables.js"></script>
+<!-- TODO: must include this file for the evil global variable to be found within the script -->
 <script type="text/javascript">
-    var formUrl = "{% url "onadata.apps.odk_viewer.views.download_jsonform" xform.id_string xform.user.username %}";
+    var formUrl = "{% url "onadata.apps.odk_viewer.views.download_jsonform" xform.user.username xform.id_string %}";
 </script>
+<script src="{{STATIC_URL}}js/stats_tables.js"></script>
 {% endblock %}

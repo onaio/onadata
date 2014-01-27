@@ -91,16 +91,37 @@
 
     Ona.LanguageModeView = Backbone.View.extend({
         template: _.template('' +
+            '<label class="radio">' +
+              '<input type="radio" name="display_language" value="-1" <% if("-1" === selected_language) { %>checked="checked"<% } %> />' +
+            'Show XML Values</label>' +
             '<% _.each(languages, function (lang) { %>' +
               '<label class="radio">' +
                 '<input type="radio" name="display_language" value="<%= lang["name"] %>" <% if(lang["name"] === selected_language) { %>checked="checked"<% } %> />' +
               '<%= lang["label"] %></label>' +
             '<% }) %>'),
+
+        initialize: function (options) {
+            Backbone.View.prototype.initialize.apply(this, arguments);
+
+            this.listenTo(this.model, 'change:languages', function () {
+                this.render();
+            })
+        },
+
         render: function () {
+            // if languages.length is 0, add a default language as `Show Labels`
+            var languages = [];
+            if(this.model.get('languages').length === 0) {
+                languages = [{name: '', label: "Show Labels"}]
+            } else {
+                languages = this.model.get('languages').map(function (lang) {
+                    return {name: lang, label: lang}
+                });
+            }
             this.$('.controls')
                 .empty()
                 .html(this.template({
-                    languages: this.model.get('languages'),
+                    languages: languages,
                     selected_language: this.model.get('selected_language')
                 }));
             return this;
@@ -174,6 +195,17 @@
 
             this.$statsEl = Backbone.$(options.statsEl);
 
+            // make sure we have a model
+            if(!this.model) {
+                this.model = new Backbone.Model({
+                    fields: new Backbone.Collection(),
+                    selected_field: void 0,
+                    summary_methods: 0,
+                    languages: [],
+                    selected_language: '-1'
+                })
+            }
+
             // load the form
             this.form = new FH.Form({}, {
                 url: options.formUrl
@@ -181,7 +213,8 @@
 
             // on load, set our model's fields attribute
             this.form.on('sync', function (model, response, options) {
-                this.model.set({fields: model.fields})
+                this.model.set({fields: model.fields}),
+                this.model.set({languages: model.get('languages')})
             }, this);
 
             // when `fields` change reset `selected_fields` and `summary_method`
@@ -189,6 +222,13 @@
                 this.model.set({
                     selected_field: void 0,
                     summary_methods: 0
+                });
+            }, this);
+
+            // when `languages` change reset `selected_language`
+            this.model.on('change:languages', function () {
+                this.model.set({
+                    selected_language: '-1'
                 });
             }, this);
 
@@ -221,21 +261,8 @@
     var tableBuilder = new Ona.TableBuilderView({
         el: '#table-create-form',
         statsEl: '#stats-tables-container',
-        formUrl: '/larryweya/forms/tutorial/form.json',
-        model: new Backbone.Model({
-            fields: new Backbone.Collection([
-                /*{id: 'name', label: 'Your Name', type: 'text'},
-                {id: 'age', label: 'How old are you?', type: 'integer'},
-                {id: 'gender', label: 'Gender', type: 'select one'}*/
-            ]),
-            selected_field: void 0,
-            summary_methods: 0,
-            languages: [
-                {name: '-1', label: "Show XML Values"},
-                {name: '', label: "Show labels"}
-            ],
-            selected_language: '-1'
-        })
+        //TODO: this is now a global var, should be set explicitly
+        formUrl: formUrl
     });
 
     tableBuilder.render();
