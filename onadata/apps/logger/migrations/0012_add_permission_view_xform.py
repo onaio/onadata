@@ -108,4 +108,4 @@ class Migration(DataMigration):
         }
     }
 
-    complete_apps = ['odk_logger']
+    complete_apps = ['logger']

@@ -9,7 +9,7 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        for xform in orm.XForm.objects.all():
+        for xform in orm['odk_logger.XForm'].objects.all():
             xform.uuid = uuid.uuid4().hex
             xform.save()
 
@@ -99,4 +99,4 @@ class Migration(DataMigration):
         }
     }
 
-    complete_apps = ['odk_logger']
+    complete_apps = ['logger']

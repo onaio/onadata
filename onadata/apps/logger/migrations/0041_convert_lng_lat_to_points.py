@@ -9,7 +9,7 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Parse all instance to add geoms."
-        for obj in queryset_iterator(orm.Instance.objects.all()):
+        for obj in queryset_iterator(orm['odk_logger.Instance'].objects.all()):
             instance = Instance.objects.get(pk=obj.pk)
             instance.save(force=True)
 
@@ -153,5 +153,5 @@ class Migration(DataMigration):
         }
     }
 
-    complete_apps = ['odk_logger']
+    complete_apps = ['logger']
     symmetrical = True

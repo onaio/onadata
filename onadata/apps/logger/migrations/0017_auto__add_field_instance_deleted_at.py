@@ -103,4 +103,4 @@ class Migration(SchemaMigration):
         }
     }
 
-    complete_apps = ['odk_logger']
+    complete_apps = ['logger']

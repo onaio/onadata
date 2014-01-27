@@ -64,7 +64,7 @@ class Migration(SchemaMigration):
             'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
-        'odk_logger.instance': {
+        'logger.instance': {
             'Meta': {'object_name': 'Instance'},
             'date': ('django.db.models.fields.DateField', [], {'null': 'True'}),
             'date_created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
@@ -73,18 +73,18 @@ class Migration(SchemaMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'start_time': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'status': ('django.db.models.fields.CharField', [], {'default': "u'submitted_via_web'", 'max_length': '20'}),
-            'survey_type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['odk_logger.SurveyType']"}),
+            'survey_type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['logger.SurveyType']"}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'surveys'", 'null': 'True', 'to': "orm['auth.User']"}),
             'uuid': ('django.db.models.fields.CharField', [], {'default': "u''", 'max_length': '249'}),
-            'xform': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'surveys'", 'null': 'True', 'to': "orm['odk_logger.XForm']"}),
+            'xform': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'surveys'", 'null': 'True', 'to': "orm['logger.XForm']"}),
             'xml': ('django.db.models.fields.TextField', [], {})
         },
-        'odk_logger.surveytype': {
+        'logger.surveytype': {
             'Meta': {'object_name': 'SurveyType'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'slug': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '100'})
         },
-        'odk_logger.xform': {
+        'logger.xform': {
             'Meta': {'ordering': "('id_string',)", 'unique_together': "(('user', 'id_string'),)", 'object_name': 'XForm'},
             'bamboo_dataset': ('django.db.models.fields.CharField', [], {'default': "u''", 'max_length': '60'}),
             'date_created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
@@ -120,7 +120,7 @@ class Migration(SchemaMigration):
             'internal_status': ('django.db.models.fields.SmallIntegerField', [], {'default': '0', 'max_length': '1'}),
             'task_id': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'}),
             'time_of_last_submission': ('django.db.models.fields.DateTimeField', [], {'default': 'None', 'null': 'True'}),
-            'xform': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['odk_logger.XForm']"})
+            'xform': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['logger.XForm']"})
         },
         'odk_viewer.instancemodification': {
             'Meta': {'object_name': 'InstanceModification'},
@@ -128,7 +128,7 @@ class Migration(SchemaMigration):
             'date_created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'date_modified': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'instance': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'modifications'", 'to': "orm['odk_logger.Instance']"}),
+            'instance': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'modifications'", 'to': "orm['logger.Instance']"}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']", 'null': 'True'}),
             'xpath': ('django.db.models.fields.CharField', [], {'max_length': '50'})
         },
@@ -136,11 +136,11 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'ParsedInstance'},
             'end_time': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'instance': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'parsed_instance'", 'unique': 'True', 'to': "orm['odk_logger.Instance']"}),
+            'instance': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'parsed_instance'", 'unique': 'True', 'to': "orm['logger.Instance']"}),
             'lat': ('django.db.models.fields.FloatField', [], {'null': 'True'}),
             'lng': ('django.db.models.fields.FloatField', [], {'null': 'True'}),
             'start_time': ('django.db.models.fields.DateTimeField', [], {'null': 'True'})
         }
     }
 
-    complete_apps = ['odk_viewer']
+    complete_apps = ['viewer']

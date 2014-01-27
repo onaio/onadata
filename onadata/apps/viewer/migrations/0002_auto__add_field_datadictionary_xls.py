@@ -118,4 +118,4 @@ class Migration(SchemaMigration):
         }
     }
 
-    complete_apps = ['odk_viewer']
+    complete_apps = ['viewer']

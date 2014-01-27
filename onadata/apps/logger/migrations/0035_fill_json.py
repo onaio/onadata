@@ -9,7 +9,8 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         """Add parsed JSON to JSON instance column."""
-        for instance in queryset_iterator(orm.Instance.objects.all()):
+        for instance in queryset_iterator(
+                orm['odk_logger.Instance'].objects.all()):
             obj = Instance.objects.get(pk=instance.pk)
             json = obj.get_dict()
             json[SUBMISSION_TIME] = instance.date_created.strftime(
@@ -163,5 +164,5 @@ class Migration(DataMigration):
         }
     }
 
-    complete_apps = ['odk_logger']
+    complete_apps = ['logger']
     symmetrical = True

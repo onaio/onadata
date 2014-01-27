@@ -63,7 +63,7 @@ class Migration(SchemaMigration):
             'data_type': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'data_value': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'xform': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['odk_logger.XForm']"})
+            'xform': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['logger.XForm']"})
         },
         'main.tokenstoragemodel': {
             'Meta': {'object_name': 'TokenStorageModel'},
@@ -87,7 +87,7 @@ class Migration(SchemaMigration):
             'twitter': ('django.db.models.fields.CharField', [], {'max_length': '255', 'blank': 'True'}),
             'user': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'profile'", 'unique': 'True', 'to': u"orm['auth.User']"})
         },
-        'odk_logger.xform': {
+        'logger.xform': {
             'Meta': {'ordering': "('id_string',)", 'unique_together': "(('user', 'id_string'), ('user', 'sms_id_string'))", 'object_name': 'XForm'},
             'allows_sms': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'bamboo_dataset': ('django.db.models.fields.CharField', [], {'default': "u''", 'max_length': '60'}),

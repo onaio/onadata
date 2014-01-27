@@ -9,7 +9,7 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        for instance in orm.Instance.objects.all():
+        for instance in orm['odk_logger.Instance'].objects.all():
             instance.uuid = uuid.uuid4().hex
             instance.save()
 
@@ -100,4 +100,4 @@ class Migration(DataMigration):
         }
     }
 
-    complete_apps = ['odk_logger']
+    complete_apps = ['logger']

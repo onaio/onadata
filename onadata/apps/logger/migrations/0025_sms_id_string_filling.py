@@ -7,7 +7,7 @@ from django.db import models
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        for xform in orm.Xform.objects.all():
+        for xform in orm['odk_logger.XForm'].objects.all():
             xform.sms_id_string = xform.id_string
             xform.save()
 
@@ -111,5 +111,5 @@ class Migration(DataMigration):
         }
     }
 
-    complete_apps = ['odk_logger']
+    complete_apps = ['logger']
     symmetrical = True
