@@ -2,6 +2,8 @@
 from south.db import db
 from south.v2 import SchemaMigration
 
+from onadata.libs.data.db import rename_table_pending_creates
+
 
 class Migration(SchemaMigration):
 
@@ -11,6 +13,8 @@ class Migration(SchemaMigration):
         db.rename_table('odk_viewer_instancemodification',
                        'viewer_instancemodification')
         db.rename_table('odk_viewer_parsedinstance', 'viewer_parsedinstance')
+
+        rename_table_pending_creates('odk_viewer', 'viewer')
 
     def backwards(self, orm):
         db.rename_table('viewer_columnrename', 'odk_viewer_columnrename')

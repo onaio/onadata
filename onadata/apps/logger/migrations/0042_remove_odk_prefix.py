@@ -2,6 +2,8 @@
 from south.db import db
 from south.v2 import SchemaMigration
 
+from onadata.libs.data.db import rename_table_pending_creates
+
 
 class Migration(SchemaMigration):
 
@@ -13,6 +15,8 @@ class Migration(SchemaMigration):
         db.rename_table('odk_logger_surveytype', 'logger_surveytype')
         db.rename_table('odk_logger_xform', 'logger_xform')
         db.rename_table('odk_logger_ziggyinstance', 'logger_ziggyinstance')
+
+        rename_table_pending_creates('odk_logger', 'logger')
 
     def backwards(self, orm):
         db.rename_table('logger_attachment', 'odk_logger_attachment')
