@@ -114,6 +114,13 @@
               '<%= lang["label"] %></label>' +
             '<% }) %>'),
 
+        events: {
+            'change input[type=radio]': function (evt) {
+                var $target = Backbone.$(evt.currentTarget);
+                this.model.set({selected_language: $target.val() || void 0});
+            }
+        },
+
         initialize: function (options) {
             Backbone.View.prototype.initialize.apply(this, arguments);
 
@@ -198,7 +205,11 @@
         events: {
             'click button#create': function (evt) {
                 var statsTable = new Ona.SummaryView({
-
+                    model: new Backbone.Model({
+                        selected_field: this.model.get('selected_field'),
+                        summary_methods: this.model.get('summary_methods'),
+                        selected_language: this.model.get('selected_language')
+                    })
                 });
                 this.$statsEl.append(statsTable.render().$el);
             }
