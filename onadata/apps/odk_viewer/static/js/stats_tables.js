@@ -60,6 +60,24 @@
     });
 
     Ona.SummaryMethodView = Backbone.View.extend({
+        events: {
+            'change input[type=checkbox]': function (evt) {
+                var $target = $(evt.currentTarget);
+                this.setSummaryMethods($target.val(), $target.prop('checked'));
+            }
+        },
+
+        setSummaryMethods: function (value, setBit) {
+            var val = parseInt(value),
+                currentValue = this.model.get('summary_methods');
+            if(setBit) {
+                val = currentValue | val;
+            } else {
+                val = currentValue ^ val;
+            }
+            this.model.set({summary_methods: val});
+        },
+
         initialize: function (options) {
             Backbone.View.prototype.initialize.apply(this, arguments);
 
@@ -190,17 +208,16 @@
             Backbone.View.prototype.initialize.apply(this, arguments);
 
             this.$statsEl = Backbone.$(options.statsEl);
+            this.$createButton = Backbone.$(options.createButtonSelector);
 
             // make sure we have a model
-            if(!this.model) {
-                this.model = new Backbone.Model({
-                    fields: new Backbone.Collection(),
-                    selected_field: void 0,
-                    summary_methods: 0,
-                    languages: [],
-                    selected_language: '-1'
-                })
-            }
+            this.model = new Backbone.Model({
+                fields: new Backbone.Collection(),
+                selected_field: void 0,
+                summary_methods: 0,
+                languages: [],
+                selected_language: '-1'
+            });
 
             // load the form
             this.form = new FH.Form({}, {
@@ -228,6 +245,18 @@
                 });
             }, this);
 
+            // whenever any of `selected_field` or `summary_methods`, check if we need to enable the button
+            this.listenTo(this.model, 'change:selected_field', function (model, value, options) {
+                var disabled = this.shouldDisableButton(model);
+                this.$createButton.prop('disabled', disabled)
+            });
+
+            // whenever any of `selected_field` or `summary_methods`, check if we need to enable the button
+            this.listenTo(this.model, 'change:summary_methods', function (model, value, options) {
+                var disabled = this.shouldDisableButton(model);
+                this.$createButton.prop('disabled', disabled);
+            });
+
             this.form.load();
 
             this.questionView = new Ona.QuestionView({
@@ -251,12 +280,17 @@
             this.summaryMethodView.render();
             this.languageModeView.render();
             return this;
+        },
+
+        shouldDisableButton: function (model) {
+            return !model.get('selected_field') || model.get('summary_methods') === 0;
         }
     });
 
     var tableBuilder = new Ona.TableBuilderView({
         el: '#table-create-form',
         statsEl: '#stats-tables-container',
+        createButtonSelector: 'button#create',
         //TODO: this is now a global var, should be set explicitly
         formUrl: formUrl
     });
