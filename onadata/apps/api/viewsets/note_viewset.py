@@ -1,11 +1,17 @@
-from rest_framework import permissions
+from guardian.shortcuts import assign_perm
+
+from rest_framework import status
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api import serializers
+from onadata.apps.api import permissions
+from onadata.apps.api import mixins
+from onadata.apps.api.tools import get_xform
 from onadata.apps.odk_logger.models import Note
 
 
-class NoteViewSet(ModelViewSet):
+class NoteViewSet(mixins.ViewPermissionMixin, ModelViewSet):
     """## Add Notes to a submission
 
 A `POST` payload of parameters:
@@ -53,8 +59,27 @@ A `GET` request will return the list of notes applied to a data point.
 """
     queryset = Note.objects.all()
     serializer_class = serializers.NoteSerializer
-    permission_classes = [permissions.DjangoModelPermissions,
+    permission_classes = [permissions.ViewDjangoObjectPermissions,
                           permissions.IsAuthenticated, ]
 
-    def get_queryset(self):
-        return Note.objects.filter(instance__xform__user=self.request.user)
+    def pre_save(self, obj):
+        # throws PermissionDenied if request.user has no permission to xform
+        get_xform(obj.instance.xform.pk, self.request)
+
+    def post_save(self, obj, created=False):
+        if created:
+            assign_perm('add_note', self.request.user, obj)
+            assign_perm('change_note', self.request.user, obj)
+            assign_perm('delete_note', self.request.user, obj)
+            assign_perm('view_note', self.request.user, obj)
+
+        # make sure parsed_instance saves to mongo db
+        obj.instance.parsed_instance.save()
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        instance = obj.instance
+        obj.delete()
+        # update mongo data
+        instance.parsed_instance.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)

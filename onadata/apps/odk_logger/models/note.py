@@ -10,3 +10,6 @@ class Note(models.Model):
 
     class Meta:
         app_label = 'odk_logger'
+        permissions = (
+            ('view_note', 'View note'),
+        )
