@@ -17,6 +17,15 @@
         MODE: 2 << 4
     };
 
+    var fieldIsNumeric = function (field) {
+        return field.get('type') === 'integer' || field.get('decimal');
+    };
+
+    var statsSummariesEnabled = function (summaryMethods) {
+        return summaryMethods & Ona.SummaryMethod.MEAN ||
+            summaryMethods & Ona.SummaryMethod.MEDIAN ||
+            summaryMethods & Ona.SummaryMethod.MODE;
+    };
 
     Ona.TableDef = Backbone.Model.extend({
 
@@ -211,15 +220,15 @@
         },
 
         render: function () {
-            var summaryMethods = this.model.get('summary_methods');
-
             this.$el
                 .empty()
                 .append('<h3>'+ "Age" +'</h3>')
                 .append('<h4>' + "Frequency" +'</h3>')
                 .append(this.frequencyTable.render().$el);
 
-            if(true) {
+            // If field is numeric or we have one of the summary methods enabled, render the stats view as well
+            if(fieldIsNumeric(this.model.get('selected_field')) &&
+                statsSummariesEnabled(this.model.get('summary_methods'))) {
                 this.$el
                     .append('<h4>' + "Statistics" +'</h3>')
                     .append(this.statsTable.render().$el);
@@ -337,9 +346,10 @@
         el: '#table-create-form',
         statsEl: '#stats-tables-container',
         createButtonSelector: 'button#create',
-        //TODO: this is now a global var, should be set explicitly
+        //TODO: this are now a global var, should be set explicitly
         formUrl: formUrl,
-        statsUrl: statsUrl
+        statsUrl: statsUrl,
+        submissionStatsUrl: submissionStatsUrl
     });
 
     tableBuilder.render();
