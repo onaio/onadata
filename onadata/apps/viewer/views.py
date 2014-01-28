@@ -713,3 +713,18 @@ def charts(request, username, id_string):
         'xform': xform,
         'summaries': summaries
     }, context_instance=context)
+
+
+def stats_tables(request, username, id_string):
+    xform, is_owner, can_edit, can_view = get_xform_and_perms(
+        username, id_string, request)
+    # no access
+    if not (xform.shared_data or can_view or
+            request.session.get('public_link') == xform.uuid):
+        return HttpResponseForbidden(_(u'Not shared.'))
+
+    context = RequestContext(request)
+
+    return render_to_response('stats_tables.html', {
+        'xform': xform
+    }, context_instance=context)

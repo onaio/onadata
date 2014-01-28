@@ -222,9 +222,9 @@ urlpatterns = patterns(
         'onadata.apps.sms_support.views.import_submission',
         name='sms_submission'),
 
-    # Charts
-    url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/charts$",
-        'onadata.apps.viewer.views.charts'),
+    # Stats tables
+    url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/tables",
+        'onadata.apps.viewer.views.stats_tables'),
 
     # Ziggy
     url(r"^(?P<username>[^/]+)/form-submissions$",
