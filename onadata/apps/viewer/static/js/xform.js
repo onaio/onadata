@@ -38,9 +38,9 @@
 
         // Override `get` to handle requests for fields without labels e.g.
         // start and requests for multi-lingual labels
-        get: function (id, language) {
+        get: function (key, language) {
             var val = Backbone.Model.prototype.get.apply(this, arguments);
-            if(id === FH.constants.LABEL) {
+            if(key === FH.constants.LABEL) {
                 if(typeof val === typeof undefined) {
                     // Use the name as the label
                     val = Backbone.Model.prototype.get.call(this, FH.constants.NAME);

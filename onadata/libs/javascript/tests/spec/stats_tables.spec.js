@@ -47,4 +47,40 @@ describe("Stats Tables", function () {
 
         });
     });
+
+    describe("Ona.StatsCollection", function () {
+        var statsCollection;
+
+        beforeEach(function () {
+            var field = new FH.Field({
+                type: 'integer',
+                name: 'age',
+                label: 'Your Age'
+            });
+            field.id = 'age';
+            statsCollection = new Ona.StatsCollection([], {
+                url: '/some/url',
+                field: field,
+                summaryMethods: Ona.SummaryMethod.MEAN | Ona.SummaryMethod.MEDIAN
+            });
+        });
+
+        describe("parse", function () {
+            it("only returns values for enabled stats", function () {
+                var parsedResponse = statsCollection.parse({
+                    age: {
+                        min: 0,
+                        max: 5,
+                        mean: 2,
+                        mode: 3,
+                        median: 4
+                    }
+                });
+                expect(parsedResponse).toEqual([
+                    {stat: 'mean', value: 2},
+                    {stat: 'median', value: 4}
+                ])
+            });
+        });
+    });
 });
