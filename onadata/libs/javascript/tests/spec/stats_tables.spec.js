@@ -108,4 +108,41 @@ describe("Stats Tables", function () {
             });
         });
     });
+
+    describe("Ona.FrequenciesCollection", function () {
+        describe("LabelsForSelect", function () {
+            it("should comma separate select multiples", function () {
+                var result,
+                    field = new FH.Field({
+                    name: "browsers",
+                    label: "Browsers",
+                    children: [
+                        {name: "chrome", label: "Chrome"},
+                        {name: "ie", label: "Internet Explorer"},
+                        {name: "firefox", label: "Mozilla Firefox"}
+                    ]
+                });
+                result = Ona.FrequenciesCollection.LabelsForSelect('chrome ie', field, void 0);
+                expect(result).toEqual("Chrome, Internet Explorer")
+            });
+
+            it("should return the requested language's label", function () {
+                var result,
+                    field = new FH.Field({
+                    name: "browsers",
+                    label: {English: "Browsers", Swahili: "Vifaa vya Mtandao"},
+                    children: [
+                        {name: "chrome", label: {English: "Chrome", Swahili: "Chromi"}},
+                        {name: "ie", label: {English: "Internet Explorer", Swahili: "Internet Exploreri"}},
+                        {name: "firefox", label: {English: "Mozilla Firefox", Swahili: "Mozilla Firefoxi"}},
+                    ]
+                });
+                result = Ona.FrequenciesCollection.LabelsForSelect('chrome ie', field, "English");
+                expect(result).toEqual("Chrome, Internet Explorer");
+
+                result = Ona.FrequenciesCollection.LabelsForSelect('chrome ie', field, "Swahili");
+                expect(result).toEqual("Chromi, Internet Exploreri")
+            });
+        });
+    });
 });

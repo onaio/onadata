@@ -222,7 +222,7 @@
                 // if field is a select (one, multiple) get the values for the specified language
                 if((self.field.isA(FH.types.SELECT_ONE) || self.field.isA(FH.types.SELECT_MULTIPLE))
                     && self.selectedLanguage !== '-1') {
-                    objWithPercentage[self.field.id] = labelsForSelect(obj[self.field.id], self.field, self.selectedLanguage);
+                    objWithPercentage[self.field.id] = Ona.FrequenciesCollection.LabelsForSelect(obj[self.field.id], self.field, self.selectedLanguage);
                 } else {
                     objWithPercentage[self.field.id] = obj[self.field.id];
                 }
@@ -235,7 +235,7 @@
         }
     });
 
-    var labelsForSelect = function(value, field, language) {
+    Ona.FrequenciesCollection.LabelsForSelect = function(value, field, language) {
         var selections,
             results = [],
             choices = new FH.FieldSet(field.get(FH.constants.CHILDREN));
