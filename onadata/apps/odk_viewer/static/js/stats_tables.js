@@ -239,9 +239,11 @@
                 summaryMethods: this.model.get('summary_methods')
             });
             var frequencyColumns = [
-                {name: field.get('name'), label: "Answers", editable: false, cell: "string"},
-                {name: 'count', label: "Frequencies", editable: false, cell: "integer"}
+                {name: field.get('name'), label: "Answers", editable: false, cell: "string"}
             ];
+            if(this.model.get('summary_methods') & Ona.SummaryMethod.FREQUENCIES) {
+                frequencyColumns.push({name: 'count', label: "Frequencies", editable: false, cell: "integer"});
+            }
             if(this.model.get('summary_methods') & Ona.SummaryMethod.PERCENTAGES) {
                 frequencyColumns.push({'name': 'percentage', label: "Percentage of Total", editable: false, cell: "number"});
             }
@@ -275,11 +277,16 @@
                 selected_language = this.model.get('selected_language'),
                 label = selected_language === '-1'?field.get('name'):field.get('label', selected_language);
 
-            this.$el
-                .empty()
-                .append('<h3>'+ label +'</h3>')
-                .append('<h4>' + "Frequency" +'</h3>')
-                .append(this.frequencyTable.render().$el);
+            this.$el.empty();
+
+            // show frequency table only if wither frequency or percentages is enabled
+            if(this.model.get('summary_methods') & Ona.SummaryMethod.FREQUENCIES ||
+                this.model.get('summary_methods') & Ona.SummaryMethod.PERCENTAGES) {
+                this.$el
+                    .append('<h3>'+ label +'</h3>')
+                    .append('<h4>' + "Frequency" +'</h3>')
+                    .append(this.frequencyTable.render().$el);
+            }
 
             // If field is numeric or we have one of the summary methods enabled, render the stats view as well
             if(fieldIsNumeric(this.model.get('selected_field')) &&
