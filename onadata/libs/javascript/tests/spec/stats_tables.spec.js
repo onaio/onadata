@@ -83,4 +83,29 @@ describe("Stats Tables", function () {
             });
         });
     });
+
+    describe("Ona.TableBuilderView", function () {
+        describe("ShouldDisableButton", function () {
+            it("should return true when selected field is undefined or no summary method is selected", function () {
+                var model = new Backbone.Model({
+                    selected_field: void 0,
+                    summary_methods: 0
+                });
+                result = Ona.TableBuilderView.ShouldDisableButton(model);
+                expect(result).toBe(true);
+            });
+
+            it("should return false when selected field is NOT undefined an at least one summary method is selected", function () {
+                var model = new Backbone.Model({
+                    selected_field: new FH.Field({
+                        name: 'age',
+                        label: 'Age'
+                    }),
+                    summary_methods: Ona.SummaryMethod.MEAN
+                });
+                result = Ona.TableBuilderView.ShouldDisableButton(model);
+                expect(result).toBe(false);
+            });
+        });
+    });
 });
