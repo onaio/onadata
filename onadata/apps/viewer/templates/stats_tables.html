@@ -73,7 +73,7 @@
 <script src="{{STATIC_URL}}js/xform.js"></script>
 <!-- TODO: must include this file for the evil global variable to be found within the script -->
 <script type="text/javascript">
-    var formUrl = "{% url "onadata.apps.odk_viewer.views.download_jsonform" xform.user.username xform.id_string %}";
+    var formUrl = "{% url "onadata.apps.viewer.views.download_jsonform" xform.user.username xform.id_string %}";
     var statsUrl = "{% url "stats-list" xform.user.username xform.pk %}";
     var submissionStatsUrl = "{% url "submissionstats-list" xform.user.username xform.pk %}";
 </script>
