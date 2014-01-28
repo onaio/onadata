@@ -71,11 +71,21 @@
 <script src="{{STATIC_URL}}bower_components/backbone/backbone-min.js"></script>
 <script src="{{STATIC_URL}}bower_components/backgrid/lib/backgrid.js"></script>
 <script src="{{STATIC_URL}}js/xform.js"></script>
-<!-- TODO: must include this file for the evil global variable to be found within the script -->
+<script src="{{STATIC_URL}}js/stats_tables.js"></script>
 <script type="text/javascript">
     var formUrl = "{% url "onadata.apps.viewer.views.download_jsonform" xform.user.username xform.id_string %}";
     var statsUrl = "{% url "stats-list" xform.user.username xform.pk %}";
     var submissionStatsUrl = "{% url "submissionstats-list" xform.user.username xform.pk %}";
+
+    var tableBuilder = new Ona.TableBuilderView({
+        el: '#table-create-form',
+        statsEl: '#stats-tables-container',
+        createButtonSelector: 'button#create',
+        formUrl: formUrl,
+        statsUrl: statsUrl,
+        submissionStatsUrl: submissionStatsUrl
+    });
+
+    tableBuilder.render();
 </script>
-<script src="{{STATIC_URL}}js/stats_tables.js"></script>
 {% endblock %}

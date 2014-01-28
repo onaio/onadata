@@ -451,16 +451,4 @@
             return !model.get('selected_field') || model.get('summary_methods') === 0;
         }
     });
-
-    var tableBuilder = new Ona.TableBuilderView({
-        el: '#table-create-form',
-        statsEl: '#stats-tables-container',
-        createButtonSelector: 'button#create',
-        //TODO: this are now a global var, should be set explicitly
-        formUrl: formUrl,
-        statsUrl: statsUrl,
-        submissionStatsUrl: submissionStatsUrl
-    });
-
-    tableBuilder.render();
 }).call(this)
