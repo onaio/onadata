@@ -129,7 +129,7 @@
             '<% _.each(languages, function (lang) { %>' +
               '<label class="radio">' +
                 '<input type="radio" name="display_language" value="<%= lang["name"] %>" <% if(lang["name"] === selected_language) { %>checked="checked"<% } %> />' +
-              '<%= lang["label"] %></label>' +
+              'Show in <%= lang["label"] %></label>' +
             '<% }) %>'),
 
         events: {
@@ -198,6 +198,7 @@
             this.baseUrl = options.baseUrl;
             this.field = options.field;
             this.summaryMethods = options.summaryMethods || 0;
+            this.selectedLanguage = options.selectedLanguage;
         },
 
         url: function () {
@@ -217,13 +218,49 @@
             // Calculate percentages
             return _.map(response, function (obj) {
                 var objWithPercentage = {count: obj.count, percentage: (obj.count/sum) * 100};
-                objWithPercentage[self.field.id] = obj[self.field.id];
+
+                // if field is a select (one, multiple) get the values for the specified language
+                if((self.field.isA(FH.types.SELECT_ONE) || self.field.isA(FH.types.SELECT_MULTIPLE))
+                    && self.selectedLanguage !== '-1') {
+                    objWithPercentage[self.field.id] = labelsForSelect(obj[self.field.id], self.field, self.selectedLanguage);
+                } else {
+                    objWithPercentage[self.field.id] = obj[self.field.id];
+                }
+                // append a not specified if required
+                if(!objWithPercentage[self.field.id]) {
+                    objWithPercentage[self.field.id] = "-";
+                }
                 return objWithPercentage;
             });
         }
     });
 
+    var labelsForSelect = function(value, field, language) {
+        var selections,
+            results = [],
+            choices = new FH.FieldSet(field.get(FH.constants.CHILDREN));
+
+        // Split the value on a space to get a list for multiple choices
+        selections = value && value.split(' ') || [];
+
+        _.each(selections, function (selection) {
+            var choice = choices.find(function (c) {
+                return c.get(FH.constants.NAME) === selection;
+            });
+            if (choice) {
+                results.push(choice.get(FH.constants.LABEL, language));
+            }
+        });
+        return results.join(', ');
+    };
+
     Ona.SummaryView = Backbone.View.extend({
+        className: 'summary-view',
+        events: {
+            'click button.close': function (evt) {
+                this.remove();
+            }
+        },
         initialize: function (options) {
             var field = this.model.get('selected_field');
 
@@ -236,7 +273,8 @@
             var frequenciesCollection = new Ona.FrequenciesCollection([], {
                 baseUrl: options.submissionStatsUrl,
                 field: field,
-                summaryMethods: this.model.get('summary_methods')
+                summaryMethods: this.model.get('summary_methods'),
+                selectedLanguage: selected_language
             });
             var frequencyColumns = [
                 {name: field.get('name'), label: "Answers", editable: false, cell: "string"}
@@ -245,7 +283,12 @@
                 frequencyColumns.push({name: 'count', label: "Frequencies", editable: false, cell: "integer"});
             }
             if(this.model.get('summary_methods') & Ona.SummaryMethod.PERCENTAGES) {
-                frequencyColumns.push({'name': 'percentage', label: "Percentage of Total", editable: false, cell: "number"});
+                frequencyColumns.push({
+                    name: 'percentage',
+                    label: "Percentage of Total",
+                    editable: false,
+                    cell: "number"
+                });
             }
             this.frequencyTable = new Backgrid.Grid({
                 className: 'backgrid table table-striped table-hover table-bordered summary-table',
@@ -277,13 +320,13 @@
                 selected_language = this.model.get('selected_language'),
                 label = selected_language === '-1'?field.get('name'):field.get('label', selected_language);
 
-            this.$el.empty();
+            this.$el.empty()
+                .append('<h3>'+ label +'<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button></h3>');
 
             // show frequency table only if wither frequency or percentages is enabled
             if(this.model.get('summary_methods') & Ona.SummaryMethod.FREQUENCIES ||
                 this.model.get('summary_methods') & Ona.SummaryMethod.PERCENTAGES) {
                 this.$el
-                    .append('<h3>'+ label +'</h3>')
                     .append('<h4>' + "Frequency" +'</h3>')
                     .append(this.frequencyTable.render().$el);
             }
