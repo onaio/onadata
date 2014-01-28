@@ -116,6 +116,7 @@ def deploy(deployment_name, branch='master'):
         deploy_template(env)
 
         run('find . -name "*.pyc" -exec rm -rf {} \;')
+        run('find . -type d -empty -delete')
 
     # numpy pip install from requirements file fails
     with source(env.virtualenv):
