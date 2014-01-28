@@ -12,7 +12,7 @@ from onadata.apps.api import serializers
 from onadata.apps.api.mixins import MultiLookupMixin
 from onadata.apps.api.models import Project, ProjectXForm
 from onadata.apps.api import tools as utils
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 
 
 class ProjectViewSet(MultiLookupMixin,

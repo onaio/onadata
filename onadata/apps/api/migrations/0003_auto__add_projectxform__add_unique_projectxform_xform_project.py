@@ -11,7 +11,7 @@ class Migration(SchemaMigration):
         # Adding model 'ProjectXForm'
         db.create_table('api_projectxform', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('xform', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['odk_logger.XForm'])),
+            ('xform', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['logger.XForm'])),
             ('project', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['api.Project'])),
             ('created_by', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
         ))
@@ -50,7 +50,7 @@ class Migration(SchemaMigration):
             'created_by': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['api.Project']"}),
-            'xform': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['odk_logger.XForm']"})
+            'xform': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['logger.XForm']"})
         },
         'api.team': {
             'Meta': {'object_name': 'Team', '_ormbases': ['auth.Group']},
@@ -109,7 +109,7 @@ class Migration(SchemaMigration):
             'twitter': ('django.db.models.fields.CharField', [], {'max_length': '255', 'blank': 'True'}),
             'user': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'profile'", 'unique': 'True', 'to': "orm['auth.User']"})
         },
-        'odk_logger.xform': {
+        'logger.xform': {
             'Meta': {'ordering': "('id_string',)", 'unique_together': "(('user', 'id_string'), ('user', 'sms_id_string'))", 'object_name': 'XForm'},
             'allows_sms': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'bamboo_dataset': ('django.db.models.fields.CharField', [], {'default': "u''", 'max_length': '60'}),

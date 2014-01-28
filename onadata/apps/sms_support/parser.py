@@ -7,7 +7,7 @@ import StringIO
 from dict2xml import dict2xml
 from django.utils.translation import ugettext as _
 
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 from onadata.apps.sms_support.tools import SMS_API_ERROR, SMS_PARSING_ERROR,\
     SMS_SUBMISSION_REFUSED, sms_media_to_file, generate_instance,\
     DEFAULT_SEPARATOR, NA_VALUE, META_FIELDS, MEDIA_TYPES,\

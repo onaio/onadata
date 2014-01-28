@@ -10,8 +10,8 @@ from rest_framework.viewsets import ViewSet
 from taggit.forms import TagField
 
 from onadata.apps.api.tools import get_accessible_forms, get_xform
-from onadata.apps.odk_logger.models import Instance
-from onadata.apps.odk_viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.logger.models import Instance
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.utils.user_auth import check_and_set_form_by_id,\
     check_and_set_form_by_id_string
 

@@ -2,7 +2,7 @@ from hashlib import md5
 import os
 
 from django.db import models
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 
 
 def upload_to(instance, filename):

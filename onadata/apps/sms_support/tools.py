@@ -12,10 +12,10 @@ from django.utils.translation import ugettext as _
 from django.contrib.auth.models import User
 from django.http import HttpRequest
 
-from onadata.apps.odk_logger.xform_instance_parser import InstanceEmptyError,\
+from onadata.apps.logger.xform_instance_parser import InstanceEmptyError,\
     InstanceInvalidUserError, IsNotCrowdformError, DuplicateInstance
-from onadata.apps.odk_logger.models.instance import FormInactiveError
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models.instance import FormInactiveError
+from onadata.apps.logger.models import XForm
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.logger_tools import create_instance
 

@@ -1,7 +1,7 @@
 import os
 from test_process import TestProcess
 
-from onadata.apps.odk_logger.models import XForm, Instance
+from onadata.apps.logger.models import XForm, Instance
 from test_base import TestBase
 
 

@@ -1,6 +1,6 @@
 import django.dispatch
 
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 
 xform_tags_add = django.dispatch.Signal(providing_args=['xform', 'tags'])
 xform_tags_delete = django.dispatch.Signal(providing_args=['xform', 'tag'])

@@ -3,7 +3,7 @@ from mock import Mock, patch
 
 from onadata.apps.main.google_export import refresh_access_token
 from onadata.apps.main.models import TokenStorageModel
-from onadata.apps.odk_viewer.views import google_xls_export
+from onadata.apps.viewer.views import google_xls_export
 from onadata.libs.utils.google import oauth2_token as token
 from test_base import TestBase
 

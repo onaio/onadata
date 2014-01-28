@@ -103,10 +103,10 @@ msgid "Successfully published %s."
 msgstr "បាន​បោះពុម្ព %s ដោយ​ជោគជ័យ"
 
 #: main/views.py:262 main/views.py:521 main/views.py:581
-#: odk_logger/views.py:284 odk_logger/views.py:316 odk_viewer/views.py:98
-#: odk_viewer/views.py:168 odk_viewer/views.py:191 odk_viewer/views.py:228
-#: odk_viewer/views.py:260 odk_viewer/views.py:327 odk_viewer/views.py:346
-#: odk_viewer/views.py:376
+#: logger/views.py:284 logger/views.py:316 viewer/views.py:98
+#: viewer/views.py:168 viewer/views.py:191 viewer/views.py:228
+#: viewer/views.py:260 viewer/views.py:327 viewer/views.py:346
+#: viewer/views.py:376
 msgid "Not shared."
 msgstr "មិន​បានចែករំលែក។"
 
@@ -185,12 +185,12 @@ msgstr "ការ​ដាក់​ស្នើ"
 #, python-format
 msgid ""
 "\n"
-"The url of this web application <strong>%(odk_url)s</strong>\n"
+"The url of this web application <strong>%(url)s</strong>\n"
 "must be given to ODK Collect before it will get forms from and\n"
 "submit data to formhub. In Collect's Main Menu, press the Menu\n"
 "button. Select Server Preferences, then Server. Enter\n"
-"<strong>%(odk_url)s</strong> as the server. "
-msgstr "\nurl របស់​កម្មវិធី​បណ្ដាញ​នេះ <strong>%(odk_url)s</strong>\nត្រូវ​តែ​ផ្ដល់​ទៅ​​​ ODK Collect មុន​នឹង​​វា​ទទួល​​សំណុំ​បែបបទ​ ហើយ​\nដាក់​ស្នើ​ទិន្នន័យ​ទៅ formhub ។ នៅ​ក្នុង​ម៉ឺនុយ​មេ​​​របស់ Collect ចុច​ប៊ូតុង​\n​ម៉ឺនុយ​។​ជ្រើស​ចំណូល​ចិត្ត​​ម៉ាស៊ីន​មេ បន្ទាប់​មក​ម៉ាស៊ីន​មេ​។ បញ្ចូល\n<strong>%(odk_url)s</strong> ជា​ម៉ាស៊ីន​មេ​។"
+"<strong>%(url)s</strong> as the server. "
+msgstr "\nurl របស់​កម្មវិធី​បណ្ដាញ​នេះ <strong>%(url)s</strong>\nត្រូវ​តែ​ផ្ដល់​ទៅ​​​ ODK Collect មុន​នឹង​​វា​ទទួល​​សំណុំ​បែបបទ​ ហើយ​\nដាក់​ស្នើ​ទិន្នន័យ​ទៅ formhub ។ នៅ​ក្នុង​ម៉ឺនុយ​មេ​​​របស់ Collect ចុច​ប៊ូតុង​\n​ម៉ឺនុយ​។​ជ្រើស​ចំណូល​ចិត្ត​​ម៉ាស៊ីន​មេ បន្ទាប់​មក​ម៉ាស៊ីន​មេ​។ បញ្ចូល\n<strong>%(url)s</strong> ជា​ម៉ាស៊ីន​មេ​។"
 
 #: main/templates/form_gallery.html:9
 msgid "Form Gallery <small>Shared Forms</small>"
@@ -462,7 +462,7 @@ msgid "Enter Web Form"
 msgstr "បញ្ចូល​សំណុំ​បែប​បទ​បណ្ដាញ"
 
 #: main/templates/published_surveys.html:102 main/templates/show.html:417
-#: odk_viewer/templates/instance.html:443
+#: viewer/templates/instance.html:443
 msgid "Delete Confirmation"
 msgstr "បញ្ជាក់​ការ​លុប"
 
@@ -507,7 +507,7 @@ msgstr "ម្ចាស់"
 
 #: main/templates/show.html:25 main/templates/show.html.py:44
 #: main/templates/show.html:100 main/templates/show.html.py:193
-#: main/templates/show.html:289 odk_viewer/templates/instance.html:349
+#: main/templates/show.html:289 viewer/templates/instance.html:349
 msgid "edit"
 msgstr "កែ"
 
@@ -525,7 +525,7 @@ msgstr "លេខ​សម្គាល់​សំណុំបែបបទ៖"
 msgid "None"
 msgstr "គ្មាន"
 
-#: main/templates/show.html:70 odk_logger/models/xform.py:60
+#: main/templates/show.html:70 logger/models/xform.py:60
 msgid "XForm"
 msgstr "XForm"
 
@@ -655,13 +655,13 @@ msgid "Delete Form"
 msgstr "លុប​​សំណុំ​បែបបទ"
 
 #: main/templates/show.html:423 main/templates/show.html.py:428
-#: odk_viewer/templates/instance.html:349
-#: odk_viewer/templates/instance.html:449
+#: viewer/templates/instance.html:349
+#: viewer/templates/instance.html:449
 #: restservice/templates/add-service.html:22
 msgid "Delete"
 msgstr "លុប​"
 
-#: main/templates/show.html:424 odk_viewer/templates/instance.html:450
+#: main/templates/show.html:424 viewer/templates/instance.html:450
 msgid "Cancel"
 msgstr "បោះបង់"
 
@@ -712,9 +712,9 @@ msgid "Turn on"
 msgstr "បើក"
 
 #: main/templates/show.html:477
-#: odk_logger/templates/bulk_submission_form.html:13
-#: odk_logger/templates/form.html:18
-#: odk_logger/templates/submission_test_form.html:10
+#: logger/templates/bulk_submission_form.html:13
+#: logger/templates/form.html:18
+#: logger/templates/submission_test_form.html:10
 #: templates/registration/password_reset_confirm.html:12
 #: templates/registration/password_reset_form.html:22
 msgid "Submit"
@@ -881,8 +881,8 @@ msgid ""
 "The url of this web application must be given to ODK Collect before it will "
 "get forms from and submit data to formhub. In ODK Collect's Main Menu, press"
 " the Menu button. Select Server Preferences, then Server. Enter "
-"<strong>%(odk_url)s</strong> as the server."
-msgstr "url នៃ​កម្មវិធី​​បណ្ដាញ​នេះ​ត្រូវ​តែ​បាន​​ផ្ដល់​ទៅ ODK Collect មុន​នឹង​វា​ទទួល​សំណុំ​បែបបទ​ និង​ដាក់​ស្នើ​ទិន្នន័យ​ទៅ formhub ។ នៅ​ក្នុង​ម៉ឺនុយ​មេ​​របស់ ODK Collect ចុច​ប៊ូតុង​​ម៉ឺនុយ​។ ជ្រើស​ចំណូល​ចិត្ត​ម៉ាស៊ីន​មេ បន្ទាប់​មក​ម៉ាស៊ីន​មេ​។ បញ្ចូល​ <strong>%(odk_url)s</strong> ជា​ម៉ាស៊ីន​មេ​។"
+"<strong>%(url)s</strong> as the server."
+msgstr "url នៃ​កម្មវិធី​​បណ្ដាញ​នេះ​ត្រូវ​តែ​បាន​​ផ្ដល់​ទៅ ODK Collect មុន​នឹង​វា​ទទួល​សំណុំ​បែបបទ​ និង​ដាក់​ស្នើ​ទិន្នន័យ​ទៅ formhub ។ នៅ​ក្នុង​ម៉ឺនុយ​មេ​​របស់ ODK Collect ចុច​ប៊ូតុង​​ម៉ឺនុយ​។ ជ្រើស​ចំណូល​ចិត្ត​ម៉ាស៊ីន​មេ បន្ទាប់​មក​ម៉ាស៊ីន​មេ​។ បញ្ចូល​ <strong>%(url)s</strong> ជា​ម៉ាស៊ីន​មេ​។"
 
 #: main/templates/tutorial.html:98
 msgid "Download your published form to your phone."
@@ -952,297 +952,297 @@ msgid ""
 "<strong>other</strong> to download the converted XForm"
 msgstr "បើ​អ្នក​ចង់​ទាញ​យក XForm ចុច​ឈ្មោះ​សំណុំ​បែបបទ ហើយ​ចុច<strong>ផ្សេង​ទៀត</strong> ដើម្បី​ទាញ​យក​ XForm ដែល​បាន​បម្លែង"
 
-#: odk_logger/import_tools.py:49
+#: logger/import_tools.py:49
 msgid "Too many XML files."
 msgstr "មាន​ឯកសារ XML ច្រើន​ពេក។"
 
-#: odk_logger/views.py:55
+#: logger/views.py:55
 #, python-format
 msgid "User %s not found"
 msgstr "រក​មិន​ឃើញ​អ្នក​ប្រើ %s"
 
-#: odk_logger/views.py:62
+#: logger/views.py:62
 msgid ""
 "There was a problem receiving your ODK submission. [Error: IO Error reading "
 "data]"
 msgstr "មាន​បញ្ហា​ក្នុង​ការ​ទទួល​ការ​ដាក់​ស្នើ ODK របស់​អ្នក​។ [កំហុស​៖ IO កំហុស​ក្នុង​ការ​អាន​ទិន្នន័យ]"
 
-#: odk_logger/views.py:77
+#: logger/views.py:77
 #, python-format
 msgid ""
 "Submission successful. Out of %(total)d survey instances, %(success)d were "
 "imported (%(rejected)d were rejected--duplicates, missing forms, etc.)"
 msgstr "ការ​ដាក់​ស្នើ​ជោគជ័យ​។ ធាតុ​ស្ទង់​មតិ​នៃ %(total)d , បាន​នាំចូល %(success)d បាន​បដិសេធ (%(rejected)d ​--ស្ទួន បាត់​សំណុំ​បែបបទ ។ល។)"
 
-#: odk_logger/views.py:90
+#: logger/views.py:90
 msgid ""
 "There was a problem receiving your ODK submission. [Error: multiple "
 "submission files (?)]"
 msgstr "មាន​បញ្ហា​ក្នុង​ការ​ទទួល​ការ​ដាក់​ស្នើ ODK របស់​អ្នក​។ [កំហុស​៖ ឯកសារ​ដាក់​ស្នើ​ច្រើន(?)]"
 
-#: odk_logger/views.py:177
+#: logger/views.py:177
 msgid "There should be a single XML submission file."
 msgstr "គួរ​​មាន​​ឯកសារ​ដាក់​ស្នើ​ XML តែ​មួយ។"
 
-#: odk_logger/views.py:195
+#: logger/views.py:195
 msgid "Username or ID required."
 msgstr "ទាមទារ​ឈ្មោះ​អ្នក​ប្រើ ឬ​លេខ​សម្គាល់។"
 
-#: odk_logger/views.py:198
+#: logger/views.py:198
 msgid "Sorry but the crowd form you submitted to is closed."
 msgstr "សូម​ទោស ប៉ុន្តែ​សំណុំ​បែបបទ​ជា​ក្រុម​ដែល​អ្នក​បាន​ដាក់ស្នើ​ត្រូវ​បាន​បិទ​។"
 
-#: odk_logger/views.py:202
+#: logger/views.py:202
 msgid "Received empty submission. No instance was created"
 msgstr "បាន​ទទួល​ការ​ដាក់​ស្នើ​ទទេ​។ គ្មាន​ធាតុ​បាន​បង្កើត"
 
-#: odk_logger/views.py:205
+#: logger/views.py:205
 msgid "Form is not active"
 msgstr "សំណុំ​បែបបទ​មិន​សកម្ម"
 
-#: odk_logger/views.py:208
+#: logger/views.py:208
 msgid "Form does not exist on this account"
 msgstr "មិន​ទាន់​មាន​សំណុំ​បែបបទ​ក្នុង​គណនី​នេះ"
 
-#: odk_logger/views.py:211
+#: logger/views.py:211
 msgid "Improperly formatted XML."
 msgstr "XML មាន​ទ្រង់ទ្រាយ​មិន​ត្រឹមត្រូវ។"
 
-#: odk_logger/views.py:213
+#: logger/views.py:213
 msgid "Duplicate submission"
 msgstr "ចម្លង​ការ​ដាក់ស្នើ"
 
-#: odk_logger/views.py:219
+#: logger/views.py:219
 msgid "Unable to create submission."
 msgstr "មិន​អាច​បង្កើត​ការ​ដាក់​ស្នើ។"
 
-#: odk_logger/views.py:237
+#: logger/views.py:237
 msgid "File transfer interruption."
 msgstr "ផ្អាក​ការ​ផ្ទេរ​ឯកសារ។"
 
-#: odk_logger/views.py:273
+#: logger/views.py:273
 #, python-format
 msgid "No XLS file for your form <strong>%(id)s</strong>"
 msgstr "គ្មាន​ឯកសារ XLS សម្រាប់​សំណុំ​បែបបទ​របស់​អ្នក <strong>%(id)s</strong>"
 
-#: odk_logger/management/commands/create_image_thumbnails.py:15
+#: logger/management/commands/create_image_thumbnails.py:15
 msgid "Creates thumbnails for all form images and stores them"
 msgstr "បង្កើត​រូបភាព​តូច​ៗ​សម្រាប់​រូបភាព​សំណុំ​បែបបទ​ទាំងអស់ ហើយ​​រក្សាទុក​ពួកវា"
 
-#: odk_logger/management/commands/create_image_thumbnails.py:34
+#: logger/management/commands/create_image_thumbnails.py:34
 #, python-format
 msgid "Thumbnails created for %(file)s"
 msgstr "បាន​បង្កើត​រូបភាព​តូច​សម្រាប់ %(file)s"
 
-#: odk_logger/management/commands/create_image_thumbnails.py:37
+#: logger/management/commands/create_image_thumbnails.py:37
 #, python-format
 msgid "Problem with the file %(file)s"
 msgstr "មាន​បញ្ហា​ជា​មួយ​ឯកសារ %(file)s"
 
-#: odk_logger/management/commands/create_image_thumbnails.py:40
+#: logger/management/commands/create_image_thumbnails.py:40
 #, python-format
 msgid "Error on %(filename)s: %(error)s"
 msgstr "កំហុស​នៅ​លើ %(filename)s: %(error)s"
 
-#: odk_logger/management/commands/export_xforms_and_instances.py:17
+#: logger/management/commands/export_xforms_and_instances.py:17
 msgid "Export ODK forms and instances to JSON."
 msgstr "នាំចេញ​សំណុំ​បែបបទ ODK និង​ធាតុ​ទៅ JSON ។"
 
-#: odk_logger/management/commands/import.py:11
-#: odk_logger/management/commands/import_tools.py:20
-#: odk_viewer/management/commands/import.py:11
+#: logger/management/commands/import.py:11
+#: logger/management/commands/import_tools.py:20
+#: viewer/management/commands/import.py:11
 msgid "Import ODK forms and instances."
 msgstr "នាំចូល​សំណុំ​បែបបទ ODK និង​ធាតុ​។"
 
-#: odk_logger/management/commands/import_forms.py:11
-#: odk_viewer/management/commands/import_forms.py:11
+#: logger/management/commands/import_forms.py:11
+#: viewer/management/commands/import_forms.py:11
 msgid "Import a folder of XForms for ODK."
 msgstr "នាំចូល​ថត​នៃ​ XForms សម្រាប់ ODK ។"
 
-#: odk_logger/management/commands/import_instances.py:12
-#: odk_viewer/management/commands/import_instances.py:12
+#: logger/management/commands/import_instances.py:12
+#: viewer/management/commands/import_instances.py:12
 msgid "Import a folder of ODK instances."
 msgstr "នាំចូល​ថត​នៃ​ធាតុ ODK ។"
 
-#: odk_logger/management/commands/import_tools.py:26
+#: logger/management/commands/import_tools.py:26
 #, python-format
 msgid "[Importing XForm Instances from %(path)s]\n"
 msgstr "[នាំចូល​ធាតុ XForm ពី %(path)s]\n"
 
-#: odk_logger/management/commands/import_tools.py:30
+#: logger/management/commands/import_tools.py:30
 msgid "Before Parse:"
 msgstr "មុន​ពេល​ញែក៖"
 
-#: odk_logger/management/commands/import_tools.py:31
-#: odk_logger/management/commands/import_tools.py:38
+#: logger/management/commands/import_tools.py:31
+#: logger/management/commands/import_tools.py:38
 #, python-format
 msgid " --> Images:    %(nb)d"
 msgstr ""
 
-#: odk_logger/management/commands/import_tools.py:32
-#: odk_logger/management/commands/import_tools.py:39
+#: logger/management/commands/import_tools.py:32
+#: logger/management/commands/import_tools.py:39
 #, python-format
 msgid " --> Instances: %(nb)d"
 msgstr " --> ធាតុ៖ %(nb)d"
 
-#: odk_logger/management/commands/import_tools.py:37
+#: logger/management/commands/import_tools.py:37
 msgid "After Parse:"
 msgstr "បន្ទាប់ពី​ញែក៖"
 
-#: odk_logger/management/commands/move_media_to_s3.py:15
+#: logger/management/commands/move_media_to_s3.py:15
 msgid ""
 "Moves all attachments and xls files to s3 from the local file system "
 "storage."
 msgstr "ផ្លាស់ទី​ឯកសារ​ភ្ជាប់ និង​ឯកសារ xls ទាំងអស់​ទៅ s3 ពី​​កន្លែង​ផ្ទុក​ប្រព័ន្ធ​ឯកសារ​មូលដ្ឋាន។"
 
-#: odk_logger/management/commands/move_media_to_s3.py:23
+#: logger/management/commands/move_media_to_s3.py:23
 msgid ""
 "Missing necessary libraries. Try running: pip install -r requirements/s3.pip"
 msgstr "បាត់​បណ្ណាល័យ​ដែល​ចាំបាច់​។ ព្យាយាម​ដំណើរការ៖ pip install -r requirements/s3.pip"
 
-#: odk_logger/management/commands/move_media_to_s3.py:28
+#: logger/management/commands/move_media_to_s3.py:28
 msgid ""
 "You must first set your default storage to s3 in your local_settings.py "
 "file."
 msgstr "ដំបូង ​អ្នក​ត្រូវ​កំណត់​​ទំហំ​ផ្ទុក​លំនាំដើម​របស់​អ្នក​សិន​ក្នុង​ឯកសារ local_settings.py ។"
 
-#: odk_logger/management/commands/move_media_to_s3.py:37
+#: logger/management/commands/move_media_to_s3.py:37
 #, python-format
 msgid "Moving %(class)ss to s3..."
 msgstr "កំពុង​ផ្លាស់ទី %(class)ss ទៅ s3..."
 
-#: odk_logger/management/commands/move_media_to_s3.py:43
+#: logger/management/commands/move_media_to_s3.py:43
 #, python-format
 msgid ""
 "\t+ '%(fname)s'\n"
 "\t---> '%(url)s'"
 msgstr "\t+ '%(fname)s'\n\t---> '%(url)s'"
 
-#: odk_logger/models/xform.py:41
+#: logger/models/xform.py:41
 msgid "ID"
 msgstr "លេខ​សម្គាល់"
 
-#: odk_logger/models/xform.py:61
+#: logger/models/xform.py:61
 msgid "XForms"
 msgstr "XForms"
 
-#: odk_logger/models/xform.py:64
+#: logger/models/xform.py:64
 msgid "Can view associated data"
 msgstr "អាច​មើល​ទិន្នន័យ​ដែល​បាន​ភ្ជាប់"
 
-#: odk_logger/models/xform.py:86
+#: logger/models/xform.py:86
 msgid "There should be a single id string."
 msgstr "គួរ​មាន​ឃ្លា​លេខ​សម្គាល់​តែ​មួយ។"
 
-#: odk_logger/models/xform.py:93
+#: logger/models/xform.py:93
 msgid "There should be a single title."
 msgstr "គួរ​​មាន​​ចំណង​ជើង​តែមួយ​។"
 
-#: odk_logger/models/xform.py:104
+#: logger/models/xform.py:104
 msgid ""
 "In strict mode, the XForm ID must be a valid slug and contain no spaces."
 msgstr "ក្នុង​របៀប​តឹងរ៉ឹង លេខ​សម្គាល់​ XForm ត្រូវ​តែ​ជា​ការ​បញ្ចូល​ត្រឹមត្រូវ និង​​ដកឃ្លា"
 
-#: odk_logger/models/xform.py:113
+#: logger/models/xform.py:113
 msgid "Submission Count"
 msgstr "ចំនួន​ដាក់​ស្នើ"
 
-#: odk_logger/templates/base.html:9
+#: logger/templates/base.html:9
 msgid "XForm Manager:"
 msgstr "កម្មវិធី​គ្រប់គ្រង XForm ៖"
 
-#: odk_logger/templates/base.html:15
+#: logger/templates/base.html:15
 msgid "XForm Manager"
 msgstr "កម្មវិធី​គ្រប់គ្រង XForm"
 
-#: odk_logger/templates/bulk_submission_form.html:4
-#: odk_logger/templates/form.html:4
+#: logger/templates/bulk_submission_form.html:4
+#: logger/templates/form.html:4
 msgid "Update XForm"
 msgstr "ធ្វើ​បច្ចុប្បន្នភាព XForm"
 
-#: odk_logger/templates/list_xforms.html:6
+#: logger/templates/list_xforms.html:6
 msgid "Downloadable by Phone"
 msgstr "អាច​ទាញ​យក​បាន​តាម​ទូរស័ព្ទ"
 
-#: odk_logger/templates/list_xforms.html:7
+#: logger/templates/list_xforms.html:7
 msgid "Form ID"
 msgstr "លេខ​សម្គាល់​សំណុំបែបបទ"
 
-#: odk_logger/templates/list_xforms.html:8
+#: logger/templates/list_xforms.html:8
 msgid "Number of Submissions"
 msgstr "ចំនួន​ដាក់​ស្នើ"
 
-#: odk_logger/templates/list_xforms.html:9
+#: logger/templates/list_xforms.html:9
 msgid "Time of Last Submission"
 msgstr "ពេល​វេលា​​​ដាក់​ស្នើ​ចុង​ក្រោយ"
 
-#: odk_logger/templates/list_xforms.html:10
+#: logger/templates/list_xforms.html:10
 msgid "CSV"
 msgstr "CSV"
 
-#: odk_logger/templates/list_xforms.html:19
+#: logger/templates/list_xforms.html:19
 msgid "yes"
 msgstr "បាទ/ចាស"
 
-#: odk_logger/templates/list_xforms.html:21
+#: logger/templates/list_xforms.html:21
 msgid "no"
 msgstr "ទេ"
 
-#: odk_logger/templates/list_xforms.html:32
+#: logger/templates/list_xforms.html:32
 msgid "Download CSV"
 msgstr "​​ទាញយក​ CSV"
 
-#: odk_logger/templates/submission.html:3
+#: logger/templates/submission.html:3
 msgid "Your submission was successful!"
 msgstr "ការ​ដាក់​ស្នើ​របស់​អ្នក​​បាន​ជោគជ័យ!"
 
-#: odk_logger/templates/submission.html:5
+#: logger/templates/submission.html:5
 msgid "Return to the form page"
 msgstr "ត្រឡប់​ទៅ​ទំព័រ​សំណុំបែបបទ"
 
-#: odk_logger/templates/submission.html:6
+#: logger/templates/submission.html:6
 msgid "Fill the form out again"
 msgstr "បំពេញ​សំណុំ​បែបបទ​ម្ដងទៀត"
 
-#: odk_logger/templates/submission_test_form.html:4
+#: logger/templates/submission_test_form.html:4
 msgid "List XForms"
 msgstr "រាយ XForms"
 
-#: odk_viewer/reparse.py:33
+#: viewer/reparse.py:33
 msgid "[Reparsing XForm Instances]\n"
 msgstr "[ញែក​ធាតុ XForm ឡើង​វិញ]\n"
 
-#: odk_viewer/reparse.py:52
+#: viewer/reparse.py:52
 #, python-format
 msgid "That process took [%(nb)d ticks]"
 msgstr "ដំណើរការ​នោះ​ចំណាយ​ [%(nb)d នាទី]"
 
-#: odk_viewer/views.py:59
+#: viewer/views.py:59
 msgid "Start time format must be YY_MM_DD_hh_mm_ss"
 msgstr "ទ្រង់ទ្រាយ​ពេលវេលា​ចាប់ផ្ដើម​​ត្រូវ​តែ YY_MM_DD_hh_mm_ss"
 
-#: odk_viewer/views.py:70
+#: viewer/views.py:70
 msgid "End time format must be YY_MM_DD_hh_mm_ss"
 msgstr "ទ្រង់ទ្រាយ​ពេលវេលា​បញ្ចប់​ត្រូវ​តែ​ YY_MM_DD_hh_mm_ss"
 
-#: odk_viewer/views.py:185 odk_viewer/views.py:222
+#: viewer/views.py:185 viewer/views.py:222
 msgid "No records found to export"
 msgstr "រក​មិន​ឃើញ​កំណត់​ត្រា​ត្រូវ​នាំចេញ"
 
-#: odk_viewer/views.py:364
+#: viewer/views.py:364
 msgid "Attachment not found"
 msgstr "រក​មិន​ឃើញ​ឯកសារ​ភ្ជាប់"
 
-#: odk_viewer/management/commands/mark_start_times.py:7
+#: viewer/management/commands/mark_start_times.py:7
 msgid "This is a one-time command to mark start times of old surveys."
 msgstr "នេះ​ជា​ពាក្យ​បញ្ជា​ប្រើ​បាន​ម្ដង​ ដើម្បី​សម្គាល់​ពេលវេលា​ចាប់ផ្ដើម​នៃ​ការ​ស្ទង់មតិ​ចាស់។"
 
-#: odk_viewer/management/commands/mark_start_times.py:16
+#: viewer/management/commands/mark_start_times.py:16
 #, python-format
 msgid "Could not mark start time for DD: %(data)s"
 msgstr "មិន​សម្គាល់​ពេលវេលា​ចាប់ផ្ដើម​សម្រាប់ DD ៖ %(data)s"
 
-#: odk_viewer/management/commands/push_develop.py:7
+#: viewer/management/commands/push_develop.py:7
 msgid ""
 "\n"
 "    Run the tests locally. If there are no errors push to\n"
@@ -1251,112 +1251,112 @@ msgid ""
 "    "
 msgstr ""
 
-#: odk_viewer/management/commands/relink.py:6
+#: viewer/management/commands/relink.py:6
 msgid "Relink all instances with the current forms."
 msgstr "តភ្ជាប់​ធាតុ​ទាំងអស់​ឡើង​​ជា​មួយ​សំណុំ​បែបបទ​បច្ចុប្បន្ន។"
 
-#: odk_viewer/management/commands/remongo.py:9
+#: viewer/management/commands/remongo.py:9
 msgid "Insert all existing parsed instances into MongoDB"
 msgstr "បញ្ចូល​ធាតុ​បាន​ញែក​ដែល​មាន​ស្រាប់​ទាំងអស់​​ក្នុង MongoDB"
 
-#: odk_viewer/management/commands/remongo.py:14
+#: viewer/management/commands/remongo.py:14
 msgid "Number of records to process per query"
 msgstr "ចំនួន​កំណត់​ត្រា​ត្រូវ​ដំណើរការ​ក្នុង​មួយ​​ចម្រោះ​"
 
-#: odk_viewer/management/commands/remongo.py:16
+#: viewer/management/commands/remongo.py:16
 msgid "Username of the form user"
 msgstr "ឈ្មោះ​អ្នក​ប្រើ​​របស់​​អ្នក​ប្រើ​សំណុំ​បែបបទ"
 
-#: odk_viewer/management/commands/remongo.py:18
+#: viewer/management/commands/remongo.py:18
 msgid "id string of the form"
 msgstr "ឃ្លា​លេខ​សម្គាល់​នៃ​សំណុំ​បែបបទ"
 
-#: odk_viewer/management/commands/reparse.py:9
+#: viewer/management/commands/reparse.py:9
 msgid "Delete and recreate parsed instances."
 msgstr "លុប និង​បង្កើត​ធាតុ​​បាន​ញែក​​ឡើង​វិញ។"
 
-#: odk_viewer/management/commands/set_uuid_in_xml.py:9
+#: viewer/management/commands/set_uuid_in_xml.py:9
 msgid "Insert UUID into XML of all existing XForms"
 msgstr "បញ្ចូល UUID ក្នុង XML នៃ​ XForms ដែល​មាន​ស្រាប់"
 
-#: odk_viewer/management/commands/set_uuid_in_xml.py:12
+#: viewer/management/commands/set_uuid_in_xml.py:12
 #, python-format
 msgid "%(nb)d XForms to update"
 msgstr "%(nb)d XForms ត្រូវ​ធ្វើ​បច្ចុប្បន្នភាព"
 
-#: odk_viewer/management/commands/set_uuid_in_xml.py:19
+#: viewer/management/commands/set_uuid_in_xml.py:19
 #, python-format
 msgid "Updated %(nb)d XForms..."
 msgstr "បាន​ធ្វើ​បច្ចុប្បន្នភាព %(nb)d XForms..."
 
-#: odk_viewer/management/commands/update_delete_from_mongo.py:12
+#: viewer/management/commands/update_delete_from_mongo.py:12
 msgid "Update deleted records from mongo to sql instances"
 msgstr "ធ្វើ​បច្ចុប្បន្នភាព​កំណត់​ដែល​បាន​លុប​ពី​ធាតុ mongo ទៅ sql"
 
-#: odk_viewer/templates/data_view.html:16
+#: viewer/templates/data_view.html:16
 msgid "Display Fields"
 msgstr "បង្ហាញ​វាល​"
 
-#: odk_viewer/templates/data_view.html:45
+#: viewer/templates/data_view.html:45
 msgid ""
 "Your survey has <strong>{numquestions}</strong> question(s) and "
 "<strong>{numsubmissions}</strong> submission(s). Please click on Display "
 "Fields above and select the questions you want to view responses for."
 msgstr "ការ​ស្ទង់មតិ​​របស់​អ្នក​មាន​​ <strong>{numquestions}</strong> សំណួរ និង​​ការ​ដាក់ស្នើ <strong>{numsubmissions}</strong>។ សូម​ចុច​​បង្ហាញ​វាល​ខាង​លើ ហើយ​ជ្រើស​សំណួរ​ដែល​អ្នក​ចង់​ការ​ឆ្លើយតប​។"
 
-#: odk_viewer/templates/data_view.html:46
+#: viewer/templates/data_view.html:46
 msgid ""
 "NOTE: This is a beta feature and your survey contains more than "
 "<strong>{threshold}</strong> responses, search and sort features will not "
 "work."
 msgstr "ចំណាំ៖ នេះ​​ជា​លក្ខណៈ​បែតា ហើយ​ការ​ស្ទង់មតិ​របស់​អ្នក​មាន​ការ​ឆ្លើយតប​ច្រើន​ជាង <strong>{threshold}</strong> ការ​ស្វែងរក និង​តម្រៀប​លក្ខណៈ​​នឹង​មិន​ដំណើរការ​ទេ។"
 
-#: odk_viewer/templates/data_view.html:115
+#: viewer/templates/data_view.html:115
 msgid "_MENU_ records per page"
 msgstr "_MENU_ កំណត់​ត្រា​ក្នុង​មួយ​ទំព័រ"
 
-#: odk_viewer/templates/instance.html:18
+#: viewer/templates/instance.html:18
 msgid "Browse Form Data"
 msgstr "រក​​ទិន្នន័យ​សំណុំបែបបទ"
 
-#: odk_viewer/templates/instance.html:31
+#: viewer/templates/instance.html:31
 msgid "Record {pos} of {total}"
 msgstr "កំណត់​ត្រា {pos} នៃ {total}"
 
-#: odk_viewer/templates/instance.html:166
-#: odk_viewer/templates/instance.html:203
+#: viewer/templates/instance.html:166
+#: viewer/templates/instance.html:203
 msgid "BAD REQUEST"
 msgstr "សំណើ​មិន​ត្រឹមត្រូវ"
 
-#: odk_viewer/templates/instance.html:310
+#: viewer/templates/instance.html:310
 msgid "The requested content was not found."
 msgstr "រក​មិន​ឃើញ​ខ្លឹមសារ​ដែល​បាន​ស្នើ​។"
 
-#: odk_viewer/templates/instance.html:322
+#: viewer/templates/instance.html:322
 msgid "Change Language:"
 msgstr "ប្ដូរ​ភាសា​៖"
 
-#: odk_viewer/templates/instance.html:338
+#: viewer/templates/instance.html:338
 msgid "Record 1 of 6"
 msgstr "កំណត់​​ត្រា ១ នៃ​ ៦"
 
-#: odk_viewer/templates/instance.html:342
+#: viewer/templates/instance.html:342
 msgid "← Previous"
 msgstr "← មុន"
 
-#: odk_viewer/templates/instance.html:342
+#: viewer/templates/instance.html:342
 msgid "Next →"
 msgstr "បន្ទាប់ →"
 
-#: odk_viewer/templates/instance.html:354 odk_viewer/templates/survey.html:20
+#: viewer/templates/instance.html:354 viewer/templates/survey.html:20
 msgid "Question"
 msgstr "សំណួរ"
 
-#: odk_viewer/templates/instance.html:354 odk_viewer/templates/survey.html:21
+#: viewer/templates/instance.html:354 viewer/templates/survey.html:21
 msgid "Response"
 msgstr "ការ​ឆ្លើយតប"
 
-#: odk_viewer/templates/instance.html:446
+#: viewer/templates/instance.html:446
 msgid ""
 "Are you sure you want to delete this data. If you are unsure about deleting "
 "this form press 'Cancel'."

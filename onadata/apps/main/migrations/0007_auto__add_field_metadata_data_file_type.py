@@ -62,7 +62,7 @@ class Migration(SchemaMigration):
             'data_type': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'data_value': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'xform': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['odk_logger.XForm']"})
+            'xform': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['logger.XForm']"})
         },
         'main.userprofile': {
             'Meta': {'object_name': 'UserProfile'},
@@ -77,7 +77,7 @@ class Migration(SchemaMigration):
             'twitter': ('django.db.models.fields.CharField', [], {'max_length': '255', 'blank': 'True'}),
             'user': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'profile'", 'unique': 'True', 'to': "orm['auth.User']"})
         },
-        'odk_logger.xform': {
+        'logger.xform': {
             'Meta': {'ordering': "('id_string',)", 'unique_together': "(('user', 'id_string'),)", 'object_name': 'XForm'},
             'date_created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'date_modified': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),

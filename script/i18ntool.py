@@ -28,7 +28,7 @@ from shell_command import shell_call
 
 # List of languages we care about
 LANGS = ['en', 'fr', 'es', 'it', 'nl', 'zh', 'ne', 'km']
-I18N_APPS = ['onadata.apps.main', 'onadata.apps.odk_viewer']
+I18N_APPS = ['onadata.apps.main', 'onadata.apps.viewer']
 
 TX_LOGIN_URL = u'https://www.transifex.com/signin/'
 REPO_ROOT = os.join('..', os.path.dirname(os.path.abspath(__file__)))

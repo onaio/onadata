@@ -25,18 +25,18 @@ from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
 import sys
 
-from onadata.apps.odk_logger.models import Attachment
-from onadata.apps.odk_logger.models import Instance
-from onadata.apps.odk_logger.models.instance import InstanceHistory
-from onadata.apps.odk_logger.models.instance import get_id_string_from_xml_str
-from onadata.apps.odk_logger.models import XForm
-from onadata.apps.odk_logger.models.xform import XLSFormError
-from onadata.apps.odk_logger.xform_instance_parser import InstanceInvalidUserError, \
+from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models.instance import InstanceHistory
+from onadata.apps.logger.models.instance import get_id_string_from_xml_str
+from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models.xform import XLSFormError
+from onadata.apps.logger.xform_instance_parser import InstanceInvalidUserError, \
     IsNotCrowdformError, DuplicateInstance, clean_and_parse_xml, \
     get_uuid_from_xml, get_deprecated_uuid_from_xml, \
     get_submission_date_from_xml
-from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
-from onadata.apps.odk_viewer.models.parsed_instance import _remove_from_mongo,\
+from onadata.apps.viewer.models.data_dictionary import DataDictionary
+from onadata.apps.viewer.models.parsed_instance import _remove_from_mongo,\
     xform_instances, ParsedInstance
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid

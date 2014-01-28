@@ -30,9 +30,9 @@ module.exports = function(config) {
       'node_modules/sinon/lib/sinon/util/event.js',
       'node_modules/sinon/lib/sinon/util/fake_xml_http_request.js',
       'node_modules/sinon/lib/sinon/util/fake_server.js',
-      'onadata/apps/odk_viewer/static/js/map.js',
-      'onadata/apps/odk_viewer/static/js/xform.js',
-      'onadata/apps/odk_viewer/static/js/data_view.js',
+      'onadata/apps/viewer/static/js/map.js',
+      'onadata/apps/viewer/static/js/xform.js',
+      'onadata/apps/viewer/static/js/data_view.js',
       'onadata/libs/javascript/tests/spec/*.spec.js',
       'onadata/libs/javascript/tests/mock/*.js'
     ],

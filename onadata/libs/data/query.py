@@ -68,7 +68,7 @@ def _postgres_select_key(field, name, xform):
 
 def _query_args(field, name, xform):
     return {
-        'table': 'odk_logger_instance',
+        'table': 'logger_instance',
         'json': _json_query(field),
         'name': name,
         'restrict_field': 'xform_id',

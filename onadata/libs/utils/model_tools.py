@@ -1,7 +1,7 @@
 import gc
 import uuid
 
-from onadata.apps.odk_logger.models.xform import XForm, DuplicateUUIDError
+from onadata.apps.logger.models.xform import XForm, DuplicateUUIDError
 
 
 def generate_uuid_for_form():

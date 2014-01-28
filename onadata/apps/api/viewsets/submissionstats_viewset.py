@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
 from onadata.apps.api.tools import get_accessible_forms, get_xform
-from onadata.apps.odk_logger.models import Instance
+from onadata.apps.logger.models import Instance
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
 
 

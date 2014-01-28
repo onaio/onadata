@@ -4,7 +4,7 @@ from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.odk_logger.models import XForm
+from onadata.apps.logger.models import XForm
 
 
 class TestDataViewSet(TestBase):
@@ -101,40 +101,3 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data, [])
         for i in self.xform.instances.all():
             self.assertNotIn(u'hello', i.tags.names())
-
-    def test_add_notes_to_data_point(self):
-        # add a note to a specific data point
-        view = NoteViewSet.as_view({
-            'get': 'retrieve',
-            'post': 'create',
-        })
-        note = {'note': u"Road Warrior"}
-        dataid = self.xform.instances.all()[0].pk
-        note['instance'] = dataid
-        request = self.factory.post('/', data=note, **self.extra)
-        self.assertTrue(self.xform.instances.count())
-        response = view(request)
-        self.assertEqual(response.status_code, 201)
-        pk = response.data['id']
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=pk)
-        self.assertEqual(response.status_code, 200)
-        self.assertDictContainsSubset(note, response.data)
-        view = NoteViewSet.as_view({
-            'get': 'list',
-            'delete': 'destroy'
-        })
-        user = self._create_user('deno', 'deno')
-        extra = {
-            'HTTP_AUTHORIZATION': 'Token %s' % user.auth_token}
-        request = self.factory.get('/', **extra)
-        response = view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.data, [])
-        request = self.factory.delete('/', **self.extra)
-        response = view(request, pk=pk)
-        self.assertEqual(response.status_code, 204)
-        request = self.factory.get('/', **self.extra)
-        response = view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertEquals(response.data, [])

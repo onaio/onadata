@@ -54,11 +54,11 @@
         </td>
         <td class="centered">{{ submission_count|intcomma }}</td>
         <td class="centered">
-                <a class="btn" href="{% url "onadata.apps.odk_logger.views.enter_data" xform.user.username xform.id_string %}"><i class="icon-edit"></i> {% trans "Web" %}</a>
+                <a class="btn" href="{% url "onadata.apps.logger.views.enter_data" xform.user.username xform.id_string %}"><i class="icon-edit"></i> {% trans "Web" %}</a>
         </td>
         <td class="centered">
                 {% if not xform.encrypted and has_instances_with_geopoints %}
-                    <a href="{% url "onadata.apps.odk_viewer.views.map_view" user.username xform.id_string %}" data-original-title="{% trans 'View Map' %}" rel="tooltip">
+                    <a href="{% url "onadata.apps.viewer.views.map_view" user.username xform.id_string %}" data-original-title="{% trans 'View Map' %}" rel="tooltip">
                         <i class="icon-map-marker icon-large"></i>
                     </a>
                 {% else %}
@@ -67,7 +67,7 @@
                 {% if  not xform.encrypted and submission_count > 0 %}
                     <a href="{% url "onadata.apps.main.views.form_photos" content_user.username xform.id_string %}" data-original-title="{% trans 'View Photo' %}" rel="tooltip" >
                     <i class="icon-camera icon-large"></i>
-                    <a href="{% url "onadata.apps.odk_viewer.views.data_view" content_user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
+                    <a href="{% url "onadata.apps.viewer.views.data_view" content_user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
                         <i class="icon-list icon-large inactive"></i>
                     </a>
                     <a href="{% url "form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
@@ -81,10 +81,10 @@
         </td>
         <td>
             {% if  not xform.encrypted and submission_count %}
-                <a href="{% url "onadata.apps.odk_viewer.views.export_list"  xform.user.username xform.id_string 'csv' %}" class="download"><i class="icon-file-alt"></i> csv</a>
-                <a href="{% url "onadata.apps.odk_viewer.views.export_list"  xform.user.username xform.id_string 'xls' %}" class="download"><i class="icon-table"></i> xls</a>
+                <a href="{% url "onadata.apps.viewer.views.export_list"  xform.user.username xform.id_string 'csv' %}" class="download"><i class="icon-file-alt"></i> csv</a>
+                <a href="{% url "onadata.apps.viewer.views.export_list"  xform.user.username xform.id_string 'xls' %}" class="download"><i class="icon-table"></i> xls</a>
                 {% if has_instances_with_geopoints %}
-                    <a href="{% url "onadata.apps.odk_viewer.views.kml_export"  xform.user.username xform.id_string %}" class="download"><i class="icon-globe"></i> kml</a>
+                    <a href="{% url "onadata.apps.viewer.views.kml_export"  xform.user.username xform.id_string %}" class="download"><i class="icon-globe"></i> kml</a>
                 {% endif %}
                 {% if xform.shared_data %}
                     <span class="label label-info label-public">{%  trans "PUBLIC" %}</span>
@@ -115,7 +115,7 @@
             {% endif %}
             {% if submission_count <= 0 %}
                 <div id="delete-{{ xform.id_string }}" class="modal hide fade">
-                    <form action="{% url "onadata.apps.odk_logger.views.delete_xform" username=user.username id_string=xform.id_string %}" method="post">
+                    <form action="{% url "onadata.apps.logger.views.delete_xform" username=user.username id_string=xform.id_string %}" method="post">
                         {% csrf_token %}
                       <div class="modal-header">
                           <a data-dismiss="modal" class="close">&times;</a>

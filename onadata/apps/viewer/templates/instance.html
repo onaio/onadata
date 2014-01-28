@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{% trans "Browse Form Data" %}
+        <small><a href="{% url "onadata.apps.main.views.show" username id_string %}">{{ xform.title }}</a></small>
+        <small> | </small>
+        <small><a href="{% url "onadata.apps.viewer.views.data_view" username id_string %}">{% trans "Data View" %}</a></small>
+    </h1>
+</div>
+
+<div id="loading">
+  <p> Loading... </p>
+  <img id="loading-image" src="{{STATIC_URL}}images/ajax-loader.gif" alt="Loading..." />
+</div>
+{% if messages %}
+<div>{{messages}}</div>
+{% endif %}
+<div id="data"></div>
+
+ <div id="delete-modal" class="modal hide fade">
+            <div class="modal-header">
+              <a data-dismiss="modal" class="close">&times;</a>
+              <h3>{% trans "Delete Confirmation" %}</h3>
+            </div>
+            <div class="modal-body">
+              <p>{% trans "Are you sure you want to delete this record. If you are unsure about deleting this record press 'Cancel'." %}</p>
+            </div>
+            <div class="modal-footer">
+              <a href="#" onclick="$('#delete-modal').modal('hide');" class="btn btn-primary">{% trans "Delete" %}</a>
+              <a href="#" onclick="$('#delete-modal').modal('hide');" class="btn secondary">{% trans "Cancel" %}</a>
+            </div>
+          </div>
+{% endblock %}
+
+{% block javascript %}
+{{ block.super }}
+<script type="text/javascript" src="{{STATIC_URL}}js/jquery.dataTables.js"></script>
+<script type="text/javascript" src="{{STATIC_URL}}js/jquery.dataTables.pagination.js"></script>
+<script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/sammy-0.7.1.min.js"></script>
+<script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/sammy-plugins/sammy.meld-0.7.1.min.js"></script>
+
+<script type="text/javascript">
+var formJSONUrl = "{% url "onadata.apps.logger.views.download_jsonform" username id_string %}";
+var mongoAPIUrl = "{% url "onadata.apps.main.views.api" username id_string %}";
+var deleteAPIUrl = "{% url "onadata.apps.main.views.delete_data" username id_string %}";
+var app; // sammy app
+var questions = {};
+var languages = [];
+// TODO: this re should only accept valid js variable names so numbers/letter/underscore
+var cleanRe = /[\[\]\/]/g; // regular expression used to clean names with slashes
+var cleanReplacement = '_';
+var positionTpl = "{% trans 'Record {pos} of {total}' %}";
+var numRecords = null;
+var browsePos = null;
+
+var canEdit = {% if can_edit %}true;{% else %}false;{% endif %}
+
+(function($) {
+
+  var _isFirstLoad = true
+
+  app = $.sammy('#data', function() {
+      this.use('Meld');
+
+      // index route
+      this.get('#/', function(context) {
+          /// get the first response object
+          // only re-direct if this is the first time
+          if(_isFirstLoad)
+              redirectToFirstId(context)
+          else
+              history.go(-2)// we first load instance, then redirect to instance#/ then to instance#/:id s we need to go back 2
+          _isFirstLoad = false
+      });
+
+      // #/id route
+      this.get('#/:id', function(context) {
+          var id = this.params['id'];
+          var query = '{"_id": ' + id + '}';
+          _isFirstLoad = false
+          loadData(context, query, canEdit);
+      });
+
+      // #uuid/uuid route
+      this.get('#uuid/:uuid', function(context) {
+          var uuid = this.params['uuid'];
+          var query = '{"_uuid": "' + uuid + '"}';
+          _isFirstLoad = false
+          loadData(context, query, canEdit);
+      });
+
+
+      // Delete modal
+      this.get('#del/:id', function(context) { with(this) {
+
+            $("#delete-modal").modal("show");
+
+      }
+      });
+
+
+      // Delete route
+      this.get('#delete/:id', function(context) {
+
+          var id = this.params['id'];
+          var next = $('li.next').children('a').attr('href');
+          next = next.replace("#/", "");
+
+          var prev = $('li.prev').children('a').attr('href');
+          prev = prev.replace("#/", "");
+          var redirect_route = '#/';
+
+          if(next > 0 && next != id ){
+              redirect_route = '#/'  + next;
+          }
+          else if(prev > 0 && prev != id ){
+              redirect_route = '#/'  + prev;
+          }
+
+          deleteData(context, id, redirect_route);
+      });
+      this.bind('error', {}, function(){
+          //alert('Invalid route requested')
+          //app.setLocation('#/');
+      })
+
+  });
+
+  /// load form structure
+  $.getJSON(formJSONUrl)
+      .success(function(data){
+              parseQuestions(data.children);
+              parseLanguages(data.children);
+              // load count
+              $.getJSON(mongoAPIUrl, {'count': 1})
+                  .success(function(data){
+                          //todo: count num records before and num records after so we know our starting point
+                          numRecords = data[0]["count"];
+                          // load id of first record
+                          app.run('#/');
+                      })
+          });
+
+})(jQuery);
+
+function _attachment_url(name, size)
+{
+    return '{% url "onadata.apps.viewer.views.attachment_url" %}' + size + '?media_file=' + '{{ username }}/attachments/' + name;
+}
+
+</script>
+
+<script type="text/javascript" charset="utf-8" src="{{STATIC_URL}}js/instance.js"></script>
+
+<script type="text/javascript">
+$(document).ready(function(){
+    $('#loading')
+        .ajaxStart(function() {
+            $(this).show();
+        })
+        .ajaxStop(function() {
+            $(this).hide();
+        });
+});
+</script>
+{% endblock %}

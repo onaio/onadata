@@ -30,13 +30,13 @@ from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
     QuickConverter, SourceForm, PermissionForm, MediaForm, MapboxLayerForm,\
     ActivateSMSSupportFom
 from onadata.apps.main.models import AuditLog, UserProfile, MetaData
-from onadata.apps.odk_logger.models import Instance, XForm
-from onadata.apps.odk_logger.views import enter_data
-from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary,\
+from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.views import enter_data
+from onadata.apps.viewer.models.data_dictionary import DataDictionary,\
     upload_to
-from onadata.apps.odk_viewer.models.parsed_instance import\
+from onadata.apps.viewer.models.parsed_instance import\
     DATETIME_FORMAT, ParsedInstance
-from onadata.apps.odk_viewer.views import attachment_url
+from onadata.apps.viewer.views import attachment_url
 from onadata.apps.sms_support.tools import check_form_sms_compatibility,\
     is_sms_related
 from onadata.apps.sms_support.autodoc import get_autodoc_for
@@ -215,13 +215,13 @@ def profile(request, username):
         context.all_forms = content_user.xforms.count()
         context.form = QuickConverterFile()
         context.form_url = QuickConverterURL()
-        context.odk_url = request.build_absolute_uri(
+        context.url = request.build_absolute_uri(
             "/%s" % request.user.username)
         xforms = XForm.objects.filter(user=content_user)\
             .select_related('user', 'instances')
         context.user_xforms = xforms
         # forms shared with user
-        xfct = ContentType.objects.get(app_label='odk_logger', model='xform')
+        xfct = ContentType.objects.get(app_label='logger', model='xform')
         xfs = content_user.userobjectpermission_set.filter(content_type=xfct)
         shared_forms_pks = list(set([xf.object_pk for xf in xfs]))
         context.forms_shared_with = XForm.objects.filter(
@@ -306,7 +306,7 @@ def dashboard(request):
     context.form = QuickConverter()
     content_user = request.user
     set_profile_data(context, content_user)
-    context.odk_url = request.build_absolute_uri("/%s" % request.user.username)
+    context.url = request.build_absolute_uri("/%s" % request.user.username)
     return render_to_response("dashboard.html", context_instance=context)
 
 
@@ -493,7 +493,7 @@ def edit(request, username, id_string):
             }))
 
     if username == request.user.username or\
-            request.user.has_perm('odk_logger.change_xform', xform):
+            request.user.has_perm('logger.change_xform', xform):
         if request.POST.get('description'):
             audit = {
                 'xform': xform.id_string
@@ -745,7 +745,7 @@ def tutorial(request):
     context.template = 'tutorial.html'
     username = request.user.username if request.user.username else \
         'your-user-name'
-    context.odk_url = request.build_absolute_uri("/%s" % username)
+    context.url = request.build_absolute_uri("/%s" % username)
     return render_to_response('base.html', context_instance=context)
 
 
@@ -763,7 +763,7 @@ def about_us(request):
     context.a_flatpage = '/about-us/'
     username = request.user.username if request.user.username else \
         'your-user-name'
-    context.odk_url = request.build_absolute_uri("/%s" % username)
+    context.url = request.build_absolute_uri("/%s" % username)
     return render_to_response('base.html', context_instance=context)
 
 

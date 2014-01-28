@@ -1,6 +1,6 @@
 import os
 
-from onadata.apps.odk_viewer.models.data_dictionary import DataDictionary
+from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from test_base import TestBase
 
 

@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy
 
-from onadata.apps.odk_logger.models.xform import XForm
+from onadata.apps.logger.models.xform import XForm
 from onadata.apps.restservice import SERVICE_CHOICES
 
 
