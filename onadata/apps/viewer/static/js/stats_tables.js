@@ -186,9 +186,9 @@
     });
 
     Ona.StatsCollection.StatsSummariesEnabled = function (summaryMethods) {
-        return (summaryMethods & Ona.SummaryMethod.MEAN) ||
-            (summaryMethods & Ona.SummaryMethod.MEDIAN) ||
-            (summaryMethods & Ona.SummaryMethod.MODE);
+        return (summaryMethods & Ona.SummaryMethod.MEAN) !== 0 ||
+            (summaryMethods & Ona.SummaryMethod.MEDIAN) !== 0 ||
+            (summaryMethods & Ona.SummaryMethod.MODE) !== 0;
     };
 
     Ona.FrequenciesCollection = Backbone.Collection.extend({

@@ -33,6 +33,7 @@ module.exports = function(config) {
       'onadata/apps/viewer/static/js/map.js',
       'onadata/apps/viewer/static/js/xform.js',
       'onadata/apps/viewer/static/js/data_view.js',
+      'onadata/apps/viewer/static/js/stats_tables.js',
       'onadata/libs/javascript/tests/spec/*.spec.js',
       'onadata/libs/javascript/tests/mock/*.js'
     ],
