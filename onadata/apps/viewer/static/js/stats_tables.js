@@ -21,12 +21,6 @@
         return field.get('type') === 'integer' || field.get('decimal');
     };
 
-    var statsSummariesEnabled = function (summaryMethods) {
-        return summaryMethods & Ona.SummaryMethod.MEAN ||
-            summaryMethods & Ona.SummaryMethod.MEDIAN ||
-            summaryMethods & Ona.SummaryMethod.MODE;
-    };
-
     Ona.TableDef = Backbone.Model.extend({
 
     });
@@ -191,6 +185,12 @@
         }
     });
 
+    Ona.StatsCollection.StatsSummariesEnabled = function (summaryMethods) {
+        return (summaryMethods & Ona.SummaryMethod.MEAN) ||
+            (summaryMethods & Ona.SummaryMethod.MEDIAN) ||
+            (summaryMethods & Ona.SummaryMethod.MODE);
+    };
+
     Ona.FrequenciesCollection = Backbone.Collection.extend({
         initialize: function (models, options) {
             Backbone.Collection.prototype.initialize.apply(this, arguments);
@@ -333,7 +333,7 @@
 
             // If field is numeric or we have one of the summary methods enabled, render the stats view as well
             if(fieldIsNumeric(this.model.get('selected_field')) &&
-                statsSummariesEnabled(this.model.get('summary_methods'))) {
+                Ona.StatsCollection.StatsSummariesEnabled(this.model.get('summary_methods'))) {
                 this.$el
                     .append('<h4>' + "Statistics" +'</h3>')
                     .append(this.statsTable.render().$el);
