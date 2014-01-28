@@ -224,7 +224,7 @@ urlpatterns = patterns(
 
     # Stats tables
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/tables",
-        'onadata.apps.odk_viewer.views.stats_tables'),
+        'onadata.apps.viewer.views.stats_tables'),
 
     # Ziggy
     url(r"^(?P<username>[^/]+)/form-submissions$",
