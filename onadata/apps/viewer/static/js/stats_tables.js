@@ -106,7 +106,7 @@
                 self.$('.controls #' + method).prop('checked', checked);
             });
 
-            disabled = (selectedField || void 0) === void 0 || (selectedField && (selectedField.get('type') !== 'integer' && selectedField.get('type') !== 'decimal'));
+            disabled = disabled || (selectedField && (selectedField.get('type') !== 'integer' && selectedField.get('type') !== 'decimal'));
             _.each(['mean', 'median', 'mode'], function (method) {
                 var checked = (Ona.SummaryMethod[method.toUpperCase()] & self.model.get('summary_methods')) !== 0;
                 self.$('.controls #' + method).prop('disabled', disabled);
