@@ -357,13 +357,16 @@
                 });
             }, this);
 
-            // whenever any of `selected_field` or `summary_methods`, check if we need to enable the button
+            // whenever any of `selected_field` or `summary_methods` change, check if we need to enable the button
             this.listenTo(this.model, 'change:selected_field', function (model, value, options) {
                 var disabled = this.shouldDisableButton(model);
-                this.$createButton.prop('disabled', disabled)
+                this.$createButton.prop('disabled', disabled);
+
+                // reset summary_methods
+                this.model.set({summary_methods: 0});
             });
 
-            // whenever any of `selected_field` or `summary_methods`, check if we need to enable the button
+            // whenever any of `selected_field` or `summary_methods` change, check if we need to enable the button
             this.listenTo(this.model, 'change:summary_methods', function (model, value, options) {
                 var disabled = this.shouldDisableButton(model);
                 this.$createButton.prop('disabled', disabled);
