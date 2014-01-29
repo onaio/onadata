@@ -20,7 +20,7 @@ In order to comply with the law, we may release account and other personal infor
 
 ### Protecting Your Data
 
-Ona is committed to protecting the data you entrust to us.  We employ industry standard best practices (both technical and administrative) to protect against unauthorized access of your data stored with us.  We cannot guarantee, however, its absolute security. To protect from loss of data, we do frequent system and incremental backups which are stored encrypted in data centers across different geographic zones.  
+Ona is committed to protecting the data you entrust to us.  We employ industry standard best practices (both technical and administrative) to protect against unauthorized access of your data.  We cannot guarantee, however, its absolute security. To protect from loss of data, we do frequent system and incremental backups which are stored encrypted in data centers across different geographic zones.  
 
 To further protect your data,  we encourage you never to share your login information and to change your passwords regularly.  
 
