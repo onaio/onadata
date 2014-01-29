@@ -5,7 +5,7 @@
           '<thead>' +
             '<% if(show_header) { %>' +
             '<tr>' +
-              '<th width="60%"><%= field_name %></th>' +
+              '<th width="60%"><%= field_label %></th>' +
               '<th>count</th>' +
             '</tr>' +
             '<% } %>' +

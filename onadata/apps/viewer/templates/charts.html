@@ -33,7 +33,7 @@
   <script type="text/javascript">
     (function(elmSelector){
           // append the heading
-          d3.select(elmSelector).append('h3').html("{{ field_name }}");
+          d3.select(elmSelector).append('h3').html("{{ field_label }}");
           var svg = dimple.newSvg(elmSelector, 590, 400);
           var data = [
             {% for item in data %}
@@ -58,6 +58,7 @@
 
           // add table data
           var tableMarkup = ChartGridTemplate({
+              field_label: "{{ field_label }}",
               field_name: "{{ field_name }}",
               data: data,
               show_header: true
