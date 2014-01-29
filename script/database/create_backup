@@ -1,0 +1,4 @@
+sudo su -
+onadata_backup restore postgres/
+logout
+tar -czvf onadata.sql.tar.gz backups/postgres/onadata.sql
