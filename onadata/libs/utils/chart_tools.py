@@ -61,6 +61,7 @@ def build_chart_data_for_field(xform, field):
         field_type = field.type
 
     result = get_form_submissions_grouped_by_field(xform, field_name)
+    result = sorted(result, key=lambda d: d['count'])
     data_type = DATA_TYPE_MAP.get(field_type, 'categorized')
 
     # for date fields, strip out None values
@@ -82,6 +83,7 @@ def build_chart_data_for_field(xform, field):
         'field_name': field_name,
         'field_type': field_type,
     }
+
     return data
 
 
@@ -94,10 +96,4 @@ def build_chart_data(xform):
     # prepend submission time
     fields[:0] = [common_tags.SUBMISSION_TIME]
 
-    data = []
-
-    for field in fields:
-        d = build_chart_data_for_field(xform, field)
-        data.append(d)
-
-    return data
+    return [build_chart_data_for_field(xform, field) for field in fields]
