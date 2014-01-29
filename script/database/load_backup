@@ -1,3 +1,5 @@
 scp ona:~/onadata.sql.tar.gz .
 tar -xzvf onadata.sql.tar.gz
-psql -U onadata -h 127.0.0.1 onadata -f backups/postgres/onadata.sql
+psql -c "DROP DATABASE $1;" -U postgres
+./script/database/install_postgis $1
+psql -U onadata -h 127.0.0.1 $1 -f backups/postgres/onadata.sql
