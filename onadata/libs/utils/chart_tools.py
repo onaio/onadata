@@ -50,13 +50,15 @@ def utc_time_string_for_javascript(date_string):
 def build_chart_data_for_field(xform, field):
     # check if its the special _submission_time META
     if isinstance(field, basestring) and field == common_tags.SUBMISSION_TIME:
+        field_label = 'Submission Time'
+        field_name = '_submission_time'
         field_type = 'datetime'
-        field_name = common_tags.SUBMISSION_TIME
     else:
         # TODO: merge choices with results and set 0's on any missing fields,
         # i.e. they didn't have responses
-        field_type = field.type
+        field_label = field.label
         field_name = field.name
+        field_type = field.type
 
     result = get_form_submissions_grouped_by_field(xform, field_name)
     data_type = DATA_TYPE_MAP.get(field_type, 'categorized')
@@ -74,10 +76,11 @@ def build_chart_data_for_field(xform, field):
                     pass
 
     data = {
+        'data': result,
+        'data_type': data_type,
+        'field_label': field_label,
         'field_name': field_name,
         'field_type': field_type,
-        'data_type': data_type,
-        'data': result,
     }
     return data
 
