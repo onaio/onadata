@@ -121,6 +121,13 @@ class TestBase(TransactionTestCase):
         self._publish_transportation_form()
         self._submit_transport_instance()
 
+    def _make_submissions_gps(self):
+        surveys = ['gps_1980-01-23_20-52-08',
+                   'gps_1980-01-23_21-21-33', ]
+        for survey in surveys:
+            path = self._fixture_path('gps', 'instances', survey + '.xml')
+            self._make_submission(path)
+
     def _make_submission(self, path, username=None, add_uuid=False,
                          touchforms=False, forced_submission_time=None):
         # store temporary file with dynamic uuid

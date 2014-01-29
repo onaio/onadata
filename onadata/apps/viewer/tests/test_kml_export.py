@@ -13,18 +13,11 @@ class TestKMLExport(TestBase):
         xls_path = self._fixture_path("gps", "gps.xls")
         TestBase._publish_xls_file(self, xls_path)
 
-    def _make_submissions(self):
-        surveys = ['gps_1980-01-23_20-52-08',
-                   'gps_1980-01-23_21-21-33', ]
-        for survey in surveys:
-            path = self._fixture_path('gps', 'instances', survey + '.xml')
-            self._make_submission(path)
-
     def test_kml_export(self):
         id_string = 'gps'
 
         self._publish_survey()
-        self._make_submissions()
+        self._make_submissions_gps()
         self.fixtures = os.path.join(
             self.this_directory, 'fixtures', 'kml_export')
         url = reverse(
