@@ -33,18 +33,17 @@ DEPLOYMENTS = {
         'celeryd': '/etc/init.d/celeryd',
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/run/formhub.pid',
-        'template': 'https://github.com/SEL-Columbia/formhub-template.git',
+        'template': 'git@github.com:SEL-Columbia/formhub-template.git',
     },
     'kobocat': {
         'home': '/home/ubuntu/src/',
-        'host_string':
-        'ubuntu@ec2-54-200-151-185.us-west-2.compute.amazonaws.com',
+        'host_string': 'ubuntu@kobocat.dev.kobotoolbox.org',
         'project': 'kobocat',
         'key_filename': os.path.expanduser('~/.ssh/kobo01.pem'),
         'celeryd': '/etc/init.d/celeryd',
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/run/kobocat.pid',
-        'template': 'https://github.com/kobotoolbox/kobocat-template.git',
+        'template': 'git@github.com:kobotoolbox/kobocat-template.git',
     },
 }
 
@@ -117,6 +116,7 @@ def deploy(deployment_name, branch='master'):
         deploy_template(env)
 
         run('find . -name "*.pyc" -exec rm -rf {} \;')
+        run('find . -type d -empty -delete')
 
     # numpy pip install from requirements file fails
     with source(env.virtualenv):
