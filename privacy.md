@@ -8,7 +8,7 @@ We collect anonymous data from every visitor of the Website to monitor traffic a
 
 You are able to view, change and remove your data associated with your profile.  If you wish to delete your account please contact us at support@ona.io and we will assist you in this request as soon as possible.
 
-Minors and children under the age of 13 should not use Ona.  By using the Website, you represent that you above 13 and have the legal capacity to enter into a binding agreement.
+Minors and children under the age of 13 should not use Ona.  By using the Website, you represent that you are above the age of 13 and have the legal capacity to enter into a binding agreement.
 
 ### User Data
 
