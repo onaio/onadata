@@ -409,7 +409,7 @@
 
             // whenever any of `selected_field` or `summary_methods` change, check if we need to enable the button
             this.listenTo(this.model, 'change:selected_field', function (model, value, options) {
-                var disabled = this.shouldDisableButton(model);
+                var disabled = Ona.TableBuilderView.ShouldDisableButton(model);
                 this.$createButton.prop('disabled', disabled);
 
                 // reset summary_methods
@@ -447,8 +447,9 @@
             return this;
         }
     });
-
+    
     Ona.TableBuilderView.ShouldDisableButton = function (model) {
         return !model.get('selected_field') || model.get('summary_methods') === 0;
-    }
+    };
+
 }).call(this)
