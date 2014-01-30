@@ -2,10 +2,11 @@ import StringIO
 from elaphe import barcode
 from base64 import b64encode
 
+
 def generate_qrcode(message, stream=None,
                     eclevel='M', margin=10,
                     data_mode='8bits', format='PNG', scale=2.5):
-    ''' Generate a QRCode, settings options and output '''
+    """Generate a QRCode, settings options and output."""
 
     if stream is None:
         stream = StringIO.StringIO()

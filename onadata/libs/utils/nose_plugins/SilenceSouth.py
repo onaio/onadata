@@ -1,4 +1,4 @@
-from nose.plugins import Plugin
+from nose.plugins import Plugin  # noqa
 
 import logging
 

@@ -60,9 +60,9 @@ class TestSimpleSubmission(TestCase):
 
     def test_simple_yes_submission(self):
         def submit_simple_yes():
-            create_instance(self.user.username, TempFileProxy("""
-                <?xml version='1.0' ?><yes_or_no id="yes_or_no"><yesno>Yes</yesno></yes_or_no>
-                """.strip()), [])
+            create_instance(self.user.username, TempFileProxy(
+                '<?xml version=\'1.0\' ?><yes_or_no id="yes_or_no"><yesno>Yes<'
+                '/yesno></yes_or_no>'), [])
         self.assertEquals(0, self.xform1.instances.count())
         submit_simple_yes()
         self.assertEquals(1, self.xform1.instances.count())
@@ -77,9 +77,9 @@ class TestSimpleSubmission(TestCase):
         direct match.
         """
         def submit_at_hour(hour):
-            st_xml = """
-            <?xml version='1.0' ?><start_time id="start_time"><start_time>2012-01-11T%d:00:00.000+00</start_time></start_time>
-            """.strip() % hour
+            st_xml = '<?xml version=\'1.0\' ?><start_time id="start_time"><st'\
+                     'art_time>2012-01-11T%d:00:00.000+00</start_time></start'\
+                     '_time>' % hour
             try:
                 create_instance(self.user.username, TempFileProxy(st_xml), [])
             except DuplicateInstance:

@@ -2,7 +2,7 @@
 # django-factories but it mimics their functionality...
 from datetime import timedelta
 
-from pyxform import *
+from pyxform import custom_values, Survey
 from pyxform.builder import create_survey_element_from_dict
 
 from onadata.apps.logger.models import XForm, Instance

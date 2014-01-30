@@ -1,7 +1,8 @@
 from django.test.client import RequestFactory
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.viewer_tools import export_def_from_filename, get_client_ip
+from onadata.libs.utils.viewer_tools import export_def_from_filename,\
+    get_client_ip
 
 
 class TestViewerTools(TestBase):

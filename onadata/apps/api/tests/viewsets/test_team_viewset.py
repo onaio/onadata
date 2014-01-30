@@ -1,7 +1,8 @@
 import json
 
 from onadata.apps.api.models import Team
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
+    TestAbstractViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 
 
