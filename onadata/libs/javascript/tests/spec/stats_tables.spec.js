@@ -85,7 +85,7 @@ describe("Stats Tables", function () {
     });
 
     describe("Ona.TableBuilderView", function () {
-        describe("ShouldDisableButton", function () {
+        describe("shouldDisableButton", function () {
             it("should return true when selected field is undefined or no summary method is selected", function () {
                 var model = new Backbone.Model({
                     selected_field: void 0,
