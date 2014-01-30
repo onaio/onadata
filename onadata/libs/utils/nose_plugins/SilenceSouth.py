@@ -1,4 +1,4 @@
-from nose.plugins import Plugin  # flake8: noqa
+from nose.plugins import Plugin  # noqa
 
 import logging
 
