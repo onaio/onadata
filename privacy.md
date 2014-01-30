@@ -4,19 +4,19 @@ We take your privacy seriously. At Ona we collect and manage user data according
 
 ### Data Collected
 
-We collect anonymous data from every visitor of the Website to monitor traffic and fix bugs.   This includes information on web requests including IP addresses of site visitors, browser type and time of visit.   When registering an account, we ask you to provide certain personal information such as your name and email to create your user profile.  We will not share your personal information with third parties.  Your password which you will use to access the site is stored encrypted and thus never accessible to Ona.  Lost passwords can therefore only be reset and not retrieved. 
+We collect anonymous data from every visitor of the Website to monitor traffic and fix bugs.   This includes information on web requests including IP addresses of site visitors, browser type and time of visit.   When registering an account, we ask you to provide certain personal information such as your name and email to create your user profile.  We will not share your personal information with third parties.  Your password, which you will use to access the site, is stored encrypted and thus never accessible to Ona.  Lost passwords can therefore only be reset and not retrieved. 
 
-You are able to view, change and remove your data associated with your profile.  If you wish to delete your account please contact us at support@ona.io and we will assist you in this request as soon as possible.
+You are able to view, change and remove your data associated with your profile.  If you wish to delete your account please contact us at support@ona.io, and we will assist you in this request as soon as possible.
 
-Minors and children under the age of 13 should not use Ona.  By using the Website, you represent that you are above the age of 13 and have the legal capacity to enter into a binding agreement.
+Minors and children under the age of 13 should not use any services offered by Ona.  By using the Website, you represent that you are above the age of 13 and have the legal capacity to enter into a binding agreement.
 
 ### User Data
 
-We only use your personal information to provide you the Ona services or to communicate with you about the services or the Website.
+We only use your personal information to provide you with Ona services or to communicate with you about our services or the Website.
 
-We take the privacy, confidentiality and security of any data you upload to Ona very seriously because it is your data.  You retain ownership of the data.   We will never share or access your data, unless granted permission by you, in order to provide you technical assistance.
+We take the privacy, confidentiality and security of any data you submit or upload to Ona very seriously, because it is your data.  You retain ownership of the data.   We will never share or access your data, unless granted permission by you, in order to provide you with technical assistance.
 
-In order to comply with the law, we may release account and other personal information to comply in issues related to national security or to protect the rights of Ona and it’s users.
+In order to comply with the law, we may release account and other personal information to comply on issues related to national security or to protect the rights of Ona and its users.
 
 ### Protecting Your Data
 
