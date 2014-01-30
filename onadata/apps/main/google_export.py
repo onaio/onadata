@@ -10,7 +10,8 @@ from django.http import HttpResponseRedirect
 
 from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.main.views import home
-from onadata.libs.utils.google import oauth2_token, get_refreshed_token, redirect_uri
+from onadata.libs.utils.google import oauth2_token, get_refreshed_token,\
+    redirect_uri
 
 
 def google_oauth2_request(request):

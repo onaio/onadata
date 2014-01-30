@@ -2,6 +2,7 @@ import os
 import glob
 import re
 
+
 class XFormInstanceFS(object):
     def __init__(self, filepath):
         self.path = filepath
@@ -22,9 +23,12 @@ class XFormInstanceFS(object):
     @property
     def metadata_directory(self):
         if not hasattr(self, '_metadata_directory'):
-            instances_dir = os.path.join(self.directory, "..", "..", "instances")
-            metadata_directory = os.path.join(self.directory, "..", "..", "metadata")
-            if os.path.exists(instances_dir) and os.path.exists(metadata_directory):
+            instances_dir = os.path.join(
+                self.directory, "..", "..", "instances")
+            metadata_directory = os.path.join(
+                self.directory, "..", "..", "metadata")
+            if os.path.exists(instances_dir) and os.path.exists(
+                    metadata_directory):
                 self._metadata_directory = os.path.abspath(metadata_directory)
             else:
                 self._metadata_directory = False

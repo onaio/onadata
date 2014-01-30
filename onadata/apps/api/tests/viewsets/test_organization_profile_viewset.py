@@ -1,4 +1,5 @@
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
+    TestAbstractViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 

@@ -18,7 +18,8 @@ class CsvReader(object):
     def open(self, path):
         #self._file = codecs.open(path, encoding='utf-8')
         self._file = open(path, 'rU')  # universal new-line mode
-        # http://stackoverflow.com/questions/904041/reading-a-utf8-csv-file-with-python/904085#904085
+        # http://stackoverflow.com/questions/904041/reading-a-utf8-csv-file-wit
+        # h-python/904085#904085
         self._csv_reader = csv.reader(self._file)
 
     def close(self):

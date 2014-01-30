@@ -1,9 +1,10 @@
-import urllib, hashlib
-from django.core.urlresolvers import reverse
+import hashlib
+import urllib
 
 DEFAULT_GRAVATAR = "https://formhub.org/static/images/formhub_avatar.png"
-GRAVATAR_ENDPOINT = "https://secure.gravatar.com/avatar/" 
+GRAVATAR_ENDPOINT = "https://secure.gravatar.com/avatar/"
 GRAVATAR_SIZE = str(60)
+
 
 def get_gravatar_img_link(user):
     url = GRAVATAR_ENDPOINT +\
@@ -11,6 +12,7 @@ def get_gravatar_img_link(user):
             'd': DEFAULT_GRAVATAR, 's': str(GRAVATAR_SIZE)
         })
     return url
+
 
 def gravatar_exists(user):
     url = GRAVATAR_ENDPOINT +\

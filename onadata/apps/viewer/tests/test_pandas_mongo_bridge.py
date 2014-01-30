@@ -8,7 +8,10 @@ from django.core.urlresolvers import reverse
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
-from onadata.apps.viewer.pandas_mongo_bridge import *
+from onadata.apps.viewer.pandas_mongo_bridge import AbstractDataFrameBuilder,\
+    CSVDataFrameBuilder, CSVDataFrameWriter, ExcelWriter,\
+    get_prefix_from_xpath, get_valid_sheet_name, XLSDataFrameBuilder,\
+    XLSDataFrameWriter, remove_dups_from_list_maintain_order
 from onadata.libs.utils.common_tags import NA_REP
 
 

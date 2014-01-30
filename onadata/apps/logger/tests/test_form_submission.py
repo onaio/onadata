@@ -7,8 +7,8 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
-from onadata.apps.viewer.models.parsed_instance import GLOBAL_SUBMISSION_STATS,\
-    ParsedInstance
+from onadata.apps.viewer.models.parsed_instance import\
+    GLOBAL_SUBMISSION_STATS, ParsedInstance
 from onadata.apps.stats.models import StatsCount
 from onadata.libs.utils.common_tags import GEOLOCATION
 

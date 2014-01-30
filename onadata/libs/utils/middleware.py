@@ -16,10 +16,12 @@ class ExceptionLoggingMiddleware(object):
 class HTTPResponseNotAllowedMiddleware(object):
 
     def process_response(self, request, response):
-	if isinstance(response, HttpResponseNotAllowed):
-	    context = RequestContext(request)
-	    response.content = loader.render_to_string("405.html", context_instance=context)
-	return response
+        if isinstance(response, HttpResponseNotAllowed):
+            context = RequestContext(request)
+            response.content = loader.render_to_string(
+                "405.html", context_instance=context)
+
+        return response
 
 
 class LocaleMiddlewareWithTweaks(LocaleMiddleware):
