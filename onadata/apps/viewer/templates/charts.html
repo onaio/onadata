@@ -18,7 +18,7 @@
 <div>
   {% for summary in summaries  %}
   <div class="row">
-  {% with field_name=summary.field_label data_type=summary.data_type field_type=summary.field_type data=summary.data %}
+  {% with field_name=summary.field_name field_label=summary.field_label data_type=summary.data_type field_type=summary.field_type data=summary.data %}
   <div id="chart-{{ forloop.counter }}" class="span6 chart"></div>
   <div class="span4">
       <div class="row-fluid">
@@ -37,14 +37,14 @@
           var svg = dimple.newSvg(elmSelector, 590, 400);
           var data = [
             {% for item in data %}
-              { "{{ field_name }}": "{{ item|lookup:field_name }}", "count": "{{ item.count }}" },
+              { "{{ field_label }}": "{{ item|lookup:field_name }}", "count": "{{ item.count }}" },
             {% endfor %}
           ];
           var chart = new dimple.chart(svg, data);
           chart.setBounds(60, 30, 510, 305)
           var categoryAxisLocation = {% if data_type == "numeric" or data_type == 'time_based' %} "{{ "x" }}" {% else %} "{{ "y" }}" {% endif %};
           var countAxisLocation = {% if data_type == "numeric" or data_type == 'time_based' %} "{{ "y" }}" {% else %} "{{ "x" }}" {% endif %};
-          var categoryAxis = chart.addAxis(categoryAxisLocation, "{{ field_name }}", null{% if data_type == 'time_based' %} , "{{ field_name }}" {% endif %});
+          var categoryAxis = chart.addAxis(categoryAxisLocation, "{{ field_label }}", null{% if data_type == 'time_based' %} , "{{ field_label }}" {% endif %});
           {% if data_type == 'time_based' %}
           categoryAxis.tickFormat = "%Y-%m-%d";
           //categoryAxis.timePeriod = d3.time.day;

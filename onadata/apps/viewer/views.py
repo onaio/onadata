@@ -706,8 +706,12 @@ def charts(request, username, id_string):
         return HttpResponseForbidden(_(u'Not shared.'))
 
     context = RequestContext(request)
+    try:
+        lang_index = int(request.GET.get('lang', 0))
+    except ValueError:
+        lang_index = 0
 
-    summaries = build_chart_data(xform)
+    summaries = build_chart_data(xform, lang_index)
 
     return render_to_response('charts.html', {
         'xform': xform,

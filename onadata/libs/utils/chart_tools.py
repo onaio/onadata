@@ -47,7 +47,7 @@ def utc_time_string_for_javascript(date_string):
     return "{}+{}".format(date_time, tz)
 
 
-def build_chart_data_for_field(xform, field):
+def build_chart_data_for_field(xform, field, language_index=0):
     # check if its the special _submission_time META
     if isinstance(field, basestring) and field == common_tags.SUBMISSION_TIME:
         field_label = 'Submission Time'
@@ -56,7 +56,15 @@ def build_chart_data_for_field(xform, field):
     else:
         # TODO: merge choices with results and set 0's on any missing fields,
         # i.e. they didn't have responses
-        field_label = field.label
+
+        # check if label is dict i.e. multilang
+        if isinstance(field.label, dict) and len(field.label.keys()) > 0:
+            languages = field.label.keys()
+            language_index = min(language_index, len(languages) - 1)
+            field_label = field.label[languages[language_index]]
+        else:
+            field_label = field.label or field.name
+
         field_name = field.name
         field_type = field.type
 
@@ -87,7 +95,7 @@ def build_chart_data_for_field(xform, field):
     return data
 
 
-def build_chart_data(xform):
+def build_chart_data(xform, language_index=0):
     dd = xform.data_dictionary()
     # only use chart-able fields
     fields = filter(
@@ -96,4 +104,5 @@ def build_chart_data(xform):
     # prepend submission time
     fields[:0] = [common_tags.SUBMISSION_TIME]
 
-    return [build_chart_data_for_field(xform, field) for field in fields]
+    return [build_chart_data_for_field(xform, field, language_index)
+            for field in fields]

@@ -69,6 +69,34 @@ class TestChartTools(TestBase):
         values = [d['date'] is not None for d in data['data']]
         self.assertTrue(all(values))
 
+    def test_build_chart_data_for_field_with_language(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "apps", "main", "tests", "fixtures",
+                            "good_eats_multilang", "good_eats_multilang.xls")
+        self._publish_xls_file_and_set_xform(path)
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "apps", "main", "tests", "fixtures",
+                            "good_eats_multilang", "1.xml")
+        self._make_submission(path)
+        dd = self.xform.data_dictionary()
+        field = find_field_by_name(dd, 'food_type')
+        data = build_chart_data_for_field(self.xform, field, language_index=1)
+        self.assertEqual(data['field_label'], u"Type of Eat")
+
+    def test_build_chart_data_for_field_with_language_on_non_lang_field(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "apps", "main", "tests", "fixtures",
+                            "good_eats_multilang", "good_eats_multilang.xls")
+        self._publish_xls_file_and_set_xform(path)
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "apps", "main", "tests", "fixtures",
+                            "good_eats_multilang", "1.xml")
+        self._make_submission(path)
+        dd = self.xform.data_dictionary()
+        field = find_field_by_name(dd, 'submit_date')
+        data = build_chart_data_for_field(self.xform, field, language_index=1)
+        self.assertEqual(data['field_label'], 'submit_date')
+
 
 class TestChartUtilFunctions(unittest.TestCase):
     def test_utc_time_string_for_javascript(self):
