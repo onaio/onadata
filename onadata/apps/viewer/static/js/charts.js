@@ -13,7 +13,7 @@
           '<tbody>' +
             '<% _.each(data, function(d) {%>' +
             '<tr>' +
-              '<td width="60%"><%= d[field_name] %></td>' +
+              '<td width="60%"><%= d[field_label] %></td>' +
               '<td><%= d["count"] %></td>' +
             '</tr>' +
             '<% }) %>' +
