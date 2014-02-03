@@ -17,6 +17,9 @@ from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.stats.tasks import stat_log
 
 
+XFORM_TITLE_LENGTH = 255
+
+
 def upload_to(instance, filename):
     return os.path.join(
         instance.user.username,
@@ -57,7 +60,7 @@ class XForm(models.Model):
         verbose_name=ugettext_lazy("ID"),
         max_length=MAX_ID_LENGTH
     )
-    title = models.CharField(editable=False, max_length=64)
+    title = models.CharField(editable=False, max_length=XFORM_TITLE_LENGTH)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     last_submission_time = models.DateTimeField(blank=True, null=True)
@@ -118,7 +121,7 @@ class XForm(models.Model):
         matches = re.findall(r"<h:title>([^<]+)</h:title>", text)
         if len(matches) != 1:
             raise XLSFormError(_("There should be a single title."), matches)
-        self.title = u"" if not matches else matches[0]
+        self.title = u"" if not matches else matches[0][:XFORM_TITLE_LENGTH]
 
     def _set_encrypted_field(self):
         if self.json and self.json != '':
