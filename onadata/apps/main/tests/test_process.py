@@ -5,7 +5,6 @@ import json
 import os
 import re
 
-
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
@@ -552,7 +551,6 @@ class TestProcess(TestBase):
 
     def test_truncate_xform_title_to_255(self):
         self._publish_transportation_form()
-
         groups = re.match(
             r"(.+<h:title>)([^<]+)(</h:title>.*)",
             self.xform.xml, re.DOTALL).groups()
