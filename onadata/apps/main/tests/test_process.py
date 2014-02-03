@@ -11,7 +11,6 @@ from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from xlrd import open_workbook
 from xml.dom import minidom, Node
-from django.db.backends.postgresql_psycopg2.base import DatabaseError
 
 from onadata.apps.main.models import MetaData
 from onadata.apps.logger.models import XForm
