@@ -31,21 +31,7 @@
       var chart_url = "{% url "onadata.apps.viewer.views.charts" xform.user.username xform.id_string %}";
       var page = {{ page }};
       $(document).ready(function () {
-        $('#more-charts').click(function () {
-          var $self = $(this);
-          if(!$self.hasClass('disabled')) {
-            $self.addClass('disabled');
-            $.get(chart_url + "?page=" + (++page), function (response) {
-              var html = $(response);
-              if (html.length > 0) {
-                $self.removeClass('disabled');
-                $('section#main').append(html);
-              } else {
-                $('#more-charts').remove();
-              }
-            });
-          }
-        });
+        moreCharts(chart_url, page);
       });
     </script>
 {% endblock %}
