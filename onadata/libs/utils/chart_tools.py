@@ -18,7 +18,7 @@ DATA_TYPE_MAP = {
     'today': 'time_based',
 }
 
-CHARTS_PER_PAGE = 2
+CHARTS_PER_PAGE = 20
 
 
 timezone_re = re.compile(r'(.+)\+(\d+)')
