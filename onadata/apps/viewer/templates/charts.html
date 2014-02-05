@@ -19,6 +19,7 @@
   {% for summary in summaries  %}
   <div class="row">
   {% with field_name=summary.field_name field_label=summary.field_label data_type=summary.data_type field_type=summary.field_type data=summary.data %}
+  <h3>{{ field_label }}</h3>
   <div id="chart-{{ forloop.counter }}" class="span6 chart"></div>
   <div class="span4">
       <div class="row-fluid">
@@ -33,7 +34,7 @@
   <script type="text/javascript">
     (function(elmSelector){
           // append the heading
-          d3.select(elmSelector).append('h3').html("{{ field_label }}");
+          d3.select(elmSelector);
           var svg = dimple.newSvg(elmSelector, 590, 400);
           var data = [
             {% for item in data %}
