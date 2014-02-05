@@ -264,6 +264,8 @@ class Instance(models.Model):
     def set_deleted(self, deleted_at=timezone.now()):
         self.deleted_at = deleted_at
         self.save()
+        # force submission count re-calculation
+        self.xform.submission_count(force_update=True)
         self.parsed_instance.save()
 
 

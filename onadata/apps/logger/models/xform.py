@@ -166,8 +166,8 @@ class XForm(models.Model):
     def __unicode__(self):
         return getattr(self, "id_string", "")
 
-    def submission_count(self):
-        if self.num_of_submissions == -1:
+    def submission_count(self, force_update=False):
+        if self.num_of_submissions == -1 or force_update:
             count = self.instances.filter(deleted_at__isnull=True).count()
             self.num_of_submissions = count
             self.save()
