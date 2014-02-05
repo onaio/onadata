@@ -1,13 +1,12 @@
 {% load lookup_filter %}
-<div>
   {% for summary in summaries  %}
   <div class="row">
   {% with field_name=summary.field_name field_label=summary.field_label data_type=summary.data_type field_type=summary.field_type data=summary.data %}
   <h3>{{ field_label }}</h3>
-  <div id="chart-{{ forloop.counter }}" class="span6 chart"></div>
+  <div id="chart-{{ field_name }}" class="span6 chart"></div>
   <div class="span4">
       <div class="row-fluid">
-          <div id="grid-{{ forloop.counter }}" class="span12 chart-data-grid"></div>
+          <div id="grid-{{ field_name }}" class="span12 chart-data-grid"></div>
       </div>
       <div class="row-fluid">
           {% if data_type == "numeric" %}
@@ -49,12 +48,11 @@
               show_header: true
           });
 
-          d3.select('#grid-{{ forloop.counter }}').html(tableMarkup);
+          d3.select('#grid-{{ field_name }}').html(tableMarkup);
 
 
-      })('#chart-{{ forloop.counter }}');
+      })('#chart-{{ field_name }}');
   </script>
   {% endwith %}
         </div>
   {% endfor %}
-</div>

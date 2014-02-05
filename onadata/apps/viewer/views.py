@@ -728,7 +728,8 @@ def charts(request, username, id_string):
 
     return render_to_response(template, {
         'xform': xform,
-        'summaries': summaries
+        'summaries': summaries,
+        'page': page + 1
     }, context_instance=context)
 
 
