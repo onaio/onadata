@@ -98,6 +98,7 @@ def build_chart_data_for_field(xform, field, language_index=0):
 
 
 def calculate_ranges(page, items_per_page, total_items):
+    """Return the offset and end indices for a slice."""
     # offset  cannot be more than total_items
     offset = min(page * items_per_page, total_items)
 
@@ -116,8 +117,8 @@ def build_chart_data(xform, language_index=0, page=0):
     fields[:0] = [common_tags.SUBMISSION_TIME]
 
     # get chart data for fields within this `page`
-    ranges = calculate_ranges(page, CHARTS_PER_PAGE, len(fields))
-    fields = fields[ranges[0]:ranges[1]]
+    start, end = calculate_ranges(page, CHARTS_PER_PAGE, len(fields))
+    fields = fields[start:end]
 
     return [build_chart_data_for_field(xform, field, language_index)
             for field in fields]
