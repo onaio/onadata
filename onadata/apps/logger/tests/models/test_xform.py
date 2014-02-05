@@ -16,6 +16,6 @@ class TestXForm(TestBase):
         self.assertIsNotNone(instance.deleted_at)
 
         # update the xform object, the num_submissions seems to be cached in
-        # the in-memory xform object as zero
+        # the in-memory xform object as one
         self.xform = XForm.objects.get(pk=self.xform.id)
         self.assertEqual(self.xform.submission_count(), 0)
