@@ -46,6 +46,14 @@ class TestChartTools(TestBase):
             'female': 1
         })
 
+    def test_build_chart_data_for_field_on_grouped_field(self):
+        dd = self.xform.data_dictionary()
+        field = find_field_by_name(dd, 'a_text')
+        data = build_chart_data_for_field(self.xform, field)
+        self.assertEqual(data['field_name'], 'a_group-a_text')
+        self.assertEqual(data['field_type'], 'text')
+        self.assertEqual(data['data_type'], 'categorized')
+
     def test_build_chart_data_output(self):
         data = build_chart_data(self.xform)
         self.assertIsInstance(data, list)
