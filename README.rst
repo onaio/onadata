@@ -1,5 +1,5 @@
-OnaData
-=======
+Ona Data Platform
+=================
 Collect, Analyze and Share Data!
 
 .. image:: https://secure.travis-ci.org/onaio/onadata.png?branch=master
