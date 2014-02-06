@@ -700,6 +700,7 @@ def instance(request, username, id_string):
 def charts(request, username, id_string):
     xform, is_owner, can_edit, can_view = get_xform_and_perms(
         username, id_string, request)
+
     # no access
     if not (xform.shared_data or can_view or
             request.session.get('public_link') == xform.uuid):
@@ -711,11 +712,24 @@ def charts(request, username, id_string):
     except ValueError:
         lang_index = 0
 
-    summaries = build_chart_data(xform, lang_index)
+    try:
+        page = int(request.GET.get('page', 0))
+    except ValueError:
+        page = 0
+    else:
+        page = max(page - 1, 0)
 
-    return render_to_response('charts.html', {
+    summaries = build_chart_data(xform, lang_index, page)
+
+    if request.is_ajax():
+        template = 'charts_snippet.html'
+    else:
+        template = 'charts.html'
+
+    return render_to_response(template, {
         'xform': xform,
-        'summaries': summaries
+        'summaries': summaries,
+        'page': page + 1
     }, context_instance=context)
 
 

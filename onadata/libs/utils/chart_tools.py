@@ -18,6 +18,8 @@ DATA_TYPE_MAP = {
     'today': 'time_based',
 }
 
+CHARTS_PER_PAGE = 20
+
 
 timezone_re = re.compile(r'(.+)\+(\d+)')
 
@@ -95,7 +97,17 @@ def build_chart_data_for_field(xform, field, language_index=0):
     return data
 
 
-def build_chart_data(xform, language_index=0):
+def calculate_ranges(page, items_per_page, total_items):
+    """Return the offset and end indices for a slice."""
+    # offset  cannot be more than total_items
+    offset = min(page * items_per_page, total_items)
+
+    end = min(offset + items_per_page, total_items)
+    # returns the offset and the end for a slice
+    return offset, end
+
+
+def build_chart_data(xform, language_index=0, page=0):
     dd = xform.data_dictionary()
     # only use chart-able fields
     fields = filter(
@@ -103,6 +115,10 @@ def build_chart_data(xform, language_index=0):
 
     # prepend submission time
     fields[:0] = [common_tags.SUBMISSION_TIME]
+
+    # get chart data for fields within this `page`
+    start, end = calculate_ranges(page, CHARTS_PER_PAGE, len(fields))
+    fields = fields[start:end]
 
     return [build_chart_data_for_field(xform, field, language_index)
             for field in fields]

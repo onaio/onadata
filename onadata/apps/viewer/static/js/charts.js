@@ -19,4 +19,22 @@
             '<% }) %>' +
           '</tbody>' +
         '</table>');
+
+    root.moreCharts = function (chart_url, page) {
+        $('#more-charts').click(function () {
+            var $self = $(this);
+            if (!$self.hasClass('disabled')) {
+                $self.addClass('disabled');
+                $.get(chart_url + "?page=" + (++page), function (response) {
+                    var html = $(response);
+                    if (html.length > 0) {
+                        $self.removeClass('disabled');
+                        $('section#main').append(html);
+                    } else {
+                        $('#more-charts').remove();
+                    }
+                });
+            }
+        });
+    }
 }).call(this);

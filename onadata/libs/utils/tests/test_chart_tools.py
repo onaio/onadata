@@ -3,7 +3,7 @@ import unittest
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.chart_tools import build_chart_data_for_field,\
-    build_chart_data, utc_time_string_for_javascript
+    build_chart_data, utc_time_string_for_javascript, calculate_ranges
 
 
 def find_field_by_name(dd, field_name):
@@ -112,3 +112,17 @@ class TestChartUtilFunctions(unittest.TestCase):
     def test_raise_value_error_if_bad_time_zone(self):
         time_str = '2014-01-16T12:07:23.322+033'
         self.assertRaises(ValueError, utc_time_string_for_javascript, time_str)
+
+    def test_calculate_range_on_normal_values(self):
+        requested_page = 0
+        items_per_page = 2
+        num_items = 8
+        ranges = calculate_ranges(requested_page, items_per_page, num_items)
+        self.assertEqual(ranges, (0, 2))
+
+    def test_calculate_range_when_page_is_beyond_limit(self):
+        requested_page = 10
+        items_per_page = 5
+        num_items = 41
+        ranges = calculate_ranges(requested_page, items_per_page, num_items)
+        self.assertEqual(ranges, (41, 41))
