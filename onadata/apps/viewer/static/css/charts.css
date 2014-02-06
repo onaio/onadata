@@ -1,5 +1,7 @@
-.chart h3 {
+.chart-title {
     margin-bottom: 0;
+    font-weight: 300;
+    font-size: 20px;
 }
 
 .chart-data-grid {
@@ -8,4 +10,13 @@
 
 .more-container {
     padding: 0 0 10px;
+}
+
+.stats-table {
+    margin-top: 0;
+    font-size: 12px;
+}
+
+.stats-table tbody {
+    font-weight: 300;
 }

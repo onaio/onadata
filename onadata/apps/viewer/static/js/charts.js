@@ -1,7 +1,7 @@
 (function(){
     var root = this;
 
-    root.ChartGridTemplate = _.template('<table class="table table-striped table-bordered table-condensed">' +
+    root.ChartGridTemplate = _.template('<table class="table table-striped table-bordered table-condensed stats-table">' +
           '<thead>' +
             '<% if(show_header) { %>' +
             '<tr>' +

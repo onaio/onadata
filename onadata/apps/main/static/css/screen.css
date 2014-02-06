@@ -1096,7 +1096,6 @@ color: white;
 }
 
 body.authenticated {
-	background-image: url("images/background.jpg");
 	background-repeat: repeat;
 }
 td dl {
