@@ -67,7 +67,7 @@ def build_chart_data_for_field(xform, field, language_index=0):
         else:
             field_label = field.label or field.name
 
-        field_name = field.name
+        field_name = field.get_abbreviated_xpath()
         field_type = field.type
 
     result = get_form_submissions_grouped_by_field(xform, field_name)
