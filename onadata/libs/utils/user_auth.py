@@ -78,8 +78,9 @@ def check_and_set_user_and_form(username, id_string, request):
         else [False, False]
 
 
-def check_and_set_form_by_id_string(id_string, request):
-    xform = get_object_or_404(XForm, id_string=id_string)
+def check_and_set_form_by_id_string(username, id_string, request):
+    xform = get_object_or_404(
+        XForm, user__username=username, id_string=id_string)
     return xform if has_permission(xform, xform.user, request)\
         else False
 
