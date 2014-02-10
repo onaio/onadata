@@ -18,6 +18,8 @@ DATA_TYPE_MAP = {
     'today': 'time_based',
 }
 
+CHARTS_PER_PAGE = 20
+
 
 timezone_re = re.compile(r'(.+)\+(\d+)')
 
@@ -47,42 +49,66 @@ def utc_time_string_for_javascript(date_string):
     return "{}+{}".format(date_time, tz)
 
 
-def build_chart_data_for_field(xform, field):
+def build_chart_data_for_field(xform, field, language_index=0):
     # check if its the special _submission_time META
     if isinstance(field, basestring) and field == common_tags.SUBMISSION_TIME:
+        field_label = 'Submission Time'
+        field_xpath = '_submission_time'
         field_type = 'datetime'
-        field_name = common_tags.SUBMISSION_TIME
     else:
         # TODO: merge choices with results and set 0's on any missing fields,
         # i.e. they didn't have responses
-        field_type = field.type
-        field_name = field.name
 
-    result = get_form_submissions_grouped_by_field(xform, field_name)
+        # check if label is dict i.e. multilang
+        if isinstance(field.label, dict) and len(field.label.keys()) > 0:
+            languages = field.label.keys()
+            language_index = min(language_index, len(languages) - 1)
+            field_label = field.label[languages[language_index]]
+        else:
+            field_label = field.label or field.name
+
+        field_xpath = field.get_abbreviated_xpath()
+        field_type = field.type
+
+    result = get_form_submissions_grouped_by_field(xform, field_xpath)
+    result = sorted(result, key=lambda d: d['count'])
     data_type = DATA_TYPE_MAP.get(field_type, 'categorized')
 
     # for date fields, strip out None values
     if data_type == 'time_based':
-        result = [r for r in result if r[field_name] is not None]
+        result = [r for r in result if r[field_xpath] is not None]
         # for each check if it matches the timezone regexp and convert for js
         for r in result:
-            if timezone_re.match(r[field_name]):
+            if timezone_re.match(r[field_xpath]):
                 try:
-                    r[field_name] = utc_time_string_for_javascript(
-                        r[field_name])
+                    r[field_xpath] = utc_time_string_for_javascript(
+                        r[field_xpath])
                 except ValueError:
                     pass
 
     data = {
-        'field_name': field_name,
-        'field_type': field_type,
-        'data_type': data_type,
         'data': result,
+        'data_type': data_type,
+        'field_label': field_label,
+        'field_xpath': field_xpath,
+        'field_name': field_xpath.replace('/', '-'),
+        'field_type': field_type,
     }
+
     return data
 
 
-def build_chart_data(xform):
+def calculate_ranges(page, items_per_page, total_items):
+    """Return the offset and end indices for a slice."""
+    # offset  cannot be more than total_items
+    offset = min(page * items_per_page, total_items)
+
+    end = min(offset + items_per_page, total_items)
+    # returns the offset and the end for a slice
+    return offset, end
+
+
+def build_chart_data(xform, language_index=0, page=0):
     dd = xform.data_dictionary()
     # only use chart-able fields
     fields = filter(
@@ -91,10 +117,9 @@ def build_chart_data(xform):
     # prepend submission time
     fields[:0] = [common_tags.SUBMISSION_TIME]
 
-    data = []
+    # get chart data for fields within this `page`
+    start, end = calculate_ranges(page, CHARTS_PER_PAGE, len(fields))
+    fields = fields[start:end]
 
-    for field in fields:
-        d = build_chart_data_for_field(xform, field)
-        data.append(d)
-
-    return data
+    return [build_chart_data_for_field(xform, field, language_index)
+            for field in fields]

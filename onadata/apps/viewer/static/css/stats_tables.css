@@ -1,0 +1,15 @@
+#stats-tables-container .summary-table {
+    /*width: 60%;*/
+}
+
+#stats-tables-container .stats-table {
+    width: 40%;
+}
+
+.summary-view {
+    width: 60%;
+}
+
+.summary-view h3 {
+    border-bottom: 1px solid #eee;
+}

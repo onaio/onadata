@@ -6,8 +6,10 @@ from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext as _, ugettext_lazy
 
 from onadata.apps.logger.models.attachment import Attachment
-from onadata.apps.logger.models.attachment import upload_to as attachment_upload_to
-from onadata.apps.logger.models.xform import XForm, upload_to as xform_upload_to
+from onadata.apps.logger.models.attachment import upload_to as\
+    attachment_upload_to
+from onadata.apps.logger.models.xform import XForm, upload_to as\
+    xform_upload_to
 
 
 class Command(BaseCommand):

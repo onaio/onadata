@@ -31,9 +31,9 @@ from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models.instance import get_id_string_from_xml_str
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XLSFormError
-from onadata.apps.logger.xform_instance_parser import InstanceInvalidUserError, \
-    IsNotCrowdformError, DuplicateInstance, clean_and_parse_xml, \
-    get_uuid_from_xml, get_deprecated_uuid_from_xml, \
+from onadata.apps.logger.xform_instance_parser import\
+    InstanceInvalidUserError, IsNotCrowdformError, DuplicateInstance,\
+    clean_and_parse_xml, get_uuid_from_xml, get_deprecated_uuid_from_xml,\
     get_submission_date_from_xml
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import _remove_from_mongo,\

@@ -70,6 +70,9 @@
                     <a href="{% url "onadata.apps.viewer.views.data_view" content_user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
                         <i class="icon-list icon-large inactive"></i>
                     </a>
+                    <a href="{% url "onadata.apps.viewer.views.stats_tables" content_user.username xform.id_string %}" data-original-title="{% trans 'View Table Maker' %}" rel="tooltip">
+                        <i class="icon-book icon-large inactive"></i>
+                    </a>
                     <a href="{% url "form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
                     <i class="icon-bar-chart icon-large inactive"></i>
                     </a>

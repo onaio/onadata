@@ -40,3 +40,24 @@ class TestInstance(TestBase):
         for instance in instances:
             self.assertEqual(instance.json[SUBMISSION_TIME],
                              instance.date_created.strftime(MONGO_STRFTIME))
+
+    def test_set_instances_with_geopoints_on_submission_false(self):
+        self._publish_transportation_form()
+
+        self.assertFalse(self.xform.instances_with_geopoints)
+
+        self._make_submissions()
+        xform = XForm.objects.get(pk=self.xform.pk)
+
+        self.assertFalse(xform.instances_with_geopoints)
+
+    def test_set_instances_with_geopoints_on_submission_true(self):
+        xls_path = self._fixture_path("gps", "gps.xls")
+        self._publish_xls_file_and_set_xform(xls_path)
+
+        self.assertFalse(self.xform.instances_with_geopoints)
+
+        self._make_submissions_gps()
+        xform = XForm.objects.get(pk=self.xform.pk)
+
+        self.assertTrue(xform.instances_with_geopoints)

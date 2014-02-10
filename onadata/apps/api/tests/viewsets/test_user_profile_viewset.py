@@ -1,6 +1,7 @@
 import json
 
-from onadata.apps.api.tests.viewsets.test_abstract_viewset import TestAbstractViewSet
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
+    TestAbstractViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.main.models import UserProfile
 

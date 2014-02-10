@@ -134,7 +134,8 @@ class Instance(models.Model):
             raise FormInactiveError()
 
     def _set_geom(self):
-        data_dictionary = self.xform.data_dictionary()
+        xform = self.xform
+        data_dictionary = xform.data_dictionary()
         geo_xpaths = data_dictionary.geopoint_xpaths()
         doc = self.get_dict()
         points = []
@@ -146,6 +147,10 @@ class Instance(models.Model):
                 if len(geometry):
                     lat, lng = geometry[0:2]
                     points.append(Point(lng, lat))
+
+            if not xform.instances_with_geopoints and len(points):
+                xform.instances_with_geopoints = True
+                xform.save()
 
             self.geom = GeometryCollection(points)
 
@@ -259,6 +264,8 @@ class Instance(models.Model):
     def set_deleted(self, deleted_at=timezone.now()):
         self.deleted_at = deleted_at
         self.save()
+        # force submission count re-calculation
+        self.xform.submission_count(force_update=True)
         self.parsed_instance.save()
 
 

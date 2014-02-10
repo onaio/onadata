@@ -1,7 +1,6 @@
 from django.test import RequestFactory
 
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
-from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm

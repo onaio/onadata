@@ -13,6 +13,7 @@ from xml.dom import minidom, Node
 
 from onadata.apps.main.models import MetaData
 from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.apps.logger.views import submission
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -547,3 +548,13 @@ class TestProcess(TestBase):
         }
         self.response = self.client.post(url, params)
         self.assertEqual(XForm.objects.count(), num_xforms + 1)
+
+    def test_truncate_xform_title_to_255(self):
+        self._publish_transportation_form()
+        groups = re.match(
+            r"(.+<h:title>)([^<]+)(</h:title>.*)",
+            self.xform.xml, re.DOTALL).groups()
+        self.xform.xml = "{0}{1}{2}".format(
+            groups[0], "a" * (XFORM_TITLE_LENGTH + 1), groups[2])
+        self.xform.save()
+        self.assertEqual(self.xform.title, "a" * XFORM_TITLE_LENGTH)

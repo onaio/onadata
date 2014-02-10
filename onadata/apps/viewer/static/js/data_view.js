@@ -71,18 +71,17 @@
 
     var ClickableRow = Backgrid.Row.extend({
         highlightColor: 'lightYellow',
-        /*events: {
-            'click': 'rowClicked',
-            'focusout': 'rowLostFocus'
-        },*/
+        events: {
+            'dblclick': 'rowDoubleClicked'
+        },
         initialize: function (options) {
             return Backgrid.Row.prototype.initialize.apply(this, arguments);
         },
-        rowClicked: function () {
-            this.$el.css('background-color', this.highlightColor);
-        },
-        rowLostFocus: function () {
-            this.$el.removeAttr('style');
+        rowDoubleClicked: function (evt) {
+            var record_id = this.model.get("_id");
+            if(record_id) {
+                window.open(instance_view_url + "#/" + record_id, "_blank");
+            }
         }
     });
 

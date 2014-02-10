@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 import os
 
 from mock import patch
-from nose.tools import raises
 
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.main.tests.test_base import TestBase
