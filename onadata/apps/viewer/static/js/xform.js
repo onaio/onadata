@@ -272,6 +272,11 @@
         }
     });
 
+    FH.DataSet.GetSortValue = function (model, fieldId, parseFunction) {
+        var value = parseFunction(model.get(fieldId));
+        return isNaN(value)?0:value;
+    };
+
     // Encapsulates a DataSet and FieldSet within a `datavore` table
     FH.DatavoreWrapper = Backbone.Model.extend({
         // The datavore table

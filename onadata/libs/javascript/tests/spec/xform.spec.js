@@ -304,4 +304,28 @@ describe("Formhub Form", function () {
            });
         });
     });
+
+    describe("FH.DataSet.GetSortValue", function () {
+        it("should return the value as as number", function () {
+            var model = new FH.Data({
+                    _id: 1,
+                    age: "23"
+                }),
+                fieldId = 'age';
+
+            expect(FH.DataSet.GetSortValue(model, fieldId, parseInt)).toEqual(23);
+            expect(FH.DataSet.GetSortValue(model, fieldId, parseFloat)).toEqual(23);
+        });
+
+        it("should return 0 if value is not a number", function () {
+            var model = new FH.Data({
+                    _id: 1,
+                    age: "abcd"
+                }),
+                fieldId = 'age';
+
+            expect(FH.DataSet.GetSortValue(model, fieldId, parseInt)).toEqual(0);
+            expect(FH.DataSet.GetSortValue(model, fieldId, parseFloat)).toEqual(0);
+        })
+    });
 });
