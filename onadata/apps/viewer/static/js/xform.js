@@ -32,6 +32,10 @@
         PHOTO: ['photo', 'image']
     };
 
+    FH.ParseFunctionMapping = {};
+    FH.ParseFunctionMapping[FH.types.INTEGER] = parseInt;
+    FH.ParseFunctionMapping[FH.types.INTEGER] = parseFloat;
+
     // #### A form's field
     var Field = FH.Field = Backbone.Model.extend({
         idAttribute: 'xpath',

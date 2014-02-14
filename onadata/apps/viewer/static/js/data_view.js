@@ -21,10 +21,6 @@
         'datetime': 'datetime'
     };
 
-    var ParseFunctionMapping = {};
-    ParseFunctionMapping[FH.types.INTEGER] = parseInt;
-    ParseFunctionMapping[FH.types.INTEGER] = parseFloat;
-
     var PageableDataset = FH.PageableDataset = Backbone.PageableCollection.extend({
         state: {
             pageSize: 50
@@ -168,7 +164,7 @@
                         }
                         if(f.isA(FH.types.INTEGER) || f.isA(FH.types.DECIMAL)) {
                             column.sortValue = function (model, fieldId) {
-                                var func = ParseFunctionMapping[f.get(FH.constants.TYPE)];
+                                var func = FH.ParseFunctionMapping[f.get(FH.constants.TYPE)];
                                 return FH.DataSet.GetSortValue(model, fieldId, func);
                             }
                         }
