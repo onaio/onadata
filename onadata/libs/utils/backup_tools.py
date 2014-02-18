@@ -31,8 +31,8 @@ def _date_created_from_filename(filename):
         parts_dict, DATE_FORMAT)
 
 
-def create_zip_backup(zip_output_file, user, xform):
-# create a temp dir that we;ll create our structure within and zip it
+def create_zip_backup(zip_output_file, user, xform=None):
+    # create a temp dir that we'll create our structure within and zip it
     # when we are done
     tmp_dir_path = tempfile.mkdtemp()
 
@@ -43,7 +43,10 @@ def create_zip_backup(zip_output_file, user, xform):
     # for each submission in the database - create an xml file in this
     # form
     # /<id_string>/YYYY/MM/DD/YYYY-MM-DD-HH-MM-SS.xml
-    qs = Instance.objects.filter(xform=xform)
+    qs = Instance.objects.filter(xform__user=user)
+    if xform:
+        qs = qs.filter(xform=xform)
+
     num_instances = qs.count()
     done = 0
     sys.stdout.write("Creating XML Instances\n")
@@ -68,7 +71,7 @@ def create_zip_backup(zip_output_file, user, xform):
             full_xml_path = os.path.join(
                 full_path, "%s-%d.xml" % (date_time_str, file_index))
             file_index += 1
-            # create the instance xml
+        # create the instance xml
         with codecs.open(full_xml_path, "wb", "utf-8") as f:
             f.write(instance.xml)
         done += 1
@@ -112,6 +115,35 @@ def restore_backup_from_zip(zip_file_path, username):
         shutil.rmtree(temp_directory)
 
 
+def restore_backup_from_xml_file(xml_instance_path, username):
+    # check if its a valid xml instance
+    file_name = os.path.basename(xml_instance_path)
+    xml_file = django_file(
+        xml_instance_path,
+        field_name="xml_file",
+        content_type="text/xml")
+    media_files = []
+    try:
+        date_created = _date_created_from_filename(file_name)
+    except ValueError as e:
+        sys.stderr.write(
+            "Couldn't determine date created from filename: '%s'\n" %
+            file_name)
+        date_created = datetime.now()
+
+    sys.stdout.write("Creating instance from '%s'\n" % file_name)
+    try:
+        create_instance(
+            username, xml_file, media_files,
+            date_created_override=date_created)
+        return 1
+    except Exception as e:
+        sys.stderr.write(
+            "Could not restore %s, create instance said: %s\n" %
+            (file_name, e))
+        return 0
+
+
 def restore_backup_from_path(dir_path, username, status):
     """
     Only restores xml submissions, media files are assumed to still be in
@@ -124,27 +156,7 @@ def restore_backup_from_path(dir_path, username, status):
             # check if its a valid xml instance
             xml_instance_path = os.path.join(dir_path, file_name)
             num_instances += 1
-            xml_file = django_file(
+            num_restored += restore_backup_from_xml_file(
                 xml_instance_path,
-                field_name="xml_file",
-                content_type="text/xml")
-            media_files = []
-            date_created = None
-            try:
-                date_created = _date_created_from_filename(file_name)
-            except ValueError as e:
-                sys.stderr.write(
-                    "Couldn't determine date created from filename: '%s'\n" %
-                    file_name)
-            else:
-                sys.stdout.write("Creating instance from '%s'\n" % file_name)
-                try:
-                    create_instance(
-                        username, xml_file, media_files,
-                        date_created_override=date_created)
-                    num_restored += 1
-                except Exception as e:
-                    sys.stderr.write(
-                        "Could not restore %s, create instance said: %s\n" %
-                        (file_name, e))
+                username)
     return num_instances, num_restored
