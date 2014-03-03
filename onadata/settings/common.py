@@ -414,7 +414,7 @@ BINARY_SELECT_MULTIPLES = False
 NA_REP = 'n/a'
 
 # specifically for site urls sent to enketo
-HTTPS_PROTOCOL = 'https'
+ENKETO_PROTOCOL = 'https'
 
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/

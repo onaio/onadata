@@ -68,7 +68,7 @@ def _get_form_url(request, username):
     else:
         http_host = request.META.get('HTTP_HOST', 'ona.io')
 
-    return '%s://%s/%s' % (settings.HTTPS_PROTOCOL, http_host, username)
+    return '%s://%s/%s' % (settings.ENKETO_PROTOCOL, http_host, username)
 
 
 def _html_submission_response(context, instance):
