@@ -110,7 +110,7 @@ def create_instance(username, xml_file, media_files,
                     and xform.user.profile.require_auth \
                     and (xform.user != request.user and
                          not request.user.has_perm(
-                         'report_xform', xform)):
+                             'report_xform', xform)):
                 raise PermissionDenied(
                     _(u"%(request_user)s is not allowed to make submissions "
                       u"to %(form_user)s's %(form_title)s form." % {
