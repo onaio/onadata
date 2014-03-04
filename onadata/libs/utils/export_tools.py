@@ -895,22 +895,23 @@ def kml_export_data(id_string, user):
         xpaths = data_for_display.keys()
         xpaths.sort(cmp=instance.xform.data_dictionary().get_xpath_cmp())
         label_value_pairs = [
-            (cached_get_labels(xpath),
-             data_for_display[xpath]) for xpath in xpaths
-            if not xpath.startswith(u"_")]
-        table_rows = []
-        for key, value in label_value_pairs:
-            table_rows.append('<tr><td>%s</td><td>%s</td></tr>' % (key, value))
+            (cached_get_labels(xpath), data_for_display[xpath]) for xpath in
+            xpaths if not xpath.startswith(u"_")]
+        table_rows = ['<tr><td>%s</td><td>%s</td></tr>' % (k, v) for k, v
+                      in label_value_pairs]
         img_urls = image_urls(instance)
         img_url = img_urls[0] if img_urls else ""
         point = instance.point
-        data_for_template.append({
-            'name': id_string,
-            'id': instance.id,
-            'lat': point.y,
-            'lng': point.x,
-            'image_urls': img_urls,
-            'table': '<table border="1"><a href="#"><img width="210" '
-                     'class="thumbnail" src="%s" alt=""></a>%s'
-                     '</table>' % (img_url, ''.join(table_rows))})
+
+        if point:
+            data_for_template.append({
+                'name': id_string,
+                'id': instance.id,
+                'lat': point.y,
+                'lng': point.x,
+                'image_urls': img_urls,
+                'table': '<table border="1"><a href="#"><img width="210" '
+                         'class="thumbnail" src="%s" alt=""></a>%s'
+                         '</table>' % (img_url, ''.join(table_rows))})
+
     return data_for_template
