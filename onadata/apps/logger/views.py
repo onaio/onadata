@@ -39,7 +39,7 @@ from onadata.libs.utils.viewer_tools import enketo_url
 from onadata.libs.utils.logger_tools import create_instance,\
     OpenRosaResponseBadRequest, OpenRosaResponseNotAllowed, OpenRosaResponse,\
     OpenRosaResponseNotFound, BaseOpenRosaResponse, inject_instanceid,\
-    remove_xform, publish_xml_form, publish_form
+    remove_xform, publish_xml_form, publish_form, OpenRosaResponseForbidden
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.user_auth import helper_auth_helper, has_permission,\
@@ -300,7 +300,7 @@ def submission(request, username=None):
             response['Location'] = request.build_absolute_uri(request.path)
             return response
         except PermissionDenied, e:
-            return OpenRosaResponseNotAllowed(e.message)
+            return OpenRosaResponseForbidden(e.message)
 
         if instance is None:
             return OpenRosaResponseBadRequest(

@@ -376,6 +376,10 @@ class OpenRosaResponseNotAllowed(OpenRosaResponse):
     status_code = 405
 
 
+class OpenRosaResponseForbidden(OpenRosaResponse):
+    status_code = 403
+
+
 def inject_instanceid(xml_str, uuid):
     if get_uuid_from_xml(xml_str) is None:
         xml = clean_and_parse_xml(xml_str)
