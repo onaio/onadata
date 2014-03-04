@@ -40,6 +40,7 @@ DATA_LICENSES_CHOICES = (
 PERM_CHOICES = (
     ('view', ugettext_lazy('Can view')),
     ('edit', ugettext_lazy('Can edit')),
+    ('report', ugettext_lazy('Can submit to')),
     ('remove', ugettext_lazy('Remove permissions')),
 )
 

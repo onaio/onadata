@@ -87,6 +87,7 @@ class XForm(models.Model):
         ordering = ("id_string",)
         permissions = (
             ("view_xform", _("Can view associated data")),
+            ("report_xform", _("Can make submissions to the form")),
         )
 
     def file_name(self):

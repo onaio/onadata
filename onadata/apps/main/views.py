@@ -372,6 +372,8 @@ def show(request, username=None, id_string=None, uuid=None):
                 has_perm.append(_(u"Can Edit"))
             if 'view_xform' in perm[1]:
                 has_perm.append(_(u"Can View"))
+            if 'report_xform' in perm[1]:
+                has_perm.append(_(u"Can submit to"))
             users_with_perms.append((perm[0], u" | ".join(has_perm)))
         context.users_with_perms = users_with_perms
         context.permission_form = PermissionForm(username)
@@ -980,7 +982,7 @@ def set_perm(request, username, id_string):
         for_user = request.POST['for_user']
     except KeyError:
         return HttpResponseBadRequest()
-    if perm_type in ['edit', 'view', 'remove']:
+    if perm_type in ['edit', 'view', 'report', 'remove']:
         try:
             user = User.objects.get(username=for_user)
         except User.DoesNotExist:
@@ -1017,6 +1019,20 @@ def set_perm(request, username, id_string):
                         'for_user': for_user
                     }, audit, request)
                 assign_perm('view_xform', user, xform)
+            elif perm_type == 'report' and\
+                    not user.has_perm('report_xform', xform):
+                audit = {
+                    'xform': xform.id_string
+                }
+                audit_log(
+                    Actions.FORM_PERMISSIONS_UPDATED, request.user, owner,
+                    _("Report permissions on '%(id_string)s' "
+                        "assigned to '%(for_user)s'.") %
+                    {
+                        'id_string': xform.id_string,
+                        'for_user': for_user
+                    }, audit, request)
+                assign_perm('report_xform', user, xform)
             elif perm_type == 'remove':
                 audit = {
                     'xform': xform.id_string
