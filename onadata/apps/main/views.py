@@ -982,7 +982,7 @@ def set_perm(request, username, id_string):
         for_user = request.POST['for_user']
     except KeyError:
         return HttpResponseBadRequest()
-    if perm_type in ['edit', 'view', 'remove']:
+    if perm_type in ['edit', 'view', 'report', 'remove']:
         try:
             user = User.objects.get(username=for_user)
         except User.DoesNotExist:
