@@ -22,8 +22,10 @@
     "leaflet-dist": "~0.6.4",
     "datatables": "~1.9.4",
     "datatables-plugins": "*",
-    "backgrid": "~0.2.6",
+    "backgrid": "~0.3.5",
     "d3": "~3.4.1",
-    "dimple": "~1.1.3"
+    "dimple": "~1.1.3",
+    "backgrid-filter": "~0.3.5",
+    "backgrid-paginator": "~0.3.5"
   }
 }
