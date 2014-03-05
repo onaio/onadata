@@ -250,14 +250,14 @@
               <span><!-- break the .btn-group + .btn-group rule that shows a margin before this group --></span>
 
               <div class="btn-group" style="margin-bottom: 9px">
-                  {% if can_edit or xform.is_crowd_form %}
+                  {% if can_edit %}
                   <a class="btn btn-info" rel="tooltip" title="{% trans 'Webform' %}"
                      href="{% url "onadata.apps.logger.views.enter_data" content_user.username xform.id_string %}">
                       <i class="icon-edit icon-white"></i> {% trans "Enter Web Form" %}
                   </a>
                   <a data-toggle="modal" data-target="#popupmodal" class="showqr btn btn-info" href="{% url "get_qrcode" xform.user.username xform.id_string %}"><i class="icon-tablet"></i> {% trans "Mobile" %}</a>
                   {% endif %}
-                  {% if can_edit or xform.is_crowd_form or xform.shared %}
+                  {% if can_edit or xform.shared %}
                   <a class="btn btn-info" rel="tooltip" title="{% trans 'Preview Form' %}" href="#preview-modal"
                      data-toggle="modal">
                       <i class="icon-check icon-white"></i> {% trans "Preview Form" %}
@@ -265,7 +265,7 @@
                   {% endif %}
 
               </div>
-              {% if can_edit or xform.is_crowd_form or xform.shared %}
+              {% if can_edit or xform.shared %}
               <div id="preview-modal" class="modal hide fade">
                   <div class="modal-header">
                       <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -458,12 +458,6 @@
             <input id="data-shared" type="checkbox"{% if xform.shared_data %} checked=""{% endif %} data-url="{% url "onadata.apps.main.views.edit" content_user.username xform.id_string %}" />
           </div>
           <br/>
-          <label>{% trans "Crowdform" %}&nbsp;</label>
-          <div class="input">
-            <input id="crowd-form" type="checkbox" {% if xform.is_crowd_form %}
-            checked="" {% endif %} data-url="{% url "onadata.apps.main.views.edit" content_user.username xform.id_string  %}" />
-          </div>
-          <br/>
           <label>{% trans "Form Active" %}&nbsp;</label>
           <div class="input">
             <input id="active-form" type="checkbox"{% if xform.downloadable %} checked=""{% endif %} data-url="{% url "onadata.apps.main.views.edit" content_user.username xform.id_string %}" />
@@ -633,28 +627,6 @@ $(document).ready(function() {
                 $('#form-encrypted').hide();
                 $('#data-encrypted').hide();
               {% endif %}
-              $.each(['form-shared', 'data-shared', 'active-form', 'crowd-form'], function(inx, el) {
-                var cb = $('#' + el + ':checkbox');
-                cb.iphoneStyle({
-                  onChange: function() {
-                    // a callback func
-                    var c = function(){}
-                    // if crowdform is toggled, change data and form status
-                    // appropriately
-                    if(el == 'crowd-form' && $('#crowd-form').attr('checked') == 'checked'){
-                        if($('#form-shared:checkbox').attr('checked') == undefined)
-                            $('#form-shared:checkbox').click()
-                        if($('#data-shared:checkbox').attr('checked') == undefined)
-                            $('#data-shared:checkbox').click()
-                    }
-
-                    privacyEdit(cb.data('url'), el.split('-')[0]);
-                    $('#' + el + '-public').toggle();
-                    $('#' + el + '-private').toggle();
-
-                  }
-                });
-              });
             {% if user.is_authenticated %}
               // add click event to all public (x)forms
               $('a.clonexls').click(function(){

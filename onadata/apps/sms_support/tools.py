@@ -13,7 +13,7 @@ from django.contrib.auth.models import User
 from django.http import HttpRequest
 
 from onadata.apps.logger.xform_instance_parser import InstanceEmptyError,\
-    InstanceInvalidUserError, IsNotCrowdformError, DuplicateInstance
+    InstanceInvalidUserError, DuplicateInstance
 from onadata.apps.logger.models.instance import FormInactiveError
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.log import audit_log, Actions
@@ -88,10 +88,6 @@ def generate_instance(username, xml_file, media_files, uuid=None):
     except InstanceInvalidUserError:
         return {'code': SMS_SUBMISSION_REFUSED,
                 'text': _(u"Username or ID required.")}
-    except IsNotCrowdformError:
-        return {'code': SMS_SUBMISSION_REFUSED,
-                'text': _(u"Sorry but the crowd form you "
-                          u"submitted to is closed.")}
     except InstanceEmptyError:
         return {'code': SMS_INTERNAL_ERROR,
                 'text': _(u"Received empty submission. "

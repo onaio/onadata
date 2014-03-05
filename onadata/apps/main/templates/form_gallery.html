@@ -26,14 +26,6 @@
           <img src='{{ data_dictionary.user.profile.gravatar }}' alt='gravatar' width='20' height='20' />&nbsp;<a href="/{{ data_dictionary.user.username }}">{{ data_dictionary.user.username }}</a>
         </td>
         <td><a href="{% url "onadata.apps.main.views.show" data_dictionary.user.username data_dictionary.id_string %}">{{ data_dictionary.title }}</a>
-            {% if loggedin_user and data_dictionary.is_crowd_form %}
-            <br />
-            <span class="label label">
-            <a href="{% url "onadata.apps.main.views.edit" data_dictionary.user.username data_dictionary.id_string %}?crowdform=add">
-                {% trans "add crowdform" %}
-            </a>
-            </span>
-            {% endif %}
         </td>
         <td>{{ data_dictionary.description }}</td>
         <td>
