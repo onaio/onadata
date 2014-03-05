@@ -164,8 +164,7 @@ def formList(request, username):
     This is where ODK Collect gets its download list.
     """
     formlist_user = get_object_or_404(User, username=username)
-    profile, created = \
-        UserProfile.objects.get_or_create(user=formlist_user)
+    profile, created = UserProfile.objects.get_or_create(user=formlist_user)
 
     if profile.require_auth:
         authenticator = HttpDigestAuthenticator()
