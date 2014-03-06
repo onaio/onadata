@@ -173,8 +173,7 @@ def formList(request, username):
 
         # unauthorized if user in auth request does not match user in path
         # unauthorized if user not active
-        if formlist_user.username != request.user.username or\
-                not request.user.is_active:
+        if not request.user.is_active:
             return HttpResponseNotAuthorized()
 
     xforms = XForm.objects.filter(downloadable=True, user__username=username)
@@ -182,6 +181,7 @@ def formList(request, username):
     audit = {}
     audit_log(Actions.USER_FORMLIST_REQUESTED, request.user, formlist_user,
               _("Requested forms list."), audit, request)
+
     response = render_to_response("xformsList.xml", {
         #'urls': urls,
         'host': request.build_absolute_uri().replace(
