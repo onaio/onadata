@@ -129,8 +129,10 @@ class TestBase(TransactionTestCase):
             self._make_submission(path)
 
     def _make_submission(self, path, username=None, add_uuid=False,
-                         touchforms=False, forced_submission_time=None):
+                         touchforms=False, forced_submission_time=None,
+                         client=None):
         # store temporary file with dynamic uuid
+        client = client or self.anon
         tmp_file = None
         if add_uuid and not touchforms:
             tmp_file = NamedTemporaryFile(delete=False)
@@ -156,7 +158,7 @@ class TestBase(TransactionTestCase):
                 post_data['uuid'] = self.xform.uuid
             if touchforms:
                 url = '/submission'  # touchform has no username
-            self.response = self.anon.post(url, post_data)
+            self.response = client.post(url, post_data)
 
         if forced_submission_time:
             instance = Instance.objects.order_by('-pk').all()[0]

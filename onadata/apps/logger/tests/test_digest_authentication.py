@@ -77,4 +77,4 @@ class TestDigestAuthentication(TestBase):
         self.anon = client
         self._make_submission(xml_submission_file_path, add_uuid=True)
         # Not allowed
-        self.assertEqual(self.response.status_code, 405)
+        self.assertEqual(self.response.status_code, 400)

@@ -19,14 +19,6 @@ class DuplicateInstance(Exception):
         return unicode(self).encode('utf-8')
 
 
-class IsNotCrowdformError(Exception):
-    def __unicode__(self):
-        return _("The form is not a crowdform")
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-
 class InstanceInvalidUserError(Exception):
     def __unicode__(self):
         return _("Could not determine the user.")

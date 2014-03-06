@@ -32,7 +32,7 @@ from onadata.apps.logger.models.instance import get_id_string_from_xml_str
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XLSFormError
 from onadata.apps.logger.xform_instance_parser import\
-    InstanceInvalidUserError, IsNotCrowdformError, DuplicateInstance,\
+    InstanceInvalidUserError, DuplicateInstance,\
     clean_and_parse_xml, get_uuid_from_xml, get_deprecated_uuid_from_xml,\
     get_submission_date_from_xml
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -78,7 +78,7 @@ def create_instance(username, xml_file, media_files,
             # parse UUID from uploaded XML
             split_xml = uuid_regex.split(xml)
 
-            # check that xml has UUID, then it is a crowdform
+            # check that xml has UUID
             if len(split_xml) > 1:
                 uuid = split_xml[1]
         else:
@@ -94,9 +94,8 @@ def create_instance(username, xml_file, media_files,
                 xform = XForm.objects.get(uuid=uuid)
                 xform_username = xform.user.username
 
-                if xform_username != username and not xform.is_crowd_form \
-                        and not is_touchform:
-                    raise IsNotCrowdformError()
+                if xform_username != username and not is_touchform:
+                    raise InstanceInvalidUserError()
 
                 username = xform_username
 
@@ -106,9 +105,10 @@ def create_instance(username, xml_file, media_files,
             id_string = get_id_string_from_xml_str(xml)
             xform = XForm.objects.get(
                 id_string=id_string, user__username=username)
-            if not xform.is_crowd_form and not is_touchform \
-                    and xform.user.profile.require_auth \
-                    and xform.user != request.user:
+
+            if not is_touchform and xform.user.profile.require_auth and (
+                    xform.user != request.user and not request.user.has_perm(
+                    'report_xform', xform)):
                 raise PermissionDenied(
                     _(u"%(request_user)s is not allowed to make submissions "
                       u"to %(form_user)s's %(form_title)s form." % {
@@ -372,6 +372,10 @@ class OpenRosaResponseBadRequest(OpenRosaResponse):
 
 class OpenRosaResponseNotAllowed(OpenRosaResponse):
     status_code = 405
+
+
+class OpenRosaResponseForbidden(OpenRosaResponse):
+    status_code = 403
 
 
 def inject_instanceid(xml_str, uuid):

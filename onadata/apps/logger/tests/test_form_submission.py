@@ -2,6 +2,8 @@ import os
 import re
 
 from django.db.models import Sum
+from django_digest.test import Client as DigestClient
+from guardian.shortcuts import assign_perm
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
@@ -286,3 +288,23 @@ class TestFormSubmission(TestBase):
         gps = records[0]['gps'].split(" ")
         self.assertEqual(float(gps[0]), float(cached_geopoint[0]))
         self.assertEqual(float(gps[1]), float(cached_geopoint[1]))
+
+    def test_submission_when_requires_auth(self):
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
+        # create a new user
+        alice = self._create_user('alice', 'alice')
+
+        # assign report perms to user
+        assign_perm('report_xform', alice, self.xform)
+
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
+        )
+        client = DigestClient()
+        client.set_authorization('alice', 'alice', 'Digest')
+        self._make_submission(
+            xml_submission_file_path, client=client)
+        self.assertEqual(self.response.status_code, 201)
