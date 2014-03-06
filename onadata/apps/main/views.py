@@ -11,7 +11,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db import IntegrityError
-from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseRedirect, HttpResponseForbidden, HttpResponseNotFound,\
@@ -23,7 +22,6 @@ from django.views.decorators.http import require_GET, require_POST,\
     require_http_methods
 from google_doc import GoogleDoc
 from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
-from registration.signals import user_registered
 
 from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
     DataLicenseForm, SupportDocForm, QuickConverterFile, QuickConverterURL,\
@@ -52,25 +50,6 @@ from onadata.libs.utils.user_auth import check_and_set_user, set_profile_data,\
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.qrcode import generate_qrcode
 from onadata.libs.utils.viewer_tools import enketo_url
-
-
-@receiver(user_registered, dispatch_uid='auto_add_crowdform')
-def auto_add_crowd_form_to_registered_user(sender, **kwargs):
-    new_user = kwargs.get('user')
-    if hasattr(settings, 'AUTO_ADD_CROWDFORM') and \
-            settings.AUTO_ADD_CROWDFORM and \
-            hasattr(settings, 'DEFAULT_CROWDFORM'):
-        try:
-            default_crowdform = settings.DEFAULT_CROWDFORM
-            if isinstance(default_crowdform, dict) and\
-                    'xform_username' in default_crowdform and\
-                    'xform_id_string' in default_crowdform:
-                xform = XForm.objects.get(
-                    id_string=default_crowdform['xform_id_string'],
-                    user__username=default_crowdform['xform_username'])
-                MetaData.crowdform_users(xform, new_user.username)
-        except XForm.DoesNotExist:
-            pass
 
 
 def home(request):
@@ -460,7 +439,6 @@ def public_api(request, username, id_string):
                'shared': xform.shared,
                'shared_data': xform.shared_data,
                'downloadable': xform.downloadable,
-               'is_crowd_form': xform.is_crowd_form,
                'title': xform.title,
                'date_created': xform.date_created.strftime(_DATETIME_FORMAT),
                'date_modified': xform.date_modified.strftime(_DATETIME_FORMAT),
@@ -474,25 +452,6 @@ def public_api(request, username, id_string):
 def edit(request, username, id_string):
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     owner = xform.user
-
-    if request.GET.get('crowdform'):
-        crowdform_action = request.GET['crowdform']
-        request_username = request.user.username
-
-        # ensure is crowdform
-        if xform.is_crowd_form:
-            if crowdform_action == 'delete':
-                MetaData.objects.get(
-                    xform__id_string=id_string,
-                    data_value=request_username,
-                    data_type=MetaData.CROWDFORM_USERS
-                ).delete()
-            elif crowdform_action == 'add':
-                MetaData.crowdform_users(xform, request_username)
-
-            return HttpResponseRedirect(reverse(profile, kwargs={
-                'username': request_username
-            }))
 
     if username == request.user.username or\
             request.user.has_perm('logger.change_xform', xform):
@@ -573,27 +532,6 @@ def edit(request, username, id_string):
                         if not xform.downloadable else _("not shared")
                     }, audit, request)
                 xform.downloadable = not xform.downloadable
-            elif request.POST['toggle_shared'] == 'crowd':
-                audit = {
-                    'xform': xform.id_string
-                }
-                audit_log(
-                    Actions.FORM_UPDATED, request.user, owner,
-                    _("Crowdform status for '%(id_string)s' updated from "
-                        "'%(old_status)s' to '%(new_status)s'.") %
-                    {
-                        'id_string': xform.id_string,
-                        'old_status': _("crowdform")
-                        if not xform.is_crowd_form else _("not crowdform"),
-                        'new_status': _("crowdform")
-                        if xform.is_crowd_form else _("not crowdform"),
-                    }, audit, request)
-                if xform.is_crowd_form:
-                    xform.is_crowd_form = False
-                else:
-                    xform.is_crowd_form = True
-                    xform.shared = True
-                    xform.shared_data = True
         elif request.POST.get('form-license'):
             audit = {
                 'xform': xform.id_string
