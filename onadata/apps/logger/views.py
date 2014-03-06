@@ -179,8 +179,7 @@ def formList(request, username):
 
             # unauthorized if user in auth request does not match user in path
             # unauthorized if user not active
-            if formlist_user.username != request.user.username or\
-                    not request.user.is_active:
+            if not request.user.is_active:
                 return HttpResponseNotAuthorized()
 
         xforms = \
