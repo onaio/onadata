@@ -14,7 +14,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'onadata',
-        'USER': 'postgres',
+        'USER': 'postgres',  # need to be able to read db tables "geometry_columns" and "spatial_ref_sys"
         'PASSWORD': '',
         'HOST': '127.0.0.1',
         'OPTIONS': {

@@ -20,6 +20,7 @@ if ?production=true
   then this module will import production.py
   otherwise, it will import staging.py
 """
+from __future__ import print_function, unicode_literals
 import os
 import sys
 ##  may also do "lazy" imports of:
@@ -40,9 +41,10 @@ _url = os.getenv('DATABASE_URL', '')
 
 if _url:
     import _database_url
+    DATABASES = {'default': {}}
     _dbd, DATABASE_URL_QUERIES = _database_url.config(_url)
     _production = DATABASE_URL_QUERIES.get('production', ['No'])[0].lower() == 'true'
-    DATABASES = {'default': {}}
+
 
 try:  # we must trap ImportError to get a quality traceback in case of errors in our parent settings files
     if _url:
@@ -51,12 +53,12 @@ try:  # we must trap ImportError to get a quality traceback in case of errors in
         else:
             from staging import *
 
-    # database definition from URL overrides others
-    DATABASES['default'].update(_dbd)
-    try:
-        SECRET_KEY = DATABASE_URL_QUERIES['secret_key'][0]
-    except KeyError:
-        pass
+        # database definition from URL overrides others
+        DATABASES['default'].update(_dbd)
+        try:
+            SECRET_KEY = DATABASE_URL_QUERIES['secret_key'][0]
+        except KeyError:
+            pass
 
 #   if _url was not defined, so we will use the local preset as a default
     else:

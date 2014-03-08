@@ -22,17 +22,19 @@ ADMINS = (
 # your actual production settings go here...,.
 # for 12-factor installations, this will be in a URL read by default_settings.py
 # which will override any definition here
-#DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-#         'NAME': 'onadata'
-#         'USER': 'onadata_prod',
-#         'PASSWORD': 'xxyyzz'
-#         'HOST': o'dbserver.yourdomain.org'
-#         'OPTIONS': {
-#             'autocommit': True,   # note: this option obsolete starting with django 1.6
-#         }
-#     },
+DATABASES = {
+     'default': {
+         'ENGINE': 'django.contrib.gis.db.backends.postgis',
+         'NAME': 'ona_production',
+         'USER': 'change this',
+         # Note: make sure this user can read db tables "geometry_columns" and "spatial_ref_sys" (fixes a postgis bug)
+         'PASSWORD': 'change this too',
+         'HOST': 'dbserver.and_change_this.org',
+         'OPTIONS': {
+             'autocommit': True  # note: this option obsolete starting with django 1.6
+             }
+         }
+    }
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
