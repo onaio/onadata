@@ -1,4 +1,4 @@
-from settings import *  # nopep8
+from ..settings import *  # nopep8
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -10,8 +10,8 @@ TEMPLATE_STRING_IF_INVALID = ''
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'formhub_dev',
-        'USER': 'formhub_dev',
+        'NAME': 'onadata_dev',
+        'USER': 'onadata_dev',
         'PASSWORD': '12345678',
         'HOST': 'localhost',
         # NOTE: this option becomes obsolete in django 1.6
@@ -37,7 +37,7 @@ else:
 if TESTING_MODE:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'test_media/')
     subprocess.call(["rm", "-r", MEDIA_ROOT])
-    MONGO_DATABASE['NAME'] = "formhub_test"
+    MONGO_DATABASE['NAME'] = "onadata_test"
     # need to have CELERY_ALWAYS_EAGER True and BROKER_BACKEND as memory
     # to run tasks immediately while testing
     CELERY_ALWAYS_EAGER = True

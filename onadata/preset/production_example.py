@@ -1,4 +1,4 @@
-from settings import *  # nopep8
+from ..settings import *  # nopep8
 
 # this setting file will not work on "runserver" -- it needs a server for
 # static files
@@ -6,8 +6,8 @@ DEBUG = False
 
 # override to set the actual location for the production static and media
 # directories
-MEDIA_ROOT = '/var/formhub-media'
-STATIC_ROOT = "/srv/formhub-static"
+MEDIA_ROOT = '/var/onadata-media'
+STATIC_ROOT = "/srv/onadata-static"
 STATICFILES_DIRS = (
     os.path.join(PROJECT_ROOT, "static"),
 )
@@ -18,12 +18,12 @@ ADMINS = (
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'formhub',
-        'USER': 'formhub_prod',
+        'NAME': 'onadata',
+        'USER': 'onadata_prod',
         # the password must be stored in an environment variable
-        'PASSWORD': os.environ['FORMHUB_PROD_PW'],
+        'PASSWORD': os.environ['onadata_PROD_PW'],
         # the server name may be in env
-        'HOST': os.environ.get("FORMHUB_DB_SERVER", 'dbserver.yourdomain.org'),
+        'HOST': os.environ.get("onadata_DB_SERVER", 'dbserver.yourdomain.org'),
         'OPTIONS': {
             # note: this option obsolete starting with django 1.6
             'autocommit': True,
@@ -57,7 +57,7 @@ TOUCHFORMS_URL = 'http://localhost:9000/'
 MONGO_DATABASE = {
     'HOST': 'localhost',
     'PORT': 27017,
-    'NAME': 'formhub',
+    'NAME': 'onadata',
     'USER': '',
     'PASSWORD': ''
 }

@@ -1,6 +1,6 @@
-# this preset is used for automated testing of formhub
+# this preset is used for automated testing of onadata
 #
-from settings import *  # nopep8
+from ..settings import *  # nopep8
 
 DATABASES = {
     'default': {
@@ -35,7 +35,7 @@ else:
 if TESTING_MODE:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'test_media/')
     subprocess.call(["rm", "-r", MEDIA_ROOT])
-    MONGO_DATABASE['NAME'] = "formhub_test"
+    MONGO_DATABASE['NAME'] = "onadata_test"
     # need to have CELERY_ALWAYS_EAGER True and BROKER_BACKEND as memory
     # to run tasks immediately while testing
     CELERY_ALWAYS_EAGER = True

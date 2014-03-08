@@ -7,7 +7,7 @@
 #
 # local customizations should be done in several files each of which in turn
 # imports this one.
-# The local files should be used as the value for your DJANGO_SETTINGS_FILE
+# The local files should be used as the value for your DJANGO_SETTINGS_MODULE
 # environment variable as needed.
 import logging
 import os
@@ -25,7 +25,7 @@ djcelery.setup_loader()
 
 CURRENT_FILE = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.realpath(
-    os.path.join(os.path.dirname(CURRENT_FILE), '..//'))
+    os.path.join(os.path.dirname(CURRENT_FILE), '//'))
 PRINT_EXCEPTION = False
 
 TEMPLATED_EMAIL_TEMPLATE_DIR = 'templated_email/'
