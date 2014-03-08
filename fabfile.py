@@ -11,7 +11,7 @@ DEPLOYMENTS = {
         'project': 'ona',
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
         'celeryd': '/etc/init.d/celeryd-ona',
-        'django_config_module': 'onadata.settings.local_settings',
+        'django_config_module': 'onadata.preset.local_settings',
         'pid': '/var/run/ona.pid',
         'template': 'git@github.com:onaio/onadata-template.git',
     },
@@ -21,7 +21,7 @@ DEPLOYMENTS = {
         'project': 'ona',
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
         'celeryd': '/etc/init.d/celeryd-ona',
-        'django_config_module': 'onadata.settings.local_settings',
+        'django_config_module': 'onadata.preset.local_settings',
         'pid': '/var/run/ona.pid',
         'template': 'git@github.com:onaio/onadata-template.git',
     },
@@ -31,7 +31,7 @@ DEPLOYMENTS = {
         'project': 'formhub',
         'key_filename': os.path.expanduser('~/.ssh/modilabs.pem'),
         'celeryd': '/etc/init.d/celeryd',
-        'django_config_module': 'onadata.settings.local_settings',
+        'django_config_module': 'onadata.preset.local_settings',
         'pid': '/run/formhub.pid',
         'template': 'git@github.com:SEL-Columbia/formhub-template.git',
     },
@@ -41,7 +41,7 @@ DEPLOYMENTS = {
         'project': 'kobocat',
         'key_filename': os.path.expanduser('~/.ssh/kobo01.pem'),
         'celeryd': '/etc/init.d/celeryd',
-        'django_config_module': 'onadata.settings.local_settings',
+        'django_config_module': 'onadata.preset.local_settings',
         'pid': '/run/kobocat.pid',
         'template': 'git@github.com:kobotoolbox/kobocat-template.git',
     },
@@ -55,8 +55,8 @@ def local_settings_check(config_module):
     if not files.exists(config_path):
         if files.exists(CONFIG_PATH_DEPRECATED):
             run('mv %s %s' % (CONFIG_PATH_DEPRECATED, config_path))
-            files.sed(config_path, 'formhub\.settings',
-                      'onadata\.settings\.common')
+            files.sed(config_path, 'formhub\.preset',
+                      'onadata\.preset\.common')
         else:
             raise RuntimeError('Django config module not found in %s or %s' % (
                 config_path, CONFIG_PATH_DEPRECATED))
@@ -128,9 +128,9 @@ def deploy(deployment_name, branch='master'):
         local_settings_check(config_module)
 
         with source(env.virtualenv):
-            run("python manage.py syncdb --settings=%s" % config_module)
-            run("python manage.py migrate --settings=%s" % config_module)
-            run("python manage.py collectstatic --settings=%s --noinput"
+            run("python manage.py syncdb --preset=%s" % config_module)
+            run("python manage.py migrate --preset=%s" % config_module)
+            run("python manage.py collectstatic --preset=%s --noinput"
                 % config_module)
 
     run("sudo %s restart" % env.celeryd)

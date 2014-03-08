@@ -8,7 +8,7 @@ DATABASES = {
         'NAME': 'test',
         'USER': 'adotest',
         'PASSWORD': '12345678',
-        'HOST': '25.116.170.194'
+        'HOST': '192.168.100.108'
     }
 }
 

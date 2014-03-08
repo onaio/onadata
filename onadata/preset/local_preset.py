@@ -14,7 +14,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'onadata',
-        'USER': 'onadata',
+        'USER': 'postgres',  # need to be able to read db tables "geometry_columns" and "spatial_ref_sys"
         'PASSWORD': '',
         'HOST': '127.0.0.1',
         'OPTIONS': {
@@ -28,3 +28,11 @@ DATABASE_ROUTERS = []  # turn off second database
 
 # Make a unique unique key just for testing, and don't share it with anybody.
 SECRET_KEY = 'mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j'
+
+
+# legacy setting for old sites who still use a local_settings.py file and have
+# not updated to presets/
+try:
+    from local_settings import *  # nopep8
+except ImportError:
+    pass

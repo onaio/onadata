@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 from django.core.serializers import serialize
 from django.utils.translation import ugettext_lazy
 
-from settings import PROJECT_ROOT
+from onadata.settings import PROJECT_ROOT
 from onadata.apps.logger.models import XForm, Instance
 
 

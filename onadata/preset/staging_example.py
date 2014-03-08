@@ -1,31 +1,39 @@
-# this preset is used for automated testing of formhub
-#
-from common import *  # nopep8
+try:
+    from ..settings import *  # nopep8
+except ImportError:
+    import sys, django
+    django.utils.six.reraise(RuntimeError, *sys.exc_info()[1:])  # use RuntimeError to extend the traceback
+except:
+    raise
 
+DEBUG = True
+TEMPLATE_DEBUG = DEBUG
+TEMPLATE_STRING_IF_INVALID = ''
+
+# see: http://docs.djangoproject.com/en/dev/ref/settings/#databases
+
+#postgres
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'onadata_test',
-        'USER': 'postgres',
-        'PASSWORD': '',
-        'HOST': '127.0.0.1',
+        'NAME': 'onadata_dev',
+        'USER': 'onadata_dev',
+        'PASSWORD': '12345678',
+        'HOST': 'localhost',
+        # NOTE: this option becomes obsolete in django 1.6
         'OPTIONS': {
-            # note: this option obsolete starting with django 1.6
             'autocommit': True,
         }
-    }
+    },
 }
 
-SECRET_KEY = 'mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j'
+# TIME_ZONE = 'UTC'
 
-PASSWORD_HASHERS = (
-    'django.contrib.auth.hashers.MD5PasswordHasher',
-    'django.contrib.auth.hashers.SHA1PasswordHasher',
-)
+TOUCHFORMS_URL = 'http://localhost:9000/'
 
-if PRINT_EXCEPTION and DEBUG:
-    MIDDLEWARE_CLASSES += ('utils.middleware.ExceptionLoggingMiddleware',)
+SECRET_KEY = 'mlfs33^s1l4xf6a36$0#srgcpj%dd*sisfo6HOktYXB9y'
 
+TESTING_MODE = False
 if len(sys.argv) >= 2 and (sys.argv[1] == "test" or sys.argv[1] == "test_all"):
     # This trick works only when we run tests from the command line.
     TESTING_MODE = True
@@ -35,7 +43,7 @@ else:
 if TESTING_MODE:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'test_media/')
     subprocess.call(["rm", "-r", MEDIA_ROOT])
-    MONGO_DATABASE['NAME'] = "formhub_test"
+    MONGO_DATABASE['NAME'] = "onadata_test"
     # need to have CELERY_ALWAYS_EAGER True and BROKER_BACKEND as memory
     # to run tasks immediately while testing
     CELERY_ALWAYS_EAGER = True
@@ -45,6 +53,8 @@ if TESTING_MODE:
 else:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media/')
 
+if PRINT_EXCEPTION and DEBUG:
+    MIDDLEWARE_CLASSES += ('utils.middleware.ExceptionLoggingMiddleware',)
 # Clear out the test database
 if TESTING_MODE:
     MONGO_DB.instances.drop()

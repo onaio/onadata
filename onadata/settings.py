@@ -7,7 +7,7 @@
 #
 # local customizations should be done in several files each of which in turn
 # imports this one.
-# The local files should be used as the value for your DJANGO_SETTINGS_FILE
+# The local files should be used as the value for your DJANGO_SETTINGS_MODULE
 # environment variable as needed.
 import logging
 import os
@@ -24,8 +24,7 @@ from pymongo import MongoClient
 djcelery.setup_loader()
 
 CURRENT_FILE = os.path.abspath(__file__)
-PROJECT_ROOT = os.path.realpath(
-    os.path.join(os.path.dirname(CURRENT_FILE), '..//'))
+PROJECT_ROOT = os.path.realpath(os.path.dirname(CURRENT_FILE))
 PRINT_EXCEPTION = False
 
 TEMPLATED_EMAIL_TEMPLATE_DIR = 'templated_email/'
@@ -151,7 +150,7 @@ MIDDLEWARE_CLASSES = (
     'readonly.middleware.DatabaseReadOnlyMiddleware',
 )
 
-LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'onadata.apps.main', 'locale'), )
+LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'onadata/apps/main', 'locale'), )
 
 ROOT_URLCONF = 'onadata.apps.main.urls'
 USE_TZ = True
@@ -164,7 +163,6 @@ TEMPLATE_DIRS = (
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
 )
-
 # needed by guardian
 ANONYMOUS_USER_ID = -1
 
@@ -409,16 +407,6 @@ BINARY_SELECT_MULTIPLES = False
 # Use 'n/a' for empty values by default on csv exports
 NA_REP = 'n/a'
 
-# specifically for site urls sent to enketo
-ENKETO_PROTOCOL = 'https'
-
-# legacy setting for old sites who still use a local_settings.py file and have
-# not updated to presets/
-try:
-    from local_settings import *  # nopep8
-except ImportError:
-    pass
-
 # MongoDB
 if MONGO_DATABASE.get('USER') and MONGO_DATABASE.get('PASSWORD'):
     MONGO_CONNECTION_URL = (
@@ -439,3 +427,4 @@ if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
     STATICFILES_DIRS += (
         os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'static'),
     )
+
