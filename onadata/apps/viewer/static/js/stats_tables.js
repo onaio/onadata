@@ -276,8 +276,18 @@
                 summaryMethods: this.model.get('summary_methods'),
                 selectedLanguage: selected_language
             });
+
+            // determine column type based on field type
+            var columnDef = {name: field.get('name'), label: "Answers", editable: false, cell: "string"}
+            if(field.isA(FH.types.INTEGER || field.isA(FH.types.DECIMAL))) {
+                columnDef.sortValue = function(model, fieldId) {
+                    var func = FH.ParseFunctionMapping[field.get(FH.constants.TYPE)];
+                    return FH.DataSet.GetSortValue(model, fieldId, func);
+                };
+            }
+
             var frequencyColumns = [
-                {name: field.get('name'), label: "Answers", editable: false, cell: "string"}
+                columnDef
             ];
             if(this.model.get('summary_methods') & Ona.SummaryMethod.FREQUENCIES) {
                 frequencyColumns.push({name: 'count', label: "Frequencies", editable: false, cell: "integer"});
@@ -287,7 +297,8 @@
                     name: 'percentage',
                     label: "Percentage of Total",
                     editable: false,
-                    cell: "number"
+                    cell: "string",
+                    formatter: new Backgrid.PercentFormatter()
                 });
             }
             this.frequencyTable = new Backgrid.Grid({

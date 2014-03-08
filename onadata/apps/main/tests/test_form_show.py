@@ -141,6 +141,14 @@ class TestFormShow(TestBase):
         }), **extra)
         self.assertEqual(response.status_code, 200)
 
+    def test_dl_xform_for_authenticated_non_owner(self):
+        self._create_user_and_login('alice', 'alice')
+        response = self.client.get(reverse(download_xform, kwargs={
+            'username': 'bob',
+            'id_string': self.xform.id_string
+        }))
+        self.assertEqual(response.status_code, 200)
+
     def test_show_private_if_shared_but_not_data(self):
         self.xform.shared = True
         self.xform.save()

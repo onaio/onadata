@@ -177,7 +177,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             'public_data': False,
             'description': u'',
             'downloadable': True,
-            'is_crowd_form': False,
             'allows_sms': False,
             'encrypted': False,
             'sms_id_string': u'transportation_2011_07_25',
