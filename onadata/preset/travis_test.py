@@ -1,6 +1,6 @@
 # this preset is used for automated testing of formhub
 #
-from common import *  # nopep8
+from settings import *  # nopep8
 
 DATABASES = {
     'default': {

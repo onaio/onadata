@@ -1,4 +1,4 @@
-from common import *  # nopep8
+from settings import *  # nopep8
 
 # this setting file will not work on "runserver" -- it needs a server for
 # static files
