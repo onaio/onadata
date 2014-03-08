@@ -9,7 +9,7 @@ TEMPLATE_STRING_IF_INVALID = ''
 #postgres
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'onadata_dev',
         'USER': 'onadata_dev',
         'PASSWORD': '12345678',

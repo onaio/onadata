@@ -24,8 +24,7 @@ from pymongo import MongoClient
 djcelery.setup_loader()
 
 CURRENT_FILE = os.path.abspath(__file__)
-PROJECT_ROOT = os.path.realpath(
-    os.path.join(os.path.dirname(CURRENT_FILE), '//'))
+PROJECT_ROOT = os.path.realpath(os.path.dirname(CURRENT_FILE))
 PRINT_EXCEPTION = False
 
 TEMPLATED_EMAIL_TEMPLATE_DIR = 'templated_email/'
@@ -151,7 +150,7 @@ MIDDLEWARE_CLASSES = (
     'readonly.middleware.DatabaseReadOnlyMiddleware',
 )
 
-LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'onadata.apps.main', 'locale'), )
+LOCALE_PATHS = (os.path.join(PROJECT_ROOT, 'onadata/apps/main', 'locale'), )
 
 ROOT_URLCONF = 'onadata.apps.main.urls'
 USE_TZ = True
@@ -164,7 +163,6 @@ TEMPLATE_DIRS = (
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
 )
-
 # needed by guardian
 ANONYMOUS_USER_ID = -1
 
