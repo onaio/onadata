@@ -413,13 +413,6 @@ BINARY_SELECT_MULTIPLES = False
 # Use 'n/a' for empty values by default on csv exports
 NA_REP = 'n/a'
 
-# legacy setting for old sites who still use a local_settings.py file and have
-# not updated to presets/
-try:
-    from local_settings import *  # nopep8
-except ImportError:
-    pass
-
 # MongoDB
 if MONGO_DATABASE.get('USER') and MONGO_DATABASE.get('PASSWORD'):
     MONGO_CONNECTION_URL = (
