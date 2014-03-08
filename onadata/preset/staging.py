@@ -1,3 +1,5 @@
+# this system uses structured settings.py as defined in http://www.slideshare.net/jacobian/the-best-and-worst-of-django
+
 try:
     from ..settings import *  # nopep8
 except ImportError:
@@ -11,21 +13,6 @@ TEMPLATE_DEBUG = DEBUG
 TEMPLATE_STRING_IF_INVALID = ''
 
 # see: http://docs.djangoproject.com/en/dev/ref/settings/#databases
-
-#postgres
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'onadata_dev',
-        'USER': 'onadata_dev',
-        'PASSWORD': '12345678',
-        'HOST': 'localhost',
-        # NOTE: this option becomes obsolete in django 1.6
-        'OPTIONS': {
-            'autocommit': True,
-        }
-    },
-}
 
 # TIME_ZONE = 'UTC'
 
@@ -43,7 +30,7 @@ else:
 if TESTING_MODE:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'test_media/')
     subprocess.call(["rm", "-r", MEDIA_ROOT])
-    MONGO_DATABASE['NAME'] = "onadata_test"
+    MONGO_DATABASE['NAME'] = "formhub_test"
     # need to have CELERY_ALWAYS_EAGER True and BROKER_BACKEND as memory
     # to run tasks immediately while testing
     CELERY_ALWAYS_EAGER = True
