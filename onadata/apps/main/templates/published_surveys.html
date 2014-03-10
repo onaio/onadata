@@ -62,15 +62,15 @@
                     <span><i class="icon-map-marker icon-large inactive"></i></span>
                 {% endif %}
                 {% if  not xform.encrypted and submission_count > 0 %}
-                    <a href="{% url "onadata.apps.main.views.form_photos" content_user.username xform.id_string %}" data-original-title="{% trans 'View Photo' %}" rel="tooltip" >
+                    <a href="{% url "onadata.apps.main.views.form_photos" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Photo' %}" rel="tooltip" >
                     <i class="icon-camera icon-large"></i>
-                    <a href="{% url "onadata.apps.viewer.views.data_view" content_user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
+                    <a href="{% url "onadata.apps.viewer.views.data_view" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Submitted Data' %}" rel="tooltip">
                         <i class="icon-list icon-large inactive"></i>
                     </a>
-                    <a href="{% url "onadata.apps.viewer.views.stats_tables" content_user.username xform.id_string %}" data-original-title="{% trans 'View Table Maker' %}" rel="tooltip">
+                    <a href="{% url "onadata.apps.viewer.views.stats_tables" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Table Maker' %}" rel="tooltip">
                         <i class="icon-book icon-large inactive"></i>
                     </a>
-                    <a href="{% url "form-stats" content_user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
+                    <a href="{% url "form-stats" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Statistics' %}" rel="tooltip">
                     <i class="icon-bar-chart icon-large inactive"></i>
                     </a>
                 {% else %}
@@ -134,7 +134,7 @@
               {% if xform.can_be_replaced and xform.user ==  user  %}
                   <div id = "xls-update">
                       <div id="replace-{{ xform.id_string }}" class="modal hide fade">
-                          <form action="{% url "onadata.apps.main.views.update_xform" content_user.username xform.id_string %}" method="post" enctype="multipart/form-data">
+                          <form action="{% url "onadata.apps.main.views.update_xform" xform.user.username xform.id_string %}" method="post" enctype="multipart/form-data">
                               {% csrf_token %}
                               <div class="modal-header">
                                   <a data-dismiss="modal" class="close">&times;</a>
