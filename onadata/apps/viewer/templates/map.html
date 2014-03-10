@@ -61,7 +61,7 @@
     var enketoAddUrl = "{{ enketo_add_url }}";
     var enketoEditUrl = "{{ enketo_edit_url }}";
     enketoEditUrl = enketoEditUrl.slice(0, enketoEditUrl.length -1);
-    var mongoAPIUrl = "{{ mongo_api_url }}";
+    var apiUrl = "{{ api_url }}";
     var deleteAPIUrl = "{{ delete_data_url }}";
     var language_code = "{{LANGUAGE_CODE}}";
     var attachmentsBaseUrl = "{% url "onadata.apps.viewer.views.attachment_url" %}";
@@ -141,7 +141,7 @@
 		modalElem.modal();
 
 		// launch data async retrieval
-		$.getJSON(mongoAPIUrl, {'query': '{"_id":' + feature_id + '}'})
+		$.getJSON(apiUrl + '/' + feature_id)
         .done(function(data){
             var content;
             if(data.length > 0)

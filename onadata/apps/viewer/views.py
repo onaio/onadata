@@ -118,9 +118,8 @@ def map_view(request, username, id_string, template='map.html'):
     context.enketo_add_with_url = reverse('add_submission_with',
                                           kwargs={"username": username,
                                                   "id_string": id_string})
-    context.mongo_api_url = reverse('mongo_view_api',
-                                    kwargs={"username": username,
-                                            "id_string": id_string})
+    context.api_url = 'api/v1/data/%s/%s' % (username, id_string)
+    # TODO use the api for deletion
     context.delete_data_url = reverse('delete_data',
                                       kwargs={"username": username,
                                               "id_string": id_string})

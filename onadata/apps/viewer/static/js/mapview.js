@@ -393,11 +393,6 @@ function loadResponseDataCallback()
             dropDownContainer.appendChild(questionUlContainer);
 
             navContainer.append(dropDownContainer);
-            /*$('.select-one-anchor').click(function(){
-             // rel contains the question's unique name
-             var questionName = $(this).attr("rel");
-             viewByChanged(questionName);
-             })*/
         }
     }
     else
