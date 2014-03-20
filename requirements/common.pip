@@ -56,7 +56,7 @@ django-taggit==0.11.2
 django-oauth-toolkit==0.5.0
 
 # spss
--e git+https://bitbucket.org/fomcl/savreaderwriter.git#egg=savreaderwriter
+https://bitbucket.org/fomcl/savreaderwriter/downloads/savReaderWriter-3.2.1.zip
 
 # JSON data type support
 jsonfield
