@@ -1,0 +1,7 @@
+brew install node
+brew install postgresql
+# install numpy in your default OSX python install i.e. not virtualenv
+pip-2.7 install numpy
+# install Geospatial libraries for GeoDjango
+brew install postgis gdal libgeoip
+sudo npm install -g bower karma grunt-cli
