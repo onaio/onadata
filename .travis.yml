@@ -11,7 +11,7 @@ python:
   - '2.7'
 before_install:
   - ./script/database/install_postgis onadata_test
-  - ./script/install_ubuntu
+  - ./script/install/ubuntu
 env:
   - TESTFOLDER=onadata/apps/main
   - TESTFOLDER="onadata/apps/api onadata/apps/logger onadata/apps/viewer onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats onadata/libs"
