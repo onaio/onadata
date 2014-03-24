@@ -77,12 +77,9 @@
             $('.' + $(this).val()).show();
         });
 
-        $('.leaflet-popup-content').on(
-            'click',
-            function() {
-                $('#' + this.attr('data-content-id')).toggle();
-            }
-        );
+        $('document').on('click', '.leaflet-popup-content', function() {
+            $('#' + $(this).data('content-id')).toggle();
+        });
     });
 	function setMapHeight(){
 	  var newHeight = $(window).height()-
