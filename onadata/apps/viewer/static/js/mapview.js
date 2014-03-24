@@ -437,27 +437,7 @@ function _buildMarkerLayer(geoJSON)
             var marker = L.circleMarker(latlng, circleStyle);
             latLngArray.push(latlng);
             marker.on('click', function(e) {
-
                 displayDataModal(feature.id);
-
-                // var popup = L.popup({offset: popupOffset})
-                //     .setContent("Loading...").setLatLng(latlng).openOn(map);
-                // $.getJSON(mongoAPIUrl, {'query': '{"_id":' + feature.id + '}'})
-                //     .done(function(data){
-                //         var content;
-                //         if(data.length > 0)
-                //             content = JSONSurveyToHTML(data[0]);
-                //         else
-                //             content = "An unexpected error occurred";
-                //         popup.setContent(content);
-
-                //         // click on the Edit button
-                //         $('button.edit-submission').click(function () {
-                //             var data_id = $(this).data('id');
-                //             var url = enketoEditUrl + data_id;
-                //             displayEnketoModal(url);
-                //         });
-                //     });
             });
             return marker;
         }
@@ -683,18 +663,15 @@ function JSONSurveyToHTML(data)
                     var thisID = questionName.replace(/\//g,'-') + "-" + idx;
                     var collapseButton = $('<a>Child ' + (idx+1) + '</a>') // 1-indexed
                                          .addClass('btn')
+                                         .addClass('leaflet-popup-content')
                                          .attr('id', 'collapse-' + thisID)
+                                         .attr('data-content-id', thisID)
                                          .appendTo(td);
                     var collapseDiv = $('<div></div>')
                                           .attr('id', thisID)
                                           .hide()
                                           .appendTo(td);
                     var table = $(JSONSurveyToHTML(repeatEl)).appendTo(collapseDiv);
-                    $('.leaflet-popup-content')
-                        .on('click',
-                            '#collapse-' + thisID,
-                            function() {$('#' + thisID).toggle();}
-                        );
                 });
             } else {
                 td = _createElementAndSetAttrs('td', {}, data[questionName]);
