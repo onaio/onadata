@@ -437,27 +437,7 @@ function _buildMarkerLayer(geoJSON)
             var marker = L.circleMarker(latlng, circleStyle);
             latLngArray.push(latlng);
             marker.on('click', function(e) {
-
                 displayDataModal(feature.id);
-
-                // var popup = L.popup({offset: popupOffset})
-                //     .setContent("Loading...").setLatLng(latlng).openOn(map);
-                // $.getJSON(mongoAPIUrl, {'query': '{"_id":' + feature.id + '}'})
-                //     .done(function(data){
-                //         var content;
-                //         if(data.length > 0)
-                //             content = JSONSurveyToHTML(data[0]);
-                //         else
-                //             content = "An unexpected error occurred";
-                //         popup.setContent(content);
-
-                //         // click on the Edit button
-                //         $('button.edit-submission').click(function () {
-                //             var data_id = $(this).data('id');
-                //             var url = enketoEditUrl + data_id;
-                //             displayEnketoModal(url);
-                //         });
-                //     });
             });
             return marker;
         }
