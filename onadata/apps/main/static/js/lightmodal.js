@@ -139,7 +139,7 @@ function setupFeaturePopup(feature_id) {
         container.append(content);
 
         // sub-modals
-        $('.leaflet-popup-content').on('click', function() {
+        $('.leaflet-popup-content').click(function() {
             $('#' + $(this).data('content-id')).toggle();
         });
 

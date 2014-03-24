@@ -152,6 +152,11 @@
             addModalCloseButton(modalElem);
             modalElem.append(content);
 
+            // sub-modals
+            $('.leaflet-popup-content').click(function() {
+                $('#' + $(this).data('content-id')).toggle();
+            });
+
             // click on the Edit button
             $('button.edit-submission').click(function () {
                 var data_id = $(this).data('id');
