@@ -685,17 +685,13 @@ function JSONSurveyToHTML(data)
                                          .addClass('btn')
                                          .addClass('leaflet-popup-content')
                                          .attr('id', 'collapse-' + thisID)
+                                         .attr('data-content-id', thisID)
                                          .appendTo(td);
                     var collapseDiv = $('<div></div>')
                                           .attr('id', thisID)
                                           .hide()
                                           .appendTo(td);
                     var table = $(JSONSurveyToHTML(repeatEl)).appendTo(collapseDiv);
-                    $('.leaflet-popup-content')
-                        .on('click',
-                            '#collapse-' + thisID,
-                            function() {$('#' + thisID).toggle();}
-                        );
                 });
             } else {
                 td = _createElementAndSetAttrs('td', {}, data[questionName]);

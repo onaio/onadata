@@ -57,16 +57,17 @@
 <script type="text/javascript" src="/static/js/formManagers.js?ts=201303251542"></script>
 <script type="text/javascript" src="/static/js/jquery.ba-bbq.min.js"></script>
 <script type="text/javascript">
-	var formJSONUrl = "{{ jsonform_url }}";
-	var enketoAddUrl = "{{ enketo_add_url }}";
-	var enketoEditUrl = "{{ enketo_edit_url }}";
-	enketoEditUrl = enketoEditUrl.slice(0, enketoEditUrl.length -1);
-	var mongoAPIUrl = "{{ mongo_api_url }}";
-	var deleteAPIUrl = "{{ delete_data_url }}";
+    var formJSONUrl = "{{ jsonform_url }}";
+    var enketoAddUrl = "{{ enketo_add_url }}";
+    var enketoEditUrl = "{{ enketo_edit_url }}";
+    enketoEditUrl = enketoEditUrl.slice(0, enketoEditUrl.length -1);
+    var mongoAPIUrl = "{{ mongo_api_url }}";
+    var deleteAPIUrl = "{{ delete_data_url }}";
     var language_code = "{{LANGUAGE_CODE}}";
-	var attachmentsBaseUrl = "{% url "onadata.apps.viewer.views.attachment_url" %}";
-	var modalVisible = null;
-	var idToDelete = null;
+    var attachmentsBaseUrl = "{% url "onadata.apps.viewer.views.attachment_url" %}";
+    var modalVisible = null;
+    var idToDelete = null;
+
     $(document).ready(function(){
         // Initalize Map on load
         initialize();
@@ -75,6 +76,13 @@
             $('.language').hide();
             $('.' + $(this).val()).show();
         });
+
+        $('.leaflet-popup-content').on(
+            'click',
+            function() {
+                $('#' + this.attr('data-content-id')).toggle();
+            }
+        );
     });
 	function setMapHeight(){
 	  var newHeight = $(window).height()-
