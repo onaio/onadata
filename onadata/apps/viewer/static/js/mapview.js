@@ -683,6 +683,7 @@ function JSONSurveyToHTML(data)
                     var thisID = questionName.replace(/\//g,'-') + "-" + idx;
                     var collapseButton = $('<a>Child ' + (idx+1) + '</a>') // 1-indexed
                                          .addClass('btn')
+                                         .addClass('leaflet-popup-content')
                                          .attr('id', 'collapse-' + thisID)
                                          .appendTo(td);
                     var collapseDiv = $('<div></div>')
