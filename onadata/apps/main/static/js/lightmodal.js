@@ -138,6 +138,11 @@ function setupFeaturePopup(feature_id) {
         container = setupBlankModal('edit_submission_popup');
         container.append(content);
 
+        // sub-modals
+        $('.leaflet-popup-content').on('click', function() {
+            $('#' + $(this).data('content-id')).toggle();
+        });
+
         // click on the Edit button
         $('button.edit-submission').click(function () {
             var data_id = $(this).data('id');

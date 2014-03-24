@@ -76,10 +76,6 @@
             $('.language').hide();
             $('.' + $(this).val()).show();
         });
-
-        $('document').on('click', '.leaflet-popup-content', function() {
-            $('#' + $(this).data('content-id')).toggle();
-        });
     });
 	function setMapHeight(){
 	  var newHeight = $(window).height()-
