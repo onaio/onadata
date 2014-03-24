@@ -12,7 +12,7 @@ OnaData is derived from the excellent `formhub <http://github.com/SEL-Columbia/f
 
 Installation
 ------------
-Please read the `Installation and Deployment Guide <https://github.com/SEL-Columbia/formhub/wiki/Installation-and-Deployment>`_.
+Please read the `Installation and Deployment Guide <https://github.com/kobotoolbox/kobocat/wiki/Installation-and-Deployment>`_.
 
 Contributing
 ------------
