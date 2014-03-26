@@ -16,7 +16,7 @@ Contributing
 ------------
 
 If you would like to contribute code please read
-`Contributing Code to Ona Data <https://github.com/kobotoolbox/kobocat/wiki/Contributing-Code>`_.
+`Contributing Code <https://github.com/kobotoolbox/kobocat/wiki/Contributing-Code>`_.
 
 Code Structure
 --------------
