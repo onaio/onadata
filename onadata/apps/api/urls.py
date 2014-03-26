@@ -182,22 +182,22 @@ Example using curl:
 
 ### OnaData Tagging API
 
-* [Filter form list by
-* tags.](/api/v1/forms#get-list-of-forms-with-specific-tags)
+* [Filter form list by tags.](
+/api/v1/forms#get-list-of-forms-with-specific-tags)
 * [List Tags for a specific form.](
-   /api/v1/forms#get-list-of-tags-for-a-specific-form)
+/api/v1/forms#get-list-of-tags-for-a-specific-form)
 * [Tag Forms.](/api/v1/forms#tag-forms)
 * [Delete a specific tag.](/api/v1/forms#delete-a-specific-tag)
 * [List form data by tag.](
-   /api/v1/data#query-submitted-data-of-a-specific-form-using-tags)
+/api/v1/data#query-submitted-data-of-a-specific-form-using-tags)
 * [Tag a specific submission](/api/v1/data#tag-a-submission-data-point)
 
 ## Using Oauth2 with formhub API
 
-You can learn more about oauth2 from [http://tools.ietf.org/html/rfc6749](
+You can learn more about oauth2 [here](
 http://tools.ietf.org/html/rfc6749).
 
-### 1. Register your client application with formhub - [register](
+### 1. Register your client application with formhub - [register](\
 /o/applications/register/)
 
 - `name` - name of your application
@@ -212,7 +212,8 @@ Keep note of the `client_id` and the `client_secret`, it is required when
 
 The authorization url is of the form:
 
-   `GET`  /o/authorize?client_id=XXXXXX&response_type=code&state=abc
+<pre class="prettyprint">
+<b>GET</b> /o/authorize?client_id=XXXXXX&response_type=code&state=abc</pre>
 
 example:
 
@@ -235,7 +236,7 @@ What happens:
    that provides access.
 2. redirection to the client application occurs, the url is of the form:
 
-    REDIRECT_URI/?state=abc&code=YYYYYYYYY
+>   REDIRECT_URI/?state=abc&code=YYYYYYYYY
 
 example redirect uri
 
@@ -250,7 +251,8 @@ Your client application should use the `code` to request for an access_token.
 
 Request:
 
-    `POST` /o/token
+<pre class="prettyprint">
+<b>POST</b>/o/token</pre>
 
 Payload:
 
