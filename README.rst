@@ -1,4 +1,4 @@
-Ona Data Platform
+KoBoCat Platform
 =================
 Collect, Analyze and Share Data!
 
@@ -8,7 +8,7 @@ Collect, Analyze and Share Data!
 About
 -----
 
-OnaData is derived from the excellent `formhub <http://github.com/SEL-Columbia/formhub>`_ platform developed by the Sustainable Engineering Lab at Columbia University.
+KoBoCat is derived from the excellent `formhub <http://github.com/SEL-Columbia/formhub>`_ platform developed by the Sustainable Engineering Lab at Columbia University.
 
 Installation
 ------------
