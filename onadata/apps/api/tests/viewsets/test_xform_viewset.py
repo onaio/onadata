@@ -195,3 +195,14 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'http://testserver/api/v1/forms/bob/%s' % xform.pk
             })
             self.assertDictContainsSubset(data, response.data)
+
+    def test_set_form_public(self):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({
+            'put': 'update'
+        })
+        data = {}
+
+        request = self.factory.put('/', data=data, **self.extra)
+        response = view(request, owner='bob', pk=self.xform.id)
+        self.assertEqual(None, response.data)

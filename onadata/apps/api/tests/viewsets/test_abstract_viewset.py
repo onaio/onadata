@@ -11,7 +11,7 @@ from onadata.apps.api.models import OrganizationProfile, Project
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.api.serializers import ProjectSerializer
+from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.user_auth import set_api_permissions_for_user
 
 
