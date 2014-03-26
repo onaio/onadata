@@ -439,3 +439,6 @@ if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
     STATICFILES_DIRS += (
         os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'static'),
     )
+
+# Set wsgi url scheme to HTTPS
+os.environ['wsgi.url_scheme'] = 'https'
