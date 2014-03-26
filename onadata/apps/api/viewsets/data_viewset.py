@@ -235,11 +235,11 @@ Payload
 
 > Request
 >
->       curl -X DELETE\
+>       curl -X DELETE \
 https://ona.io/api/v1/data/modilabs/28058/20/labels/tag1
 or to delete the tag "hello world"
 >
->       curl -X DELETE\
+>       curl -X DELETE \
 https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
 >
 > Response
