@@ -69,6 +69,17 @@ def should_regenerate_export(xform, export_type, request):
         'query' in request.GET
 
 
+def str2bool(v):
+    return v.lower() in ("yes", "true", "t", "1")
+
+
+def value_for_type(form, field, value):
+    if form._meta.get_field(field).get_internal_type() == 'BooleanField':
+        return str2bool(value)
+
+    return value
+
+
 class XFormViewSet(MultiLookupMixin, ModelViewSet):
     """
 Publish XLSForms, List, Retrieve Published Forms.
@@ -350,6 +361,7 @@ Where:
     lookup_field = 'owner'
     extra_lookup_fields = None
     permission_classes = [permissions.DjangoModelPermissions, ]
+    updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
 
     def get_object(self, queryset=None):
         owner, pk = self.lookup_fields
@@ -404,7 +416,16 @@ Where:
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
+        data = request.DATA
         form = self.get_object()
+        fields = self.updatable_fields.intersection(data.keys())
+
+        for field in fields:
+            if hasattr(form, field):
+                v = value_for_type(form, field, data[field])
+                form.__setattr__(field, v)
+
+        form.save()
 
         return response_for_format(form)
 

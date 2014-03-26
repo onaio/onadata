@@ -3,9 +3,9 @@ import os
 
 from django.conf import settings
 from django.test import TestCase
-from django.test import RequestFactory
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Permission
+from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models import OrganizationProfile, Project
 from onadata.apps.api.viewsets.organization_profile_viewset import\
@@ -19,7 +19,7 @@ class TestAbstractViewSet(TestCase):
 
     def setUp(self):
         TestCase.setUp(self)
-        self.factory = RequestFactory()
+        self.factory = APIRequestFactory()
         self._login_user_and_profile()
         self.maxDiff = None
 

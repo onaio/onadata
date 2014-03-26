@@ -201,8 +201,61 @@ class TestXFormViewSet(TestAbstractViewSet):
         view = XFormViewSet.as_view({
             'put': 'update'
         })
-        data = {}
+        data = {'shared': True}
+
+        self.assertFalse(self.xform.shared)
 
         request = self.factory.put('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=self.xform.id)
-        self.assertEqual(None, response.data)
+        view(request, owner='bob', pk=self.xform.id)
+
+        self.xform.reload()
+        self.assertTrue(self.xform.shared)
+
+    def test_set_form_private(self):
+        key = 'shared'
+        self._publish_xls_form_to_project()
+        self.xform.__setattr__(key, True)
+        self.xform.save()
+        view = XFormViewSet.as_view({
+            'put': 'update'
+        })
+        data = {key: False}
+
+        self.assertTrue(self.xform.__getattribute__(key))
+
+        request = self.factory.put('/', data=data, **self.extra)
+        view(request, owner='bob', pk=self.xform.id)
+
+        self.xform.reload()
+        self.assertFalse(self.xform.__getattribute__(key))
+
+    def test_set_form_bad_value(self):
+        self._publish_xls_form_to_project()
+        self.xform.shared = True
+        self.xform.save()
+        view = XFormViewSet.as_view({
+            'put': 'update'
+        })
+        data = {'shared': 'String'}
+
+        self.assertTrue(self.xform.shared)
+
+        request = self.factory.put('/', data=data, **self.extra)
+        view(request, owner='bob', pk=self.xform.id)
+
+        self.xform.reload()
+        self.assertFalse(self.xform.shared)
+
+    def test_set_form_bad_key(self):
+        self._publish_xls_form_to_project()
+        self.xform.save()
+        view = XFormViewSet.as_view({
+            'put': 'update'
+        })
+        data = {'nonExistentField': False}
+
+        request = self.factory.put('/', data=data, **self.extra)
+        view(request, owner='bob', pk=self.xform.id)
+
+        self.xform.reload()
+        self.assertFalse(self.xform.shared)
