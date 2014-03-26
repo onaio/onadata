@@ -673,7 +673,7 @@ function JSONSurveyToHTML(data)
                                           .appendTo(td);
                     var table = $(JSONSurveyToHTML(repeatEl)).appendTo(collapseDiv);
                 });
-            } else if(formJSONMngr.getTypeOfQuestion(questionName) === 'image') {
+            } else if(formJSONMngr.getTypeOfQuestion(questionName) === 'photo') {
               var attachmentUrl = data[questionName];
               var imgSrc = attachmentsBaseUrl + '?media_file=' + encodeURIComponent(attachmentUrl);
               var imgTag = _createElementAndSetAttrs('img', {"class":"thumbnail", "width":"210", "src": imgSrc});
