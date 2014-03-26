@@ -675,7 +675,7 @@ function JSONSurveyToHTML(data)
                 });
             } else if(formJSONMngr.getTypeOfQuestion(questionName) === 'photo') {
               var attachmentUrl = data[questionName];
-              var imgSrc = attachmentsBaseUrl + '?media_file=' + encodeURIComponent(attachmentUrl);
+              var imgSrc = attachmentsBaseUrl + '?media_file=' + encodeURIComponent(userName + '/attachments/' + attachmentUrl);
               var imgTag = _createElementAndSetAttrs('img', {"class":"thumbnail", "width":"210", "src": imgSrc});
               mediaContainer = _createElementAndSetAttrs('a', {'href': imgSrc, 'target': '_blank'});
               mediaContainer.appendChild(imgTag);
