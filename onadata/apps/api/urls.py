@@ -20,6 +20,17 @@ from onadata.apps.api.viewsets.submissionstats_viewset import\
 from onadata.apps.api.views import chart_views
 
 
+def make_routes(template_text):
+    return routers.Route(
+        url=r'^{prefix}/{%s}{trailing_slash}$' % template_text,
+        mapping={
+            'get': 'list',
+            'post': 'create'
+        },
+        name='{basename}-list',
+        initkwargs={'suffix': 'List'})
+
+
 class MultiLookupRouter(routers.DefaultRouter):
     def __init__(self, *args, **kwargs):
         super(MultiLookupRouter, self).__init__(*args, **kwargs)
@@ -35,15 +46,8 @@ class MultiLookupRouter(routers.DefaultRouter):
             name='{basename}-detail',
             initkwargs={'suffix': 'Instance'}
         ))
-        self.lookups_routes.append(routers.Route(
-            url=r'^{prefix}/{lookup}{trailing_slash}$',
-            mapping={
-                'get': 'list',
-                'post': 'create'
-            },
-            name='{basename}-list',
-            initkwargs={'suffix': 'List'}
-        ))
+        self.lookups_routes.append(make_routes('lookup'))
+        self.lookups_routes.append(make_routes('lookups'))
         # Dynamically generated routes.
         # Generated using @action or @link decorators on methods of the viewset
         self.lookups_routes.append(routers.Route(
