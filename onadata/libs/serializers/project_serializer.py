@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from onadata.apps.api.fields import HyperlinkedMultiIdentityField
+from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import\
+    HyperlinkedMultiIdentityField
 from onadata.apps.api.models import Project
 
 

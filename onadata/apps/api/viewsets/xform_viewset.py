@@ -25,7 +25,7 @@ from taggit.forms import TagField
 
 from onadata.libs.mixins.multi_lookup_mixin import MultiLookupMixin
 from onadata.libs.serializers.xform_serializer import XFormSerializer
-from onadata.apps.api.signals import xform_tags_add, xform_tags_delete
+from onadata.libs.models.signals import xform_tags_add, xform_tags_delete
 from onadata.apps.api import tools as utils
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.viewer_tools import enketo_url

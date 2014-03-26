@@ -1,7 +1,8 @@
 from django.forms import widgets
 from rest_framework import serializers
 
-from onadata.apps.api.fields import HyperlinkedMultiIdentityField
+from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import\
+    HyperlinkedMultiIdentityField
 from onadata.apps.logger.models import XForm
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 
