@@ -44,17 +44,19 @@ class OrganizationProfile(UserProfile):
         super(OrganizationProfile, self).save(*args, **kwargs)
 
     def remove_user_from_organization(self, user):
-        """Remove's a user from all teams/groups in the organization
+        """Removes a user from all teams/groups in the organization.
+
+        :param user: The user to remove from this organization.
         """
         for group in user.groups.filter('%s#' % self.user.username):
             user.groups.remove(group)
 
     def is_organization_owner(self, user):
-        """Checks if user is in the organization owners team
+        """Checks if user is in the organization owners team.
 
-        :param user: User to check
+        :param user: User to check.
 
-        :returns: Boolean whether user has organization level permissions
+        :returns: Boolean whether user has organization level permissions.
         """
         has_owner_group = user.groups.filter(
             name='%s#%s' % (self.user.username, Team.OWNER_TEAM_NAME))

@@ -70,19 +70,15 @@ class TestAbstractViewSet(TestCase):
         data = {
             'org': u'denoinc',
             'name': u'Dennis',
-            # 'email': u'info@deno.com',
             'city': u'Denoville',
             'country': u'US',
-            #'organization': u'Dono Inc.',
             'home_page': u'deno.com',
             'twitter': u'denoinc',
             'description': u'',
             'address': u'',
             'phonenumber': u'',
             'require_auth': False,
-            # 'password': 'denodeno',
         }
-        # response = self.client.post(
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)

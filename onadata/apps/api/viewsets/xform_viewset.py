@@ -53,7 +53,7 @@ def _get_form_url(request, username):
         http_host = 'testserver.com'
         username = 'bob'
     else:
-        http_host = request.META.get('HTTP_HOST') or 'ona.io'
+        http_host = request.META.get('HTTP_HOST', 'ona.io')
 
     return 'https://%s/%s' % (http_host, username)
 
