@@ -1,7 +1,8 @@
 from django.contrib.auth.models import User
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.api import mixins, serializers
+from onadata.libs.mixins import ObjectLookupMixin
+from onadata.libs.serializers import OrganizationSerializer
 from onadata.apps.api.models import OrganizationProfile
 
 
@@ -74,7 +75,7 @@ List, Retrieve, Update, Create/Register Organizations
 >        }
 """
     queryset = OrganizationProfile.objects.all()
-    serializer_class = serializers.OrganizationSerializer
+    serializer_class = OrganizationSerializer
     lookup_field = 'user'
 
     def get_queryset(self):
