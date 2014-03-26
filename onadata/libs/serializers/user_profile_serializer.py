@@ -71,7 +71,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 instance.user.save()
             return super(
                 UserProfileSerializer, self).restore_object(attrs, instance)
-            #return instance  # TODO: updates
         form = RegistrationFormUserProfile(params)
         # does not require captcha
         form.REGISTRATION_REQUIRE_CAPTCHA = False

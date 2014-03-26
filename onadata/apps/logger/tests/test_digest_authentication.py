@@ -37,7 +37,7 @@ class TestDigestAuthentication(TestBase):
         )
         # authenticate first
         url = '/%s/submission' % self.user.username
-        #url = '/submission'
+        # url = '/submission'
         extra = {
             'REQUEST_METHOD': 'HEAD',
         }

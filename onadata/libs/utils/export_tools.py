@@ -380,11 +380,6 @@ class ExportBuilder(object):
                 row[elm['xpath']] = ExportBuilder.convert_type(
                     value, elm['type'])
 
-        # convert submission type - xls truncates this to just date
-        #if row.get(SUBMISSION_TIME):
-        #    row[SUBMISSION_TIME] = ExportBuilder.convert_type(
-        #        row[SUBMISSION_TIME], 'dateTime')
-
         return row
 
     def to_zipped_csv(self, path, data, *args):
@@ -740,7 +735,7 @@ def query_mongo(username, id_string, query=None, hide_deleted=True):
     query = dict_for_mongo(query)
     query[USERFORM_ID] = u'{0}_{1}'.format(username, id_string)
     if hide_deleted:
-        #display only active elements
+        # display only active elements
         # join existing query with deleted_at_query on an $and
         query = {"$and": [query, {"_deleted_at": None}]}
     return xform_instances.find(query)

@@ -66,8 +66,7 @@ class RestServiceTest(TestBase):
         raise SkipTest
         service_url = 'http://bamboo.io/'
         service_name = 'bamboo'
-        # self._add_rest_service(service_url, service_name)
-        #self.wait(2)
+
         xml_submission1 = os.path.join(self.this_directory,
                                        u'fixtures',
                                        u'dhisform_submission1.xml')

@@ -6,5 +6,4 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
         fields = ('username', 'first_name', 'last_name')
-        #exclude = ('groups', 'user_permissions')
         lookup_field = 'username'

@@ -177,7 +177,7 @@ class BriefcaseClient(object):
                                         'numEntries': num_entries,
                                         'cursor': cursor})
         self.logger.debug("Fetching %s formId: %s, cursor: %s" %
-                         (self.submission_list_url, form_id, cursor))
+                          (self.submission_list_url, form_id, cursor))
         try:
             xml_doc = clean_and_parse_xml(response.content)
         except ExpatError:
