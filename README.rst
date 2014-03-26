@@ -2,8 +2,6 @@ KoBoCat Platform
 =================
 Collect, Analyze and Share Data!
 
-.. image:: https://secure.travis-ci.org/onaio/onadata.png?branch=master
-  :target: http://travis-ci.org/onaio/onadata
 
 About
 -----
@@ -18,7 +16,7 @@ Contributing
 ------------
 
 If you would like to contribute code please read
-`Contributing Code to Ona Data <https://github.com/onaio/onadata/wiki/Contributing-Code-to-OnaData>`_.
+`Contributing Code to Ona Data <https://github.com/kobotoolbox/kobocat/wiki/Contributing-Code>`_.
 
 Code Structure
 --------------
