@@ -23,7 +23,8 @@ from rest_framework.viewsets import ModelViewSet
 
 from taggit.forms import TagField
 
-from onadata.apps.api import mixins, serializers
+from onadata.libs.mixins.multi_lookup_mixin import MultiLookupMixin
+from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.api.signals import xform_tags_add, xform_tags_delete
 from onadata.apps.api import tools as utils
 from onadata.apps.logger.models import XForm
@@ -105,7 +106,7 @@ class SurveyRenderer(BaseRenderer):
         return data
 
 
-class XFormViewSet(mixins.MultiLookupMixin, ModelViewSet):
+class XFormViewSet(MultiLookupMixin, ModelViewSet):
     """
 Publish XLSForms, List, Retrieve Published Forms.
 
@@ -368,9 +369,9 @@ Where:
         SAVZIPRenderer, SurveyRenderer
     ]
     queryset = XForm.objects.filter()
-    serializer_class = serializers.XFormSerializer
+    serializer_class = XFormSerializer
     queryset = XForm.objects.all()
-    serializer_class = serializers.XFormSerializer
+    serializer_class = XFormSerializer
     lookup_fields = ('owner', 'pk')
     lookup_field = 'owner'
     extra_lookup_fields = None
@@ -421,7 +422,7 @@ Where:
         survey = utils.publish_xlsform(request, request.user)
         if isinstance(survey, XForm):
             xform = XForm.objects.get(pk=survey.pk)
-            serializer = serializers.XFormSerializer(
+            serializer = XFormSerializer(
                 xform, context={'request': request})
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED,

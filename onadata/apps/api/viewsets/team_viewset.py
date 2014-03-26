@@ -4,7 +4,7 @@ from rest_framework import exceptions
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.api import serializers
+from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.apps.api.models import Team
 
 
@@ -69,7 +69,7 @@ Shows teams details and the projects the team is assigned to, where:
 >        }
 """
     queryset = Team.objects.all()
-    serializer_class = serializers.TeamSerializer
+    serializer_class = TeamSerializer
     lookup_fields = ('owner', 'pk')
     lookup_field = 'owner'
     extra_lookup_fields = None

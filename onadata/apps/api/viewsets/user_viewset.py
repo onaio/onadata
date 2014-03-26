@@ -3,7 +3,7 @@ from django.db.models import Q
 from rest_framework import permissions
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from onadata.apps.api import serializers
+from onadata.libs.serializers.user_serializer import UserSerializer
 
 
 class UserViewSet(ReadOnlyModelViewSet):
@@ -50,7 +50,7 @@ This endpoint allows you to list and retrieve user's first and last names.
 
 """
     queryset = User.objects.all()
-    serializer_class = serializers.UserSerializer
+    serializer_class = UserSerializer
     lookup_field = 'username'
     permission_classes = [permissions.DjangoModelPermissions, ]
 

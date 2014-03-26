@@ -1,12 +1,13 @@
 from django.contrib.auth.models import User
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.libs.mixins import ObjectLookupMixin
-from onadata.libs.serializers import OrganizationSerializer
-from onadata.apps.api.models import OrganizationProfile
+from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.serializers.organization_serializer import\
+    OrganizationSerializer
+from onadata.apps.api.models.organization_profile import OrganizationProfile
 
 
-class OrganizationProfileViewSet(mixins.ObjectLookupMixin, ModelViewSet):
+class OrganizationProfileViewSet(ObjectLookupMixin, ModelViewSet):
     """
 List, Retrieve, Update, Create/Register Organizations
 
