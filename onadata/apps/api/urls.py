@@ -34,19 +34,9 @@ class MultiLookupRouter(routers.DefaultRouter):
             },
             name='{basename}-detail',
             initkwargs={'suffix': 'Instance'}
-        )
-        )
-        self.lookups_routes.append(routers.Route(
-            url=r'^{prefix}/{lookup}{trailing_slash}$',
-            mapping={
-                'get': 'list',
-                'post': 'create'
-            },
-            name='{basename}-list',
-            initkwargs={'suffix': 'List'}
         ))
         self.lookups_routes.append(routers.Route(
-            url=r'^{prefix}/{lookups}{trailing_slash}$',
+            url=r'^{prefix}/{lookup}{trailing_slash}$',
             mapping={
                 'get': 'list',
                 'post': 'create'
