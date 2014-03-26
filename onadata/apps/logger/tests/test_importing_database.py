@@ -59,7 +59,7 @@ class TestImportingDatabase(TestBase):
 
         instance_count = Instance.objects.count()
         image_count = images_count()
-        #Images are not duplicated
+        # Images are not duplicated
         # TODO: Figure out how to get this test passing.
         self.assertEqual(image_count, initial_image_count + 2)
 

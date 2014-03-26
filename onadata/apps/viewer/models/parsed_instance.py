@@ -77,7 +77,7 @@ def _decode_from_mongo(key):
 
 
 def _is_invalid_for_mongo(key):
-    return not key in \
+    return key not in\
         key_whitelist and (key.startswith('$') or key.count('.') > 0)
 
 
@@ -128,7 +128,7 @@ class ParsedInstance(models.Model):
             query['_uuid'] = ObjectId(query['_uuid'])
 
         if hide_deleted:
-            #display only active elements
+            # display only active elements
             # join existing query with deleted_at_query on an $and
             query = {"$and": [query, {"_deleted_at": None}]}
 
@@ -156,7 +156,7 @@ class ParsedInstance(models.Model):
         cursor.skip(start).limit(limit)
         if type(sort) == dict and len(sort) == 1:
             sort_key = sort.keys()[0]
-            #todo: encode sort key if it has dots
+            # TODO: encode sort key if it has dots
             sort_dir = int(sort[sort_key])  # -1 for desc, 1 for asc
             cursor.sort(_encode_for_mongo(sort_key), sort_dir)
         # set batch size
@@ -180,7 +180,7 @@ class ParsedInstance(models.Model):
             raise Exception(_(u"Invalid query! %s" % query))
         query = dict_for_mongo(query)
         if hide_deleted:
-            #display only active elements
+            # display only active elements
             deleted_at_query = {
                 "$or": [{"_deleted_at": {"$exists": False}},
                         {"_deleted_at": None}]}
@@ -206,7 +206,7 @@ class ParsedInstance(models.Model):
             query, object_hook=json_util.object_hook) if query else {}
         query = dict_for_mongo(query)
         if hide_deleted:
-            #display only active elements
+            # display only active elements
             # join existing query with deleted_at_query on an $and
             query = {"$and": [query, {"_deleted_at": None}]}
         # fields must be a string array i.e. '["name", "age"]'
@@ -229,7 +229,7 @@ class ParsedInstance(models.Model):
         cursor.skip(start).limit(limit)
         if type(sort) == dict and len(sort) == 1:
             sort_key = sort.keys()[0]
-            #todo: encode sort key if it has dots
+            # TODO: encode sort key if it has dots
             sort_dir = int(sort[sort_key])  # -1 for desc, 1 for asc
             cursor.sort(_encode_for_mongo(sort_key), sort_dir)
         # set batch size

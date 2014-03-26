@@ -3,15 +3,15 @@ import os
 
 from django.conf import settings
 from django.test import TestCase
-from django.test import RequestFactory
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Permission
+from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models import OrganizationProfile, Project
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.api.serializers import ProjectSerializer
+from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.utils.user_auth import set_api_permissions_for_user
 
 
@@ -19,7 +19,7 @@ class TestAbstractViewSet(TestCase):
 
     def setUp(self):
         TestCase.setUp(self)
-        self.factory = RequestFactory()
+        self.factory = APIRequestFactory()
         self._login_user_and_profile()
         self.maxDiff = None
 
@@ -70,19 +70,15 @@ class TestAbstractViewSet(TestCase):
         data = {
             'org': u'denoinc',
             'name': u'Dennis',
-            # 'email': u'info@deno.com',
             'city': u'Denoville',
             'country': u'US',
-            #'organization': u'Dono Inc.',
             'home_page': u'deno.com',
             'twitter': u'denoinc',
             'description': u'',
             'address': u'',
             'phonenumber': u'',
             'require_auth': False,
-            # 'password': 'denodeno',
         }
-        # response = self.client.post(
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)

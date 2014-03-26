@@ -8,8 +8,9 @@ from rest_framework.mixins import CreateModelMixin, ListModelMixin,\
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from onadata.apps.api import serializers
-from onadata.apps.api.mixins import MultiLookupMixin
+from onadata.libs.mixins.multi_lookup_mixin import MultiLookupMixin
+from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.api.models import Project, ProjectXForm
 from onadata.apps.api import tools as utils
 from onadata.apps.logger.models import XForm
@@ -149,7 +150,7 @@ Where:
 >       }
     """
     queryset = Project.objects.all()
-    serializer_class = serializers.ProjectSerializer
+    serializer_class = ProjectSerializer
     lookup_fields = ('owner', 'pk')
     lookup_field = 'owner'
     extra_lookup_fields = None
@@ -197,7 +198,7 @@ Where:
             survey = utils.publish_project_xform(request, project)
             if isinstance(survey, XForm):
                 xform = XForm.objects.get(pk=survey.pk)
-                serializer = serializers.XFormSerializer(
+                serializer = XFormSerializer(
                     xform, context={'request': request})
                 return Response(serializer.data, status=201)
             return Response(survey, status=400)
@@ -212,6 +213,6 @@ Where:
         else:
             qs = get_object_or_404(ProjectXForm, **filter)
             data = qs.xform
-        serializer = serializers.XFormSerializer(
+        serializer = XFormSerializer(
             data, many=many, context={'request': request})
         return Response(serializer.data)

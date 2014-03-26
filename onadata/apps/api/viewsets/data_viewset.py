@@ -97,7 +97,7 @@ Get a single specific submission json data providing `formid`
 * `dataid` - is the unique id of the data, the value of `_id` or `_uuid`
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>
+<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>\
 {dataid}</code></pre>
 > Example
 >
@@ -149,12 +149,12 @@ For more details see
 api-parameters">
 API Parameters</a>.
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>
+<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>\
 ?query={"field":"value"}</pre>
 > Example
 >
->       curl -X GET  https://ona.io/api/v1/data/modilabs/22845
->       ?query={"kind": "monthly"}
+>       curl -X GET  https://ona.io/api/v1/data/modilabs/22845\
+?query={"kind": "monthly"}
 
 > Response
 >
@@ -203,7 +203,7 @@ should be a comma separated list of tags.
 <b>GET</b> /api/v1/data/<code>{owner}</code>?<code>tags</code>=<code>tag1,tag2
 </code></pre>
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>?<code>tags
+<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>?<code>tags\
 </code>=<code>tag1,tag2</code></pre>
 
 > Example
@@ -220,7 +220,7 @@ Examples
 - `animal, fruit denim` - comma delimited
 
 <pre class="prettyprint">
-<b>POST</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>
+<b>POST</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>\
 {dataid}</code>/labels</pre>
 
 Payload
@@ -230,17 +230,17 @@ Payload
 ## Delete a specific tag from a submission
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>
+<b>DELETE</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>\
 {dataid}</code>/labels/<code>tag_name</code></pre>
 
 > Request
 >
->       curl -X DELETE
->       https://ona.io/api/v1/data/modilabs/28058/20/labels/tag1
+>       curl -X DELETE \
+https://ona.io/api/v1/data/modilabs/28058/20/labels/tag1
 or to delete the tag "hello world"
 >
->       curl -X DELETE
->       https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
+>       curl -X DELETE \
+https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
 >
 > Response
 >

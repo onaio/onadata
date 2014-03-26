@@ -86,7 +86,7 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 # Example: "http://media.lawrence.com/static/"
 STATIC_URL = '/static/'
 
-#ENKETO URL
+# Enketo URL
 ENKETO_URL = 'https://enketo.formhub.org/'
 ENKETO_API_SURVEY_PATH = '/api_v1/survey'
 ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
@@ -223,7 +223,6 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.ext.rest_framework.OAuth2Authentication',
-        #'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     )
@@ -389,9 +388,6 @@ DEFAULT_CONTENT_LENGTH = 10000000
 
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = ['--with-fixture-bundling']
-#NOSE_PLUGINS = [
-#    'utils.nose_plugins.SilenceSouth'
-#]
 
 # re-captcha in registrations
 REGISTRATION_REQUIRE_CAPTCHA = False
@@ -439,3 +435,6 @@ if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
     STATICFILES_DIRS += (
         os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'static'),
     )
+
+# Set wsgi url scheme to HTTPS
+os.environ['wsgi.url_scheme'] = 'https'

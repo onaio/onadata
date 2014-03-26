@@ -104,7 +104,7 @@ def create_xls_export(username, id_string, export_id, query=None,
         report_exception("XLS Export Exception: Export ID - "
                          "%(export_id)s, /%(username)s/%(id_string)s"
                          % details, e, sys.exc_info())
-        #raise for now to let celery know we failed
+        # Raise for now to let celery know we failed
         # - doesnt seem to break celery`
         raise
     else:

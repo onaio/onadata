@@ -52,7 +52,7 @@ class TestFormAPIDelete(TestBase):
             Instance.objects.filter(deleted_at=None).count(), count)
 
     def test_delete_shared(self):
-        #Test if someone can delete data from a shared form
+        # Test if someone can delete data from a shared form
         self.xform.shared = True
         self.xform.save()
         self._create_user_and_login("jo")
@@ -67,8 +67,8 @@ class TestFormAPIDelete(TestBase):
             Instance.objects.filter(deleted_at=None).count(), count)
 
     def test_owner_can_delete(self):
-        #Test if Form owner can delete
-        #check record exist before delete and after delete
+        # Test if Form owner can delete
+        # check record exist before delete and after delete
         count = Instance.objects.filter(deleted_at=None).count()
         instance = Instance.objects.filter(
             xform=self.xform).latest('date_created')
@@ -84,7 +84,7 @@ class TestFormAPIDelete(TestBase):
         self.assertNotEqual(instance.deleted_at, None)
         query = '{"_id": %s}' % instance.id
         self.mongo_args.update({"query": query})
-        #check that query_mongo will not return the deleted record
+        # check that query_mongo will not return the deleted record
         after = ParsedInstance.query_mongo(**self.mongo_args)
         self.assertEqual(len(after), count - 1)
 

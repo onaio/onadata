@@ -2,15 +2,12 @@ import os
 import requests
 
 from django.conf import settings
-from django.test import RequestFactory
-
 from httmock import urlmatch, HTTMock
 from xml.dom import minidom, Node
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.main.tests.test_base import TestBase
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
@@ -199,48 +196,66 @@ class TestXFormViewSet(TestAbstractViewSet):
             })
             self.assertDictContainsSubset(data, response.data)
 
-
-class TestExportViewSet(TestBase):
-
-    def setUp(self):
-        super(self.__class__, self).setUp()
-        self._create_user_and_login()
-        self._publish_transportation_form()
-        self.factory = RequestFactory()
-        self.extra = {
-            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
-
-    def _filename_from_disposition(self, content_disposition):
-        filename_pos = content_disposition.index('filename=')
-        self.assertTrue(filename_pos != -1)
-        return content_disposition[filename_pos + len('filename='):]
-
-    def test_form_data_export(self):
-        self._make_submissions()
+    def test_set_form_public(self):
+        self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({
-            'get': 'retrieve'
+            'put': 'update'
         })
-        formid = self.xform.pk
-        # csv
-        request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid, format='csv')
-        self.assertEqual(response.status_code, 200)
-        headers = dict(response.items())
-        content_disposition = headers['Content-Disposition']
-        filename = self._filename_from_disposition(content_disposition)
-        basename, ext = os.path.splitext(filename)
-        self.assertEqual(headers['Content-Type'], 'application/csv')
-        self.assertEqual(ext, '.csv')
+        data = {'shared': True}
 
-        # xls
-        request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=self.xform.id_string,
-                        format='xls')
-        self.assertEqual(response.status_code, 200)
-        headers = dict(response.items())
-        content_disposition = headers['Content-Disposition']
-        filename = self._filename_from_disposition(content_disposition)
-        basename, ext = os.path.splitext(filename)
-        self.assertEqual(headers['Content-Type'],
-                         'application/vnd.openxmlformats')
-        self.assertEqual(ext, '.xlsx')
+        self.assertFalse(self.xform.shared)
+
+        request = self.factory.put('/', data=data, **self.extra)
+        view(request, owner='bob', pk=self.xform.id)
+
+        self.xform.reload()
+        self.assertTrue(self.xform.shared)
+
+    def test_set_form_private(self):
+        key = 'shared'
+        self._publish_xls_form_to_project()
+        self.xform.__setattr__(key, True)
+        self.xform.save()
+        view = XFormViewSet.as_view({
+            'put': 'update'
+        })
+        data = {key: False}
+
+        self.assertTrue(self.xform.__getattribute__(key))
+
+        request = self.factory.put('/', data=data, **self.extra)
+        view(request, owner='bob', pk=self.xform.id)
+
+        self.xform.reload()
+        self.assertFalse(self.xform.__getattribute__(key))
+
+    def test_set_form_bad_value(self):
+        self._publish_xls_form_to_project()
+        self.xform.shared = True
+        self.xform.save()
+        view = XFormViewSet.as_view({
+            'put': 'update'
+        })
+        data = {'shared': 'String'}
+
+        self.assertTrue(self.xform.shared)
+
+        request = self.factory.put('/', data=data, **self.extra)
+        view(request, owner='bob', pk=self.xform.id)
+
+        self.xform.reload()
+        self.assertFalse(self.xform.shared)
+
+    def test_set_form_bad_key(self):
+        self._publish_xls_form_to_project()
+        self.xform.save()
+        view = XFormViewSet.as_view({
+            'put': 'update'
+        })
+        data = {'nonExistentField': False}
+
+        request = self.factory.put('/', data=data, **self.extra)
+        view(request, owner='bob', pk=self.xform.id)
+
+        self.xform.reload()
+        self.assertFalse(self.xform.shared)

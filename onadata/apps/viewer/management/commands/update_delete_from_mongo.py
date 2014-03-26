@@ -12,7 +12,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         q = {"$and": [{"_deleted_at": {"$exists": True}},
-            {"_deleted_at": {"$ne": None}}]}
+             {"_deleted_at": {"$ne": None}}]}
         cursor = xform_instances.find(q)
         c = 0
         for record in cursor:

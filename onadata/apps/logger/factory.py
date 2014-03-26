@@ -118,7 +118,7 @@ class XFormManagerFactory(object):
             st = custom_values[u'start']
             custom_values[u'start'] = st.strftime(XFORM_TIME_FORMAT)
 
-            #if no end_time is specified, defaults to 1 hour
+            # if no end_time is specified, defaults to 1 hour
             values[u'end'] = (st+ONE_HOUR).strftime(XFORM_TIME_FORMAT)
 
         if u'end' in custom_values:
@@ -157,7 +157,7 @@ class XFormManagerFactory(object):
         else:
             xf = simple_xforms[0]
 
-        #these values can be overridden with custom values
+        # these values can be overridden with custom values
         values = {
             u'device_id': u'12345',
             u'start': u'2011-01-01T09:50:06.966',
@@ -169,7 +169,7 @@ class XFormManagerFactory(object):
             st = custom_values[u'start']
             custom_values[u'start'] = st.strftime(XFORM_TIME_FORMAT)
 
-            #if no end_time is specified, defaults to 1 hour
+            # if no end_time is specified, defaults to 1 hour
             values[u'end'] = (st+ONE_HOUR).strftime(XFORM_TIME_FORMAT)
 
         if u'end' in custom_values:
@@ -184,8 +184,8 @@ class XFormManagerFactory(object):
         for k, v in values.items():
             simple_survey.answer(name=k, value=v)
 
-        #setting the id_string so that it doesn't end up
-        #with the timestamp of the new survey object
+        # setting the id_string so that it doesn't end up
+        # with the timestamp of the new survey object
         simple_survey._id = xf.id_string
 
         instance_xml = simple_survey.to_xml()

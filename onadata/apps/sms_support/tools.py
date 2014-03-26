@@ -206,7 +206,7 @@ def check_form_sms_compatibility(form, json_survey=None):
     # first level children. should be groups
     groups = json_survey.get('children', [{}])
 
-    ## BLOCKERS
+    # BLOCKERS
     # overload SENSITIVE_FIELDS if date or datetime format contain spaces.
     sensitive_fields = copy.copy(SENSITIVE_FIELDS)
     date_format = json_survey.get('sms_date_format', DEFAULT_DATE_FORMAT) \
@@ -273,7 +273,7 @@ def check_form_sms_compatibility(form, json_survey=None):
                              u"(letters, digits and +/=). "
                              u"You case use '#' instead." % separator))
 
-    ## WARNINGS
+    # WARNINGS
     warnings = []
     # sms_separator not set
     if not json_survey.get('sms_separator', ''):
@@ -313,5 +313,5 @@ def check_form_sms_compatibility(form, json_survey=None):
     if len(warnings):
         return prep_return(u"".join(warnings), comp=1)
 
-    ## GOOD to go
+    # Good to go
     return prep_return(_(u"Note that your form is also SMS comptatible."), 2)

@@ -29,8 +29,7 @@ script:
   - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then karma start onadata/libs/javascript/tests/karma.conf.js ; fi
 notifications:
   email:
-    - tech@ona.io
-    - tino.kreutzer@kobotoolbox.org
+    - tech+travis@ona.io
   hipchat:
     rooms:
       secure: cfWcsNSVAq9vs0pFrT5VKrd7Be6uE8eDPuaOBVT+sGjRKoF7UgaY+jwHK6yaO+Iv+/4aBEsMb5Sc0qp0vQ7vwP9X9THO4Y+giFolQByKO74rnMEp/cn5Hdyv8r5UsHXLYj4MtipLAuD9wkZBOWjsbYfhhDZ6zJ7ZFztvYn/Fxoc=

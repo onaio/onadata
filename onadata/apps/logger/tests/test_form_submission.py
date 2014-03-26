@@ -79,7 +79,6 @@ class TestFormSubmission(TestBase):
         self.assertEqual(self.response.status_code, 201)
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 202)
-        #/fixtures/test_forms/survey_names
 
     def test_submission_stats_count(self):
         """Test global submission counts, should not reduce on

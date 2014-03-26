@@ -183,7 +183,6 @@ def formList(request, username):
               _("Requested forms list."), audit, request)
 
     response = render_to_response("xformsList.xml", {
-        #'urls': urls,
         'host': request.build_absolute_uri().replace(
             request.get_full_path(), ''),
         'xforms': xforms
@@ -208,7 +207,6 @@ def xformsManifest(request, username, id_string):
         if not authenticator.authenticate(request):
             return authenticator.build_challenge_response()
     response = render_to_response("xformsManifest.xml", {
-        #'urls': urls,
         'host': request.build_absolute_uri().replace(
             request.get_full_path(), ''),
         'media_files': MetaData.media_upload(xform)
