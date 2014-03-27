@@ -251,8 +251,7 @@ def get_xform(formid, request, username=None):
     try:
         formid = int(formid)
     except ValueError:
-        if username is None:
-            username = request.user.username
+        username = username is None and request.user.username
         xform = check_and_set_form_by_id_string(username, formid, request)
     else:
         xform = check_and_set_form_by_id(int(formid), request)

@@ -3,7 +3,7 @@ from django import forms
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
-from rest_framework import exceptions, permissions
+from rest_framework import permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -337,34 +337,46 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
     def labels(self, request, owner, formid, dataid, **kwargs):
         class TagForm(forms.Form):
             tags = TagField()
-        if owner is None and not request.user.is_anonymous():
-            owner = request.user.username
-        xform = get_xform(formid, request, owner)
+
+        owner = owner is None and (
+            not request.user.is_anonymous() and request.user.username)
+
+        get_xform(formid, request, owner)
         status = 400
         instance = get_object_or_404(ParsedInstance, instance__pk=int(dataid))
+
         if request.method == 'POST':
             form = TagForm(request.DATA)
+
             if form.is_valid():
                 tags = form.cleaned_data.get('tags', None)
+
                 if tags:
                     for tag in tags:
                         instance.instance.tags.add(tag)
                     instance.save()
                     status = 201
+
         label = kwargs.get('label', None)
+
         if request.method == 'GET' and label:
             data = [
                 tag['name'] for tag in
                 instance.instance.tags.filter(name=label).values('name')]
+
         elif request.method == 'DELETE' and label:
             count = instance.instance.tags.count()
             instance.instance.tags.remove(label)
+
             # Accepted, label does not exist hence nothing removed
             if count == instance.instance.tags.count():
                 status = 202
+
             data = list(instance.instance.tags.names())
         else:
             data = list(instance.instance.tags.names())
+
         if request.method == 'GET':
             status = 200
+
         return Response(data, status=status)
