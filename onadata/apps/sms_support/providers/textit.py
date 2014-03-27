@@ -9,6 +9,7 @@
 
 import datetime
 import dateutil
+import json
 
 from django.http import HttpResponse
 from django.core.urlresolvers import reverse
@@ -66,9 +67,16 @@ def get_response(data):
             payload = data.get('payload', {})
             payload.update({'text': text})
             if payload.get('phone'):
-                send_sms_via_textit(**payload)
+                send_sms_via_textit(payload)
 
     return HttpResponse()
+
+
+def send_sms_via_textit(payload):
+    response = {"phone": [payload.get('phone')],
+                "text": payload.get('text')}
+
+    return HttpResponse(json.dumps(response), mimetype='application/json')
 
 
 @require_POST
