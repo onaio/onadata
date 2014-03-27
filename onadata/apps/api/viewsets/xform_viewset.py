@@ -190,6 +190,13 @@ https://ona.io/api/v1/forms/28058
 >           "date_modified": "2013-07-25T14:14:22.892Z"
 >       }
 
+## Delete Form
+
+<pre class="prettyprint">
+<b>DELETE</b> /api/v1/forms/<code>{formid}</code>
+<b>DELETE</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
+<code>{formid}</code></pre>
+
 ## List Forms
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms
@@ -212,7 +219,7 @@ https://ona.io/api/v1/forms/28058
 
 ## Get `JSON` | `XML` Form Representation
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/form.
+<b>GET</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/form.\
 <code>{format}</code></pre>
 > JSON Example
 >
@@ -252,11 +259,6 @@ https://ona.io/api/v1/forms/28058
 >          </h:body>
 >        </h:html>
 
-## Put form attributes
-<pre class="prettyprint">
-<b>PUT</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/form.
-<code>{format}</code></pre>
-
 ## Get list of forms with specific tag(s)
 
 Use the `tags` query parameter to filter the list of forms, `tags` should be a
@@ -264,7 +266,7 @@ comma separated list of tags.
 
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms?<code>tags</code>=<code>tag1,tag2</code>
-<b>GET</b> /api/v1/forms/<code>{owner}</code>?<code>tags</code>=<code>
+<b>GET</b> /api/v1/forms/<code>{owner}</code>?<code>tags</code>=<code>\
 tag1,tag2</code></pre>
 
 List forms tagged `smart` or `brand new` or both.
@@ -307,9 +309,9 @@ Examples
 - `animal fruit denim` - space delimited, no commas
 - `animal, fruit denim` - comma delimited
 
- <pre class="prettyprint">
-  <b>POST</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels
-  </pre>
+<pre class="prettyprint">
+<b>POST</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels
+</pre>
 
 Payload
 
@@ -318,18 +320,18 @@ Payload
 ## Delete a specific tag
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>
+<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>\
 /labels/<code>tag_name</code></pre>
 
 > Request
 >
->       curl -X DELETE
->       https://ona.io/api/v1/forms/modilabs/28058/labels/tag1
+>       curl -X DELETE \
+https://ona.io/api/v1/forms/modilabs/28058/labels/tag1
 >
 > or to delete the tag "hello world"
 >
->       curl -X DELETE
->       https://ona.io/api/v1/forms/modilabs/28058/labels/hello%20world
+>       curl -X DELETE \
+https://ona.io/api/v1/forms/modilabs/28058/labels/hello%20world
 >
 > Response
 >
@@ -338,13 +340,13 @@ Payload
 ## Get webform/enketo link
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>
+<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>\
 /enketo</pre>
 
 > Request
 >
->       curl -X GET
->       https://ona.io/api/v1/forms/modilabs/28058/enketo
+>       curl -X GET \
+https://ona.io/api/v1/forms/modilabs/28058/enketo
 >
 > Response
 >
