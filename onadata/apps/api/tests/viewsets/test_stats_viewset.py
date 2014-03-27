@@ -108,6 +108,15 @@ class TestStatsViewSet(TestBase):
                 u'amount': {u'range': 2770, u'max': 3200, u'min': 430}}
         self.assertDictContainsSubset(data, response.data)
 
+    def test_bad_field(self):
+        self._contributions_form_submissions()
+        view = StatsViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/?method=median&field=INVALID',
+                                   **self.extra)
+        formid = self.xform.pk
+        response = view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 400)
+
     def test_all_stats_api(self):
         self._contributions_form_submissions()
         view = StatsViewSet.as_view({'get': 'list'})
