@@ -1,5 +1,6 @@
 import json
 from django import forms
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions, permissions
@@ -287,54 +288,51 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
         return records
 
     def list(self, request, owner=None, formid=None, dataid=None, **kwargs):
-        data = None
         xform = None
-        query = None
+        query = {}
         tags = self.request.QUERY_PARAMS.get('tags', None)
-        if owner is None and not request.user.is_anonymous():
-            owner = request.user.username
-        if not formid and not dataid and not tags:
-            data = self._get_formlist_data_points(request, owner)
+        owner = owner or (
+            not request.user.is_anonymous() and request.user.username)
+        data = not formid and not dataid and not tags and\
+            self._get_formlist_data_points(request, owner)
 
         if formid:
             xform = get_xform(formid, request)
-
-            query = {}
-            query[ParsedInstance.USERFORM_ID] = \
-                u'%s_%s' % (xform.user.username, xform.id_string)
+            query[ParsedInstance.USERFORM_ID] = u'%s_%s' % (
+                xform.user.username, xform.id_string)
 
         if xform and dataid and dataid == 'labels':
             return Response(list(xform.tags.names()))
+
         if dataid:
-            if query:
+            try:
                 query.update({'_id': int(dataid)})
-            else:
-                query = {'_id': int(dataid)}
+            except ValueError:
+                return HttpResponseBadRequest(_("Invalid _id"))
+
         rquery = request.QUERY_PARAMS.get('query', None)
         if rquery:
             rquery = json.loads(rquery)
-            if query:
-                query.update(rquery)
-            else:
-                query = rquery
+            query.update(rquery)
+
         if tags:
-            query = query if query else {}
             query['_tags'] = {'$all': tags.split(',')}
+
         if xform:
             data = self._get_form_data(xform, query=query)
+
         if not xform and not data:
             xforms = get_accessible_forms(owner)
-            if not query:
-                query = {}
             query[ParsedInstance.USERFORM_ID] = {
                 '$in': [
                     u'%s_%s' % (form.user.username, form.id_string)
                     for form in xforms]
             }
-            # query['_id'] = {'$in': [form.pk for form in xforms]}
             data = self._get_form_data(xform, query=query)
+
         if dataid and len(data):
             data = data[0]
+
         return Response(data)
 
     @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
