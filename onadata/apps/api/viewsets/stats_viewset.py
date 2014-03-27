@@ -1,3 +1,5 @@
+from django.http import HttpResponseBadRequest
+from django.utils.translation import ugettext as _
 from rest_framework import viewsets
 from rest_framework import exceptions
 from rest_framework import permissions
@@ -84,8 +86,8 @@ Response:
         return rs
 
     def list(self, request, owner=None, formid=None, **kwargs):
-        if owner is None and not request.user.is_anonymous():
-            owner = request.user.username
+        owner = owner is None and (
+            not request.user.is_anonymous() and request.user.username)
 
         data = []
 
@@ -94,10 +96,13 @@ Response:
             try:
                 method = request.QUERY_PARAMS.get('method', None)
                 field = request.QUERY_PARAMS.get('field', None)
-                if method is None:
-                    data = get_all_stats(xform, field)
-                else:
-                    data = STATS_FUNCTIONS[method.lower()](xform, field)
+
+                # check that field is in XForm
+                if field and field not in xform.data_dictionary().get_keys():
+                    return HttpResponseBadRequest(_("Field not in XForm."))
+
+                data = get_all_stats(xform, field) if method is None else\
+                    STATS_FUNCTIONS[method.lower()](xform, field)
             except ValueError as e:
                 raise exceptions.ParseError(detail=e.message)
         else:
