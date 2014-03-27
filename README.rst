@@ -1,24 +1,22 @@
-Ona Data Platform
+KoBoCat Platform
 =================
 Collect, Analyze and Share Data!
 
-.. image:: https://secure.travis-ci.org/onaio/onadata.png?branch=master
-  :target: http://travis-ci.org/onaio/onadata
 
 About
 -----
 
-OnaData is derived from the excellent `formhub <http://github.com/SEL-Columbia/formhub>`_ platform developed by the Sustainable Engineering Lab at Columbia University.
+KoBoCat is derived from the excellent `formhub <http://github.com/SEL-Columbia/formhub>`_ platform developed by the Sustainable Engineering Lab at Columbia University.
 
 Installation
 ------------
-Please read the `Installation and Deployment Guide <https://github.com/SEL-Columbia/formhub/wiki/Installation-and-Deployment>`_.
+Please read the `Installation and Deployment Guide <https://github.com/kobotoolbox/kobocat/wiki/Installation-and-Deployment>`_.
 
 Contributing
 ------------
 
 If you would like to contribute code please read
-`Contributing Code to Ona Data <https://github.com/onaio/onadata/wiki/Contributing-Code-to-OnaData>`_.
+`Contributing Code <https://github.com/kobotoolbox/kobocat/wiki/Contributing-Code>`_.
 
 Code Structure
 --------------
