@@ -427,7 +427,7 @@ Where:
 
         form.save()
 
-        return response_for_format(form)
+        return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
     @action(methods=['GET'])
     def form(self, request, format='json', **kwargs):

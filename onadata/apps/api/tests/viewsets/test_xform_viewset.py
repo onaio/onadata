@@ -196,20 +196,25 @@ class TestXFormViewSet(TestAbstractViewSet):
             })
             self.assertDictContainsSubset(data, response.data)
 
-    def test_set_form_public(self):
+    def test_put_update(self):
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({
             'put': 'update'
         })
-        data = {'shared': True}
+        description = 'DESCRIPTION'
+        data = {'shared': True,
+                'description': description}
 
         self.assertFalse(self.xform.shared)
 
         request = self.factory.put('/', data=data, **self.extra)
-        view(request, owner='bob', pk=self.xform.id)
+        response = view(request, owner='bob', pk=self.xform.id)
 
         self.xform.reload()
         self.assertTrue(self.xform.shared)
+        self.assertEqual(self.xform.description, description)
+        self.assertEqual(response.data['public'], True)
+        self.assertEqual(response.data['description'], description)
 
     def test_set_form_private(self):
         key = 'shared'
@@ -224,27 +229,30 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertTrue(self.xform.__getattribute__(key))
 
         request = self.factory.put('/', data=data, **self.extra)
-        view(request, owner='bob', pk=self.xform.id)
+        response = view(request, owner='bob', pk=self.xform.id)
 
         self.xform.reload()
         self.assertFalse(self.xform.__getattribute__(key))
+        self.assertFalse(response.data['public'])
 
     def test_set_form_bad_value(self):
+        key = 'shared'
         self._publish_xls_form_to_project()
-        self.xform.shared = True
+        self.xform.__setattr__(key, True)
         self.xform.save()
         view = XFormViewSet.as_view({
             'put': 'update'
         })
-        data = {'shared': 'String'}
+        data = {key: 'String'}
 
-        self.assertTrue(self.xform.shared)
+        self.assertTrue(self.xform.__getattribute__(key))
 
         request = self.factory.put('/', data=data, **self.extra)
-        view(request, owner='bob', pk=self.xform.id)
+        response = view(request, owner='bob', pk=self.xform.id)
 
         self.xform.reload()
-        self.assertFalse(self.xform.shared)
+        self.assertFalse(self.xform.__getattribute__(key))
+        self.assertFalse(response.data['public'])
 
     def test_set_form_bad_key(self):
         self._publish_xls_form_to_project()
@@ -255,7 +263,8 @@ class TestXFormViewSet(TestAbstractViewSet):
         data = {'nonExistentField': False}
 
         request = self.factory.put('/', data=data, **self.extra)
-        view(request, owner='bob', pk=self.xform.id)
+        response = view(request, owner='bob', pk=self.xform.id)
 
         self.xform.reload()
         self.assertFalse(self.xform.shared)
+        self.assertFalse(response.data['public'])
