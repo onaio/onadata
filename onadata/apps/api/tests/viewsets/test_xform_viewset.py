@@ -77,8 +77,31 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.form_data)
+
+    def test_form_get_by_id_string(self):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
         # using id_string
         response = view(request, owner='bob', pk=self.xform.id_string)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.form_data)
+
+    def test_form_get_multiple_users_same_id_string(self):
+        self._publish_xls_form_to_project()
+        self._login_user_and_profile(extra_post_data={'username': 'demo',
+                                                      'email': 'demo@ona.io'})
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        # using id_string
+        response = view(request,
+                        owner=self.user.username,
+                        pk=self.xform.id_string)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.form_data)
 

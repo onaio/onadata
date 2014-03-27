@@ -98,16 +98,17 @@ class TestAbstractViewSet(TestCase):
         })
         data = {
             'name': u'demo',
-            'owner': 'http://testserver/api/v1/users/bob'
+            'owner': 'http://testserver/api/v1/users/%s' % self.user.username
         }
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
-        response = view(request, owner='bob')
+        response = view(request, owner=self.user.username)
         self.assertEqual(response.status_code, 201)
-        self.project = Project.objects.filter(name=data['name'])[0]
-        data['url'] = 'http://testserver/api/v1/projects/bob/%s'\
-            % self.project.pk
+        self.project = Project.objects.filter(
+            name=data['name'], created_by=self.user)[0]
+        data['url'] = 'http://testserver/api/v1/projects/%s/%s'\
+            % (self.user.username, self.project.pk)
         self.assertDictContainsSubset(data, response.data)
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
@@ -119,7 +120,7 @@ class TestAbstractViewSet(TestCase):
         })
         project_id = self.project.pk
         data = {
-            'owner': 'http://testserver/api/v1/users/bob',
+            'owner': 'http://testserver/api/v1/users/%s' % self.user.username,
             'public': False,
             'public_data': False,
             'description': u'',
@@ -137,12 +138,13 @@ class TestAbstractViewSet(TestCase):
         with open(path) as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
-            response = view(request, owner='bob', pk=project_id)
+            response = view(request, owner=self.user.username, pk=project_id)
             self.assertEqual(response.status_code, 201)
             self.xform = self.user.xforms.all()[0]
             data.update({
                 'url':
-                'http://testserver/api/v1/forms/bob/%s' % self.xform.pk
+                'http://testserver/api/v1/forms/%s/%s' % (self.user.username,
+                                                          self.xform.pk)
             })
             self.assertDictContainsSubset(data, response.data)
             self.form_data = response.data

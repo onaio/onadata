@@ -92,7 +92,7 @@ Response:
         data = []
 
         if formid:
-            xform = get_xform(formid, request)
+            xform = get_xform(formid, request, owner)
             try:
                 method = request.QUERY_PARAMS.get('method', None)
                 field = request.QUERY_PARAMS.get('field', None)
