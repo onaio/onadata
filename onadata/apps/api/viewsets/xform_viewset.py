@@ -157,6 +157,39 @@ https://ona.io/api/v1/forms
 >           "date_modified": "2013-07-25T14:14:22.892Z"
 >       }
 
+## Set Form Information
+
+<pre class="prettyprint">
+<b>PUT</b> /api/v1/forms/<code>{formid}</code>
+<b>PUT</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
+<code>{formid}</code></pre>
+
+> Example
+>
+>       curl -X PUT -d "shared=True" -d "description=Le description"\
+https://ona.io/api/v1/forms/28058
+
+> Response
+>
+>       {
+>           "url": "https://ona.io/api/v1/forms/modilabs/28058",
+>           "formid": 28058,
+>           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
+>           "id_string": "Birds",
+>           "sms_id_string": "Birds",
+>           "title": "Birds",
+>           "allows_sms": false,
+>           "bamboo_dataset": "",
+>           "description": "Le description",
+>           "downloadable": true,
+>           "encrypted": false,
+>           "owner": "https://ona.io/api/v1/users/modilabs",
+>           "public": true,
+>           "public_data": false,
+>           "date_created": "2013-07-25T14:14:22.892Z",
+>           "date_modified": "2013-07-25T14:14:22.892Z"
+>       }
+
 ## List Forms
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms
@@ -427,7 +460,7 @@ Where:
 
         form.save()
 
-        return response_for_format(form)
+        return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
     @action(methods=['GET'])
     def form(self, request, format='json', **kwargs):
