@@ -10,7 +10,7 @@ django-templated-email==0.4.1
 gdata==2.0.18
 httplib2==0.8
 mock==1.0.1
-httmock==1.0.7
+httmock==1.2.1
 modilabs-python-utils==0.1.5
 Pillow==2.2.1
 poster==0.8.1
