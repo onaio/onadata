@@ -63,6 +63,8 @@ def get_sample_data_for(question, json_survey, as_names=False):
         return safe_wrap(now.strftime(xlsf_date_fmt))
     elif xlsf_type == 'datetime':
         return safe_wrap(now.strftime(xlsf_datetime_fmt))
+    elif xlsf_type == 'note':
+        return None
     else:
         return safe_wrap('?')
 
@@ -194,6 +196,8 @@ def get_autodoc_for(xform):
 
             qid = len(helpers)
             sample = get_sample_data_for(question, json_survey)
+            if sample is None:
+                continue
             sample_name = get_sample_data_for(question, json_survey,
                                               as_names=True)
 
