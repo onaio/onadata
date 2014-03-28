@@ -37,6 +37,7 @@ from onadata.libs.utils.common_tags import SUBMISSION_TIME
 from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
+from onadata.libs.utils.string import str2bool
 
 EXPORT_EXT = {
     'xls': Export.XLS_EXPORT,
@@ -67,10 +68,6 @@ def should_regenerate_export(xform, export_type, request):
     return should_create_new_export(xform, export_type) or\
         'start' in request.GET or 'end' in request.GET or\
         'query' in request.GET
-
-
-def str2bool(v):
-    return v.lower() in ("yes", "true", "t", "1")
 
 
 def value_for_type(form, field, value):
