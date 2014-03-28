@@ -9,12 +9,15 @@ from cStringIO import StringIO
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.http import HttpResponse
 from django.test import TransactionTestCase
 from django.test.client import Client
-from django_digest.test import Client as DigestClient
 from django.utils import timezone
+from django_digest.test import Client as DigestClient
 
 from onadata.apps.logger.models import XForm, Instance, Attachment
+from onadata.libs.utils.logger_tools import publish_form, publish_xls_form
+from onadata.libs.utils.viewer_tools import django_file
 
 
 class TestBase(TransactionTestCase):
@@ -61,11 +64,17 @@ class TestBase(TransactionTestCase):
         self.anon = Client()
 
     def _publish_xls_file(self, path):
+        def set_form():
+            survey = publish_xls_form(
+                django_file(path, 'xls_file', 'application/xls'), self.user)
+            return {
+                'type': 'alert-success',
+                'text': "Successfully published %(form_id)s." %
+                        {'form_id': survey.id_string}}
         if not path.startswith('/%s/' % self.user.username):
             path = os.path.join(self.this_directory, path)
-        with open(path) as xls_file:
-            post_data = {'xls_file': xls_file}
-            return self.client.post('/%s/' % self.user.username, post_data)
+        result = publish_form(set_form)
+        return HttpResponse(result['text'])
 
     def _publish_xlsx_file(self):
         path = os.path.join(self.this_directory, 'fixtures', 'exp.xlsx')
