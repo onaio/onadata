@@ -39,19 +39,19 @@ To generate a locale from scratch (ex. Spanish)
 .. code-block:: sh
 
     $ django-admin.py makemessages -l es -e py,html,email,txt ;
-    $ for app in {main,viewer} ; do cd onadata/apps/${app} && django-admin.py makemessages -d djangojs -l es && cd - ; done
+    $ for app in {main,viewer} ; do cd kobocat/apps/${app} && django-admin.py makemessages -d djangojs -l es && cd - ; done
 
 To update PO files
 
 .. code-block:: sh
 
     $ django-admin.py makemessages -a ;
-    $ for app in {main,viewer} ; do cd onadata/apps/${app} && django-admin.py makemessages -d djangojs -a && cd - ; done
+    $ for app in {main,viewer} ; do cd kobocat/apps/${app} && django-admin.py makemessages -d djangojs -a && cd - ; done
 
 To compile MO files and update live translations
 
 .. code-block:: sh
 
     $ django-admin.py compilemessages ;
-    $ for app in {main,viewer} ; do cd onadata/apps/${app} && django-admin.py compilemessages && cd - ; done
+    $ for app in {main,viewer} ; do cd kobocat/apps/${app} && django-admin.py compilemessages && cd - ; done
     
