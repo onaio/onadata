@@ -3,23 +3,23 @@ import os
 
 from django.conf import settings
 from django.test import TestCase
-from django.test import RequestFactory
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Permission
+from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models import OrganizationProfile, Project
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.api.serializers import ProjectSerializer
-from onadata.libs.utils.user_auth import set_api_permissions_for_user
+from onadata.apps.main.models import UserProfile
+from onadata.libs.serializers.project_serializer import ProjectSerializer
 
 
 class TestAbstractViewSet(TestCase):
 
     def setUp(self):
         TestCase.setUp(self)
-        self.factory = RequestFactory()
+        self.factory = APIRequestFactory()
         self._login_user_and_profile()
         self.maxDiff = None
 
@@ -42,22 +42,25 @@ class TestAbstractViewSet(TestCase):
             'home_page': 'bob.com',
             'twitter': 'boberama'
         }
-        url = '/accounts/register/'
         post_data = dict(post_data.items() + extra_post_data.items())
-        self.response = self.client.post(url, post_data)
-        try:
-            self.user = User.objects.get(username=post_data['username'])
-        except User.DoesNotExist:
-            pass
-        else:
-            self.user.is_active = True
-            self.user.save()
-            self.assertTrue(
-                self.client.login(username=self.user.username,
-                                  password='bobbob'))
-            self.extra = {
-                'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
-            set_api_permissions_for_user(self.user)
+        user, created = User.objects.get_or_create(
+            username=post_data['username'],
+            first_name=post_data['name'],
+            email=post_data['email'])
+        user.set_password(post_data['password1'])
+        user.save()
+        new_profile, created = UserProfile.objects.get_or_create(
+            user=user, name=post_data['name'],
+            city=post_data['city'],
+            country=post_data['country'],
+            organization=post_data['organization'],
+            home_page=post_data['home_page'],
+            twitter=post_data['twitter'])
+        self.user = user
+        self.assertTrue(
+            self.client.login(username=self.user.username, password='bobbob'))
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
     def _org_create(self):
         view = OrganizationProfileViewSet.as_view({
@@ -70,19 +73,15 @@ class TestAbstractViewSet(TestCase):
         data = {
             'org': u'denoinc',
             'name': u'Dennis',
-            # 'email': u'info@deno.com',
             'city': u'Denoville',
             'country': u'US',
-            #'organization': u'Dono Inc.',
             'home_page': u'deno.com',
             'twitter': u'denoinc',
             'description': u'',
             'address': u'',
             'phonenumber': u'',
             'require_auth': False,
-            # 'password': 'denodeno',
         }
-        # response = self.client.post(
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
@@ -102,16 +101,17 @@ class TestAbstractViewSet(TestCase):
         })
         data = {
             'name': u'demo',
-            'owner': 'http://testserver/api/v1/users/bob'
+            'owner': 'http://testserver/api/v1/users/%s' % self.user.username
         }
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
-        response = view(request, owner='bob')
+        response = view(request, owner=self.user.username)
         self.assertEqual(response.status_code, 201)
-        self.project = Project.objects.filter(name=data['name'])[0]
-        data['url'] = 'http://testserver/api/v1/projects/bob/%s'\
-            % self.project.pk
+        self.project = Project.objects.filter(
+            name=data['name'], created_by=self.user)[0]
+        data['url'] = 'http://testserver/api/v1/projects/%s/%s'\
+            % (self.user.username, self.project.pk)
         self.assertDictContainsSubset(data, response.data)
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
@@ -123,7 +123,7 @@ class TestAbstractViewSet(TestCase):
         })
         project_id = self.project.pk
         data = {
-            'owner': 'http://testserver/api/v1/users/bob',
+            'owner': 'http://testserver/api/v1/users/%s' % self.user.username,
             'public': False,
             'public_data': False,
             'description': u'',
@@ -141,12 +141,13 @@ class TestAbstractViewSet(TestCase):
         with open(path) as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
-            response = view(request, owner='bob', pk=project_id)
+            response = view(request, owner=self.user.username, pk=project_id)
             self.assertEqual(response.status_code, 201)
             self.xform = self.user.xforms.all()[0]
             data.update({
                 'url':
-                'http://testserver/api/v1/forms/bob/%s' % self.xform.pk
+                'http://testserver/api/v1/forms/%s/%s' % (self.user.username,
+                                                          self.xform.pk)
             })
             self.assertDictContainsSubset(data, response.data)
             self.form_data = response.data

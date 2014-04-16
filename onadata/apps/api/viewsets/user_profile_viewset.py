@@ -3,11 +3,13 @@ from django.db.models import Q
 from rest_framework import permissions
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.api import mixins, serializers
+from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.serializers.user_profile_serializer import\
+    UserProfileSerializer
 from onadata.apps.main.models import UserProfile
 
 
-class UserProfileViewSet(mixins.ObjectLookupMixin, ModelViewSet):
+class UserProfileViewSet(ObjectLookupMixin, ModelViewSet):
     """
 List, Retrieve, Update, Create/Register users.
 
@@ -76,7 +78,7 @@ List, Retrieve, Update, Create/Register users.
 >        }
 """
     queryset = UserProfile.objects.all()
-    serializer_class = serializers.UserProfileSerializer
+    serializer_class = UserProfileSerializer
     lookup_field = 'user'
     permission_classes = [permissions.DjangoModelPermissions, ]
     ordering = ('user__username', )

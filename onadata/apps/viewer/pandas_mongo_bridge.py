@@ -215,8 +215,8 @@ class AbstractDataFrameBuilder(object):
                 'id_string': self.id_string,
                 'query': query,
                 'fields': fields,
-                #TODO: we might want to add this in for the user
-                #to sepcify a sort order
+                # TODO: we might want to add this in for the user
+                # to sepcify a sort order
                 'sort': '{}',
                 'start': start,
                 'limit': limit,
@@ -342,7 +342,7 @@ class XLSDataFrameBuilder(AbstractDataFrameBuilder):
         data_section.append({})
         self.sections[section_name][self.CURRENT_INDEX_META] += 1
         index = self.sections[section_name][self.CURRENT_INDEX_META]
-        #data_section[len(data_section)-1].update(record) # we could simply do
+        # data_section[len(data_section)-1].update(record) # we could simply do
         # this but end up with duplicate data from repeats
 
         if self.split_select_multiples:
@@ -361,9 +361,9 @@ class XLSDataFrameBuilder(AbstractDataFrameBuilder):
                 pass
             data_section[
                 len(data_section) - 1].update({
-                self.group_delimiter.join(column.split('/'))
-                if self.group_delimiter != DEFAULT_GROUP_DELIMITER
-                else column: data_value})
+                    self.group_delimiter.join(column.split('/'))
+                    if self.group_delimiter != DEFAULT_GROUP_DELIMITER
+                    else column: data_value})
 
         data_section[len(data_section) - 1].update({
             XLSDataFrameBuilder.INDEX_COLUMN: index,
@@ -528,7 +528,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             new_xpath = u"/".join(xpaths)
                             # check if this key exists in our ordered columns
                             if key in ordered_columns.keys():
-                                if not new_xpath in ordered_columns[key]:
+                                if new_xpath not in ordered_columns[key]:
                                     ordered_columns[key].append(new_xpath)
                             d[new_xpath] = nested_val
                 else:

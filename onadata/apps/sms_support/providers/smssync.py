@@ -68,8 +68,12 @@ def get_response(data):
             "task": "send"}}
 
     if message:
-        response['payload'].update({"messages": [{"to": data.get('identity'),
-                                                  "message": message}]})
+        messages = [{"to": data.get('identity'), "message": message}]
+        sendouts = data.get('sendouts', [])
+        if len(sendouts):
+            messages += [{"to": data.get('identity'), "message": text}
+                         for text in sendouts]
+        response['payload'].update({"messages": messages})
     return HttpResponse(json.dumps(response), mimetype='application/json')
 
 

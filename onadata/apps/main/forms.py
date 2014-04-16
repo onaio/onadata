@@ -222,7 +222,7 @@ class MediaForm(forms.Form):
 
     def clean_media(self):
         data_type = self.cleaned_data['media'].content_type
-        if not data_type in ['image/jpeg', 'image/png', 'audio/mpeg']:
+        if data_type not in ['image/jpeg', 'image/png', 'audio/mpeg']:
             raise forms.ValidationError('Only these media types are \
                                         allowed .png .jpg .mp3 .3gp .wav')
 

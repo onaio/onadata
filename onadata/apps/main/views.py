@@ -1176,7 +1176,6 @@ def activity_api(request, username):
             return str(obj)
         if isinstance(obj, datetime):
             return obj.strftime(DATETIME_FORMAT)
-        #raise TypeError
         return None
     try:
         query_args = {
