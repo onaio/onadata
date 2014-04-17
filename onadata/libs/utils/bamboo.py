@@ -133,10 +133,9 @@ def get_csv_data(xform, force_last=False):
         csv_dataframe_builder.export_to(buff)
         if force_last:
             # requested to add last submission to the buffer
-            buff.write(get_csv_data_manual(xform,
-                                           only_last=True, with_header=False,
-                                           headers_to_use=
-                                           get_headers_from(buff)))
+            buff.write(get_csv_data_manual(
+                xform, only_last=True, with_header=False,
+                headers_to_use=get_headers_from(buff)))
     except NoRecordsFoundError:
         # verify that we don't have a single submission before giving up
         get_csv_data_manual(xform, with_header=True)
