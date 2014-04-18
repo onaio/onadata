@@ -561,7 +561,7 @@ class ExportBuilder(object):
             val = row.get(key)
             if isinstance(val, basestring):
                 return val.encode('utf-8')
-            return val
+            return str(val)
 
         def write_row(row, csv_writer, fields):
             sav_writer.writerow(
