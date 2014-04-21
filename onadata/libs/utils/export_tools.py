@@ -560,7 +560,10 @@ class ExportBuilder(object):
         def encode_if_str(row, key):
             val = row.get(key)
             if isinstance(val, basestring):
-                return val.encode('utf-8')
+                val = val.encode('utf-8')
+            elif val is None:
+                val = str(val)
+
             return val
 
         def write_row(row, csv_writer, fields):
