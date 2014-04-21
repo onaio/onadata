@@ -689,9 +689,13 @@ def generate_export(export_type, extension, username, id_string,
     try:
         func.__call__(
             temp_file.name, records, username, id_string, filter_query)
-    except Exception:
+    except Exception as e:
+        e_str = str(e)
+
         # TODO handle these exceptions.
-        pass
+        if e_str not in ['unsupported locale setting',
+                         'expected string or Unicode object, NoneType found']:
+            raise e
 
     # generate filename
     basename = "%s_%s" % (
