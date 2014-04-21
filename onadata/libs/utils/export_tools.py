@@ -559,10 +559,11 @@ class ExportBuilder(object):
     def to_zipped_sav(self, path, data, *args):
         def encode_if_str(row, key):
             val = row.get(key)
+
             if isinstance(val, basestring):
                 val = val.encode('utf-8')
             elif val is None:
-                val = str(val)
+                val = 0
 
             return val
 
