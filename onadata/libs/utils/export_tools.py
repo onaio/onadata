@@ -685,8 +685,13 @@ def generate_export(export_type, extension, username, id_string,
 
     # get the export function by export type
     func = getattr(export_builder, export_type_func_map[export_type])
-    func.__call__(
-        temp_file.name, records, username, id_string, filter_query)
+
+    try:
+        func.__call__(
+            temp_file.name, records, username, id_string, filter_query)
+    except Exception:
+        # TODO handle these exceptions.
+        pass
 
     # generate filename
     basename = "%s_%s" % (
