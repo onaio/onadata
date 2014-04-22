@@ -48,10 +48,10 @@ def encode_if_str(row, key):
         return val.encode('utf-8')
 
     if isinstance(val, datetime):
-        return val.strftime('%Y-%m-%dT%H:%M:%S%z')
+        return val.strftime('%Y-%m-%dT%H:%M:%S%z').encode('utf-8')
 
     if isinstance(val, date):
-        return val.strftime('%Y-%m-%d')
+        return val.strftime('%Y-%m-%d').encode('utf-8')
 
     return val
 
