@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime
+from datetime import datetime, date
 import json
 import os
 import re
@@ -559,8 +559,16 @@ class ExportBuilder(object):
     def to_zipped_sav(self, path, data, *args):
         def encode_if_str(row, key):
             val = row.get(key)
+
             if isinstance(val, basestring):
                 return val.encode('utf-8')
+
+            if isinstance(val, datetime):
+                return val.strftime('%Y-%m-%dT%H:%M:%S%z')
+
+            if isinstance(val, date):
+                return val.strftime('%Y-%m-%d')
+
             return val
 
         def write_row(row, csv_writer, fields):
