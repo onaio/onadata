@@ -1,3 +1,4 @@
+brew install mongo
 brew install node
 brew install postgresql
 # install numpy in your default OSX python install i.e. not virtualenv
