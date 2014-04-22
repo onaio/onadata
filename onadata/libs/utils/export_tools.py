@@ -1,8 +1,9 @@
 import csv
-from datetime import datetime
+from datetime import datetime, date
 import json
 import os
 import re
+import six
 from zipfile import ZipFile
 
 from bson import json_util
@@ -38,6 +39,21 @@ QUESTION_TYPES_TO_EXCLUDE = [
 # the bind type of select multiples that we use to compare
 MULTIPLE_SELECT_BIND_TYPE = u"select"
 GEOPOINT_BIND_TYPE = u"geopoint"
+
+
+def encode_if_str(row, key, encode_dates=False):
+    val = row.get(key)
+
+    if isinstance(val, six.string_types):
+        return val.encode('utf-8')
+
+    if encode_dates and isinstance(val, datetime):
+        return val.strftime('%Y-%m-%dT%H:%M:%S%z').encode('utf-8')
+
+    if encode_dates and isinstance(val, date):
+        return val.strftime('%Y-%m-%d').encode('utf-8')
+
+    return val
 
 
 def question_types_to_exclude(_type):
@@ -141,6 +157,7 @@ def dict_to_joined_export(data, index, indices, name):
                     output[name][key] = "\r\n".join(val)
                 else:
                     output[name][key] = val
+
     return output
 
 
@@ -383,12 +400,6 @@ class ExportBuilder(object):
         return row
 
     def to_zipped_csv(self, path, data, *args):
-        def encode_if_str(row, key):
-            val = row.get(key)
-            if isinstance(val, basestring):
-                return val.encode('utf-8')
-            return val
-
         def write_row(row, csv_writer, fields):
             csv_writer.writerow(
                 [encode_if_str(row, field) for field in fields])
@@ -557,15 +568,9 @@ class ExportBuilder(object):
         csv_builder.export_to(path)
 
     def to_zipped_sav(self, path, data, *args):
-        def encode_if_str(row, key):
-            val = row.get(key)
-            if isinstance(val, basestring):
-                return val.encode('utf-8')
-            return val
-
         def write_row(row, csv_writer, fields):
             sav_writer.writerow(
-                [encode_if_str(row, field) for field in fields])
+                [encode_if_str(row, field, True) for field in fields])
 
         sav_defs = {}
 
@@ -633,6 +638,7 @@ class ExportBuilder(object):
                             self.pre_process_row(child_row, section),
                             sav_writer, fields)
             index += 1
+
         for section_name, sav_def in sav_defs.iteritems():
             sav_def['sav_writer'].closeSavFile(
                 sav_def['sav_writer'].fh, mode='wb')
