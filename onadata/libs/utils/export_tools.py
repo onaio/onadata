@@ -3,6 +3,7 @@ from datetime import datetime, date
 import json
 import os
 import re
+import six
 from zipfile import ZipFile
 
 from bson import json_util
@@ -385,7 +386,7 @@ class ExportBuilder(object):
     def to_zipped_csv(self, path, data, *args):
         def encode_if_str(row, key):
             val = row.get(key)
-            if isinstance(val, basestring):
+            if isinstance(val, six.string_types):
                 return val.encode('utf-8')
             return val
 
@@ -560,7 +561,7 @@ class ExportBuilder(object):
         def encode_if_str(row, key):
             val = row.get(key)
 
-            if isinstance(val, basestring):
+            if isinstance(val, six.string_types):
                 return val.encode('utf-8')
 
             if isinstance(val, datetime):
