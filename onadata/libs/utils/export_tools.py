@@ -694,7 +694,9 @@ def generate_export(export_type, extension, username, id_string,
 
         # TODO handle these exceptions.
         if e_str not in ['unsupported locale setting',
-                         'expected string or Unicode object, NoneType found']:
+                         'expected string or Unicode object, NoneType found',
+                         'expected string or Unicode object, '
+                         'datetime.date found']:
             raise e
 
     # generate filename
