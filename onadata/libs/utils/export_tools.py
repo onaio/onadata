@@ -41,6 +41,21 @@ MULTIPLE_SELECT_BIND_TYPE = u"select"
 GEOPOINT_BIND_TYPE = u"geopoint"
 
 
+def encode_if_str(row, key):
+    val = row.get(key)
+
+    if isinstance(val, six.string_types):
+        return val.encode('utf-8')
+
+    if isinstance(val, datetime):
+        return val.strftime('%Y-%m-%dT%H:%M:%S%z')
+
+    if isinstance(val, date):
+        return val.strftime('%Y-%m-%d')
+
+    return val
+
+
 def question_types_to_exclude(_type):
     return _type in QUESTION_TYPES_TO_EXCLUDE
 
@@ -384,12 +399,6 @@ class ExportBuilder(object):
         return row
 
     def to_zipped_csv(self, path, data, *args):
-        def encode_if_str(row, key):
-            val = row.get(key)
-            if isinstance(val, six.string_types):
-                return val.encode('utf-8')
-            return val
-
         def write_row(row, csv_writer, fields):
             csv_writer.writerow(
                 [encode_if_str(row, field) for field in fields])
@@ -558,20 +567,6 @@ class ExportBuilder(object):
         csv_builder.export_to(path)
 
     def to_zipped_sav(self, path, data, *args):
-        def encode_if_str(row, key):
-            val = row.get(key)
-
-            if isinstance(val, six.string_types):
-                return val.encode('utf-8')
-
-            if isinstance(val, datetime):
-                return val.strftime('%Y-%m-%dT%H:%M:%S%z')
-
-            if isinstance(val, date):
-                return val.strftime('%Y-%m-%d')
-
-            return val
-
         def write_row(row, csv_writer, fields):
             sav_writer.writerow(
                 [encode_if_str(row, field) for field in fields])
