@@ -157,6 +157,7 @@ def dict_to_joined_export(data, index, indices, name):
                     output[name][key] = "\r\n".join(val)
                 else:
                     output[name][key] = val
+
     return output
 
 
@@ -637,6 +638,7 @@ class ExportBuilder(object):
                             self.pre_process_row(child_row, section),
                             sav_writer, fields)
             index += 1
+
         for section_name, sav_def in sav_defs.iteritems():
             sav_def['sav_writer'].closeSavFile(
                 sav_def['sav_writer'].fh, mode='wb')
