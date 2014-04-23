@@ -38,6 +38,7 @@ dict2xml==1.1
 
 # api support
 djangorestframework==2.3.8
+djangorestframework-csv
 
 # cors
 django-cors-headers==0.12
