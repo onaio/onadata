@@ -12,4 +12,4 @@ class TestGenerateQrCode(unittest.TestCase):
                             "qrcode.txt")
         with open(path) as f:
             qrcode = f.read()
-            self.assertTrue(generate_qrcode(url), qrcode)
+            self.assertEqual(generate_qrcode(url), qrcode.strip())
