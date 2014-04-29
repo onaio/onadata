@@ -89,7 +89,7 @@ class UserProfileFormRegister(forms.Form):
     RECAPTCHA_HTML = captcha.displayhtml(settings.RECAPTCHA_PUBLIC_KEY,
                                          use_ssl=settings.RECAPTCHA_USE_SSL)
 
-    name = forms.CharField(widget=forms.TextInput(), required=False,
+    name = forms.CharField(widget=forms.TextInput(), required=True,
                            max_length=255)
     city = forms.CharField(widget=forms.TextInput(), required=False,
                            max_length=255)
