@@ -1,3 +1,5 @@
+import json
+
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
@@ -37,3 +39,22 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
     def test_orgs_create(self):
         self._org_create()
+
+    def test_orgs_create_without_name(self):
+        data = {
+            'org': u'denoinc',
+            'city': u'Denoville',
+            'country': u'US',
+            'home_page': u'deno.com',
+            'twitter': u'denoinc',
+            'description': u'',
+            'address': u'',
+            'phonenumber': u'',
+            'require_auth': False,
+        }
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertContains(response, '{"name": "name is required!"}',
+                            status_code=400)

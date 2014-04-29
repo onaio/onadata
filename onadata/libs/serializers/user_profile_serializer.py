@@ -1,4 +1,5 @@
 import copy
+import six
 
 from django.forms import widgets
 from django.contrib.auth.models import User
@@ -7,6 +8,27 @@ from rest_framework import serializers
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.forms import UserProfileForm,\
     RegistrationFormUserProfile
+
+
+def _get_first_last_names(name, limit=30):
+    if not isinstance(name, six.string_types):
+        return name, name
+
+    if name.__len__() > (limit * 2):
+        # since we are using the default django User Model, there is an
+        # imposition of 30 characters on both first_name and last_name hence
+        # ensure we only have 30 characters for either field
+
+        return name[:limit], name[limit:limit * 2]
+
+    name_split = name.split()
+    first_name = name_split[0]
+    last_name = u''
+
+    if len(name_split) > 1:
+        last_name = u' '.join(name_split[1:])
+
+    return first_name, last_name
 
 
 class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
@@ -36,44 +58,48 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return ret
 
     def restore_object(self, attrs, instance=None):
-        def _get_first_last_names(name):
-            name_split = name.split()
-            first_name = name_split[0]
-            last_name = u''
-            if len(name_split) > 1:
-                last_name = u' '.join(name_split[1:])
-            return first_name, last_name
         params = copy.deepcopy(attrs)
         username = attrs.get('user.username', None)
         password = attrs.get('user.password', None)
         name = attrs.get('name', None)
         email = attrs.get('user.email', None)
+
         if username:
             params['username'] = username
+
         if email:
             params['email'] = email
+
         if password:
             params.update({'password1': password, 'password2': password})
+
         if instance:
             form = UserProfileForm(params, instance=instance)
+
             # form.is_valid affects instance object for partial updates [PATCH]
             # so only use it for full updates [PUT], i.e shallow copy effect
             if not self.partial and form.is_valid():
                 instance = form.save()
+
             # get user
             if email:
                 instance.user.email = form.cleaned_data['email']
+
             if name:
                 first_name, last_name = _get_first_last_names(name)
                 instance.user.first_name = first_name
                 instance.user.last_name = last_name
+
             if email or name:
                 instance.user.save()
+
             return super(
                 UserProfileSerializer, self).restore_object(attrs, instance)
+
         form = RegistrationFormUserProfile(params)
         # does not require captcha
         form.REGISTRATION_REQUIRE_CAPTCHA = False
+
         if form.is_valid():
             first_name, last_name = _get_first_last_names(name)
             new_user = User(username=username, first_name=first_name,
@@ -89,7 +115,10 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 organization=attrs.get('organization', u''),
                 home_page=attrs.get('home_page', u''),
                 twitter=attrs.get('twitter', u''))
+
             return profile
+
         else:
             self.errors.update(form.errors)
+
         return attrs
