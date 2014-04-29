@@ -144,6 +144,7 @@ def profile(request, username):
     context = RequestContext(request)
     content_user = get_object_or_404(User, username=username)
     context.form = QuickConverter()
+
     # xlsform submission...
     if request.method == 'POST' and request.user.is_authenticated():
         def set_form():
@@ -387,6 +388,7 @@ def api(request, username=None, id_string=None):
     if request.method == "OPTIONS":
         response = HttpResponse()
         add_cors_headers(response)
+
         return response
     helper_auth_helper(request)
     helper_auth_helper(request)
@@ -411,15 +413,19 @@ def api(request, username=None, id_string=None):
             args["count"] = True if int(request.GET.get('count')) > 0\
                 else False
         cursor = ParsedInstance.query_mongo(**args)
-    except ValueError, e:
+    except ValueError as e:
         return HttpResponseBadRequest(e.__str__())
+
     records = list(record for record in cursor)
     response_text = json_util.dumps(records)
+
     if 'callback' in request.GET and request.GET.get('callback') != '':
         callback = request.GET.get('callback')
         response_text = ("%s(%s)" % (callback, response_text))
+
     response = HttpResponse(response_text, mimetype='application/json')
     add_cors_headers(response)
+
     return response
 
 
