@@ -10,12 +10,21 @@ from onadata.apps.main.forms import UserProfileForm,\
     RegistrationFormUserProfile
 
 
-def _get_first_last_names(name):
+def _get_first_last_names(name, limit=30):
     if not isinstance(name, six.string_types):
         return name, name
+
+    if name.__len__() > (limit * 2):
+        # since we are using the default django User Model, there is an
+        # imposition of 30 characters on both first_name and last_name hence
+        # ensure we only have 30 characters for either field
+
+        return name[:limit], name[limit:limit * 2]
+
     name_split = name.split()
     first_name = name_split[0]
     last_name = u''
+
     if len(name_split) > 1:
         last_name = u' '.join(name_split[1:])
 
