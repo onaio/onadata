@@ -72,7 +72,7 @@ def create_instance(username, xml_file, media_files,
         if username:
             username = username.lower()
         xml = xml_file.read()
-        is_touchform = False
+
         # check alternative form submission ids
         if not uuid:
             # parse UUID from uploaded XML
@@ -81,9 +81,6 @@ def create_instance(username, xml_file, media_files,
             # check that xml has UUID
             if len(split_xml) > 1:
                 uuid = split_xml[1]
-        else:
-            # is a touchform
-            is_touchform = True
 
         if not username and not uuid:
             raise InstanceInvalidUserError()
@@ -94,7 +91,7 @@ def create_instance(username, xml_file, media_files,
                 xform = XForm.objects.get(uuid=uuid)
                 xform_username = xform.user.username
 
-                if xform_username != username and not is_touchform:
+                if xform_username != username:
                     raise InstanceInvalidUserError()
 
                 username = xform_username
@@ -106,7 +103,7 @@ def create_instance(username, xml_file, media_files,
             xform = XForm.objects.get(
                 id_string=id_string, user__username=username)
 
-            if not is_touchform and xform.user.profile.require_auth and (
+            if xform.user.profile.require_auth and (
                     xform.user != request.user and not request.user.has_perm(
                     'report_xform', xform)):
                 raise PermissionDenied(

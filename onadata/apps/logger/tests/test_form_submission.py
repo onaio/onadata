@@ -48,19 +48,6 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 404)
 
-    def test_form_post_with_uuid(self):
-        """
-        tests the way touch forms post
-        """
-        self.xform = XForm.objects.all().reverse()[0]
-        xml_submission_file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
-        )
-        self._make_submission(
-            xml_submission_file_path, add_uuid=True, touchforms=True)
-        self.assertEqual(self.response.status_code, 201)
-
     def test_duplicate_submissions(self):
         """
         Test submissions for forms with start and end
@@ -232,9 +219,7 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_xform_uuid.xml"
         )
-        # set touchforms to True to force submission to /submission,
-        # without username
-        self._make_submission(path=xml_submission_file_path, touchforms=True)
+        self._make_submission(path=xml_submission_file_path, username='')
         self.assertEqual(self.response.status_code, 404)
 
     def test_fail_submission_if_bad_id_string(self):
@@ -247,9 +232,7 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_bad_id_string.xml"
         )
-        # set touchforms to True to force submission to /submission,
-        # without username
-        self._make_submission(path=xml_submission_file_path, touchforms=True)
+        self._make_submission(path=xml_submission_file_path, username='')
         self.assertEqual(self.response.status_code, 404)
 
     def test_edit_updated_geopoint_cache(self):

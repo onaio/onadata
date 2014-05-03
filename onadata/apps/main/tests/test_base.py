@@ -129,16 +129,19 @@ class TestBase(TransactionTestCase):
             self._make_submission(path)
 
     def _make_submission(self, path, username=None, add_uuid=False,
-                         touchforms=False, forced_submission_time=None,
+                         forced_submission_time=None,
                          client=None):
         # store temporary file with dynamic uuid
         client = client or self.anon
         tmp_file = None
-        if add_uuid and not touchforms:
+
+        if add_uuid:
             tmp_file = NamedTemporaryFile(delete=False)
             split_xml = None
+
             with open(path) as _file:
                 split_xml = re.split(r'(<transport>)', _file.read())
+
             split_xml[1:1] = [
                 '<formhub><uuid>%s</uuid></formhub>' % self.xform.uuid
             ]
@@ -151,13 +154,9 @@ class TestBase(TransactionTestCase):
 
             if username is None:
                 username = self.user.username
+
             url = '/%s/submission' % username
 
-            # touchforms submission
-            if add_uuid and touchforms:
-                post_data['uuid'] = self.xform.uuid
-            if touchforms:
-                url = '/submission'  # touchform has no username
             self.response = client.post(url, post_data)
 
         if forced_submission_time:
@@ -165,8 +164,9 @@ class TestBase(TransactionTestCase):
             instance.date_created = forced_submission_time
             instance.save()
             instance.parsed_instance.save()
+
         # remove temporary file if stored
-        if add_uuid and not touchforms:
+        if add_uuid:
             os.unlink(tmp_file.name)
 
     def _make_submission_w_attachment(self, path, attachment_path):
