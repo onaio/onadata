@@ -212,7 +212,7 @@ class TestFormSubmission(TestBase):
     def test_fail_submission_if_no_username(self):
         """
         Test that a submission fails if no username is provided
-        and the uuid's don't match
+        and the UUIDs don't match.
         """
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -223,16 +223,14 @@ class TestFormSubmission(TestBase):
         self.assertEqual(self.response.status_code, 404)
 
     def test_fail_submission_if_bad_id_string(self):
-        """
-        Test that a submission fails if no username is provided
-        and the uuid's don't match
+        """Test that a submission fails if the uuid's don't match.
         """
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_bad_id_string.xml"
         )
-        self._make_submission(path=xml_submission_file_path, username='')
+        self._make_submission(path=xml_submission_file_path)
         self.assertEqual(self.response.status_code, 404)
 
     def test_edit_updated_geopoint_cache(self):
