@@ -155,7 +155,8 @@ class TestBase(TransactionTestCase):
             if username is None:
                 username = self.user.username
 
-            url = '/%s/submission' % username
+            url_prefix = '%s/' % username if username else ''
+            url = '/%ssubmission' % url_prefix
 
             self.response = client.post(url, post_data)
 
