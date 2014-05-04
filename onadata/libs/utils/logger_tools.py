@@ -102,9 +102,8 @@ def create_instance(username, xml_file, media_files,
             xform = XForm.objects.get(
                 id_string=id_string, user__username=username)
 
-            if xform.user.profile.require_auth and (
-                    xform.user != request.user and not request.user.has_perm(
-                    'report_xform', xform)):
+            if xform.user.profile.require_auth and xform.user != request.user\
+                    and not request.user.has_perm('report_xform', xform):
                 raise PermissionDenied(
                     _(u"%(request_user)s is not allowed to make submissions "
                       u"to %(form_user)s's %(form_title)s form." % {
@@ -134,6 +133,7 @@ def create_instance(username, xml_file, media_files,
         # get new and depracated uuid's
         new_uuid = get_uuid_from_xml(xml)
         duplicate_instances = Instance.objects.filter(uuid=new_uuid)
+
         if duplicate_instances:
             for f in media_files:
                 Attachment.objects.get_or_create(
@@ -184,7 +184,6 @@ def create_instance(username, xml_file, media_files,
     except Exception:
         transaction.rollback()
         raise
-    return None
 
 
 def report_exception(subject, info, exc_info=None):
