@@ -2,6 +2,7 @@ from hashlib import md5
 import os
 
 from django.db import models
+from django.conf import settings
 from onadata.apps.logger.models import XForm
 
 
@@ -97,10 +98,7 @@ class MetaData(models.Model):
     def media_upload(xform, data_file=None):
         data_type = 'media'
         if data_file:
-            if data_file.content_type in ['image/jpeg', 'image/png',
-                                          'audio/mpeg', 'video/3gpp',
-                                          'audio/wav',
-                                          'audio/x-m4a', 'audio/mp3']:
+            if data_file.content_type in settings.SUPPORTED_MEDIA_UPLOAD_TYPES:
                 media = MetaData(data_type=data_type, xform=xform,
                                  data_value=data_file.name,
                                  data_file=data_file,

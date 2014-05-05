@@ -445,3 +445,15 @@ if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
 
 # Set wsgi url scheme to HTTPS
 os.environ['wsgi.url_scheme'] = 'https'
+
+SUPPORTED_MEDIA_UPLOAD_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'audio/mpeg',
+    'video/3gpp',
+    'audio/wav',
+    'audio/x-m4a',
+    'audio/mp3',
+    'text/csv',
+    'application/zip'
+]
