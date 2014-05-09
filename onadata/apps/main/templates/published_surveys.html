@@ -55,7 +55,7 @@
         </td>
         <td class="centered">
                 {% if not xform.encrypted and has_instances_with_geopoints %}
-                    <a href="{% url "onadata.apps.viewer.views.map_view" user.username xform.id_string %}" data-original-title="{% trans 'View Map' %}" rel="tooltip">
+                    <a href="{% url "onadata.apps.viewer.views.map_view" xform.user.username xform.id_string %}" data-original-title="{% trans 'View Map' %}" rel="tooltip">
                         <i class="icon-map-marker icon-large"></i>
                     </a>
                 {% else %}
@@ -115,7 +115,7 @@
             {% endif %}
             {% if submission_count <= 0 %}
                 <div id="delete-{{ xform.id_string }}" class="modal hide fade">
-                    <form action="{% url "onadata.apps.logger.views.delete_xform" username=user.username id_string=xform.id_string %}" method="post">
+                    <form action="{% url "onadata.apps.logger.views.delete_xform" username=xform.user.username id_string=xform.id_string %}" method="post">
                         {% csrf_token %}
                       <div class="modal-header">
                           <a data-dismiss="modal" class="close">&times;</a>
