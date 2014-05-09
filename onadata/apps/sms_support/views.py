@@ -15,7 +15,9 @@ from parser import process_incoming_smses
 
 def get_response(data):
     response = {'status': data.get('code'),
-                'message': data.get('text')}
+                'message': data.get('text'),
+                'instanceID': data.get('id'),
+                'sendouts': data.get('sendouts')}
     return HttpResponse(json.dumps(response), mimetype='application/json')
 
 
@@ -74,7 +76,8 @@ def import_multiple_submissions_for_form(request, username, id_string):
 
     responses = [{'status': d.get('code'),
                   'message': d.get('text'),
-                  'instanceID': d.get('id')} for d
+                  'instanceID': d.get('id'),
+                  'sendouts': d.get('sendouts')} for d
                  in process_incoming_smses(username, incomings, id_string)]
 
     return HttpResponse(json.dumps(responses), mimetype='application/json')

@@ -61,7 +61,11 @@ def get_response(data):
         message = _(u"[ERROR] %s") % message
 
     if message:
-        response_dict.update({"Response": {'Sms': message}})
+        messages = [message, ]
+        sendouts = data.get('sendouts', [])
+        if len(sendouts):
+            messages += sendouts
+        response_dict.update({"Response": {'Sms': messages}})
 
     response = xml_head + dict2xml(response_dict)
     return HttpResponse(response, mimetype='text/xml')

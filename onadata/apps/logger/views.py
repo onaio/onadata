@@ -183,7 +183,6 @@ def formList(request, username):
               _("Requested forms list."), audit, request)
 
     response = render_to_response("xformsList.xml", {
-        #'urls': urls,
         'host': request.build_absolute_uri().replace(
             request.get_full_path(), ''),
         'xforms': xforms
@@ -208,7 +207,6 @@ def xformsManifest(request, username, id_string):
         if not authenticator.authenticate(request):
             return authenticator.build_challenge_response()
     response = render_to_response("xformsManifest.xml", {
-        #'urls': urls,
         'host': request.build_absolute_uri().replace(
             request.get_full_path(), ''),
         'media_files': MetaData.media_upload(xform)
@@ -358,11 +356,14 @@ def download_xlsform(request, username, id_string):
                               user__username=username, id_string=id_string)
     owner = User.objects.get(username=username)
     helper_auth_helper(request)
+
     if not has_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden('Not shared.')
+
     file_path = xform.xls.name
     default_storage = get_storage_class()()
-    if default_storage.exists(file_path):
+
+    if file_path != '' and default_storage.exists(file_path):
         audit = {
             "xform": xform.id_string
         }
@@ -374,17 +375,22 @@ def download_xlsform(request, username, id_string):
             }, audit, request)
         split_path = file_path.split(os.extsep)
         extension = 'xls'
+
         if len(split_path) > 1:
             extension = split_path[len(split_path) - 1]
+
         response = response_with_mimetype_and_name(
             'vnd.ms-excel', id_string, show_date=False, extension=extension,
             file_path=file_path)
+
         return response
+
     else:
         messages.add_message(request, messages.WARNING,
                              _(u'No XLS file for your form '
                                u'<strong>%(id)s</strong>')
                              % {'id': id_string})
+
         return HttpResponseRedirect("/%s" % username)
 
 

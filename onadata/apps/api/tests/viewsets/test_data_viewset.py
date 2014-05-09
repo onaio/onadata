@@ -50,6 +50,36 @@ class TestDataViewSet(TestBase):
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
 
+    def test_data_bad_dataid(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        formid = self.xform.pk
+        data = {
+            u'transportation_2011_07_25':
+            'http://testserver/api/v1/data/bob/%s' % formid
+        }
+        self.assertDictEqual(response.data, data)
+        response = view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertTrue(self.xform.instances.count())
+        dataid = 'INVALID'
+
+        data = {
+            u'_bamboo_dataset_id': u'',
+            u'_attachments': [],
+            u'_geolocation': [None, None],
+            u'_xform_id_string': u'transportation_2011_07_25',
+            u'transport/available_transportation_types_to_referral_facility':
+            u'none',
+            u'_status': u'submitted_via_web',
+            u'_id': dataid
+        }
+        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 400)
+
     def test_data_with_query_parameter(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)

@@ -108,6 +108,15 @@ class TestStatsViewSet(TestBase):
                 u'amount': {u'range': 2770, u'max': 3200, u'min': 430}}
         self.assertDictContainsSubset(data, response.data)
 
+    def test_bad_field(self):
+        self._contributions_form_submissions()
+        view = StatsViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/?method=median&field=INVALID',
+                                   **self.extra)
+        formid = self.xform.pk
+        response = view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 400)
+
     def test_all_stats_api(self):
         self._contributions_form_submissions()
         view = StatsViewSet.as_view({'get': 'list'})
@@ -142,3 +151,38 @@ class TestStatsViewSet(TestBase):
             'range': 2770
         }
         self.assertDictContainsSubset(data, response.data)
+
+    @patch('onadata.apps.logger.models.instance.submission_time')
+    def test_same_id_string_form_different_users(self, mock_time):
+        self._set_mock_time(mock_time)
+
+        # as bob
+        self._publish_transportation_form()
+
+        # as demo user
+        self._create_user_and_login('demo')
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+
+        self._publish_transportation_form()
+        self._make_submissions()
+        view = SubmissionStatsViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        formid = self.xform.id_string
+        data = {
+            u'transportation_2011_07_25':
+            'http://testserver/api/v1/stats/submissions/demo/%s'
+            % self.xform.pk
+        }
+        self.assertDictEqual(response.data, data)
+        request = self.factory.get('/?group=_xform_id_string', **self.extra)
+        response = view(request)
+        response = view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        data = {
+            u'count': 4
+        }
+        self.assertDictContainsSubset(data, response.data[0])

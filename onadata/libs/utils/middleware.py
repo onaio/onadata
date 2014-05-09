@@ -34,7 +34,7 @@ class LocaleMiddlewareWithTweaks(LocaleMiddleware):
         accept = request.META.get('HTTP_ACCEPT_LANGUAGE', '')
         try:
             codes = [code for code, r in parse_accept_lang_header(accept)]
-            if 'km' in codes and not 'km-kh' in codes:
+            if 'km' in codes and 'km-kh' not in codes:
                 request.META['HTTP_ACCEPT_LANGUAGE'] = accept.replace('km',
                                                                       'km-kh')
         except:

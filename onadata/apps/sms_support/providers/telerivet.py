@@ -55,7 +55,11 @@ def get_response(data):
     response = {}
 
     if message:
-        response.update({"messages": [{"content": message}]})
+        messages = [{"content": message}]
+        sendouts = data.get('sendouts', [])
+        if len(sendouts):
+            messages += [{"content": text} for text in sendouts]
+        response.update({"messages": messages})
     return HttpResponse(json.dumps(response), mimetype='application/json')
 
 

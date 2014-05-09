@@ -1,6 +1,7 @@
 import os
 from unittest import skip
 
+from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
 
 from onadata.apps.main.views import show, form_photos, update_xform, profile,\
@@ -10,6 +11,7 @@ from onadata.apps.logger.views import download_xlsform, download_jsonform,\
     download_xform, delete_xform
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.views import export_list, map_view
+from onadata.libs.utils.logger_tools import publish_xml_form
 from onadata.libs.utils.user_auth import http_auth_string
 from test_base import TestBase
 
@@ -444,3 +446,20 @@ class TestFormShow(TestBase):
         })
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
+
+    def test_publish_xml_xlsform_download(self):
+        count = XForm.objects.count()
+        path = os.path.join(
+            self.this_directory, '..', '..', 'api', 'tests', 'fixtures',
+            'forms', 'contributions', 'contributions.xml')
+        f = open(path)
+        xml_file = ContentFile(f.read())
+        f.close()
+        xml_file.name = 'contributions.xml'
+        self.xform = publish_xml_form(xml_file, self.user)
+        self.assertTrue(XForm.objects.count() > count)
+        response = self.client.get(reverse(download_xlsform, kwargs={
+            'username': self.user.username,
+            'id_string': 'contributions'
+        }), follow=True)
+        self.assertContains(response, 'No XLS file for your form ')

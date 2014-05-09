@@ -174,3 +174,8 @@ body .leaflet-draw-edit-remove {
 body #progress-modal {
 	margin-top: 5px;
 }
+
+.submodal {
+  display: block;
+  margin: 1em;
+}

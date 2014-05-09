@@ -89,7 +89,7 @@ class UserProfileFormRegister(forms.Form):
     RECAPTCHA_HTML = captcha.displayhtml(settings.RECAPTCHA_PUBLIC_KEY,
                                          use_ssl=settings.RECAPTCHA_USE_SSL)
 
-    name = forms.CharField(widget=forms.TextInput(), required=False,
+    name = forms.CharField(widget=forms.TextInput(), required=True,
                            max_length=255)
     city = forms.CharField(widget=forms.TextInput(), required=False,
                            max_length=255)
@@ -222,7 +222,7 @@ class MediaForm(forms.Form):
 
     def clean_media(self):
         data_type = self.cleaned_data['media'].content_type
-        if not data_type in ['image/jpeg', 'image/png', 'audio/mpeg']:
+        if data_type not in ['image/jpeg', 'image/png', 'audio/mpeg']:
             raise forms.ValidationError('Only these media types are \
                                         allowed .png .jpg .mp3 .3gp .wav')
 
