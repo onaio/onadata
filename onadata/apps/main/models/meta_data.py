@@ -1,6 +1,8 @@
 from hashlib import md5
 import os
 
+from django.core.validators import URLValidator
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.conf import settings
 from onadata.apps.logger.models import XForm
@@ -105,6 +107,21 @@ class MetaData(models.Model):
                                  data_file_type=data_file.content_type)
                 media.save()
         return type_for_form(xform, data_type)
+
+    @staticmethod
+    def media_add_uri(xform, uri):
+        """Add a uri as a media resource"""
+        data_type = 'media'
+        validate = URLValidator()
+
+        try:
+            validate(uri)
+        except ValidationError as e:
+            raise e
+        else:
+            media = MetaData(data_type=data_type, xform=xform,
+                             data_value=uri)
+            media.save()
 
     @staticmethod
     def mapbox_layer_upload(xform, data=None):
