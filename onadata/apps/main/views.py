@@ -838,7 +838,10 @@ def download_media_data(request, username, id_string, data_id):
     if request.GET.get('del', False):
         if username == request.user.username:
             try:
-                dfs.delete(data.data_file.name)
+                # ensure filename is not an empty string
+                if data.data_file.name != '':
+                    dfs.delete(data.data_file.name)
+
                 data.delete()
                 audit = {
                     'xform': xform.id_string
@@ -855,8 +858,8 @@ def download_media_data(request, username, id_string, data_id):
                     'username': username,
                     'id_string': id_string
                 }))
-            except Exception:
-                return HttpResponseServerError()
+            except Exception as e:
+                return HttpResponseServerError(e)
     else:
         if username:  # == request.user.username or xform.shared:
             if data.data_file.name == '' and data.data_value is not None:
