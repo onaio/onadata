@@ -1,11 +1,18 @@
-from hashlib import md5
+import mimetypes
 import os
+import requests
 
-from django.core.validators import URLValidator
+from contextlib import closing
 from django.core.exceptions import ValidationError
+from django.core.files.temp import NamedTemporaryFile
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.core.validators import URLValidator
 from django.db import models
 from django.conf import settings
+from hashlib import md5
 from onadata.apps.logger.models import XForm
+
+urlvalidate = URLValidator()
 
 
 def upload_to(instance, filename):
@@ -45,6 +52,36 @@ def type_for_form(xform, data_type):
     return MetaData.objects.filter(xform=xform, data_type=data_type)
 
 
+def media_resources(media_list):
+    data = []
+    for media in media_list:
+        if media.data_file.name == '':
+            try:
+                urlvalidate(media.data_value)
+            except ValidationError:
+                pass
+            else:
+                filename = media.data_value.split('/')[-1]
+                data_file = NamedTemporaryFile()
+                content_type = mimetypes.guess_type(filename)
+                with closing(requests.get(media.data_value, stream=True)) as r:
+                    for chunk in r.iter_content(chunk_size=1024):
+                        if chunk:
+                            data_file.write(chunk)
+                data_file.seek(0, 2)
+                size = os.path.getsize(data_file.name)
+                data_file.seek(0)
+                media.data_value = filename
+                media.data_file = InMemoryUploadedFile(
+                    data_file, 'data_file', filename, content_type,
+                    size, charset=None)
+                data.append(media)
+        else:
+            data.append(media)
+
+    return data
+
+
 class MetaData(models.Model):
     xform = models.ForeignKey(XForm)
     data_type = models.CharField(max_length=255)
@@ -55,6 +92,10 @@ class MetaData(models.Model):
     @property
     def hash(self):
         if self.data_file.storage.exists(self.data_file.name):
+            self.data_file.seek(0)
+            return u'%s' % md5(self.data_file.read()).hexdigest()
+        if self.data_file.name != '':
+            self.data_file.seek(0)
             return u'%s' % md5(self.data_file.read()).hexdigest()
         return u''
 
@@ -106,16 +147,15 @@ class MetaData(models.Model):
                                  data_file=data_file,
                                  data_file_type=data_file.content_type)
                 media.save()
-        return type_for_form(xform, data_type)
+        return media_resources(type_for_form(xform, data_type))
 
     @staticmethod
     def media_add_uri(xform, uri):
         """Add a uri as a media resource"""
         data_type = 'media'
-        validate = URLValidator()
 
         try:
-            validate(uri)
+            urlvalidate(uri)
         except ValidationError as e:
             raise e
         else:
