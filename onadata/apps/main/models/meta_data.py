@@ -69,7 +69,7 @@ def create_media(media):
                     data_file.write(chunk)
         data_file.seek(os.SEEK_SET, os.SEEK_END)
         size = os.path.getsize(data_file.name)
-        data_file.seek(0)
+        data_file.seek(os.SEEK_SET)
         media.data_value = filename
         media.data_file = InMemoryUploadedFile(
             data_file, 'data_file', filename, content_type,
@@ -104,8 +104,8 @@ class MetaData(models.Model):
     @property
     def hash(self):
         if self.data_file.storage.exists(self.data_file.name) \
-                or self.data_file.name != '':
-            self.data_file.seek(0)
+                and self.data_file.name != '':
+            self.data_file.seek(os.SEEK_SET)
 
             return u'%s' % md5(self.data_file.read()).hexdigest()
 
