@@ -1,6 +1,5 @@
 import os
 import hashlib
-import requests
 
 from django.core.files.base import File
 from django.core.urlresolvers import reverse
