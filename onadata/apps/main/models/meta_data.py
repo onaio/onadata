@@ -17,6 +17,15 @@ CHUNK_SIZE = 1024
 urlvalidate = URLValidator()
 
 
+def is_valid_url(uri):
+    try:
+        urlvalidate(uri)
+    except ValidationError:
+        return False
+
+    return True
+
+
 def upload_to(instance, filename):
     if instance.data_type == 'media':
         return os.path.join(
@@ -55,11 +64,8 @@ def type_for_form(xform, data_type):
 
 
 def create_media(media):
-    try:
-        urlvalidate(media.data_value)
-    except ValidationError:
-        pass
-    else:
+    """Download media link"""
+    if is_valid_url(media.data_value):
         filename = media.data_value.split('/')[-1]
         data_file = NamedTemporaryFile()
         content_type = mimetypes.guess_type(filename)
@@ -80,10 +86,18 @@ def create_media(media):
     return None
 
 
-def media_resources(media_list):
+def media_resources(media_list, download=False):
+    """List of MetaData objects of type media
+
+    @param media_list - list of MetaData objects of type `media`
+    @param download - boolean, when True downloads media files when
+                      media.data_value is a valid url
+
+    return a list of MetaData objects
+    """
     data = []
     for media in media_list:
-        if media.data_file.name == '':
+        if media.data_file.name == '' and download:
             media = create_media(media)
 
             if media:
@@ -103,8 +117,10 @@ class MetaData(models.Model):
 
     @property
     def hash(self):
-        if self.data_file.storage.exists(self.data_file.name) \
-                and self.data_file.name != '':
+        file_exists = self.data_file.storage.exists(self.data_file.name)
+
+        if (file_exists and self.data_file.name != '') \
+                or (not file_exists and self.data_file):
             self.data_file.seek(os.SEEK_SET)
 
             return u'%s' % md5(self.data_file.read()).hexdigest()
@@ -150,7 +166,7 @@ class MetaData(models.Model):
         return type_for_form(xform, data_type)
 
     @staticmethod
-    def media_upload(xform, data_file=None):
+    def media_upload(xform, data_file=None, download=False):
         data_type = 'media'
         if data_file:
             if data_file.content_type in settings.SUPPORTED_MEDIA_UPLOAD_TYPES:
@@ -159,18 +175,14 @@ class MetaData(models.Model):
                                  data_file=data_file,
                                  data_file_type=data_file.content_type)
                 media.save()
-        return media_resources(type_for_form(xform, data_type))
+        return media_resources(type_for_form(xform, data_type), download)
 
     @staticmethod
     def media_add_uri(xform, uri):
         """Add a uri as a media resource"""
         data_type = 'media'
 
-        try:
-            urlvalidate(uri)
-        except ValidationError as e:
-            raise e
-        else:
+        if is_valid_url(uri):
             media = MetaData(data_type=data_type, xform=xform,
                              data_value=uri)
             media.save()
