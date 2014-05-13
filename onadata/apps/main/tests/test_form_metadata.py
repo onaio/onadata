@@ -246,3 +246,10 @@ class TestFormMetadata(TestBase):
         f.close()
         meta_hash = m.hash
         self.assertEqual(meta_hash, media_hash)
+
+    def test_add_media_url(self):
+        uri = 'https://devtrac.ona.io/fieldtrips.csv'
+        count = MetaData.objects.filter(data_type='media').count()
+        self.client.post(self.edit_url, {'media_url': uri})
+        self.assertEquals(count + 1,
+                          len(MetaData.objects.filter(data_type='media')))

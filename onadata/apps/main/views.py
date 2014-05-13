@@ -614,6 +614,9 @@ def edit(request, username, id_string):
                     xform.allows_sms = pe
                     xform.sms_id_string = pid
 
+        elif request.POST.get('media_url'):
+            uri = request.POST.get('media_url')
+            MetaData.media_add_uri(xform, uri)
         elif request.FILES.get('media'):
             audit = {
                 'xform': xform.id_string
@@ -835,7 +838,10 @@ def download_media_data(request, username, id_string, data_id):
     if request.GET.get('del', False):
         if username == request.user.username:
             try:
-                dfs.delete(data.data_file.name)
+                # ensure filename is not an empty string
+                if data.data_file.name != '':
+                    dfs.delete(data.data_file.name)
+
                 data.delete()
                 audit = {
                     'xform': xform.id_string
@@ -852,10 +858,13 @@ def download_media_data(request, username, id_string, data_id):
                     'username': username,
                     'id_string': id_string
                 }))
-            except Exception:
-                return HttpResponseServerError()
+            except Exception as e:
+                return HttpResponseServerError(e)
     else:
         if username:  # == request.user.username or xform.shared:
+            if data.data_file.name == '' and data.data_value is not None:
+                return HttpResponseRedirect(data.data_value)
+
             file_path = data.data_file.name
             filename, extension = os.path.splitext(file_path.split('/')[-1])
             extension = extension.strip('.')
@@ -1201,7 +1210,7 @@ def activity_api(request, username):
             query_args["count"] = True \
                 if int(request.GET.get('count')) > 0 else False
         cursor = AuditLog.query_mongo(**query_args)
-    except ValueError, e:
+    except ValueError as e:
         return HttpResponseBadRequest(e.__str__())
     records = list(record for record in cursor)
     response_text = json.dumps(records, default=stringify_unknowns)
@@ -1223,7 +1232,7 @@ def qrcode(request, username, id_string):
     status = 200
     try:
         url = enketo_url(formhub_url, id_string)
-    except Exception, e:
+    except Exception as e:
         error_msg = _(u"Error Generating QRCODE: %s" % e)
         results = """<div class="alert alert-error">%s</div>""" % error_msg
         status = 400

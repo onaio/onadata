@@ -209,7 +209,7 @@ def xformsManifest(request, username, id_string):
     response = render_to_response("xformsManifest.xml", {
         'host': request.build_absolute_uri().replace(
             request.get_full_path(), ''),
-        'media_files': MetaData.media_upload(xform)
+        'media_files': MetaData.media_upload(xform, download=True)
     }, mimetype="text/xml; charset=utf-8")
     response['X-OpenRosa-Version'] = '1.0'
     tz = pytz.timezone(settings.TIME_ZONE)
@@ -283,7 +283,7 @@ def submission(request, username=None):
             response.status_code = 202
             response['Location'] = request.build_absolute_uri(request.path)
             return response
-        except PermissionDenied, e:
+        except PermissionDenied as e:
             return OpenRosaResponseForbidden(e.message)
 
         if instance is None:
@@ -470,7 +470,7 @@ def enter_data(request, username, id_string):
                                         kwargs={'username': username,
                                                 'id_string': id_string}))
         return HttpResponseRedirect(url)
-    except Exception, e:
+    except Exception as e:
         context = RequestContext(request)
         owner = User.objects.get(username=username)
         context.profile, created = \
@@ -521,7 +521,7 @@ def edit_data(request, username, id_string, data_id):
             form_url, xform.id_string, instance_xml=injected_xml,
             instance_id=instance.uuid, return_url=return_url
         )
-    except Exception, e:
+    except Exception as e:
         context.message = {
             'type': 'alert-error',
             'text': u"Enketo error, reason: %s" % e}
@@ -693,7 +693,7 @@ def ziggy_submissions(request, username):
             try:
                 cursor = ZiggyInstance.get_current_list(
                     reporter_id, client_version)
-            except ValueError, e:
+            except ValueError as e:
                 status = 400
                 data = {'message': '%s' % e}
             else:

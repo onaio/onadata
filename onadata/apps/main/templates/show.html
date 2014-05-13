@@ -353,11 +353,34 @@
             {% if can_edit %}
             <form action="{% url "onadata.apps.main.views.edit" content_user.username xform.id_string %}" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
-                <table>
-                <tbody><tr><th><label for="id_media">Media upload:</label></th><td><input type="file" multiple="" name="media" id="id_media"></td></tr>
-                </tbody>
-                </table>
-                <input type="submit" class="btn" value="{% trans 'Upload' %}" />
+                <ul class="nav nav-tabs">
+                    <li class="active"><a href="#media_upload" data-toggle="tab">Media Upload</a></li>
+                    <li><a href="#media_url_add" data-toggle="tab">Media Upload</a></li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane active" id="media_upload">
+                        <table>
+                        <tbody>
+                            <tr>
+                                <th><label for="id_media">Media upload:</label></th>
+                                <td><input type="file" multiple="" name="media" id="id_media"></td>
+                            </tr>
+                        </tbody>
+                        </table>
+                        <input type="submit" class="btn" value="{% trans 'Upload' %}" />
+                    </div>
+                    <div class="tab-pane active" id="media_url_add">
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <th><label for="id_media">Media url:</label></th>
+                                    <td><input type="text" name="media_url" id="id_media_url"></td>
+                                </tr>
+                        </tbody>
+                        </table>
+                        <input type="submit" class="btn" value="{% trans 'Save Media URL' %}" />
+                    </div>
+                </div>
             </form>
             {% endif %}
             </div>
