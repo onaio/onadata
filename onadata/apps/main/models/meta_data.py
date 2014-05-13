@@ -12,6 +12,8 @@ from django.conf import settings
 from hashlib import md5
 from onadata.apps.logger.models import XForm
 
+CHUNK_SIZE = 1024
+
 urlvalidate = URLValidator()
 
 
@@ -52,29 +54,39 @@ def type_for_form(xform, data_type):
     return MetaData.objects.filter(xform=xform, data_type=data_type)
 
 
+def create_media(media):
+    try:
+        urlvalidate(media.data_value)
+    except ValidationError:
+        pass
+    else:
+        filename = media.data_value.split('/')[-1]
+        data_file = NamedTemporaryFile()
+        content_type = mimetypes.guess_type(filename)
+        with closing(requests.get(media.data_value, stream=True)) as r:
+            for chunk in r.iter_content(chunk_size=CHUNK_SIZE):
+                if chunk:
+                    data_file.write(chunk)
+        data_file.seek(os.SEEK_SET, os.SEEK_END)
+        size = os.path.getsize(data_file.name)
+        data_file.seek(0)
+        media.data_value = filename
+        media.data_file = InMemoryUploadedFile(
+            data_file, 'data_file', filename, content_type,
+            size, charset=None)
+
+        return media
+
+    return None
+
+
 def media_resources(media_list):
     data = []
     for media in media_list:
         if media.data_file.name == '':
-            try:
-                urlvalidate(media.data_value)
-            except ValidationError:
-                pass
-            else:
-                filename = media.data_value.split('/')[-1]
-                data_file = NamedTemporaryFile()
-                content_type = mimetypes.guess_type(filename)
-                with closing(requests.get(media.data_value, stream=True)) as r:
-                    for chunk in r.iter_content(chunk_size=1024):
-                        if chunk:
-                            data_file.write(chunk)
-                data_file.seek(0, 2)
-                size = os.path.getsize(data_file.name)
-                data_file.seek(0)
-                media.data_value = filename
-                media.data_file = InMemoryUploadedFile(
-                    data_file, 'data_file', filename, content_type,
-                    size, charset=None)
+            media = create_media(media)
+
+            if media:
                 data.append(media)
         else:
             data.append(media)
