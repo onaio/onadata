@@ -91,12 +91,12 @@ class MetaData(models.Model):
 
     @property
     def hash(self):
-        if self.data_file.storage.exists(self.data_file.name):
+        if self.data_file.storage.exists(self.data_file.name) \
+                or self.data_file.name != '':
             self.data_file.seek(0)
+
             return u'%s' % md5(self.data_file.read()).hexdigest()
-        if self.data_file.name != '':
-            self.data_file.seek(0)
-            return u'%s' % md5(self.data_file.read()).hexdigest()
+
         return u''
 
     @staticmethod
