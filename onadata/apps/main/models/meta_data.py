@@ -121,9 +121,12 @@ class MetaData(models.Model):
 
         if (file_exists and self.data_file.name != '') \
                 or (not file_exists and self.data_file):
-            self.data_file.seek(os.SEEK_SET)
-
-            return u'%s' % md5(self.data_file.read()).hexdigest()
+            try:
+                self.data_file.seek(os.SEEK_SET)
+            except IOError:
+                return u''
+            else:
+                return u'%s' % md5(self.data_file.read()).hexdigest()
 
         return u''
 
