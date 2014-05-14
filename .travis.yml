@@ -10,7 +10,7 @@ services:
 python:
   - '2.7'
 before_install:
-  - ./script/database/install_postgis onadata_test postgres
+  - ./script/database/install_postgis onadata_test postgres 127.0.0.1
   - ./script/install/ubuntu
 env:
   - TESTFOLDER=onadata/apps/main
