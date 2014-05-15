@@ -28,6 +28,9 @@ django-celery==3.0.23
 python-digest==1.7
 django-digest==1.13
 
+# REST framework digest auth
+djangorestframework-digestauth==1.1.0
+
 # new export code relies on
 pandas==0.12.0
 requests==2.0.1
