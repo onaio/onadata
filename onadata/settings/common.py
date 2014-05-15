@@ -218,7 +218,6 @@ REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework_digestauth.authentication.DigestAuthentication',
         'rest_framework.permissions.DjangoModelPermissions',
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
@@ -226,6 +225,7 @@ REST_FRAMEWORK = {
         'oauth2_provider.ext.rest_framework.OAuth2Authentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_digestauth.authentication.DigestAuthentication',
     ),
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.UnicodeJSONRenderer',
