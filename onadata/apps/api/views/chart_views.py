@@ -1,7 +1,6 @@
 from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import authentication
 from rest_framework.renderers import TemplateHTMLRenderer, BrowsableAPIRenderer
 from onadata.libs.utils import common_tags
 from onadata.apps.logger.models import XForm
@@ -10,8 +9,6 @@ from onadata.libs.utils.chart_tools import build_chart_data_for_field
 
 
 class ChartDetail(APIView):
-    authentication_classes = (authentication.SessionAuthentication,
-                              authentication.TokenAuthentication)
     renderer_classes = (BrowsableAPIRenderer, TemplateHTMLRenderer)
     model = XForm
 
