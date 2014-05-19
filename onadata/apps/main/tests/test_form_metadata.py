@@ -2,6 +2,7 @@ import os
 import hashlib
 
 from django.core.files.base import File
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.urlresolvers import reverse
 
 from onadata.apps.main.models import MetaData
@@ -253,3 +254,21 @@ class TestFormMetadata(TestBase):
         self.client.post(self.edit_url, {'media_url': uri})
         self.assertEquals(count + 1,
                           len(MetaData.objects.filter(data_type='media')))
+
+    def test_windows_csv_file_upload(self):
+        count = MetaData.objects.filter(data_type='media').count()
+        media_file = os.path.join(
+            self.this_directory, 'fixtures', 'transportation',
+            'transportation.csv')
+        f = InMemoryUploadedFile(open(media_file),
+                                 'media',
+                                 'transportation.csv',
+                                 'application/octet-stream',
+                                 2625,
+                                 None)
+        MetaData.media_upload(self.xform, f)
+        media_list = MetaData.objects.filter(data_type='media')
+        new_count = media_list.count()
+        self.assertEqual(count + 1, new_count)
+        media = media_list.get(data_value='transportation.csv')
+        self.assertEqual(media.data_file_type, 'text/csv')

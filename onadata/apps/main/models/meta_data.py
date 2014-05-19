@@ -172,11 +172,16 @@ class MetaData(models.Model):
     def media_upload(xform, data_file=None, download=False):
         data_type = 'media'
         if data_file:
-            if data_file.content_type in settings.SUPPORTED_MEDIA_UPLOAD_TYPES:
+            allowed_types = settings.SUPPORTED_MEDIA_UPLOAD_TYPES
+            if data_file.content_type in allowed_types or \
+                    mimetypes.guess_type(data_file.name)[0] in allowed_types:
+                content_type = data_file.content_type \
+                    if data_file.content_type in allowed_types else \
+                    mimetypes.guess_type(data_file.name)[0]
                 media = MetaData(data_type=data_type, xform=xform,
                                  data_value=data_file.name,
                                  data_file=data_file,
-                                 data_file_type=data_file.content_type)
+                                 data_file_type=content_type)
                 media.save()
         return media_resources(type_for_form(xform, data_type), download)
 
