@@ -1,10 +1,13 @@
 from django.contrib.auth.models import User
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
-from onadata.libs.serializers.organization_serializer import\
-    OrganizationSerializer
+from onadata.libs.serializers.organization_serializer import(
+    OrganizationSerializer)
 from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.api.tools import get_organization_members
 
 
 class OrganizationProfileViewSet(ObjectLookupMixin, ModelViewSet):
@@ -84,3 +87,11 @@ List, Retrieve, Update, Create/Register Organizations
         if user.is_anonymous():
             user = User.objects.get(pk=-1)
         return user.organizationprofile_set.all()
+
+    @action(methods=['GET', 'POST'])
+    def members(self, request, *args, **kwargs):
+        organization = self.get_object()
+        members = get_organization_members(organization)
+        data = [user.username for user in members]
+
+        return Response(data)

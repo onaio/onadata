@@ -58,3 +58,14 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertContains(response, '{"name": "name is required!"}',
                             status_code=400)
+
+    def test_orgs_members_list(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'get': 'members'
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [u'denoinc'])
