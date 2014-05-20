@@ -1,4 +1,7 @@
 from django.contrib.auth.models import User
+from django.utils.translation import ugettext as _
+
+from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -7,7 +10,8 @@ from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.serializers.organization_serializer import(
     OrganizationSerializer)
 from onadata.apps.api.models.organization_profile import OrganizationProfile
-from onadata.apps.api.tools import get_organization_members
+from onadata.apps.api.tools import (get_organization_members,
+                                    add_user_to_organization)
 
 
 class OrganizationProfileViewSet(ObjectLookupMixin, ModelViewSet):
@@ -91,7 +95,29 @@ List, Retrieve, Update, Create/Register Organizations
     @action(methods=['GET', 'POST'])
     def members(self, request, *args, **kwargs):
         organization = self.get_object()
-        members = get_organization_members(organization)
-        data = [user.username for user in members]
+        status_code = status.HTTP_200_OK
+        data = []
 
-        return Response(data)
+        if request.method == 'POST' and 'username' in request.DATA:
+            username = request.DATA.get('username')
+
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                status_code = status.HTTP_400_BAD_REQUEST
+                data = {'username':
+                        [_(u"User `%(username)s` does not exist."
+                           % {'username': username})]}
+            else:
+                add_user_to_organization(organization, user)
+                status_code = status.HTTP_201_CREATED
+
+        elif request.method == 'POST' and 'username' not in request.DATA:
+            status_code = status.HTTP_400_BAD_REQUEST
+            data = {'username': [_(u"This field is required.")]}
+
+        if status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED]:
+            members = get_organization_members(organization)
+            data = [u.username for u in members]
+
+        return Response(data, status=status_code)

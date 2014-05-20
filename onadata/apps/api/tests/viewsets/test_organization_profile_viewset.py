@@ -1,5 +1,7 @@
 import json
 
+from django.contrib.auth.models import User
+
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
@@ -69,3 +71,45 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [u'denoinc'])
+
+    def test_add_members_to_org_username_required(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+        request = self.factory.post('/', data={}, **self.extra)
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
+                         {u'username': [u"This field is required."]})
+
+    def test_add_members_to_org_user_does_not_exist(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+        data = {'username': 'aboy'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
+                         {u'username': [u"User `aboy` does not exist."]})
+
+    def test_add_members_to_org(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+
+        User.objects.create(username='aboy')
+        data = {'username': 'aboy'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, [u'denoinc', u'aboy'])
