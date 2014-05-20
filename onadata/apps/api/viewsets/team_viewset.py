@@ -1,11 +1,16 @@
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
+from django.utils.translation import ugettext as _
+
 from rest_framework import exceptions
+from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.apps.api.models import Team
+from onadata.apps.api.tools import add_user_to_team
 
 
 class TeamViewSet(ModelViewSet):
@@ -67,6 +72,17 @@ Shows teams details and the projects the team is assigned to, where:
 >            "organization": "bruize",
 >            "projects": []
 >        }
+
+## Add a user to a team
+
+POST `{"username": "someusername"}`
+to `/api/v1/teams/<owner|org>/<team id|team name>/add_user` to add a user to
+the specified team.
+
+> Response
+>
+>       {"team": "team_name", "username": "someusername"}
+>
 """
     queryset = Team.objects.all()
     serializer_class = TeamSerializer
@@ -111,3 +127,25 @@ Shows teams details and the projects the team is assigned to, where:
         self.object_list = qs.filter(**filter)
         serializer = self.get_serializer(self.object_list, many=True)
         return Response(serializer.data)
+
+    @action()
+    def add_user(self, request, *args, **kwargs):
+        team = self.get_object()
+        username = request.DATA.get('username')
+
+        data = {}
+
+        if username:
+            try:
+                user = User.objects.get(username__iexact=username)
+            except User.DoesNotExist:
+                data['username'] = _(u"User `%(username)s` does not exist."
+                                     % {'username': username})
+            else:
+                add_user_to_team(team, user)
+
+                return Response({'username': username, 'team': team.team_name})
+        else:
+            data['username'] = [_(u"This field is required")]
+
+        return Response(data, status=status.HTTP_400_BAD_REQUEST)

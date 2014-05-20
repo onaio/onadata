@@ -72,3 +72,22 @@ class TestTeamViewSet(TestAbstractViewSet):
 
     def test_teams_create(self):
         self._team_create()
+
+    def test_add_user_to_team(self):
+        self._team_create()
+        self.assertNotIn(self.team.group_ptr, self.user.groups.all())
+
+        view = TeamViewSet.as_view({
+            'post': 'add_user'
+        })
+
+        data = {'username': self.user.username}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, owner='denoinc', pk='dreamteam')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data,
+                         {'team': 'dreamteam', 'username': self.user.username})
+        self.assertIn(self.team.group_ptr, self.user.groups.all())
