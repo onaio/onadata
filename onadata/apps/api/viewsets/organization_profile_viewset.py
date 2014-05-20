@@ -81,6 +81,33 @@ List, Retrieve, Update, Create/Register Organizations
 >            "user": "https://ona.io/api/v1/users/modilabs"
 >            "creator": "https://ona.io/api/v1/users/demo"
 >        }
+
+## List Organization members
+
+Get a list of organization members.
+
+<pre class="prettyprint"><b>GET</b> /api/v1/orgs/{username}/members</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/orgs/modilabs/members
+
+> Response
+>
+>       ["member1", "member2"]
+
+## Add a user to an organization
+
+To add a user to an organization requires a JSON payload of
+`{"username": "member1"}`.
+
+<pre class="prettyprint"><b>POST</b> /api/v1/orgs/{username}/members</pre>
+> Example
+>
+>       curl -X POST -d '{"username": "member1"}' https://ona.io/api/v1/orgs/modilabs/members
+
+> Response
+>
+>       ["member1"]
 """
     queryset = OrganizationProfile.objects.all()
     serializer_class = OrganizationSerializer
