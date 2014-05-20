@@ -22,7 +22,7 @@ class TestTeamViewSet(TestAbstractViewSet):
             'url':
             'http://testserver/api/v1/teams/denoinc/%s' % self.owner_team.pk,
             'name': u'Owners',
-            'organization': 'http://testserver/api/v1/users/denoinc',
+            'organization': 'denoinc',
             'projects': []}
 
         self.assertEqual(response.status_code, 200)
@@ -52,7 +52,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         self._org_create()
         data = {
             'name': u'dreamteam',
-            'organization': self.company_data['user']
+            'organization': self.company_data['org']
         }
         request = self.factory.post(
             '/', data=json.dumps(data),

@@ -33,13 +33,13 @@ Provides a json list of teams within a specified organization
 >            {
 >                "url": "https://ona.io/api/v1/teams/bruize/1",
 >                "name": "Owners",
->                "organization": "https://ona.io/api/v1/users/bruize",
+>                "organization": "bruize",
 >                "projects": []
 >            },
 >            {
 >                "url": "https://ona.io/api/v1/teams/bruize/2",
 >                "name": "demo team",
->                "organization": "https://ona.io/api/v1/users/bruize",
+>                "organization": "bruize",
 >                "projects": []
 >            }
 >        ]
@@ -64,7 +64,7 @@ Shows teams details and the projects the team is assigned to, where:
 >        {
 >            "url": "https://ona.io/api/v1/teams/bruize/1",
 >            "name": "Owners",
->            "organization": "https://ona.io/api/v1/users/bruize",
+>            "organization": "bruize",
 >            "projects": []
 >        }
 """
