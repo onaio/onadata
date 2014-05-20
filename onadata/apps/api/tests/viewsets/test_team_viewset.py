@@ -44,6 +44,10 @@ class TestTeamViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.team_data)
 
+        response = view(request, owner='denoinc', pk='dreamteam')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.team_data)
+
     def _team_create(self):
         self._org_create()
         data = {

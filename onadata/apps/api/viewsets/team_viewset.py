@@ -86,12 +86,22 @@ Shows teams details and the projects the team is assigned to, where:
             raise exceptions.ParseError(
                 'Expected URL keyword argument `owner` and `pk`.'
             )
-        filter = {
-            'organization__username': self.kwargs['owner'],
-            'pk': self.kwargs['pk']
+        owner = self.kwargs['owner']
+        pk = self.kwargs['pk']
+        q_filter = {
+            'organization__username__iexact': owner,
         }
+
+        try:
+            pk = int(pk)
+        except ValueError:
+            q_filter['name__iexact'] = u'%s#%s' % (owner, pk)
+        else:
+            q_filter['pk'] = pk
+
         qs = self.filter_queryset(self.get_queryset())
-        return get_object_or_404(qs, **filter)
+
+        return get_object_or_404(qs, **q_filter)
 
     def list(self, request, **kwargs):
         filter = {}
