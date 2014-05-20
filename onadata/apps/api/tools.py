@@ -75,6 +75,8 @@ def create_organization_object(org_name, creator, attrs={}):
 
 
 def create_organization_team(organization, name, permission_names=[]):
+    organization = organization.user \
+        if isinstance(organization, OrganizationProfile) else organization
     team = Team.objects.create(organization=organization, name=name)
     content_type = ContentType.objects.get(
         app_label='api', model='organizationprofile')
@@ -87,8 +89,35 @@ def create_organization_team(organization, name, permission_names=[]):
     return team
 
 
+def get_organization_members_team(organization):
+    """Get organization members team
+    create members team if it does not exist and add organization owner
+    to the members team"""
+    try:
+        team = Team.objects.get(
+            name=u'%s#%s' % (organization.user.username, 'members'))
+    except Team.DoesNotExist:
+        team = create_organization_team(organization, 'members')
+        add_user_to_team(team, organization.user)
+
+    return team
+
+
+def add_user_to_organization(organization, user):
+    """Add a user to an organization"""
+    team = get_organization_members_team(organization)
+    add_user_to_team(team, user)
+
+
 def add_user_to_team(team, user):
     user.groups.add(team)
+
+
+def get_organization_members(organization):
+    """Get members team user queryset"""
+    team = get_organization_members_team(organization)
+
+    return team.user_set.all()
 
 
 def create_organization_project(organization, project_name, created_by):
