@@ -73,16 +73,38 @@ Shows teams details and the projects the team is assigned to, where:
 >            "projects": []
 >        }
 
-## Add a user to a team
+## List members of a team
 
-POST `{"username": "someusername"}`
-to `/api/v1/teams/<owner|org>/<team id|team name>/add_user` to add a user to
-the specified team.
+A list of usernames is the response for members of the team.
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/teams/<code>{org}</code>/<code>{pk}/members</code>
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/teams/bruize/1/members
 
 > Response
 >
->       {"team": "team_name", "username": "someusername"}
+>       ["member1"]
 >
+
+## Add a user to a team
+
+POST `{"username": "someusername"}`
+to `/api/v1/teams/<owner|org>/<team id|team name>/members` to add a user to
+the specified team.
+A list of usernames is the response for members of the team.
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/teams/<code>{org}</code>/<code>{pk}/members</code>
+</pre>
+
+> Response
+>
+>       ["someusername"]
+
 """
     queryset = Team.objects.all()
     serializer_class = TeamSerializer
@@ -128,24 +150,31 @@ the specified team.
         serializer = self.get_serializer(self.object_list, many=True)
         return Response(serializer.data)
 
-    @action()
-    def add_user(self, request, *args, **kwargs):
+    @action(methods=['GET', 'POST'])
+    def members(self, request, *args, **kwargs):
         team = self.get_object()
-        username = request.DATA.get('username')
-
         data = {}
+        status_code = status.HTTP_200_OK
 
-        if username:
-            try:
-                user = User.objects.get(username__iexact=username)
-            except User.DoesNotExist:
-                data['username'] = _(u"User `%(username)s` does not exist."
-                                     % {'username': username})
+        if request.method == 'POST':
+            username = request.DATA.get('username')
+
+            if username:
+                try:
+                    user = User.objects.get(username__iexact=username)
+                except User.DoesNotExist:
+                    status_code = status.HTTP_400_BAD_REQUEST
+                    data['username'] = [
+                        _(u"User `%(username)s` does not exist."
+                          % {'username': username})]
+                else:
+                    add_user_to_team(team, user)
+                    status_code = status.HTTP_201_CREATED
             else:
-                add_user_to_team(team, user)
+                status_code = status.HTTP_400_BAD_REQUEST
+                data['username'] = [_(u"This field is required.")]
 
-                return Response({'username': username, 'team': team.team_name})
-        else:
-            data['username'] = [_(u"This field is required")]
+        if status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED]:
+            data = [u.username for u in team.user_set.all()]
 
-        return Response(data, status=status.HTTP_400_BAD_REQUEST)
+        return Response(data, status=status_code)

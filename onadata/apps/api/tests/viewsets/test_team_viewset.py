@@ -78,7 +78,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         self.assertNotIn(self.team.group_ptr, self.user.groups.all())
 
         view = TeamViewSet.as_view({
-            'post': 'add_user'
+            'post': 'members'
         })
 
         data = {'username': self.user.username}
@@ -87,7 +87,45 @@ class TestTeamViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
         response = view(request, owner='denoinc', pk='dreamteam')
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data,
-                         {'team': 'dreamteam', 'username': self.user.username})
+                         [self.user.username])
         self.assertIn(self.team.group_ptr, self.user.groups.all())
+
+    def test_add_user_to_team_missing_username(self):
+        self._team_create()
+        self.assertNotIn(self.team.group_ptr, self.user.groups.all())
+
+        view = TeamViewSet.as_view({
+            'post': 'members'
+        })
+
+        data = {}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, owner='denoinc', pk='dreamteam')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
+                         {'username': [u'This field is required.']})
+        self.assertNotIn(self.team.group_ptr, self.user.groups.all())
+
+    def test_add_user_to_team_user_does_not_exist(self):
+        self._team_create()
+        self.assertNotIn(self.team.group_ptr, self.user.groups.all())
+
+        view = TeamViewSet.as_view({
+            'post': 'members'
+        })
+
+        data = {'username': 'aboy'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, owner='denoinc', pk='dreamteam')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data,
+                         {'username': [u'User `aboy` does not exist.']})
+        self.assertNotIn(self.team.group_ptr, self.user.groups.all())
