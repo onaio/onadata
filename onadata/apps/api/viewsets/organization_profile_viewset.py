@@ -103,7 +103,8 @@ To add a user to an organization requires a JSON payload of
 <pre class="prettyprint"><b>POST</b> /api/v1/orgs/{username}/members</pre>
 > Example
 >
->       curl -X POST -d '{"username": "member1"}' https://ona.io/api/v1/orgs/modilabs/members
+>       curl -X POST -d '{"username": "member1"}' \
+https://ona.io/api/v1/orgs/modilabs/members
 
 > Response
 >

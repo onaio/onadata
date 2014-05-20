@@ -1,11 +1,16 @@
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
+from django.utils.translation import ugettext as _
+
 from rest_framework import exceptions
+from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.apps.api.models import Team
+from onadata.apps.api.tools import add_user_to_team
 
 
 class TeamViewSet(ModelViewSet):
@@ -33,13 +38,13 @@ Provides a json list of teams within a specified organization
 >            {
 >                "url": "https://ona.io/api/v1/teams/bruize/1",
 >                "name": "Owners",
->                "organization": "https://ona.io/api/v1/users/bruize",
+>                "organization": "bruize",
 >                "projects": []
 >            },
 >            {
 >                "url": "https://ona.io/api/v1/teams/bruize/2",
 >                "name": "demo team",
->                "organization": "https://ona.io/api/v1/users/bruize",
+>                "organization": "bruize",
 >                "projects": []
 >            }
 >        ]
@@ -64,9 +69,42 @@ Shows teams details and the projects the team is assigned to, where:
 >        {
 >            "url": "https://ona.io/api/v1/teams/bruize/1",
 >            "name": "Owners",
->            "organization": "https://ona.io/api/v1/users/bruize",
+>            "organization": "bruize",
 >            "projects": []
 >        }
+
+## List members of a team
+
+A list of usernames is the response for members of the team.
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/teams/<code>{org}</code>/<code>{pk}/members</code>
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/teams/bruize/1/members
+
+> Response
+>
+>       ["member1"]
+>
+
+## Add a user to a team
+
+POST `{"username": "someusername"}`
+to `/api/v1/teams/<owner|org>/<team id|team name>/members` to add a user to
+the specified team.
+A list of usernames is the response for members of the team.
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/teams/<code>{org}</code>/<code>{pk}/members</code>
+</pre>
+
+> Response
+>
+>       ["someusername"]
+
 """
     queryset = Team.objects.all()
     serializer_class = TeamSerializer
@@ -86,12 +124,22 @@ Shows teams details and the projects the team is assigned to, where:
             raise exceptions.ParseError(
                 'Expected URL keyword argument `owner` and `pk`.'
             )
-        filter = {
-            'organization__username': self.kwargs['owner'],
-            'pk': self.kwargs['pk']
+        owner = self.kwargs['owner']
+        pk = self.kwargs['pk']
+        q_filter = {
+            'organization__username__iexact': owner,
         }
+
+        try:
+            pk = int(pk)
+        except ValueError:
+            q_filter['name__iexact'] = u'%s#%s' % (owner, pk)
+        else:
+            q_filter['pk'] = pk
+
         qs = self.filter_queryset(self.get_queryset())
-        return get_object_or_404(qs, **filter)
+
+        return get_object_or_404(qs, **q_filter)
 
     def list(self, request, **kwargs):
         filter = {}
@@ -101,3 +149,32 @@ Shows teams details and the projects the team is assigned to, where:
         self.object_list = qs.filter(**filter)
         serializer = self.get_serializer(self.object_list, many=True)
         return Response(serializer.data)
+
+    @action(methods=['GET', 'POST'])
+    def members(self, request, *args, **kwargs):
+        team = self.get_object()
+        data = {}
+        status_code = status.HTTP_200_OK
+
+        if request.method == 'POST':
+            username = request.DATA.get('username')
+
+            if username:
+                try:
+                    user = User.objects.get(username__iexact=username)
+                except User.DoesNotExist:
+                    status_code = status.HTTP_400_BAD_REQUEST
+                    data['username'] = [
+                        _(u"User `%(username)s` does not exist."
+                          % {'username': username})]
+                else:
+                    add_user_to_team(team, user)
+                    status_code = status.HTTP_201_CREATED
+            else:
+                status_code = status.HTTP_400_BAD_REQUEST
+                data['username'] = [_(u"This field is required.")]
+
+        if status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED]:
+            data = [u.username for u in team.user_set.all()]
+
+        return Response(data, status=status_code)

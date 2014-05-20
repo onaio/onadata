@@ -13,8 +13,8 @@ class TeamSerializer(serializers.Serializer):
         view_name='team-detail',
         lookup_fields=(('pk', 'pk'), ('owner', 'organization')))
     name = serializers.CharField(max_length=100, source='team_name')
-    organization = serializers.HyperlinkedRelatedField(
-        view_name='user-detail', lookup_field='username',
+    organization = serializers.SlugRelatedField(
+        slug_field='username',
         source='organization',
         queryset=User.objects.filter(
             pk__in=OrganizationProfile.objects.values('user')))
