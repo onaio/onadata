@@ -454,6 +454,18 @@ Where:
 >
 >        HTTP 200 OK
 
+## Get list of public forms
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/public</code>
+</pre>
+
+## Get list of a users/organization's public forms
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/<code>{owner}</code>public</code>
+</pre>
+
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
