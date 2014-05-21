@@ -11,6 +11,7 @@ from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
+from django.utils import six
 
 from rest_framework import exceptions
 from rest_framework import permissions
@@ -397,21 +398,27 @@ Where:
 
     def get_object(self, queryset=None):
         owner, pk = self.lookup_fields
+
         try:
             int(self.kwargs[pk])
         except ValueError:
             # implies pk is a string, assume this represents the id_string
             self.lookup_fields = ('owner', 'id_string')
             self.kwargs['id_string'] = self.kwargs[pk]
+
         return super(XFormViewSet, self).get_object(queryset)
 
     def get_queryset(self):
         owner = self.kwargs.get('owner', None)
-        user = self.request.user
-        if user.is_anonymous():
-            user = User.objects.get(pk=-1)
+        user = self.request.user \
+            if not self.request.user.is_anonymous() \
+            else User.objects.get(pk=-1)
         project_forms = []
-        if owner:
+
+        if isinstance(owner, six.string_types) and owner == 'public':
+            user_forms = XForm.objects.filter(
+                Q(shared=True) | Q(shared_data=True))
+        elif isinstance(owner, six.string_types) and owner != 'public':
             owner = get_object_or_404(User, username=owner)
             if owner != user:
                 xfct = ContentType.objects.get(
@@ -427,24 +434,30 @@ Where:
         else:
             user_forms = user.xforms.values('pk')
             project_forms = user.projectxform_set.values('xform')
+
         queryset = XForm.objects.filter(
             Q(pk__in=user_forms) | Q(pk__in=project_forms))
         # filter by tags if available.
         tags = self.request.QUERY_PARAMS.get('tags', None)
-        if tags and isinstance(tags, basestring):
+
+        if tags and isinstance(tags, six.string_types):
             tags = tags.split(',')
             queryset = queryset.filter(tags__name__in=tags)
+
         return queryset.distinct()
 
     def create(self, request, *args, **kwargs):
         survey = utils.publish_xlsform(request, request.user)
+
         if isinstance(survey, XForm):
             xform = XForm.objects.get(pk=survey.pk)
             serializer = XFormSerializer(
                 xform, context={'request': request})
             headers = self.get_success_headers(serializer.data)
+
             return Response(serializer.data, status=status.HTTP_201_CREATED,
                             headers=headers)
+
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
@@ -474,17 +487,22 @@ Where:
             tags = TagField()
         status = 200
         self.object = self.get_object()
+
         if request.method == 'POST':
             form = TagForm(request.DATA)
+
             if form.is_valid():
                 tags = form.cleaned_data.get('tags', None)
+
                 if tags:
                     for tag in tags:
                         self.object.tags.add(tag)
                     xform_tags_add.send(
                         sender=XForm, xform=self.object, tags=tags)
                     status = 201
+
         label = kwargs.get('label', None)
+
         if request.method == 'GET' and label:
             data = [
                 tag['name']
@@ -493,12 +511,14 @@ Where:
             count = self.object.tags.count()
             self.object.tags.remove(label)
             xform_tags_delete.send(sender=XForm, xform=self.object, tag=label)
+
             # Accepted, label does not exist hence nothing removed
             if count == self.object.tags.count():
                 status = 202
             data = list(self.object.tags.names())
         else:
             data = list(self.object.tags.names())
+
         return Response(data, status=status)
 
     @action(methods=['GET'])
@@ -508,18 +528,22 @@ Where:
         url = enketo_url(form_url, self.object.id_string)
         data = {'message': _(u"Enketo not properly configured.")}
         status = 400
+
         if url:
             status = 200
             data = {"enketo_url": url}
+
         return Response(data, status)
 
     def retrieve(self, request, *args, **kwargs):
         xform = self.get_object()
         query = request.GET.get("query", {})
         export_type = kwargs.get('format')
+
         if export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
+
         if export_type in EXPORT_EXT.keys():
             export_type = EXPORT_EXT[export_type]
         else:
@@ -546,12 +570,14 @@ Where:
             # check for start and end params
             if 'start' in request.GET or 'end' in request.GET:
                 query = json.loads(query) \
-                    if isinstance(query, basestring) else query
+                    if isinstance(query, six.string_types) else query
                 query[SUBMISSION_TIME] = {}
+
                 try:
                     if request.GET.get('start'):
                         query[SUBMISSION_TIME]['$gte'] = format_date_for_mongo(
                             request.GET['start'], datetime)
+
                     if request.GET.get('end'):
                         query[SUBMISSION_TIME]['$lte'] = format_date_for_mongo(
                             request.GET['end'], datetime)
@@ -561,6 +587,7 @@ Where:
                     )
                 else:
                     query = json.dumps(query)
+
             try:
                 export = generate_export(
                     export_type, extension, xform.user.username,
@@ -590,6 +617,7 @@ Where:
         if not export.filename:
             # tends to happen when using newset_export_for.
             raise Http404("File does not exist!")
+
         # get extension from file_path, exporter could modify to
         # xlsx if it exceeds limits
         path, ext = os.path.splitext(export.filename)
@@ -598,4 +626,10 @@ Where:
         response = response_with_mimetype_and_name(
             Export.EXPORT_MIMES[ext], id_string, extension=ext,
             file_path=export.filepath)
+
         return response
+
+    def public(self, request, *args, **kwargs):
+        data = []
+
+        return Response(data)
