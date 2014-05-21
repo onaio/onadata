@@ -69,7 +69,7 @@ def create_instance(username, xml_file, media_files,
     """
     try:
         submitted_by = request.user \
-            if request.user.is_authenticated() else None
+            if request and request.user.is_authenticated() else None
         username = username.lower() if username else username
         xml = xml_file.read()
 
