@@ -244,6 +244,24 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
 > Response
 >
 >        HTTP 200 OK
+
+## Get list of public data endpoints
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/public</code>
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/public
+
+> Response
+>
+>        {
+>            "dhis2form": "https://ona.io/api/v1/data/modilabs/4240",
+>            ...
+>        }
+
 """
     permission_classes = [permissions.IsAuthenticated, ]
     lookup_field = 'owner'

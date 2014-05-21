@@ -40,6 +40,9 @@ def _get_id_for_type(record, mongo_field):
 
 
 def get_accessible_forms(owner=None):
+    if owner == 'public':
+        return XForm.objects.filter(shared_data=True).distinct()
+
     return XForm.objects.filter(user__username=owner).distinct()
 
 
