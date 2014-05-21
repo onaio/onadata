@@ -49,6 +49,83 @@ EXPORT_EXT = {
 }
 
 
+def _get_export_type(export_type):
+    if export_type in EXPORT_EXT.keys():
+        export_type = EXPORT_EXT[export_type]
+    else:
+        raise exceptions.ParseError(
+            _(u"'%(export_type)s' format not known or not implemented!" %
+              {'export_type': export_type})
+        )
+
+    return export_type
+
+
+def _get_extension_from_export_type(export_type):
+    extension = export_type
+
+    if export_type == Export.XLS_EXPORT:
+        extension = 'xlsx'
+    elif export_type in [Export.CSV_ZIP_EXPORT, Export.SAV_ZIP_EXPORT]:
+        extension = 'zip'
+
+    return extension
+
+
+def _set_start_end_params(request, query):
+    format_date_for_mongo = lambda x, datetime: datetime.strptime(
+        x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
+
+    # check for start and end params
+    if 'start' in request.GET or 'end' in request.GET:
+        query = json.loads(query) \
+            if isinstance(query, six.string_types) else query
+        query[SUBMISSION_TIME] = {}
+
+        try:
+            if request.GET.get('start'):
+                query[SUBMISSION_TIME]['$gte'] = format_date_for_mongo(
+                    request.GET['start'], datetime)
+
+            if request.GET.get('end'):
+                query[SUBMISSION_TIME]['$lte'] = format_date_for_mongo(
+                    request.GET['end'], datetime)
+        except ValueError:
+            raise exceptions.ParseError(
+                _("Dates must be in the format YY_MM_DD_hh_mm_ss")
+            )
+        else:
+            query = json.dumps(query)
+
+        return query
+
+
+def _generate_new_export(request, xform,  query, export_type):
+    query = _set_start_end_params(request, query)
+    extension = _get_extension_from_export_type(export_type)
+
+    try:
+        export = generate_export(
+            export_type, extension, xform.user.username,
+            xform.id_string, None, query
+        )
+        audit = {
+            "xform": xform.id_string,
+            "export_type": export_type
+        }
+        log.audit_log(
+            log.Actions.EXPORT_CREATED, request.user, xform.user,
+            _("Created %(export_type)s export on '%(id_string)s'.") %
+            {
+                'id_string': xform.id_string,
+                'export_type': export_type.upper()
+            }, audit, request)
+    except NoRecordsFoundError:
+        raise Http404(_("No records found to export"))
+    else:
+        return export
+
+
 def _get_form_url(request, username):
     # TODO store strings as constants elsewhere
     if settings.TESTING_MODE:
@@ -552,68 +629,20 @@ Where:
             # perform default viewset retrieve, no data export
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
-        if export_type in EXPORT_EXT.keys():
-            export_type = EXPORT_EXT[export_type]
-        else:
-            raise exceptions.ParseError(
-                _(u"'%(export_type)s' format not known or not implemented!" %
-                  {'export_type': export_type})
-            )
-        if export_type == Export.XLS_EXPORT:
-            extension = 'xlsx'
-        elif export_type in [Export.CSV_ZIP_EXPORT, Export.SAV_ZIP_EXPORT]:
-            extension = 'zip'
-        else:
-            extension = export_type
+        export_type = _get_export_type(export_type)
 
-        audit = {
-            "xform": xform.id_string,
-            "export_type": export_type
-        }
         # check if we need to re-generate,
         # we always re-generate if a filter is specified
         if should_regenerate_export(xform, export_type, request):
-            format_date_for_mongo = lambda x, datetime: datetime.strptime(
-                x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
-            # check for start and end params
-            if 'start' in request.GET or 'end' in request.GET:
-                query = json.loads(query) \
-                    if isinstance(query, six.string_types) else query
-                query[SUBMISSION_TIME] = {}
-
-                try:
-                    if request.GET.get('start'):
-                        query[SUBMISSION_TIME]['$gte'] = format_date_for_mongo(
-                            request.GET['start'], datetime)
-
-                    if request.GET.get('end'):
-                        query[SUBMISSION_TIME]['$lte'] = format_date_for_mongo(
-                            request.GET['end'], datetime)
-                except ValueError:
-                    raise exceptions.ParseError(
-                        _("Dates must be in the format YY_MM_DD_hh_mm_ss")
-                    )
-                else:
-                    query = json.dumps(query)
-
-            try:
-                export = generate_export(
-                    export_type, extension, xform.user.username,
-                    xform.id_string, None, query
-                )
-                log.audit_log(
-                    log.Actions.EXPORT_CREATED, request.user, xform.user,
-                    _("Created %(export_type)s export on '%(id_string)s'.") %
-                    {
-                        'id_string': xform.id_string,
-                        'export_type': export_type.upper()
-                    }, audit, request)
-            except NoRecordsFoundError:
-                raise Http404(_("No records found to export"))
+            export = _generate_new_export(request, xform, query, export_type)
         else:
             export = newset_export_for(xform, export_type)
 
         # log download as well
+        audit = {
+            "xform": xform.id_string,
+            "export_type": export_type
+        }
         log.audit_log(
             log.Actions.EXPORT_DOWNLOADED, request.user, xform.user,
             _("Downloaded %(export_type)s export on '%(id_string)s'.") %
