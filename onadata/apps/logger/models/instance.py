@@ -90,6 +90,8 @@ class Instance(models.Model):
     user = models.ForeignKey(User, related_name='instances', null=True)
     xform = models.ForeignKey(XForm, null=True, related_name='instances')
     survey_type = models.ForeignKey(SurveyType)
+    submitted_by = models.ForeignKey(User, related_name='submitted_instances',
+                                     null=True)
 
     # shows when we first received this instance
     date_created = models.DateTimeField(auto_now_add=True)
