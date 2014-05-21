@@ -68,8 +68,9 @@ def create_instance(username, xml_file, media_files,
         If there is a username and a uuid, submitting a new ODK form.
     """
     try:
-        if username:
-            username = username.lower()
+        submitted_by = request.user \
+            if request and request.user.is_authenticated() else None
+        username = username.lower() if username else username
         xml = xml_file.read()
 
         # check alternative form submission ids
@@ -159,7 +160,9 @@ def create_instance(username, xml_file, media_files,
             else:
                 # new submission
                 instance = Instance.objects.create(
-                    xml=xml, user=user, status=status)
+                    xml=xml, user=user, status=status,
+                    submitted_by=submitted_by)
+
             for f in media_files:
                 Attachment.objects.get_or_create(
                     instance=instance, media_file=f, mimetype=f.content_type)
@@ -283,7 +286,7 @@ def publish_form(callback):
             'type': 'alert-error',
             'text': _(u'Form validation timeout, please try again.'),
         }
-    except Exception, e:
+    except Exception as e:
         # error in the XLS file; show an error to the user
         return {
             'type': 'alert-error',
