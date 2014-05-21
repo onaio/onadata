@@ -35,22 +35,33 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, [self.form_data])
 
     def test_public_form_owner_list(self):
-        self._publish_xls_form_to_project()
         self.view = XFormViewSet.as_view({
-            'get': 'public',
+            'get': 'retrieve'
         })
+        self._publish_xls_form_to_project()
         request = self.factory.get('/', **self.extra)
-        response = self.view(request)
+        response = self.view(request, owner=self.user.username, pk='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
         # public shared form
         self.xform.shared = True
         self.xform.save()
-        response = self.view(request)
+        response = self.view(request, owner=self.user.username, pk='public')
         self.assertEqual(response.status_code, 200)
         self.form_data['public'] = True
         del self.form_data['date_modified']
+        del response.data[0]['date_modified']
+        self.assertEqual(response.data, [self.form_data])
+
+        # public shared form data
+        self.xform.shared_data = True
+        self.xform.shared = False
+        self.xform.save()
+        response = self.view(request, owner=self.user.username, pk='public')
+        self.assertEqual(response.status_code, 200)
+        self.form_data['public_data'] = True
+        self.form_data['public'] = False
         del response.data[0]['date_modified']
         self.assertEqual(response.data, [self.form_data])
 

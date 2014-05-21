@@ -409,7 +409,9 @@ Where:
         return super(XFormViewSet, self).get_object(queryset)
 
     def get_queryset(self):
-        owner = self.kwargs.get('owner', None)
+        owner, pk = self.lookup_fields
+
+        owner = self.kwargs.get(owner, None)
         user = self.request.user \
             if not self.request.user.is_anonymous() \
             else User.objects.get(pk=-1)
@@ -425,7 +427,8 @@ Where:
                     app_label='logger', model='xform')
                 xfs = user.userobjectpermission_set.filter(content_type=xfct)
                 user_forms = XForm.objects.filter(
-                    Q(pk__in=[xf.object_pk for xf in xfs]) | Q(shared=True),
+                    Q(pk__in=[xf.object_pk for xf in xfs]) | Q(shared=True)
+                    | Q(shared_data=True),
                     user=owner)\
                     .select_related('user')
             else:
@@ -536,6 +539,11 @@ Where:
         return Response(data, status)
 
     def retrieve(self, request, *args, **kwargs):
+        owner, pk = self.lookup_fields
+
+        if self.kwargs.get(pk) == 'public':
+            return self.public(request, *args, **kwargs)
+
         xform = self.get_object()
         query = request.GET.get("query", {})
         export_type = kwargs.get('format')
@@ -630,6 +638,14 @@ Where:
         return response
 
     def public(self, request, *args, **kwargs):
-        data = []
+        self.object_list = self.filter_queryset(self.get_queryset()).filter(
+            Q(shared=True) | Q(shared_data=True))
 
-        return Response(data)
+        # Switch between paginated or standard style responses
+        page = self.paginate_queryset(self.object_list)
+        if page is not None:
+            serializer = self.get_pagination_serializer(page)
+        else:
+            serializer = self.get_serializer(self.object_list, many=True)
+
+        return Response(serializer.data)
