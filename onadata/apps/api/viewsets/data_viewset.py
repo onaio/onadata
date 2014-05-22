@@ -18,6 +18,26 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 
 
+class CustomPermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        read_only = request.method in permissions.SAFE_METHODS
+
+        # for public endpoint
+        owner = view.kwargs.get('owner')
+        if read_only and owner == 'public':
+            return True
+
+        # for public endpoint
+        formid = view.kwargs.get('formid')
+        if read_only and formid == 'public':
+            return True
+
+        if read_only and request.user.is_anonymous():
+            return True
+
+        return request.user.is_authenticated()
+
+
 class DataViewSet(ViewSet):
     """
 This endpoint provides access to submitted data in JSON format. Where:
@@ -268,7 +288,7 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
 >        }
 
 """
-    permission_classes = [permissions.IsAuthenticated, ]
+    permission_classes = [CustomPermission]
     lookup_field = 'owner'
     lookup_fields = ('owner', 'formid', 'dataid')
     extra_lookup_fields = None
@@ -276,8 +296,10 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
     queryset = Instance.objects.all()
 
     def _get_formlist_data_points(self, request, owner=None, public=False):
-        # return only data end points if owner is 'public'
-        shared_data = owner == 'public' or public
+        # return only data end points if owner is 'public' or anonymous access
+        # or is not owner
+        shared_data = owner == 'public' or public \
+            or request.user.is_anonymous() or request.user.username != owner
         xforms = get_accessible_forms(owner, shared_data=shared_data)
         # filter by tags if available.
         tags = self.request.QUERY_PARAMS.get('tags', None)

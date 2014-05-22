@@ -67,6 +67,23 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
+    def test_data_public_anon_user(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/')
+        response = view(request, owner='public')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+        self.xform.shared_data = True
+        self.xform.save()
+        formid = self.xform.pk
+        data = {
+            u'transportation_2011_07_25':
+            'http://testserver/api/v1/data/bob/%s' % formid
+        }
+        response = view(request, owner='public')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
+
     def test_data_user_public(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
@@ -128,11 +145,11 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 
-    def test_anon_form_list(self):
+    def test_anon_data_list(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
         response = view(request)
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 200)
 
     def test_add_form_tag_propagates_to_data_tags(self):
         """Test that when a tag is applied on an xform,
