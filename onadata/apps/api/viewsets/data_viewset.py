@@ -2,12 +2,15 @@ import json
 from django import forms
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
+from django.utils import six
 from django.utils.translation import ugettext as _
+
 from rest_framework import permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.viewsets import ViewSet
+
 from taggit.forms import TagField
 
 from onadata.apps.api.tools import get_accessible_forms, get_xform
@@ -248,12 +251,14 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
 ## Get list of public data endpoints
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/public</code>
+<b>GET</b> /api/v1/data/public
+<b>GET</b> /api/v1/data/<code>{owner}</code>public
 </pre>
 
 > Example
 >
 >       curl -X GET https://ona.io/api/v1/data/public
+>       curl -X GET https://ona.io/api/v1/data/modilabs/public
 
 > Response
 >
@@ -270,14 +275,17 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
 
     queryset = Instance.objects.all()
 
-    def _get_formlist_data_points(self, request, owner=None):
-        xforms = get_accessible_forms(owner)
+    def _get_formlist_data_points(self, request, owner=None, public=False):
+        # return only data end points if owner is 'public'
+        shared_data = owner == 'public' or public
+        xforms = get_accessible_forms(owner, shared_data=shared_data)
         # filter by tags if available.
         tags = self.request.QUERY_PARAMS.get('tags', None)
-        if tags and isinstance(tags, basestring):
+        if tags and isinstance(tags, six.string_types):
             tags = tags.split(',')
             xforms = xforms.filter(tags__name__in=tags).distinct()
         rs = {}
+
         for xform in xforms.distinct():
             point = {u"%s" % xform.id_string:
                      reverse("data-list", kwargs={
@@ -285,6 +293,7 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
                              "owner": xform.user.username},
                              request=request)}
             rs.update(point)
+
         return rs
 
     def _get_form_data(self, xform, **kwargs):
@@ -312,7 +321,9 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
         data = not formid and not dataid and not tags and\
             self._get_formlist_data_points(request, owner)
 
-        if formid:
+        if formid == 'public':
+            data = self._get_formlist_data_points(request, owner, public=True)
+        elif formid:
             xform = get_xform(formid, request)
             query[ParsedInstance.USERFORM_ID] = u'%s_%s' % (
                 xform.user.username, xform.id_string)
@@ -338,7 +349,7 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
             data = self._get_form_data(xform, query=query)
 
         if not xform and not data:
-            xforms = get_accessible_forms(owner)
+            xforms = get_accessible_forms(owner, shared_data=True)
             query[ParsedInstance.USERFORM_ID] = {
                 '$in': [
                     u'%s_%s' % (form.user.username, form.id_string)

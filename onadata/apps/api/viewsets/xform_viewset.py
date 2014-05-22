@@ -457,13 +457,13 @@ Where:
 ## Get list of public forms
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/public</code>
+<b>GET</b> /api/v1/forms/public
 </pre>
 
 ## Get list of a users/organization's public forms
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{owner}</code>public</code>
+<b>GET</b> /api/v1/forms/<code>{owner}</code>public
 </pre>
 
 """

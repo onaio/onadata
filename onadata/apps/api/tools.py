@@ -4,6 +4,7 @@ import numpy as np
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import ugettext as _
+from django.db.models import Q
 from rest_framework import exceptions
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -39,11 +40,21 @@ def _get_id_for_type(record, mongo_field):
         else mongo_str
 
 
-def get_accessible_forms(owner=None):
-    if owner == 'public':
-        return XForm.objects.filter(shared_data=True).distinct()
+def get_accessible_forms(owner=None, shared_form=False, shared_data=False):
+    xforms = XForm.objects.filter()
 
-    return XForm.objects.filter(user__username=owner).distinct()
+    if shared_form and not shared_data:
+        xforms = xforms.filter(shared=True)
+    elif (shared_form and shared_data) or \
+            (owner == 'public' and not shared_form and not shared_data):
+        xforms = xforms.filter(Q(shared=True) | Q(shared_data=True))
+    elif not shared_form and shared_data:
+        xforms = xforms.filter(shared_data=True)
+
+    if owner != 'public':
+        xforms = xforms.filter(user__username=owner)
+
+    return xforms.distinct()
 
 
 def create_organization(name, creator):
