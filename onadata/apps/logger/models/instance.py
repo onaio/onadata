@@ -185,9 +185,6 @@ class Instance(models.Model):
                 self.uuid = uuid
         set_uuid(self)
 
-    def _set_xform(self, id_string):
-        self.xform = XForm.objects.get(id_string=id_string, user=self.user)
-
     def get(self, abbreviated_xpath):
         self._set_parser()
         return self._parser.get(abbreviated_xpath)
@@ -248,12 +245,6 @@ class Instance(models.Model):
             del kwargs['force']
 
         self._check_active(force)
-
-        try:
-            self._set_xform(get_id_string_from_xml_str(self.xml))
-        except XForm.DoesNotExist:
-            if not force:
-                raise XForm.DoesNotExist
 
         self._set_geom()
         self._set_json()

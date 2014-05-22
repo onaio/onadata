@@ -71,7 +71,7 @@ def _get_form_url(request, username):
 
 
 def _html_submission_response(context, instance):
-    context.username = instance.user.username
+    context.username = instance.xform.user.username
     context.id_string = instance.xform.id_string
     context.domain = Site.objects.get(id=settings.SITE_ID).domain
 
