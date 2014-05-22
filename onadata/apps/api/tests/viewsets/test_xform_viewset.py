@@ -32,7 +32,13 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [self.form_data])
+
+    def test_form_list_anon(self):
+        self._publish_xls_form_to_project()
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
 
     def test_public_form_owner_list(self):
         self.view = XFormViewSet.as_view({

@@ -482,7 +482,7 @@ Where:
     lookup_fields = ('owner', 'pk')
     lookup_field = 'owner'
     extra_lookup_fields = None
-    permission_classes = [permissions.DjangoModelPermissions, ]
+    permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly, ]
     updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
 
     def get_object(self, queryset=None):
