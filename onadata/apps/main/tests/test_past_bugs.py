@@ -1,19 +1,7 @@
 import os
-from test_process import TestProcess
 
 from onadata.apps.logger.models import XForm, Instance
 from test_base import TestBase
-
-
-class TestCSVExport(TestProcess):
-    """
-    We had a problem when two users published the same form that the
-    CSV export would break.
-    """
-
-    def test_process(self):
-        TestProcess.test_process(self)
-        TestProcess.test_process(self, "doug", "doug")
 
 
 class TestInputs(TestBase):
