@@ -11,7 +11,7 @@ from instance import Instance
 
 def upload_to(instance, filename):
     return os.path.join(
-        instance.instance.user.username,
+        instance.instance.xform.user.username,
         'attachments',
         os.path.split(filename)[1])
 
