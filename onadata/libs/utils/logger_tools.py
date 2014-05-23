@@ -106,22 +106,22 @@ def get_xform_from_submission(xml, username, uuid=None):
 
 
 def check_submission_permissions(request, xform):
-        # Else, since we have a username, the Instance creation logic will
-        # handle checking for the forms existence by its id_string
-        if xform and request and request.user.is_authenticated():
-            if xform.user.profile.require_auth and xform.user != request.user\
-                    and not request.user.has_perm('report_xform', xform):
-                raise PermissionDenied(
-                    _(u"%(request_user)s is not allowed to make submissions "
-                      u"to %(form_user)s's %(form_title)s form." % {
-                          'request_user': request.user,
-                          'form_user': xform.user,
-                          'form_title': xform.title}))
+    """Since we have a username, the Instance creation logic will
+    handle checking for the forms existence by its id_string.
+    """
+    if xform and request and request.user.is_authenticated():
+        if xform.user.profile.require_auth and xform.user != request.user\
+                and not request.user.has_perm('report_xform', xform):
+            raise PermissionDenied(
+                _(u"%(request_user)s is not allowed to make submissions "
+                  u"to %(form_user)s's %(form_title)s form." % {
+                      'request_user': request.user,
+                      'form_user': xform.user,
+                      'form_title': xform.title}))
 
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
                     date_created_override):
-
     if not date_created_override:
         date_created_override = get_submission_date_from_xml(xml)
 
