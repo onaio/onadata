@@ -19,6 +19,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext, loader
+from django.utils import six
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.http import require_http_methods
@@ -587,7 +588,7 @@ def view_download_submission(request, username):
         return authenticator.build_challenge_response()
     context = RequestContext(request)
     formId = request.GET.get('formId', None)
-    if not isinstance(formId, basestring):
+    if not isinstance(formId, six.string_types):
         return HttpResponseBadRequest()
 
     id_string = formId[0:formId.find('[')]
@@ -598,7 +599,7 @@ def view_download_submission(request, username):
     uuid = _extract_uuid(form_id_parts[1])
     instance = get_object_or_404(
         Instance, xform__id_string=id_string, uuid=uuid,
-        user__username=username, deleted_at=None)
+        xform__user__username=username, deleted_at=None)
     xform = instance.xform
     if not has_permission(xform, form_user, request, xform.shared_data):
         return HttpResponseForbidden('Not shared.')
