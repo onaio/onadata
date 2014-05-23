@@ -53,6 +53,26 @@ uuid_regex = re.compile(r'<formhub><uuid>([^<]+)</uuid></formhub>',
 mongo_instances = settings.MONGO_DB.instances
 
 
+def _get_instance(xml, new_uuid, submitted_by, status, xform):
+    # check if its an edit submission
+    old_uuid = get_deprecated_uuid_from_xml(xml)
+    instances = Instance.objects.filter(uuid=old_uuid)
+
+    if instances:
+        instance = instances[0]
+        InstanceHistory.objects.create(
+            xml=instance.xml, xform_instance=instance, uuid=old_uuid)
+        instance.xml = xml
+        instance.uuid = new_uuid
+        instance.save()
+    else:
+        # new submission
+        instance = Instance.objects.create(
+            xml=xml, user=submitted_by, status=status, xform=xform)
+
+    return instance
+
+
 def get_uuid_from_submission(xml):
     # parse UUID from uploaded XML
     split_xml = uuid_regex.split(xml)
@@ -101,24 +121,11 @@ def check_submission_permissions(request, xform):
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
                     date_created_override):
-    # check if its an edit submission
-    old_uuid = get_deprecated_uuid_from_xml(xml)
-    instances = Instance.objects.filter(uuid=old_uuid)
 
     if not date_created_override:
         date_created_override = get_submission_date_from_xml(xml)
 
-    if instances:
-        instance = instances[0]
-        InstanceHistory.objects.create(
-            xml=instance.xml, xform_instance=instance, uuid=old_uuid)
-        instance.xml = xml
-        instance.uuid = new_uuid
-        instance.save()
-    else:
-        # new submission
-        instance = Instance.objects.create(
-            xml=xml, user=submitted_by, status=status, xform=xform)
+    instance = _get_instance(xml, new_uuid, submitted_by, status, xform)
 
     for f in media_files:
         Attachment.objects.get_or_create(
