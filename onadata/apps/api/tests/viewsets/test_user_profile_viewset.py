@@ -96,6 +96,32 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['user'] = 'http://testserver/api/v1/users/deno'
         self.assertEqual(response.data, data)
 
+    def test_profile_create_anon(self):
+        data = {
+            'username': u'deno',
+            'name': u'Dennis',
+            'email': u'deno@columbia.edu',
+            'city': u'Denoville',
+            'country': u'US',
+            'organization': u'Dono Inc.',
+            'website': u'deno.com',
+            'twitter': u'denoerama',
+            'require_auth': False,
+            'password': 'denodeno',
+        }
+        # response = self.client.post(
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json")
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        del data['password']
+        profile = UserProfile.objects.get(user__username=data['username'])
+        data['gravatar'] = profile.gravatar
+        data['url'] = 'http://testserver/api/v1/profiles/deno'
+        data['user'] = 'http://testserver/api/v1/users/deno'
+        self.assertEqual(response.data, data)
+
     def test_profile_create_missing_name_field(self):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)

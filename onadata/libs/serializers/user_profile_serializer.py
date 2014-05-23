@@ -107,6 +107,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             new_user.set_password(password)
             new_user.save()
             created_by = self.context['request'].user
+            created_by = None if created_by.is_anonymous() else created_by
             profile = UserProfile(
                 user=new_user, name=attrs.get('name', u''),
                 created_by=created_by,
