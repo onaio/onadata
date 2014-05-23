@@ -558,3 +558,11 @@ class TestProcess(TestBase):
             groups[0], "a" * (XFORM_TITLE_LENGTH + 1), groups[2])
         self.xform.save()
         self.assertEqual(self.xform.title, "a" * XFORM_TITLE_LENGTH)
+
+    def test_multiple_submissions_by_different_users(self):
+        """
+        We had a problem when two users published the same form that the
+        CSV export would break.
+        """
+        TestProcess.test_process(self)
+        TestProcess.test_process(self, "doug", "doug")
