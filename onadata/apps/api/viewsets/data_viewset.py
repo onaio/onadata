@@ -22,18 +22,15 @@ class CustomPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         read_only = request.method in permissions.SAFE_METHODS
 
-        # for public endpoint
-        owner = view.kwargs.get('owner')
-        if read_only and owner == 'public':
-            return True
+        if read_only:
+            # for public endpoint
+            owner = view.kwargs.get('owner')
 
-        # for public endpoint
-        formid = view.kwargs.get('formid')
-        if read_only and formid == 'public':
-            return True
+            # for public endpoint
+            formid = view.kwargs.get('formid')
 
-        if read_only and request.user.is_anonymous():
-            return True
+            if 'public' in [owner, formid] or request.user.is_anonymous():
+                return True
 
         return request.user.is_authenticated()
 
