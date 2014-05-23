@@ -7,7 +7,6 @@ import traceback
 from xml.dom import Node
 
 from django.conf import settings
-from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.exceptions import PermissionDenied
 from django.core.files.storage import get_storage_class
@@ -100,6 +99,50 @@ def check_submission_permissions(request, xform):
                           'form_title': xform.title}))
 
 
+def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
+                    date_created_override):
+    # check if its an edit submission
+    old_uuid = get_deprecated_uuid_from_xml(xml)
+    instances = Instance.objects.filter(uuid=old_uuid)
+
+    if not date_created_override:
+        date_created_override = get_submission_date_from_xml(xml)
+
+    if instances:
+        instance = instances[0]
+        InstanceHistory.objects.create(
+            xml=instance.xml, xform_instance=instance, uuid=old_uuid)
+        instance.xml = xml
+        instance.uuid = new_uuid
+        instance.save()
+    else:
+        # new submission
+        instance = Instance.objects.create(
+            xml=xml, user=submitted_by, status=status, xform=xform)
+
+    for f in media_files:
+        Attachment.objects.get_or_create(
+            instance=instance, media_file=f, mimetype=f.content_type)
+
+    # override date created if required
+    if date_created_override:
+        if not timezone.is_aware(date_created_override):
+            # default to utc?
+            date_created_override = timezone.make_aware(
+                date_created_override, timezone.utc)
+        instance.date_created = date_created_override
+        instance.save()
+
+    if instance.xform is not None:
+        pi, created = ParsedInstance.objects.get_or_create(
+            instance=instance)
+
+    if not created:
+        pi.save(async=False)
+
+    return instance
+
+
 @transaction.commit_manually
 def create_instance(username, xml_file, media_files,
                     status=u'submitted_via_web', uuid=None,
@@ -114,6 +157,7 @@ def create_instance(username, xml_file, media_files,
         If there is a username and a uuid, submitting a new ODK form.
     """
     try:
+        instance = None
         submitted_by = request.user \
             if request.user.is_authenticated() else None
         username = username.lower() if username else username
@@ -154,43 +198,11 @@ def create_instance(username, xml_file, media_files,
             raise DuplicateInstance()
 
         if proceed_to_create_instance:
-            # check if its an edit submission
-            old_uuid = get_deprecated_uuid_from_xml(xml)
-            instances = Instance.objects.filter(uuid=old_uuid)
-            if not date_created_override:
-                date_created_override = get_submission_date_from_xml(xml)
-            if instances:
-                instance = instances[0]
-                InstanceHistory.objects.create(
-                    xml=instance.xml, xform_instance=instance, uuid=old_uuid)
-                instance.xml = xml
-                instance.uuid = new_uuid
-                instance.save()
-            else:
-                # new submission
-                instance = Instance.objects.create(
-                    xml=xml, user=submitted_by, status=status, xform=xform)
-            for f in media_files:
-                Attachment.objects.get_or_create(
-                    instance=instance, media_file=f, mimetype=f.content_type)
-
-            # override date created if required
-            if date_created_override:
-                if not timezone.is_aware(date_created_override):
-                    # default to utc?
-                    date_created_override = timezone.make_aware(
-                        date_created_override, timezone.utc)
-                instance.date_created = date_created_override
-                instance.save()
-
-            if instance.xform is not None:
-                pi, created = ParsedInstance.objects.get_or_create(
-                    instance=instance)
-
-            if not created:
-                pi.save(async=False)
-        # commit all changes
-        transaction.commit()
+            instance = save_submission(xform, xml, media_files, new_uuid,
+                                       submitted_by, status,
+                                       date_created_override)
+            # commit all changes
+            transaction.commit()
 
         return instance
     except Exception:
