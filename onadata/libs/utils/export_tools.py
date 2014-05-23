@@ -887,7 +887,7 @@ def kml_export_data(id_string, user):
     from onadata.apps.viewer.models.data_dictionary import DataDictionary
     dd = DataDictionary.objects.get(id_string=id_string, user=user)
     instances = Instance.objects.filter(
-        user=user, xform__id_string=id_string, geom__isnull=False
+        xform__user=user, xform__id_string=id_string, geom__isnull=False
     ).order_by('id')
     data_for_template = []
 
