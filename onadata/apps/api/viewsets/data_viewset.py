@@ -272,7 +272,7 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
 
 <pre class="prettyprint">
 <b>GET</b> /api/v1/data/public
-<b>GET</b> /api/v1/data/<code>{owner}</code>public
+<b>GET</b> /api/v1/data/<code>{owner}</code>/public
 </pre>
 
 > Example
