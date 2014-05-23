@@ -651,6 +651,19 @@ $(document).ready(function() {
                 $('#data-encrypted').hide();
               {% endif %}
             {% if user.is_authenticated %}
+                $.each(['form-shared', 'data-shared', 'active-form'], function(inx, el) {
+                    var cb = $('#' + el + ':checkbox');
+                    cb.iphoneStyle({
+                    onChange: function() {
+                        // a callback func
+                        var c = function(){}
+                        privacyEdit(cb.data('url'), el.split('-')[0]);
+                        $('#' + el + '-public').toggle();
+                        $('#' + el + '-private').toggle();
+
+                    }
+                    });
+                    });
               // add click event to all public (x)forms
               $('a.clonexls').click(function(){
                 el = $(this);

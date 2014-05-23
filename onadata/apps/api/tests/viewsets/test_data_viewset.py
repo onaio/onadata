@@ -50,6 +50,89 @@ class TestDataViewSet(TestBase):
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
 
+    def test_data_anon(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/')
+        formid = self.xform.pk
+        response = view(request, owner='bob', formid=formid)
+        # permission denied for anonymous access to public data
+        self.assertEqual(response.status_code, 403)
+        self.xform.shared_data = True
+        self.xform.save()
+        response = view(request, owner='bob', formid=formid)
+        # access to a public data
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertTrue(self.xform.instances.count())
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+
+        data = {
+            u'_bamboo_dataset_id': u'',
+            u'_attachments': [],
+            u'_geolocation': [None, None],
+            u'_xform_id_string': u'transportation_2011_07_25',
+            u'transport/available_transportation_types_to_referral_facility':
+            u'none',
+            u'_status': u'submitted_via_web',
+            u'_id': dataid
+        }
+        self.assertDictContainsSubset(data, sorted(response.data)[0])
+        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, dict)
+        self.assertDictContainsSubset(data, response.data)
+
+    def test_data_public(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, owner='public')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+        self.xform.shared_data = True
+        self.xform.save()
+        formid = self.xform.pk
+        data = {
+            u'transportation_2011_07_25':
+            'http://testserver/api/v1/data/bob/%s' % formid
+        }
+        response = view(request, owner='public')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
+
+    def test_data_public_anon_user(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/')
+        response = view(request, owner='public')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+        self.xform.shared_data = True
+        self.xform.save()
+        formid = self.xform.pk
+        data = {
+            u'transportation_2011_07_25':
+            'http://testserver/api/v1/data/bob/%s' % formid
+        }
+        response = view(request, owner='public')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
+
+    def test_data_user_public(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, owner='bob', formid='public')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+        self.xform.shared_data = True
+        self.xform.save()
+        formid = self.xform.pk
+        data = {
+            u'transportation_2011_07_25':
+            'http://testserver/api/v1/data/bob/%s' % formid
+        }
+        response = view(request, owner='bob', formid='public')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
+
     def test_data_bad_dataid(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
@@ -94,11 +177,11 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 
-    def test_anon_form_list(self):
+    def test_anon_data_list(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
         response = view(request)
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 200)
 
     def test_add_form_tag_propagates_to_data_tags(self):
         """Test that when a tag is applied on an xform,

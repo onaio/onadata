@@ -11,6 +11,7 @@ from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
+from django.utils import six
 
 from rest_framework import exceptions
 from rest_framework import permissions
@@ -46,6 +47,83 @@ EXPORT_EXT = {
     'csvzip': Export.CSV_ZIP_EXPORT,
     'savzip': Export.SAV_ZIP_EXPORT,
 }
+
+
+def _get_export_type(export_type):
+    if export_type in EXPORT_EXT.keys():
+        export_type = EXPORT_EXT[export_type]
+    else:
+        raise exceptions.ParseError(
+            _(u"'%(export_type)s' format not known or not implemented!" %
+              {'export_type': export_type})
+        )
+
+    return export_type
+
+
+def _get_extension_from_export_type(export_type):
+    extension = export_type
+
+    if export_type == Export.XLS_EXPORT:
+        extension = 'xlsx'
+    elif export_type in [Export.CSV_ZIP_EXPORT, Export.SAV_ZIP_EXPORT]:
+        extension = 'zip'
+
+    return extension
+
+
+def _set_start_end_params(request, query):
+    format_date_for_mongo = lambda x, datetime: datetime.strptime(
+        x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
+
+    # check for start and end params
+    if 'start' in request.GET or 'end' in request.GET:
+        query = json.loads(query) \
+            if isinstance(query, six.string_types) else query
+        query[SUBMISSION_TIME] = {}
+
+        try:
+            if request.GET.get('start'):
+                query[SUBMISSION_TIME]['$gte'] = format_date_for_mongo(
+                    request.GET['start'], datetime)
+
+            if request.GET.get('end'):
+                query[SUBMISSION_TIME]['$lte'] = format_date_for_mongo(
+                    request.GET['end'], datetime)
+        except ValueError:
+            raise exceptions.ParseError(
+                _("Dates must be in the format YY_MM_DD_hh_mm_ss")
+            )
+        else:
+            query = json.dumps(query)
+
+        return query
+
+
+def _generate_new_export(request, xform,  query, export_type):
+    query = _set_start_end_params(request, query)
+    extension = _get_extension_from_export_type(export_type)
+
+    try:
+        export = generate_export(
+            export_type, extension, xform.user.username,
+            xform.id_string, None, query
+        )
+        audit = {
+            "xform": xform.id_string,
+            "export_type": export_type
+        }
+        log.audit_log(
+            log.Actions.EXPORT_CREATED, request.user, xform.user,
+            _("Created %(export_type)s export on '%(id_string)s'.") %
+            {
+                'id_string': xform.id_string,
+                'export_type': export_type.upper()
+            }, audit, request)
+    except NoRecordsFoundError:
+        raise Http404(_("No records found to export"))
+    else:
+        return export
 
 
 def _get_form_url(request, username):
@@ -376,6 +454,18 @@ Where:
 >
 >        HTTP 200 OK
 
+## Get list of public forms
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/public
+</pre>
+
+## Get list of a users/organization's public forms
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/<code>{owner}</code>public
+</pre>
+
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
@@ -392,33 +482,42 @@ Where:
     lookup_fields = ('owner', 'pk')
     lookup_field = 'owner'
     extra_lookup_fields = None
-    permission_classes = [permissions.DjangoModelPermissions, ]
+    permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly, ]
     updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
 
     def get_object(self, queryset=None):
         owner, pk = self.lookup_fields
+
         try:
             int(self.kwargs[pk])
         except ValueError:
             # implies pk is a string, assume this represents the id_string
             self.lookup_fields = ('owner', 'id_string')
             self.kwargs['id_string'] = self.kwargs[pk]
+
         return super(XFormViewSet, self).get_object(queryset)
 
     def get_queryset(self):
-        owner = self.kwargs.get('owner', None)
-        user = self.request.user
-        if user.is_anonymous():
-            user = User.objects.get(pk=-1)
+        owner, pk = self.lookup_fields
+
+        owner = self.kwargs.get(owner, None)
+        user = self.request.user \
+            if not self.request.user.is_anonymous() \
+            else User.objects.get(pk=-1)
         project_forms = []
-        if owner:
+
+        if isinstance(owner, six.string_types) and owner == 'public':
+            user_forms = XForm.objects.filter(
+                Q(shared=True) | Q(shared_data=True))
+        elif isinstance(owner, six.string_types) and owner != 'public':
             owner = get_object_or_404(User, username=owner)
             if owner != user:
                 xfct = ContentType.objects.get(
                     app_label='logger', model='xform')
                 xfs = user.userobjectpermission_set.filter(content_type=xfct)
                 user_forms = XForm.objects.filter(
-                    Q(pk__in=[xf.object_pk for xf in xfs]) | Q(shared=True),
+                    Q(pk__in=[xf.object_pk for xf in xfs]) | Q(shared=True)
+                    | Q(shared_data=True),
                     user=owner)\
                     .select_related('user')
             else:
@@ -427,24 +526,30 @@ Where:
         else:
             user_forms = user.xforms.values('pk')
             project_forms = user.projectxform_set.values('xform')
+
         queryset = XForm.objects.filter(
             Q(pk__in=user_forms) | Q(pk__in=project_forms))
         # filter by tags if available.
         tags = self.request.QUERY_PARAMS.get('tags', None)
-        if tags and isinstance(tags, basestring):
+
+        if tags and isinstance(tags, six.string_types):
             tags = tags.split(',')
             queryset = queryset.filter(tags__name__in=tags)
+
         return queryset.distinct()
 
     def create(self, request, *args, **kwargs):
         survey = utils.publish_xlsform(request, request.user)
+
         if isinstance(survey, XForm):
             xform = XForm.objects.get(pk=survey.pk)
             serializer = XFormSerializer(
                 xform, context={'request': request})
             headers = self.get_success_headers(serializer.data)
+
             return Response(serializer.data, status=status.HTTP_201_CREATED,
                             headers=headers)
+
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
@@ -474,17 +579,22 @@ Where:
             tags = TagField()
         status = 200
         self.object = self.get_object()
+
         if request.method == 'POST':
             form = TagForm(request.DATA)
+
             if form.is_valid():
                 tags = form.cleaned_data.get('tags', None)
+
                 if tags:
                     for tag in tags:
                         self.object.tags.add(tag)
                     xform_tags_add.send(
                         sender=XForm, xform=self.object, tags=tags)
                     status = 201
+
         label = kwargs.get('label', None)
+
         if request.method == 'GET' and label:
             data = [
                 tag['name']
@@ -493,12 +603,14 @@ Where:
             count = self.object.tags.count()
             self.object.tags.remove(label)
             xform_tags_delete.send(sender=XForm, xform=self.object, tag=label)
+
             # Accepted, label does not exist hence nothing removed
             if count == self.object.tags.count():
                 status = 202
             data = list(self.object.tags.names())
         else:
             data = list(self.object.tags.names())
+
         return Response(data, status=status)
 
     @action(methods=['GET'])
@@ -508,77 +620,41 @@ Where:
         url = enketo_url(form_url, self.object.id_string)
         data = {'message': _(u"Enketo not properly configured.")}
         status = 400
+
         if url:
             status = 200
             data = {"enketo_url": url}
+
         return Response(data, status)
 
     def retrieve(self, request, *args, **kwargs):
+        owner, pk = self.lookup_fields
+
+        if self.kwargs.get(pk) == 'public':
+            return self.public(request, *args, **kwargs)
+
         xform = self.get_object()
         query = request.GET.get("query", {})
         export_type = kwargs.get('format')
+
         if export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
-        if export_type in EXPORT_EXT.keys():
-            export_type = EXPORT_EXT[export_type]
-        else:
-            raise exceptions.ParseError(
-                _(u"'%(export_type)s' format not known or not implemented!" %
-                  {'export_type': export_type})
-            )
-        if export_type == Export.XLS_EXPORT:
-            extension = 'xlsx'
-        elif export_type in [Export.CSV_ZIP_EXPORT, Export.SAV_ZIP_EXPORT]:
-            extension = 'zip'
-        else:
-            extension = export_type
 
-        audit = {
-            "xform": xform.id_string,
-            "export_type": export_type
-        }
+        export_type = _get_export_type(export_type)
+
         # check if we need to re-generate,
         # we always re-generate if a filter is specified
         if should_regenerate_export(xform, export_type, request):
-            format_date_for_mongo = lambda x, datetime: datetime.strptime(
-                x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
-            # check for start and end params
-            if 'start' in request.GET or 'end' in request.GET:
-                query = json.loads(query) \
-                    if isinstance(query, basestring) else query
-                query[SUBMISSION_TIME] = {}
-                try:
-                    if request.GET.get('start'):
-                        query[SUBMISSION_TIME]['$gte'] = format_date_for_mongo(
-                            request.GET['start'], datetime)
-                    if request.GET.get('end'):
-                        query[SUBMISSION_TIME]['$lte'] = format_date_for_mongo(
-                            request.GET['end'], datetime)
-                except ValueError:
-                    raise exceptions.ParseError(
-                        _("Dates must be in the format YY_MM_DD_hh_mm_ss")
-                    )
-                else:
-                    query = json.dumps(query)
-            try:
-                export = generate_export(
-                    export_type, extension, xform.user.username,
-                    xform.id_string, None, query
-                )
-                log.audit_log(
-                    log.Actions.EXPORT_CREATED, request.user, xform.user,
-                    _("Created %(export_type)s export on '%(id_string)s'.") %
-                    {
-                        'id_string': xform.id_string,
-                        'export_type': export_type.upper()
-                    }, audit, request)
-            except NoRecordsFoundError:
-                raise Http404(_("No records found to export"))
+            export = _generate_new_export(request, xform, query, export_type)
         else:
             export = newset_export_for(xform, export_type)
 
         # log download as well
+        audit = {
+            "xform": xform.id_string,
+            "export_type": export_type
+        }
         log.audit_log(
             log.Actions.EXPORT_DOWNLOADED, request.user, xform.user,
             _("Downloaded %(export_type)s export on '%(id_string)s'.") %
@@ -590,6 +666,7 @@ Where:
         if not export.filename:
             # tends to happen when using newset_export_for.
             raise Http404("File does not exist!")
+
         # get extension from file_path, exporter could modify to
         # xlsx if it exceeds limits
         path, ext = os.path.splitext(export.filename)
@@ -598,4 +675,18 @@ Where:
         response = response_with_mimetype_and_name(
             Export.EXPORT_MIMES[ext], id_string, extension=ext,
             file_path=export.filepath)
+
         return response
+
+    def public(self, request, *args, **kwargs):
+        self.object_list = self.filter_queryset(self.get_queryset()).filter(
+            Q(shared=True) | Q(shared_data=True))
+
+        # Switch between paginated or standard style responses
+        page = self.paginate_queryset(self.object_list)
+        if page is not None:
+            serializer = self.get_pagination_serializer(page)
+        else:
+            serializer = self.get_serializer(self.object_list, many=True)
+
+        return Response(serializer.data)
