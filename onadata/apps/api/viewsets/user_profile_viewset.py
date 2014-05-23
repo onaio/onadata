@@ -15,8 +15,7 @@ class CustomPermissions(permissions.DjangoModelPermissions):
         if request.user.is_anonymous() and view.action == 'create':
             return True
 
-        return super(CustomPermissions, self).has_permission(
-            self, request, view)
+        return super(CustomPermissions, self).has_permission(request, view)
 
 
 class UserProfileViewSet(ObjectLookupMixin, ModelViewSet):
