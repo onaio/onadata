@@ -14,6 +14,9 @@ csvs
 # pip build dir
 build
 
+# mkdocs build dir
+/docs/site
+
 # media folder used by tests
 # TODO figure out a way to clean this up rather than ignore it.
 /onadata/test_media

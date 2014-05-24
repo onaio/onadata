@@ -6,6 +6,7 @@ fabric
 gunicorn
 ipdb
 ipython
+mkdocs
 shell_command
 statsd
 twill

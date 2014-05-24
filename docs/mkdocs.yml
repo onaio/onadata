@@ -1,0 +1,8 @@
+site_name: OnaData API
+site_url: https://ona.io/api/v1/
+repo_url: https://github.com/onaio/onadata/
+site_description: OnaData REST API documentation.
+docs_dir: mkdocs
+pages:
+- [index.md, Home]
+- [users.md, Users]
