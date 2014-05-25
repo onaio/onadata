@@ -39,6 +39,7 @@ from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.string import str2bool
+from onadata.libs.permissions import CAN_ADD_XFORM
 
 EXPORT_EXT = {
     'xls': Export.XLS_EXPORT,
@@ -137,6 +138,18 @@ def _get_form_url(request, username):
     return 'https://%s/%s' % (http_host, username)
 
 
+def _get_user(username):
+    users = User.objects.filter(username=username)
+
+    return users.count() and users[0] or None
+
+
+def _get_profile(username):
+    user = _get_user(username)
+
+    return user and user.profile or None
+
+
 def response_for_format(data, format=None):
     formatted_data = data.xml if format == 'xml' else json.loads(data.json)
     return Response(formatted_data)
@@ -153,6 +166,17 @@ def value_for_type(form, field, value):
         return str2bool(value)
 
     return value
+
+
+class CustomPermissions(permissions.DjangoModelPermissionsOrAnonReadOnly):
+    def has_permission(self, request, view):
+        owner = view.kwargs.get('owner')
+        is_authenticated = request and request.user.is_authenticated()
+
+        if is_authenticated and view.action == 'create':
+            return request.user.has_perm(CAN_ADD_XFORM, _get_profile(owner))
+
+        return super(CustomPermissions, self).has_permission(request, view)
 
 
 class XFormViewSet(MultiLookupMixin, ModelViewSet):
@@ -482,7 +506,7 @@ Where:
     lookup_fields = ('owner', 'pk')
     lookup_field = 'owner'
     extra_lookup_fields = None
-    permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly, ]
+    permission_classes = [CustomPermissions, ]
     updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
 
     def get_object(self, queryset=None):
@@ -539,7 +563,8 @@ Where:
         return queryset.distinct()
 
     def create(self, request, *args, **kwargs):
-        survey = utils.publish_xlsform(request, request.user)
+        owner = _get_user(kwargs.get('owner')) or request.user
+        survey = utils.publish_xlsform(request, owner)
 
         if isinstance(survey, XForm):
             xform = XForm.objects.get(pk=survey.pk)
