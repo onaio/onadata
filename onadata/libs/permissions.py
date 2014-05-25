@@ -1,11 +1,12 @@
 from guardian.shortcuts import assign_perm
+from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.main.models.user_profile import UserProfile
 
 CAN_ADD_XFORM = 'can_add_xform'
 
 
 class ManagerRole(object):
-    permissions = ((CAN_ADD_XFORM, UserProfile), )
+    permissions = ((CAN_ADD_XFORM, (UserProfile, OrganizationProfile)), )
 
     @classmethod
     def add(cls, user, obj):
