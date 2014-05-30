@@ -8,6 +8,7 @@ from xml.dom import minidom, Node
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.logger.models import XForm
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
@@ -356,3 +357,17 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.xform.reload()
         self.assertFalse(self.xform.shared)
         self.assertFalse(response.data['public'])
+
+    def test_form_delete(self):
+        self._publish_xls_form_to_project()
+        self.xform.save()
+        view = XFormViewSet.as_view({
+            'delete': 'destroy'
+        })
+        formid = self.xform.pk
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.data, None)
+        self.assertEqual(response.status_code, 204)
+        with self.assertRaises(XForm.DoesNotExist):
+            self.xform.reload()
