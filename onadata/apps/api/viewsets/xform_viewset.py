@@ -72,6 +72,43 @@ def _get_extension_from_export_type(export_type):
     return extension
 
 
+class TagForm(forms.Form):
+    tags = TagField()
+
+
+def _labels_post(request, xform):
+    """Process a post request to labels.
+
+    :param request: The HTTP request to extract data from.
+    :param xform: The XForm to interact with.
+    :returns: A HTTP status code or None.
+    """
+    form = TagForm(request.DATA)
+
+    if form.is_valid():
+        tags = form.cleaned_data.get('tags', None)
+
+        if tags:
+            for tag in tags:
+                xform.tags.add(tag)
+            xform_tags_add.send(
+                sender=XForm, xform=xform, tags=tags)
+
+            return 201
+
+
+def _labels_delete(label, xform):
+    count = xform.tags.count()
+    xform.tags.remove(label)
+    xform_tags_delete.send(sender=XForm, xform=xform, tag=label)
+
+    # Accepted, label does not exist hence nothing removed
+    http_status = status.HTTP_202_ACCEPTED if count == xform.tags.count()\
+        else status.HTTP_200_OK
+
+    return [http_status, list(xform.tags.names())]
+
+
 def _set_start_end_params(request, query):
     format_date_for_mongo = lambda x, datetime: datetime.strptime(
         x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
@@ -268,7 +305,7 @@ https://ona.io/api/v1/forms/28058
 ## Delete Form
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{formid}</code>
+<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>
 <b>DELETE</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
 <code>{formid}</code></pre>
 
@@ -574,44 +611,23 @@ Where:
 
     @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
     def labels(self, request, format='json', **kwargs):
-
-        class TagForm(forms.Form):
-            tags = TagField()
-        status = 200
-        self.object = self.get_object()
+        http_status = status.HTTP_200_OK
+        xform = self.get_object()
 
         if request.method == 'POST':
-            form = TagForm(request.DATA)
-
-            if form.is_valid():
-                tags = form.cleaned_data.get('tags', None)
-
-                if tags:
-                    for tag in tags:
-                        self.object.tags.add(tag)
-                    xform_tags_add.send(
-                        sender=XForm, xform=self.object, tags=tags)
-                    status = 201
+            http_status = _labels_post(request, xform)
 
         label = kwargs.get('label', None)
 
         if request.method == 'GET' and label:
-            data = [
-                tag['name']
-                for tag in self.object.tags.filter(name=label).values('name')]
+            data = [tag['name']
+                    for tag in xform.tags.filter(name=label).values('name')]
         elif request.method == 'DELETE' and label:
-            count = self.object.tags.count()
-            self.object.tags.remove(label)
-            xform_tags_delete.send(sender=XForm, xform=self.object, tag=label)
-
-            # Accepted, label does not exist hence nothing removed
-            if count == self.object.tags.count():
-                status = 202
-            data = list(self.object.tags.names())
+            http_status, data = _labels_delete(label, xform)
         else:
-            data = list(self.object.tags.names())
+            data = list(xform.tags.names())
 
-        return Response(data, status=status)
+        return Response(data, status=http_status)
 
     @action(methods=['GET'])
     def enketo(self, request, **kwargs):
@@ -619,13 +635,13 @@ Where:
         form_url = _get_form_url(request, self.object.user.username)
         url = enketo_url(form_url, self.object.id_string)
         data = {'message': _(u"Enketo not properly configured.")}
-        status = 400
+        http_status = status.HTTP_400_BAD_REQUEST
 
         if url:
-            status = 200
+            http_status = status.HTTP_200_OK
             data = {"enketo_url": url}
 
-        return Response(data, status)
+        return Response(data, http_status)
 
     def retrieve(self, request, *args, **kwargs):
         owner, pk = self.lookup_fields
