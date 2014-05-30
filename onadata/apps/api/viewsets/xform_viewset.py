@@ -638,7 +638,7 @@ Where:
         http_status = status.HTTP_400_BAD_REQUEST
 
         if url:
-            http_status = status.HTTP_200_STATUS_OK
+            http_status = status.HTTP_200_OK
             data = {"enketo_url": url}
 
         return Response(data, http_status)
