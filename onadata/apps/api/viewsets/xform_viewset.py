@@ -305,7 +305,7 @@ https://ona.io/api/v1/forms/28058
 ## Delete Form
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{formid}</code>
+<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>
 <b>DELETE</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
 <code>{formid}</code></pre>
 
