@@ -20,7 +20,6 @@ from django.template import loader, RequestContext
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_GET, require_POST,\
     require_http_methods
-from google_doc import GoogleDoc
 from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
 
 from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
@@ -292,21 +291,66 @@ def dashboard(request):
     return render_to_response("dashboard.html", context_instance=context)
 
 
+def redirect_to_public_link(request, uuid):
+    xform = get_object_or_404(XForm, uuid=uuid)
+    request.session['public_link'] = \
+        xform.uuid if MetaData.public_link(xform) else False
+
+    return HttpResponseRedirect(reverse(show, kwargs={
+        'username': xform.user.username,
+        'id_string': xform.id_string
+    }))
+
+
+def set_xform_owner_context(context, xform, request, username, id_string):
+    context.sms_support_form = ActivateSMSSupportFom(
+        initial={'enable_sms_support': xform.allows_sms,
+                 'sms_id_string': xform.sms_id_string})
+    if not xform.allows_sms:
+        context.sms_compatible = check_form_sms_compatibility(
+            None, json_survey=json.loads(xform.json))
+    else:
+        url_root = request.build_absolute_uri('/')[:-1]
+        context.sms_providers_doc = providers_doc(
+            url_root=url_root,
+            username=username,
+            id_string=id_string)
+        context.url_root = url_root
+
+    context.form_license_form = FormLicenseForm(
+        initial={'value': context.form_license})
+    context.data_license_form = DataLicenseForm(
+        initial={'value': context.data_license})
+    context.doc_form = SupportDocForm()
+    context.source_form = SourceForm()
+    context.media_form = MediaForm()
+    context.mapbox_layer_form = MapboxLayerForm()
+    users_with_perms = []
+
+    for perm in get_users_with_perms(xform, attach_perms=True).items():
+        has_perm = []
+        if 'change_xform' in perm[1]:
+            has_perm.append(_(u"Can Edit"))
+        if 'view_xform' in perm[1]:
+            has_perm.append(_(u"Can View"))
+        if 'report_xform' in perm[1]:
+            has_perm.append(_(u"Can submit to"))
+        users_with_perms.append((perm[0], u" | ".join(has_perm)))
+    context.users_with_perms = users_with_perms
+    context.permission_form = PermissionForm(username)
+
+
 @require_GET
 def show(request, username=None, id_string=None, uuid=None):
     if uuid:
-        xform = get_object_or_404(XForm, uuid=uuid)
-        request.session['public_link'] = \
-            xform.uuid if MetaData.public_link(xform) else False
-        return HttpResponseRedirect(reverse(show, kwargs={
-            'username': xform.user.username,
-            'id_string': xform.id_string
-        }))
+        redirect_to_public_link(uuid)
+
     xform, is_owner, can_edit, can_view = get_xform_and_perms(
         username, id_string, request)
     # no access
     if not (xform.shared or can_view or request.session.get('public_link')):
         return HttpResponseRedirect(reverse(home))
+
     context = RequestContext(request)
     context.cloned = len(
         XForm.objects.filter(user__username=request.user.username,
@@ -325,42 +369,13 @@ def show(request, username=None, id_string=None, uuid=None):
     context.supporting_docs = MetaData.supporting_docs(xform)
     context.media_upload = MetaData.media_upload(xform)
     context.mapbox_layer = MetaData.mapbox_layer_upload(xform)
+
     if is_owner:
-        context.sms_support_form = ActivateSMSSupportFom(
-            initial={'enable_sms_support': xform.allows_sms,
-                     'sms_id_string': xform.sms_id_string})
-        if not xform.allows_sms:
-            context.sms_compatible = check_form_sms_compatibility(
-                None, json_survey=json.loads(xform.json))
-        else:
-            url_root = request.build_absolute_uri('/')[:-1]
-            context.sms_providers_doc = providers_doc(
-                url_root=url_root,
-                username=username,
-                id_string=id_string)
-            context.url_root = url_root
-        context.form_license_form = FormLicenseForm(
-            initial={'value': context.form_license})
-        context.data_license_form = DataLicenseForm(
-            initial={'value': context.data_license})
-        context.doc_form = SupportDocForm()
-        context.source_form = SourceForm()
-        context.media_form = MediaForm()
-        context.mapbox_layer_form = MapboxLayerForm()
-        users_with_perms = []
-        for perm in get_users_with_perms(xform, attach_perms=True).items():
-            has_perm = []
-            if 'change_xform' in perm[1]:
-                has_perm.append(_(u"Can Edit"))
-            if 'view_xform' in perm[1]:
-                has_perm.append(_(u"Can View"))
-            if 'report_xform' in perm[1]:
-                has_perm.append(_(u"Can submit to"))
-            users_with_perms.append((perm[0], u" | ".join(has_perm)))
-        context.users_with_perms = users_with_perms
-        context.permission_form = PermissionForm(username)
+        set_xform_owner_context(context, xform, request, username, id_string)
+
     if xform.allows_sms:
         context.sms_support_doc = get_autodoc_for(xform)
+
     return render_to_response("show.html", context_instance=context)
 
 
@@ -723,27 +738,17 @@ def privacy(request):
     context.template = 'privacy.html'
     return render_to_response('base.html', context_instance=context)
 
+
 def tos(request):
     context = RequestContext(request)
     context.template = 'tos.html'
     return render_to_response('base.html', context_instance=context)
 
+
 def syntax(request):
     context = RequestContext(request)
     context.template = 'syntax.html'
     return render_to_response('base.html', context_instance=context)
-
-    """
-    if 'fr' in request.LANGUAGE_CODE.lower():
-        doc_id = '1EhJTsqX3noztyW-UdKRBABhIln6R3TAvXv58DTZWCU4'
-    else:
-        doc_id = '1xD5gSjeyjGjw-V9g5hXx7FWeasRvn-L6zeQJsNeAGBI'
-    url = 'https://docs.google.com/document/pub?id=%s' % doc_id
-    doc = GoogleDoc(url)
-    context = RequestContext(request)
-    context.content = doc.to_html()
-    return render_to_response('base.html', context_instance=context)
-    """
 
 
 def form_gallery(request):
@@ -948,6 +953,7 @@ def set_perm(request, username, id_string):
     if username != request.user.username\
             and not has_permission(xform, username, request):
         return HttpResponseForbidden(_(u'Permission denied.'))
+
     try:
         perm_type = request.POST['perm_type']
         for_user = request.POST['for_user']
