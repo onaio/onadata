@@ -195,8 +195,10 @@ def profile(request, username):
         context.all_forms = content_user.xforms.count()
         context.form = QuickConverterFile()
         context.form_url = QuickConverterURL()
-        context.url = request.build_absolute_uri(
+
+        request_url = request.build_absolute_uri(
             "/%s" % request.user.username)
+        context.url = request_url.replace('http://', 'https://')
         xforms = XForm.objects.filter(user=content_user)\
             .select_related('user', 'instances')
         context.user_xforms = xforms
