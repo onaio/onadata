@@ -723,6 +723,10 @@ def privacy(request):
     context.template = 'privacy.html'
     return render_to_response('base.html', context_instance=context)
 
+def tos(request):
+    context = RequestContext(request)
+    context.template = 'tos.html'
+    return render_to_response('base.html', context_instance=context)
 
 def syntax(request):
     context = RequestContext(request)
