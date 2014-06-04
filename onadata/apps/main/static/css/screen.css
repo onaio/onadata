@@ -940,7 +940,7 @@ a:focus {
 #faq, #support, #resources{
 	width: 700px;
   text-align: left;
-  margin-top: 50px;
+  margin-top: 20px;
   font: 15px/20px open sans, sans-serif;
   font-weight: 300;
   color: #44474a;

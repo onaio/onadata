@@ -718,7 +718,18 @@ def about_us(request):
     return render_to_response('base.html', context_instance=context)
 
 
+def privacy(request):
+    context = RequestContext(request)
+    context.template = 'privacy.html'
+    return render_to_response('base.html', context_instance=context)
+
+
 def syntax(request):
+    context = RequestContext(request)
+    context.template = 'syntax.html'
+    return render_to_response('base.html', context_instance=context)
+
+    """
     if 'fr' in request.LANGUAGE_CODE.lower():
         doc_id = '1EhJTsqX3noztyW-UdKRBABhIln6R3TAvXv58DTZWCU4'
     else:
@@ -728,6 +739,7 @@ def syntax(request):
     context = RequestContext(request)
     context.content = doc.to_html()
     return render_to_response('base.html', context_instance=context)
+    """
 
 
 def form_gallery(request):

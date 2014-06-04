@@ -42,6 +42,8 @@ urlpatterns = patterns(
         name='getting_started'),
     url(r'^faq/$', 'onadata.apps.main.views.faq', name='faq'),
     url(r'^syntax/$', 'onadata.apps.main.views.syntax', name='syntax'),
+    url(r'^privacy/$', 'onadata.apps.main.views.privacy', name='privacy'),
+    url(r'^eula/$', 'onadata.apps.main.views.privacy', name='eula'),
     url(r'^resources/$', 'onadata.apps.main.views.resources',
         name='resources'),
     url(r'^forms/$', 'onadata.apps.main.views.form_gallery',
