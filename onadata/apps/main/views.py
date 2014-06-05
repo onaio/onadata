@@ -343,7 +343,7 @@ def set_xform_owner_context(context, xform, request, username, id_string):
 @require_GET
 def show(request, username=None, id_string=None, uuid=None):
     if uuid:
-        redirect_to_public_link(uuid)
+        return redirect_to_public_link(request, uuid)
 
     xform, is_owner, can_edit, can_view = get_xform_and_perms(
         username, id_string, request)
