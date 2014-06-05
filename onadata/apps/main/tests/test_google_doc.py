@@ -2,7 +2,7 @@ import os
 
 from django.test import TestCase
 
-from onadata.apps.main.views import GoogleDoc
+from onadata.apps.main.google_doc import GoogleDoc
 
 
 class TestGoogleDoc(TestCase):
