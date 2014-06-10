@@ -19,11 +19,12 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         source='shared', widget=widgets.CheckboxInput())
     public_data = serializers.BooleanField(
         source='shared_data')
-    tags = TagListSerializer()
+    tags = TagListSerializer(read_only=True)
 
     class Meta:
         model = XForm
         read_only_fields = (
-            'json', 'xml', 'date_created', 'date_modified', 'encrypted')
+            'json', 'xml', 'date_created', 'date_modified', 'encrypted',
+            'bamboo_dataset', 'last_submission_time')
         exclude = ('id', 'json', 'xml', 'xls', 'user',
                    'has_start_time', 'shared', 'shared_data')
