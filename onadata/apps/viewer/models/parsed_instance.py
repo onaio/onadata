@@ -243,7 +243,7 @@ class ParsedInstance(models.Model):
             ID: self.instance.id,
             BAMBOO_DATASET_ID: self.instance.xform.bamboo_dataset,
             self.USERFORM_ID: u'%s_%s' % (
-                self.instance.user.username,
+                self.instance.xform.user.username,
                 self.instance.xform.id_string),
             ATTACHMENTS: [a.media_file.name for a in
                           self.instance.attachments.all()],

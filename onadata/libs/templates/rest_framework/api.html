@@ -5,16 +5,22 @@
 {% block title %}
 Ona REST API
 {% endblock %}
-{% block bootstrap_theme %}
-    <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
-    <link href="{{STATIC_URL}}bootstrap/css/bootstrap.min.css" rel="stylesheet">
+{% block style %}
+    {% block bootstrap_theme %}
+        <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+        <link href="{{STATIC_URL}}bootstrap/css/bootstrap.min.css" rel="stylesheet">
+        
+        <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome.css" rel="stylesheet">
+        <!--[if lte IE 8]>
+          <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome-ie7.css" rel="stylesheet">
+        <![endif]-->
+    	  <link href="{{STATIC_URL}}bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
+    {% endblock %}
+
+    {{ block.super }}
     <link href="{{STATIC_URL}}css/screen.css?v=2809679b01" rel="stylesheet">
-    <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome.css" rel="stylesheet">
-    <!--[if lte IE 8]>
-      <link href="//netdna.bootstrapcdn.com/font-awesome/3.0/css/font-awesome-ie7.css" rel="stylesheet">
-    <![endif]-->
-	  <link href="{{STATIC_URL}}bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
 {% endblock %}
+
 {% block script %}
 {{ block.super }}
     <style type='text/css'>
@@ -23,7 +29,7 @@ Ona REST API
     </style>
 {% endblock %}
 {% block branding %}
-    <a class='brand' href='https://ona.io'>Ona</a>
+    <a class="brand" href="#"><img src="{{STATIC_URL}}images/onadata_logo_white.png"></a>
 {% endblock %}
 {% block footer %}
     {% include "footer.html" %}

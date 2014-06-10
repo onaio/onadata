@@ -63,7 +63,8 @@ class TestWaterSubmission(TestCase):
         ))
         xml = f.read()
         f.close()
-        XForm.objects.create(xml=xml, user=self.user, json=self.json)
+        self.xform = XForm.objects.create(
+            xml=xml, user=self.user, json=self.json)
 
     def test_form_submission(self):
         # no more submission to non-existent form,
@@ -73,7 +74,7 @@ class TestWaterSubmission(TestCase):
             "Water_Translated_2011_03_10_2011-03-10_14-38-28.xml"))
         xml = f.read()
         f.close()
-        Instance.objects.create(xml=xml, user=self.user)
+        Instance.objects.create(xml=xml, user=self.user, xform=self.xform)
 
     def test_data_submission(self):
         subdirectories = ["Water_2011_03_17_2011-03-17_16-29-59"]

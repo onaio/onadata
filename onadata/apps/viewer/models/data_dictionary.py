@@ -32,7 +32,7 @@ class ColumnRename(models.Model):
 
 def upload_to(instance, filename, username=None):
     if instance:
-        username = instance.user.username
+        username = instance.xform.user.username
     return os.path.join(
         username,
         'xls',

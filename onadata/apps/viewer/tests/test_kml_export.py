@@ -25,7 +25,8 @@ class TestKMLExport(TestBase):
             kwargs={'username': self.user.username, 'id_string': id_string})
         response = self.client.get(url)
         instances = Instance.objects.filter(
-            user=self.user, xform__id_string=id_string, geom__isnull=False
+            xform__user=self.user, xform__id_string=id_string,
+            geom__isnull=False
         ).order_by('id')
 
         self.assertEqual(instances.count(), 2)

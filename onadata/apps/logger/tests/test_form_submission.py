@@ -5,6 +5,7 @@ from django.db.models import Sum
 from django_digest.test import Client as DigestClient
 from guardian.shortcuts import assign_perm
 
+from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.models.instance import InstanceHistory
@@ -288,3 +289,26 @@ class TestFormSubmission(TestBase):
         self._make_submission(
             xml_submission_file_path, client=client)
         self.assertEqual(self.response.status_code, 201)
+
+    def test_submission_linked_to_reporter(self):
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
+        # create a new user
+        alice = self._create_user('alice', 'alice')
+        UserProfile.objects.create(user=alice)
+
+        # assign report perms to user
+        assign_perm('report_xform', alice, self.xform)
+
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
+        )
+        client = DigestClient()
+        client.set_authorization('alice', 'alice', 'Digest')
+        self._make_submission(
+            xml_submission_file_path, client=client)
+        self.assertEqual(self.response.status_code, 201)
+        instance = Instance.objects.all().reverse()[0]
+        self.assertEqual(instance.user, alice)

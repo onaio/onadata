@@ -9,6 +9,15 @@ from onadata.libs.serializers.user_profile_serializer import\
 from onadata.apps.main.models import UserProfile
 
 
+class CustomPermissions(permissions.DjangoModelPermissions):
+    def has_permission(self, request, view):
+        # allow anonymous users to create new profiles
+        if request.user.is_anonymous() and view.action == 'create':
+            return True
+
+        return super(CustomPermissions, self).has_permission(request, view)
+
+
 class UserProfileViewSet(ObjectLookupMixin, ModelViewSet):
     """
 List, Retrieve, Update, Create/Register users.
@@ -80,7 +89,7 @@ List, Retrieve, Update, Create/Register users.
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
     lookup_field = 'user'
-    permission_classes = [permissions.DjangoModelPermissions, ]
+    permission_classes = [CustomPermissions, ]
     ordering = ('user__username', )
 
     def get_queryset(self):
@@ -89,3 +98,6 @@ List, Retrieve, Update, Create/Register users.
             user = User.objects.get(pk=-1)
         return UserProfile.objects.filter(
             Q(user__in=user.userprofile_set.values('user')) | Q(user=user))
+
+    def create(self, request, *args, **kwargs):
+        return super(UserProfileViewSet, self).create(request, *args, **kwargs)
