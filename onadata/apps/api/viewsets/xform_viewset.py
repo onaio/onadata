@@ -168,7 +168,7 @@ def value_for_type(form, field, value):
     return value
 
 
-class CustomPermissions(permissions.DjangoModelPermissionsOrAnonReadOnly):
+class CustomPermissions(permissions.DjangoObjectPermissions):
     def has_permission(self, request, view):
         owner = view.kwargs.get('owner')
         is_authenticated = request and request.user.is_authenticated()
@@ -576,20 +576,6 @@ Where:
                             headers=headers)
 
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
-
-    def update(self, request, *args, **kwargs):
-        data = request.DATA
-        form = self.get_object()
-        fields = self.updatable_fields.intersection(data.keys())
-
-        for field in fields:
-            if hasattr(form, field):
-                v = value_for_type(form, field, data[field])
-                form.__setattr__(field, v)
-
-        form.save()
-
-        return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
     @action(methods=['GET'])
     def form(self, request, format='json', **kwargs):

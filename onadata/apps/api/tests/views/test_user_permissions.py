@@ -1,11 +1,15 @@
+import json
 import os
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from rest_framework.renderers import JSONRenderer
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.libs.permissions import ManagerRole
+from onadata.libs.serializers.xform_serializer import XFormSerializer
 
 
 class TestUserPermissions(TestAbstractViewSet):
@@ -51,3 +55,31 @@ class TestUserPermissions(TestAbstractViewSet):
                 'http://testserver/api/v1/forms/bob/%s' % xform.pk
             })
             self.assertDictContainsSubset(data, response.data)
+
+    def test_put_update_manager(self):
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        view = XFormViewSet.as_view({
+            'put': 'update'
+        })
+        description = 'DESCRIPTION'
+        xfs = XFormSerializer(instance=self.xform)
+        data = json.loads(JSONRenderer().render(xfs.data))
+        data.update({'public': True, 'description': description})
+
+        self.assertFalse(self.xform.shared)
+
+        request = self.factory.put('/', data=data, **self.extra)
+        with self.assertRaises(ValidationError):
+            response = view(request, owner='bob', pk=self.xform.id)
+        self.assertFalse(self.xform.shared)
+        ManagerRole.add(self.user, self.xform)
+        request = self.factory.put('/', data=data, **self.extra)
+        response = view(request, owner='bob', pk=self.xform.id)
+
+        self.xform.reload()
+        self.assertTrue(self.xform.shared)
+        self.assertEqual(self.xform.description, description)
+        self.assertEqual(response.data['public'], True)
+        self.assertEqual(response.data['description'], description)
