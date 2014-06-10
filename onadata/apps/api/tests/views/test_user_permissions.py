@@ -56,7 +56,7 @@ class TestUserPermissions(TestAbstractViewSet):
             })
             self.assertDictContainsSubset(data, response.data)
 
-    def test_put_update_manager(self):
+    def test_manager_can_update_xform(self):
         self._publish_xls_form_to_project()
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(extra_post_data=alice_data)
