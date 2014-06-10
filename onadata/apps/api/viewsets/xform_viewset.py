@@ -258,14 +258,19 @@ https://ona.io/api/v1/forms
 
 ## Set Form Information
 
+You can use `PUT` or `PATCH` http methods to update or set form data elements.
+If you are using `PUT`, you have to provide the `uuid, description, owner,
+public, public_data` fields. With `PATCH` you only need provide atleast one
+of the fields.
+
 <pre class="prettyprint">
-<b>PUT</b> /api/v1/forms/<code>{formid}</code>
-<b>PUT</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
+<b>PATCH</b> /api/v1/forms/<code>{formid}</code>
+<b>PATCH</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
 <code>{formid}</code></pre>
 
 > Example
 >
->       curl -X PUT -d "shared=True" -d "description=Le description"\
+>       curl -X PATCH -d "public=True" -d "description=Le description"\
 https://ona.io/api/v1/forms/28058
 
 > Response
