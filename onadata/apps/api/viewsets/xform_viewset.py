@@ -214,6 +214,7 @@ class CustomPermissions(permissions.DjangoObjectPermissions):
         is_authenticated = request and request.user.is_authenticated()
 
         if is_authenticated and view.action == 'create':
+            owner = owner or request.user.username
             return request.user.has_perm(CAN_ADD_XFORM_TO_PROFILE,
                                          _get_profile(owner))
 
