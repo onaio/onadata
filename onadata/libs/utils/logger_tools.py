@@ -59,6 +59,8 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
     instances = Instance.objects.filter(uuid=old_uuid)
 
     if instances:
+        # edits
+        check_edit_submission_permissions(submitted_by, xform)
         instance = instances[0]
         InstanceHistory.objects.create(
             xml=instance.xml, xform_instance=instance, uuid=old_uuid)
@@ -103,6 +105,18 @@ def get_xform_from_submission(xml, username, uuid=None):
 
         return get_object_or_404(XForm, id_string=id_string,
                                  user__username=username)
+
+
+def check_edit_submission_permissions(request_user, xform):
+    if xform and request_user.is_authenticated():
+        if xform.user.profile.require_auth and xform.user != request_user\
+                and not request_user.has_perm('logger.change_xform', xform):
+            raise PermissionDenied(
+                _(u"%(request_user)s is not allowed to make edit submissions "
+                  u"to %(form_user)s's %(form_title)s form." % {
+                      'request_user': request_user,
+                      'form_user': xform.user,
+                      'form_title': xform.title}))
 
 
 def check_submission_permissions(request, xform):
