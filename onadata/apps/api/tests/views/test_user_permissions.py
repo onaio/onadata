@@ -48,9 +48,11 @@ class TestUserPermissions(TestAbstractViewSet):
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, owner='bob')
             self.assertEqual(response.status_code, 403)
+
             role.ManagerRole.add(self.user, bob.profile)
             response = view(request, owner='bob')
             self.assertEqual(response.status_code, 201)
+
             xform = bob.xforms.all()[0]
             data.update({
                 'url':
@@ -76,6 +78,7 @@ class TestUserPermissions(TestAbstractViewSet):
         with self.assertRaises(ValidationError):
             response = view(request, owner='bob', pk=self.xform.id)
         self.assertFalse(self.xform.shared)
+
         role.ManagerRole.add(self.user, self.xform)
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, owner='bob', pk=self.xform.id)
@@ -96,18 +99,21 @@ class TestUserPermissions(TestAbstractViewSet):
             'delete': 'labels'
         })
         formid = self.xform.pk
-        # no tags
+
         request = self.factory.get('/', **self.extra)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 404)
+
         role.ManagerRole.add(self.user, self.xform)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.data, [])
+
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'hello'])
+
         # remove tag "hello"
         request = self.factory.delete('/', data={"tags": "hello"},
                                       **self.extra)
@@ -126,17 +132,21 @@ class TestUserPermissions(TestAbstractViewSet):
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(extra_post_data=alice_data)
         formid = self.xform.pk
-        # no tags
+
         request = self.factory.get('/', **self.extra)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 404)
+
         response = data_view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 403)
+
         role.ReadOnlyRole.add(self.user, self.xform)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 200)
+
         response = data_view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 200)
+
         data = {'public': True, 'description': "Some description"}
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, owner='bob', pk=formid)
@@ -171,17 +181,21 @@ class TestUserPermissions(TestAbstractViewSet):
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(extra_post_data=alice_data)
         formid = self.xform.pk
-        # no tags
+
         request = self.factory.get('/', **self.extra)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 404)
+
         response = data_view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 403)
+
         role.DataEntryRole.add(self.user, self.xform)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 200)
+
         response = data_view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 200)
+
         data = {'public': True, 'description': "Some description"}
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, owner='bob', pk=formid)
@@ -217,7 +231,6 @@ class TestUserPermissions(TestAbstractViewSet):
         self._login_user_and_profile(extra_post_data=alice_data)
         formid = self.xform.pk
 
-        # no tags
         request = self.factory.get('/', **self.extra)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 404)
@@ -255,3 +268,41 @@ class TestUserPermissions(TestAbstractViewSet):
         role.EditorRole.add(self.user, self.xform)
         self._make_submission(paths[1], username='bob', client=client)
         self.assertEqual(self.response.status_code, 201)
+
+    def test_owner_role(self):
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+        view = XFormViewSet.as_view({
+            'get': 'retrieve',
+            'put': 'update',
+            'delete': 'destroy'
+        })
+        data_view = DataViewSet.as_view({'get': 'list'})
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        formid = self.xform.pk
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.status_code, 404)
+
+        response = data_view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 403)
+
+        role.OwnerRole.add(self.user, self.xform)
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.status_code, 200)
+
+        response = data_view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 200)
+
+        xfs = XFormSerializer(instance=self.xform)
+        data = json.loads(JSONRenderer().render(xfs.data))
+        data.update({'public': True, 'description': "Some description"})
+        request = self.factory.put('/', data=data, **self.extra)
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.status_code, 200)
+
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.status_code, 204)

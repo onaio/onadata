@@ -9,6 +9,8 @@ CAN_ADD_XFORM = 'logger.add_xform'
 CAN_DELETE_XFORM = 'logger.delete_xform'
 CAN_VIEW_XFORM = 'view_xform'
 CAN_ADD_SUBMISSIONS = 'report_xform'
+CAN_TRANSFER_OWNERSHIP = 'transfer_xform'
+CAN_MOVE_TO_FOLDER = 'move_xform'
 
 
 class Role(object):
@@ -19,15 +21,6 @@ class Role(object):
         for permission, klass in cls.permissions:
             if isinstance(obj, klass):
                 assign_perm(permission, user, obj)
-
-
-class ManagerRole(Role):
-    permissions = (
-        (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
-        (CAN_ADD_XFORM, XForm),
-        (CAN_DELETE_XFORM, XForm),
-        (CAN_CHANGE_XFORM, XForm)
-    )
 
 
 class ReadOnlyRole(Role):
@@ -48,4 +41,23 @@ class EditorRole(Role):
         (CAN_VIEW_XFORM, XForm),
         (CAN_ADD_SUBMISSIONS, XForm),
         (CAN_CHANGE_XFORM, XForm)
+    )
+
+
+class ManagerRole(Role):
+    permissions = (
+        (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
+        (CAN_ADD_XFORM, XForm),
+        (CAN_CHANGE_XFORM, XForm)
+    )
+
+
+class OwnerRole(Role):
+    permissions = (
+        (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
+        (CAN_ADD_XFORM, XForm),
+        (CAN_CHANGE_XFORM, XForm),
+        (CAN_DELETE_XFORM, XForm),
+        (CAN_MOVE_TO_FOLDER, XForm),
+        (CAN_TRANSFER_OWNERSHIP, XForm),
     )
