@@ -10,7 +10,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.libs.permissions import ManagerRole, ReadOnlyRole, DataEntryRole
+from onadata.libs import permissions as role
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 
 
@@ -48,7 +48,7 @@ class TestUserPermissions(TestAbstractViewSet):
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, owner='bob')
             self.assertEqual(response.status_code, 403)
-            ManagerRole.add(self.user, bob.profile)
+            role.ManagerRole.add(self.user, bob.profile)
             response = view(request, owner='bob')
             self.assertEqual(response.status_code, 201)
             xform = bob.xforms.all()[0]
@@ -76,7 +76,7 @@ class TestUserPermissions(TestAbstractViewSet):
         with self.assertRaises(ValidationError):
             response = view(request, owner='bob', pk=self.xform.id)
         self.assertFalse(self.xform.shared)
-        ManagerRole.add(self.user, self.xform)
+        role.ManagerRole.add(self.user, self.xform)
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, owner='bob', pk=self.xform.id)
 
@@ -100,7 +100,7 @@ class TestUserPermissions(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 404)
-        ManagerRole.add(self.user, self.xform)
+        role.ManagerRole.add(self.user, self.xform)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.data, [])
         # add tag "hello"
@@ -132,7 +132,7 @@ class TestUserPermissions(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
         response = data_view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 403)
-        ReadOnlyRole.add(self.user, self.xform)
+        role.ReadOnlyRole.add(self.user, self.xform)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 200)
         response = data_view(request, owner='bob', formid=formid)
@@ -150,7 +150,7 @@ class TestUserPermissions(TestAbstractViewSet):
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com',
                       'password1': 'alice', 'password2': 'alice'}
         self._login_user_and_profile(extra_post_data=alice_data)
-        ReadOnlyRole.add(self.user, self.xform)
+        role.ReadOnlyRole.add(self.user, self.xform)
 
         paths = [os.path.join(
             self.main_directory, 'fixtures', 'transportation',
@@ -177,7 +177,7 @@ class TestUserPermissions(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
         response = data_view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 403)
-        DataEntryRole.add(self.user, self.xform)
+        role.DataEntryRole.add(self.user, self.xform)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 200)
         response = data_view(request, owner='bob', formid=formid)
@@ -195,7 +195,7 @@ class TestUserPermissions(TestAbstractViewSet):
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com',
                       'password1': 'alice', 'password2': 'alice'}
         self._login_user_and_profile(extra_post_data=alice_data)
-        DataEntryRole.add(self.user, self.xform)
+        role.DataEntryRole.add(self.user, self.xform)
 
         paths = [os.path.join(
             self.main_directory, 'fixtures', 'transportation',
@@ -203,4 +203,55 @@ class TestUserPermissions(TestAbstractViewSet):
         client = DigestClient()
         client.set_authorization('alice', 'alice', 'Digest')
         self._make_submission(paths[0], username='bob', client=client)
+        self.assertEqual(self.response.status_code, 201)
+
+    def test_editor_role(self):
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+        view = XFormViewSet.as_view({
+            'get': 'retrieve',
+            'patch': 'update'
+        })
+        data_view = DataViewSet.as_view({'get': 'list'})
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        formid = self.xform.pk
+
+        # no tags
+        request = self.factory.get('/', **self.extra)
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.status_code, 404)
+
+        response = data_view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 403)
+
+        role.EditorRole.add(self.user, self.xform)
+
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.status_code, 200)
+        response = data_view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 200)
+
+    def test_editor_role_submission_when_requires_auth(self):
+        self._publish_xls_form_to_project()
+        paths = [os.path.join(
+            self.main_directory, 'fixtures', 'transportation',
+            'instances_w_uuid', s, s + '.xml') for s in [
+                'transport_2011-07-25_19-05-36',
+                'transport_2011-07-25_19-05-36-edited']]
+        self._make_submission(paths[0])
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com',
+                      'password1': 'alice', 'password2': 'alice'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+
+        client = DigestClient()
+        client.set_authorization('alice', 'alice', 'Digest')
+        self._make_submission(paths[1], username='bob', client=client)
+        self.assertEqual(self.response.status_code, 403)
+
+        role.EditorRole.add(self.user, self.xform)
+        self._make_submission(paths[1], username='bob', client=client)
         self.assertEqual(self.response.status_code, 201)
