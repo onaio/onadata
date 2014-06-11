@@ -7,9 +7,20 @@ CAN_ADD_XFORM_TO_PROFILE = 'can_add_xform'
 CAN_CHANGE_XFORM = 'change_xform'
 CAN_ADD_XFORM = 'logger.add_xform'
 CAN_DELETE_XFORM = 'logger.delete_xform'
+CAN_VIEW_XFORM = 'view_xform'
 
 
-class ManagerRole(object):
+class Role(object):
+    permissions = None
+
+    @classmethod
+    def add(cls, user, obj):
+        for permission, klass in cls.permissions:
+            if isinstance(obj, klass):
+                assign_perm(permission, user, obj)
+
+
+class ManagerRole(Role):
     permissions = (
         (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
         (CAN_ADD_XFORM, XForm),
@@ -17,8 +28,8 @@ class ManagerRole(object):
         (CAN_CHANGE_XFORM, XForm)
     )
 
-    @classmethod
-    def add(cls, user, obj):
-        for permission, klass in cls.permissions:
-            if isinstance(obj, klass):
-                assign_perm(permission, user, obj)
+
+class ReadOnlyRole(Role):
+    permissions = (
+        (CAN_VIEW_XFORM, XForm),
+    )

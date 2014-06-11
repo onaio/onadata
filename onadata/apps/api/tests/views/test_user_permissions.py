@@ -8,7 +8,7 @@ from rest_framework.renderers import JSONRenderer
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.libs.permissions import ManagerRole
+from onadata.libs.permissions import ManagerRole, ReadOnlyRole
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 
 
@@ -112,3 +112,24 @@ class TestUserPermissions(TestAbstractViewSet):
         response = view(request, owner='bob', pk=formid, label='hello')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
+
+    def test_readonly_role(self):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({
+            'get': 'retrieve',
+            'put': 'update'
+        })
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        formid = self.xform.pk
+        # no tags
+        request = self.factory.get('/', **self.extra)
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.status_code, 404)
+        ReadOnlyRole.add(self.user, self.xform)
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.status_code, 200)
+        data = {'public': True, 'description': "Some description"}
+        request = self.factory.put('/', data=data, **self.extra)
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.status_code, 403)
