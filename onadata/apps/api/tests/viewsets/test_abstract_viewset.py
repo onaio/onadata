@@ -68,7 +68,8 @@ class TestAbstractViewSet(TestCase):
             twitter=post_data['twitter'])
         self.user = user
         self.assertTrue(
-            self.client.login(username=self.user.username, password='bobbob'))
+            self.client.login(username=self.user.username,
+                              password=post_data['password1']))
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
