@@ -1,21 +1,31 @@
 import json
 import os
+import re
 
 from django.conf import settings
-from django.test import TestCase
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Permission
+from django.test import TestCase
+from django.test.client import Client
 from rest_framework.test import APIRequestFactory
+from tempfile import NamedTemporaryFile
 
 from onadata.apps.api.models import OrganizationProfile, Project
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.main.models import UserProfile
+from onadata.apps.main import tests as main_tests
+from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 
 
 class TestAbstractViewSet(TestCase):
+    surveys = ['transport_2011-07-25_19-05-49',
+               'transport_2011-07-25_19-05-36',
+               'transport_2011-07-25_19-06-01',
+               'transport_2011-07-25_19-06-14']
+    main_directory = os.path.dirname(main_tests.__file__)
 
     def setUp(self):
         TestCase.setUp(self)
@@ -151,3 +161,69 @@ class TestAbstractViewSet(TestCase):
             })
             self.assertDictContainsSubset(data, response.data)
             self.form_data = response.data
+
+    def _make_submission(self, path, username=None, add_uuid=False,
+                         forced_submission_time=None,
+                         client=None):
+        # store temporary file with dynamic uuid
+        client = client or Client()
+        tmp_file = None
+
+        if add_uuid:
+            tmp_file = NamedTemporaryFile(delete=False)
+            split_xml = None
+
+            with open(path) as _file:
+                split_xml = re.split(r'(<transport>)', _file.read())
+
+            split_xml[1:1] = [
+                '<formhub><uuid>%s</uuid></formhub>' % self.xform.uuid
+            ]
+            tmp_file.write(''.join(split_xml))
+            path = tmp_file.name
+            tmp_file.close()
+
+        with open(path) as f:
+            post_data = {'xml_submission_file': f}
+
+            if username is None:
+                username = self.user.username
+
+            url_prefix = '%s/' % username if username else ''
+            url = '/%ssubmission' % url_prefix
+
+            self.response = client.post(url, post_data)
+
+        if forced_submission_time:
+            instance = Instance.objects.order_by('-pk').all()[0]
+            instance.date_created = forced_submission_time
+            instance.save()
+            instance.parsed_instance.save()
+
+        # remove temporary file if stored
+        if add_uuid:
+            os.unlink(tmp_file.name)
+
+    def _make_submissions(self, username=None, add_uuid=False,
+                          should_store=True):
+        """Make test fixture submissions to current xform.
+
+        :param username: submit under this username, default None.
+        :param add_uuid: add UUID to submission, default False.
+        :param should_store: should submissions be save, default True.
+        """
+        paths = [os.path.join(
+            self.main_directory, 'fixtures', 'transportation',
+            'instances', s, s + '.xml') for s in self.surveys]
+        pre_count = Instance.objects.count()
+
+        for path in paths:
+            self._make_submission(path, username, add_uuid)
+
+        post_count = pre_count + len(self.surveys) if should_store\
+            else pre_count
+        self.assertEqual(Instance.objects.count(), post_count)
+        self.assertEqual(self.xform.instances.count(), post_count)
+        xform = XForm.objects.get(pk=self.xform.pk)
+        self.assertEqual(xform.num_of_submissions, post_count)
+        self.assertEqual(xform.user.profile.num_of_submissions, post_count)
