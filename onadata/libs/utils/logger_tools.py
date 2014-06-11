@@ -108,7 +108,7 @@ def get_xform_from_submission(xml, username, uuid=None):
 
 
 def check_edit_submission_permissions(request_user, xform):
-    if xform and request_user.is_authenticated():
+    if xform and request_user and request_user.is_authenticated():
         if xform.user.profile.require_auth and xform.user != request_user\
                 and not request_user.has_perm('logger.change_xform', xform):
             raise PermissionDenied(
