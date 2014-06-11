@@ -68,7 +68,9 @@ class TestUserPermissions(TestAbstractViewSet):
             'put': 'update'
         })
         description = 'DESCRIPTION'
-        xfs = XFormSerializer(instance=self.xform)
+        request = self.factory.get('/', **self.extra)
+        xfs = XFormSerializer(instance=self.xform,
+                              context={'request': request})
         data = json.loads(JSONRenderer().render(xfs.data))
         data.update({'public': True, 'description': description})
 
@@ -296,7 +298,8 @@ class TestUserPermissions(TestAbstractViewSet):
         response = data_view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 200)
 
-        xfs = XFormSerializer(instance=self.xform)
+        xfs = XFormSerializer(instance=self.xform,
+                              context={'request': request})
         data = json.loads(JSONRenderer().render(xfs.data))
         data.update({'public': True, 'description': "Some description"})
         request = self.factory.put('/', data=data, **self.extra)
