@@ -128,7 +128,7 @@ def deploy(deployment_name, branch='master'):
         local_settings_check(config_module)
 
         with source(env.virtualenv):
-            run("python manage.py syncdb --settings=%s" % config_module)
+            run("python manage.py syncdb --all --settings=%s" % config_module)
             run("python manage.py migrate --settings=%s" % config_module)
             run("python manage.py collectstatic --settings=%s --noinput"
                 % config_module)

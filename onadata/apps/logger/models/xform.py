@@ -88,6 +88,8 @@ class XForm(BaseModel):
         permissions = (
             ("view_xform", _("Can view associated data")),
             ("report_xform", _("Can make submissions to the form")),
+            ("move_xform", _(u"Can move form between projects")),
+            ("transfer_xform", _(u"Can transfer form ownership.")),
         )
 
     def file_name(self):
