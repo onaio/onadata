@@ -206,6 +206,9 @@ def value_for_type(form, field, value):
 
 
 class CustomPermissions(permissions.DjangoObjectPermissions):
+
+    authenticated_users_only = False
+
     def has_permission(self, request, view):
         owner = view.kwargs.get('owner')
         is_authenticated = request and request.user.is_authenticated()
