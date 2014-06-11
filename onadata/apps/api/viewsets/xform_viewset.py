@@ -39,7 +39,7 @@ from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.string import str2bool
-from onadata.libs.permissions import CAN_ADD_XFORM
+from onadata.libs.permissions import CAN_ADD_XFORM_TO_PROFILE
 
 EXPORT_EXT = {
     'xls': Export.XLS_EXPORT,
@@ -211,7 +211,8 @@ class CustomPermissions(permissions.DjangoObjectPermissions):
         is_authenticated = request and request.user.is_authenticated()
 
         if is_authenticated and view.action == 'create':
-            return request.user.has_perm(CAN_ADD_XFORM, _get_profile(owner))
+            return request.user.has_perm(CAN_ADD_XFORM_TO_PROFILE,
+                                         _get_profile(owner))
 
         return super(CustomPermissions, self).has_permission(request, view)
 

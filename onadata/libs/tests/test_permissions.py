@@ -1,6 +1,6 @@
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.permissions import ManagerRole, CAN_ADD_XFORM
+from onadata.libs.permissions import ManagerRole, CAN_ADD_XFORM_TO_PROFILE
 
 
 class TestPermissions(TestBase):
@@ -9,4 +9,4 @@ class TestPermissions(TestBase):
         alice = self._create_user('alice', 'alice')
         ManagerRole.add(alice, bob)
 
-        self.assertTrue(alice.has_perm(CAN_ADD_XFORM, bob))
+        self.assertTrue(alice.has_perm(CAN_ADD_XFORM_TO_PROFILE, bob))

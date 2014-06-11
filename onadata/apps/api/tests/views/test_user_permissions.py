@@ -83,3 +83,32 @@ class TestUserPermissions(TestAbstractViewSet):
         self.assertEqual(self.xform.description, description)
         self.assertEqual(response.data['public'], True)
         self.assertEqual(response.data['description'], description)
+
+    def test_manager_can_update_xform_tags(self):
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        view = XFormViewSet.as_view({
+            'get': 'labels',
+            'post': 'labels',
+            'delete': 'labels'
+        })
+        formid = self.xform.pk
+        # no tags
+        request = self.factory.get('/', **self.extra)
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.status_code, 404)
+        ManagerRole.add(self.user, self.xform)
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.data, [])
+        # add tag "hello"
+        request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
+        response = view(request, owner='bob', pk=formid)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, [u'hello'])
+        # remove tag "hello"
+        request = self.factory.delete('/', data={"tags": "hello"},
+                                      **self.extra)
+        response = view(request, owner='bob', pk=formid, label='hello')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
