@@ -8,6 +8,7 @@ CAN_CHANGE_XFORM = 'change_xform'
 CAN_ADD_XFORM = 'logger.add_xform'
 CAN_DELETE_XFORM = 'logger.delete_xform'
 CAN_VIEW_XFORM = 'view_xform'
+CAN_ADD_SUBMISSIONS = 'report_xform'
 
 
 class Role(object):
@@ -32,4 +33,11 @@ class ManagerRole(Role):
 class ReadOnlyRole(Role):
     permissions = (
         (CAN_VIEW_XFORM, XForm),
+    )
+
+
+class DataEntryRole(Role):
+    permissions = (
+        (CAN_VIEW_XFORM, XForm),
+        (CAN_ADD_SUBMISSIONS, XForm),
     )
