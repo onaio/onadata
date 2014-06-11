@@ -39,7 +39,7 @@ from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.string import str2bool
-from onadata.libs.permissions import CAN_ADD_XFORM_TO_PROFILE
+from onadata.libs.permissions import CAN_ADD_XFORM_TO_PROFILE, CAN_CHANGE_XFORM
 
 EXPORT_EXT = {
     'xls': Export.XLS_EXPORT,
@@ -215,6 +215,15 @@ class CustomPermissions(permissions.DjangoObjectPermissions):
                                          _get_profile(owner))
 
         return super(CustomPermissions, self).has_permission(request, view)
+
+    def has_object_permission(self, request, view, obj):
+        if request.method == 'DELETE' and view.action == 'labels':
+            user = request.user
+
+            return user.has_perms([CAN_CHANGE_XFORM], obj)
+
+        return super(CustomPermissions, self).has_object_permission(
+            request, view, obj)
 
 
 class XFormViewSet(MultiLookupMixin, ModelViewSet):
