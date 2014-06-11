@@ -3,6 +3,7 @@ import os
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django_digest.test import Client as DigestClient
 from rest_framework.renderers import JSONRenderer
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -140,3 +141,21 @@ class TestUserPermissions(TestAbstractViewSet):
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 403)
+
+    def test_readonly_role_submission_when_requires_auth(self):
+        self._publish_xls_form_to_project()
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com',
+                      'password1': 'alice', 'password2': 'alice'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        ReadOnlyRole.add(self.user, self.xform)
+
+        paths = [os.path.join(
+            self.main_directory, 'fixtures', 'transportation',
+            'instances', s, s + '.xml') for s in self.surveys]
+        client = DigestClient()
+        client.set_authorization('alice', 'alice', 'Digest')
+        self._make_submission(paths[0], username='bob', client=client)
+        self.assertEqual(self.response.status_code, 403)
