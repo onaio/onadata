@@ -120,7 +120,7 @@ def check_edit_submission_permissions(request_user, xform):
         requires_auth = xform.user.profile.require_auth
         has_edit_perms = _has_edit_xform_permission(xform, request_user)
 
-        if requires_auth and has_edit_perms:
+        if requires_auth and not has_edit_perms:
             raise PermissionDenied(
                 _(u"%(request_user)s is not allowed to make edit submissions "
                   u"to %(form_user)s's %(form_title)s form." % {
