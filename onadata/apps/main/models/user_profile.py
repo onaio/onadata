@@ -57,13 +57,15 @@ class UserProfile(models.Model):
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
-post_save.connect(create_auth_token, sender=User)
+post_save.connect(create_auth_token, sender=User, dispatch_uid='auth_token')
 
-post_save.connect(set_api_permissions, sender=User)
+post_save.connect(set_api_permissions, sender=User,
+                  dispatch_uid='set_api_permissions')
 
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
     if created:
         for perm in get_perms_for_model(UserProfile):
             assign_perm(perm.codename, instance.user, instance)
-post_save.connect(set_object_permissions, sender=UserProfile)
+post_save.connect(set_object_permissions, sender=UserProfile,
+                  dispatch_uid='set_object_permissions')
