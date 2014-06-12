@@ -15,7 +15,7 @@ class ViewDjangoObjectPermissions(DjangoObjectPermissions):
     }
 
 
-class XFormPermissions(ViewDjangoObjectPermissions):
+class XFormPermissions(DjangoObjectPermissions):
 
     authenticated_users_only = False
 
@@ -25,6 +25,7 @@ class XFormPermissions(ViewDjangoObjectPermissions):
 
         if is_authenticated and view.action == 'create':
             owner = owner or request.user.username
+
             return request.user.has_perm(CAN_ADD_XFORM_TO_PROFILE,
                                          get_user_profile_or_none(owner))
 
