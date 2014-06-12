@@ -126,6 +126,10 @@ class XForm(BaseModel):
             raise XLSFormError(_("There should be a single title."), matches)
         self.title = u"" if not matches else matches[0][:XFORM_TITLE_LENGTH]
 
+    def _set_description(self):
+        self.description = self.description \
+            if self.description and self.description != '' else self.title
+
     def _set_encrypted_field(self):
         if self.json and self.json != '':
             json_dict = json.loads(self.json)
@@ -139,6 +143,7 @@ class XForm(BaseModel):
 
     def save(self, *args, **kwargs):
         self._set_title()
+        self._set_description()
         old_id_string = self.id_string
         self._set_id_string()
         self._set_encrypted_field()
