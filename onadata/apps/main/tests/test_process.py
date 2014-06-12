@@ -194,7 +194,7 @@ class TestProcess(TestBase):
     <majorMinorVersion/>
     <version/>
     <hash>md5:%(hash)s</hash>
-    <descriptionText></descriptionText>
+    <descriptionText>transportation_2011_07_25</descriptionText>
     <downloadUrl>%(download_url)s</downloadUrl>
     <manifestUrl>%(manifest_url)s</manifestUrl>
   </xform>

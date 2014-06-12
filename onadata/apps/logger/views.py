@@ -285,7 +285,7 @@ def submission(request, username=None):
             response['Location'] = request.build_absolute_uri(request.path)
             return response
         except PermissionDenied as e:
-            return OpenRosaResponseForbidden(e.message)
+            return OpenRosaResponseForbidden(e)
 
         if instance is None:
             return OpenRosaResponseBadRequest(
@@ -314,7 +314,7 @@ def submission(request, username=None):
         response['Location'] = request.build_absolute_uri(request.path)
         return response
     except IOError as e:
-        if 'request data read error' in unicode(e):
+        if 'request data read error' in e.strerror:
             return OpenRosaResponseBadRequest(
                 _(u"File transfer interruption."))
         else:

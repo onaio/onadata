@@ -12,6 +12,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.files.storage import get_storage_class
 from django.core.mail import mail_admins
 from django.core.servers.basehttp import FileWrapper
+from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 from django.db.models.signals import pre_delete
 from django.http import HttpResponse, HttpResponseNotFound, \
@@ -59,6 +60,8 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
     instances = Instance.objects.filter(uuid=old_uuid)
 
     if instances:
+        # edits
+        check_edit_submission_permissions(submitted_by, xform)
         instance = instances[0]
         InstanceHistory.objects.create(
             xml=instance.xml, xform_instance=instance, uuid=old_uuid)
@@ -103,6 +106,27 @@ def get_xform_from_submission(xml, username, uuid=None):
 
         return get_object_or_404(XForm, id_string=id_string,
                                  user__username=username)
+
+
+def _has_edit_xform_permission(xform, user):
+    if isinstance(xform, XForm) and isinstance(user, User):
+        return user.has_perm('logger.change_xform', xform)
+
+    return False
+
+
+def check_edit_submission_permissions(request_user, xform):
+    if xform and request_user and request_user.is_authenticated():
+        requires_auth = xform.user.profile.require_auth
+        has_edit_perms = _has_edit_xform_permission(xform, request_user)
+
+        if requires_auth and not has_edit_perms:
+            raise PermissionDenied(
+                _(u"%(request_user)s is not allowed to make edit submissions "
+                  u"to %(form_user)s's %(form_title)s form." % {
+                      'request_user': request_user,
+                      'form_user': xform.user,
+                      'form_title': xform.title}))
 
 
 def check_submission_permissions(request, xform):

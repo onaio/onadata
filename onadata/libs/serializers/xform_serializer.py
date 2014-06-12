@@ -4,6 +4,7 @@ from rest_framework import serializers
 from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import\
     HyperlinkedMultiIdentityField
 from onadata.apps.logger.models import XForm
+from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 
 
@@ -15,15 +16,16 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     owner = serializers.HyperlinkedRelatedField(
         view_name='user-detail',
         source='user', lookup_field='username')
-    public = serializers.BooleanField(
+    public = BooleanField(
         source='shared', widget=widgets.CheckboxInput())
-    public_data = serializers.BooleanField(
+    public_data = BooleanField(
         source='shared_data')
-    tags = TagListSerializer()
+    tags = TagListSerializer(read_only=True)
 
     class Meta:
         model = XForm
         read_only_fields = (
-            'json', 'xml', 'date_created', 'date_modified', 'encrypted')
+            'json', 'xml', 'date_created', 'date_modified', 'encrypted',
+            'bamboo_dataset', 'last_submission_time')
         exclude = ('id', 'json', 'xml', 'xls', 'user',
                    'has_start_time', 'shared', 'shared_data')

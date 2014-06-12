@@ -88,6 +88,8 @@ class XForm(BaseModel):
         permissions = (
             ("view_xform", _("Can view associated data")),
             ("report_xform", _("Can make submissions to the form")),
+            ("move_xform", _(u"Can move form between projects")),
+            ("transfer_xform", _(u"Can transfer form ownership.")),
         )
 
     def file_name(self):
@@ -124,6 +126,10 @@ class XForm(BaseModel):
             raise XLSFormError(_("There should be a single title."), matches)
         self.title = u"" if not matches else matches[0][:XFORM_TITLE_LENGTH]
 
+    def _set_description(self):
+        self.description = self.description \
+            if self.description and self.description != '' else self.title
+
     def _set_encrypted_field(self):
         if self.json and self.json != '':
             json_dict = json.loads(self.json)
@@ -137,6 +143,7 @@ class XForm(BaseModel):
 
     def save(self, *args, **kwargs):
         self._set_title()
+        self._set_description()
         old_id_string = self.id_string
         self._set_id_string()
         self._set_encrypted_field()
@@ -164,9 +171,6 @@ class XForm(BaseModel):
                 self.sms_id_string = self.id_string
 
         super(XForm, self).save(*args, **kwargs)
-
-        for perm in get_perms_for_model(XForm):
-            assign_perm(perm.codename, self.user, self)
 
     def __unicode__(self):
         return getattr(self, "id_string", "")
@@ -242,3 +246,11 @@ def update_profile_num_submissions(sender, instance, **kwargs):
 
 post_delete.connect(update_profile_num_submissions, sender=XForm,
                     dispatch_uid='update_profile_num_submissions')
+
+
+def set_object_permissions(sender, instance=None, created=False, **kwargs):
+    if created:
+        for perm in get_perms_for_model(XForm):
+            assign_perm(perm.codename, instance.user, instance)
+post_save.connect(set_object_permissions, sender=XForm,
+                  dispatch_uid='xform_object_permissions')
