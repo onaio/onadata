@@ -304,3 +304,16 @@ def get_xform(formid, request, username=None):
             "You do not have permission to view data from this form."))
 
     return xform
+
+
+def get_user_profile_or_none(username):
+    profile = None
+
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        pass
+    else:
+        profile = user.profile
+
+    return profile

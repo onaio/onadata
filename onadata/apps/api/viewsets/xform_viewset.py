@@ -14,7 +14,6 @@ from django.utils.translation import ugettext as _
 from django.utils import six
 
 from rest_framework import exceptions
-from rest_framework import permissions
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -28,6 +27,7 @@ from onadata.libs.models.signals import xform_tags_add, xform_tags_delete
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.api import tools as utils
+from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.viewer_tools import enketo_url
 from onadata.apps.viewer.models import Export
@@ -39,7 +39,6 @@ from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.string import str2bool
-from onadata.libs.permissions import CAN_ADD_XFORM_TO_PROFILE, CAN_CHANGE_XFORM
 
 EXPORT_EXT = {
     'xls': Export.XLS_EXPORT,
@@ -181,12 +180,6 @@ def _get_user(username):
     return users.count() and users[0] or None
 
 
-def _get_profile(username):
-    user = _get_user(username)
-
-    return user and user.profile or None
-
-
 def response_for_format(data, format=None):
     formatted_data = data.xml if format == 'xml' else json.loads(data.json)
     return Response(formatted_data)
@@ -203,31 +196,6 @@ def value_for_type(form, field, value):
         return str2bool(value)
 
     return value
-
-
-class CustomPermissions(permissions.DjangoObjectPermissions):
-
-    authenticated_users_only = False
-
-    def has_permission(self, request, view):
-        owner = view.kwargs.get('owner')
-        is_authenticated = request and request.user.is_authenticated()
-
-        if is_authenticated and view.action == 'create':
-            owner = owner or request.user.username
-            return request.user.has_perm(CAN_ADD_XFORM_TO_PROFILE,
-                                         _get_profile(owner))
-
-        return super(CustomPermissions, self).has_permission(request, view)
-
-    def has_object_permission(self, request, view, obj):
-        if request.method == 'DELETE' and view.action == 'labels':
-            user = request.user
-
-            return user.has_perms([CAN_CHANGE_XFORM], obj)
-
-        return super(CustomPermissions, self).has_object_permission(
-            request, view, obj)
 
 
 class XFormViewSet(MultiLookupMixin, ModelViewSet):
@@ -562,7 +530,7 @@ Where:
     lookup_fields = ('owner', 'pk')
     lookup_field = 'owner'
     extra_lookup_fields = None
-    permission_classes = [CustomPermissions, ]
+    permission_classes = [XFormPermissions, ]
     updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
 
     def get_object(self, queryset=None):
