@@ -10,6 +10,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import XForm
+from onadata.libs.permissions import OwnerRole
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
@@ -285,6 +286,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'http://testserver/api/v1/forms/bob/%s' % xform.pk
             })
             self.assertDictContainsSubset(data, response.data)
+            self.assertTrue(OwnerRole.has_role(self.user, xform))
 
     def test_partial_update(self):
         self._publish_xls_form_to_project()
