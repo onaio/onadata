@@ -22,6 +22,20 @@ class Role(object):
             if isinstance(obj, klass):
                 assign_perm(permission, user, obj)
 
+    @classmethod
+    def has_role(cls, user, obj):
+        """Check that a user has this role"""
+        has_perms = False
+
+        for permission, klass in cls.permissions:
+            if isinstance(obj, klass):
+                if not user.has_perm(permission, obj):
+                    return False
+
+                has_perms = True
+
+        return has_perms
+
 
 class ReadOnlyRole(Role):
     permissions = (
