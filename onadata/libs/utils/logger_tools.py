@@ -12,6 +12,7 @@ from django.core.exceptions import PermissionDenied
 from django.core.files.storage import get_storage_class
 from django.core.mail import mail_admins
 from django.core.servers.basehttp import FileWrapper
+from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 from django.db.models.signals import pre_delete
 from django.http import HttpResponse, HttpResponseNotFound, \
@@ -107,10 +108,19 @@ def get_xform_from_submission(xml, username, uuid=None):
                                  user__username=username)
 
 
+def _has_edit_xform_permission(xform, user):
+    if isinstance(xform, XForm) and isinstance(user, User):
+        return user.has_perm('logger.change_xform', xform)
+
+    return False
+
+
 def check_edit_submission_permissions(request_user, xform):
     if xform and request_user and request_user.is_authenticated():
-        if xform.user.profile.require_auth and xform.user != request_user\
-                and not request_user.has_perm('logger.change_xform', xform):
+        requires_auth = xform.user.profle.require_auth
+        has_edit_perms = _has_edit_xform_permission(xform, request_user)
+
+        if requires_auth and has_edit_perms:
             raise PermissionDenied(
                 _(u"%(request_user)s is not allowed to make edit submissions "
                   u"to %(form_user)s's %(form_title)s form." % {
