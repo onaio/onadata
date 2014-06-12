@@ -4,18 +4,8 @@ from rest_framework import serializers
 from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import\
     HyperlinkedMultiIdentityField
 from onadata.apps.logger.models import XForm
+from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
-
-
-class BooleanField(serializers.BooleanField):
-    def from_native(self, value):
-        if value in ('true', 't', 'True', '1'):
-            return True
-
-        if value in ('false', 'f', 'False', '0'):
-            return False
-
-        return value
 
 
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
