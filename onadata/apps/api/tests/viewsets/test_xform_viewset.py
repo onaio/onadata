@@ -286,7 +286,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             })
             self.assertDictContainsSubset(data, response.data)
 
-    def test_put_update(self):
+    def test_partial_update(self):
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({
             'patch': 'partial_update'
