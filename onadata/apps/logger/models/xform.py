@@ -172,9 +172,6 @@ class XForm(BaseModel):
 
         super(XForm, self).save(*args, **kwargs)
 
-        for perm in get_perms_for_model(XForm):
-            assign_perm(perm.codename, self.user, self)
-
     def __unicode__(self):
         return getattr(self, "id_string", "")
 
@@ -249,3 +246,11 @@ def update_profile_num_submissions(sender, instance, **kwargs):
 
 post_delete.connect(update_profile_num_submissions, sender=XForm,
                     dispatch_uid='update_profile_num_submissions')
+
+
+def set_object_permissions(sender, instance=None, created=False, **kwargs):
+    if created:
+        for perm in get_perms_for_model(XForm):
+            assign_perm(perm.codename, instance.user, instance)
+post_save.connect(set_object_permissions, sender=XForm,
+                  dispatch_uid='xform_object_permissions')
