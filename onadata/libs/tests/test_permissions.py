@@ -1,7 +1,7 @@
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import (
-    ManagerRole, CAN_ADD_XFORM_TO_PROFILE, ReadOnlyRole)
+    ManagerRole, CAN_ADD_XFORM_TO_PROFILE, ReadOnlyRole, OwnerRole, EditorRole)
 
 
 class TestPermissions(TestBase):
@@ -38,3 +38,18 @@ class TestPermissions(TestBase):
 
         self.assertFalse(ManagerRole.has_role(alice, self.xform))
         self.assertTrue(ReadOnlyRole.has_role(alice, self.xform))
+
+    def test_reassign_role_owner_to_editor(self):
+        self._publish_transportation_form()
+        alice = self._create_user('alice', 'alice')
+
+        self.assertFalse(OwnerRole.has_role(alice, self.xform))
+
+        OwnerRole.add(alice, self.xform)
+
+        self.assertTrue(OwnerRole.has_role(alice, self.xform))
+
+        EditorRole.add(alice, self.xform)
+
+        self.assertFalse(OwnerRole.has_role(alice, self.xform))
+        self.assertTrue(EditorRole.has_role(alice, self.xform))
