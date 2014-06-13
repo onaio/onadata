@@ -386,5 +386,5 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data, **self.extra)
         response = view(request, owner='bob', pk=formid)
 
-        self.assertTrue(response.status_code, 204)
+        self.assertEqual(response.status_code, 204)
         self.assertTrue(ManagerRole.has_role(alice_profile.user, self.xform))
