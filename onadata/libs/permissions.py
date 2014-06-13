@@ -15,6 +15,7 @@ CAN_MOVE_TO_FOLDER = 'move_xform'
 
 class Role(object):
     permissions = None
+    name = None
 
     @classmethod
     def add(cls, user, obj):
@@ -38,12 +39,14 @@ class Role(object):
 
 
 class ReadOnlyRole(Role):
+    name = 'readonly'
     permissions = (
         (CAN_VIEW_XFORM, XForm),
     )
 
 
 class DataEntryRole(Role):
+    name = 'dataentry'
     permissions = (
         (CAN_VIEW_XFORM, XForm),
         (CAN_ADD_SUBMISSIONS, XForm),
@@ -51,6 +54,7 @@ class DataEntryRole(Role):
 
 
 class EditorRole(Role):
+    name = 'editor'
     permissions = (
         (CAN_VIEW_XFORM, XForm),
         (CAN_ADD_SUBMISSIONS, XForm),
@@ -59,6 +63,7 @@ class EditorRole(Role):
 
 
 class ManagerRole(Role):
+    name = 'manager'
     permissions = (
         (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
         (CAN_ADD_XFORM, XForm),
@@ -67,6 +72,7 @@ class ManagerRole(Role):
 
 
 class OwnerRole(Role):
+    name = 'owner'
     permissions = (
         (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
         (CAN_ADD_XFORM, XForm),
@@ -75,3 +81,11 @@ class OwnerRole(Role):
         (CAN_MOVE_TO_FOLDER, XForm),
         (CAN_TRANSFER_OWNERSHIP, XForm),
     )
+
+ROLES = {
+    ReadOnlyRole.name: ReadOnlyRole,
+    DataEntryRole.name: DataEntryRole,
+    EditorRole.name: EditorRole,
+    ManagerRole.name: ManagerRole,
+    OwnerRole.name: OwnerRole
+}
