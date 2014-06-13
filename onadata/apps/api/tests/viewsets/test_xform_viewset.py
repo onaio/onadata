@@ -10,7 +10,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import XForm
-from onadata.libs.permissions import OwnerRole
+from onadata.libs.permissions import OwnerRole, ROLES
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
@@ -371,3 +371,25 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
         with self.assertRaises(XForm.DoesNotExist):
             self.xform.reload()
+
+    def test_form_share_endpoint(self):
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        view = XFormViewSet.as_view({
+            'post': 'share'
+        })
+        formid = self.xform.pk
+
+        for role, role_class in ROLES.items():
+            self.assertFalse(role_class.has_role(alice_profile.user,
+                                                 self.xform))
+
+            data = {'username': 'alice', 'role': role}
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, owner='bob', pk=formid)
+
+            self.assertEqual(response.status_code, 204)
+            self.assertTrue(role_class.has_role(alice_profile.user,
+                                                self.xform))

@@ -26,6 +26,8 @@ from onadata.libs.mixins.multi_lookup_mixin import MultiLookupMixin
 from onadata.libs.models.signals import xform_tags_add, xform_tags_delete
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.share_xform_serializer import (
+    ShareXFormSerializer)
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import XForm
@@ -514,6 +516,25 @@ Where:
 <b>GET</b> /api/v1/forms/<code>{owner}</code>public
 </pre>
 
+## Share a form with a specific user
+
+You can share a form with a  specific user by `POST` a payload with
+
+- `username` of the user you want to share the form with and
+- `role` you want the user to have on the form. Availabel roles are `readonly`,
+`dataentry`, `editor`, `manager`.
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/share
+</pre>
+
+> Example
+>
+>       curl -X POST -d '{"username": "alice", "role": "readonly"}' https://ona.io/api/v1/forms/onademo/123.json  # noqa
+
+> Response
+>
+>        HTTP 204
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
@@ -704,3 +725,22 @@ Where:
             serializer = self.get_serializer(self.object_list, many=True)
 
         return Response(serializer.data)
+
+    @action(methods=['POST'])
+    def share(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
+        data = {}
+        for key, val in request.DATA.iteritems():
+            data[key] = val
+        data.update({'xform': self.object.pk})
+
+        serializer = ShareXFormSerializer(data=data)
+
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            return Response(data=serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -27,6 +27,19 @@ class TestAbstractViewSet(TestCase):
                'transport_2011-07-25_19-06-14']
     main_directory = os.path.dirname(main_tests.__file__)
 
+    profile_data = {
+        'username': 'bob',
+        'email': 'bob@columbia.edu',
+        'password1': 'bobbob',
+        'password2': 'bobbob',
+        'name': 'Bob',
+        'city': 'Bobville',
+        'country': 'US',
+        'organization': 'Bob Inc.',
+        'home_page': 'bob.com',
+        'twitter': 'boberama'
+    }
+
     def setUp(self):
         TestCase.setUp(self)
         self.factory = APIRequestFactory()
@@ -39,37 +52,31 @@ class TestAbstractViewSet(TestCase):
             codename='add_userprofile')
         user.user_permissions.add(add_userprofile)
 
-    def _login_user_and_profile(self, extra_post_data={}):
-        post_data = {
-            'username': 'bob',
-            'email': 'bob@columbia.edu',
-            'password1': 'bobbob',
-            'password2': 'bobbob',
-            'name': 'Bob',
-            'city': 'Bobville',
-            'country': 'US',
-            'organization': 'Bob Inc.',
-            'home_page': 'bob.com',
-            'twitter': 'boberama'
-        }
-        post_data = dict(post_data.items() + extra_post_data.items())
+    def _create_user_profile(self, extra_post_data={}):
+        self.profile_data = dict(
+            self.profile_data.items() + extra_post_data.items())
         user, created = User.objects.get_or_create(
-            username=post_data['username'],
-            first_name=post_data['name'],
-            email=post_data['email'])
-        user.set_password(post_data['password1'])
+            username=self.profile_data['username'],
+            first_name=self.profile_data['name'],
+            email=self.profile_data['email'])
+        user.set_password(self.profile_data['password1'])
         user.save()
         new_profile, created = UserProfile.objects.get_or_create(
-            user=user, name=post_data['name'],
-            city=post_data['city'],
-            country=post_data['country'],
-            organization=post_data['organization'],
-            home_page=post_data['home_page'],
-            twitter=post_data['twitter'])
-        self.user = user
+            user=user, name=self.profile_data['name'],
+            city=self.profile_data['city'],
+            country=self.profile_data['country'],
+            organization=self.profile_data['organization'],
+            home_page=self.profile_data['home_page'],
+            twitter=self.profile_data['twitter'])
+
+        return new_profile
+
+    def _login_user_and_profile(self, extra_post_data={}):
+        profile = self._create_user_profile(extra_post_data)
+        self.user = profile.user
         self.assertTrue(
             self.client.login(username=self.user.username,
-                              password=post_data['password1']))
+                              password=self.profile_data['password1']))
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
