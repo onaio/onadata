@@ -41,4 +41,13 @@ class XFormPermissions(DjangoObjectPermissions):
             request, view, obj)
 
 
+class UserProfilePermissions(DjangoObjectPermissions):
+    def has_permission(self, request, view):
+        # allow anonymous users to create new profiles
+        if request.user.is_anonymous() and view.action == 'create':
+            return True
+
+        return \
+            super(UserProfilePermissions, self).has_permission(request, view)
+
 __permissions__ = [DjangoObjectPermissions, IsAuthenticated]

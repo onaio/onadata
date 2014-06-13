@@ -1,21 +1,12 @@
 from django.contrib.auth.models import User
 from django.db.models import Q
-from rest_framework import permissions
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
 from onadata.apps.main.models import UserProfile
-
-
-class CustomPermissions(permissions.DjangoModelPermissions):
-    def has_permission(self, request, view):
-        # allow anonymous users to create new profiles
-        if request.user.is_anonymous() and view.action == 'create':
-            return True
-
-        return super(CustomPermissions, self).has_permission(request, view)
+from onadata.apps.api.permissions import UserProfilePermissions
 
 
 class UserProfileViewSet(ObjectLookupMixin, ModelViewSet):
@@ -89,7 +80,7 @@ List, Retrieve, Update, Create/Register users.
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
     lookup_field = 'user'
-    permission_classes = [CustomPermissions, ]
+    permission_classes = [UserProfilePermissions]
     ordering = ('user__username', )
 
     def get_queryset(self):
