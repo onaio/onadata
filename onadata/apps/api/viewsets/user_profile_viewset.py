@@ -75,6 +75,33 @@ List, Retrieve, Update, Create/Register users.
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
 >            "user": "https://ona.io/api/v1/users/demo"
+
+## Partial updates of User Profile Information
+
+Properties of the UserProfile can be updated using `PATCH` http method.
+Payload required is for properties that are to be changed in JSON,
+for example, `{"country": "KE"}` will set the country to `KE`.
+
+<pre class="prettyprint"><b>PATCH</b> /api/v1/profiles/{username}</pre>
+> Example
+>
+>       curl -X PATCH -d '{"country": KE}' https://ona.io/api/v1/profiles/demo
+
+> Response
+>
+>        {
+>            "url": "https://ona.io/api/v1/profiles/demo",
+>            "username": "demo",
+>            "name": "Demo User",
+>            "email": "demo@localhost.com",
+>            "city": "",
+>            "country": "KE",
+>            "organization": "",
+>            "website": "",
+>            "twitter": "",
+>            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
+>            "require_auth": false,
+>            "user": "https://ona.io/api/v1/users/demo"
 >        }
 """
     queryset = UserProfile.objects.all()
