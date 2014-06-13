@@ -82,10 +82,8 @@ class OwnerRole(Role):
         (CAN_TRANSFER_OWNERSHIP, XForm),
     )
 
-ROLES = {
-    ReadOnlyRole.name: ReadOnlyRole,
-    DataEntryRole.name: DataEntryRole,
-    EditorRole.name: EditorRole,
-    ManagerRole.name: ManagerRole,
-    OwnerRole.name: OwnerRole
-}
+ROLES = {role.name: role for role in [ReadOnlyRole,
+                                      DataEntryRole,
+                                      EditorRole,
+                                      ManagerRole,
+                                      OwnerRole]}
