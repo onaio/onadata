@@ -38,7 +38,7 @@ class ShareXFormSerializer(serializers.Serializer):
         """check that the role exists"""
         value = attrs[source]
 
-        if ROLES.get(value) is None:
+        if value not in ROLES:
             raise ValidationError(_(u"Unknown role '%(role)s'."
                                     % {"role": value}))
 
