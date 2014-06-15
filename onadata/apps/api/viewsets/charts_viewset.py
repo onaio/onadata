@@ -1,5 +1,6 @@
 from django.http import Http404
 from django.core.exceptions import ImproperlyConfigured
+from rest_framework import permissions
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.renderers import (
@@ -41,7 +42,70 @@ class ChartBrowsableAPIRenderer(BrowsableAPIRenderer):
         return content
 
 
-class ChartsViewset(viewsets.ReadOnlyModelViewSet):
+class ChartsViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+View chart for specific fields in a form or dataset.
+
+### List of chart chart endpoints accessible to registered user
+<pre class="prettyprint">
+<b>GET</b> /api/v1/charts</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/charts
+
+> Response
+>
+>        [{
+>
+>            "id": 4240,
+>            "id_string": "dhis2form"
+>            "url": "https://ona.io/api/v1/charts/4240",
+>        }
+>        ...
+
+### Get a list of chart field endpoints for a specific form or dataset.
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/charts/<code>{formid}</code></pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/charts/4240
+
+> Response
+>
+>        {
+>
+>            "id": 4240,
+>            "id_string": "dhis2form"
+>            "url": "https://ona.io/api/v1/charts/4240",
+>            "fields": {
+>                "uuid": "https://ona.io/api/v1/charts/4240?field_name=uuid",
+>                "num": "https://ona.io/api/v1/charts/4240?field_name=num",
+>                ...
+>            }
+>        }
+
+### Get a chart for a specific field in a form
+
+- `field_name` - a field name in the form
+- `format` - can be `html` or `json`
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/charts/<code>{formid}</code>.<code>{format}</code>?field_name=<code>field_name</code></pre> # noqa
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/charts/4240.html?field_name=age
+
+> Response
+>
+> - `html` format response is a html, javascript and css to the chart
+> - `json` format response is the `JSON` data that can be passed to a charting
+> library
+
+    """
     model = XForm
     serializer_class = ChartSerializer
     lookup_field = 'pk'
@@ -49,6 +113,10 @@ class ChartsViewset(viewsets.ReadOnlyModelViewSet):
                         TemplateHTMLRenderer,
                         JSONRenderer,
                         )
+    permission_classes = [permissions.DjangoObjectPermissions, ]
+
+    def list(self, request, *args, **kwargs):
+        return super(ChartsViewSet, self).list(request, *args, **kwargs)
 
     def retrieve(self, request, *args, **kwargs):
         xform = self.get_object()

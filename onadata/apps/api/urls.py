@@ -1,11 +1,11 @@
-from django.conf.urls import url, patterns
+from django.conf.urls import url
 from rest_framework import routers
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.urlpatterns import format_suffix_patterns
 from rest_framework.views import APIView
 
-from onadata.apps.api.viewsets.charts_viewset import ChartsViewset
+from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
@@ -18,7 +18,6 @@ from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.api.viewsets.user_viewset import UserViewSet
 from onadata.apps.api.viewsets.submissionstats_viewset import\
     SubmissionStatsViewSet
-from onadata.apps.api.views import chart_views
 
 
 def make_routes(template_text):
@@ -159,6 +158,7 @@ Update teams
 * [/api/v1/forms](/api/v1/forms) - List, Retrieve
 xlsforms information
 * [/api/v1/data](/api/v1/data) - List, Retrieve submission data
+* [/api/v1/charts](/api/v1/charts) - List, Retrieve Charts of collected data
 
 ## Status Codes
 
@@ -354,5 +354,5 @@ router.register(r'data', DataViewSet, base_name='data')
 router.register(r'stats', StatsViewSet, base_name='stats')
 router.register(r'stats/submissions', SubmissionStatsViewSet,
                 base_name='submissionstats')
-router.register(r'charts', ChartsViewset, base_name='chart')
+router.register(r'charts', ChartsViewSet, base_name='chart')
 urlpatterns = router.urls

@@ -4,7 +4,7 @@ from rest_framework.test import APIClient
 from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.api.viewsets.charts_viewset import ChartsViewset
+from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 
 
 class TestChartsViewSet(TestBase):
@@ -18,7 +18,7 @@ class TestChartsViewSet(TestBase):
         self.api_client = APIClient()
         self.api_client.login(
             username=self.login_username, password=self.login_password)
-        self.view = ChartsViewset.as_view({
+        self.view = ChartsViewSet.as_view({
             'get': 'retrieve'
         })
         self.request_factory = APIRequestFactory()
