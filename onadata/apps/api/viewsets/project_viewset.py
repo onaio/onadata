@@ -89,10 +89,41 @@ Where:
 >           "date_modified": "2013-07-24T13:37:39Z"
 >       }
 
+### Assign a form to a project
+To [re]assign an existing form to a project you need to `POST` a payload of
+`formid=FORMID` to the endpoint below.
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms</pre>
+> Example
+>
+>       curl -X POST -d '{"formid": 28058}' https://ona.io/api/v1/projects/modilabs/1/forms  # noqa
+
+> Response
+>
+>       {
+>           "url": "https://ona.io/api/v1/forms/28058",
+>           "formid": 28058,
+>           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
+>           "id_string": "Birds",
+>           "sms_id_string": "Birds",
+>           "title": "Birds",
+>           "allows_sms": false,
+>           "bamboo_dataset": "",
+>           "description": "",
+>           "downloadable": true,
+>           "encrypted": false,
+>           "owner": "modilabs",
+>           "public": false,
+>           "public_data": false,
+>           "date_created": "2013-07-25T14:14:22.892Z",
+>           "date_modified": "2013-07-25T14:14:22.892Z"
+>       }
+
 ## Upload XLSForm to a project
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms</pre>
+<b>POST</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms</pre>
 > Example
 >
 >       curl -X POST -F xls_file=@/path/to/form.xls
