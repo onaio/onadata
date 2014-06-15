@@ -118,6 +118,16 @@ def get_organization_members_team(organization):
     return team
 
 
+def remove_user_from_organization(organization, user):
+    """Remove a user from an organization"""
+    team = get_organization_members_team(organization)
+    remove_user_from_team(team, user)
+
+
+def remove_user_from_team(team, user):
+    user.groups.remove(team)
+
+
 def add_user_to_organization(organization, user):
     """Add a user to an organization"""
     team = get_organization_members_team(organization)
