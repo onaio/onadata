@@ -5,6 +5,7 @@ from rest_framework.reverse import reverse
 from rest_framework.urlpatterns import format_suffix_patterns
 from rest_framework.views import APIView
 
+from onadata.apps.api.viewsets.charts_viewset import ChartsViewset
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
@@ -353,7 +354,5 @@ router.register(r'data', DataViewSet, base_name='data')
 router.register(r'stats', StatsViewSet, base_name='stats')
 router.register(r'stats/submissions', SubmissionStatsViewSet,
                 base_name='submissionstats')
+router.register(r'charts', ChartsViewset, base_name='chart')
 urlpatterns = router.urls
-urlpatterns += patterns('', url(
-    r'^charts/(?P<formid>[^/]+)/(?P<field_name>[^/]+)$',
-    chart_views.ChartDetail.as_view()))
