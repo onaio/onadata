@@ -113,7 +113,7 @@ class TestAbstractViewSet(TestCase):
         self.organization = OrganizationProfile.objects.get(
             user__username=data['org'])
 
-    def _project_create(self):
+    def _project_create(self, project_data={}):
         view = ProjectViewSet.as_view({
             'post': 'create'
         })
@@ -121,6 +121,7 @@ class TestAbstractViewSet(TestCase):
             'name': u'demo',
             'owner': 'http://testserver/api/v1/users/%s' % self.user.username
         }
+        data.update(project_data)
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
@@ -128,9 +129,11 @@ class TestAbstractViewSet(TestCase):
         self.assertEqual(response.status_code, 201)
         self.project = Project.objects.filter(
             name=data['name'], created_by=self.user)[0]
+
         data['url'] = 'http://testserver/api/v1/projects/%s/%s'\
             % (self.user.username, self.project.pk)
         self.assertDictContainsSubset(data, response.data)
+
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
 
