@@ -196,23 +196,29 @@ Where:
             organization__username=kwargs.get('owner', None))
         if request.method.upper() == 'POST':
             survey = utils.publish_project_xform(request, project)
+
             if isinstance(survey, XForm):
                 xform = XForm.objects.get(pk=survey.pk)
                 serializer = XFormSerializer(
                     xform, context={'request': request})
+
                 return Response(serializer.data, status=201)
+
             return Response(survey, status=400)
-        filter = {'project': project}
+
+        qfilter = {'project': project}
         many = True
         if 'formid' in kwargs:
             many = False
-            filter['xform__pk'] = int(kwargs.get('formid'))
+            qfilter['xform__pk'] = int(kwargs.get('formid'))
         if many:
-            qs = ProjectXForm.objects.filter(**filter)
+            qs = ProjectXForm.objects.filter(**qfilter)
             data = [px.xform for px in qs]
         else:
-            qs = get_object_or_404(ProjectXForm, **filter)
+            qs = get_object_or_404(ProjectXForm, **qfilter)
             data = qs.xform
+
         serializer = XFormSerializer(
             data, many=many, context={'request': request})
+
         return Response(serializer.data)
