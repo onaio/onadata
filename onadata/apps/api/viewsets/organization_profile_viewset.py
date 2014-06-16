@@ -170,7 +170,8 @@ https://ona.io/api/v1/orgs/modilabs/members
         organization = self.get_object()
         status_code = status.HTTP_200_OK
         data = []
-        username = request.DATA.get('username')
+        username = request.DATA.get('username') or request.QUERY_PARAMS.get(
+            'username')
 
         if request.method in ['DELETE', 'POST'] and not username:
             status_code = status.HTTP_400_BAD_REQUEST

@@ -133,7 +133,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, [u'denoinc', newname])
 
         request = self.factory.delete(
-            '/', data=json.dumps(data),
+            '/', json.dumps(data),
             content_type="application/json", **self.extra)
 
         response = view(request, user='denoinc')
