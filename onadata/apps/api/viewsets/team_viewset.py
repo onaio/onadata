@@ -10,7 +10,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.apps.api.models import Team
-from onadata.apps.api.tools import add_user_to_team
+from onadata.apps.api.tools import add_user_to_team, remove_user_from_team
 
 
 class TeamViewSet(ModelViewSet):
@@ -156,8 +156,9 @@ A list of usernames is the response for members of the team.
         data = {}
         status_code = status.HTTP_200_OK
 
-        if request.method == 'POST':
-            username = request.DATA.get('username')
+        if request.method in ['DELETE', 'POST']:
+            username = request.DATA.get('username') or\
+                request.QUERY_PARAMS.get('username')
 
             if username:
                 try:
@@ -168,7 +169,10 @@ A list of usernames is the response for members of the team.
                         _(u"User `%(username)s` does not exist."
                           % {'username': username})]
                 else:
-                    add_user_to_team(team, user)
+                    if request.method == 'POST':
+                        add_user_to_team(team, user)
+                    elif request.method == 'DELETE':
+                        remove_user_from_team(team, user)
                     status_code = status.HTTP_201_CREATED
             else:
                 status_code = status.HTTP_400_BAD_REQUEST
