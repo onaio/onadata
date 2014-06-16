@@ -113,3 +113,29 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'denoinc', u'aboy'])
+
+    def test_remove_members_from_org(self):
+        self._org_create()
+        newname = 'aboy'
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members',
+            'delete': 'members'
+        })
+
+        User.objects.create(username=newname)
+        data = {'username': newname}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, [u'denoinc', newname])
+
+        request = self.factory.delete(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, [u'denoinc'])
