@@ -150,7 +150,7 @@ A list of usernames is the response for members of the team.
         serializer = self.get_serializer(self.object_list, many=True)
         return Response(serializer.data)
 
-    @action(methods=['GET', 'POST'])
+    @action(methods=['DELETE', 'GET', 'POST'])
     def members(self, request, *args, **kwargs):
         team = self.get_object()
         data = {}
