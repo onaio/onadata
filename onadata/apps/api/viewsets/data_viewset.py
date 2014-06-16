@@ -1,8 +1,9 @@
 import json
 from django import forms
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
-from rest_framework import exceptions, permissions
+from rest_framework import permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -12,8 +13,6 @@ from taggit.forms import TagField
 from onadata.apps.api.tools import get_accessible_forms, get_xform
 from onadata.apps.logger.models import Instance
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
-from onadata.libs.utils.user_auth import check_and_set_form_by_id,\
-    check_and_set_form_by_id_string
 
 
 class DataViewSet(ViewSet):
@@ -97,7 +96,7 @@ Get a single specific submission json data providing `formid`
 * `dataid` - is the unique id of the data, the value of `_id` or `_uuid`
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>
+<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>\
 {dataid}</code></pre>
 > Example
 >
@@ -149,12 +148,12 @@ For more details see
 api-parameters">
 API Parameters</a>.
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>
+<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>\
 ?query={"field":"value"}</pre>
 > Example
 >
->       curl -X GET  https://ona.io/api/v1/data/modilabs/22845
->       ?query={"kind": "monthly"}
+>       curl -X GET  https://ona.io/api/v1/data/modilabs/22845\
+?query={"kind": "monthly"}
 
 > Response
 >
@@ -203,7 +202,7 @@ should be a comma separated list of tags.
 <b>GET</b> /api/v1/data/<code>{owner}</code>?<code>tags</code>=<code>tag1,tag2
 </code></pre>
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>?<code>tags
+<b>GET</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>?<code>tags\
 </code>=<code>tag1,tag2</code></pre>
 
 > Example
@@ -220,7 +219,7 @@ Examples
 - `animal, fruit denim` - comma delimited
 
 <pre class="prettyprint">
-<b>POST</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>
+<b>POST</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>\
 {dataid}</code>/labels</pre>
 
 Payload
@@ -230,17 +229,17 @@ Payload
 ## Delete a specific tag from a submission
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>
+<b>DELETE</b> /api/v1/data/<code>{owner}</code>/<code>{formid}</code>/<code>\
 {dataid}</code>/labels/<code>tag_name</code></pre>
 
 > Request
 >
->       curl -X DELETE
->       https://ona.io/api/v1/data/modilabs/28058/20/labels/tag1
+>       curl -X DELETE \
+https://ona.io/api/v1/data/modilabs/28058/20/labels/tag1
 or to delete the tag "hello world"
 >
->       curl -X DELETE
->       https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
+>       curl -X DELETE \
+https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
 >
 > Response
 >
@@ -287,95 +286,97 @@ or to delete the tag "hello world"
         return records
 
     def list(self, request, owner=None, formid=None, dataid=None, **kwargs):
-        data = None
         xform = None
-        query = None
+        query = {}
         tags = self.request.QUERY_PARAMS.get('tags', None)
-        if owner is None and not request.user.is_anonymous():
-            owner = request.user.username
-        if not formid and not dataid and not tags:
-            data = self._get_formlist_data_points(request, owner)
+        owner = owner or (
+            not request.user.is_anonymous() and request.user.username)
+        data = not formid and not dataid and not tags and\
+            self._get_formlist_data_points(request, owner)
 
         if formid:
             xform = get_xform(formid, request)
-
-            query = {}
-            query[ParsedInstance.USERFORM_ID] = \
-                u'%s_%s' % (xform.user.username, xform.id_string)
+            query[ParsedInstance.USERFORM_ID] = u'%s_%s' % (
+                xform.user.username, xform.id_string)
 
         if xform and dataid and dataid == 'labels':
             return Response(list(xform.tags.names()))
+
         if dataid:
-            if query:
+            try:
                 query.update({'_id': int(dataid)})
-            else:
-                query = {'_id': int(dataid)}
+            except ValueError:
+                return HttpResponseBadRequest(_("Invalid _id"))
+
         rquery = request.QUERY_PARAMS.get('query', None)
         if rquery:
             rquery = json.loads(rquery)
-            if query:
-                query.update(rquery)
-            else:
-                query = rquery
+            query.update(rquery)
+
         if tags:
-            query = query if query else {}
             query['_tags'] = {'$all': tags.split(',')}
+
         if xform:
             data = self._get_form_data(xform, query=query)
+
         if not xform and not data:
             xforms = get_accessible_forms(owner)
-            if not query:
-                query = {}
             query[ParsedInstance.USERFORM_ID] = {
                 '$in': [
                     u'%s_%s' % (form.user.username, form.id_string)
                     for form in xforms]
             }
-            # query['_id'] = {'$in': [form.pk for form in xforms]}
             data = self._get_form_data(xform, query=query)
+
         if dataid and len(data):
             data = data[0]
+
         return Response(data)
 
     @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
     def labels(self, request, owner, formid, dataid, **kwargs):
         class TagForm(forms.Form):
             tags = TagField()
-        if owner is None and not request.user.is_anonymous():
-            owner = request.user.username
-        xform = None
-        try:
-            xform = check_and_set_form_by_id(int(formid), request)
-        except ValueError:
-            xform = check_and_set_form_by_id_string(formid, request)
-        if not xform:
-            raise exceptions.PermissionDenied(
-                _("You do not have permission to view data from this form."))
+
+        owner = owner is None and (
+            not request.user.is_anonymous() and request.user.username)
+
+        get_xform(formid, request, owner)
         status = 400
         instance = get_object_or_404(ParsedInstance, instance__pk=int(dataid))
+
         if request.method == 'POST':
             form = TagForm(request.DATA)
+
             if form.is_valid():
                 tags = form.cleaned_data.get('tags', None)
+
                 if tags:
                     for tag in tags:
                         instance.instance.tags.add(tag)
                     instance.save()
                     status = 201
+
         label = kwargs.get('label', None)
+
         if request.method == 'GET' and label:
             data = [
                 tag['name'] for tag in
                 instance.instance.tags.filter(name=label).values('name')]
+
         elif request.method == 'DELETE' and label:
             count = instance.instance.tags.count()
             instance.instance.tags.remove(label)
+
             # Accepted, label does not exist hence nothing removed
             if count == instance.instance.tags.count():
                 status = 202
+
             data = list(instance.instance.tags.names())
         else:
             data = list(instance.instance.tags.names())
+
         if request.method == 'GET':
             status = 200
+
         return Response(data, status=status)

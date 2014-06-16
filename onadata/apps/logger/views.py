@@ -3,7 +3,6 @@ import json
 import os
 import tempfile
 
-from itertools import chain
 import pytz
 from xml.parsers.expat import ExpatError
 
@@ -29,7 +28,7 @@ from django_digest import HttpDigestAuthenticator
 from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.logger.import_tools import import_instances_from_zip
 from onadata.apps.logger.xform_instance_parser import InstanceEmptyError,\
-    InstanceInvalidUserError, IsNotCrowdformError, DuplicateInstance
+    InstanceInvalidUserError, DuplicateInstance
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import FormInactiveError, Instance
 from onadata.apps.logger.models.xform import XForm
@@ -39,7 +38,7 @@ from onadata.libs.utils.viewer_tools import enketo_url
 from onadata.libs.utils.logger_tools import create_instance,\
     OpenRosaResponseBadRequest, OpenRosaResponseNotAllowed, OpenRosaResponse,\
     OpenRosaResponseNotFound, BaseOpenRosaResponse, inject_instanceid,\
-    remove_xform, publish_xml_form, publish_form
+    remove_xform, publish_xml_form, publish_form, OpenRosaResponseForbidden
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.user_auth import helper_auth_helper, has_permission,\
@@ -66,9 +65,9 @@ def _get_form_url(request, username):
         http_host = 'testserver.com'
         username = 'bob'
     else:
-        http_host = request.META.get('HTTP_HOST') or 'ona.io'
+        http_host = request.META.get('HTTP_HOST', 'ona.io')
 
-    return 'https://%s/%s' % (http_host, username)
+    return '%s://%s/%s' % (settings.ENKETO_PROTOCOL, http_host, username)
 
 
 def _html_submission_response(context, instance):
@@ -164,38 +163,26 @@ def formList(request, username):
     """
     This is where ODK Collect gets its download list.
     """
-    if username.lower() == 'crowdforms':
-        xforms = XForm.objects.filter(is_crowd_form=True)\
-            .exclude(user__username=username)
-    else:
-        formlist_user = get_object_or_404(User, username=username)
-        profile, created = \
-            UserProfile.objects.get_or_create(user=formlist_user)
+    formlist_user = get_object_or_404(User, username=username)
+    profile, created = UserProfile.objects.get_or_create(user=formlist_user)
 
-        if profile.require_auth:
-            authenticator = HttpDigestAuthenticator()
-            if not authenticator.authenticate(request):
-                return authenticator.build_challenge_response()
+    if profile.require_auth:
+        authenticator = HttpDigestAuthenticator()
+        if not authenticator.authenticate(request):
+            return authenticator.build_challenge_response()
 
-            # unauthorized if user in auth request does not match user in path
-            # unauthorized if user not active
-            if formlist_user.username != request.user.username or\
-                    not request.user.is_active:
-                return HttpResponseNotAuthorized()
+        # unauthorized if user in auth request does not match user in path
+        # unauthorized if user not active
+        if not request.user.is_active:
+            return HttpResponseNotAuthorized()
 
-        xforms = \
-            XForm.objects.filter(downloadable=True, user__username=username)
-        # retrieve crowd_forms for this user
-        crowdforms = XForm.objects.filter(
-            metadata__data_type=MetaData.CROWDFORM_USERS,
-            metadata__data_value=username
-        )
-        xforms = chain(xforms, crowdforms)
-        audit = {}
-        audit_log(Actions.USER_FORMLIST_REQUESTED, request.user, formlist_user,
-                  _("Requested forms list."), audit, request)
+    xforms = XForm.objects.filter(downloadable=True, user__username=username)
+
+    audit = {}
+    audit_log(Actions.USER_FORMLIST_REQUESTED, request.user, formlist_user,
+              _("Requested forms list."), audit, request)
+
     response = render_to_response("xformsList.xml", {
-        #'urls': urls,
         'host': request.build_absolute_uri().replace(
             request.get_full_path(), ''),
         'xforms': xforms
@@ -220,7 +207,6 @@ def xformsManifest(request, username, id_string):
         if not authenticator.authenticate(request):
             return authenticator.build_challenge_response()
     response = render_to_response("xformsManifest.xml", {
-        #'urls': urls,
         'host': request.build_absolute_uri().replace(
             request.get_full_path(), ''),
         'media_files': MetaData.media_upload(xform)
@@ -235,15 +221,16 @@ def xformsManifest(request, username, id_string):
 @require_http_methods(["HEAD", "POST"])
 @csrf_exempt
 def submission(request, username=None):
-    if username and username.lower() != 'crowdforms':
+    if username:
         formlist_user = get_object_or_404(User, username=username.lower())
-        profile, created = \
-            UserProfile.objects.get_or_create(user=formlist_user)
+        profile, created = UserProfile.objects.get_or_create(
+            user=formlist_user)
 
         if profile.require_auth:
             authenticator = HttpDigestAuthenticator()
             if not authenticator.authenticate(request):
                 return authenticator.build_challenge_response()
+
     if request.method == 'HEAD':
         response = OpenRosaResponse(status=204)
         if username:
@@ -253,6 +240,7 @@ def submission(request, username=None):
             response['Location'] = request.build_absolute_uri().replace(
                 request.get_full_path(), '/submission')
         return response
+
     context = RequestContext(request)
     xml_file_list = []
     media_files = []
@@ -278,10 +266,6 @@ def submission(request, username=None):
             )
         except InstanceInvalidUserError:
             return OpenRosaResponseBadRequest(_(u"Username or ID required."))
-        except IsNotCrowdformError:
-            return OpenRosaResponseNotAllowed(
-                _(u"Sorry but the crowd form you submitted to is closed.")
-            )
         except InstanceEmptyError:
             return OpenRosaResponseBadRequest(
                 _(u"Received empty submission. No instance was created")
@@ -300,7 +284,7 @@ def submission(request, username=None):
             response['Location'] = request.build_absolute_uri(request.path)
             return response
         except PermissionDenied, e:
-            return OpenRosaResponseNotAllowed(e.message)
+            return OpenRosaResponseForbidden(e.message)
 
         if instance is None:
             return OpenRosaResponseBadRequest(

@@ -52,8 +52,6 @@ class TestFormEnterData(TestBase):
             'id_string': self.xform.id_string
         })
 
-        #for enketo use only
-
     def _running_enketo(self, check_url=False):
         if hasattr(settings, 'ENKETO_URL') and \
                 (not check_url or self._check_url(settings.ENKETO_URL)):
@@ -101,10 +99,10 @@ class TestFormEnterData(TestBase):
             request.user = self.user
             response = enter_data(
                 request, self.user.username, self.xform.id_string)
-            #make sure response redirect to an enketo site
+            # make sure response redirect to an enketo site
             enketo_base_url = urlparse(settings.ENKETO_URL).netloc
             redirected_base_url = urlparse(response['Location']).netloc
-            #TODO: checking if the form is valid on enketo side
+            # TODO: checking if the form is valid on enketo side
             self.assertIn(enketo_base_url, redirected_base_url)
             self.assertEqual(response.status_code, 302)
 
@@ -113,15 +111,15 @@ class TestFormEnterData(TestBase):
         self.assertEqual(response.status_code, 403)
 
     def test_public_with_link_to_share_toggle_on(self):
-        #sharing behavior as of 09/13/2012:
-        #it requires both data_share and form_share both turned on
-        #in order to grant anon access to form uploading
-        #TODO: findout 'for_user': 'all' and what it means
+        # sharing behavior as of 09/13/2012:
+        # it requires both data_share and form_share both turned on
+        # in order to grant anon access to form uploading
+        # TODO: findout 'for_user': 'all' and what it means
         response = self.client.post(self.perm_url, {'for_user': 'all',
                                     'perm_type': 'link'})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(MetaData.public_link(self.xform), True)
-        #toggle shared on
+        # toggle shared on
         self.xform.shared = True
         self.xform.shared_data = True
         self.xform.save()

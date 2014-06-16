@@ -40,6 +40,7 @@ DATA_LICENSES_CHOICES = (
 PERM_CHOICES = (
     ('view', ugettext_lazy('Can view')),
     ('edit', ugettext_lazy('Can edit')),
+    ('report', ugettext_lazy('Can submit to')),
     ('remove', ugettext_lazy('Remove permissions')),
 )
 
@@ -128,8 +129,6 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
         'about',
         'admin',
         'clients',
-        'crowdform',
-        'crowdforms',
         'data',
         'formhub',
         'forms',
@@ -223,7 +222,7 @@ class MediaForm(forms.Form):
 
     def clean_media(self):
         data_type = self.cleaned_data['media'].content_type
-        if not data_type in ['image/jpeg', 'image/png', 'audio/mpeg']:
+        if data_type not in ['image/jpeg', 'image/png', 'audio/mpeg']:
             raise forms.ValidationError('Only these media types are \
                                         allowed .png .jpg .mp3 .3gp .wav')
 

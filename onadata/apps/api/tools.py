@@ -247,11 +247,12 @@ def get_all_stats(xform, field=None):
     return data
 
 
-def get_xform(formid, request):
+def get_xform(formid, request, username=None):
     try:
         formid = int(formid)
     except ValueError:
-        xform = check_and_set_form_by_id_string(formid, request)
+        username = username is None and request.user.username
+        xform = check_and_set_form_by_id_string(username, formid, request)
     else:
         xform = check_and_set_form_by_id(int(formid), request)
 

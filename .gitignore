@@ -49,3 +49,4 @@ celerybeat-schedule
 # bower
 /onadata/apps/main/static/bower_components
 custom_template
+/node_modules

@@ -213,7 +213,7 @@ def main():
     # retrieve lang
     try:
         lang = args.grouped.get('lang', []).pop(0)
-        if not lang in LANGS:
+        if lang not in LANGS:
             raise ValueError(u"Unknown lang code")
     except ValueError as e:
         puts(colored.red(e.message))

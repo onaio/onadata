@@ -10,11 +10,11 @@ django-templated-email==0.4.1
 gdata==2.0.18
 httplib2==0.8
 mock==1.0.1
-httmock==1.0.7
+httmock==1.2.1
 modilabs-python-utils==0.1.5
 Pillow==2.2.1
 poster==0.8.1
-# psycopg2==2.5.1
+psycopg2==2.5.1
 pymongo==2.6.3
 lxml==3.2.4
 pyxform==0.9.20
@@ -56,7 +56,7 @@ django-taggit==0.11.2
 django-oauth-toolkit==0.5.0
 
 # spss
--e git+https://bitbucket.org/fomcl/savreaderwriter.git#egg=savreaderwriter
+savReaderWriter
 
 # JSON data type support
 jsonfield

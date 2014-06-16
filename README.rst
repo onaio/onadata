@@ -21,14 +21,14 @@ If you would like to contribute code please read
 Code Structure
 --------------
 
-* `logger` - This app serves XForms to and receives submissions from
+* **logger** - This app serves XForms to and receives submissions from
   ODK Collect and Enketo.
 
-* `iewer` - This app provides a csv and xls export of the data stored in
+* **viewer** - This app provides a csv and xls export of the data stored in
   logger. This app uses a data dictionary as produced by pyxform. It also
   provides a map and single survey view.
 
-* `main` - This app is the glue that brings logger and viewer
+* **main** - This app is the glue that brings logger and viewer
   together.
 
 Localization

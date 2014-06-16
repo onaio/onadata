@@ -43,9 +43,6 @@ def type_for_form(xform, data_type):
 
 
 class MetaData(models.Model):
-
-    CROWDFORM_USERS = 'crowdform_users'
-
     xform = models.ForeignKey(XForm)
     data_type = models.CharField(max_length=255)
     data_value = models.CharField(max_length=255)
@@ -93,17 +90,6 @@ class MetaData(models.Model):
                            data_value=data_file.name,
                            data_file=data_file,
                            data_file_type=data_file.content_type)
-            doc.save()
-        return type_for_form(xform, data_type)
-
-    @staticmethod
-    def crowdform_users(xform, data_value=None):
-        data_type = MetaData.CROWDFORM_USERS
-        if data_value:
-            doc, created = MetaData.objects.get_or_create(
-                data_type=data_type,
-                xform=xform,
-                data_value=data_value)
             doc.save()
         return type_for_form(xform, data_type)
 

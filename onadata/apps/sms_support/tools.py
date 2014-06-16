@@ -13,7 +13,7 @@ from django.contrib.auth.models import User
 from django.http import HttpRequest
 
 from onadata.apps.logger.xform_instance_parser import InstanceEmptyError,\
-    InstanceInvalidUserError, IsNotCrowdformError, DuplicateInstance
+    InstanceInvalidUserError, DuplicateInstance
 from onadata.apps.logger.models.instance import FormInactiveError
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.log import audit_log, Actions
@@ -38,6 +38,11 @@ MEDIA_TYPES = ('audio', 'video', 'photo')
 DEFAULT_DATE_FORMAT = '%Y-%m-%d'
 DEFAULT_DATETIME_FORMAT = '%Y-%m-%d-%H:%M'
 SENSITIVE_FIELDS = ('text', 'select all that apply', 'geopoint', 'barcode')
+
+
+def is_last(index, items):
+    return index == len(items) - 1 or (items[-1].get('type') == 'note'
+                                       and index == len(items) - 2)
 
 
 def get_sms_instance_id(instance):
@@ -88,10 +93,6 @@ def generate_instance(username, xml_file, media_files, uuid=None):
     except InstanceInvalidUserError:
         return {'code': SMS_SUBMISSION_REFUSED,
                 'text': _(u"Username or ID required.")}
-    except IsNotCrowdformError:
-        return {'code': SMS_SUBMISSION_REFUSED,
-                'text': _(u"Sorry but the crowd form you "
-                          u"submitted to is closed.")}
     except InstanceEmptyError:
         return {'code': SMS_INTERNAL_ERROR,
                 'text': _(u"Received empty submission. "
@@ -210,7 +211,7 @@ def check_form_sms_compatibility(form, json_survey=None):
     # first level children. should be groups
     groups = json_survey.get('children', [{}])
 
-    ## BLOCKERS
+    # BLOCKERS
     # overload SENSITIVE_FIELDS if date or datetime format contain spaces.
     sensitive_fields = copy.copy(SENSITIVE_FIELDS)
     date_format = json_survey.get('sms_date_format', DEFAULT_DATE_FORMAT) \
@@ -260,6 +261,10 @@ def check_form_sms_compatibility(form, json_survey=None):
     for group in groups:
         fields = group.get('children', [{}])
         last_pos = len(fields) - 1
+        # consider last field to be last before note if there's a trailing note
+        if fields[last_pos].get('type') == 'note':
+            if len(fields) - 1:
+                last_pos -= 1
         for idx, field in enumerate(fields):
             if idx != last_pos and field.get('type', '') in sensitive_fields:
                 return prep_return(_(u"Questions for which values can contain "
@@ -277,7 +282,7 @@ def check_form_sms_compatibility(form, json_survey=None):
                              u"(letters, digits and +/=). "
                              u"You case use '#' instead." % separator))
 
-    ## WARNINGS
+    # WARNINGS
     warnings = []
     # sms_separator not set
     if not json_survey.get('sms_separator', ''):
@@ -317,5 +322,5 @@ def check_form_sms_compatibility(form, json_survey=None):
     if len(warnings):
         return prep_return(u"".join(warnings), comp=1)
 
-    ## GOOD to go
+    # Good to go
     return prep_return(_(u"Note that your form is also SMS comptatible."), 2)

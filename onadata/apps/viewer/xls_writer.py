@@ -117,7 +117,7 @@ class XlsWriter(object):
 
     def _generate_unique_sheet_name(self, sheet_name):
         # check if sheet name exists
-        if(not sheet_name in self._sheets):
+        if sheet_name not in self._sheets:
             return sheet_name
         else:
             i = 1

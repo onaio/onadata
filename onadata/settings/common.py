@@ -86,7 +86,7 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 # Example: "http://media.lawrence.com/static/"
 STATIC_URL = '/static/'
 
-#ENKETO URL
+# Enketo URL
 ENKETO_URL = 'https://enketo.formhub.org/'
 ENKETO_API_SURVEY_PATH = '/api_v1/survey'
 ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
@@ -223,7 +223,6 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.ext.rest_framework.OAuth2Authentication',
-        #'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     )
@@ -381,10 +380,6 @@ BROKER_URL = 'amqp://guest:guest@localhost:5672/'
 CELERY_RESULT_BACKEND = "amqp"  # telling Celery to report results to RabbitMQ
 CELERY_ALWAYS_EAGER = False
 
-# auto add crowdform to new registration
-AUTO_ADD_CROWDFORM = False
-DEFAULT_CROWDFORM = {'xform_username': 'bob', 'xform_id_string': 'transport'}
-
 # duration to keep zip exports before deletion (in seconds)
 ZIP_EXPORT_COUNTDOWN = 3600  # 1 hour
 
@@ -393,9 +388,6 @@ DEFAULT_CONTENT_LENGTH = 10000000
 
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = ['--with-fixture-bundling']
-#NOSE_PLUGINS = [
-#    'utils.nose_plugins.SilenceSouth'
-#]
 
 # re-captcha in registrations
 REGISTRATION_REQUIRE_CAPTCHA = False
@@ -412,6 +404,9 @@ BINARY_SELECT_MULTIPLES = False
 
 # Use 'n/a' for empty values by default on csv exports
 NA_REP = 'n/a'
+
+# specifically for site urls sent to enketo
+ENKETO_PROTOCOL = 'https'
 
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
@@ -440,3 +435,6 @@ if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
     STATICFILES_DIRS += (
         os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'static'),
     )
+
+# Set wsgi url scheme to HTTPS
+os.environ['wsgi.url_scheme'] = 'https'

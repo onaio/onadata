@@ -6,7 +6,7 @@ TEMPLATE_STRING_IF_INVALID = ''
 
 # see: http://docs.djangoproject.com/en/dev/ref/settings/#databases
 
-#postgres
+# postgres
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -43,7 +43,6 @@ if TESTING_MODE:
     CELERY_ALWAYS_EAGER = True
     BROKER_BACKEND = 'memory'
     ENKETO_API_TOKEN = 'abc'
-    #TEST_RUNNER = 'djcelery.contrib.test_runner.CeleryTestSuiteRunner'
 else:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media/')
 
