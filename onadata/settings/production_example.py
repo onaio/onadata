@@ -74,3 +74,6 @@ CACHES = {
 MIDDLEWARE_CLASSES += ('django.middleware.cache.UpdateCacheMiddleware',
                        'django.middleware.common.CommonMiddleware',
                        'django.middleware.cache.FetchFromCacheMiddleware',)
+
+CACHE_MIDDLEWARE_SECONDS = 3600  # 1 hour
+CACHE_MIDDLEWARE_KEY_PREFIX = ''
