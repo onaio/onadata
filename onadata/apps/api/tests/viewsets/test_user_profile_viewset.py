@@ -144,6 +144,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
         del data['password']
+        del data['email']
         profile = UserProfile.objects.get(user__username=data['username'])
         data['gravatar'] = profile.gravatar
         data['url'] = 'http://testserver/api/v1/profiles/deno'
