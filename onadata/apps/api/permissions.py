@@ -15,6 +15,10 @@ class ViewDjangoObjectPermissions(DjangoObjectPermissions):
     }
 
 
+class DjangoObjectPermissionsAllowAnon(DjangoObjectPermissions):
+    authenticated_users_only = False
+
+
 class XFormPermissions(DjangoObjectPermissions):
 
     authenticated_users_only = False
