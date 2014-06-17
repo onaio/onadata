@@ -68,6 +68,33 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
+    def test_profiles_get_anon(self):
+        view = UserProfileViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/')
+        response = view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data, {'detail': 'Expected URL keyword argument `user`.'})
+        request = self.factory.get('/')
+        response = view(request, user='bob')
+        data = {
+            'url': 'http://testserver/api/v1/profiles/bob',
+            'username': u'bob',
+            'name': u'Bob',
+            'city': u'Bobville',
+            'country': u'US',
+            'organization': u'Bob Inc.',
+            'website': u'bob.com',
+            'twitter': u'boberama',
+            'gravatar': self.user.profile.gravatar,
+            'require_auth': False,
+            'user': 'http://testserver/api/v1/users/bob'
+        }
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
+
     def test_profile_create(self):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
