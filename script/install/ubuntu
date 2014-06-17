@@ -14,3 +14,5 @@ if [[ "$TESTFOLDER" == onadata/apps/api* ]]; then
     sudo apt-get install -qqy nodejs
     sudo npm install --silent -g bower karma grunt-cli
 fi
+# install memcached
+sudo apt-get install -qq memcached
