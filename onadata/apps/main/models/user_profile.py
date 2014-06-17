@@ -51,6 +51,7 @@ class UserProfile(models.Model):
         app_label = 'main'
         permissions = (
             ('can_add_xform', "Can add/upload an xform to user profile"),
+            ('view_profile', "Can view user profile"),
         )
 
 
