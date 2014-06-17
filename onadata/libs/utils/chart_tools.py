@@ -49,8 +49,21 @@ def utc_time_string_for_javascript(date_string):
     return "{}+{}".format(date_time, tz)
 
 
+def get_choice_label(choices, name):
+    label = name
+
+    for choice in choices:
+        if choice['name'] == name:
+            label = choice['label']
+            break
+
+    return label
+
+
 def build_chart_data_for_field(xform, field, language_index=0):
     # check if its the special _submission_time META
+    choices = None
+
     if isinstance(field, basestring) and field == common_tags.SUBMISSION_TIME:
         field_label = 'Submission Time'
         field_xpath = '_submission_time'
@@ -70,9 +83,18 @@ def build_chart_data_for_field(xform, field, language_index=0):
         field_xpath = field.get_abbreviated_xpath()
         field_type = field.type
 
-    result = get_form_submissions_grouped_by_field(xform, field_xpath)
-    result = sorted(result, key=lambda d: d['count'])
     data_type = DATA_TYPE_MAP.get(field_type, 'categorized')
+    result = get_form_submissions_grouped_by_field(xform, field_xpath)
+
+    if data_type == 'categorized':
+
+        dd = xform.data_dictionary()
+        choices = dd.get_field_choices(field)
+        if choices and result:
+            for item in result:
+                item[field.name] = get_choice_label(choices, item[field.name])
+
+    result = sorted(result, key=lambda d: d['count'])
 
     # for date fields, strip out None values
     if data_type == 'time_based':
@@ -92,7 +114,7 @@ def build_chart_data_for_field(xform, field, language_index=0):
         'field_label': field_label,
         'field_xpath': field_xpath,
         'field_name': field_xpath.replace('/', '-'),
-        'field_type': field_type,
+        'field_type': field_type
     }
 
     return data
@@ -111,6 +133,7 @@ def calculate_ranges(page, items_per_page, total_items):
 def build_chart_data(xform, language_index=0, page=0):
     dd = xform.data_dictionary()
     # only use chart-able fields
+
     fields = filter(
         lambda f: f.type in CHART_FIELDS, [e for e in dd.survey_elements])
 
