@@ -70,3 +70,7 @@ CACHES = {
         'LOCATION': '127.0.0.1:11211',
     }
 }
+
+MIDDLEWARE_CLASSES += ('django.middleware.cache.UpdateCacheMiddleware',
+                       'django.middleware.common.CommonMiddleware',
+                       'django.middleware.cache.FetchFromCacheMiddleware',)
