@@ -62,3 +62,6 @@ savReaderWriter
 # JSON data type support
 jsonfield
 django-db-readonly
+
+# memcached support
+pylibmc
