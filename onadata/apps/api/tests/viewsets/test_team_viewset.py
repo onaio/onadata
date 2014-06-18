@@ -23,7 +23,12 @@ class TestTeamViewSet(TestAbstractViewSet):
             'http://testserver/api/v1/teams/denoinc/%s' % self.owner_team.pk,
             'name': u'Owners',
             'organization': 'denoinc',
-            'projects': []}
+            'projects': [],
+            'users': [{'username': u'bob',
+                       'first_name': u'Bob',
+                       'last_name': u''}
+                      ]
+        }
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(sorted(response.data), [owner_team, self.team_data])
