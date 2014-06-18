@@ -5,6 +5,7 @@ from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import\
     HyperlinkedMultiIdentityField
 from onadata.libs.serializers.fields.hyperlinked_multi_related_field import\
     HyperlinkedMultiRelatedField
+from onadata.libs.serializers.user_serializer import UserSerializer
 from onadata.apps.api.models import Project, OrganizationProfile, Team
 
 
@@ -22,19 +23,33 @@ class TeamSerializer(serializers.Serializer):
         view_name='project-detail', source='projects', many=True,
         queryset=Project.objects.all(), read_only=True,
         lookup_fields=(('pk', 'pk'), ('owner', 'organization')))
+    users = serializers.SerializerMethodField('get_team_users')
+
+    def get_team_users(self, obj):
+        users = []
+
+        for user in obj.user_set.all():
+            users.append(UserSerializer(instance=user).data)
+
+        return users
 
     def restore_object(self, attrs, instance=None):
         org = attrs.get('organization', None)
         projects = attrs.get('projects', [])
+        team_name = attrs.get('team_name', None)
+
         if instance:
             instance.organization = org if org else instance.organization
             instance.name = attrs.get('team_name', instance.name)
             instance.projects.clear()
+
             for project in projects:
                 instance.projects.add(project)
+
             return instance
-        team_name = attrs.get('team_name', None)
+
         if not team_name:
             self.errors['name'] = u'A team name is required'
             return attrs
+
         return Team(organization=org, name=team_name)
