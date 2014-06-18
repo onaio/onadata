@@ -207,7 +207,6 @@ Publish XLSForms, List, Retrieve Published Forms.
 Where:
 
 - `owner` - is the organization or user to which the form(s) belong to.
-- `pk` - is the project id
 - `formid` - is the form id
 
 ## Upload XLSForm
@@ -249,7 +248,6 @@ https://ona.io/api/v1/forms
 
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms/<code>{formid}</code>
-<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
 <code>{formid}</code></pre>
 
 > Example
@@ -286,7 +284,6 @@ of the fields.
 
 <pre class="prettyprint">
 <b>PATCH</b> /api/v1/forms/<code>{formid}</code>
-<b>PATCH</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
 <code>{formid}</code></pre>
 
 > Example
@@ -319,7 +316,6 @@ https://ona.io/api/v1/forms/28058
 
 <pre class="prettyprint">
 <b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>
-<b>DELETE</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
 <code>{formid}</code></pre>
 
 ## List Forms
@@ -486,7 +482,6 @@ Get form data exported as xls, csv, csv zip, sav zip format.
 Where:
 
 - `owner` - is the organization or user to which the form(s) belong to.
-- `pk` - is the project id
 - `formid` - is the form id
 - `format` - is the data export format i.e csv, xls, csvzip, savzip
 
