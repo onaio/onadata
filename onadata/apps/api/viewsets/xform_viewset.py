@@ -247,8 +247,7 @@ https://ona.io/api/v1/forms
 ## Get Form Information
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{formid}</code>
-<code>{formid}</code></pre>
+<b>GET</b> /api/v1/forms/<code>{formid}</code></pre>
 
 > Example
 >
@@ -283,8 +282,7 @@ public, public_data` fields. With `PATCH` you only need provide atleast one
 of the fields.
 
 <pre class="prettyprint">
-<b>PATCH</b> /api/v1/forms/<code>{formid}</code>
-<code>{formid}</code></pre>
+<b>PATCH</b> /api/v1/forms/<code>{formid}</code></pre>
 
 > Example
 >
@@ -315,8 +313,7 @@ https://ona.io/api/v1/forms/28058
 ## Delete Form
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>
-<code>{formid}</code></pre>
+<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code></pre>
 
 ## List Forms
 <pre class="prettyprint">
@@ -525,7 +522,8 @@ You can share a form with a  specific user by `POST` a payload with
 
 > Example
 >
->       curl -X POST -d '{"username": "alice", "role": "readonly"}' https://ona.io/api/v1/forms/onademo/123.json  # noqa
+>       curl -X POST -d '{"username": "alice", "role": "readonly"}' \
+https://ona.io/api/v1/forms/onademo/123.json
 
 > Response
 >
