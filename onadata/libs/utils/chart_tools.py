@@ -62,7 +62,6 @@ def get_choice_label(choices, name):
 
 def build_chart_data_for_field(xform, field, language_index=0):
     # check if its the special _submission_time META
-    choices = None
 
     if isinstance(field, basestring) and field == common_tags.SUBMISSION_TIME:
         field_label = 'Submission Time'
@@ -84,15 +83,16 @@ def build_chart_data_for_field(xform, field, language_index=0):
         field_type = field.type
 
     data_type = DATA_TYPE_MAP.get(field_type, 'categorized')
-    result = get_form_submissions_grouped_by_field(xform, field_xpath)
+    field_name = field.name if not isinstance(field, basestring) else field
+    result = get_form_submissions_grouped_by_field(
+        xform, field_xpath, field_name)
 
     if data_type == 'categorized':
 
-        dd = xform.data_dictionary()
-        choices = dd.get_field_choices(field)
-        if choices and result:
+        if result:
             for item in result:
-                item[field.name] = get_choice_label(choices, item[field.name])
+                item[field.name] = get_choice_label(
+                    field.children, item[field.name])
 
     result = sorted(result, key=lambda d: d['count'])
 
@@ -112,7 +112,7 @@ def build_chart_data_for_field(xform, field, language_index=0):
         'data': result,
         'data_type': data_type,
         'field_label': field_label,
-        'field_xpath': field_xpath,
+        'field_xpath': field_name,
         'field_name': field_xpath.replace('/', '-'),
         'field_type': field_type
     }
