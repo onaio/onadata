@@ -35,6 +35,9 @@ class OrganizationProfile(UserProfile):
 
     class Meta:
         app_label = 'api'
+        permissions = (
+            ('can_add_xform', "Can add/upload an xform to organization"),
+        )
 
     is_organization = models.BooleanField(default=True)
     # Other fields here

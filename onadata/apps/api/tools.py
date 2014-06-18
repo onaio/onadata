@@ -3,8 +3,9 @@ import numpy as np
 
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
-from django.utils.translation import ugettext as _
 from django.db.models import Q
+from django.utils.translation import ugettext as _
+from django.shortcuts import get_object_or_404
 from rest_framework import exceptions
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -117,6 +118,16 @@ def get_organization_members_team(organization):
     return team
 
 
+def remove_user_from_organization(organization, user):
+    """Remove a user from an organization"""
+    team = get_organization_members_team(organization)
+    remove_user_from_team(team, user)
+
+
+def remove_user_from_team(team, user):
+    user.groups.remove(team)
+
+
 def add_user_to_organization(organization, user):
     """Add a user to an organization"""
     team = get_organization_members_team(organization)
@@ -172,9 +183,14 @@ def add_team_to_project(team, project):
 
 def add_xform_to_project(xform, project, creator):
     """Adds an xform to a project"""
+    # remove xform from any previous relation to a project
+    xform.projectxform_set.all().delete()
+
+    # make new connection
     instance = ProjectXForm.objects.create(
         xform=xform, project=project, created_by=creator)
     instance.save()
+
     return instance
 
 
@@ -191,10 +207,19 @@ def publish_xlsform(request, user=None):
 def publish_project_xform(request, project):
     def set_form():
         form = QuickConverter(request.POST, request.FILES)
+
         return form.publish(project.organization)
-    xform = publish_form(set_form)
+
+    xform = None
+
+    if 'formid' in request.DATA:
+        xform = get_object_or_404(XForm, pk=request.DATA.get('formid'))
+    else:
+        xform = publish_form(set_form)
+
     if isinstance(xform, XForm):
         add_xform_to_project(xform, project, request.user)
+
     return xform
 
 
@@ -304,3 +329,16 @@ def get_xform(formid, request, username=None):
             "You do not have permission to view data from this form."))
 
     return xform
+
+
+def get_user_profile_or_none(username):
+    profile = None
+
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        pass
+    else:
+        profile = user.profile
+
+    return profile

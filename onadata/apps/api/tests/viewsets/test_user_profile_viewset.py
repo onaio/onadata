@@ -14,7 +14,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         super(self.__class__, self).setUp()
         self.view = UserProfileViewSet.as_view({
             'get': 'list',
-            'post': 'create'
+            'post': 'create',
+            'patch': 'partial_update'
         })
 
     def test_profiles_list(self):
@@ -152,3 +153,15 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         first_name, last_name = _get_first_last_names(name)
         self.assertEqual(first_name, "(CPLTGL) Centre Pour la Promot")
         self.assertEqual(last_name, "ion de la Liberte D'Expression")
+
+    def test_partial_updates(self):
+        self.assertEqual(self.user.profile.country, u'US')
+
+        country = u'KE'
+        data = {'country': country}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        profile = UserProfile.objects.get(user=self.user)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(profile.country, country)

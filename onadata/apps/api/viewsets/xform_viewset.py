@@ -14,7 +14,6 @@ from django.utils.translation import ugettext as _
 from django.utils import six
 
 from rest_framework import exceptions
-from rest_framework import permissions
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -27,7 +26,10 @@ from onadata.libs.mixins.multi_lookup_mixin import MultiLookupMixin
 from onadata.libs.models.signals import xform_tags_add, xform_tags_delete
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.share_xform_serializer import (
+    ShareXFormSerializer)
 from onadata.apps.api import tools as utils
+from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.viewer_tools import enketo_url
 from onadata.apps.viewer.models import Export
@@ -174,6 +176,12 @@ def _get_form_url(request, username):
     return 'https://%s/%s' % (http_host, username)
 
 
+def _get_user(username):
+    users = User.objects.filter(username=username)
+
+    return users.count() and users[0] or None
+
+
 def response_for_format(data, format=None):
     formatted_data = data.xml if format == 'xml' else json.loads(data.json)
     return Response(formatted_data)
@@ -271,14 +279,19 @@ https://ona.io/api/v1/forms
 
 ## Set Form Information
 
+You can use `PUT` or `PATCH` http methods to update or set form data elements.
+If you are using `PUT`, you have to provide the `uuid, description, owner,
+public, public_data` fields. With `PATCH` you only need provide atleast one
+of the fields.
+
 <pre class="prettyprint">
-<b>PUT</b> /api/v1/forms/<code>{formid}</code>
-<b>PUT</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
+<b>PATCH</b> /api/v1/forms/<code>{formid}</code>
+<b>PATCH</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
 <code>{formid}</code></pre>
 
 > Example
 >
->       curl -X PUT -d "shared=True" -d "description=Le description"\
+>       curl -X PATCH -d "public=True" -d "description=Le description"\
 https://ona.io/api/v1/forms/28058
 
 > Response
@@ -503,6 +516,25 @@ Where:
 <b>GET</b> /api/v1/forms/<code>{owner}</code>public
 </pre>
 
+## Share a form with a specific user
+
+You can share a form with a  specific user by `POST` a payload with
+
+- `username` of the user you want to share the form with and
+- `role` you want the user to have on the form. Availabel roles are `readonly`,
+`dataentry`, `editor`, `manager`.
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/share
+</pre>
+
+> Example
+>
+>       curl -X POST -d '{"username": "alice", "role": "readonly"}' https://ona.io/api/v1/forms/onademo/123.json  # noqa
+
+> Response
+>
+>        HTTP 204
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
@@ -519,7 +551,7 @@ Where:
     lookup_fields = ('owner', 'pk')
     lookup_field = 'owner'
     extra_lookup_fields = None
-    permission_classes = [permissions.DjangoModelPermissionsOrAnonReadOnly, ]
+    permission_classes = [XFormPermissions, ]
     updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
 
     def get_object(self, queryset=None):
@@ -576,7 +608,8 @@ Where:
         return queryset.distinct()
 
     def create(self, request, *args, **kwargs):
-        survey = utils.publish_xlsform(request, request.user)
+        owner = _get_user(kwargs.get('owner')) or request.user
+        survey = utils.publish_xlsform(request, owner)
 
         if isinstance(survey, XForm):
             xform = XForm.objects.get(pk=survey.pk)
@@ -588,20 +621,6 @@ Where:
                             headers=headers)
 
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
-
-    def update(self, request, *args, **kwargs):
-        data = request.DATA
-        form = self.get_object()
-        fields = self.updatable_fields.intersection(data.keys())
-
-        for field in fields:
-            if hasattr(form, field):
-                v = value_for_type(form, field, data[field])
-                form.__setattr__(field, v)
-
-        form.save()
-
-        return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
     @action(methods=['GET'])
     def form(self, request, format='json', **kwargs):
@@ -706,3 +725,22 @@ Where:
             serializer = self.get_serializer(self.object_list, many=True)
 
         return Response(serializer.data)
+
+    @action(methods=['POST'])
+    def share(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
+        data = {}
+        for key, val in request.DATA.iteritems():
+            data[key] = val
+        data.update({'xform': self.object.pk})
+
+        serializer = ShareXFormSerializer(data=data)
+
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            return Response(data=serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -129,3 +129,33 @@ class TestTeamViewSet(TestAbstractViewSet):
         self.assertEqual(response.data,
                          {'username': [u'User `aboy` does not exist.']})
         self.assertNotIn(self.team.group_ptr, self.user.groups.all())
+
+    def test_remove_user_from_team(self):
+        self._team_create()
+        self.assertNotIn(self.team.group_ptr, self.user.groups.all())
+
+        view = TeamViewSet.as_view({
+            'post': 'members',
+            'delete': 'members'
+        })
+
+        data = {'username': self.user.username}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, owner='denoinc', pk='dreamteam')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data,
+                         [self.user.username])
+        self.assertIn(self.team.group_ptr, self.user.groups.all())
+
+        request = self.factory.delete(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, owner='denoinc', pk='dreamteam')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data,
+                         [])
+        self.assertNotIn(self.team.group_ptr, self.user.groups.all())

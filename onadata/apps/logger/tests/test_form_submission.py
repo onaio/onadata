@@ -312,3 +312,78 @@ class TestFormSubmission(TestBase):
         self.assertEqual(self.response.status_code, 201)
         instance = Instance.objects.all().reverse()[0]
         self.assertEqual(instance.user, alice)
+
+    def test_edited_submission_require_auth(self):
+        """
+        Test submissions that have been edited
+        """
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid.xml"
+        )
+        num_instances_history = InstanceHistory.objects.count()
+        num_instances = Instance.objects.count()
+        query_args = {
+            'username': self.user.username,
+            'id_string': self.xform.id_string,
+            'query': '{}',
+            'fields': '[]',
+            'sort': '[]',
+            'count': True
+        }
+        cursor = ParsedInstance.query_mongo(**query_args)
+        num_mongo_instances = cursor[0]['count']
+        # make first submission
+        self._make_submission(xml_submission_file_path)
+        self.assertEqual(self.response.status_code, 201)
+        self.assertEqual(Instance.objects.count(), num_instances + 1)
+        # no new record in instances history
+        self.assertEqual(
+            InstanceHistory.objects.count(), num_instances_history)
+        # check count of mongo instances after first submission
+        cursor = ParsedInstance.query_mongo(**query_args)
+        self.assertEqual(cursor[0]['count'], num_mongo_instances + 1)
+
+        # require authentication
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
+        # create a new user
+        alice = self._create_user('alice', 'alice')
+        UserProfile.objects.create(user=alice)
+
+        client = DigestClient()
+        client.set_authorization('alice', 'alice', 'Digest')
+
+        # edited submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"
+        )
+        self._make_submission(xml_submission_file_path, client=client)
+        self.assertEqual(self.response.status_code, 403)
+
+        # assign report perms to user
+        assign_perm('report_xform', alice, self.xform)
+        assign_perm('logger.change_xform', alice, self.xform)
+
+        self._make_submission(xml_submission_file_path, client=client)
+        self.assertEqual(self.response.status_code, 201)
+        # we must have the same number of instances
+        self.assertEqual(Instance.objects.count(), num_instances + 1)
+        # should be a new record in instances history
+        self.assertEqual(
+            InstanceHistory.objects.count(), num_instances_history + 1)
+        cursor = ParsedInstance.query_mongo(**query_args)
+        self.assertEqual(cursor[0]['count'], num_mongo_instances + 1)
+        # make sure we edited the mongo db record and NOT added a new row
+        query_args['count'] = False
+        cursor = ParsedInstance.query_mongo(**query_args)
+        record = cursor[0]
+        with open(xml_submission_file_path, "r") as f:
+            xml_str = f.read()
+        xml_str = clean_and_parse_xml(xml_str).toxml()
+        edited_name = re.match(ur"^.+?<name>(.+?)</name>", xml_str).groups()[0]
+        self.assertEqual(record['name'], edited_name)

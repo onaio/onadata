@@ -52,3 +52,22 @@ class TestProjectViewset(TestAbstractViewSet):
                         pk=self.project.pk, formid=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.form_data)
+
+    def test_assign_form_to_project(self):
+        view = ProjectViewSet.as_view({
+            'post': 'forms'
+        })
+        self._publish_xls_form_to_project()
+        formid = self.xform.pk
+        old_project = self.project
+        project_name = u'another project'
+        self._project_create({'name': project_name})
+        self.assertTrue(self.project.name == project_name)
+
+        project_id = self.project.pk
+        post_data = {'formid': formid}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, owner=self.user.username, pk=project_id)
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(self.project.projectxform_set.filter(xform=self.xform))
+        self.assertFalse(old_project.projectxform_set.filter(xform=self.xform))

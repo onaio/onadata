@@ -15,15 +15,24 @@ class ObjectLookupMixin(object):
             )
         if queryset is None:
             queryset = self.filter_queryset(self.get_queryset())
-        filter = {}
+
+        filter_kwargs = {}
         serializer = self.get_serializer()
         lookup_field = self.lookup_field
+
         if self.lookup_field in serializer.get_fields():
             k = serializer.get_fields()[self.lookup_field]
             if isinstance(k, serializers.HyperlinkedRelatedField):
                 lookup_field = '%s__%s' % (self.lookup_field, k.lookup_field)
-        filter[lookup_field] = self.kwargs[self.lookup_field]
-        return get_object_or_404(queryset,  **filter)
+
+        filter_kwargs[lookup_field] = self.kwargs[self.lookup_field]
+
+        obj = get_object_or_404(queryset,  **filter_kwargs)
+
+        # May raise a permission denied
+        self.check_object_permissions(self.request, obj)
+
+        return obj
 
     def pre_save(self, obj):
         """

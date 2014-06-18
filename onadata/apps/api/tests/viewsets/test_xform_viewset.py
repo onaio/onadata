@@ -3,12 +3,14 @@ import requests
 
 from django.conf import settings
 from httmock import urlmatch, HTTMock
+
 from xml.dom import minidom, Node
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import XForm
+from onadata.libs.permissions import OwnerRole, ROLES
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
@@ -261,7 +263,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             'owner': 'http://testserver/api/v1/users/bob',
             'public': False,
             'public_data': False,
-            'description': u'',
+            'description': u'transportation_2011_07_25',
             'downloadable': True,
             'allows_sms': False,
             'encrypted': False,
@@ -284,19 +286,19 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'http://testserver/api/v1/forms/bob/%s' % xform.pk
             })
             self.assertDictContainsSubset(data, response.data)
+            self.assertTrue(OwnerRole.has_role(self.user, xform))
 
-    def test_put_update(self):
+    def test_partial_update(self):
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({
-            'put': 'update'
+            'patch': 'partial_update'
         })
         description = 'DESCRIPTION'
-        data = {'shared': True,
-                'description': description}
+        data = {'public': True, 'description': description}
 
         self.assertFalse(self.xform.shared)
 
-        request = self.factory.put('/', data=data, **self.extra)
+        request = self.factory.patch('/', data=data, **self.extra)
         response = view(request, owner='bob', pk=self.xform.id)
 
         self.xform.reload()
@@ -311,13 +313,13 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.xform.__setattr__(key, True)
         self.xform.save()
         view = XFormViewSet.as_view({
-            'put': 'update'
+            'patch': 'partial_update'
         })
-        data = {key: False}
+        data = {'public': False}
 
         self.assertTrue(self.xform.__getattribute__(key))
 
-        request = self.factory.put('/', data=data, **self.extra)
+        request = self.factory.patch('/', data=data, **self.extra)
         response = view(request, owner='bob', pk=self.xform.id)
 
         self.xform.reload()
@@ -327,31 +329,29 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_set_form_bad_value(self):
         key = 'shared'
         self._publish_xls_form_to_project()
-        self.xform.__setattr__(key, True)
-        self.xform.save()
         view = XFormViewSet.as_view({
-            'put': 'update'
+            'patch': 'partial_update'
         })
-        data = {key: 'String'}
+        data = {'public': 'String'}
 
-        self.assertTrue(self.xform.__getattribute__(key))
-
-        request = self.factory.put('/', data=data, **self.extra)
+        request = self.factory.patch('/', data=data, **self.extra)
         response = view(request, owner='bob', pk=self.xform.id)
 
         self.xform.reload()
         self.assertFalse(self.xform.__getattribute__(key))
-        self.assertFalse(response.data['public'])
+        self.assertEqual(response.data,
+                         {'shared':
+                          [u"'String' value must be either True or False."]})
 
     def test_set_form_bad_key(self):
         self._publish_xls_form_to_project()
         self.xform.save()
         view = XFormViewSet.as_view({
-            'put': 'update'
+            'patch': 'partial_update'
         })
         data = {'nonExistentField': False}
 
-        request = self.factory.put('/', data=data, **self.extra)
+        request = self.factory.patch('/', data=data, **self.extra)
         response = view(request, owner='bob', pk=self.xform.id)
 
         self.xform.reload()
@@ -371,3 +371,25 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
         with self.assertRaises(XForm.DoesNotExist):
             self.xform.reload()
+
+    def test_form_share_endpoint(self):
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        view = XFormViewSet.as_view({
+            'post': 'share'
+        })
+        formid = self.xform.pk
+
+        for role, role_class in ROLES.items():
+            self.assertFalse(role_class.has_role(alice_profile.user,
+                                                 self.xform))
+
+            data = {'username': 'alice', 'role': role}
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, owner='bob', pk=formid)
+
+            self.assertEqual(response.status_code, 204)
+            self.assertTrue(role_class.has_role(alice_profile.user,
+                                                self.xform))

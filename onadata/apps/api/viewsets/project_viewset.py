@@ -89,10 +89,41 @@ Where:
 >           "date_modified": "2013-07-24T13:37:39Z"
 >       }
 
+### Assign a form to a project
+To [re]assign an existing form to a project you need to `POST` a payload of
+`formid=FORMID` to the endpoint below.
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms</pre>
+> Example
+>
+>       curl -X POST -d '{"formid": 28058}' https://ona.io/api/v1/projects/modilabs/1/forms  # noqa
+
+> Response
+>
+>       {
+>           "url": "https://ona.io/api/v1/forms/28058",
+>           "formid": 28058,
+>           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
+>           "id_string": "Birds",
+>           "sms_id_string": "Birds",
+>           "title": "Birds",
+>           "allows_sms": false,
+>           "bamboo_dataset": "",
+>           "description": "",
+>           "downloadable": true,
+>           "encrypted": false,
+>           "owner": "modilabs",
+>           "public": false,
+>           "public_data": false,
+>           "date_created": "2013-07-25T14:14:22.892Z",
+>           "date_modified": "2013-07-25T14:14:22.892Z"
+>       }
+
 ## Upload XLSForm to a project
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms</pre>
+<b>POST</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms</pre>
 > Example
 >
 >       curl -X POST -F xls_file=@/path/to/form.xls
@@ -196,23 +227,29 @@ Where:
             organization__username=kwargs.get('owner', None))
         if request.method.upper() == 'POST':
             survey = utils.publish_project_xform(request, project)
+
             if isinstance(survey, XForm):
                 xform = XForm.objects.get(pk=survey.pk)
                 serializer = XFormSerializer(
                     xform, context={'request': request})
+
                 return Response(serializer.data, status=201)
+
             return Response(survey, status=400)
-        filter = {'project': project}
+
+        qfilter = {'project': project}
         many = True
         if 'formid' in kwargs:
             many = False
-            filter['xform__pk'] = int(kwargs.get('formid'))
+            qfilter['xform__pk'] = int(kwargs.get('formid'))
         if many:
-            qs = ProjectXForm.objects.filter(**filter)
+            qs = ProjectXForm.objects.filter(**qfilter)
             data = [px.xform for px in qs]
         else:
-            qs = get_object_or_404(ProjectXForm, **filter)
+            qs = get_object_or_404(ProjectXForm, **qfilter)
             data = qs.xform
+
         serializer = XFormSerializer(
             data, many=many, context={'request': request})
+
         return Response(serializer.data)
