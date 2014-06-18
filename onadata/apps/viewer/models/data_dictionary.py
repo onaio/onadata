@@ -1,4 +1,3 @@
-import json
 import os
 import re
 
@@ -174,20 +173,6 @@ class DataDictionary(XForm):
 
     def get_survey_elements(self):
         return self.survey.iter_descendants()
-
-    def get_field_choices(self, field):
-        json_dict = json.loads(self.json)
-        choices = []
-
-        if field['itemset']:
-            choices = json_dict['choices'][field['itemset']]
-        else:
-            for child in json_dict['children']:
-                if child['name'] == field.name:
-                    choices = child['children']
-                    break
-
-        return choices
 
     def get_mongo_field_names_dict(self):
         """

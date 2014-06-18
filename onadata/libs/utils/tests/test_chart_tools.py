@@ -52,7 +52,7 @@ class TestChartTools(TestBase):
         field = find_field_by_name(dd, 'a_text')
         data = build_chart_data_for_field(self.xform, field)
         self.assertEqual(data['field_name'], 'a_group-a_text')
-        self.assertEqual(data['field_xpath'], 'a_group/a_text')
+        self.assertEqual(data['field_xpath'], 'a_text')
         self.assertEqual(data['field_type'], 'text')
         self.assertEqual(data['data_type'], 'categorized')
 
