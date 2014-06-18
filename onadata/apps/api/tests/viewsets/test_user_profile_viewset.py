@@ -94,6 +94,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         }
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
+        self.assertNotIn('email', response.data)
 
     def test_profile_create(self):
         request = self.factory.get('/', **self.extra)
@@ -150,6 +151,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         self.assertEqual(response.data, data)
+        self.assertNotIn('email', response.data)
 
     def test_profile_create_missing_name_field(self):
         request = self.factory.get('/', **self.extra)
