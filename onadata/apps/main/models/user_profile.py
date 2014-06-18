@@ -51,6 +51,7 @@ class UserProfile(models.Model):
         app_label = 'main'
         permissions = (
             ('can_add_xform', "Can add/upload an xform to user profile"),
+            ('view_profile', "Can view user profile"),
         )
 
 
@@ -67,5 +68,8 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
     if created:
         for perm in get_perms_for_model(UserProfile):
             assign_perm(perm.codename, instance.user, instance)
+
+            if instance.created_by:
+                assign_perm(perm.codename, instance.created_by, instance)
 post_save.connect(set_object_permissions, sender=UserProfile,
                   dispatch_uid='set_object_permissions')

@@ -8,6 +8,7 @@ from rest_framework import serializers
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.forms import UserProfileForm,\
     RegistrationFormUserProfile
+from onadata.libs.permissions import CAN_VIEW_PROFILE
 
 
 def _get_first_last_names(name, limit=30):
@@ -55,6 +56,14 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         ret = super(UserProfileSerializer, self).to_native(obj)
         if 'password' in ret:
             del ret['password']
+
+        request = self.context['request'] \
+            if 'request' in self.context else None
+
+        if 'email' in ret and request is None or request.user \
+                and not request.user.has_perm(CAN_VIEW_PROFILE, obj):
+            del ret['email']
+
         return ret
 
     def restore_object(self, attrs, instance=None):
