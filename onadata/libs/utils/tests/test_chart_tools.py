@@ -12,6 +12,7 @@ def find_field_by_name(dd, field_name):
 
 
 class TestChartTools(TestBase):
+
     def setUp(self):
         super(TestChartTools, self).setUp()
         # create an xform
@@ -42,8 +43,8 @@ class TestChartTools(TestBase):
         # map the list to a dict
         values = dict([(d['gender'], d['count'], ) for d in data['data']])
         self.assertEqual(values, {
-            'male': 1,
-            'female': 1
+            'Male': 1,
+            'Female': 1
         })
 
     def test_build_chart_data_for_field_on_grouped_field(self):
@@ -51,7 +52,7 @@ class TestChartTools(TestBase):
         field = find_field_by_name(dd, 'a_text')
         data = build_chart_data_for_field(self.xform, field)
         self.assertEqual(data['field_name'], 'a_group-a_text')
-        self.assertEqual(data['field_xpath'], 'a_group/a_text')
+        self.assertEqual(data['field_xpath'], 'a_text')
         self.assertEqual(data['field_type'], 'text')
         self.assertEqual(data['data_type'], 'categorized')
 
@@ -108,6 +109,7 @@ class TestChartTools(TestBase):
 
 
 class TestChartUtilFunctions(unittest.TestCase):
+
     def test_utc_time_string_for_javascript(self):
         time_str = '2014-01-16T12:07:23.322+03'
         expected_time_str = '2014-01-16T12:07:23.322+0300'

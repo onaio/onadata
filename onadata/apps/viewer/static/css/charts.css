@@ -20,3 +20,7 @@
 .stats-table tbody {
     font-weight: 300;
 }
+
+text.axis.title {
+    display: none;
+}
