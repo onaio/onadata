@@ -207,7 +207,6 @@ Publish XLSForms, List, Retrieve Published Forms.
 Where:
 
 - `owner` - is the organization or user to which the form(s) belong to.
-- `pk` - is the project id
 - `formid` - is the form id
 
 ## Upload XLSForm
@@ -248,9 +247,7 @@ https://ona.io/api/v1/forms
 ## Get Form Information
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{formid}</code>
-<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
-<code>{formid}</code></pre>
+<b>GET</b> /api/v1/forms/<code>{formid}</code></pre>
 
 > Example
 >
@@ -285,9 +282,7 @@ public, public_data` fields. With `PATCH` you only need provide atleast one
 of the fields.
 
 <pre class="prettyprint">
-<b>PATCH</b> /api/v1/forms/<code>{formid}</code>
-<b>PATCH</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
-<code>{formid}</code></pre>
+<b>PATCH</b> /api/v1/forms/<code>{formid}</code></pre>
 
 > Example
 >
@@ -318,9 +313,7 @@ https://ona.io/api/v1/forms/28058
 ## Delete Form
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>
-<b>DELETE</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
-<code>{formid}</code></pre>
+<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code></pre>
 
 ## List Forms
 <pre class="prettyprint">
@@ -486,7 +479,6 @@ Get form data exported as xls, csv, csv zip, sav zip format.
 Where:
 
 - `owner` - is the organization or user to which the form(s) belong to.
-- `pk` - is the project id
 - `formid` - is the form id
 - `format` - is the data export format i.e csv, xls, csvzip, savzip
 
@@ -530,7 +522,8 @@ You can share a form with a  specific user by `POST` a payload with
 
 > Example
 >
->       curl -X POST -d '{"username": "alice", "role": "readonly"}' https://ona.io/api/v1/forms/onademo/123.json  # noqa
+>       curl -X POST -d '{"username": "alice", "role": "readonly"}' \
+https://ona.io/api/v1/forms/onademo/123.json
 
 > Response
 >
