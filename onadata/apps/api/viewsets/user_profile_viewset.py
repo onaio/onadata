@@ -1,5 +1,4 @@
-from django.contrib.auth.models import User
-from django.db.models import Q
+from django.conf import settings
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
@@ -104,7 +103,7 @@ for example, `{"country": "KE"}` will set the country to `KE`.
 >            "user": "https://ona.io/api/v1/users/demo"
 >        }
 """
-    queryset = UserProfile.objects.exclude(user__pk=-1)
+    queryset = UserProfile.objects.exclude(user__pk=settings.ANONYMOUS_USER_ID)
     serializer_class = UserProfileSerializer
     lookup_field = 'user'
     permission_classes = [UserProfilePermissions]
