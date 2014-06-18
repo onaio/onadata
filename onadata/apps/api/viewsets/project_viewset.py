@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from rest_framework.decorators import action
 from rest_framework import exceptions
+from rest_framework import permissions
 from rest_framework.mixins import CreateModelMixin, ListModelMixin,\
     RetrieveModelMixin
 from rest_framework.response import Response
@@ -185,6 +186,7 @@ To [re]assign an existing form to a project you need to `POST` a payload of
     lookup_fields = ('owner', 'pk')
     lookup_field = 'owner'
     extra_lookup_fields = None
+    permission_classes = [permissions.DjangoObjectPermissions]
 
     def get_queryset(self):
         user = self.request.user
@@ -201,7 +203,7 @@ To [re]assign an existing form to a project you need to `POST` a payload of
                 raise exceptions.ParseError(
                     detail=_(u"The path parameter {pk} "
                              u"should be a number, '%s' given instead." % pk))
-        print queryset
+
         return super(ProjectViewSet, self).get_object(queryset)
 
     def list(self, request, **kwargs):
