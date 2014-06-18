@@ -309,3 +309,7 @@ class TestUserPermissions(TestAbstractViewSet):
         request = self.factory.delete('/', **self.extra)
         response = view(request, owner='bob', pk=formid)
         self.assertEqual(response.status_code, 204)
+
+    def test_org_creator_permissions(self):
+        self._org_create()
+        self.assertTrue(role.OwnerRole.has_role(self.user, self.organization))

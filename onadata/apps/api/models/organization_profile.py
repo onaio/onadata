@@ -3,6 +3,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models.signals import post_save
+from guardian.shortcuts import get_perms_for_model, assign_perm
 
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.models import UserProfile
@@ -19,6 +20,15 @@ def create_owner_team_and_permissions(sender, instance, created, **kwargs):
             content_type=content_type)
         team.permissions.add(permission)
         instance.creator.groups.add(team)
+
+        for perm in get_perms_for_model(instance.__class__):
+            assign_perm(perm.codename, instance.user, instance)
+
+            if instance.creator:
+                assign_perm(perm.codename, instance.creator, instance)
+
+            if instance.created_by:
+                assign_perm(perm.codename, instance.created_by, instance)
 
 
 class OrganizationProfile(UserProfile):
@@ -37,6 +47,7 @@ class OrganizationProfile(UserProfile):
         app_label = 'api'
         permissions = (
             ('can_add_xform', "Can add/upload an xform to organization"),
+            ('view_profile', "Can view organization profile"),
         )
 
     is_organization = models.BooleanField(default=True)
