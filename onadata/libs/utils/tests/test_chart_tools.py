@@ -122,6 +122,19 @@ class TestChartTools(TestBase):
         values = [d['date'] is not None for d in data['data']]
         self.assertTrue(all(values))
 
+    def test_build_chart_data_with_field_name_with_lengh_65(self):
+        # make the 3rd submission that doesnt have a date
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "apps", "api", "tests", "fixtures", "forms",
+                            "tutorial", "instances", "3.xml")
+        self._make_submission(path)
+        dd = self.xform.data_dictionary()
+        field = find_field_by_name(dd, 'date')
+        field.name = 'a' * 65
+
+        data = build_chart_data_for_field(self.xform, field)
+        self.assertEqual(data['field_name'], field.name)
+
 
 class TestChartUtilFunctions(unittest.TestCase):
 
