@@ -107,6 +107,21 @@ class TestChartTools(TestBase):
         data = build_chart_data_for_field(self.xform, field, language_index=1)
         self.assertEqual(data['field_label'], 'submit_date')
 
+    def test_build_chart_data_with_nonexisting_field_xpath(self):
+        # make the 3rd submission that doesnt have a date
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "apps", "api", "tests", "fixtures", "forms",
+                            "tutorial", "instances", "3.xml")
+        self._make_submission(path)
+        dd = self.xform.data_dictionary()
+        field = find_field_by_name(dd, 'date')
+        field.name = 'informed_consent/pas_denfants_elig/q7b'
+
+        data = build_chart_data_for_field(self.xform, field)
+        # create a list with comparisons to the dict values
+        values = [d['date'] is not None for d in data['data']]
+        self.assertTrue(all(values))
+
 
 class TestChartUtilFunctions(unittest.TestCase):
 

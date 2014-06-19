@@ -84,6 +84,7 @@ def build_chart_data_for_field(xform, field, language_index=0):
 
     data_type = DATA_TYPE_MAP.get(field_type, 'categorized')
     field_name = field.name if not isinstance(field, basestring) else field
+
     result = get_form_submissions_grouped_by_field(
         xform, field_xpath, field_name)
 
@@ -98,7 +99,7 @@ def build_chart_data_for_field(xform, field, language_index=0):
 
     # for date fields, strip out None values
     if data_type == 'time_based':
-        result = [r for r in result if r[field_xpath] is not None]
+        result = [r for r in result if r.get(field_xpath) is not None]
         # for each check if it matches the timezone regexp and convert for js
         for r in result:
             if timezone_re.match(r[field_xpath]):
