@@ -88,12 +88,21 @@ def build_chart_data_for_field(xform, field, language_index=0):
     result = get_form_submissions_grouped_by_field(
         xform, field_xpath, field_name)
 
+    # truncate field name to 63 characters to fix #354
+    truncated_name = field_name[0:63]
+
     if data_type == 'categorized':
 
         if result:
             for item in result:
-                item[field.name] = get_choice_label(
-                    field.children, item[field.name])
+                item[truncated_name] = get_choice_label(
+                    field.children, item[truncated_name])
+
+    # replace truncated field names in the result set with the field name key
+    for item in result:
+        if field_name != truncated_name:
+            item[field_name] = item[truncated_name]
+            del(item[truncated_name])
 
     result = sorted(result, key=lambda d: d['count'])
 
