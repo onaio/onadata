@@ -12,7 +12,6 @@ from django.utils.translation import ugettext as _
 from django.utils import six
 
 from rest_framework import exceptions
-from rest_framework import filters
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -21,6 +20,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from taggit.forms import TagField
 
+from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.models.signals import xform_tags_add, xform_tags_delete
@@ -545,7 +545,7 @@ https://ona.io/api/v1/forms/onademo/123.json
     extra_lookup_fields = None
     permission_classes = [XFormPermissions, ]
     updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
-    filter_backends = (filters.DjangoObjectPermissionsFilter, )
+    filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
 
     def create(self, request, *args, **kwargs):
         owner = request.user
