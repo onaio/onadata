@@ -20,6 +20,8 @@ DATA_TYPE_MAP = {
 
 CHARTS_PER_PAGE = 20
 
+POSTGRES_ALIAS_LENGTH = 63
+
 
 timezone_re = re.compile(r'(.+)\+(\d+)')
 
@@ -89,7 +91,7 @@ def build_chart_data_for_field(xform, field, language_index=0):
         xform, field_xpath, field_name)
 
     # truncate field name to 63 characters to fix #354
-    truncated_name = field_name[0:63]
+    truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
 
     if data_type == 'categorized':
 
