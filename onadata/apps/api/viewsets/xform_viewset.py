@@ -21,7 +21,8 @@ from rest_framework.viewsets import ModelViewSet
 
 from taggit.forms import TagField
 
-from onadata.libs.mixins.anonymous_user_mixin import AnonymousUserMixin
+from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
+    AnonymousUserPublicFormsMixin)
 from onadata.libs.models.signals import xform_tags_add, xform_tags_delete
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -199,7 +200,7 @@ def value_for_type(form, field, value):
     return value
 
 
-class XFormViewSet(AnonymousUserMixin, ModelViewSet):
+class XFormViewSet(AnonymousUserPublicFormsMixin, ModelViewSet):
     """
 Publish XLSForms, List, Retrieve Published Forms.
 
