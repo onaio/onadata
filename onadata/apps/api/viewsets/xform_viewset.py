@@ -200,7 +200,7 @@ def value_for_type(form, field, value):
     return value
 
 
-class XFormViewSet(MultiLookupMixin, ModelViewSet):
+class XFormViewSet(ModelViewSet):
     """
 Publish XLSForms, List, Retrieve Published Forms.
 
@@ -541,67 +541,13 @@ https://ona.io/api/v1/forms/onademo/123.json
     serializer_class = XFormSerializer
     queryset = XForm.objects.all()
     serializer_class = XFormSerializer
-    lookup_fields = ('owner', 'pk')
-    lookup_field = 'owner'
+    lookup_field = 'pk'
     extra_lookup_fields = None
     permission_classes = [XFormPermissions, ]
     updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
 
-    def get_object(self, queryset=None):
-        owner, pk = self.lookup_fields
-
-        try:
-            int(self.kwargs[pk])
-        except ValueError:
-            # implies pk is a string, assume this represents the id_string
-            self.lookup_fields = ('owner', 'id_string')
-            self.kwargs['id_string'] = self.kwargs[pk]
-
-        return super(XFormViewSet, self).get_object(queryset)
-
-    def get_queryset(self):
-        owner, pk = self.lookup_fields
-
-        owner = self.kwargs.get(owner, None)
-        user = self.request.user \
-            if not self.request.user.is_anonymous() \
-            else User.objects.get(pk=-1)
-        project_forms = []
-
-        if isinstance(owner, six.string_types) and owner == 'public':
-            user_forms = XForm.objects.filter(
-                Q(shared=True) | Q(shared_data=True))
-        elif isinstance(owner, six.string_types) and owner != 'public':
-            owner = get_object_or_404(User, username=owner)
-            if owner != user:
-                xfct = ContentType.objects.get(
-                    app_label='logger', model='xform')
-                xfs = user.userobjectpermission_set.filter(content_type=xfct)
-                user_forms = XForm.objects.filter(
-                    Q(pk__in=[xf.object_pk for xf in xfs]) | Q(shared=True)
-                    | Q(shared_data=True),
-                    user=owner)\
-                    .select_related('user')
-            else:
-                user_forms = owner.xforms.values('pk')
-                project_forms = owner.projectxform_set.values('xform')
-        else:
-            user_forms = user.xforms.values('pk')
-            project_forms = user.projectxform_set.values('xform')
-
-        queryset = XForm.objects.filter(
-            Q(pk__in=user_forms) | Q(pk__in=project_forms))
-        # filter by tags if available.
-        tags = self.request.QUERY_PARAMS.get('tags', None)
-
-        if tags and isinstance(tags, six.string_types):
-            tags = tags.split(',')
-            queryset = queryset.filter(tags__name__in=tags)
-
-        return queryset.distinct()
-
     def create(self, request, *args, **kwargs):
-        owner = _get_user(kwargs.get('owner')) or request.user
+        owner = request.user
         survey = utils.publish_xlsform(request, owner)
 
         if isinstance(survey, XForm):
@@ -656,11 +602,6 @@ https://ona.io/api/v1/forms/onademo/123.json
         return Response(data, http_status)
 
     def retrieve(self, request, *args, **kwargs):
-        owner, pk = self.lookup_fields
-
-        if self.kwargs.get(pk) == 'public':
-            return self.public(request, *args, **kwargs)
-
         xform = self.get_object()
         query = request.GET.get("query", {})
         export_type = kwargs.get('format')
