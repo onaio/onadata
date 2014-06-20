@@ -1,9 +1,11 @@
 import os
 import unittest
+from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.chart_tools import build_chart_data_for_field,\
     build_chart_data, utc_time_string_for_javascript, calculate_ranges
+from pyxform.question import InputQuestion
 
 
 def find_field_by_name(dd, field_name):
@@ -134,6 +136,21 @@ class TestChartTools(TestBase):
 
         data = build_chart_data_for_field(self.xform, field)
         self.assertEqual(data['field_name'], field.name)
+
+    def mock_get_abbreviated_xpath(self):
+        return 'informed_consent/pas_denfants_elig/date'
+
+    @patch.object(InputQuestion, 'get_abbreviated_xpath',
+                  mock_get_abbreviated_xpath)
+    def test_build_chart_data_with_datetime_field(self):
+        dd = self.xform.data_dictionary()
+        field = find_field_by_name(dd, 'date')
+
+        data = build_chart_data_for_field(self.xform, field)
+        data = build_chart_data_for_field(self.xform, field)
+        
+        values = [d['date'] is not None for d in data['data']]
+        self.assertTrue(all(values))
 
 
 class TestChartUtilFunctions(unittest.TestCase):

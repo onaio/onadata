@@ -113,10 +113,10 @@ def build_chart_data_for_field(xform, field, language_index=0):
         result = [r for r in result if r.get(field_name) is not None]
         # for each check if it matches the timezone regexp and convert for js
         for r in result:
-            if timezone_re.match(r[field_xpath]):
+            if timezone_re.match(r[field_name]):
                 try:
-                    r[field_xpath] = utc_time_string_for_javascript(
-                        r[field_xpath])
+                    r[field_name] = utc_time_string_for_javascript(
+                        r[field_name])
                 except ValueError:
                     pass
 
