@@ -167,8 +167,7 @@ class TestAbstractViewSet(TestCase):
             self.xform = self.user.xforms.all()[0]
             data.update({
                 'url':
-                'http://testserver/api/v1/forms/%s/%s' % (self.user.username,
-                                                          self.xform.pk)
+                'http://testserver/api/v1/forms/%s' % (self.xform.pk)
             })
             self.assertDictContainsSubset(data, response.data)
             self.form_data = response.data
