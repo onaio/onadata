@@ -6,14 +6,13 @@ from datetime import datetime
 from django import forms
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.http import Http404
-from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from django.utils import six
 
 from rest_framework import exceptions
+from rest_framework import filters
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -22,7 +21,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from taggit.forms import TagField
 
-from onadata.libs.mixins.multi_lookup_mixin import MultiLookupMixin
+from onadata.libs.mixins.anonymous_user_mixin import AnonymousUserMixin
 from onadata.libs.models.signals import xform_tags_add, xform_tags_delete
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -200,7 +199,7 @@ def value_for_type(form, field, value):
     return value
 
 
-class XFormViewSet(ModelViewSet):
+class XFormViewSet(AnonymousUserMixin, ModelViewSet):
     """
 Publish XLSForms, List, Retrieve Published Forms.
 
@@ -545,6 +544,7 @@ https://ona.io/api/v1/forms/onademo/123.json
     extra_lookup_fields = None
     permission_classes = [XFormPermissions, ]
     updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
+    filter_backends = (filters.DjangoObjectPermissionsFilter, )
 
     def create(self, request, *args, **kwargs):
         owner = request.user
