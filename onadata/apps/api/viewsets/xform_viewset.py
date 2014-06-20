@@ -206,8 +206,7 @@ Publish XLSForms, List, Retrieve Published Forms.
 
 Where:
 
-- `owner` - is the organization or user to which the form(s) belong to.
-- `formid` - is the form id
+- `pk` - is the form unique identifier
 
 ## Upload XLSForm
 
@@ -218,7 +217,7 @@ Where:
 >       curl -X POST -F xls_file=@/path/to/form.xls \
 https://ona.io/api/v1/forms
 >
-> OR
+> OR post an xlsform url
 >
 >       curl -X POST -d \
 "xls_url=https://ona.io/ukanga/forms/tutorial/form.xls" \
@@ -247,7 +246,7 @@ https://ona.io/api/v1/forms
 ## Get Form Information
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{formid}</code></pre>
+<b>GET</b> /api/v1/forms/<code>{pk}</code></pre>
 
 > Example
 >
@@ -256,7 +255,7 @@ https://ona.io/api/v1/forms
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -292,7 +291,7 @@ https://ona.io/api/v1/forms/28058
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -313,20 +312,27 @@ https://ona.io/api/v1/forms/28058
 ## Delete Form
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code></pre>
+<b>DELETE</b> /api/v1/forms/<code>{formid}</code></pre>
+> Example
+>
+>       curl -X DELETE https://ona.io/api/v1/forms/28058
+>
+> Response
+>
+>       HTTP 204 NO CONTENT
 
 ## List Forms
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms
-<b>GET</b> /api/v1/forms/<code>{owner}</code></pre>
+</pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/forms/modilabs
+>       curl -X GET https://ona.io/api/v1/forms
 
 > Response
 >
 >       [{
->           "url": "https://ona.io/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -337,11 +343,11 @@ https://ona.io/api/v1/forms/28058
 
 ## Get `JSON` | `XML` Form Representation
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/form.\
+<b>GET</b> /api/v1/forms/<code>{pk}</code>/form.\
 <code>{format}</code></pre>
 > JSON Example
 >
->       curl -X GET https://ona.io/api/v1/forms/modilabs/28058/form.json
+>       curl -X GET https://ona.io/api/v1/forms/28058/form.json
 
 > Response
 >
@@ -363,7 +369,7 @@ https://ona.io/api/v1/forms/28058
 
 > XML Example
 >
->       curl -X GET https://ona.io/api/v1/forms/modilabs/28058/form.xml
+>       curl -X GET https://ona.io/api/v1/forms/28058/form.xml
 
 > Response
 >
@@ -383,9 +389,7 @@ Use the `tags` query parameter to filter the list of forms, `tags` should be a
 comma separated list of tags.
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms?<code>tags</code>=<code>tag1,tag2</code>
-<b>GET</b> /api/v1/forms/<code>{owner}</code>?<code>tags</code>=<code>\
-tag1,tag2</code></pre>
+<b>GET</b> /api/v1/forms?<code>tags</code>=<code>tag1,tag2</code></pre>
 
 List forms tagged `smart` or `brand new` or both.
 > Request
@@ -396,7 +400,7 @@ List forms tagged `smart` or `brand new` or both.
 >        HTTP 200 OK
 >
 >       [{
->           "url": "https://ona.io/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -408,7 +412,7 @@ List forms tagged `smart` or `brand new` or both.
 
 ## Get list of Tags for a specific Form
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels
+<b>GET</b> /api/v1/forms/<code>{pk}</code>/labels
 </pre>
 > Request
 >
@@ -428,7 +432,7 @@ Examples
 - `animal, fruit denim` - comma delimited
 
 <pre class="prettyprint">
-<b>POST</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels
+<b>POST</b> /api/v1/forms/<code>{pk}</code>/labels
 </pre>
 
 Payload
@@ -438,18 +442,18 @@ Payload
 ## Delete a specific tag
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>\
-/labels/<code>tag_name</code></pre>
+<b>DELETE</b> /api/v1/forms/<code>{pk}</code>/labels/<code>tag_name</code>
+</pre>
 
 > Request
 >
 >       curl -X DELETE \
-https://ona.io/api/v1/forms/modilabs/28058/labels/tag1
+https://ona.io/api/v1/forms/28058/labels/tag1
 >
 > or to delete the tag "hello world"
 >
 >       curl -X DELETE \
-https://ona.io/api/v1/forms/modilabs/28058/labels/hello%20world
+https://ona.io/api/v1/forms/28058/labels/hello%20world
 >
 > Response
 >
@@ -458,13 +462,12 @@ https://ona.io/api/v1/forms/modilabs/28058/labels/hello%20world
 ## Get webform/enketo link
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>\
-/enketo</pre>
+<b>DELETE</b> /api/v1/forms/<code>{pk}</code>/enketo</pre>
 
 > Request
 >
 >       curl -X GET \
-https://ona.io/api/v1/forms/modilabs/28058/enketo
+https://ona.io/api/v1/forms/28058/enketo
 >
 > Response
 >
@@ -478,16 +481,15 @@ Get form data exported as xls, csv, csv zip, sav zip format.
 
 Where:
 
-- `owner` - is the organization or user to which the form(s) belong to.
-- `formid` - is the form id
+- `pk` - is the form unique identifier
 - `format` - is the data export format i.e csv, xls, csvzip, savzip
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/exports/<code>{owner}/{formid}.{format}</code>
+<b>GET</b> /api/v1/exports/{pk}.{format}</code>
 </pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/exports/onademo/28058.xls
+>       curl -X GET https://ona.io/api/v1/exports/28058.xls
 
 > binary file export of the format specied is returned as the response for the
 > download.
@@ -502,12 +504,6 @@ Where:
 <b>GET</b> /api/v1/forms/public
 </pre>
 
-## Get list of a users/organization's public forms
-
-<pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{owner}</code>public
-</pre>
-
 ## Share a form with a specific user
 
 You can share a form with a  specific user by `POST` a payload with
@@ -517,17 +513,17 @@ You can share a form with a  specific user by `POST` a payload with
 `dataentry`, `editor`, `manager`.
 
 <pre class="prettyprint">
-<b>POST</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/share
+<b>POST</b> /api/v1/forms/<code>{pk}</code>/share
 </pre>
 
 > Example
 >
 >       curl -X POST -d '{"username": "alice", "role": "readonly"}' \
-https://ona.io/api/v1/forms/onademo/123.json
+https://ona.io/api/v1/forms/123.json
 
 > Response
 >
->        HTTP 204
+>        HTTP 204 NO CONTENT
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
