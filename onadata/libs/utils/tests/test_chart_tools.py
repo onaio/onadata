@@ -147,8 +147,7 @@ class TestChartTools(TestBase):
         field = find_field_by_name(dd, 'date')
 
         data = build_chart_data_for_field(self.xform, field)
-        data = build_chart_data_for_field(self.xform, field)
-        
+
         values = [d['date'] is not None for d in data['data']]
         self.assertTrue(all(values))
 
