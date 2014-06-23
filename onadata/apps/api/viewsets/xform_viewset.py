@@ -6,7 +6,6 @@ from datetime import datetime
 from django import forms
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.db.models import Q
 from django.http import Http404
 from django.utils.translation import ugettext as _
 from django.utils import six
@@ -543,6 +542,8 @@ https://ona.io/api/v1/forms/123.json
     updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
     filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
 
+    public_forms_endpoint = 'public'
+
     def create(self, request, *args, **kwargs):
         owner = request.user
         survey = utils.publish_xlsform(request, owner)
@@ -599,6 +600,20 @@ https://ona.io/api/v1/forms/123.json
         return Response(data, http_status)
 
     def retrieve(self, request, *args, **kwargs):
+        lookup_field = self.lookup_field
+        lookup = self.kwargs.get(lookup_field)
+
+        if lookup == self.public_forms_endpoint:
+            self.object_list = self._get_public_forms_queryset()
+
+            page = self.paginate_queryset(self.object_list)
+            if page is not None:
+                serializer = self.get_pagination_serializer(page)
+            else:
+                serializer = self.get_serializer(self.object_list, many=True)
+
+            return Response(serializer.data)
+
         xform = self.get_object()
         query = request.GET.get("query", {})
         export_type = kwargs.get('format')
@@ -643,19 +658,6 @@ https://ona.io/api/v1/forms/123.json
             file_path=export.filepath)
 
         return response
-
-    def public(self, request, *args, **kwargs):
-        self.object_list = self.filter_queryset(self.get_queryset()).filter(
-            Q(shared=True) | Q(shared_data=True))
-
-        # Switch between paginated or standard style responses
-        page = self.paginate_queryset(self.object_list)
-        if page is not None:
-            serializer = self.get_pagination_serializer(page)
-        else:
-            serializer = self.get_serializer(self.object_list, many=True)
-
-        return Response(serializer.data)
 
     @action(methods=['POST'])
     def share(self, request, *args, **kwargs):
