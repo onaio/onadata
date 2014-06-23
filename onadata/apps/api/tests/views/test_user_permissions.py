@@ -44,19 +44,19 @@ class TestUserPermissions(TestAbstractViewSet):
         self._login_user_and_profile(extra_post_data=alice_data)
 
         with open(path) as xls_file:
-            post_data = {'xls_file': xls_file}
+            post_data = {'xls_file': xls_file, 'owner': 'bob'}
             request = self.factory.post('/', data=post_data, **self.extra)
-            response = view(request, owner='bob')
+            response = view(request)
             self.assertEqual(response.status_code, 403)
 
             role.ManagerRole.add(self.user, bob.profile)
-            response = view(request, owner='bob')
+            response = view(request)
             self.assertEqual(response.status_code, 201)
 
             xform = bob.xforms.all()[0]
             data.update({
                 'url':
-                'http://testserver/api/v1/forms/bob/%s' % xform.pk
+                'http://testserver/api/v1/forms/%s' % xform.pk
             })
             self.assertDictContainsSubset(data, response.data)
 

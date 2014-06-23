@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 
 from django import forms
+from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.http import Http404
@@ -181,6 +182,20 @@ def _get_user(username):
     return users.count() and users[0] or None
 
 
+def _get_owner(request):
+    owner = request.DATA.get('owner') or request.user
+
+    if isinstance(owner, six.string_types):
+        owner = _get_user(owner)
+
+        if owner is None:
+            raise ValidationError(
+                u"User with username %(owner)s does not exist."
+            )
+
+    return owner
+
+
 def response_for_format(data, format=None):
     formatted_data = data.xml if format == 'xml' else json.loads(data.json)
     return Response(formatted_data)
@@ -208,6 +223,16 @@ Where:
 - `pk` - is the form unique identifier
 
 ## Upload XLSForm
+
+To publish and xlsform, you need to provide either the xlsform via `xls_file` \
+parameter or a link to the xlsform via the `xls_url` parameter.
+Optionally, you can specify the target account where the xlsform should be \
+published using the `owner` parameter, which specifies the username to the
+account.
+
+- `xls_file`: the xlsform file.
+- `xls_url`: the url to an xlsform
+- `owner`: username to the target account (Optional)
 
 <pre class="prettyprint">
 <b>POST</b> /api/v1/forms</pre>
@@ -545,7 +570,7 @@ https://ona.io/api/v1/forms/123.json
     public_forms_endpoint = 'public'
 
     def create(self, request, *args, **kwargs):
-        owner = request.user
+        owner = _get_owner(request)
         survey = utils.publish_xlsform(request, owner)
 
         if isinstance(survey, XForm):
