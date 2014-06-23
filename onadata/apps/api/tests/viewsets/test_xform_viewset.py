@@ -10,7 +10,8 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import XForm
-from onadata.libs.permissions import OwnerRole, ROLES
+from onadata.libs.permissions import (
+    OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
@@ -311,11 +312,16 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         formid = self.xform.pk
 
-        for role, role_class in ROLES.items():
+        ROLES = [ReadOnlyRole,
+                 DataEntryRole,
+                 EditorRole,
+                 ManagerRole,
+                 OwnerRole]
+        for role_class in ROLES:
             self.assertFalse(role_class.has_role(alice_profile.user,
                                                  self.xform))
 
-            data = {'username': 'alice', 'role': role}
+            data = {'username': 'alice', 'role': role_class.name}
             request = self.factory.post('/', data=data, **self.extra)
             response = view(request, pk=formid)
 
