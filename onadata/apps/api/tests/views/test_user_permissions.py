@@ -78,12 +78,12 @@ class TestUserPermissions(TestAbstractViewSet):
 
         request = self.factory.put('/', data=data, **self.extra)
         with self.assertRaises(ValidationError):
-            response = view(request, owner='bob', pk=self.xform.id)
+            response = view(request, pk=self.xform.id)
         self.assertFalse(self.xform.shared)
 
         role.ManagerRole.add(self.user, self.xform)
         request = self.factory.put('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=self.xform.id)
+        response = view(request, pk=self.xform.id)
 
         self.xform.reload()
         self.assertTrue(self.xform.shared)
