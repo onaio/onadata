@@ -98,7 +98,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         formid = self.xform.pk
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.form_data)
 
@@ -116,10 +116,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             "type": "survey",
         }
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid, format='json')
+        response = view(request, pk=formid, format='json')
         self.assertEqual(response.status_code, 200)
         self.assertDictContainsSubset(data, response.data)
-        response = view(request, owner='bob', pk=formid, format='xml')
+        response = view(request, pk=formid, format='xml')
         self.assertEqual(response.status_code, 200)
         response_doc = minidom.parseString(response.data)
 
@@ -157,17 +157,17 @@ class TestXFormViewSet(TestAbstractViewSet):
         formid = self.xform.pk
         # no tags
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.data, [])
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'hello'])
         # remove tag "hello"
         request = self.factory.delete('/', data={"tags": "hello"},
                                       **self.extra)
-        response = view(request, owner='bob', pk=formid, label='hello')
+        response = view(request, pk=formid, label='hello')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -228,7 +228,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertFalse(self.xform.shared)
 
         request = self.factory.patch('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=self.xform.id)
+        response = view(request, pk=self.xform.id)
 
         self.xform.reload()
         self.assertTrue(self.xform.shared)
@@ -249,7 +249,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertTrue(self.xform.__getattribute__(key))
 
         request = self.factory.patch('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=self.xform.id)
+        response = view(request, pk=self.xform.id)
 
         self.xform.reload()
         self.assertFalse(self.xform.__getattribute__(key))
@@ -264,7 +264,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         data = {'public': 'String'}
 
         request = self.factory.patch('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=self.xform.id)
+        response = view(request, pk=self.xform.id)
 
         self.xform.reload()
         self.assertFalse(self.xform.__getattribute__(key))
@@ -281,7 +281,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         data = {'nonExistentField': False}
 
         request = self.factory.patch('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=self.xform.id)
+        response = view(request, pk=self.xform.id)
 
         self.xform.reload()
         self.assertFalse(self.xform.shared)
@@ -295,7 +295,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         formid = self.xform.pk
         request = self.factory.delete('/', **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.data, None)
         self.assertEqual(response.status_code, 204)
         with self.assertRaises(XForm.DoesNotExist):
@@ -317,7 +317,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             data = {'username': 'alice', 'role': role}
             request = self.factory.post('/', data=data, **self.extra)
-            response = view(request, owner='bob', pk=formid)
+            response = view(request, pk=formid)
 
             self.assertEqual(response.status_code, 204)
             self.assertTrue(role_class.has_role(alice_profile.user,
