@@ -103,23 +103,23 @@ class TestUserPermissions(TestAbstractViewSet):
         formid = self.xform.pk
 
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
         role.ManagerRole.add(self.user, self.xform)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.data, [])
 
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'hello'])
 
         # remove tag "hello"
         request = self.factory.delete('/', data={"tags": "hello"},
                                       **self.extra)
-        response = view(request, owner='bob', pk=formid, label='hello')
+        response = view(request, pk=formid, label='hello')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -136,22 +136,22 @@ class TestUserPermissions(TestAbstractViewSet):
         formid = self.xform.pk
 
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
-        response = data_view(request, owner='bob', formid=formid)
+        response = data_view(request, formid=formid)
         self.assertEqual(response.status_code, 403)
 
         role.ReadOnlyRole.add(self.user, self.xform)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 
-        response = data_view(request, owner='bob', formid=formid)
+        response = data_view(request, formid=formid)
         self.assertEqual(response.status_code, 200)
 
         data = {'public': True, 'description': "Some description"}
         request = self.factory.put('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 403)
 
     def test_readonly_role_submission_when_requires_auth(self):
@@ -185,22 +185,22 @@ class TestUserPermissions(TestAbstractViewSet):
         formid = self.xform.pk
 
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
-        response = data_view(request, owner='bob', formid=formid)
+        response = data_view(request, formid=formid)
         self.assertEqual(response.status_code, 403)
 
         role.DataEntryRole.add(self.user, self.xform)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 
-        response = data_view(request, owner='bob', formid=formid)
+        response = data_view(request, formid=formid)
         self.assertEqual(response.status_code, 200)
 
         data = {'public': True, 'description': "Some description"}
         request = self.factory.put('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 403)
 
     def test_data_entry_role_submission_when_requires_auth(self):
@@ -234,17 +234,17 @@ class TestUserPermissions(TestAbstractViewSet):
         formid = self.xform.pk
 
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
-        response = data_view(request, owner='bob', formid=formid)
+        response = data_view(request, formid=formid)
         self.assertEqual(response.status_code, 403)
 
         role.EditorRole.add(self.user, self.xform)
 
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        response = data_view(request, owner='bob', formid=formid)
+        response = data_view(request, formid=formid)
         self.assertEqual(response.status_code, 200)
 
     def test_editor_role_submission_when_requires_auth(self):
@@ -285,17 +285,17 @@ class TestUserPermissions(TestAbstractViewSet):
         formid = self.xform.pk
 
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
-        response = data_view(request, owner='bob', formid=formid)
+        response = data_view(request, formid=formid)
         self.assertEqual(response.status_code, 403)
 
         role.OwnerRole.add(self.user, self.xform)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 
-        response = data_view(request, owner='bob', formid=formid)
+        response = data_view(request, formid=formid)
         self.assertEqual(response.status_code, 200)
 
         xfs = XFormSerializer(instance=self.xform,
@@ -303,11 +303,11 @@ class TestUserPermissions(TestAbstractViewSet):
         data = json.loads(JSONRenderer().render(xfs.data))
         data.update({'public': True, 'description': "Some description"})
         request = self.factory.put('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 
         request = self.factory.delete('/', **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 204)
 
     def test_org_creator_permissions(self):
