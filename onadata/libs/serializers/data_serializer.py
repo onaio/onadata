@@ -1,0 +1,70 @@
+import json
+
+from rest_framework import serializers
+
+from onadata.apps.logger.models.xform import XForm
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+
+
+class DataSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='data-list', lookup_field='pk')
+
+    class Meta:
+        model = XForm
+        fields = ('id', 'id_string', 'title', 'description', 'url')
+        lookup_field = 'pk'
+
+
+class DataListSerializer(serializers.Serializer):
+
+    @property
+    def data(self):
+        if self._data is None:
+            obj = self.object
+
+            if self.many:
+                self._data = []
+                for item in obj:
+                    self._data.extend(self.to_native(item))
+            else:
+                self._data = self.to_native(obj)
+
+        return self._data
+
+    def to_native(self, obj):
+        request = self.context.get('request')
+        query_params = (request and request.QUERY_PARAMS) or {}
+        query = {
+            ParsedInstance.USERFORM_ID:
+            u'%s_%s' % (obj.user.username, obj.id_string)
+        }
+        query_kwargs = {
+            'query': json.dumps(query),
+            'fields': query_params.get('fields'),
+            'sort': query_params.get('sort')
+        }
+        cursor = ParsedInstance.query_mongo_minimal(**query_kwargs)
+        records = list(record for record in cursor)
+
+        return records
+
+
+class DataInstanceSerializer(serializers.Serializer):
+    def to_native(self, obj):
+        request = self.context.get('request')
+        query_params = (request and request.QUERY_PARAMS) or {}
+        query = {
+            ParsedInstance.USERFORM_ID:
+            u'%s_%s' % (obj.xform.user.username, obj.xform.id_string),
+            u'_id': obj.pk
+        }
+        query_kwargs = {
+            'query': json.dumps(query),
+            'fields': query_params.get('fields'),
+            'sort': query_params.get('sort')
+        }
+        cursor = ParsedInstance.query_mongo_minimal(**query_kwargs)
+        records = list(record for record in cursor)
+
+        return (len(records) and records[0]) or records
