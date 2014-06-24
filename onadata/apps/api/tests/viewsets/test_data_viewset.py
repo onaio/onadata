@@ -59,12 +59,12 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
         formid = self.xform.pk
-        response = view(request, formid=formid)
-        # permission denied for anonymous access to public data
-        self.assertEqual(response.status_code, 403)
+        response = view(request, pk=formid)
+        # permission denied for anonymous access to private data
+        self.assertEqual(response.status_code, 401)
         self.xform.shared_data = True
         self.xform.save()
-        response = view(request, formid=formid)
+        response = view(request, pk=formid)
         # access to a public data
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
@@ -82,7 +82,9 @@ class TestDataViewSet(TestBase):
             u'_id': dataid
         }
         self.assertDictContainsSubset(data, sorted(response.data)[0])
-        response = view(request, formid=formid, dataid=dataid)
+
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)

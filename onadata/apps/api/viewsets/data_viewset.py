@@ -1,5 +1,6 @@
 import json
 
+from django.db.models import Q
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django.utils import six
@@ -20,6 +21,9 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import (
     DataSerializer, DataListSerializer, DataInstanceSerializer)
+from onadata.libs import filters
+
+SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin, ModelViewSet):
@@ -267,6 +271,7 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 >        }
 
 """
+    filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
     serializer_class = DataSerializer
     permission_classes = (XFormPermissions,)
     lookup_field = 'pk'
@@ -300,14 +305,20 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 
         return obj
 
-    def _filter_queryset(self, queryset):
+    def _get_public_forms_queryset(self):
+        return XForm.objects.filter(Q(shared=True) | Q(shared_data=True))
+
+    def filter_queryset(self, queryset, view=None):
         qs = super(DataViewSet, self).filter_queryset(queryset)
         pk = self.kwargs.get(self.lookup_field)
 
         if pk:
             filter_kwargs = {self.lookup_field: pk}
             xform = get_object_or_404(self.model, **filter_kwargs)
-            qs = xform.instances.all()
+
+            if not qs and self.request.method in SAFE_METHODS \
+                    and not self.request.user.has_perm(xform, 'view_xform'):
+                self.permission_denied(self.request)
 
         return qs
 
