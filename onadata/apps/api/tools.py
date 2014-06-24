@@ -1,11 +1,13 @@
 from datetime import datetime
 import numpy as np
 
+from django import forms
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.utils.translation import ugettext as _
 from django.shortcuts import get_object_or_404
+from taggit.forms import TagField
 from rest_framework import exceptions
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -346,3 +348,18 @@ def get_user_profile_or_none(username):
         profile = user.profile
 
     return profile
+
+
+def add_tags_to_instance(request, instance):
+    class TagForm(forms.Form):
+        tags = TagField()
+
+    form = TagForm(request.DATA)
+
+    if form.is_valid():
+        tags = form.cleaned_data.get('tags', None)
+
+        if tags:
+            for tag in tags:
+                instance.instance.tags.add(tag)
+            instance.save()
