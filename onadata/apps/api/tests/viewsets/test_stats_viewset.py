@@ -41,7 +41,7 @@ class TestStatsViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         data = {
-            u'count': 1
+            u'count': 4
         }
         self.assertDictContainsSubset(data, response.data[0])
 
