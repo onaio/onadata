@@ -23,17 +23,20 @@ class TestDataViewSet(TestBase):
         response = view(request)
         self.assertEqual(response.status_code, 200)
         formid = self.xform.pk
-        data = {
-            u'transportation_2011_07_25':
-            'http://testserver/api/v1/data/bob/%s' % formid
-        }
-        self.assertDictEqual(response.data, data)
-        response = view(request, owner='bob', formid=formid)
+        data = [{
+            u'id': formid,
+            u'id_string': u'transportation_2011_07_25',
+            u'title': 'transportation_2011_07_25',
+            u'description': 'transportation_2011_07_25',
+            u'url': u'http://testserver/api/v1/data/%s' % formid
+        }]
+        self.assertEqual(response.data, data)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         self.assertTrue(self.xform.instances.count())
-        dataid = self.xform.instances.all().order_by('id')[0].pk
 
+        dataid = self.xform.instances.all().order_by('id')[0].pk
         data = {
             u'_bamboo_dataset_id': u'',
             u'_attachments': [],
@@ -45,7 +48,9 @@ class TestDataViewSet(TestBase):
             u'_id': dataid
         }
         self.assertDictContainsSubset(data, sorted(response.data)[0])
-        response = view(request, owner='bob', formid=formid, dataid=dataid)
+
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
@@ -54,12 +59,12 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
         formid = self.xform.pk
-        response = view(request, owner='bob', formid=formid)
+        response = view(request, formid=formid)
         # permission denied for anonymous access to public data
         self.assertEqual(response.status_code, 403)
         self.xform.shared_data = True
         self.xform.save()
-        response = view(request, owner='bob', formid=formid)
+        response = view(request, formid=formid)
         # access to a public data
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
@@ -77,7 +82,7 @@ class TestDataViewSet(TestBase):
             u'_id': dataid
         }
         self.assertDictContainsSubset(data, sorted(response.data)[0])
-        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        response = view(request, formid=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
@@ -119,7 +124,7 @@ class TestDataViewSet(TestBase):
     def test_data_user_public(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', formid='public')
+        response = view(request, formid='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
         self.xform.shared_data = True
@@ -129,7 +134,7 @@ class TestDataViewSet(TestBase):
             u'transportation_2011_07_25':
             'http://testserver/api/v1/data/bob/%s' % formid
         }
-        response = view(request, owner='bob', formid='public')
+        response = view(request, formid='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
@@ -144,7 +149,7 @@ class TestDataViewSet(TestBase):
             'http://testserver/api/v1/data/bob/%s' % formid
         }
         self.assertDictEqual(response.data, data)
-        response = view(request, owner='bob', formid=formid)
+        response = view(request, formid=formid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         self.assertTrue(self.xform.instances.count())
@@ -160,7 +165,7 @@ class TestDataViewSet(TestBase):
             u'_status': u'submitted_via_web',
             u'_id': dataid
         }
-        response = view(request, owner='bob', formid=formid, dataid=dataid)
+        response = view(request, formid=formid, dataid=dataid)
         self.assertEqual(response.status_code, 400)
 
     def test_data_with_query_parameter(self):
@@ -168,12 +173,12 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
         dataid = self.xform.instances.all()[0].pk
-        response = view(request, owner='bob', formid=formid)
+        response = view(request, formid=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
         query_str = '{"_id": "%s"}' % dataid
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
-        response = view(request, owner='bob', formid=formid)
+        response = view(request, formid=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 
@@ -196,11 +201,11 @@ class TestDataViewSet(TestBase):
         })
         # no tags
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=pk, formid=_id)
+        response = view(request, pk=pk, formid=_id)
         self.assertEqual(response.data, [])
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
-        response = view(request, owner='bob', pk=pk, formid=_id)
+        response = view(request, pk=pk, formid=_id)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'hello'])
         for i in self.xform.instances.all():
@@ -208,7 +213,7 @@ class TestDataViewSet(TestBase):
         # remove tag "hello"
         request = self.factory.delete('/', data={"tags": "hello"},
                                       **self.extra)
-        response = view(request, owner='bob', pk=pk, formid=_id, label='hello')
+        response = view(request, pk=pk, formid=_id, label='hello')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
         for i in self.xform.instances.all():
