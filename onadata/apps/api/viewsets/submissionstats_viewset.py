@@ -8,6 +8,8 @@ from onadata.apps.api.tools import get_accessible_forms, get_xform
 from onadata.apps.logger.models import Instance
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
 
+SELECT_FIELDS = ['select one', 'select multiple']
+
 
 class SubmissionStatsViewSet(viewsets.ViewSet):
     """
@@ -96,6 +98,15 @@ Response:
                     xform, field, name)
             except ValueError as e:
                 raise exceptions.ParseError(detail=e.message)
+            else:
+                if data:
+                    dd = xform.data_dictionary()
+                    element = dd.get_survey_element(field)
+
+                    if element and element.type in SELECT_FIELDS:
+                        for record in data:
+                            label = dd.get_choice_label(element, record[name])
+                            record[name] = label
         else:
             data = self._get_formlist_data_points(request, owner)
 

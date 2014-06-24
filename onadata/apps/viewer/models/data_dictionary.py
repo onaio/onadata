@@ -174,6 +174,28 @@ class DataDictionary(XForm):
     def get_survey_elements(self):
         return self.survey.iter_descendants()
 
+    def get_survey_element(self, name_or_xpath):
+        element = self.get_element(name_or_xpath)
+        name = (element and element['name']) or name_or_xpath
+
+        for field in self.get_survey_elements():
+            if field.name == name:
+                return field
+
+        return None
+
+    def get_choice_label(self, field, choice_value, lang='English'):
+        for choice in field.children:
+            if choice.name == choice_value:
+                label = choice.label.get(lang)
+
+                if isinstance(label, dict):
+                    label = label.get(lang, choice.label.values[0])
+
+                return label
+
+        return choice_value
+
     def get_mongo_field_names_dict(self):
         """
         Return a dictionary of fieldnames as saved in mongodb with
