@@ -37,14 +37,30 @@ class TestStatsViewSet(TestBase):
         }
         self.assertDictEqual(response.data, data)
         request = self.factory.get('/?group=_xform_id_string', **self.extra)
-        response = view(request)
         response = view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         data = {
-            u'count': 4
+            u'count': 1
         }
         self.assertDictContainsSubset(data, response.data[0])
+
+    def test_form_list_select_one_choices(self):
+        paths = [os.path.join(
+            self.this_directory, 'fixtures', 'good_eats_multilang', x)
+            for x in ['good_eats_multilang.xls', '1.xml']]
+        self._publish_xls_file_and_set_xform(paths[0])
+        self._make_submission(paths[1])
+        view = SubmissionStatsViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        request = self.factory.get('/?group=rating',
+                                   **self.extra)
+        response = view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertNotIn('nothing_special', response.data[0])
+        data = [{'count': 1, 'rating': u'Nothing Special'}]
+        self.assertEqual(data, response.data)
 
     def test_anon_form_list(self):
         self._publish_transportation_form()
