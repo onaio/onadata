@@ -31,13 +31,14 @@ class DataViewSet(AnonymousUserPublicFormsMixin, ModelViewSet):
     """
 This endpoint provides access to submitted data in JSON format. Where:
 
-* `owner` - is organization or user whom the data belongs to
-* `formid` - the form unique identifier
+* `pk` - the form unique identifier
 * `dataid` - submission data unique identifier
 
 ## GET JSON List of data end points
-This is a json list of the data end points of `owner` forms
- and/or including public forms and forms shared with `owner`.
+
+Lists the data endpoints accessible to requesting user, for anonymous access
+a list of public data endpoints is returned.
+
 <pre class="prettyprint">
 <b>GET</b> /api/v1/data
 </pre>
@@ -48,16 +49,20 @@ This is a json list of the data end points of `owner` forms
 
 > Response
 >
->        {
->            "dhis2form": "https://ona.io/api/v1/data/4240",
->            "exp_one": "https://ona.io/api/v1/data/13789",
->            "userone": "https://ona.io/api/v1/data/10417",
->        }
+>        [{
+>            "id": 4240,
+>            "id_string": "dhis2form"
+>            "title": "dhis2form"
+>            "description": "dhis2form"
+>            "url": "https://ona.io/api/v1/data/4240"
+>         },
+>            ...
+>        ]
 
 ## Get Submitted data for a specific form
 Provides a list of json submitted data for a specific form.
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{formid}</code></pre>
+<b>GET</b> /api/v1/data/<code>{pk}</code></pre>
 > Example
 >
 >       curl -X GET https://ona.io/api/v1/data/22845
@@ -100,16 +105,14 @@ Provides a list of json submitted data for a specific form.
 
 ## Get a single data submission for a given form
 
-Get a single specific submission json data providing `formid`
+Get a single specific submission json data providing `pk`
  and `dataid` as url path parameters, where:
 
-* `owner` - is organization or user whom the data belongs to
-* `formid` - is the identifying number for a specific form
+* `pk` - is the identifying number for a specific form
 * `dataid` - is the unique id of the data, the value of `_id` or `_uuid`
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{formid}</code>/<code>\
-{dataid}</code></pre>
+<b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code></pre>
 > Example
 >
 >       curl -X GET https://ona.io/api/v1/data/22845/4503
@@ -160,12 +163,10 @@ For more details see
 api-parameters">
 API Parameters</a>.
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{formid}</code>\
-?query={"field":"value"}</pre>
+<b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":"value"}</pre>
 > Example
 >
->       curl -X GET  https://ona.io/api/v1/data/22845\
-?query={"kind": "monthly"}
+>       curl -X GET  https://ona.io/api/v1/data/22845?query={"kind": "monthly"}
 
 > Response
 >
@@ -211,7 +212,7 @@ should be a comma separated list of tags.
 <pre class="prettyprint">
 <b>GET</b> /api/v1/data?<code>tags</code>=<code>tag1,tag2</code></pre>
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{formid}</code>?<code>tags\
+<b>GET</b> /api/v1/data/<code>{pk}</code>?<code>tags\
 </code>=<code>tag1,tag2</code></pre>
 
 > Example
@@ -228,8 +229,7 @@ Examples
 - `animal, fruit denim` - comma delimited
 
 <pre class="prettyprint">
-<b>POST</b> /api/v1/data/<code>{formid}</code>/<code>\
-{dataid}</code>/labels</pre>
+<b>POST</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/labels</pre>
 
 Payload
 
@@ -238,7 +238,7 @@ Payload
 ## Delete a specific tag from a submission
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/data/<code>{formid}</code>/<code>\
+<b>DELETE</b> /api/v1/data/<code>{pk}</code>/<code>\
 {dataid}</code>/labels/<code>tag_name</code></pre>
 
 > Request
@@ -266,10 +266,15 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 
 > Response
 >
->        {
->            "dhis2form": "https://ona.io/api/v1/data/4240",
+>        [{
+>            "id": 4240,
+>            "id_string": "dhis2form"
+>            "title": "dhis2form"
+>            "description": "dhis2form"
+>            "url": "https://ona.io/api/v1/data/4240"
+>         },
 >            ...
->        }
+>        ]
 
 """
     filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
