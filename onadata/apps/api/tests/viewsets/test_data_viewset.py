@@ -146,12 +146,15 @@ class TestDataViewSet(TestBase):
         response = view(request)
         self.assertEqual(response.status_code, 200)
         formid = self.xform.pk
-        data = {
-            u'transportation_2011_07_25':
-            'http://testserver/api/v1/data/bob/%s' % formid
-        }
-        self.assertDictEqual(response.data, data)
-        response = view(request, formid=formid)
+        data = [{
+            u'id': formid,
+            u'id_string': u'transportation_2011_07_25',
+            u'title': 'transportation_2011_07_25',
+            u'description': 'transportation_2011_07_25',
+            u'url': u'http://testserver/api/v1/data/%s' % formid
+        }]
+        self.assertEqual(response.data, data)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         self.assertTrue(self.xform.instances.count())
@@ -167,7 +170,8 @@ class TestDataViewSet(TestBase):
             u'_status': u'submitted_via_web',
             u'_id': dataid
         }
-        response = view(request, formid=formid, dataid=dataid)
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 400)
 
     def test_data_with_query_parameter(self):

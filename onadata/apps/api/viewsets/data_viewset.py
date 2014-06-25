@@ -10,6 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.exceptions import ParseError
 
 from onadata.apps.api.tools import (
     get_accessible_forms, get_xform, add_tags_to_instance)
@@ -301,6 +302,11 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
         dataid = self.kwargs.get(dataid_lookup)
 
         if pk is not None and dataid is not None:
+            try:
+                int(dataid)
+            except ValueError:
+                raise ParseError(_(u"Invalid dataid %(dataid)s"))
+
             obj = get_object_or_404(Instance, pk=dataid, xform__pk=pk)
 
         return obj
