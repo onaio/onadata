@@ -325,6 +325,11 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
     def filter_queryset(self, queryset, view=None):
         qs = super(DataViewSet, self).filter_queryset(queryset)
         pk = self.kwargs.get(self.lookup_field)
+        tags = self.request.QUERY_PARAMS.get('tags', None)
+
+        if tags and isinstance(tags, six.string_types):
+            tags = tags.split(',')
+            qs = qs.filter(tags__name__in=tags).distinct()
 
         if pk:
             try:
@@ -343,100 +348,6 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
                     self.permission_denied(self.request)
 
         return qs
-
-    def _get_formlist_data_points(self, request, public=False):
-        # return only data end points if owner is 'public' or anonymous access
-        # or is not owner
-        shared_data = public or request.user.is_anonymous()
-        xforms = get_accessible_forms(shared_data=shared_data)
-        # filter by tags if available.
-        tags = self.request.QUERY_PARAMS.get('tags', None)
-        if tags and isinstance(tags, six.string_types):
-            tags = tags.split(',')
-            xforms = xforms.filter(tags__name__in=tags).distinct()
-        rs = {}
-
-        for xform in xforms.distinct():
-            point = {u"%s" % xform.id_string:
-                     reverse("data-list", kwargs={
-                             "formid": xform.pk,
-                             "owner": xform.user.username},
-                             request=request)}
-            rs.update(point)
-
-        return rs
-
-    def _get_form_data(self, xform, **kwargs):
-        query = kwargs.get('query', {})
-        query = query if query is not None else {}
-        if xform:
-            query[ParsedInstance.USERFORM_ID] =\
-                u'%s_%s' % (xform.user.username, xform.id_string)
-        query = json.dumps(query) if isinstance(query, dict) else query
-        margs = {
-            'query': query,
-            'fields': kwargs.get('fields', None),
-            'sort': kwargs.get('sort', None)
-        }
-        cursor = ParsedInstance.query_mongo_minimal(**margs)
-        records = list(record for record in cursor)
-        return records
-
-    def _get_data_query(self, dataid):
-        query = self.request.QUERY_PARAMS.get('query', {})
-        tags = self.request.QUERY_PARAMS.get('tags', None)
-
-        if query:
-            query = json.loads(query)
-
-        if tags:
-            query['_tags'] = {'$all': tags.split(',')}
-
-        if dataid:
-            try:
-                query.update({'_id': int(dataid)})
-            except ValueError:
-                raise ValidationError(_("Invalid _id"))
-
-        return query
-
-    def _list(self, request, formid=None, dataid=None, **kwargs):
-        data = None
-        xform = None
-        query = {}
-        tags = self.request.QUERY_PARAMS.get('tags', None)
-
-        if formid == 'public':
-            data = self._get_formlist_data_points(request, public=True)
-        elif formid:
-            xform = get_xform(formid, request)
-            query[ParsedInstance.USERFORM_ID] = u'%s_%s' % (
-                xform.user.username, xform.id_string)
-
-        if xform and dataid and dataid == 'labels':
-            return Response(list(xform.tags.names()))
-
-        query.update(self._get_data_query(dataid))
-
-        if xform:
-            data = self._get_form_data(xform, query=query)
-
-        data = not formid and not dataid and not tags and\
-            self._get_formlist_data_points(request) or data
-
-        if not xform and not data:
-            xforms = get_accessible_forms(shared_data=True)
-            query[ParsedInstance.USERFORM_ID] = {
-                '$in': [
-                    u'%s_%s' % (form.user.username, form.id_string)
-                    for form in xforms]
-            }
-            data = self._get_form_data(xform, query=query)
-
-        if dataid and len(data):
-            data = data[0]
-
-        return Response(data)
 
     @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
     def labels(self, request, formid, dataid, **kwargs):
