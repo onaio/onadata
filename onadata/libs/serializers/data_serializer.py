@@ -1,6 +1,8 @@
 import json
 
+from django.utils.translation import ugettext as _
 from rest_framework import serializers
+from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
@@ -39,6 +41,13 @@ class DataListSerializer(serializers.Serializer):
             ParsedInstance.USERFORM_ID:
             u'%s_%s' % (obj.user.username, obj.id_string)
         }
+
+        try:
+            query.update(json.loads(query_params.get('query', '{}')))
+        except ValueError:
+            raise ParseError(_("Invalid query: %(query)s"
+                             % {'query': query_params.get('query')}))
+
         query_kwargs = {
             'query': json.dumps(query),
             'fields': query_params.get('fields'),
