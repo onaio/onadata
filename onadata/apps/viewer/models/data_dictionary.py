@@ -187,7 +187,7 @@ class DataDictionary(XForm):
     def get_choice_label(self, field, choice_value, lang='English'):
         for choice in field.children:
             if choice.name == choice_value:
-                label = choice.label.get(lang)
+                label = choice.label
 
                 if isinstance(label, dict):
                     label = label.get(lang, choice.label.values[0])
