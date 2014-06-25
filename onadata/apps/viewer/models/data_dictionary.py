@@ -190,7 +190,7 @@ class DataDictionary(XForm):
                 label = choice.label
 
                 if isinstance(label, dict):
-                    label = label.get(lang, choice.label.values[0])
+                    label = label.get(lang, choice.label.values()[0])
 
                 return label
 
