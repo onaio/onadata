@@ -24,7 +24,7 @@ DEPLOYMENTS = {
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/run/kobocat.pid',
         'template': 'https://github.com/kobotoolbox/kobocat-template.git',
-        'template_branch': 'kc-handoff',
+        'template_branch': 'master',
     },
 }
 
