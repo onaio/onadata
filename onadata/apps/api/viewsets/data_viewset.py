@@ -278,6 +278,7 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
     lookup_field = 'pk'
     lookup_fields = ('pk', 'dataid')
     extra_lookup_fields = None
+    public_data_endpoint = 'public'
 
     model = XForm
 
@@ -285,7 +286,8 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
         pk_lookup, dataid_lookup = self.lookup_fields
         pk = self.kwargs.get(pk_lookup)
         dataid = self.kwargs.get(dataid_lookup)
-        if pk is not None and dataid is None:
+        if pk is not None and dataid is None \
+                and pk != self.public_data_endpoint:
             serializer_class = DataListSerializer
         elif pk is not None and dataid is not None:
             serializer_class = DataInstanceSerializer
@@ -305,7 +307,8 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
             try:
                 int(dataid)
             except ValueError:
-                raise ParseError(_(u"Invalid dataid %(dataid)s"))
+                raise ParseError(_(u"Invalid dataid %(dataid)s"
+                                   % {'dataid': dataid}))
 
             obj = get_object_or_404(Instance, pk=dataid, xform__pk=pk)
 
@@ -319,12 +322,20 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
         pk = self.kwargs.get(self.lookup_field)
 
         if pk:
-            filter_kwargs = {self.lookup_field: pk}
-            xform = get_object_or_404(self.model, **filter_kwargs)
+            try:
+                int(pk)
+            except ValueError:
+                if pk == self.public_data_endpoint:
+                    qs = self._get_public_forms_queryset()
+                else:
+                    raise ParseError(_(u"Invalid pk %(pk)s" % {'pk': pk}))
+            else:
+                filter_kwargs = {self.lookup_field: pk}
+                xform = get_object_or_404(self.model, **filter_kwargs)
 
-            if not qs and self.request.method in SAFE_METHODS \
-                    and not self.request.user.has_perm(xform, 'view_xform'):
-                self.permission_denied(self.request)
+                if not qs and self.request.method in SAFE_METHODS and\
+                        not self.request.user.has_perm(xform, 'view_xform'):
+                    self.permission_denied(self.request)
 
         return qs
 

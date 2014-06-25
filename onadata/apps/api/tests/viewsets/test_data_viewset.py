@@ -92,51 +92,60 @@ class TestDataViewSet(TestBase):
     def test_data_public(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='public')
+        response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
         self.xform.shared_data = True
         self.xform.save()
         formid = self.xform.pk
-        data = {
-            u'transportation_2011_07_25':
-            'http://testserver/api/v1/data/bob/%s' % formid
-        }
-        response = view(request, owner='public')
+        data = [{
+            u'id': formid,
+            u'id_string': u'transportation_2011_07_25',
+            u'title': 'transportation_2011_07_25',
+            u'description': 'transportation_2011_07_25',
+            u'url': u'http://testserver/api/v1/data/%s' % formid
+        }]
+        response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
     def test_data_public_anon_user(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
-        response = view(request, owner='public')
+        response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
         self.xform.shared_data = True
         self.xform.save()
         formid = self.xform.pk
-        data = {
-            u'transportation_2011_07_25':
-            'http://testserver/api/v1/data/bob/%s' % formid
-        }
-        response = view(request, owner='public')
+        data = [{
+            u'id': formid,
+            u'id_string': u'transportation_2011_07_25',
+            u'title': 'transportation_2011_07_25',
+            u'description': 'transportation_2011_07_25',
+            u'url': u'http://testserver/api/v1/data/%s' % formid
+        }]
+        response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
     def test_data_user_public(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
-        response = view(request, formid='public')
+        response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
         self.xform.shared_data = True
         self.xform.save()
         formid = self.xform.pk
-        data = {
-            u'transportation_2011_07_25':
-            'http://testserver/api/v1/data/bob/%s' % formid
-        }
-        response = view(request, formid='public')
+        data = [{
+            u'id': formid,
+            u'id_string': u'transportation_2011_07_25',
+            u'title': 'transportation_2011_07_25',
+            u'description': 'transportation_2011_07_25',
+            u'url': u'http://testserver/api/v1/data/%s' % formid
+        }]
+        response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
@@ -179,12 +188,12 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
         dataid = self.xform.instances.all()[0].pk
-        response = view(request, formid=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
         query_str = '{"_id": "%s"}' % dataid
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
-        response = view(request, formid=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
 
@@ -199,7 +208,7 @@ class TestDataViewSet(TestBase):
         it propagates to the instance submissions
         """
         xform = XForm.objects.all()[0]
-        pk = _id = xform.id
+        pk = xform.id
         view = XFormViewSet.as_view({
             'get': 'labels',
             'post': 'labels',
@@ -207,11 +216,11 @@ class TestDataViewSet(TestBase):
         })
         # no tags
         request = self.factory.get('/', **self.extra)
-        response = view(request, pk=pk, formid=_id)
+        response = view(request, pk=pk)
         self.assertEqual(response.data, [])
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
-        response = view(request, pk=pk, formid=_id)
+        response = view(request, pk=pk)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'hello'])
         for i in self.xform.instances.all():
@@ -219,7 +228,7 @@ class TestDataViewSet(TestBase):
         # remove tag "hello"
         request = self.factory.delete('/', data={"tags": "hello"},
                                       **self.extra)
-        response = view(request, pk=pk, formid=_id, label='hello')
+        response = view(request, pk=pk, label='hello')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
         for i in self.xform.instances.all():
