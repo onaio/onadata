@@ -97,11 +97,6 @@ class BriefcaseClient(object):
                     if xformNode.nodeName == 'xform':
                         form_id = xformNode.getElementsByTagName('formID')[0]
                         id_string = form_id.childNodes[0].nodeValue
-                        form_name = xformNode.getElementsByTagName('name')[0]
-                        name = form_name.childNodes[0].nodeValue
-                        if name.startswith('Crowd/'):
-                            # skip crowdforms: very formhub specific
-                            continue
                         d = xformNode.getElementsByTagName('downloadUrl')[0]
                         download_url = d.childNodes[0].nodeValue
                         m = xformNode.getElementsByTagName('manifestUrl')[0]
@@ -182,7 +177,7 @@ class BriefcaseClient(object):
                                         'numEntries': num_entries,
                                         'cursor': cursor})
         self.logger.debug("Fetching %s formId: %s, cursor: %s" %
-                         (self.submission_list_url, form_id, cursor))
+                          (self.submission_list_url, form_id, cursor))
         try:
             xml_doc = clean_and_parse_xml(response.content)
         except ExpatError:

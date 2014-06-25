@@ -62,7 +62,7 @@ class AuditLog(object):
         cursor.skip(max(start, 0)).limit(limit)
         if type(sort) == dict and len(sort) == 1:
             sort_key = sort.keys()[0]
-            #todo: encode sort key if it has dots
+            # TODO: encode sort key if it has dots
             sort_dir = int(sort[sort_key])  # -1 for desc, 1 for asc
             cursor.sort(_encode_for_mongo(sort_key), sort_dir)
         # set batch size for cursor iteration

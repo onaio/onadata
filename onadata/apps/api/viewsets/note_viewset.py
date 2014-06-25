@@ -4,14 +4,14 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.api import serializers
 from onadata.apps.api import permissions
-from onadata.apps.api import mixins
+from onadata.libs.mixins.view_permission_mixin import ViewPermissionMixin
+from onadata.libs.serializers.note_serializer import NoteSerializer
 from onadata.apps.api.tools import get_xform
 from onadata.apps.logger.models import Note
 
 
-class NoteViewSet(mixins.ViewPermissionMixin, ModelViewSet):
+class NoteViewSet(ViewPermissionMixin, ModelViewSet):
     """## Add Notes to a submission
 
 A `POST` payload of parameters:
@@ -58,7 +58,7 @@ A `GET` request will return the list of notes applied to a data point.
   >        HTTP 200 OK
 """
     queryset = Note.objects.all()
-    serializer_class = serializers.NoteSerializer
+    serializer_class = NoteSerializer
     permission_classes = [permissions.ViewDjangoObjectPermissions,
                           permissions.IsAuthenticated, ]
 

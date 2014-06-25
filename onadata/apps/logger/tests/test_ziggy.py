@@ -191,8 +191,8 @@ class TestZiggyRestService(TestBase):
         RestService.objects.create(
             name='f2dhis2',
             xform=self.xform,
-            service_url=
-            'http://example.com/f2dhis2/%(id_string)s/post/%(uuid)s')
+            service_url='http://example.com/f2dhis2/'
+            '%(id_string)s/post/%(uuid)s')
 
     def test_rest_service_ziggy_submission(self):
         with open(cc_monthly_json_path) as f:

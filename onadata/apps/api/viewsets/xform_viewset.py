@@ -16,15 +16,16 @@ from rest_framework import exceptions
 from rest_framework import permissions
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.renderers import BaseRenderer
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
 from taggit.forms import TagField
 
-from onadata.apps.api import mixins, serializers
-from onadata.apps.api.signals import xform_tags_add, xform_tags_delete
+from onadata.libs.mixins.multi_lookup_mixin import MultiLookupMixin
+from onadata.libs.models.signals import xform_tags_add, xform_tags_delete
+from onadata.libs.renderers import renderers
+from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.api import tools as utils
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.viewer_tools import enketo_url
@@ -36,6 +37,7 @@ from onadata.libs.utils.common_tags import SUBMISSION_TIME
 from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
+from onadata.libs.utils.string import str2bool
 
 EXPORT_EXT = {
     'xls': Export.XLS_EXPORT,
@@ -52,9 +54,14 @@ def _get_form_url(request, username):
         http_host = 'testserver.com'
         username = 'bob'
     else:
-        http_host = request.META.get('HTTP_HOST') or 'ona.io'
+        http_host = request.META.get('HTTP_HOST', 'ona.io')
 
     return 'https://%s/%s' % (http_host, username)
+
+
+def response_for_format(data, format=None):
+    formatted_data = data.xml if format == 'xml' else json.loads(data.json)
+    return Response(formatted_data)
 
 
 def should_regenerate_export(xform, export_type, request):
@@ -63,49 +70,14 @@ def should_regenerate_export(xform, export_type, request):
         'query' in request.GET
 
 
-class XLSRenderer(BaseRenderer):
-    media_type = 'application/vnd.openxmlformats'
-    format = 'xls'
-    charset = None
+def value_for_type(form, field, value):
+    if form._meta.get_field(field).get_internal_type() == 'BooleanField':
+        return str2bool(value)
 
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        return data
+    return value
 
 
-class XLSXRenderer(XLSRenderer):
-    format = 'xlsx'
-
-
-class CSVRenderer(BaseRenderer):
-    media_type = 'text/csv'
-    format = 'csv'
-    charset = 'utf-8'
-
-
-class CSVZIPRenderer(BaseRenderer):
-    media_type = 'application/octet-stream'
-    format = 'csvzip'
-    charset = None
-
-
-class SAVZIPRenderer(BaseRenderer):
-    media_type = 'application/octet-stream'
-    format = 'savzip'
-    charset = None
-
-# TODO add KML, ZIP(attachments) support
-
-
-class SurveyRenderer(BaseRenderer):
-    media_type = 'application/xml'
-    format = 'xml'
-    charset = 'utf-8'
-
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        return data
-
-
-class XFormViewSet(mixins.MultiLookupMixin, ModelViewSet):
+class XFormViewSet(MultiLookupMixin, ModelViewSet):
     """
 Publish XLSForms, List, Retrieve Published Forms.
 
@@ -118,16 +90,17 @@ Where:
 ## Upload XLSForm
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms</pre>
+<b>POST</b> /api/v1/forms</pre>
 > Example
 >
->       curl -X POST -F xls_file=@/path/to/form.xls
->       https://ona.io/api/v1/forms
+>       curl -X POST -F xls_file=@/path/to/form.xls \
+https://ona.io/api/v1/forms
 >
 > OR
 >
->       curl -X POST -d "xls_url=https://ona.io/ukanga/forms/tutorial/form.xls"
->       https://ona.io/api/v1/forms
+>       curl -X POST -d \
+"xls_url=https://ona.io/ukanga/forms/tutorial/form.xls" \
+https://ona.io/api/v1/forms
 
 > Response
 >
@@ -143,7 +116,6 @@ Where:
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "is_crowd_form": false,
 >           "owner": "modilabs",
 >           "public": false,
 >           "public_data": false,
@@ -154,8 +126,9 @@ Where:
 
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms/<code>{formid}</code>
-<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/<code>
-{formid}</code></pre>
+<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
+<code>{formid}</code></pre>
+
 > Example
 >
 >       curl -X GET https://ona.io/api/v1/forms/28058
@@ -174,13 +147,52 @@ Where:
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "is_crowd_form": false,
 >           "owner": "https://ona.io/api/v1/users/modilabs",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
 >           "date_modified": "2013-07-25T14:14:22.892Z"
 >       }
+
+## Set Form Information
+
+<pre class="prettyprint">
+<b>PUT</b> /api/v1/forms/<code>{formid}</code>
+<b>PUT</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
+<code>{formid}</code></pre>
+
+> Example
+>
+>       curl -X PUT -d "shared=True" -d "description=Le description"\
+https://ona.io/api/v1/forms/28058
+
+> Response
+>
+>       {
+>           "url": "https://ona.io/api/v1/forms/modilabs/28058",
+>           "formid": 28058,
+>           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
+>           "id_string": "Birds",
+>           "sms_id_string": "Birds",
+>           "title": "Birds",
+>           "allows_sms": false,
+>           "bamboo_dataset": "",
+>           "description": "Le description",
+>           "downloadable": true,
+>           "encrypted": false,
+>           "owner": "https://ona.io/api/v1/users/modilabs",
+>           "public": true,
+>           "public_data": false,
+>           "date_created": "2013-07-25T14:14:22.892Z",
+>           "date_modified": "2013-07-25T14:14:22.892Z"
+>       }
+
+## Delete Form
+
+<pre class="prettyprint">
+<b>DELETE</b> /api/v1/forms/<code>{formid}</code>
+<b>DELETE</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/\
+<code>{formid}</code></pre>
 
 ## List Forms
 <pre class="prettyprint">
@@ -204,7 +216,7 @@ Where:
 
 ## Get `JSON` | `XML` Form Representation
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/form.
+<b>GET</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/form.\
 <code>{format}</code></pre>
 > JSON Example
 >
@@ -251,7 +263,7 @@ comma separated list of tags.
 
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms?<code>tags</code>=<code>tag1,tag2</code>
-<b>GET</b> /api/v1/forms/<code>{owner}</code>?<code>tags</code>=<code>
+<b>GET</b> /api/v1/forms/<code>{owner}</code>?<code>tags</code>=<code>\
 tag1,tag2</code></pre>
 
 List forms tagged `smart` or `brand new` or both.
@@ -294,9 +306,9 @@ Examples
 - `animal fruit denim` - space delimited, no commas
 - `animal, fruit denim` - comma delimited
 
- <pre class="prettyprint">
-  <b>POST</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels
-  </pre>
+<pre class="prettyprint">
+<b>POST</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels
+</pre>
 
 Payload
 
@@ -305,18 +317,18 @@ Payload
 ## Delete a specific tag
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>
+<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>\
 /labels/<code>tag_name</code></pre>
 
 > Request
 >
->       curl -X DELETE
->       https://ona.io/api/v1/forms/modilabs/28058/labels/tag1
+>       curl -X DELETE \
+https://ona.io/api/v1/forms/modilabs/28058/labels/tag1
 >
 > or to delete the tag "hello world"
 >
->       curl -X DELETE
->       https://ona.io/api/v1/forms/modilabs/28058/labels/hello%20world
+>       curl -X DELETE \
+https://ona.io/api/v1/forms/modilabs/28058/labels/hello%20world
 >
 > Response
 >
@@ -325,13 +337,13 @@ Payload
 ## Get webform/enketo link
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>
+<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>\
 /enketo</pre>
 
 > Request
 >
->       curl -X GET
->       https://ona.io/api/v1/forms/modilabs/28058/enketo
+>       curl -X GET \
+https://ona.io/api/v1/forms/modilabs/28058/enketo
 >
 > Response
 >
@@ -366,17 +378,22 @@ Where:
 
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
-        XLSRenderer, XLSXRenderer, CSVRenderer, CSVZIPRenderer,
-        SAVZIPRenderer, SurveyRenderer
+        renderers.XLSRenderer,
+        renderers.XLSXRenderer,
+        renderers.CSVRenderer,
+        renderers.CSVZIPRenderer,
+        renderers.SAVZIPRenderer,
+        renderers.SurveyRenderer
     ]
     queryset = XForm.objects.filter()
-    serializer_class = serializers.XFormSerializer
+    serializer_class = XFormSerializer
     queryset = XForm.objects.all()
-    serializer_class = serializers.XFormSerializer
+    serializer_class = XFormSerializer
     lookup_fields = ('owner', 'pk')
     lookup_field = 'owner'
     extra_lookup_fields = None
     permission_classes = [permissions.DjangoModelPermissions, ]
+    updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
 
     def get_object(self, queryset=None):
         owner, pk = self.lookup_fields
@@ -423,24 +440,36 @@ Where:
         survey = utils.publish_xlsform(request, request.user)
         if isinstance(survey, XForm):
             xform = XForm.objects.get(pk=survey.pk)
-            serializer = serializers.XFormSerializer(
+            serializer = XFormSerializer(
                 xform, context={'request': request})
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED,
                             headers=headers)
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
+    def update(self, request, *args, **kwargs):
+        data = request.DATA
+        form = self.get_object()
+        fields = self.updatable_fields.intersection(data.keys())
+
+        for field in fields:
+            if hasattr(form, field):
+                v = value_for_type(form, field, data[field])
+                form.__setattr__(field, v)
+
+        form.save()
+
+        return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
+
     @action(methods=['GET'])
     def form(self, request, format='json', **kwargs):
-        self.object = self.get_object()
-        if format == 'xml':
-            data = self.object.xml
-        else:
-            data = json.loads(self.object.json)
-        return Response(data)
+        form = self.get_object()
+
+        return response_for_format(form, format=format)
 
     @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
     def labels(self, request, format='json', **kwargs):
+
         class TagForm(forms.Form):
             tags = TagField()
         status = 200

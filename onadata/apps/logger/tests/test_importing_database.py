@@ -1,11 +1,13 @@
 import os
 import glob
 
+from django.core.urlresolvers import reverse
 from django.conf import settings
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.import_tools import import_instances_from_zip
+from onadata.apps.logger.views import bulksubmission
 
 CUR_PATH = os.path.abspath(__file__)
 CUR_DIR = os.path.dirname(CUR_PATH)
@@ -59,7 +61,7 @@ class TestImportingDatabase(TestBase):
 
         instance_count = Instance.objects.count()
         image_count = images_count()
-        #Images are not duplicated
+        # Images are not duplicated
         # TODO: Figure out how to get this test passing.
         self.assertEqual(image_count, initial_image_count + 2)
 
@@ -75,3 +77,14 @@ class TestImportingDatabase(TestBase):
         self.assertEqual(success, 0)
         expected_errors = [u'File is not a zip file']
         self.assertEqual(errors, expected_errors)
+
+    def test_bulk_import_post(self):
+        zip_file_path = os.path.join(
+            DB_FIXTURES_PATH, "bulk_submission_w_extra_instance.zip")
+        url = reverse(bulksubmission, kwargs={
+            "username": self.user.username
+        })
+        with open(zip_file_path, "rb") as zip_file:
+            post_data = {'zip_submission_file': zip_file}
+            response = self.client.post(url, post_data)
+        self.assertEqual(response.status_code, 200)

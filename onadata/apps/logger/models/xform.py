@@ -15,6 +15,7 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.stats.tasks import stat_log
+from onadata.libs.models.base_model import BaseModel
 
 
 XFORM_TITLE_LENGTH = 255
@@ -31,7 +32,7 @@ class DuplicateUUIDError(Exception):
     pass
 
 
-class XForm(models.Model):
+class XForm(BaseModel):
     CLONED_SUFFIX = '_cloned'
     MAX_ID_LENGTH = 100
 
@@ -44,7 +45,6 @@ class XForm(models.Model):
     shared = models.BooleanField(default=False)
     shared_data = models.BooleanField(default=False)
     downloadable = models.BooleanField(default=True)
-    is_crowd_form = models.BooleanField(default=False)
     allows_sms = models.BooleanField(default=False)
     encrypted = models.BooleanField(default=False)
 
@@ -87,6 +87,7 @@ class XForm(models.Model):
         ordering = ("id_string",)
         permissions = (
             ("view_xform", _("Can view associated data")),
+            ("report_xform", _("Can make submissions to the form")),
         )
 
     def file_name(self):
@@ -146,10 +147,12 @@ class XForm(models.Model):
                 _(u"Your updated form's id_string '%(new_id)s' must match "
                   "the existing forms' id_string '%(old_id)s'." %
                   {'new_id': self.id_string, 'old_id': old_id_string}))
+
         if getattr(settings, 'STRICT', True) and \
                 not re.search(r"^[\w-]+$", self.id_string):
             raise XLSFormError(_(u'In strict mode, the XForm ID must be a '
                                'valid slug and contain no spaces.'))
+
         if not self.sms_id_string:
             try:
                 # try to guess the form's wanted sms_id_string
@@ -159,7 +162,9 @@ class XForm(models.Model):
                                                                self.id_string)
             except:
                 self.sms_id_string = self.id_string
+
         super(XForm, self).save(*args, **kwargs)
+
         for perm in get_perms_for_model(XForm):
             assign_perm(perm.codename, self.user, self)
 

@@ -2067,10 +2067,7 @@ class TestExportBuilder(TestBase):
                                                  export_builder.sections[0])
         self.assertIsInstance(new_row['age'], int)
         self.assertIsInstance(new_row['when'], datetime.date)
-        #self.assertIsInstance(new_row['precisely'], datetime.datetime)
         self.assertIsInstance(new_row['amount'], float)
-        #self.assertIsInstance(new_row['_submission_time'], datetime.datetime)
-        #self.assertIsInstance(new_row['really'], datetime.time)
 
         # check missing values dont break and empty values return blank strings
         indices = {survey_name: 0}

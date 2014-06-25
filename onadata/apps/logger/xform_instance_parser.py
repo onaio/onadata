@@ -19,14 +19,6 @@ class DuplicateInstance(Exception):
         return unicode(self).encode('utf-8')
 
 
-class IsNotCrowdformError(Exception):
-    def __unicode__(self):
-        return _("The form is not a crowdform")
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-
 class InstanceInvalidUserError(Exception):
     def __unicode__(self):
         return _("Could not determine the user.")
@@ -235,8 +227,7 @@ def _flatten_dict_nest_repeats(d, prefix):
                     repeat = {}
                     for path, value in \
                             _flatten_dict_nest_repeats(item, item_prefix):
-                        #print "path: %s, value: %s" % (path, value)
-                        #TODO: this only considers the first level of repeats
+                        # TODO: this only considers the first level of repeats
                         repeat.update({u"/".join(path[1:]): value})
                     repeats.append(repeat)
                 else:

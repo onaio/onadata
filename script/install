@@ -1,5 +1,0 @@
-pip install numpy --use-mirrors
-pip install -r requirements/common.pip --use-mirrors
-
-python manage.py syncdb --noinput
-python manage.py migrate --noinput

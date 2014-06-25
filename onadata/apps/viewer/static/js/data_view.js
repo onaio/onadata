@@ -79,7 +79,7 @@
         },
         rowDoubleClicked: function (evt) {
             var record_id = this.model.get("_id");
-            if(record_id) {
+            if (record_id) {
                 window.open(instance_view_url + "#/" + record_id, "_blank");
             }
         }
@@ -162,6 +162,12 @@
                                 }
                             };
                         }
+                        if (f.isA(FH.types.INTEGER) || f.isA(FH.types.DECIMAL)) {
+                            column.sortValue = function (model, fieldId) {
+                                var func = FH.ParseFunctionMapping[f.get(FH.constants.TYPE)];
+                                return FH.DataSet.GetSortValue(model, fieldId, func);
+                            }
+                        }
                         return column;
                     }),
                     collection: this.data
@@ -194,7 +200,7 @@
                     // if the new language is `0`, we want to show xml values, otherwise, we want labels in whatever language is specified
                     this.showLabels = language !== '-1';
                     // set the language if we're showing labels
-                    if(this.showLabels) {
+                    if (this.showLabels) {
                         this.form.set({language: language}, {silent: true});
                     }
                     this.dataGrid.render();
@@ -239,7 +245,7 @@
                                     return f.get(FH.constants.XPATH) === column.get('name');
                                 });
 
-                        if(dataTableView.showHeaderLabels) {
+                        if (dataTableView.showHeaderLabels) {
                             label = field.get(FH.constants.LABEL, language);
                         } else {
                             label = field.get(FH.constants.NAME);

@@ -122,6 +122,5 @@ def deploy(deployment_name, branch='master'):
                 % config_module)
 
     run("sudo %s restart" % env.celeryd)
-    #run("sudo /etc/init.d/celerybeat-ona restart")
     run("sudo /usr/local/bin/uwsgi --reload %s" % env.pid)
 
