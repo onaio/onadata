@@ -139,14 +139,14 @@ class TestUserPermissions(TestAbstractViewSet):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
-        response = data_view(request, formid=formid)
+        response = data_view(request, pk=formid)
         self.assertEqual(response.status_code, 403)
 
         role.ReadOnlyRole.add(self.user, self.xform)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 
-        response = data_view(request, formid=formid)
+        response = data_view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 
         data = {'public': True, 'description': "Some description"}
@@ -188,14 +188,14 @@ class TestUserPermissions(TestAbstractViewSet):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
-        response = data_view(request, formid=formid)
+        response = data_view(request, pk=formid)
         self.assertEqual(response.status_code, 403)
 
         role.DataEntryRole.add(self.user, self.xform)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 
-        response = data_view(request, formid=formid)
+        response = data_view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 
         data = {'public': True, 'description': "Some description"}
@@ -237,14 +237,14 @@ class TestUserPermissions(TestAbstractViewSet):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
-        response = data_view(request, formid=formid)
+        response = data_view(request, pk=formid)
         self.assertEqual(response.status_code, 403)
 
         role.EditorRole.add(self.user, self.xform)
 
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        response = data_view(request, formid=formid)
+        response = data_view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 
     def test_editor_role_submission_when_requires_auth(self):
@@ -288,14 +288,14 @@ class TestUserPermissions(TestAbstractViewSet):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
-        response = data_view(request, formid=formid)
+        response = data_view(request, pk=formid)
         self.assertEqual(response.status_code, 403)
 
         role.OwnerRole.add(self.user, self.xform)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 
-        response = data_view(request, formid=formid)
+        response = data_view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
 
         xfs = XFormSerializer(instance=self.xform,
