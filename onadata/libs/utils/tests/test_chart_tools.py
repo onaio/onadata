@@ -135,6 +135,9 @@ class TestChartTools(TestBase):
         data = build_chart_data_for_field(self.xform, field)
         self.assertEqual(data['field_name'], field.name)
 
+    def mock_get_abbreviated_xpath(self):
+        return 'informed_consent/pas_denfants_elig/date'
+
 
 class TestChartUtilFunctions(unittest.TestCase):
 

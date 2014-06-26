@@ -37,7 +37,6 @@ class TestStatsViewSet(TestBase):
         }
         self.assertDictEqual(response.data, data)
         request = self.factory.get('/?group=_xform_id_string', **self.extra)
-        response = view(request)
         response = view(request, owner='bob', formid=formid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
@@ -46,6 +45,36 @@ class TestStatsViewSet(TestBase):
         }
         self.assertDictContainsSubset(data, response.data[0])
 
+    def test_form_list_select_one_choices_multi_language(self):
+        paths = [os.path.join(
+            self.this_directory, 'fixtures', 'good_eats_multilang', x)
+            for x in ['good_eats_multilang.xls', '1.xml']]
+        self._publish_xls_file_and_set_xform(paths[0])
+        self._make_submission(paths[1])
+        view = SubmissionStatsViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        request = self.factory.get('/?group=rating',
+                                   **self.extra)
+        response = view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        data = [{'count': 1, 'rating': u'Nothing Special'}]
+        self.assertEqual(data, response.data)
+
+    def test_form_list_select_one_choices(self):
+        self._tutorial_form_submission()
+        view = SubmissionStatsViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        request = self.factory.get('/?group=gender', **self.extra)
+        response = view(request, owner='bob', formid=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        data = [
+            {'count': 2, 'gender': u'Female'},
+            {'count': 1, 'gender': u'Male'}
+        ]
+        self.assertEqual(data, response.data)
+
     def test_anon_form_list(self):
         self._publish_transportation_form()
         self._make_submissions()
@@ -53,6 +82,19 @@ class TestStatsViewSet(TestBase):
         request = self.factory.get('/')
         response = view(request)
         self.assertEqual(response.status_code, 401)
+
+    def _tutorial_form_submission(self):
+        tutorial_folder = os.path.join(
+            os.path.dirname(__file__),
+            '..', 'fixtures', 'forms', 'tutorial')
+        self._publish_xls_file_and_set_xform(os.path.join(tutorial_folder,
+                                                          'tutorial.xls'))
+        instance_paths = [os.path.join(tutorial_folder, 'instances', i)
+                          for i in ['1.xml', '2.xml', '3.xml']]
+        for path in instance_paths:
+            create_instance(self.user.username, open(path), [])
+
+        self.assertEqual(self.xform.instances.count(), 3)
 
     def _contributions_form_submissions(self):
         count = XForm.objects.count()

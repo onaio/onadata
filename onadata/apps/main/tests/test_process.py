@@ -92,8 +92,7 @@ class TestProcess(TestBase):
 
     def test_url_upload(self):
         if self._internet_on(url="http://google.com"):
-            xls_url = 'http://formhub.org' \
-                      '/formhub_u/forms/tutorial/form.xls'
+            xls_url = 'https://ona.io/examples/forms/tutorial/form.xls'
             pre_count = XForm.objects.count()
             response = self.client.post('/%s/' % self.user.username,
                                         {'xls_url': xls_url})
