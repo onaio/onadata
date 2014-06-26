@@ -1,6 +1,8 @@
 from django.shortcuts import get_object_or_404
-from rest_framework.decorators import action
+
+from rest_framework import filters
 from rest_framework import permissions
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -20,41 +22,39 @@ Where:
 - `pk` - is the project id
 - `formid` - is the form id
 
-## Register a new Organization Project
+## Register a new Project
 <pre class="prettyprint">
-<b>POST</b> /api/v1/projects/<code>{owner}</code></pre>
+<b>POST</b> /api/v1/projects</pre>
 > Example
 >
 >       {
->           "url": "https://ona.io/api/v1/projects/modilabs/1",
->           "owner": "https://ona.io/api/v1/users/modilabs",
+>           "url": "https://ona.io/api/v1/projects/1",
+>           "owner": "https://ona.io/api/v1/users/ona",
 >           "name": "project 1",
 >           "date_created": "2013-07-24T13:37:39Z",
 >           "date_modified": "2013-07-24T13:37:39Z"
 >       }
 
-## List of Organization's Projects
+## List of Projects
 
-<pre class="prettyprint"><b>GET</b> /api/v1/projects <b>or</b>
-<b>GET</b> /api/v1/projects/<code>{owner}</code></pre>
+<pre class="prettyprint"><b>GET</b> /api/v1/projects</pre>
 > Example
 >
 >       curl -X GET https://ona.io/api/v1/projects
->       curl -X GET https://ona.io/api/v1/projects/modilabs
 
 > Response
 >
 >       [
 >           {
->               "url": "https://ona.io/api/v1/projects/modilabs/1",
->               "owner": "https://ona.io/api/v1/users/modilabs",
+>               "url": "https://ona.io/api/v1/projects/1",
+>               "owner": "https://ona.io/api/v1/users/ona",
 >               "name": "project 1",
 >               "date_created": "2013-07-24T13:37:39Z",
 >               "date_modified": "2013-07-24T13:37:39Z"
 >           },
 >           {
->               "url": "https://ona.io/api/v1/projects/modilabs/4",
->               "owner": "https://ona.io/api/v1/users/modilabs",
+>               "url": "https://ona.io/api/v1/projects/4",
+>               "owner": "https://ona.io/api/v1/users/ona",
 >               "name": "project 2",
 >               "date_created": "2013-07-24T13:59:10Z",
 >               "date_modified": "2013-07-24T13:59:10Z"
@@ -64,16 +64,16 @@ Where:
 ## Retrieve Project Information
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code></pre>
+<b>GET</b> /api/v1/projects/<code>{pk}</code></pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/projects/modilabs/1
+>       curl -X GET https://ona.io/api/v1/projects/1
 
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/projects/modilabs/1",
->           "owner": "https://ona.io/api/v1/users/modilabs",
+>           "url": "https://ona.io/api/v1/projects/1",
+>           "owner": "https://ona.io/api/v1/users/ona",
 >           "name": "project 1",
 >           "date_created": "2013-07-24T13:37:39Z",
 >           "date_modified": "2013-07-24T13:37:39Z"
@@ -84,10 +84,11 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 `formid=FORMID` to the endpoint below.
 
 <pre class="prettyprint">
-<b>POST</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms</pre>
+<b>POST</b> /api/v1/projects/<code>{pk}</code>/forms</pre>
 > Example
 >
->       curl -X POST -d '{"formid": 28058}' https://ona.io/api/v1/projects/modilabs/1/forms  # noqa
+>       curl -X POST -d '{"formid": 28058}' \
+https://ona.io/api/v1/projects/1/forms
 
 > Response
 >
@@ -103,7 +104,7 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "modilabs",
+>           "owner": "ona",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -113,11 +114,11 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 ## Upload XLSForm to a project
 
 <pre class="prettyprint">
-<b>POST</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms</pre>
+<b>POST</b> /api/v1/projects/<code>{pk}</code>/forms</pre>
 > Example
 >
->       curl -X POST -F xls_file=@/path/to/form.xls
->       https://ona.io/api/v1/projects/modilabs/1/forms
+>       curl -X POST -F xls_file=@/path/to/form.xls\
+ https://ona.io/api/v1/projects/1/forms
 
 > Response
 >
@@ -133,7 +134,7 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "modilabs",
+>           "owner": "ona",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -143,11 +144,11 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 ## Get Form Information for a project
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/<code>
-{formid}</code></pre>
+<b>GET</b> /api/v1/projects/<code>{pk}</code>/forms/<code>{formid}</code>
+</pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/projects/modilabs/1/forms/28058
+>       curl -X GET https://ona.io/api/v1/projects/1/forms/28058
 
 > Response
 >
@@ -163,7 +164,7 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "modilabs",
+>           "owner": "ona",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -175,6 +176,7 @@ To [re]assign an existing form to a project you need to `POST` a payload of
     lookup_field = 'pk'
     extra_lookup_fields = None
     permission_classes = [permissions.DjangoObjectPermissions]
+    filter_backends = (filters.DjangoObjectPermissionsFilter,)
 
     @action(methods=['POST', 'GET'], extra_lookup_fields=['formid', ])
     def forms(self, request, **kwargs):
