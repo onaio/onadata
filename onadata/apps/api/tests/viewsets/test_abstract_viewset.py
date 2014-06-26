@@ -130,8 +130,8 @@ class TestAbstractViewSet(TestCase):
         self.project = Project.objects.filter(
             name=data['name'], created_by=self.user)[0]
 
-        data['url'] = 'http://testserver/api/v1/projects/%s/%s'\
-            % (self.user.username, self.project.pk)
+        data['url'] = 'http://testserver/api/v1/projects/%s'\
+            % self.project.pk
         self.assertDictContainsSubset(data, response.data)
 
         self.project_data = ProjectSerializer(
@@ -162,7 +162,7 @@ class TestAbstractViewSet(TestCase):
         with open(path) as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
-            response = view(request, owner=self.user.username, pk=project_id)
+            response = view(request, pk=project_id)
             self.assertEqual(response.status_code, 201)
             self.xform = self.user.xforms.all()[0]
             data.update({

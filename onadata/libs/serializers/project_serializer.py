@@ -1,14 +1,11 @@
 from rest_framework import serializers
 
-from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import\
-    HyperlinkedMultiIdentityField
 from onadata.apps.api.models import Project
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
-    url = HyperlinkedMultiIdentityField(
-        view_name='project-detail',
-        lookup_fields=(('pk', 'pk'), ('owner', 'organization')))
+    url = serializers.HyperlinkedIdentityField(
+        view_name='project-detail', lookup_field='pk')
     owner = serializers.HyperlinkedRelatedField(
         view_name='user-detail',
         source='organization', lookup_field='username')
