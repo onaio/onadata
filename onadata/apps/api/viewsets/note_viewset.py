@@ -1,5 +1,7 @@
+from django.utils.translation import ugettext as _
 from guardian.shortcuts import assign_perm
 
+from rest_framework import exceptions
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -7,7 +9,6 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.apps.api import permissions
 from onadata.libs.mixins.view_permission_mixin import ViewPermissionMixin
 from onadata.libs.serializers.note_serializer import NoteSerializer
-from onadata.apps.api.tools import get_xform
 from onadata.apps.logger.models import Note
 
 
@@ -64,7 +65,9 @@ A `GET` request will return the list of notes applied to a data point.
 
     def pre_save(self, obj):
         # throws PermissionDenied if request.user has no permission to xform
-        get_xform(obj.instance.xform.pk, self.request)
+        if not self.request.user.has_perm('change_xform', obj.instance.xform):
+            raise exceptions.PermissionDenied(
+                _(u"You are not authorized to add/change notes on this form."))
 
     def post_save(self, obj, created=False):
         if created:

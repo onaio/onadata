@@ -1,19 +1,14 @@
-import json
-
 from django.db.models import Q
-from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django.utils import six
 from django.utils.translation import ugettext as _
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 
-from onadata.apps.api.tools import (
-    get_accessible_forms, get_xform, add_tags_to_instance)
+from onadata.apps.api.tools import add_tags_to_instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
@@ -351,7 +346,7 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 
     @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
     def labels(self, request, formid, dataid, **kwargs):
-        get_xform(formid, request)
+        self.object = self.get_object()
         status = 400
         instance = get_object_or_404(ParsedInstance, instance__pk=int(dataid))
 
