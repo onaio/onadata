@@ -1,29 +1,13 @@
-from django.http import HttpResponseBadRequest
-from django.utils.translation import ugettext as _
 from rest_framework import viewsets
-from rest_framework import exceptions
-from rest_framework.response import Response
-from rest_framework.reverse import reverse
 
 from onadata.apps.api.permissions import XFormPermissions
-from onadata.apps.api.tools import get_accessible_forms, get_all_stats,\
-    get_xform, get_mode_for_numeric_fields_in_form,\
-    get_mean_for_numeric_fields_in_form,\
-    get_median_for_numeric_fields_in_form, get_min_max_range
 from onadata.apps.logger.models.xform import XForm
+
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.serializers.stats_serializer import (
     StatsSerializer, StatsInstanceSerializer)
-
-
-STATS_FUNCTIONS = {
-    'mean': get_mean_for_numeric_fields_in_form,
-    'median': get_median_for_numeric_fields_in_form,
-    'mode': get_mode_for_numeric_fields_in_form,
-    'range': get_min_max_range
-}
 
 
 class StatsViewSet(AnonymousUserPublicFormsMixin,

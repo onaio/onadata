@@ -4,7 +4,7 @@ from rest_framework import serializers
 from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import\
     HyperlinkedMultiIdentityField
 from onadata.libs.serializers.user_serializer import UserSerializer
-from onadata.apps.api.models import Project, OrganizationProfile, Team
+from onadata.apps.api.models import OrganizationProfile, Team
 
 
 class TeamSerializer(serializers.Serializer):
