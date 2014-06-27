@@ -557,9 +557,7 @@ https://ona.io/api/v1/forms/123.json
         renderers.SAVZIPRenderer,
         renderers.SurveyRenderer
     ]
-    queryset = XForm.objects.filter()
-    serializer_class = XFormSerializer
-    queryset = XForm.objects.all()
+    model = XForm
     serializer_class = XFormSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
