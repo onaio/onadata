@@ -119,48 +119,48 @@ class TestStatsViewSet(TestBase):
 
     def test_median_api(self):
         self._contributions_form_submissions()
-        view = StatsViewSet.as_view({'get': 'list'})
+        view = StatsViewSet.as_view({'get': 'retrieve'})
         request = self.factory.get('/?method=median', **self.extra)
         formid = self.xform.pk
-        response = view(request, owner='bob', formid=formid)
+        response = view(request, pk=formid)
         data = {u'age': 28.5, u'amount': 1100.0}
         self.assertDictContainsSubset(data, response.data)
 
     def test_mean_api(self):
         self._contributions_form_submissions()
-        view = StatsViewSet.as_view({'get': 'list'})
+        view = StatsViewSet.as_view({'get': 'retrieve'})
         request = self.factory.get('/?method=mean', **self.extra)
         formid = self.xform.pk
-        response = view(request, owner='bob', formid=formid)
+        response = view(request, pk=formid)
         data = {u'age': 28.17, u'amount': 1455.0}
         self.assertDictContainsSubset(data, response.data)
 
     def test_mode_api(self):
         self._contributions_form_submissions()
-        view = StatsViewSet.as_view({'get': 'list'})
+        view = StatsViewSet.as_view({'get': 'retrieve'})
         request = self.factory.get('/?method=mode', **self.extra)
         formid = self.xform.pk
-        response = view(request, owner='bob', formid=formid)
+        response = view(request, pk=formid)
         data = {u'age': 24, u'amount': 430.0}
         self.assertDictContainsSubset(data, response.data)
 
     def test_range_api(self):
         self._contributions_form_submissions()
-        view = StatsViewSet.as_view({'get': 'list'})
+        view = StatsViewSet.as_view({'get': 'retrieve'})
         request = self.factory.get('/?method=range', **self.extra)
         formid = self.xform.pk
-        response = view(request, owner='bob', formid=formid)
+        response = view(request, pk=formid)
         data = {u'age': {u'range': 10, u'max': 34, u'min': 24},
                 u'amount': {u'range': 2770, u'max': 3200, u'min': 430}}
         self.assertDictContainsSubset(data, response.data)
 
     def test_bad_field(self):
         self._contributions_form_submissions()
-        view = StatsViewSet.as_view({'get': 'list'})
+        view = StatsViewSet.as_view({'get': 'retrieve'})
         request = self.factory.get('/?method=median&field=INVALID',
                                    **self.extra)
         formid = self.xform.pk
-        response = view(request, owner='bob', formid=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
 
     def test_all_stats_api(self):
@@ -170,12 +170,15 @@ class TestStatsViewSet(TestBase):
         response = view(request)
         self.assertEqual(response.status_code, 200)
         formid = self.xform.pk
-        data = {
-            u'contributions':
-            'http://testserver/api/v1/stats/bob/%s' % formid
-        }
-        self.assertDictContainsSubset(data, response.data)
-        response = view(request, owner='bob', formid=formid)
+        data = [{
+            u'id': formid,
+            u'id_string': u'contributions',
+            u'url': u'http://testserver/api/v1/stats/%s' % formid
+        }]
+        self.assertEqual(data, response.data)
+
+        view = StatsViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=formid)
         data = {}
         data['age'] = {
             'mean': 28.17,
@@ -186,7 +189,7 @@ class TestStatsViewSet(TestBase):
             'range': 10
         }
         request = self.factory.get('/?field=age', **self.extra)
-        age_response = view(request, owner='bob', formid=formid)
+        age_response = view(request, pk=formid)
         self.assertEqual(data, age_response.data)
         data['amount'] = {
             'mean': 1455,

@@ -1,10 +1,24 @@
+from django.utils.translation import ugettext as _
 from rest_framework import exceptions
 from rest_framework import serializers
 
+from onadata.apps.api.tools import (
+    get_all_stats,
+    get_mode_for_numeric_fields_in_form,
+    get_mean_for_numeric_fields_in_form,
+    get_median_for_numeric_fields_in_form, get_min_max_range
+)
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
 
 SELECT_FIELDS = ['select one', 'select multiple']
+
+STATS_FUNCTIONS = {
+    'mean': get_mean_for_numeric_fields_in_form,
+    'median': get_median_for_numeric_fields_in_form,
+    'mode': get_mode_for_numeric_fields_in_form,
+    'range': get_min_max_range
+}
 
 
 class SubmissionStatsSerializer(serializers.HyperlinkedModelSerializer):
@@ -37,5 +51,33 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
                     for record in data:
                         label = dd.get_choice_label(element, record[name])
                         record[name] = label
+
+        return data
+
+
+class StatsSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='stats-detail', lookup_field='pk')
+
+    class Meta:
+        model = XForm
+        fields = ('id', 'id_string', 'url')
+        lookup_field = 'pk'
+
+
+class StatsInstanceSerializer(serializers.Serializer):
+    def to_native(self, obj):
+        request = self.context.get('request')
+        method = request.QUERY_PARAMS.get('method', None)
+        field = request.QUERY_PARAMS.get('field', None)
+
+        if field and field not in obj.data_dictionary().get_keys():
+            raise exceptions.ParseError(detail=_("Field not in XForm."))
+
+        try:
+            data = get_all_stats(obj, field) if method is None else\
+                STATS_FUNCTIONS[method.lower()](obj, field)
+        except ValueError as e:
+            raise exceptions.ParseError(detail=e.message)
 
         return data
