@@ -305,7 +305,7 @@ public, public_data` fields. With `PATCH` you only need provide atleast one
 of the fields.
 
 <pre class="prettyprint">
-<b>PATCH</b> /api/v1/forms/<code>{formid}</code></pre>
+<b>PATCH</b> /api/v1/forms/<code>{pk}</code></pre>
 
 > Example
 >
@@ -336,7 +336,7 @@ https://ona.io/api/v1/forms/28058
 ## Delete Form
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{formid}</code></pre>
+<b>DELETE</b> /api/v1/forms/<code>{pk}</code></pre>
 > Example
 >
 >       curl -X DELETE https://ona.io/api/v1/forms/28058
