@@ -29,7 +29,7 @@ class TestExportViewSet(TestBase):
         formid = self.xform.pk
         # csv
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid, format='csv')
+        response = view(request, pk=formid, format='csv')
         self.assertEqual(response.status_code, 200)
         headers = dict(response.items())
         content_disposition = headers['Content-Disposition']
@@ -40,8 +40,7 @@ class TestExportViewSet(TestBase):
 
         # xls
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=self.xform.id_string,
-                        format='xls')
+        response = view(request, pk=formid, format='xls')
         self.assertEqual(response.status_code, 200)
         headers = dict(response.items())
         content_disposition = headers['Content-Disposition']

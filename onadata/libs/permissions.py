@@ -84,6 +84,7 @@ class ManagerRole(Role):
         (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
         (CAN_VIEW_PROFILE, UserProfile),
         (CAN_ADD_XFORM, XForm),
+        (CAN_VIEW_XFORM, XForm),
         (CAN_CHANGE_XFORM, XForm)
     )
 
@@ -94,6 +95,7 @@ class OwnerRole(Role):
         (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
         (CAN_VIEW_PROFILE, UserProfile),
         (CAN_ADD_XFORM, XForm),
+        (CAN_VIEW_XFORM, XForm),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_DELETE_XFORM, XForm),
         (CAN_MOVE_TO_FOLDER, XForm),

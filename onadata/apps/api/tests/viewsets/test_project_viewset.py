@@ -24,12 +24,7 @@ class TestProjectViewset(TestAbstractViewSet):
             'get': 'retrieve'
         })
         request = self.factory.get('/', **self.extra)
-        response = view(request)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data,
-                         {'detail': 'Expected URL keyword argument `owner`.'})
-        request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=self.project.pk)
+        response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.project_data)
 
@@ -45,11 +40,10 @@ class TestProjectViewset(TestAbstractViewSet):
             'get': 'forms'
         })
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=self.project.pk)
+        response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.form_data])
-        response = view(request, owner='bob',
-                        pk=self.project.pk, formid=self.xform.pk)
+        response = view(request, pk=self.project.pk, formid=self.xform.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.form_data)
 
@@ -67,7 +61,7 @@ class TestProjectViewset(TestAbstractViewSet):
         project_id = self.project.pk
         post_data = {'formid': formid}
         request = self.factory.post('/', data=post_data, **self.extra)
-        response = view(request, owner=self.user.username, pk=project_id)
+        response = view(request, pk=project_id)
         self.assertEqual(response.status_code, 201)
         self.assertTrue(self.project.projectxform_set.filter(xform=self.xform))
         self.assertFalse(old_project.projectxform_set.filter(xform=self.xform))

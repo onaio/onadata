@@ -1,17 +1,16 @@
 from rest_framework import viewsets
-from rest_framework import exceptions
-from rest_framework import permissions
-from rest_framework.response import Response
-from rest_framework.reverse import reverse
 
-from onadata.apps.api.tools import get_accessible_forms, get_xform
-from onadata.apps.logger.models import Instance
-from onadata.libs.data.query import get_form_submissions_grouped_by_field
-
-SELECT_FIELDS = ['select one', 'select multiple']
+from onadata.apps.api.permissions import XFormPermissions
+from onadata.apps.logger.models.xform import XForm
+from onadata.libs import filters
+from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
+    AnonymousUserPublicFormsMixin)
+from onadata.libs.serializers.stats_serializer import (
+    SubmissionStatsSerializer, SubmissionStatsInstanceSerializer)
 
 
-class SubmissionStatsViewSet(viewsets.ViewSet):
+class SubmissionStatsViewSet(AnonymousUserPublicFormsMixin,
+                             viewsets.ReadOnlyModelViewSet):
     """
 Provides submissions counts grouped by a specified field.
 It accepts query parameters `group` and `name`. Default result
@@ -23,7 +22,7 @@ If a date field is used as the group, the result will be grouped by day.
 
 Example:
 
-    GET /api/v1/stats/submissions/ukanga/1?
+    GET /api/v1/stats/submissions/1?
     group=_submission_time&name=day_of_submission
 
 Response:
@@ -51,63 +50,18 @@ Response:
         }
     ]
 """
-    permission_classes = [permissions.IsAuthenticated, ]
-    lookup_field = 'owner'
-    lookup_fields = ('owner', 'formid', 'dataid')
-    extra_lookup_fields = None
-    queryset = Instance.objects.all()
+    lookup_field = 'pk'
+    model = XForm
+    filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
+    permission_classes = [XFormPermissions, ]
+    serializer_class = SubmissionStatsSerializer
 
-    def _get_formlist_data_points(self, request, owner=None):
-        xforms = get_accessible_forms(owner)
-        # filter by tags if available.
-        tags = self.request.QUERY_PARAMS.get('tags', None)
-        if tags and isinstance(tags, basestring):
-            tags = tags.split(',')
-            xforms = xforms.filter(tags__name__in=tags).distinct()
-        rs = {}
-        for xform in xforms.distinct():
-            point = {u"%s" % xform.id_string:
-                     reverse("submissionstats-list", kwargs={
-                             "formid": xform.pk,
-                             "owner": xform.user.username},
-                             request=request)}
-            rs.update(point)
-        return rs
-
-    def list(self, request, owner=None, formid=None, **kwargs):
-        if owner is None and not request.user.is_anonymous():
-            owner = request.user.username
-
-        data = []
-
-        if formid:
-            xform = get_xform(formid, request)
-
-            field = '_submission_time'
-            name = 'date_of_submission'
-            group = request.QUERY_PARAMS.get('group', None)
-            alt_name = request.QUERY_PARAMS.get('name', None)
-
-            if group:
-                name = field = group
-            if alt_name:
-                name = alt_name
-
-            try:
-                data = get_form_submissions_grouped_by_field(
-                    xform, field, name)
-            except ValueError as e:
-                raise exceptions.ParseError(detail=e.message)
-            else:
-                if data:
-                    dd = xform.data_dictionary()
-                    element = dd.get_survey_element(field)
-
-                    if element and element.type in SELECT_FIELDS:
-                        for record in data:
-                            label = dd.get_choice_label(element, record[name])
-                            record[name] = label
+    def get_serializer_class(self):
+        lookup = self.kwargs.get(self.lookup_field)
+        if lookup is not None:
+            serializer_class = SubmissionStatsInstanceSerializer
         else:
-            data = self._get_formlist_data_points(request, owner)
+            serializer_class = \
+                super(SubmissionStatsViewSet, self).get_serializer_class()
 
-        return Response(data)
+        return serializer_class

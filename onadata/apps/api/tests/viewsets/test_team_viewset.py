@@ -20,7 +20,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         response = self.view(request)
         owner_team = {
             'url':
-            'http://testserver/api/v1/teams/denoinc/%s' % self.owner_team.pk,
+            'http://testserver/api/v1/teams/%s' % self.owner_team.pk,
             'name': u'Owners',
             'organization': 'denoinc',
             'projects': [],
@@ -29,7 +29,6 @@ class TestTeamViewSet(TestAbstractViewSet):
                        'last_name': u''}
                       ]
         }
-
         self.assertEqual(response.status_code, 200)
         self.assertEqual(sorted(response.data), [owner_team, self.team_data])
 
@@ -39,17 +38,7 @@ class TestTeamViewSet(TestAbstractViewSet):
             'get': 'retrieve'
         })
         request = self.factory.get('/', **self.extra)
-        response = view(request)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data,
-                         {'detail':
-                          'Expected URL keyword argument `owner` and `pk`.'})
-        request = self.factory.get('/', **self.extra)
-        response = view(request, owner='denoinc', pk=self.team.pk)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, self.team_data)
-
-        response = view(request, owner='denoinc', pk='dreamteam')
+        response = view(request, pk=self.team.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.team_data)
 
@@ -62,7 +51,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
-        response = self.view(request, owner='denoinc')
+        response = self.view(request)
         self.assertEqual(response.status_code, 201)
         self.owner_team = Team.objects.get(
             organization=self.organization.user,
@@ -70,7 +59,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         team = Team.objects.get(
             organization=self.organization.user,
             name='%s#%s' % (self.organization.user.username, data['name']))
-        data['url'] = 'http://testserver/api/v1/teams/denoinc/%s' % team.pk
+        data['url'] = 'http://testserver/api/v1/teams/%s' % team.pk
         self.assertDictContainsSubset(data, response.data)
         self.team_data = response.data
         self.team = team
@@ -90,7 +79,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
-        response = view(request, owner='denoinc', pk='dreamteam')
+        response = view(request, pk=self.team.pk)
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data,
@@ -109,7 +98,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
-        response = view(request, owner='denoinc', pk='dreamteam')
+        response = view(request, pk=self.team.pk)
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data,
@@ -128,7 +117,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
-        response = view(request, owner='denoinc', pk='dreamteam')
+        response = view(request, pk=self.team.pk)
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data,
@@ -148,7 +137,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
-        response = view(request, owner='denoinc', pk='dreamteam')
+        response = view(request, pk=self.team.pk)
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data,
@@ -158,7 +147,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         request = self.factory.delete(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
-        response = view(request, owner='denoinc', pk='dreamteam')
+        response = view(request, pk=self.team.pk)
 
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data,
