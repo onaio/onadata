@@ -6,6 +6,7 @@ from rest_framework.urlpatterns import format_suffix_patterns
 from rest_framework.views import APIView
 
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
+from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
@@ -344,6 +345,7 @@ Example using curl:
 
 router = MultiLookupRouter(trailing_slash=False)
 router.register(r'users', UserViewSet)
+router.register(r'user', ConnectViewSet)
 router.register(r'profiles', UserProfileViewSet)
 router.register(r'orgs', OrganizationProfileViewSet)
 router.register(r'forms', XFormViewSet)
