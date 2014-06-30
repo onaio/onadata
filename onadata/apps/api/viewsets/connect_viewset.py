@@ -3,7 +3,8 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 
 
-from onadata.libs.serializers.user_profile_serializer import UserProfileSerializer
+from onadata.libs.serializers.user_profile_serializer import\
+    UserProfileSerializer
 from onadata.apps.main.models.user_profile import UserProfile
 
 
