@@ -26,7 +26,8 @@ class TestConnectViewSet(TestAbstractViewSet):
             'twitter': u'boberama',
             'gravatar': self.user.profile.gravatar,
             'require_auth': False,
-            'user': 'http://testserver/api/v1/users/bob'
+            'user': 'http://testserver/api/v1/users/bob',
+            'api_token': self.user.auth_token.key
         }
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)

@@ -132,3 +132,25 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             self.errors.update(form.errors)
 
         return attrs
+
+
+class UserProfileWithTokenSerializer(UserProfileSerializer):
+    username = serializers.WritableField(source='user.username')
+    email = serializers.WritableField(source='user.email')
+    website = serializers.WritableField(source='home_page', required=False)
+    gravatar = serializers.Field(source='gravatar')
+    password = serializers.WritableField(
+        source='user.password', widget=widgets.PasswordInput(), required=False)
+    user = serializers.HyperlinkedRelatedField(
+        view_name='user-detail', lookup_field='username', read_only=True)
+    api_token = serializers.SerializerMethodField('get_api_token')
+
+    class Meta:
+        model = UserProfile
+        fields = ('url', 'username', 'name', 'password', 'email', 'city',
+                  'country', 'organization', 'website', 'twitter', 'gravatar',
+                  'require_auth', 'user', 'api_token')
+        lookup_field = 'user'
+
+    def get_api_token(self, object):
+        return object.user.auth_token.key
