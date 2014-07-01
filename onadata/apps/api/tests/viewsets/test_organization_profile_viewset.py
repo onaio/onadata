@@ -24,6 +24,13 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.company_data])
 
+    def test_orgs_list_for_anonymous_user(self):
+        self._org_create()
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.company_data])
+
     def test_orgs_get(self):
         self._org_create()
         view = OrganizationProfileViewSet.as_view({
@@ -60,6 +67,25 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertContains(response, '{"name": "name is required!"}',
                             status_code=400)
+
+    def test_org_create_with_anonymous_user(self):
+        data = {
+            'name': u'denoinc',
+            'org': u'denoinc',
+            'city': u'Denoville',
+            'country': u'US',
+            'home_page': u'deno.com',
+            'twitter': u'denoinc',
+            'description': u'',
+            'address': u'',
+            'phonenumber': u'',
+            'require_auth': False,
+        }
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json")
+        response = self.view(request)
+        self.assertEquals(response.status_code, 401)
 
     def test_orgs_members_list(self):
         self._org_create()
@@ -113,6 +139,43 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'denoinc', u'aboy'])
+
+    def test_add_members_to_org_with_anonymous_user(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+
+        User.objects.create(username='aboy')
+        data = {'username': 'aboy'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json")
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 401)
+        self.assertNotEquals(response.data, [u'denoinc', u'aboy'])
+
+    def test_add_members_to_org_with_non_member_user(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+
+        User.objects.create(username='aboy', )
+        data = {'username': 'aboy'}
+        previous_user = self.user
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self.assertEqual(self.user.username, 'alice')
+        self.assertNotEqual(previous_user,  self.user)
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 403)
+        self.assertNotEqual(response.data, [u'denoinc', u'aboy'])
 
     def test_remove_members_from_org(self):
         self._org_create()
