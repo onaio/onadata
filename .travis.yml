@@ -14,16 +14,15 @@ before_install:
   - ./script/install/ubuntu
 env:
   - TESTFOLDER=onadata/apps/main
-  - TESTFOLDER="onadata/apps/api onadata/apps/logger onadata/apps/viewer onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats onadata/libs"
 install:
   - pip install -r requirements/common.pip --download-cache $HOME/.pip-cache --use-mirrors --allow-all-external
   - pip install flake8
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
   # make ~/tmp dir writable for npm downloads
-  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then sudo chmod a+w $HOME/tmp ; fi
-  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then npm install ; fi
-  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then bower install --force-latest ; fi
+  # - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then sudo chmod a+w $HOME/tmp ; fi
+  # - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then npm install ; fi
+  # - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then bower install --force-latest ; fi
 script:
   - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test
   - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then karma start onadata/libs/javascript/tests/karma.conf.js ; fi
