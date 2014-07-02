@@ -146,6 +146,7 @@ class MultiLookupRouter(routers.DefaultRouter):
 
 Ona provides the following JSON api endpoints:
 
+* [/api/v1/user](/api/v1/user) - Return authenticated user profile info
 * [/api/v1/users](/api/v1/users) - List, Retrieve username, first
 and last name
 * [/api/v1/profiles](/api/v1/profiles) - List, Create,
