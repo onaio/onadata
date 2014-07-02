@@ -13,6 +13,7 @@ from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tools import (get_organization_members,
                                     add_user_to_organization,
                                     remove_user_from_organization)
+from onadata.apps.api import permissions
 
 
 def _try_function_org_username(f, organization, username):
@@ -155,15 +156,10 @@ https://ona.io/api/v1/orgs/modilabs/members
 >
 >       []
 """
-    queryset = OrganizationProfile.objects.all()
+    model = OrganizationProfile
     serializer_class = OrganizationSerializer
     lookup_field = 'user'
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_anonymous():
-            user = User.objects.get(pk=-1)
-        return user.organizationprofile_set.all()
+    permission_classes = [permissions.DjangoObjectPermissionsAllowAnon]
 
     @action(methods=['DELETE', 'GET', 'POST'])
     def members(self, request, *args, **kwargs):
