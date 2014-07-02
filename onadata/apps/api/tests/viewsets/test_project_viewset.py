@@ -93,3 +93,9 @@ class TestProjectViewset(TestAbstractViewSet):
             self.assertEqual(response.status_code, 204)
             self.assertTrue(role_class.has_role(alice_profile.user,
                                                 self.project))
+
+            data = {'username': 'alice', 'role': ''}
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=projectid)
+
+            self.assertEqual(response.status_code, 400)

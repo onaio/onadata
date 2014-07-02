@@ -17,7 +17,6 @@ CAN_MOVE_TO_FOLDER = 'move_xform'
 
 # Project Permissions
 CAN_VIEW_PROJECT = 'view_project'
-CAN_ADD_PROJECT = 'can_add_project'
 CAN_CHANGE_PROJECT = 'change_project'
 CAN_TRANSFER_PROJECT_OWNERSHIP = 'transfer_project'
 CAN_DELETE_PROJECT = 'delete_project'

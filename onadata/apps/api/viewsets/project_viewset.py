@@ -8,7 +8,8 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.libs.serializers.project_serializer import ProjectSerializer
-from onadata.libs.serializers.share_project_serializer import ShareProjectSerializer
+from onadata.libs.serializers.share_project_serializer import \
+    ShareProjectSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.api.models import Project, ProjectXForm
 from onadata.apps.api import tools as utils
@@ -236,4 +237,3 @@ https://ona.io/api/v1/projects/1/forms
                             status=status.HTTP_400_BAD_REQUEST)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
-
