@@ -2,11 +2,14 @@ from django.shortcuts import get_object_or_404
 
 from rest_framework import filters
 from rest_framework import permissions
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.serializers.share_project_serializer import \
+    ShareProjectSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.api.models import Project, ProjectXForm
 from onadata.apps.api import tools as utils
@@ -215,3 +218,22 @@ https://ona.io/api/v1/projects/1/forms
             data, many=many, context={'request': request})
 
         return Response(serializer.data)
+
+    @action(methods=['POST'])
+    def share(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
+        data = {}
+        for key, val in request.DATA.iteritems():
+            data[key] = val
+        data.update({'project': self.object.pk})
+
+        serializer = ShareProjectSerializer(data=data)
+
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            return Response(data=serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

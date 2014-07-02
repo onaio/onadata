@@ -1,6 +1,8 @@
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.libs.permissions import (
+    OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
 
 
 class TestProjectViewset(TestAbstractViewSet):
@@ -65,3 +67,35 @@ class TestProjectViewset(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertTrue(self.project.projectxform_set.filter(xform=self.xform))
         self.assertFalse(old_project.projectxform_set.filter(xform=self.xform))
+
+    def test_project_share_endpoint(self):
+        self._project_create()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        projectid = self.project.pk
+
+        ROLES = [ReadOnlyRole,
+                 DataEntryRole,
+                 EditorRole,
+                 ManagerRole,
+                 OwnerRole]
+        for role_class in ROLES:
+            self.assertFalse(role_class.has_role(alice_profile.user,
+                                                 self.project))
+
+            data = {'username': 'alice', 'role': role_class.name}
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=projectid)
+
+            self.assertEqual(response.status_code, 204)
+            self.assertTrue(role_class.has_role(alice_profile.user,
+                                                self.project))
+
+            data = {'username': 'alice', 'role': ''}
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=projectid)
+
+            self.assertEqual(response.status_code, 400)

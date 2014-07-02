@@ -11,6 +11,8 @@ class Project(models.Model):
         unique_together = (('name', 'organization'),)
         permissions = (
             ('view_project', "Can view project"),
+            ('add_xform', "Can add xform to project"),
+            ('transfer_project', "Can transfer project to different owner"),
         )
 
     name = models.CharField(max_length=255)

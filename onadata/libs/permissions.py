@@ -3,6 +3,7 @@ from guardian.shortcuts import assign_perm, remove_perm
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models import XForm
+from onadata.apps.api.models import Project
 
 CAN_ADD_XFORM_TO_PROFILE = 'can_add_xform'
 CAN_VIEW_PROFILE = 'view_profile'
@@ -13,6 +14,12 @@ CAN_VIEW_XFORM = 'view_xform'
 CAN_ADD_SUBMISSIONS = 'report_xform'
 CAN_TRANSFER_OWNERSHIP = 'transfer_xform'
 CAN_MOVE_TO_FOLDER = 'move_xform'
+
+# Project Permissions
+CAN_VIEW_PROJECT = 'view_project'
+CAN_CHANGE_PROJECT = 'change_project'
+CAN_TRANSFER_PROJECT_OWNERSHIP = 'transfer_project'
+CAN_DELETE_PROJECT = 'delete_project'
 
 
 class Role(object):
@@ -58,6 +65,7 @@ class ReadOnlyRole(Role):
     name = 'readonly'
     permissions = (
         (CAN_VIEW_XFORM, XForm),
+        (CAN_VIEW_PROJECT, Project)
     )
 
 
@@ -66,6 +74,8 @@ class DataEntryRole(Role):
     permissions = (
         (CAN_VIEW_XFORM, XForm),
         (CAN_ADD_SUBMISSIONS, XForm),
+        (CAN_VIEW_PROJECT, Project),
+        (CAN_ADD_XFORM, Project)
     )
 
 
@@ -74,7 +84,10 @@ class EditorRole(Role):
     permissions = (
         (CAN_VIEW_XFORM, XForm),
         (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_CHANGE_XFORM, XForm)
+        (CAN_CHANGE_XFORM, XForm),
+        (CAN_VIEW_PROJECT, Project),
+        (CAN_ADD_XFORM, Project),
+        (CAN_CHANGE_PROJECT, Project)
     )
 
 
@@ -85,7 +98,11 @@ class ManagerRole(Role):
         (CAN_VIEW_PROFILE, UserProfile),
         (CAN_ADD_XFORM, XForm),
         (CAN_VIEW_XFORM, XForm),
-        (CAN_CHANGE_XFORM, XForm)
+        (CAN_CHANGE_XFORM, XForm),
+        (CAN_VIEW_PROJECT, Project),
+        (CAN_ADD_XFORM, Project),
+        (CAN_CHANGE_PROJECT, Project),
+        (CAN_DELETE_PROJECT, Project)
     )
 
 
@@ -100,6 +117,11 @@ class OwnerRole(Role):
         (CAN_DELETE_XFORM, XForm),
         (CAN_MOVE_TO_FOLDER, XForm),
         (CAN_TRANSFER_OWNERSHIP, XForm),
+        (CAN_VIEW_PROJECT, Project),
+        (CAN_ADD_XFORM, Project),
+        (CAN_CHANGE_PROJECT, Project),
+        (CAN_DELETE_PROJECT, Project),
+        (CAN_TRANSFER_PROJECT_OWNERSHIP, Project)
     )
 
 ROLES = {role.name: role for role in [ReadOnlyRole,
