@@ -25,5 +25,6 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             return Project(
                 name=attrs.get('name'),
                 organization=attrs.get('organization'),
-                created_by=created_by,)
+                created_by=created_by,
+                metadata=attrs.get('metadata'),)
         return attrs

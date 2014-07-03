@@ -1,8 +1,10 @@
+import json
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
+from onadata.apps.api.models import Project
 
 
 class TestProjectViewset(TestAbstractViewSet):
@@ -136,3 +138,23 @@ class TestProjectViewset(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
+
+    def test_project_partial_updates(self):
+        self._project_create()
+        view = ProjectViewSet.as_view({
+            'patch': 'partial_update'
+        })
+
+        projectid = self.project.pk
+        metadata = '{"description": "Lorem ipsum",' \
+                   '"location": "Nakuru, Kenya",' \
+                   '"category": "water"' \
+                   '}'
+        json_metadata = json.loads(metadata)
+        data = {'metadata': metadata}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = view(request, pk=projectid)
+        project = Project.objects.get(pk=projectid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(project.metadata, json_metadata)
