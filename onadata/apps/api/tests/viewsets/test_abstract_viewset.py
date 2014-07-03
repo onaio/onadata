@@ -130,14 +130,9 @@ class TestAbstractViewSet(TestCase):
         self.assertEqual(response.status_code, 201)
         self.project = Project.objects.filter(
             name=data['name'], created_by=self.user)[0]
-
         data['url'] = 'http://testserver/api/v1/projects/%s'\
             % self.project.pk
-        data.update({
-            'metadata': json.dumps(data.get('metadata')).replace(" ", "")
-        })
         self.assertDictContainsSubset(data, response.data)
-
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
 
