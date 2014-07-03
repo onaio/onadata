@@ -22,3 +22,13 @@ class XFormOwnerFilter(filters.BaseFilterBackend):
             return queryset.filter(user__username=owner)
 
         return queryset
+
+
+class ProjectOwnerFilter(filters.BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        owner = request.QUERY_PARAMS.get('owner')
+
+        if owner:
+            return queryset.filter(organization__username=owner)
+
+        return queryset

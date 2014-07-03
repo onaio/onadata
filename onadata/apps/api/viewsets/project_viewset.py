@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from onadata.libs.filters import ProjectOwnerFilter
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.share_project_serializer import \
     ShareProjectSerializer
@@ -24,6 +25,7 @@ Where:
 
 - `pk` - is the project id
 - `formid` - is the form id
+- `owner` - is the username for the user or organization of the project
 
 ## Register a new Project
 <pre class="prettyprint">
@@ -63,6 +65,15 @@ Where:
 >               "date_modified": "2013-07-24T13:59:10Z"
 >           }, ...
 >       ]
+
+## List of Projects filter by owner/organization
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/projects?<code>owner</code>=<code>owner_username</code>
+</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/projects?owner=ona
 
 ## Retrieve Project Information
 
@@ -179,7 +190,8 @@ https://ona.io/api/v1/projects/1/forms
     lookup_field = 'pk'
     extra_lookup_fields = None
     permission_classes = [permissions.DjangoObjectPermissions]
-    filter_backends = (filters.DjangoObjectPermissionsFilter,)
+    filter_backends = (filters.DjangoObjectPermissionsFilter,
+                       ProjectOwnerFilter)
 
     @action(methods=['POST', 'GET'], extra_lookup_fields=['formid', ])
     def forms(self, request, **kwargs):
