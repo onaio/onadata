@@ -92,6 +92,46 @@ class TestXFormViewSet(TestAbstractViewSet):
         # should be empty
         self.assertEqual(response.data, [])
 
+    def test_form_list_filter_by_user(self):
+        # publish bob's form
+        self._publish_xls_form_to_project()
+        bobs_form_data = self.form_data
+
+        previous_user = self.user
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self.assertEqual(self.user.username, 'alice')
+        self.assertNotEqual(previous_user,  self.user)
+
+        ReadOnlyRole.add(self.user, self.xform)
+
+        # publish alice's form
+        self._publish_xls_form_to_project()
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        # should be both bob's and alice's form
+        self.assertEqual(response.data, [bobs_form_data, self.form_data])
+
+        # apply filter, see only bob's forms
+        request = self.factory.get('/', data={'owner': 'bob'}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [bobs_form_data])
+
+        # apply filter, see only alice's forms
+        request = self.factory.get('/', data={'owner': 'alice'}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.form_data])
+
+        # apply filter, see a non existent user
+        request = self.factory.get('/', data={'owner': 'noone'}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
     def test_form_get(self):
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({

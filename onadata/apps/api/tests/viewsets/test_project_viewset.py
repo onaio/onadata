@@ -99,3 +99,40 @@ class TestProjectViewset(TestAbstractViewSet):
             response = view(request, pk=projectid)
 
             self.assertEqual(response.status_code, 400)
+
+    def test_project_filter_by_owner(self):
+        self._project_create()
+        default_project_data = self.project_data
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(alice_data)
+
+        ReadOnlyRole.add(self.user, self.project)
+
+        self._project_create({'name': 'another project'})
+
+        # both bob's and alice's projects
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(default_project_data, response.data)
+        self.assertIn(self.project_data, response.data)
+
+        # only bob's project
+        request = self.factory.get('/', {'owner': 'bob'}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(default_project_data, response.data)
+        self.assertNotIn(self.project_data, response.data)
+
+        # only alice's project
+        request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(default_project_data, response.data)
+        self.assertIn(self.project_data, response.data)
+
+        # none existent user
+        request = self.factory.get('/', {'owner': 'noone'}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])

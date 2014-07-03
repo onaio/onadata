@@ -28,6 +28,7 @@ This endpoint provides access to submitted data in JSON format. Where:
 
 * `pk` - the form unique identifier
 * `dataid` - submission data unique identifier
+* `owner` - username of the owner(user/organization) of the data point
 
 ## GET JSON List of data end points
 
@@ -53,6 +54,19 @@ a list of public data endpoints is returned.
 >         },
 >            ...
 >        ]
+
+## GET JSON List of data end points filter by owner
+
+Lists the data endpoints accessible to requesting user, for the specified
+`owner` as a query parameter.
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data?<code>owner</code>=<code>owner_username</code>
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data?owner=ona
 
 ## Get Submitted data for a specific form
 Provides a list of json submitted data for a specific form.
@@ -272,7 +286,8 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 >        ]
 
 """
-    filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
+    filter_backends = (filters.AnonDjangoObjectPermissionFilter,
+                       filters.XFormOwnerFilter)
     serializer_class = DataSerializer
     permission_classes = (XFormPermissions,)
     lookup_field = 'pk'

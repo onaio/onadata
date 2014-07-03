@@ -12,3 +12,25 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
 
         return super(AnonDjangoObjectPermissionFilter, self)\
             .filter_queryset(request, queryset, view)
+
+
+class XFormOwnerFilter(filters.BaseFilterBackend):
+
+    owner_prefix = 'user'
+
+    def filter_queryset(self, request, queryset, view):
+        owner = request.QUERY_PARAMS.get('owner')
+
+        if owner:
+            kwargs = {
+                self.owner_prefix + '__username': owner
+            }
+
+            return queryset.filter(**kwargs)
+
+        return queryset
+
+
+class ProjectOwnerFilter(XFormOwnerFilter):
+
+    owner_prefix = 'organization'
