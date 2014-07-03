@@ -261,12 +261,32 @@ https://ona.io/api/v1/forms
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "modilabs",
+>           "owner": "ona",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
 >           "date_modified": "2013-07-25T14:14:22.892Z"
 >       }
+
+## Get list of forms
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms</pre>
+
+> Request
+>
+>       curl -X GET https://ona.io/api/v1/forms
+
+
+## Get list of forms filter by owner
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms?<code>owner</code>=<code>owner_username</code></pre>
+
+> Request
+>
+>       curl -X GET https://ona.io/api/v1/forms?owner=ona
+
 ## Get Form Information
 
 <pre class="prettyprint">
@@ -290,7 +310,7 @@ https://ona.io/api/v1/forms
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "https://ona.io/api/v1/users/modilabs",
+>           "owner": "https://ona.io/api/v1/users/ona",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -326,7 +346,7 @@ https://ona.io/api/v1/forms/28058
 >           "description": "Le description",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "https://ona.io/api/v1/users/modilabs",
+>           "owner": "https://ona.io/api/v1/users/ona",
 >           "public": true,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -563,7 +583,8 @@ https://ona.io/api/v1/forms/123.json
     extra_lookup_fields = None
     permission_classes = [XFormPermissions, ]
     updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
-    filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
+    filter_backends = (filters.AnonDjangoObjectPermissionFilter,
+                       filters.XFormOwnerFilter)
 
     public_forms_endpoint = 'public'
 
