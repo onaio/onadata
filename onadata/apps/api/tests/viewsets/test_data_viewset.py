@@ -4,6 +4,7 @@ from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm
+from onadata.libs.permissions import ReadOnlyRole
 
 
 class TestDataViewSet(TestBase):
@@ -233,3 +234,59 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data, [])
         for i in self.xform.instances.all():
             self.assertNotIn(u'hello', i.tags.names())
+
+    def test_data_list_filter_by_user(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        bobs_data = {
+            u'id': formid,
+            u'id_string': u'transportation_2011_07_25',
+            u'title': 'transportation_2011_07_25',
+            u'description': 'transportation_2011_07_25',
+            u'url': u'http://testserver/api/v1/data/%s' % formid
+        }
+
+        previous_user = self.user
+        self._create_user_and_login('alice', 'alice')
+        self.assertEqual(self.user.username, 'alice')
+        self.assertNotEqual(previous_user,  self.user)
+
+        ReadOnlyRole.add(self.user, self.xform)
+
+        # publish alice's form
+        self._publish_transportation_form()
+
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        formid = self.xform.pk
+        alice_data = {
+            u'id': formid,
+            u'id_string': u'transportation_2011_07_25',
+            u'title': 'transportation_2011_07_25',
+            u'description': 'transportation_2011_07_25',
+            u'url': u'http://testserver/api/v1/data/%s' % formid
+        }
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        # should be both bob's and alice's form
+        self.assertEqual(response.data, [bobs_data, alice_data])
+
+        # apply filter, see only bob's forms
+        request = self.factory.get('/', data={'owner': 'bob'}, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [bobs_data])
+
+        # apply filter, see only alice's forms
+        request = self.factory.get('/', data={'owner': 'alice'}, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [alice_data])
+
+        # apply filter, see a non existent user
+        request = self.factory.get('/', data={'owner': 'noone'}, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
