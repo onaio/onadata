@@ -144,7 +144,6 @@ class TestProjectViewset(TestAbstractViewSet):
         view = ProjectViewSet.as_view({
             'patch': 'partial_update'
         })
-
         projectid = self.project.pk
         metadata = '{"description": "Lorem ipsum",' \
                    '"location": "Nakuru, Kenya",' \

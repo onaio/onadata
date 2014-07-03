@@ -133,7 +133,10 @@ class TestAbstractViewSet(TestCase):
 
         data['url'] = 'http://testserver/api/v1/projects/%s'\
             % self.project.pk
-        # self.assertDictContainsSubset(data, response.data)
+        data.update({
+            'metadata': json.dumps(data.get('metadata')).replace(" ", "")
+        })
+        self.assertDictContainsSubset(data, response.data)
 
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
