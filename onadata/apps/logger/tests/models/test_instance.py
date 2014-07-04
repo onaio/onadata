@@ -1,10 +1,11 @@
+import os
 from datetime import datetime
 from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME,\
-    XFORM_ID_STRING
+    XFORM_ID_STRING, SUBMISSION_USER
 
 
 class TestInstance(TestBase):
@@ -32,6 +33,27 @@ class TestInstance(TestBase):
                              mock_time.return_value.strftime(MONGO_STRFTIME))
             self.assertEqual(instance.json[XFORM_ID_STRING],
                              xform_id_string)
+
+    @patch('django.utils.timezone.now')
+    def test_json_stores_user_attribute(self, mock_time):
+        mock_time.return_value = datetime.now()
+        self._publish_transportation_form()
+
+        # make account require phone auth
+        self.user.profile.require_auth = True
+        self.user.save()
+
+        # submit instance with a request user
+        path = os.path.join(
+            self.this_directory, 'fixtures', 'transportation', 'instances',
+            self.surveys[0], self.surveys[0] + '.xml')
+        self._make_submission(path, client=self.client)
+
+        instances = Instance.objects.filter(xform_id=self.xform).all()
+        self.assertTrue(len(instances) > 0)
+
+        for instance in instances:
+            self.assertEqual(instance.json[SUBMISSION_USER], 'bob')
 
     def test_json_time_match_submission_time(self):
         self._publish_transportation_form_and_submit_instance()
