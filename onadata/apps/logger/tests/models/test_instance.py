@@ -4,6 +4,7 @@ from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.viewer.models import ParsedInstance
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME,\
     XFORM_ID_STRING, SUBMISSION_USER
 
@@ -54,6 +55,10 @@ class TestInstance(TestBase):
 
         for instance in instances:
             self.assertEqual(instance.json[SUBMISSION_USER], 'bob')
+            # check that the parsed instance's to_dict_for_mongo also contains
+            # the _user key, which is what's used by the JSON REST service
+            pi = ParsedInstance.objects.get(instance=instance)
+            self.assertEqual(pi.to_dict_for_mongo()[SUBMISSION_USER], 'bob')
 
     def test_json_time_match_submission_time(self):
         self._publish_transportation_form_and_submit_instance()
