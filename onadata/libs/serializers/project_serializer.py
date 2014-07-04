@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from onadata.apps.api.models import Project
+from onadata.libs.serializers.fields.json_field import JsonField
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
@@ -11,6 +12,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         source='organization', lookup_field='username')
     created_by = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
+    metadata = JsonField()
 
     class Meta:
         model = Project
@@ -18,6 +20,10 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     def restore_object(self, attrs, instance=None):
         if instance:
+            metadata = JsonField.to_json(attrs.get('metadata'))
+            if self.partial:
+                instance.metadata.update(metadata)
+
             return super(ProjectSerializer, self)\
                 .restore_object(attrs, instance)
         if 'request' in self.context:

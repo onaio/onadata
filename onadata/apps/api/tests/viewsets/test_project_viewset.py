@@ -167,14 +167,12 @@ class TestProjectViewset(TestAbstractViewSet):
         data = {
             'name': u'updated name',
             'owner': 'http://testserver/api/v1/users/%s' % self.user.username,
-            'metadata': json.dumps({'description': 'description',
-                                    'location': 'Nairobi, Kenya',
-                                    'category': 'health'})
+            'metadata': {'description': 'description',
+                         'location': 'Nairobi, Kenya',
+                         'category': 'health'}
         }
+        data.update({'metadata': json.dumps(data.get('metadata'))})
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, pk=projectid)
-        self.assertEqual(response.status_code, 200)
-        self.assertEquals(data['name'], response.data['name'])
-        self.assertEquals(data['owner'], response.data['owner'])
-        self.assertEquals(data['metadata'],
-                          json.loads(response.data['metadata']))
+        data.update({'metadata': json.loads(data.get('metadata'))})
+        self.assertDictContainsSubset(data, response.data)
