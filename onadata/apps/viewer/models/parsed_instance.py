@@ -16,7 +16,9 @@ from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.models import Note
 from onadata.apps.restservice.utils import call_service
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
-    SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES
+    SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
+    NOTES, SUBMISSION_USER
+
 from onadata.libs.utils.decorators import apply_form_field_names
 from onadata.libs.utils.model_tools import queryset_iterator
 
@@ -252,7 +254,9 @@ class ParsedInstance(models.Model):
             SUBMISSION_TIME: self.instance.date_created.strftime(
                 MONGO_STRFTIME),
             TAGS: list(self.instance.tags.names()),
-            NOTES: self.get_notes()
+            NOTES: self.get_notes(),
+            SUBMISSION_USER: self.instance.user.username
+            if self.instance.user else None
         }
 
         if isinstance(self.instance.deleted_at, datetime.datetime):
