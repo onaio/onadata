@@ -121,6 +121,27 @@ https://ona.io/api/v1/projects/1  "Content-Type: application/json"
 >           "date_modified": "2013-07-24T13:37:39Z"
 >       }
 
+## Share a project with a specific user
+
+You can share a project with a specific user by `POST` a payload with
+
+- `username` of the user you want to share the form with and
+- `role` you want the user to have on the form. Available roles are `readonly`,
+`dataentry`, `editor`, `manager`.
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/projects/<code>{pk}</code>/share
+</pre>
+
+> Example
+>
+>       curl -X POST -d '{"username": "alice", "role": "readonly"}' \
+https://ona.io/api/v1/projects/1/share
+
+> Response
+>
+>        HTTP 204 NO CONTENT
+
 ### Assign a form to a project
 To [re]assign an existing form to a project you need to `POST` a payload of
 `formid=FORMID` to the endpoint below.
