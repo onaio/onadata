@@ -157,3 +157,24 @@ class TestProjectViewset(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(project.metadata, json_metadata)
+
+    def test_project_put_updates(self):
+        self._project_create()
+        view = ProjectViewSet.as_view({
+            'put': 'update'
+        })
+        projectid = self.project.pk
+        data = {
+            'name': u'updated name',
+            'owner': 'http://testserver/api/v1/users/%s' % self.user.username,
+            'metadata': json.dumps({'description': 'description',
+                                    'location': 'Nairobi, Kenya',
+                                    'category': 'health'})
+        }
+        request = self.factory.put('/', data=data, **self.extra)
+        response = view(request, pk=projectid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(data['name'], response.data['name'])
+        self.assertEquals(data['owner'], response.data['owner'])
+        self.assertEquals(data['metadata'],
+                          json.loads(response.data['metadata']))

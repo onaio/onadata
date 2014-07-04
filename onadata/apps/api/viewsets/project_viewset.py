@@ -96,7 +96,8 @@ Where:
 ## Update Project Information
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/projects/<code>{pk}</code></pre>
+<b>PUT</b> /api/v1/projects/<code>{pk}</code> or \
+<b>PATCH</b> /api/v1/projects/<code>{pk}</code></pre></pre>
 > Example
 
 >        curl -X PATCH -d '{metadata: { "description": "Lorem ipsum",\
