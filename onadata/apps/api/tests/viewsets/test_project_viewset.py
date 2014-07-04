@@ -1,8 +1,10 @@
+import json
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
+from onadata.apps.api.models import Project
 
 
 class TestProjectViewset(TestAbstractViewSet):
@@ -136,3 +138,57 @@ class TestProjectViewset(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
+
+    def test_project_partial_updates(self):
+        self._project_create()
+        view = ProjectViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        projectid = self.project.pk
+        metadata = '{"description": "Lorem ipsum",' \
+                   '"location": "Nakuru, Kenya",' \
+                   '"category": "water"' \
+                   '}'
+        json_metadata = json.loads(metadata)
+        data = {'metadata': metadata}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = view(request, pk=projectid)
+        project = Project.objects.get(pk=projectid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(project.metadata, json_metadata)
+
+    def test_project_put_updates(self):
+        self._project_create()
+        view = ProjectViewSet.as_view({
+            'put': 'update'
+        })
+        projectid = self.project.pk
+        data = {
+            'name': u'updated name',
+            'owner': 'http://testserver/api/v1/users/%s' % self.user.username,
+            'metadata': {'description': 'description',
+                         'location': 'Nairobi, Kenya',
+                         'category': 'health'}
+        }
+        data.update({'metadata': json.dumps(data.get('metadata'))})
+        request = self.factory.put('/', data=data, **self.extra)
+        response = view(request, pk=projectid)
+        data.update({'metadata': json.loads(data.get('metadata'))})
+        self.assertDictContainsSubset(data, response.data)
+
+    def test_project_partial_updates_to_existing_metadata(self):
+        self._project_create()
+        view = ProjectViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        projectid = self.project.pk
+        metadata = '{"description": "Changed description"}'
+        json_metadata = json.loads(metadata)
+        data = {'metadata': metadata}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = view(request, pk=projectid)
+        project = Project.objects.get(pk=projectid)
+        json_metadata.update(project.metadata)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(project.metadata, json_metadata)

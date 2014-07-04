@@ -93,6 +93,34 @@ Where:
 >           "date_modified": "2013-07-24T13:37:39Z"
 >       }
 
+## Update Project Information
+
+<pre class="prettyprint">
+<b>PUT</b> /api/v1/projects/<code>{pk}</code> or \
+<b>PATCH</b> /api/v1/projects/<code>{pk}</code></pre></pre>
+> Example
+
+>        curl -X PATCH -d '{metadata: { "description": "Lorem ipsum",\
+"location": "Nakuru, Kenya",\
+"category": "water"}} \
+https://ona.io/api/v1/projects/1  "Content-Type: application/json"
+
+
+> Response
+>
+>       {
+>           "url": "https://ona.io/api/v1/projects/1",
+>           "owner": "https://ona.io/api/v1/users/ona",
+>           "name": "project 1",
+>           "metadata": {
+>                        "description": "Lorem ipsum",
+>                        "location": "Nakuru, Kenya",
+>                        "category": "water"
+>                        }
+>           "date_created": "2013-07-24T13:37:39Z",
+>           "date_modified": "2013-07-24T13:37:39Z"
+>       }
+
 ### Assign a form to a project
 To [re]assign an existing form to a project you need to `POST` a payload of
 `formid=FORMID` to the endpoint below.
