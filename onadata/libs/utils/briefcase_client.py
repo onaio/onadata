@@ -234,7 +234,7 @@ class BriefcaseClient(object):
         xml = StringIO()
         de_node = xml_doc.documentElement
         for node in de_node.firstChild.childNodes:
-            xml.write(node.toxml())
+            xml.write(node.toxml().encode('utf-8'))
         new_xml_file = ContentFile(xml.getvalue())
         new_xml_file.content_type = 'text/xml'
         xml.close()
@@ -264,9 +264,13 @@ class BriefcaseClient(object):
             if xml_file:
                 try:
                     self._upload_instance(xml_file, instance_dir_path, files)
-                except ExpatError:
+                except ExpatError as e:
+                    self.logger.error("Failed to publish %s Expat(%s)"
+                                      % (instance_dir, e))
                     continue
-                except Exception:
+                except Exception as e:
+                    self.logger.error("Failed to publish %s (%s)"
+                                      % (instance_dir, e))
                     pass
                 else:
                     instances_count += 1
