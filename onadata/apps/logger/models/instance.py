@@ -16,7 +16,7 @@ from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
-    UUID, XFORM_ID_STRING
+    UUID, XFORM_ID_STRING, SUBMISSION_USER
 from onadata.libs.utils.model_tools import set_uuid
 
 
@@ -167,6 +167,8 @@ class Instance(models.Model):
 
         doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
         doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
+        doc[SUBMISSION_USER] = self.user.username\
+            if self.user is not None else None
         self.json = doc
 
     def _set_parser(self):
