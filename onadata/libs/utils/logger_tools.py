@@ -315,7 +315,7 @@ def publish_form(callback):
             'text': e
         }
     except IntegrityError as e:
-        transaction.rollback()
+        transaction.rollback_unless_managed()
         return {
             'type': 'alert-error',
             'text': _(u'Form with this id or SMS-keyword already exists.'),
