@@ -23,7 +23,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             metadata = JsonField.to_json(attrs.get('metadata'))
             if self.partial:
                 instance.metadata.update(metadata)
-
+                attrs['metadata'] = instance.metadata
             return super(ProjectSerializer, self)\
                 .restore_object(attrs, instance)
         if 'request' in self.context:

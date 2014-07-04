@@ -176,3 +176,19 @@ class TestProjectViewset(TestAbstractViewSet):
         response = view(request, pk=projectid)
         data.update({'metadata': json.loads(data.get('metadata'))})
         self.assertDictContainsSubset(data, response.data)
+
+    def test_project_partial_updates_to_existing_metadata(self):
+        self._project_create()
+        view = ProjectViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        projectid = self.project.pk
+        metadata = '{"description": "Changed description"}'
+        json_metadata = json.loads(metadata)
+        data = {'metadata': metadata}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = view(request, pk=projectid)
+        project = Project.objects.get(pk=projectid)
+        json_metadata.update(project.metadata)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(project.metadata, json_metadata)
