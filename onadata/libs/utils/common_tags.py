@@ -34,7 +34,7 @@ GEOLOCATION = u"_geolocation"
 SUBMISSION_TIME = u'_submission_time'
 DELETEDAT = u"_deleted_at"  # marker for delete surveys
 BAMBOO_DATASET_ID = u"_bamboo_dataset_id"
-SUBMISSION_USER = u"_user"
+SUBMITTED_BY = u"_submitted_by"
 
 META_INSTANCE_ID = u"meta/instanceID"
 INDEX = u"_index"
