@@ -1202,6 +1202,60 @@ class TestExports(TestBase):
         path, ext = os.path.splitext(export.filename)
         self.assertEqual(ext, '.zip')
 
+    def test_dict_to_joined_export_notes(self):
+        submission = {
+            "_id": 579828,
+            "_submission_time": "2013-07-03T08:26:10",
+            "_uuid": "5b4752eb-e13c-483e-87cb-e67ca6bb61e5",
+            "_bamboo_dataset_id": "",
+            "_xform_id_string": "test_data_types",
+            "_userform_id": "larryweya_test_data_types",
+            "_status": "submitted_via_web",
+            "_notes": [
+                {
+                    "note": "Note 1",
+                    "date_created": "2013-07-03T08:26:10",
+                    "id": 356,
+                    "date_modified": "2013-07-03T08:26:10"
+                },
+                {
+                    "note": "Note 2",
+                    "date_created": "2013-07-03T08:34:40",
+                    "id": 357,
+                    "date_modified": "2013-07-03T08:34:40"
+                },
+                {
+                    "note": "Note 3",
+                    "date_created": "2013-07-03T08:56:14",
+                    "id": 361,
+                    "date_modified": "2013-07-03T08:56:14"
+                }
+            ],
+            "meta/instanceID": "uuid:5b4752eb-e13c-483e-87cb-e67ca6bb61e5",
+            "formhub/uuid": "633ec390e024411ba5ce634db7807e62",
+            "amount": "",
+        }
+
+        survey_name = 'tutorial'
+        indices = {survey_name: 0}
+        data = dict_to_joined_export(submission, 1, indices, survey_name)
+        expected_data = {
+            'tutorial': {
+                '_id': 579828,
+                '_submission_time': '2013-07-03T08:26:10',
+                '_uuid': '5b4752eb-e13c-483e-87cb-e67ca6bb61e5',
+                '_bamboo_dataset_id': '',
+                'amount': '',
+                '_xform_id_string': 'test_data_types',
+                '_userform_id': 'larryweya_test_data_types',
+                '_status': 'submitted_via_web',
+                '_notes': 'Note 1\nNote 2\nNote 3',
+                'meta/instanceID': 'uuid:5b4752eb-e13c-483e-87cb-e67ca6bb61e5',
+                'formhub/uuid': '633ec390e024411ba5ce634db7807e62'
+            }
+        }
+        self.assertEqual(sorted(data), sorted(expected_data))
+
 
 class TestExportBuilder(TestBase):
     data = [
