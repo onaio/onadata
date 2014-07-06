@@ -822,6 +822,7 @@ def generate_attachments_zip_export(
         file_path,
         File(temp_file, file_path))
     temp_file.close()
+    os.remove(zip_file)
 
     dir_name, basename = os.path.split(export_filename)
 

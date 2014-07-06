@@ -201,12 +201,15 @@ def create_attachments_zipfile(attachments):
     # create zip_file
     tmp = NamedTemporaryFile(delete=False)
     z = zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED, allowZip64=True)
+
     for attachment in attachments:
         default_storage = get_storage_class()()
+
         if default_storage.exists(attachment.media_file.name):
             try:
                 z.write(attachment.full_filepath, attachment.media_file.name)
             except Exception, e:
                 report_exception("Create attachment zip exception", e)
     z.close()
+
     return tmp.name
