@@ -252,8 +252,8 @@ class TestUserPermissions(TestAbstractViewSet):
         paths = [os.path.join(
             self.main_directory, 'fixtures', 'transportation',
             'instances_w_uuid', s, s + '.xml') for s in [
-                'transport_2011-07-25_19-05-36',
-                'transport_2011-07-25_19-05-36-edited']]
+            'transport_2011-07-25_19-05-36',
+            'transport_2011-07-25_19-05-36-edited']]
         self._make_submission(paths[0])
         self.user.profile.require_auth = True
         self.user.profile.save()
