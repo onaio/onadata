@@ -18,6 +18,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     public_data = BooleanField(
         source='shared_data')
     tags = TagListSerializer(read_only=True)
+    users = serializers.Field(source='get_xform_permissions')
 
     class Meta:
         model = XForm
