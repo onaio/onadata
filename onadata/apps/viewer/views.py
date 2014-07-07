@@ -549,10 +549,8 @@ def zip_export(request, username, id_string):
         if request.GET.get('raw'):
             id_string = None
 
-        wrapper = FileWrapper(zip_file)
-        response = HttpResponse(wrapper, mimetype='application/zip')
-        response['Content-Disposition'] = \
-            'attachment; filename=%s.zip' % id_string
+        response = response_with_mimetype_and_name('zip', id_string)
+        response.write(FileWrapper(zip_file))
         response['Content-Length'] = zip_file.tell()
         zip_file.seek(0)
     except Exception as e:
