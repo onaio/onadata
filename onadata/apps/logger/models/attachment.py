@@ -1,9 +1,7 @@
 import os
 import mimetypes
 
-from tempfile import NamedTemporaryFile
 from hashlib import md5
-from django.core.files.storage import get_storage_class
 from django.db import models
 
 from instance import Instance
