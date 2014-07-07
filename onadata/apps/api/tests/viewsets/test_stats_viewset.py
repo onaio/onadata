@@ -76,7 +76,7 @@ class TestStatsViewSet(TestBase):
             {'count': 2, 'gender': u'Female'},
             {'count': 1, 'gender': u'Male'}
         ]
-        self.assertEqual(data, response.data)
+        self.assertEqual(sorted(data), sorted(response.data))
 
     def test_anon_form_list(self):
         self._publish_transportation_form()

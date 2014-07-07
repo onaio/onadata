@@ -805,7 +805,6 @@ def generate_attachments_zip_export(
     from onadata.apps.viewer.models.export import Export
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     attachments = Attachment.objects.filter(instance__xform=xform)
-    zip_file = create_attachments_zipfile(attachments)
     basename = "%s_%s" % (id_string,
                           datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
     filename = basename + "." + extension
@@ -815,13 +814,21 @@ def generate_attachments_zip_export(
         id_string,
         export_type,
         filename)
-
     storage = get_storage_class()()
-    temp_file = open(zip_file)
-    export_filename = storage.save(
-        file_path,
-        File(temp_file, file_path))
-    temp_file.close()
+    zip_file = None
+
+    try:
+        zip_file = create_attachments_zipfile(attachments)
+
+        try:
+            temp_file = open(zip_file.name)
+            export_filename = storage.save(
+                file_path,
+                File(temp_file, file_path))
+        finally:
+            temp_file.close()
+    finally:
+        zip_file and zip_file.close()
 
     dir_name, basename = os.path.split(export_filename)
 
