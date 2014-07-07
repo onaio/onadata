@@ -13,6 +13,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     created_by = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     metadata = JsonField()
+    users = serializers.Field(source='get_project_permissions')
 
     class Meta:
         model = Project
