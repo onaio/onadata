@@ -818,10 +818,14 @@ def generate_attachments_zip_export(
 
     storage = get_storage_class()()
     temp_file = open(zip_file)
-    export_filename = storage.save(
-        file_path,
-        File(temp_file, file_path))
-    temp_file.close()
+
+    try:
+        export_filename = storage.save(
+            file_path,
+            File(temp_file, file_path))
+    finally:
+        temp_file.close()
+
     os.remove(zip_file)
 
     dir_name, basename = os.path.split(export_filename)
