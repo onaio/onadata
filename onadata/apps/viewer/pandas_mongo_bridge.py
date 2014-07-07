@@ -73,9 +73,9 @@ class NoRecordsFoundError(Exception):
 
 class AbstractDataFrameBuilder(object):
     IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ID, ATTACHMENTS, GEOLOCATION,
-                       BAMBOO_DATASET_ID, DELETEDAT]
+                       BAMBOO_DATASET_ID, DELETEDAT, SUBMITTED_BY]
     # fields NOT within the form def that we want to include
-    ADDITIONAL_COLUMNS = [UUID, SUBMISSION_TIME, TAGS, NOTES, SUBMITTED_BY]
+    ADDITIONAL_COLUMNS = [UUID, SUBMISSION_TIME, TAGS, NOTES]
     BINARY_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
