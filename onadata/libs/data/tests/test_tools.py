@@ -186,4 +186,4 @@ class TestTools(TestBase):
 
         field = 'age'
         records = get_field_records(field, self.xform)
-        self.assertEqual(records, [23, 23, 35])
+        self.assertEqual(sorted(records), sorted([23, 23, 35]))
