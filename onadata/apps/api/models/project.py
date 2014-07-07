@@ -6,7 +6,7 @@ from jsonfield import JSONField
 from guardian.shortcuts import \
     assign_perm, \
     get_perms_for_model,\
-    get_users_with_perms
+    get_users_with_perms, get_perms
 
 
 class Project(models.Model):
@@ -20,7 +20,7 @@ class Project(models.Model):
         )
 
     name = models.CharField(max_length=255)
-    metadata = JSONField(null=True)
+    metadata = JSONField(default={}, null=True)
     organization = models.ForeignKey(User, related_name='project_organization')
     created_by = models.ForeignKey(User, related_name='project_creator')
 
@@ -31,7 +31,12 @@ class Project(models.Model):
         return u'%s|%s' % (self.organization, self.name)
 
     def get_project_permissions(self):
-        return get_users_with_perms(self)
+        users_with_perms = []
+        for user in get_users_with_perms(self):
+            user_permissions = {'user': user,
+                                'permissions': get_perms(user, self)}
+            users_with_perms.append(user_permissions)
+        return users_with_perms
 
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
