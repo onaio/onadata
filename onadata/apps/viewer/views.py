@@ -553,11 +553,8 @@ def zip_export(request, username, id_string):
         response.write(FileWrapper(zip_file))
         response['Content-Length'] = zip_file.tell()
         zip_file.seek(0)
-    except Exception as e:
-        if zip_file:
-            zip_file.close()
-
-        raise e
+    finally:
+        zip_file and zip_file.close()
 
     return response
 
