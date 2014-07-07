@@ -3,7 +3,10 @@ from django.db.models.signals import post_save
 from django.contrib.auth.models import User
 from jsonfield import JSONField
 
-from guardian.shortcuts import assign_perm, get_perms_for_model
+from guardian.shortcuts import \
+    assign_perm, \
+    get_perms_for_model,\
+    get_users_with_perms
 
 
 class Project(models.Model):
@@ -26,6 +29,9 @@ class Project(models.Model):
 
     def __unicode__(self):
         return u'%s|%s' % (self.organization, self.name)
+
+    def get_project_permissions(self):
+        return get_users_with_perms(self)
 
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
