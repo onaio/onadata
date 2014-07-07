@@ -199,7 +199,7 @@ def enketo_url(form_url, id_string, instance_xml=None,
 
 def create_attachments_zipfile(attachments):
     # create zip_file
-    tmp = NamedTemporaryFile(delete=False)
+    tmp = NamedTemporaryFile()
     with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as z:
         for attachment in attachments:
             default_storage = get_storage_class()()
@@ -211,4 +211,4 @@ def create_attachments_zipfile(attachments):
                 except Exception, e:
                     report_exception("Create attachment zip exception", e)
 
-    return tmp.name
+    return tmp

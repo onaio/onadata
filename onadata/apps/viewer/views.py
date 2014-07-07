@@ -8,10 +8,11 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage
 from django.core.files.storage import get_storage_class
+from django.core.servers.basehttp import FileWrapper
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseForbidden,\
-    HttpResponseRedirect, HttpResponseNotFound, HttpResponseBadRequest,\
-    HttpResponse
+from django.http import (
+    HttpResponseForbidden, HttpResponseRedirect, HttpResponseNotFound,
+    HttpResponseBadRequest, HttpResponse, StreamingHttpResponse)
 from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template import RequestContext
 from django.utils.translation import ugettext as _
@@ -522,30 +523,44 @@ def zip_export(request, username, id_string):
         return HttpResponseForbidden(_(u'Not shared.'))
     if request.GET.get('raw'):
         id_string = None
+
     attachments = Attachment.objects.filter(instance__xform=xform)
-    zip_file = create_attachments_zipfile(attachments)
-    audit = {
-        "xform": xform.id_string,
-        "export_type": Export.ZIP_EXPORT
-    }
-    audit_log(
-        Actions.EXPORT_CREATED, request.user, owner,
-        _("Created ZIP export on '%(id_string)s'.") %
-        {
-            'id_string': xform.id_string,
-        }, audit, request)
-    # log download as well
-    audit_log(
-        Actions.EXPORT_DOWNLOADED, request.user, owner,
-        _("Downloaded ZIP export on '%(id_string)s'.") %
-        {
-            'id_string': xform.id_string,
-        }, audit, request)
-    if request.GET.get('raw'):
-        id_string = None
-    response = response_with_mimetype_and_name('zip', id_string,
-                                               file_path=zip_file,
-                                               use_local_filesystem=True)
+    zip_file = None
+
+    try:
+        zip_file = create_attachments_zipfile(attachments)
+        audit = {
+            "xform": xform.id_string,
+            "export_type": Export.ZIP_EXPORT
+        }
+        audit_log(
+            Actions.EXPORT_CREATED, request.user, owner,
+            _("Created ZIP export on '%(id_string)s'.") %
+            {
+                'id_string': xform.id_string,
+            }, audit, request)
+        # log download as well
+        audit_log(
+            Actions.EXPORT_DOWNLOADED, request.user, owner,
+            _("Downloaded ZIP export on '%(id_string)s'.") %
+            {
+                'id_string': xform.id_string,
+            }, audit, request)
+        if request.GET.get('raw'):
+            id_string = None
+
+        wrapper = FileWrapper(zip_file)
+        response = HttpResponse(wrapper, mimetype='application/zip')
+        response['Content-Disposition'] = \
+            'attachment; filename=%s.zip' % id_string
+        response['Content-Length'] = zip_file.tell()
+        zip_file.seek(0)
+    except Exception as e:
+        if zip_file:
+            zip_file.close()
+
+        raise e
+
     return response
 
 
