@@ -95,7 +95,6 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_form_list_filter_by_user(self):
         # publish bob's form
         self._publish_xls_form_to_project()
-        bobs_form_data = self.form_data
 
         previous_user = self.user
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
@@ -104,6 +103,12 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertNotEqual(previous_user,  self.user)
 
         ReadOnlyRole.add(self.user, self.xform)
+        view = XFormViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk)
+        bobs_form_data = response.data
 
         # publish alice's form
         self._publish_xls_form_to_project()
