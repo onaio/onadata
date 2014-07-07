@@ -7,7 +7,7 @@ from onadata.libs.permissions import (
 from onadata.apps.api.models import Project
 
 
-class TestProjectViewset(TestAbstractViewSet):
+class TestProjectViewSet(TestAbstractViewSet):
     def setUp(self):
         super(self.__class__, self).setUp()
         self.view = ProjectViewSet.as_view({
@@ -34,6 +34,27 @@ class TestProjectViewset(TestAbstractViewSet):
 
     def test_projects_create(self):
         self._project_create()
+        self.assertIsNotNone(self.project)
+        self.assertIsNotNone(self.project_data)
+
+        projects = Project.objects.all()
+        self.assertEqual(len(projects), 1)
+
+        for project in projects:
+            self.assertEqual(self.user, project.created_by)
+            self.assertEqual(self.user, project.organization)
+
+    def test_projects_create_many_users(self):
+        self._project_create()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(alice_data)
+        self._project_create()
+        projects = Project.objects.filter(created_by=self.user)
+        self.assertEqual(len(projects), 1)
+
+        for project in projects:
+            self.assertEqual(self.user, project.created_by)
+            self.assertEqual(self.user, project.organization)
 
     def test_publish_xls_form_to_project(self):
         self._publish_xls_form_to_project()
