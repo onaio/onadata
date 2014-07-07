@@ -104,7 +104,6 @@ class TestProjectViewset(TestAbstractViewSet):
 
     def test_project_filter_by_owner(self):
         self._project_create()
-        default_project_data = self.project_data
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(alice_data)
 
