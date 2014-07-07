@@ -131,27 +131,34 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         ReadOnlyRole.add(self.user, self.project)
 
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        updated_project_data = response.data
+
         self._project_create({'name': 'another project'})
 
         # both bob's and alice's projects
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(default_project_data, response.data)
+        self.assertIn(updated_project_data, response.data)
         self.assertIn(self.project_data, response.data)
 
         # only bob's project
         request = self.factory.get('/', {'owner': 'bob'}, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(default_project_data, response.data)
+        self.assertIn(updated_project_data, response.data)
         self.assertNotIn(self.project_data, response.data)
 
         # only alice's project
         request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertNotIn(default_project_data, response.data)
+        self.assertNotIn(updated_project_data, response.data)
         self.assertIn(self.project_data, response.data)
 
         # none existent user
