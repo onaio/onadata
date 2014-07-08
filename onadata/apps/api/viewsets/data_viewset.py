@@ -297,7 +297,7 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/data/28058/20/
+>       curl -X GET https://ona.io/api/v1/data/28058/20/enketo?return_url=url
 
 > Response
 >       {"url": "https://hmh2a.enketo.formhub.org"}
