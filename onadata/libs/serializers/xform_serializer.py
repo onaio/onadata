@@ -3,9 +3,9 @@ from guardian.shortcuts import get_users_with_perms, get_perms
 from rest_framework import serializers
 
 from onadata.apps.logger.models import XForm
+from onadata.libs.permissions import get_role
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
-from onadata.libs.permissions import get_role
 
 
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
@@ -37,5 +37,5 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                 user_permissions = {'user': user,
                                     'role': get_role(user, obj),
                                     'permissions': get_perms(user, obj)}
-            users_with_perms.append(user_permissions)
+                users_with_perms.append(user_permissions)
         return users_with_perms
