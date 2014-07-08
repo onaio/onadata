@@ -262,12 +262,7 @@ https://ona.io/api/v1/projects/1/forms
     @action(methods=['POST'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
-
-        data = {}
-        for key, val in request.DATA.iteritems():
-            data[key] = val
-        data.update({'project': self.object.pk})
-
+        data = dict(request.DATA.items() + [('project', self.object.pk)])
         serializer = ShareProjectSerializer(data=data)
 
         if serializer.is_valid():
