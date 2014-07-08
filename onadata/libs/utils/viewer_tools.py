@@ -215,10 +215,9 @@ def create_attachments_zipfile(attachments):
 
 
 def _get_form_url(request, username):
-    # TODO store strings as constants elsewhere
     if settings.TESTING_MODE:
-        http_host = 'testserver.com'
-        username = 'bob'
+        http_host = settings.HTTP_HOST
+        username = settings.USERNAME
     else:
         http_host = request.META.get('HTTP_HOST', 'ona.io')
 
