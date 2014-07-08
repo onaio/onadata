@@ -1,8 +1,7 @@
-from guardian.shortcuts import get_users_with_perms, get_perms
 from rest_framework import serializers
 
 from onadata.apps.api.models import Project
-from onadata.libs.permissions import get_role
+from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.json_field import JsonField
 
 
@@ -39,11 +38,4 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         return attrs
 
     def get_project_permissions(self, obj):
-        users_with_perms = []
-        if obj:
-            for user in get_users_with_perms(obj):
-                user_permissions = {'user': user,
-                                    'role': get_role(user, obj),
-                                    'permissions': get_perms(user, obj)}
-                users_with_perms.append(user_permissions)
-        return users_with_perms
+        return get_object_users_with_permissions(obj)

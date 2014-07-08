@@ -1,5 +1,7 @@
 from django.contrib.contenttypes.models import ContentType
-from guardian.shortcuts import assign_perm, remove_perm
+from guardian.shortcuts import \
+    assign_perm, remove_perm, \
+    get_users_with_perms, get_perms
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models import XForm
@@ -132,6 +134,20 @@ ROLES = {role.name: role for role in [ReadOnlyRole,
 
 
 def get_role(self, obj):
-        for role in ROLES:
-            if ROLES[role].has_role(self, obj):
-                return role
+    for role in ROLES.values():
+        if role.has_role(self, obj):
+                return role.name
+
+
+def get_object_users_with_permissions(obj):
+    """
+    Returns users, roles and permissions for a object
+    """
+    users_with_perms = []
+    if obj:
+        for user in get_users_with_perms(obj):
+            user_permissions = {'user': user,
+                                'role': get_role(user, obj),
+                                'permissions': get_perms(user, obj)}
+            users_with_perms.append(user_permissions)
+    return users_with_perms
