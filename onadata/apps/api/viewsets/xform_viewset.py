@@ -4,12 +4,10 @@ import json
 from datetime import datetime
 
 from django import forms
+from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
-from django.db.models import Q
 from django.http import Http404
-from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 from django.utils import six
 
@@ -22,7 +20,9 @@ from rest_framework.viewsets import ModelViewSet
 
 from taggit.forms import TagField
 
-from onadata.libs.mixins.multi_lookup_mixin import MultiLookupMixin
+from onadata.libs import filters
+from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
+    AnonymousUserPublicFormsMixin)
 from onadata.libs.models.signals import xform_tags_add, xform_tags_delete
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -182,6 +182,20 @@ def _get_user(username):
     return users.count() and users[0] or None
 
 
+def _get_owner(request):
+    owner = request.DATA.get('owner') or request.user
+
+    if isinstance(owner, six.string_types):
+        owner = _get_user(owner)
+
+        if owner is None:
+            raise ValidationError(
+                u"User with username %(owner)s does not exist."
+            )
+
+    return owner
+
+
 def response_for_format(data, format=None):
     formatted_data = data.xml if format == 'xml' else json.loads(data.json)
     return Response(formatted_data)
@@ -200,16 +214,25 @@ def value_for_type(form, field, value):
     return value
 
 
-class XFormViewSet(MultiLookupMixin, ModelViewSet):
+class XFormViewSet(AnonymousUserPublicFormsMixin, ModelViewSet):
     """
 Publish XLSForms, List, Retrieve Published Forms.
 
 Where:
 
-- `owner` - is the organization or user to which the form(s) belong to.
-- `formid` - is the form id
+- `pk` - is the form unique identifier
 
 ## Upload XLSForm
+
+To publish and xlsform, you need to provide either the xlsform via `xls_file` \
+parameter or a link to the xlsform via the `xls_url` parameter.
+Optionally, you can specify the target account where the xlsform should be \
+published using the `owner` parameter, which specifies the username to the
+account.
+
+- `xls_file`: the xlsform file.
+- `xls_url`: the url to an xlsform
+- `owner`: username to the target account (Optional)
 
 <pre class="prettyprint">
 <b>POST</b> /api/v1/forms</pre>
@@ -218,7 +241,7 @@ Where:
 >       curl -X POST -F xls_file=@/path/to/form.xls \
 https://ona.io/api/v1/forms
 >
-> OR
+> OR post an xlsform url
 >
 >       curl -X POST -d \
 "xls_url=https://ona.io/ukanga/forms/tutorial/form.xls" \
@@ -238,16 +261,36 @@ https://ona.io/api/v1/forms
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "modilabs",
+>           "owner": "ona",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
 >           "date_modified": "2013-07-25T14:14:22.892Z"
 >       }
+
+## Get list of forms
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms</pre>
+
+> Request
+>
+>       curl -X GET https://ona.io/api/v1/forms
+
+
+## Get list of forms filter by owner
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms?<code>owner</code>=<code>owner_username</code></pre>
+
+> Request
+>
+>       curl -X GET https://ona.io/api/v1/forms?owner=ona
+
 ## Get Form Information
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{formid}</code></pre>
+<b>GET</b> /api/v1/forms/<code>{pk}</code></pre>
 
 > Example
 >
@@ -256,7 +299,7 @@ https://ona.io/api/v1/forms
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -267,7 +310,7 @@ https://ona.io/api/v1/forms
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "https://ona.io/api/v1/users/modilabs",
+>           "owner": "https://ona.io/api/v1/users/ona",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -282,7 +325,7 @@ public, public_data` fields. With `PATCH` you only need provide atleast one
 of the fields.
 
 <pre class="prettyprint">
-<b>PATCH</b> /api/v1/forms/<code>{formid}</code></pre>
+<b>PATCH</b> /api/v1/forms/<code>{pk}</code></pre>
 
 > Example
 >
@@ -292,7 +335,7 @@ https://ona.io/api/v1/forms/28058
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -303,7 +346,7 @@ https://ona.io/api/v1/forms/28058
 >           "description": "Le description",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "https://ona.io/api/v1/users/modilabs",
+>           "owner": "https://ona.io/api/v1/users/ona",
 >           "public": true,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -313,20 +356,27 @@ https://ona.io/api/v1/forms/28058
 ## Delete Form
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code></pre>
+<b>DELETE</b> /api/v1/forms/<code>{pk}</code></pre>
+> Example
+>
+>       curl -X DELETE https://ona.io/api/v1/forms/28058
+>
+> Response
+>
+>       HTTP 204 NO CONTENT
 
 ## List Forms
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms
-<b>GET</b> /api/v1/forms/<code>{owner}</code></pre>
+</pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/forms/modilabs
+>       curl -X GET https://ona.io/api/v1/forms
 
 > Response
 >
 >       [{
->           "url": "https://ona.io/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -337,11 +387,11 @@ https://ona.io/api/v1/forms/28058
 
 ## Get `JSON` | `XML` Form Representation
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/form.\
+<b>GET</b> /api/v1/forms/<code>{pk}</code>/form.\
 <code>{format}</code></pre>
 > JSON Example
 >
->       curl -X GET https://ona.io/api/v1/forms/modilabs/28058/form.json
+>       curl -X GET https://ona.io/api/v1/forms/28058/form.json
 
 > Response
 >
@@ -363,7 +413,7 @@ https://ona.io/api/v1/forms/28058
 
 > XML Example
 >
->       curl -X GET https://ona.io/api/v1/forms/modilabs/28058/form.xml
+>       curl -X GET https://ona.io/api/v1/forms/28058/form.xml
 
 > Response
 >
@@ -383,9 +433,7 @@ Use the `tags` query parameter to filter the list of forms, `tags` should be a
 comma separated list of tags.
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms?<code>tags</code>=<code>tag1,tag2</code>
-<b>GET</b> /api/v1/forms/<code>{owner}</code>?<code>tags</code>=<code>\
-tag1,tag2</code></pre>
+<b>GET</b> /api/v1/forms?<code>tags</code>=<code>tag1,tag2</code></pre>
 
 List forms tagged `smart` or `brand new` or both.
 > Request
@@ -396,7 +444,7 @@ List forms tagged `smart` or `brand new` or both.
 >        HTTP 200 OK
 >
 >       [{
->           "url": "https://ona.io/api/v1/forms/modilabs/28058",
+>           "url": "https://ona.io/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -408,7 +456,7 @@ List forms tagged `smart` or `brand new` or both.
 
 ## Get list of Tags for a specific Form
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels
+<b>GET</b> /api/v1/forms/<code>{pk}</code>/labels
 </pre>
 > Request
 >
@@ -428,7 +476,7 @@ Examples
 - `animal, fruit denim` - comma delimited
 
 <pre class="prettyprint">
-<b>POST</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/labels
+<b>POST</b> /api/v1/forms/<code>{pk}</code>/labels
 </pre>
 
 Payload
@@ -438,18 +486,18 @@ Payload
 ## Delete a specific tag
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>\
-/labels/<code>tag_name</code></pre>
+<b>DELETE</b> /api/v1/forms/<code>{pk}</code>/labels/<code>tag_name</code>
+</pre>
 
 > Request
 >
 >       curl -X DELETE \
-https://ona.io/api/v1/forms/modilabs/28058/labels/tag1
+https://ona.io/api/v1/forms/28058/labels/tag1
 >
 > or to delete the tag "hello world"
 >
 >       curl -X DELETE \
-https://ona.io/api/v1/forms/modilabs/28058/labels/hello%20world
+https://ona.io/api/v1/forms/28058/labels/hello%20world
 >
 > Response
 >
@@ -458,13 +506,12 @@ https://ona.io/api/v1/forms/modilabs/28058/labels/hello%20world
 ## Get webform/enketo link
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>\
-/enketo</pre>
+<b>DELETE</b> /api/v1/forms/<code>{pk}</code>/enketo</pre>
 
 > Request
 >
 >       curl -X GET \
-https://ona.io/api/v1/forms/modilabs/28058/enketo
+https://ona.io/api/v1/forms/28058/enketo
 >
 > Response
 >
@@ -478,16 +525,15 @@ Get form data exported as xls, csv, csv zip, sav zip format.
 
 Where:
 
-- `owner` - is the organization or user to which the form(s) belong to.
-- `formid` - is the form id
+- `pk` - is the form unique identifier
 - `format` - is the data export format i.e csv, xls, csvzip, savzip
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/exports/<code>{owner}/{formid}.{format}</code>
+<b>GET</b> /api/v1/exports/{pk}.{format}</code>
 </pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/exports/onademo/28058.xls
+>       curl -X GET https://ona.io/api/v1/exports/28058.xls
 
 > binary file export of the format specied is returned as the response for the
 > download.
@@ -502,12 +548,6 @@ Where:
 <b>GET</b> /api/v1/forms/public
 </pre>
 
-## Get list of a users/organization's public forms
-
-<pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{owner}</code>public
-</pre>
-
 ## Share a form with a specific user
 
 You can share a form with a  specific user by `POST` a payload with
@@ -517,17 +557,17 @@ You can share a form with a  specific user by `POST` a payload with
 `dataentry`, `editor`, `manager`.
 
 <pre class="prettyprint">
-<b>POST</b> /api/v1/forms/<code>{owner}</code>/<code>{formid}</code>/share
+<b>POST</b> /api/v1/forms/<code>{pk}</code>/share
 </pre>
 
 > Example
 >
 >       curl -X POST -d '{"username": "alice", "role": "readonly"}' \
-https://ona.io/api/v1/forms/onademo/123.json
+https://ona.io/api/v1/forms/123.json
 
 > Response
 >
->        HTTP 204
+>        HTTP 204 NO CONTENT
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
@@ -537,71 +577,19 @@ https://ona.io/api/v1/forms/onademo/123.json
         renderers.SAVZIPRenderer,
         renderers.SurveyRenderer
     ]
-    queryset = XForm.objects.filter()
+    model = XForm
     serializer_class = XFormSerializer
-    queryset = XForm.objects.all()
-    serializer_class = XFormSerializer
-    lookup_fields = ('owner', 'pk')
-    lookup_field = 'owner'
+    lookup_field = 'pk'
     extra_lookup_fields = None
     permission_classes = [XFormPermissions, ]
     updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
+    filter_backends = (filters.AnonDjangoObjectPermissionFilter,
+                       filters.XFormOwnerFilter)
 
-    def get_object(self, queryset=None):
-        owner, pk = self.lookup_fields
-
-        try:
-            int(self.kwargs[pk])
-        except ValueError:
-            # implies pk is a string, assume this represents the id_string
-            self.lookup_fields = ('owner', 'id_string')
-            self.kwargs['id_string'] = self.kwargs[pk]
-
-        return super(XFormViewSet, self).get_object(queryset)
-
-    def get_queryset(self):
-        owner, pk = self.lookup_fields
-
-        owner = self.kwargs.get(owner, None)
-        user = self.request.user \
-            if not self.request.user.is_anonymous() \
-            else User.objects.get(pk=-1)
-        project_forms = []
-
-        if isinstance(owner, six.string_types) and owner == 'public':
-            user_forms = XForm.objects.filter(
-                Q(shared=True) | Q(shared_data=True))
-        elif isinstance(owner, six.string_types) and owner != 'public':
-            owner = get_object_or_404(User, username=owner)
-            if owner != user:
-                xfct = ContentType.objects.get(
-                    app_label='logger', model='xform')
-                xfs = user.userobjectpermission_set.filter(content_type=xfct)
-                user_forms = XForm.objects.filter(
-                    Q(pk__in=[xf.object_pk for xf in xfs]) | Q(shared=True)
-                    | Q(shared_data=True),
-                    user=owner)\
-                    .select_related('user')
-            else:
-                user_forms = owner.xforms.values('pk')
-                project_forms = owner.projectxform_set.values('xform')
-        else:
-            user_forms = user.xforms.values('pk')
-            project_forms = user.projectxform_set.values('xform')
-
-        queryset = XForm.objects.filter(
-            Q(pk__in=user_forms) | Q(pk__in=project_forms))
-        # filter by tags if available.
-        tags = self.request.QUERY_PARAMS.get('tags', None)
-
-        if tags and isinstance(tags, six.string_types):
-            tags = tags.split(',')
-            queryset = queryset.filter(tags__name__in=tags)
-
-        return queryset.distinct()
+    public_forms_endpoint = 'public'
 
     def create(self, request, *args, **kwargs):
-        owner = _get_user(kwargs.get('owner')) or request.user
+        owner = _get_owner(request)
         survey = utils.publish_xlsform(request, owner)
 
         if isinstance(survey, XForm):
@@ -656,10 +644,19 @@ https://ona.io/api/v1/forms/onademo/123.json
         return Response(data, http_status)
 
     def retrieve(self, request, *args, **kwargs):
-        owner, pk = self.lookup_fields
+        lookup_field = self.lookup_field
+        lookup = self.kwargs.get(lookup_field)
 
-        if self.kwargs.get(pk) == 'public':
-            return self.public(request, *args, **kwargs)
+        if lookup == self.public_forms_endpoint:
+            self.object_list = self._get_public_forms_queryset()
+
+            page = self.paginate_queryset(self.object_list)
+            if page is not None:
+                serializer = self.get_pagination_serializer(page)
+            else:
+                serializer = self.get_serializer(self.object_list, many=True)
+
+            return Response(serializer.data)
 
         xform = self.get_object()
         query = request.GET.get("query", {})
@@ -705,19 +702,6 @@ https://ona.io/api/v1/forms/onademo/123.json
             file_path=export.filepath)
 
         return response
-
-    def public(self, request, *args, **kwargs):
-        self.object_list = self.filter_queryset(self.get_queryset()).filter(
-            Q(shared=True) | Q(shared_data=True))
-
-        # Switch between paginated or standard style responses
-        page = self.paginate_queryset(self.object_list)
-        if page is not None:
-            serializer = self.get_pagination_serializer(page)
-        else:
-            serializer = self.get_serializer(self.object_list, many=True)
-
-        return Response(serializer.data)
 
     @action(methods=['POST'])
     def share(self, request, *args, **kwargs):

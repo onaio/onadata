@@ -12,7 +12,8 @@ from onadata.apps.main.models import UserProfile
 def create_owner_team_and_permissions(sender, instance, created, **kwargs):
     if created:
         team = Team.objects.create(
-            name=Team.OWNER_TEAM_NAME, organization=instance.user)
+            name=Team.OWNER_TEAM_NAME, organization=instance.user,
+            created_by=instance.created_by)
         content_type = ContentType.objects.get(
             app_label='api', model='organizationprofile')
         permission, created = Permission.objects.get_or_create(

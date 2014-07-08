@@ -3,26 +3,23 @@ from rest_framework import serializers
 
 from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import\
     HyperlinkedMultiIdentityField
-from onadata.libs.serializers.fields.hyperlinked_multi_related_field import\
-    HyperlinkedMultiRelatedField
 from onadata.libs.serializers.user_serializer import UserSerializer
-from onadata.apps.api.models import Project, OrganizationProfile, Team
+from onadata.apps.api.models import OrganizationProfile, Team
 
 
 class TeamSerializer(serializers.Serializer):
     url = HyperlinkedMultiIdentityField(
-        view_name='team-detail',
-        lookup_fields=(('pk', 'pk'), ('owner', 'organization')))
+        view_name='team-detail')
     name = serializers.CharField(max_length=100, source='team_name')
     organization = serializers.SlugRelatedField(
         slug_field='username',
         source='organization',
         queryset=User.objects.filter(
             pk__in=OrganizationProfile.objects.values('user')))
-    projects = HyperlinkedMultiRelatedField(
-        view_name='project-detail', source='projects', many=True,
-        queryset=Project.objects.all(), read_only=True,
-        lookup_fields=(('pk', 'pk'), ('owner', 'organization')))
+    projects = serializers.HyperlinkedRelatedField(view_name='project-detail',
+                                                   source='projects',
+                                                   many=True,
+                                                   read_only=True)
     users = serializers.SerializerMethodField('get_team_users')
 
     def get_team_users(self, obj):
@@ -37,6 +34,8 @@ class TeamSerializer(serializers.Serializer):
         org = attrs.get('organization', None)
         projects = attrs.get('projects', [])
         team_name = attrs.get('team_name', None)
+        request = self.context.get('request')
+        created_by = request.user
 
         if instance:
             instance.organization = org if org else instance.organization
@@ -52,4 +51,4 @@ class TeamSerializer(serializers.Serializer):
             self.errors['name'] = u'A team name is required'
             return attrs
 
-        return Team(organization=org, name=team_name)
+        return Team(organization=org, name=team_name, created_by=created_by)

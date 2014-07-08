@@ -1,91 +1,122 @@
-from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
-from django.utils.translation import ugettext as _
-from rest_framework.decorators import action
-from rest_framework import exceptions
-from rest_framework import permissions
-from rest_framework.mixins import CreateModelMixin, ListModelMixin,\
-    RetrieveModelMixin
-from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
 
-from onadata.libs.mixins.multi_lookup_mixin import MultiLookupMixin
+from rest_framework import filters
+from rest_framework import permissions
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
+
+from onadata.libs.filters import ProjectOwnerFilter
 from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.serializers.share_project_serializer import \
+    ShareProjectSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.api.models import Project, ProjectXForm
 from onadata.apps.api import tools as utils
 from onadata.apps.logger.models import XForm
 
 
-class ProjectViewSet(MultiLookupMixin,
-                     CreateModelMixin,
-                     RetrieveModelMixin,
-                     ListModelMixin,
-                     GenericViewSet):
+class ProjectViewSet(ModelViewSet):
     """
 List, Retrieve, Update, Create Project and Project Forms
 
 Where:
 
-- `owner` - is the organization to which the project(s) belong to.
 - `pk` - is the project id
 - `formid` - is the form id
+- `owner` - is the username for the user or organization of the project
 
-## Register a new Organization Project
+## Register a new Project
 <pre class="prettyprint">
-<b>POST</b> /api/v1/projects/<code>{owner}</code></pre>
+<b>POST</b> /api/v1/projects</pre>
 > Example
 >
 >       {
->           "url": "https://ona.io/api/v1/projects/modilabs/1",
->           "owner": "https://ona.io/api/v1/users/modilabs",
+>           "url": "https://ona.io/api/v1/projects/1",
+>           "owner": "https://ona.io/api/v1/users/ona",
 >           "name": "project 1",
 >           "date_created": "2013-07-24T13:37:39Z",
 >           "date_modified": "2013-07-24T13:37:39Z"
 >       }
 
-## List of Organization's Projects
+## List of Projects
 
-<pre class="prettyprint"><b>GET</b> /api/v1/projects <b>or</b>
-<b>GET</b> /api/v1/projects/<code>{owner}</code></pre>
+<pre class="prettyprint"><b>GET</b> /api/v1/projects</pre>
 > Example
 >
 >       curl -X GET https://ona.io/api/v1/projects
->       curl -X GET https://ona.io/api/v1/projects/modilabs
 
 > Response
 >
 >       [
 >           {
->               "url": "https://ona.io/api/v1/projects/modilabs/1",
->               "owner": "https://ona.io/api/v1/users/modilabs",
+>               "url": "https://ona.io/api/v1/projects/1",
+>               "owner": "https://ona.io/api/v1/users/ona",
 >               "name": "project 1",
 >               "date_created": "2013-07-24T13:37:39Z",
 >               "date_modified": "2013-07-24T13:37:39Z"
 >           },
 >           {
->               "url": "https://ona.io/api/v1/projects/modilabs/4",
->               "owner": "https://ona.io/api/v1/users/modilabs",
+>               "url": "https://ona.io/api/v1/projects/4",
+>               "owner": "https://ona.io/api/v1/users/ona",
 >               "name": "project 2",
 >               "date_created": "2013-07-24T13:59:10Z",
 >               "date_modified": "2013-07-24T13:59:10Z"
 >           }, ...
 >       ]
 
+## List of Projects filter by owner/organization
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/projects?<code>owner</code>=<code>owner_username</code>
+</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/projects?owner=ona
+
 ## Retrieve Project Information
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code></pre>
+<b>GET</b> /api/v1/projects/<code>{pk}</code></pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/projects/modilabs/1
+>       curl -X GET https://ona.io/api/v1/projects/1
 
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/projects/modilabs/1",
->           "owner": "https://ona.io/api/v1/users/modilabs",
+>           "url": "https://ona.io/api/v1/projects/1",
+>           "owner": "https://ona.io/api/v1/users/ona",
 >           "name": "project 1",
+>           "date_created": "2013-07-24T13:37:39Z",
+>           "date_modified": "2013-07-24T13:37:39Z"
+>       }
+
+## Update Project Information
+
+<pre class="prettyprint">
+<b>PUT</b> /api/v1/projects/<code>{pk}</code> or \
+<b>PATCH</b> /api/v1/projects/<code>{pk}</code></pre></pre>
+> Example
+
+>        curl -X PATCH -d '{metadata: { "description": "Lorem ipsum",\
+"location": "Nakuru, Kenya",\
+"category": "water"}} \
+https://ona.io/api/v1/projects/1  "Content-Type: application/json"
+
+
+> Response
+>
+>       {
+>           "url": "https://ona.io/api/v1/projects/1",
+>           "owner": "https://ona.io/api/v1/users/ona",
+>           "name": "project 1",
+>           "metadata": {
+>                        "description": "Lorem ipsum",
+>                        "location": "Nakuru, Kenya",
+>                        "category": "water"
+>                        }
 >           "date_created": "2013-07-24T13:37:39Z",
 >           "date_modified": "2013-07-24T13:37:39Z"
 >       }
@@ -95,10 +126,11 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 `formid=FORMID` to the endpoint below.
 
 <pre class="prettyprint">
-<b>POST</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms</pre>
+<b>POST</b> /api/v1/projects/<code>{pk}</code>/forms</pre>
 > Example
 >
->       curl -X POST -d '{"formid": 28058}' https://ona.io/api/v1/projects/modilabs/1/forms  # noqa
+>       curl -X POST -d '{"formid": 28058}' \
+https://ona.io/api/v1/projects/1/forms
 
 > Response
 >
@@ -114,7 +146,7 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "modilabs",
+>           "owner": "ona",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -124,11 +156,11 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 ## Upload XLSForm to a project
 
 <pre class="prettyprint">
-<b>POST</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms</pre>
+<b>POST</b> /api/v1/projects/<code>{pk}</code>/forms</pre>
 > Example
 >
->       curl -X POST -F xls_file=@/path/to/form.xls
->       https://ona.io/api/v1/projects/modilabs/1/forms
+>       curl -X POST -F xls_file=@/path/to/form.xls\
+ https://ona.io/api/v1/projects/1/forms
 
 > Response
 >
@@ -144,7 +176,7 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "modilabs",
+>           "owner": "ona",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -154,11 +186,11 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 ## Get Form Information for a project
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/projects/<code>{owner}</code>/<code>{pk}</code>/forms/<code>
-{formid}</code></pre>
+<b>GET</b> /api/v1/projects/<code>{pk}</code>/forms/<code>{formid}</code>
+</pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/projects/modilabs/1/forms/28058
+>       curl -X GET https://ona.io/api/v1/projects/1/forms/28058
 
 > Response
 >
@@ -174,7 +206,7 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "modilabs",
+>           "owner": "ona",
 >           "public": false,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -183,39 +215,11 @@ To [re]assign an existing form to a project you need to `POST` a payload of
     """
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
-    lookup_fields = ('owner', 'pk')
-    lookup_field = 'owner'
+    lookup_field = 'pk'
     extra_lookup_fields = None
     permission_classes = [permissions.DjangoObjectPermissions]
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_anonymous():
-            user = User.objects.get(pk=-1)
-        return user.project_creator.all()
-
-    def get_object(self, queryset=None):
-        pk = self.kwargs.get('pk', None)
-        if pk is not None:
-            try:
-                int(pk)
-            except ValueError:
-                raise exceptions.ParseError(
-                    detail=_(u"The path parameter {pk} "
-                             u"should be a number, '%s' given instead." % pk))
-
-        return super(ProjectViewSet, self).get_object(queryset)
-
-    def list(self, request, **kwargs):
-        filter = {}
-        if 'owner' in kwargs:
-            filter['organization__username'] = kwargs['owner']
-        # filter['created_by'] = request.user
-        qs = self.get_queryset()
-        qs = self.filter_queryset(qs)
-        self.object_list = qs.filter(**filter)
-        serializer = self.get_serializer(self.object_list, many=True)
-        return Response(serializer.data)
+    filter_backends = (filters.DjangoObjectPermissionsFilter,
+                       ProjectOwnerFilter)
 
     @action(methods=['POST', 'GET'], extra_lookup_fields=['formid', ])
     def forms(self, request, **kwargs):
@@ -225,8 +229,7 @@ To [re]assign an existing form to a project you need to `POST` a payload of
         xls_file -- xlsform file object
         """
         project = get_object_or_404(
-            Project, pk=kwargs.get('pk', None),
-            organization__username=kwargs.get('owner', None))
+            Project, pk=kwargs.get('pk'))
         if request.method.upper() == 'POST':
             survey = utils.publish_project_xform(request, project)
 
@@ -255,3 +258,17 @@ To [re]assign an existing form to a project you need to `POST` a payload of
             data, many=many, context={'request': request})
 
         return Response(serializer.data)
+
+    @action(methods=['POST'])
+    def share(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        data = dict(request.DATA.items() + [('project', self.object.pk)])
+        serializer = ShareProjectSerializer(data=data)
+
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            return Response(data=serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

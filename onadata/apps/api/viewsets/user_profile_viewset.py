@@ -84,7 +84,9 @@ for example, `{"country": "KE"}` will set the country to `KE`.
 <pre class="prettyprint"><b>PATCH</b> /api/v1/profiles/{username}</pre>
 > Example
 >
->       curl -X PATCH -d '{"country": KE}' https://ona.io/api/v1/profiles/demo
+>     \
+curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
+-H "Content-Type: application/json"
 
 > Response
 >

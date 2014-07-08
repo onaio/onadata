@@ -10,7 +10,8 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import XForm
-from onadata.libs.permissions import OwnerRole, ROLES
+from onadata.libs.permissions import (
+    OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
@@ -43,48 +44,20 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
-    def test_public_form_owner_list(self):
-        self.view = XFormViewSet.as_view({
-            'get': 'retrieve'
-        })
-        self._publish_xls_form_to_project()
-        request = self.factory.get('/', **self.extra)
-        response = self.view(request, owner=self.user.username, pk='public')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [])
-
-        # public shared form
-        self.xform.shared = True
-        self.xform.save()
-        response = self.view(request, owner=self.user.username, pk='public')
-        self.assertEqual(response.status_code, 200)
-        self.form_data['public'] = True
-        del self.form_data['date_modified']
-        del response.data[0]['date_modified']
-        self.assertEqual(response.data, [self.form_data])
-
-        # public shared form data
-        self.xform.shared_data = True
-        self.xform.shared = False
-        self.xform.save()
-        response = self.view(request, owner=self.user.username, pk='public')
-        self.assertEqual(response.status_code, 200)
-        self.form_data['public_data'] = True
-        self.form_data['public'] = False
-        del response.data[0]['date_modified']
-        self.assertEqual(response.data, [self.form_data])
-
     def test_public_form_list(self):
         self._publish_xls_form_to_project()
+        self.view = XFormViewSet.as_view({
+            'get': 'retrieve',
+        })
         request = self.factory.get('/', **self.extra)
-        response = self.view(request, owner='public')
+        response = self.view(request, pk='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
         # public shared form
         self.xform.shared = True
         self.xform.save()
-        response = self.view(request, owner='public')
+        response = self.view(request, pk='public')
         self.assertEqual(response.status_code, 200)
         self.form_data['public'] = True
         del self.form_data['date_modified']
@@ -95,18 +68,15 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.xform.shared_data = True
         self.xform.shared = False
         self.xform.save()
-        response = self.view(request, owner='public')
+        response = self.view(request, pk='public')
         self.assertEqual(response.status_code, 200)
-        self.form_data['public_data'] = True
-        self.form_data['public'] = False
-        del response.data[0]['date_modified']
-        self.assertEqual(response.data, [self.form_data])
+        self.assertEqual(response.data, [])
 
     def test_form_list_other_user_access(self):
         """Test that a different user has no access to bob's form"""
         self._publish_xls_form_to_project()
         request = self.factory.get('/', **self.extra)
-        response = self.view(request, owner=self.user.username)
+        response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.form_data])
 
@@ -117,23 +87,50 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(self.user.username, 'alice')
         self.assertNotEqual(previous_user,  self.user)
         request = self.factory.get('/', **self.extra)
-        response = self.view(request, owner=previous_user.username)
+        response = self.view(request)
         self.assertEqual(response.status_code, 200)
         # should be empty
         self.assertEqual(response.data, [])
 
-        # make form public
-        xform = previous_user.xforms.get(id_string=self.form_data['id_string'])
-        xform.shared = True
-        xform.save()
-        xform = previous_user.xforms.get(id_string=self.form_data['id_string'])
-        self.form_data['public'] = True
-        self.form_data['date_modified'] = xform.date_modified
-        response = self.view(request, owner=previous_user.username)
-        self.assertEqual(response.status_code, 200)
+    def test_form_list_filter_by_user(self):
+        # publish bob's form
+        self._publish_xls_form_to_project()
+        bobs_form_data = self.form_data
 
-        # other user has access to public form
+        previous_user = self.user
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self.assertEqual(self.user.username, 'alice')
+        self.assertNotEqual(previous_user,  self.user)
+
+        ReadOnlyRole.add(self.user, self.xform)
+
+        # publish alice's form
+        self._publish_xls_form_to_project()
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        # should be both bob's and alice's form
+        self.assertEqual(response.data, [bobs_form_data, self.form_data])
+
+        # apply filter, see only bob's forms
+        request = self.factory.get('/', data={'owner': 'bob'}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [bobs_form_data])
+
+        # apply filter, see only alice's forms
+        request = self.factory.get('/', data={'owner': 'alice'}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.form_data])
+
+        # apply filter, see a non existent user
+        request = self.factory.get('/', data={'owner': 'noone'}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
 
     def test_form_get(self):
         self._publish_xls_form_to_project()
@@ -142,34 +139,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         formid = self.xform.pk
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, self.form_data)
-
-    def test_form_get_by_id_string(self):
-        self._publish_xls_form_to_project()
-        view = XFormViewSet.as_view({
-            'get': 'retrieve'
-        })
-        request = self.factory.get('/', **self.extra)
-        # using id_string
-        response = view(request, owner='bob', pk=self.xform.id_string)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, self.form_data)
-
-    def test_form_get_multiple_users_same_id_string(self):
-        self._publish_xls_form_to_project()
-        self._login_user_and_profile(extra_post_data={'username': 'demo',
-                                                      'email': 'demo@ona.io'})
-        self._publish_xls_form_to_project()
-        view = XFormViewSet.as_view({
-            'get': 'retrieve'
-        })
-        request = self.factory.get('/', **self.extra)
-        # using id_string
-        response = view(request,
-                        owner=self.user.username,
-                        pk=self.xform.id_string)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.form_data)
 
@@ -187,10 +157,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             "type": "survey",
         }
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid, format='json')
+        response = view(request, pk=formid, format='json')
         self.assertEqual(response.status_code, 200)
         self.assertDictContainsSubset(data, response.data)
-        response = view(request, owner='bob', pk=formid, format='xml')
+        response = view(request, pk=formid, format='xml')
         self.assertEqual(response.status_code, 200)
         response_doc = minidom.parseString(response.data)
 
@@ -228,17 +198,17 @@ class TestXFormViewSet(TestAbstractViewSet):
         formid = self.xform.pk
         # no tags
         request = self.factory.get('/', **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.data, [])
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'hello'])
         # remove tag "hello"
         request = self.factory.delete('/', data={"tags": "hello"},
                                       **self.extra)
-        response = view(request, owner='bob', pk=formid, label='hello')
+        response = view(request, pk=formid, label='hello')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -251,7 +221,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         # no tags
         request = self.factory.get('/', **self.extra)
         with HTTMock(enketo_mock):
-            response = view(request, owner='bob', pk=formid)
+            response = view(request, pk=formid)
             data = {"enketo_url": "https://dmfrm.enketo.org/webform"}
             self.assertEqual(response.data, data)
 
@@ -283,7 +253,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             xform = self.user.xforms.all()[0]
             data.update({
                 'url':
-                'http://testserver/api/v1/forms/bob/%s' % xform.pk
+                'http://testserver/api/v1/forms/%s' % xform.pk
             })
             self.assertDictContainsSubset(data, response.data)
             self.assertTrue(OwnerRole.has_role(self.user, xform))
@@ -299,7 +269,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertFalse(self.xform.shared)
 
         request = self.factory.patch('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=self.xform.id)
+        response = view(request, pk=self.xform.id)
 
         self.xform.reload()
         self.assertTrue(self.xform.shared)
@@ -320,7 +290,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertTrue(self.xform.__getattribute__(key))
 
         request = self.factory.patch('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=self.xform.id)
+        response = view(request, pk=self.xform.id)
 
         self.xform.reload()
         self.assertFalse(self.xform.__getattribute__(key))
@@ -335,7 +305,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         data = {'public': 'String'}
 
         request = self.factory.patch('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=self.xform.id)
+        response = view(request, pk=self.xform.id)
 
         self.xform.reload()
         self.assertFalse(self.xform.__getattribute__(key))
@@ -352,7 +322,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         data = {'nonExistentField': False}
 
         request = self.factory.patch('/', data=data, **self.extra)
-        response = view(request, owner='bob', pk=self.xform.id)
+        response = view(request, pk=self.xform.id)
 
         self.xform.reload()
         self.assertFalse(self.xform.shared)
@@ -366,7 +336,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         formid = self.xform.pk
         request = self.factory.delete('/', **self.extra)
-        response = view(request, owner='bob', pk=formid)
+        response = view(request, pk=formid)
         self.assertEqual(response.data, None)
         self.assertEqual(response.status_code, 204)
         with self.assertRaises(XForm.DoesNotExist):
@@ -382,13 +352,18 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         formid = self.xform.pk
 
-        for role, role_class in ROLES.items():
+        ROLES = [ReadOnlyRole,
+                 DataEntryRole,
+                 EditorRole,
+                 ManagerRole,
+                 OwnerRole]
+        for role_class in ROLES:
             self.assertFalse(role_class.has_role(alice_profile.user,
                                                  self.xform))
 
-            data = {'username': 'alice', 'role': role}
+            data = {'username': 'alice', 'role': role_class.name}
             request = self.factory.post('/', data=data, **self.extra)
-            response = view(request, owner='bob', pk=formid)
+            response = view(request, pk=formid)
 
             self.assertEqual(response.status_code, 204)
             self.assertTrue(role_class.has_role(alice_profile.user,

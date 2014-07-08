@@ -74,8 +74,8 @@
 <script src="{{STATIC_URL}}js/stats_tables.js"></script>
 <script type="text/javascript">
     var formUrl = "{% url "download_jsonform" xform.user.username xform.id_string %}";
-    var statsUrl = "{% url "stats-list" xform.user.username xform.pk %}";
-    var submissionStatsUrl = "{% url "submissionstats-list" xform.user.username xform.pk %}";
+    var statsUrl = "{% url "stats-detail" xform.pk %}";
+    var submissionStatsUrl = "{% url "submissionstats-detail" xform.pk %}";
 
     var tableBuilder = new Ona.TableBuilderView({
         el: '#table-create-form',
