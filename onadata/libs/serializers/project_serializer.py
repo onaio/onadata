@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from onadata.apps.api.models import Project
+from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.json_field import JsonField
 
 
@@ -13,6 +14,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     created_by = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     metadata = JsonField()
+    users = serializers.SerializerMethodField('get_project_permissions')
 
     class Meta:
         model = Project
@@ -34,3 +36,6 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 created_by=created_by,
                 metadata=attrs.get('metadata'),)
         return attrs
+
+    def get_project_permissions(self, obj):
+        return get_object_users_with_permissions(obj)

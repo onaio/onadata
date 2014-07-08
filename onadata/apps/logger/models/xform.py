@@ -10,7 +10,9 @@ from django.core.urlresolvers import reverse
 from django.db.models.signals import post_save, post_delete
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy, ugettext as _
-from guardian.shortcuts import assign_perm, get_perms_for_model
+from guardian.shortcuts import \
+    assign_perm, \
+    get_perms_for_model
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
