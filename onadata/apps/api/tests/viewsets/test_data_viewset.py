@@ -231,7 +231,8 @@ class TestDataViewSet(TestBase):
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by('id')[0].pk
 
-        response = view(request, pk=formid, dataid=dataid)
+        response = view(request, owner=self.user.username,
+                        formid=formid, dataid=dataid)
         self.assertEqual(response.status_code, 400)
         # add data check
         self.assertEqual(
@@ -243,7 +244,8 @@ class TestDataViewSet(TestBase):
             data={'return_url': "http://test.io/test_url"}, **self.extra)
 
         with HTTMock(enketo_mock):
-            response = view(request, pk=formid, dataid=dataid)
+            response = view(request, owner=self.user.username,
+                            formid=formid, dataid=dataid)
             self.assertEqual(
                 response.data['url'],
                 "https://hmh2a.enketo.formhub.org")

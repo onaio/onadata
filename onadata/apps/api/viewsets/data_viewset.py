@@ -451,13 +451,13 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
         get_xform(formid, request, owner)
         instance = get_object_or_404(ParsedInstance, instance__pk=int(dataid))
         data = {}
-        if request.user.has_perm("change_xform", instance.xform):
+        if request.user.has_perm("change_xform", instance.instance.xform):
             return_url = request.QUERY_PARAMS.get('return_url')
             if not return_url:
                 raise ParseError(_(u"return_url not provided."))
 
             data["url"] = get_enketo_edit_url(
-                request, self.object, return_url)
+                request, instance.instance, return_url)
         else:
             raise PermissionDenied(_(u"You do not have edit permissions."))
 
