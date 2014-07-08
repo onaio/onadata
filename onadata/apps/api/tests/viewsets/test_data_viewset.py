@@ -323,5 +323,5 @@ class TestDataViewSet(TestBase):
         with HTTMock(enketo_mock):
             response = view(request, pk=formid, dataid=dataid)
             self.assertEqual(
-                response.data['enketo_edit_url'],
+                response.data['url'],
                 "https://hmh2a.enketo.formhub.org")
