@@ -129,3 +129,9 @@ ROLES = {role.name: role for role in [ReadOnlyRole,
                                       EditorRole,
                                       ManagerRole,
                                       OwnerRole]}
+
+
+def get_role(self, obj):
+        for role in ROLES:
+            if ROLES[role].has_role(self, obj):
+                return role

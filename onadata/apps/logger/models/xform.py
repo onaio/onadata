@@ -12,8 +12,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy, ugettext as _
 from guardian.shortcuts import \
     assign_perm, \
-    get_perms_for_model,\
-    get_users_with_perms, get_perms
+    get_perms_for_model
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
@@ -225,14 +224,6 @@ class XForm(BaseModel):
     @classmethod
     def public_forms(cls):
         return cls.objects.filter(shared=True)
-
-    def get_xform_permissions(self):
-        users_with_perms = []
-        for user in get_users_with_perms(self):
-            user_permissions = {'user': user,
-                                'permissions': get_perms(user, self)}
-            users_with_perms.append(user_permissions)
-        return users_with_perms
 
 
 def stats_forms_created(sender, instance, created, **kwargs):
