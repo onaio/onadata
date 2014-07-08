@@ -456,3 +456,7 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
     'text/csv',
     'application/zip'
 ]
+
+
+HTTP_HOST = 'testserver.com'
+USERNAME = 'bob'
