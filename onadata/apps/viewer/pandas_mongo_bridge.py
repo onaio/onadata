@@ -361,9 +361,9 @@ class XLSDataFrameBuilder(AbstractDataFrameBuilder):
                 pass
             data_section[
                 len(data_section) - 1].update({
-                self.group_delimiter.join(column.split('/'))
-                if self.group_delimiter != DEFAULT_GROUP_DELIMITER
-                else column: data_value})
+                    self.group_delimiter.join(column.split('/'))
+                    if self.group_delimiter != DEFAULT_GROUP_DELIMITER
+                    else column: data_value})
 
         data_section[len(data_section) - 1].update({
             XLSDataFrameBuilder.INDEX_COLUMN: index,
