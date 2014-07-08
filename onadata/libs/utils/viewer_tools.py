@@ -212,3 +212,27 @@ def create_attachments_zipfile(attachments):
                     report_exception("Create attachment zip exception", e)
 
     return tmp
+
+
+def _get_form_url(request, username):
+    # TODO store strings as constants elsewhere
+    if settings.TESTING_MODE:
+        http_host = 'testserver.com'
+        username = 'bob'
+    else:
+        http_host = request.META.get('HTTP_HOST', 'ona.io')
+
+    return '%s://%s/%s' % (settings.ENKETO_PROTOCOL, http_host, username)
+
+
+def get_enketo_edit_url(request, instance, return_url):
+    form_url = _get_form_url(request, request.user.username)
+    try:
+        url = enketo_url(
+            form_url, instance.xform.id_string, instance_xml=instance.xml,
+            instance_id=instance.uuid, return_url=return_url
+        )
+    except Exception as e:
+        raise e
+    else:
+        return url
