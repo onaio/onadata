@@ -126,6 +126,12 @@ class XForm(BaseModel):
         matches = re.findall(r"<h:title>([^<]+)</h:title>", text)
         if len(matches) != 1:
             raise XLSFormError(_("There should be a single title."), matches)
+
+        if self.title and matches[0][:XFORM_TITLE_LENGTH] != self.title:
+            self.xml = re.sub(r"<h:title>([^<]+)</h:title>",
+                              u"<h:title>%s</h:title>" % self.title, self.xml)
+            matches = re.findall(r"<h:title>([^<]+)</h:title>", self.xml)
+
         self.title = u"" if not matches else matches[0][:XFORM_TITLE_LENGTH]
 
     def _set_description(self):
