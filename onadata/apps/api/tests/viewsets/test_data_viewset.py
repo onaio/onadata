@@ -1,9 +1,20 @@
+import requests
+
 from django.test import RequestFactory
 
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm
+from httmock import urlmatch, HTTMock
+
+
+@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+def enketo_mock(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = '{"url": "https://hmh2a.enketo.formhub.org"}'
+    return response
 
 
 class TestDataViewSet(TestBase):
@@ -213,3 +224,26 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data, [])
         for i in self.xform.instances.all():
             self.assertNotIn(u'hello', i.tags.names())
+
+    def test_get_enketo_edit_url(self):
+        view = DataViewSet.as_view({'get': 'enketo'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 400)
+        # add data check
+        self.assertEqual(
+            response.data,
+            {'detail': 'return_url not provided.'})
+
+        request = self.factory.get(
+            '/',
+            data={'return_url': "http://test.io/test_url"}, **self.extra)
+
+        with HTTMock(enketo_mock):
+            response = view(request, pk=formid, dataid=dataid)
+            self.assertEqual(
+                response.data['enketo_edit_url'],
+                "https://hmh2a.enketo.formhub.org")

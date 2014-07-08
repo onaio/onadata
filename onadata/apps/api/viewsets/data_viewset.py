@@ -4,9 +4,11 @@ from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
 from django.utils import six
 from django.utils.translation import ugettext as _
+from django.core.exceptions import PermissionDenied
 
 from rest_framework import permissions
 from rest_framework.decorators import action
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.viewsets import ViewSet
@@ -16,6 +18,7 @@ from taggit.forms import TagField
 from onadata.apps.api.tools import get_accessible_forms, get_xform
 from onadata.apps.logger.models import Instance
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.libs.utils.viewer_tools import get_enketo_edit_url
 
 
 class CustomPermission(permissions.BasePermission):
@@ -284,6 +287,27 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
 >            ...
 >        }
 
+## Get enketo edit link for a submission instance
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/public
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/public
+
+> Response
+>
+>        [{
+>            "id": 4240,
+>            "id_string": "dhis2form"
+>            "title": "dhis2form"
+>            "description": "dhis2form"
+>            "url": "https://ona.io/api/v1/data/4240"
+>         },
+>            ...
+>        ]
 """
     permission_classes = [CustomPermission]
     lookup_field = 'owner'
@@ -428,3 +452,20 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
             status = 200
 
         return Response(data, status=status)
+
+    @action(methods=['GET'])
+    def enketo(self, request, owner, formid, dataid, **kwargs):
+        get_xform(formid, request, owner)
+        instance = get_object_or_404(ParsedInstance, instance__pk=int(dataid))
+        data = {}
+        if request.user.has_perm("change_xform", instance.xform):
+            return_url = request.QUERY_PARAMS.get('return_url')
+            if not return_url:
+                raise ParseError(_(u"return_url not provided."))
+
+            data["enketo_edit_url"] = get_enketo_edit_url(
+                request, self.object, return_url)
+        else:
+            raise PermissionDenied(_(u"You do not have edit permissions."))
+
+        return Response(data=data)
