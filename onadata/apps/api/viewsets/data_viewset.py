@@ -290,24 +290,17 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
 ## Get enketo edit link for a submission instance
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/public
+<b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/enketo
 </pre>
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/data/public
+>       curl -X GET https://ona.io/api/v1/data/28058/20/
 
 > Response
+>       {"url": "https://hmh2a.enketo.formhub.org"}
 >
->        [{
->            "id": 4240,
->            "id_string": "dhis2form"
->            "title": "dhis2form"
->            "description": "dhis2form"
->            "url": "https://ona.io/api/v1/data/4240"
->         },
->            ...
->        ]
+>
 """
     permission_classes = [CustomPermission]
     lookup_field = 'owner'
@@ -463,7 +456,7 @@ https://ona.io/api/v1/data/modilabs/28058/20/labels/hello%20world
             if not return_url:
                 raise ParseError(_(u"return_url not provided."))
 
-            data["enketo_edit_url"] = get_enketo_edit_url(
+            data["url"] = get_enketo_edit_url(
                 request, self.object, return_url)
         else:
             raise PermissionDenied(_(u"You do not have edit permissions."))
