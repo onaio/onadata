@@ -12,7 +12,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         view_name='user-detail', lookup_field='username', read_only=True)
     creator = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
-    users = users = serializers.SerializerMethodField('get_org_permissions')
+    users = serializers.SerializerMethodField('get_org_permissions')
 
     class Meta:
         model = OrganizationProfile
