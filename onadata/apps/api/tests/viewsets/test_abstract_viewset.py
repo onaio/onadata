@@ -122,7 +122,8 @@ class TestAbstractViewSet(TestCase):
             'owner': 'http://testserver/api/v1/users/%s' % self.user.username,
             'metadata': {'description': 'Some description',
                          'location': 'Naivasha, Kenya',
-                         'category': 'governance'}
+                         'category': 'governance'},
+            'public': False
         }
         data.update(project_data)
         request = self.factory.post(
