@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from onadata.apps.api import tools
 from onadata.apps.api.models import OrganizationProfile
+from onadata.libs.permissions import get_object_users_with_permissions
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
@@ -11,6 +12,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         view_name='user-detail', lookup_field='username', read_only=True)
     creator = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
+    users = serializers.SerializerMethodField('get_org_permissions')
 
     class Meta:
         model = OrganizationProfile
@@ -51,3 +53,6 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             self.errors['name'] = u'name is required!'
 
         return attrs
+
+    def get_org_permissions(self, obj):
+        return get_object_users_with_permissions(obj)
