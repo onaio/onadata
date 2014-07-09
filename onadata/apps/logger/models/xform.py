@@ -21,6 +21,7 @@ from onadata.libs.models.base_model import BaseModel
 
 
 XFORM_TITLE_LENGTH = 255
+title_pattern = re.compile(r"<h:title>([^<]+)</h:title>")
 
 
 def upload_to(instance, filename):
@@ -123,14 +124,15 @@ class XForm(BaseModel):
 
     def _set_title(self):
         text = re.sub(r"\s+", " ", self.xml)
-        matches = re.findall(r"<h:title>([^<]+)</h:title>", text)
+        matches = title_pattern.findall(text)
+
         if len(matches) != 1:
             raise XLSFormError(_("There should be a single title."), matches)
 
         if self.title and matches[0][:XFORM_TITLE_LENGTH] != self.title:
-            self.xml = re.sub(r"<h:title>([^<]+)</h:title>",
-                              u"<h:title>%s</h:title>" % self.title, self.xml)
-            matches = re.findall(r"<h:title>([^<]+)</h:title>", self.xml)
+            self.xml = title_pattern.sub(
+                u"<h:title>%s</h:title>" % self.title, self.xml)
+            matches = title_pattern.findall(self.xml)
 
         self.title = u"" if not matches else matches[0][:XFORM_TITLE_LENGTH]
 
