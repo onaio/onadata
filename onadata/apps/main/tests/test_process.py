@@ -550,11 +550,13 @@ class TestProcess(TestBase):
 
     def test_truncate_xform_title_to_255(self):
         self._publish_transportation_form()
+        title = "a" * (XFORM_TITLE_LENGTH + 1)
         groups = re.match(
             r"(.+<h:title>)([^<]+)(</h:title>.*)",
             self.xform.xml, re.DOTALL).groups()
         self.xform.xml = "{0}{1}{2}".format(
-            groups[0], "a" * (XFORM_TITLE_LENGTH + 1), groups[2])
+            groups[0], title, groups[2])
+        self.xform.title = title
         self.xform.save()
         self.assertEqual(self.xform.title, "a" * XFORM_TITLE_LENGTH)
 

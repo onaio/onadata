@@ -1,4 +1,7 @@
+# coding=utf-8
+
 import os
+import re
 import requests
 
 from django.conf import settings
@@ -268,8 +271,9 @@ class TestXFormViewSet(TestAbstractViewSet):
         view = XFormViewSet.as_view({
             'patch': 'partial_update'
         })
+        title = u'مرحب'
         description = 'DESCRIPTION'
-        data = {'public': True, 'description': description}
+        data = {'public': True, 'description': description, 'title': title}
 
         self.assertFalse(self.xform.shared)
 
@@ -281,6 +285,10 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(self.xform.description, description)
         self.assertEqual(response.data['public'], True)
         self.assertEqual(response.data['description'], description)
+        self.assertEqual(response.data['title'], title)
+        matches = re.findall(r"<h:title>([^<]+)</h:title>", self.xform.xml)
+        self.assertTrue(len(matches) > 0)
+        self.assertEqual(matches[0], title)
 
     def test_set_form_private(self):
         key = 'shared'
