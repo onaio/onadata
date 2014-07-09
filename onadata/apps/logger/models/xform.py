@@ -125,16 +125,17 @@ class XForm(BaseModel):
     def _set_title(self):
         text = re.sub(r"\s+", " ", self.xml)
         matches = title_pattern.findall(text)
+        title_xml = matches[0][:XFORM_TITLE_LENGTH]
 
         if len(matches) != 1:
             raise XLSFormError(_("There should be a single title."), matches)
 
-        if self.title and matches[0][:XFORM_TITLE_LENGTH] != self.title:
+        if self.title and title_xml != self.title:
+            title_xml = self.title[:XFORM_TITLE_LENGTH]
             self.xml = title_pattern.sub(
-                u"<h:title>%s</h:title>" % self.title, self.xml)
-            matches = title_pattern.findall(self.xml)
+                u"<h:title>%s</h:title>" % title_xml, self.xml)
 
-        self.title = u"" if not matches else matches[0][:XFORM_TITLE_LENGTH]
+        self.title = title_xml
 
     def _set_description(self):
         self.description = self.description \
