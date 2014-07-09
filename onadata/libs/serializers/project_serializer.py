@@ -6,6 +6,7 @@ from onadata.libs.serializers.fields.json_field import JsonField
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
+    projectid = serializers.Field(source='id')
     url = serializers.HyperlinkedIdentityField(
         view_name='project-detail', lookup_field='pk')
     owner = serializers.HyperlinkedRelatedField(
