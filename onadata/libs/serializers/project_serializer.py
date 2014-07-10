@@ -1,7 +1,9 @@
+from django.forms import widgets
 from rest_framework import serializers
 
 from onadata.apps.api.models import Project
 from onadata.libs.permissions import get_object_users_with_permissions
+from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 
 
@@ -14,8 +16,10 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         source='organization', lookup_field='username')
     created_by = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
-    metadata = JsonField()
+    metadata = JsonField(source='metadata', required=False)
     users = serializers.SerializerMethodField('get_project_permissions')
+    public = BooleanField(
+        source='shared', widget=widgets.CheckboxInput())
 
     class Meta:
         model = Project
@@ -24,7 +28,9 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     def restore_object(self, attrs, instance=None):
         if instance:
             metadata = JsonField.to_json(attrs.get('metadata'))
-            if self.partial:
+            if self.partial and metadata:
+                if not isinstance(instance.metadata, dict):
+                    instance.metadata = {}
                 instance.metadata.update(metadata)
                 attrs['metadata'] = instance.metadata
             return super(ProjectSerializer, self)\

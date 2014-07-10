@@ -46,9 +46,6 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', response.data.keys())
-        self.assertEquals(
-            response.data['users'][0]['user'],
-            self.company_data['creator'].split('/')[6])
 
     def test_orgs_create(self):
         self._org_create()

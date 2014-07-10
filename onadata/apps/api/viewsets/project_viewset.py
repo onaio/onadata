@@ -1,19 +1,18 @@
 from django.shortcuts import get_object_or_404
 
-from rest_framework import filters
-from rest_framework import permissions
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.libs.filters import ProjectOwnerFilter
+from onadata.libs.filters import AnonUserProjectFilter, ProjectOwnerFilter
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.share_project_serializer import \
     ShareProjectSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.api.models import Project, ProjectXForm
 from onadata.apps.api import tools as utils
+from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.logger.models import XForm
 
 
@@ -238,8 +237,8 @@ https://ona.io/api/v1/projects/1/forms
     serializer_class = ProjectSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
-    permission_classes = [permissions.DjangoObjectPermissions]
-    filter_backends = (filters.DjangoObjectPermissionsFilter,
+    permission_classes = [ProjectPermissions]
+    filter_backends = (AnonUserProjectFilter,
                        ProjectOwnerFilter)
 
     @action(methods=['POST', 'GET'], extra_lookup_fields=['formid', ])
