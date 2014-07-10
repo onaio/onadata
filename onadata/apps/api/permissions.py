@@ -57,4 +57,17 @@ class UserProfilePermissions(DjangoObjectPermissions):
         return \
             super(UserProfilePermissions, self).has_permission(request, view)
 
+
+class ProjectPermissions(DjangoObjectPermissions):
+
+    authenticated_users_only = False
+
+    def has_permission(self, request, view):
+        # allow anonymous to view public projects
+        if request.user.is_anonymous() and view.action == 'list':
+            return True
+
+        return \
+            super(ProjectPermissions, self).has_permission(request, view)
+
 __permissions__ = [DjangoObjectPermissions, IsAuthenticated]

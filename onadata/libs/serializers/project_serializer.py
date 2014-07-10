@@ -16,7 +16,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         source='organization', lookup_field='username')
     created_by = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
-    metadata = JsonField()
+    metadata = JsonField(source='metadata', required=False)
     users = serializers.SerializerMethodField('get_project_permissions')
     public = BooleanField(
         source='shared', widget=widgets.CheckboxInput())
@@ -27,8 +27,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     def restore_object(self, attrs, instance=None):
         if instance:
-            metadata = JsonField.to_json(attrs.get('metadata'))
+            metadata = JsonField.to_json(attrs.get('metadata')) or \
+                       {'default': 'data'}
             if self.partial:
+                if not isinstance(instance.metadata, dict):
+                    instance.metadata = {}
                 instance.metadata.update(metadata)
                 attrs['metadata'] = instance.metadata
             return super(ProjectSerializer, self)\
