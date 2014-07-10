@@ -10,7 +10,7 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Changing field 'Project.metadata'
-        db.alter_column(u'api_project', 'metadata', self.gf('jsonfield.fields.JSONField')(default={}))
+        db.alter_column(u'api_project', 'metadata', self.gf('jsonfield.fields.JSONField')(default={'category': 'none'}))
 
     def backwards(self, orm):
 

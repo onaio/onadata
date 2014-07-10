@@ -27,9 +27,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     def restore_object(self, attrs, instance=None):
         if instance:
-            metadata = JsonField.to_json(attrs.get('metadata')) or \
-                       {'default': 'data'}
-            if self.partial:
+            metadata = JsonField.to_json(attrs.get('metadata'))
+            if self.partial and metadata:
                 if not isinstance(instance.metadata, dict):
                     instance.metadata = {}
                 instance.metadata.update(metadata)
