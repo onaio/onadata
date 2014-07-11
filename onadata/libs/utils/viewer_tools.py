@@ -220,8 +220,8 @@ def create_attachments_zipfile(attachments):
 
 def _get_form_url(request, username, protocol='https'):
     if settings.TESTING_MODE:
-        http_host = settings.HTTP_HOST
-        username = settings.USERNAME
+        http_host = settings.TEST_HTTP_HOST
+        username = settings.TEST_USERNAME
     else:
         http_host = request.META.get('HTTP_HOST', 'ona.io')
 
