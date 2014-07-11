@@ -19,10 +19,10 @@ class Project(models.Model):
         )
 
     name = models.CharField(max_length=255)
-    metadata = JSONField(default={}, null=True)
+    metadata = JSONField(default={'category': 'none'}, null=False)
     organization = models.ForeignKey(User, related_name='project_organization')
     created_by = models.ForeignKey(User, related_name='project_creator')
-
+    shared = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
