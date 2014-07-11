@@ -395,6 +395,10 @@ DEFAULT_CONTENT_LENGTH = 10000000
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = ['--with-fixture-bundling']
 
+# fake endpoints for testing
+TEST_HTTP_HOST = 'testserver.com'
+TEST_USERNAME = 'bob'
+
 # re-captcha in registrations
 REGISTRATION_REQUIRE_CAPTCHA = False
 RECAPTCHA_USE_SSL = False

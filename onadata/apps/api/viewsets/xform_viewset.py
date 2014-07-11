@@ -5,7 +5,6 @@ from datetime import datetime
 
 from django import forms
 from django.core.exceptions import ValidationError
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.utils.translation import ugettext as _
@@ -41,6 +40,8 @@ from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.string import str2bool
+
+from onadata.libs.utils.viewer_tools import _get_form_url
 
 EXPORT_EXT = {
     'xls': Export.XLS_EXPORT,
@@ -139,7 +140,7 @@ def _set_start_end_params(request, query):
         return query
 
 
-def _generate_new_export(request, xform,  query, export_type):
+def _generate_new_export(request, xform, query, export_type):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
@@ -163,17 +164,6 @@ def _generate_new_export(request, xform,  query, export_type):
         raise Http404(_("No records found to export"))
     else:
         return export
-
-
-def _get_form_url(request, username):
-    # TODO store strings as constants elsewhere
-    if settings.TESTING_MODE:
-        http_host = 'testserver.com'
-        username = 'bob'
-    else:
-        http_host = request.META.get('HTTP_HOST', 'ona.io')
-
-    return 'https://%s/%s' % (http_host, username)
 
 
 def _get_user(username):

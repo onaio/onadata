@@ -23,6 +23,10 @@ class MyError(Exception):
     pass
 
 
+class EnketoError(Exception):
+    pass
+
+
 def image_urls_for_form(xform):
     return sum([
         image_urls(s) for s in xform.instances.all()
@@ -193,7 +197,7 @@ def enketo_url(form_url, id_string, instance_xml=None,
             pass
         else:
             if 'message' in response:
-                raise Exception(response['message'])
+                raise EnketoError(response['message'])
     return False
 
 
@@ -212,3 +216,23 @@ def create_attachments_zipfile(attachments):
                     report_exception("Create attachment zip exception", e)
 
     return tmp
+
+
+def _get_form_url(request, username, protocol='https'):
+    if settings.TESTING_MODE:
+        http_host = settings.TEST_HTTP_HOST
+        username = settings.TEST_USERNAME
+    else:
+        http_host = request.META.get('HTTP_HOST', 'ona.io')
+
+    return '%s://%s/%s' % (protocol, http_host, username)
+
+
+def get_enketo_edit_url(request, instance, return_url):
+    form_url = _get_form_url(request,
+                             request.user.username,
+                             settings.ENKETO_PROTOCOL)
+    url = enketo_url(
+        form_url, instance.xform.id_string, instance_xml=instance.xml,
+        instance_id=instance.uuid, return_url=return_url)
+    return url

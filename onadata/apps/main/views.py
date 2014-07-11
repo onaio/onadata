@@ -1250,8 +1250,11 @@ def qrcode(request, username, id_string):
     except:
         formhub_url = "http://formhub.org/"
     formhub_url = formhub_url + username
+
     if settings.TESTING_MODE:
-        formhub_url = "https://testserver.com/bob"
+        formhub_url = "https://{}/{}".format(settings.TEST_HTTP_HOST,
+                                             settings.TEST_USERNAME)
+
     results = _(u"Unexpected Error occured: No QRCODE generated")
     status = 200
     try:

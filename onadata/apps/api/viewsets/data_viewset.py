@@ -2,6 +2,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import six
 from django.utils.translation import ugettext as _
+from django.core.exceptions import PermissionDenied
 
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -18,11 +19,16 @@ from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import (
     DataSerializer, DataListSerializer, DataInstanceSerializer)
 from onadata.libs import filters
+from onadata.libs.utils.viewer_tools import (
+    EnketoError,
+    get_enketo_edit_url)
+
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin, ModelViewSet):
+
     """
 This endpoint provides access to submitted data in JSON format. Where:
 
@@ -285,6 +291,20 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 >            ...
 >        ]
 
+## Get enketo edit link for a submission instance
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/enketo
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/28058/20/enketo?return_url=url
+
+> Response
+>       {"url": "https://hmh2a.enketo.formhub.org"}
+>
+>
 """
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
                        filters.XFormOwnerFilter)
@@ -392,3 +412,25 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
             status = 200
 
         return Response(data, status=status)
+
+    @action(methods=['GET'])
+    def enketo(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        data = {}
+        if isinstance(self.object, XForm):
+            raise ParseError(_(u"Data id not provided."))
+        elif(isinstance(self.object, Instance)):
+            if request.user.has_perm("change_xform", self.object.xform):
+                return_url = request.QUERY_PARAMS.get('return_url')
+                if not return_url:
+                    raise ParseError(_(u"return_url not provided."))
+
+                try:
+                    data["url"] = get_enketo_edit_url(
+                        request, self.object, return_url)
+                except EnketoError as e:
+                    data['detail'] = "{}".format(e)
+            else:
+                raise PermissionDenied(_(u"You do not have edit permissions."))
+
+        return Response(data=data)
