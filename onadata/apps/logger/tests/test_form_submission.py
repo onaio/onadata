@@ -52,12 +52,12 @@ class TestFormSubmission(TestBase):
         self.assertFalse(self.xform.require_auth)
         request = self.factory.patch('/', data=data, **{
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
-        response = view(request, pk=self.xform.id)
+        view(request, pk=self.xform.id)
         self.xform.reload()
         self.assertTrue(self.xform.require_auth)
 
         xml_submission_file_path = os.path.join(
-           os.path.dirname(os.path.abspath(__file__)),
+            os.path.dirname(os.path.abspath(__file__)),
             "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
         )
         self._make_submission(xml_submission_file_path)
