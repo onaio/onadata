@@ -5,6 +5,7 @@ import re
 import tempfile
 import traceback
 from xml.dom import Node
+from xml.parsers.expat import ExpatError
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -27,14 +28,20 @@ import sys
 
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models.instance import InstanceHistory
-from onadata.apps.logger.models.instance import get_id_string_from_xml_str
+from onadata.apps.logger.models.instance import (
+    FormInactiveError,
+    InstanceHistory,
+    get_id_string_from_xml_str)
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XLSFormError
-from onadata.apps.logger.xform_instance_parser import\
-    InstanceInvalidUserError, DuplicateInstance,\
-    clean_and_parse_xml, get_uuid_from_xml, get_deprecated_uuid_from_xml,\
-    get_submission_date_from_xml
+from onadata.apps.logger.xform_instance_parser import (
+    InstanceEmptyError,
+    InstanceInvalidUserError,
+    DuplicateInstance,
+    clean_and_parse_xml,
+    get_uuid_from_xml,
+    get_deprecated_uuid_from_xml,
+    get_submission_date_from_xml)
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import _remove_from_mongo,\
     xform_instances, ParsedInstance
@@ -239,6 +246,42 @@ def create_instance(username, xml_file, media_files,
     except Exception:
         transaction.rollback()
         raise
+
+
+def safe_create_instance(username, xml_file, media_files, uuid, request):
+    """Create an instance and catch exceptions.
+
+    :returns: A list [error, instance] where error is None if there was no
+        error.
+    """
+    error = instance = None
+
+    try:
+        instance = create_instance(
+            username, xml_file, media_files, uuid=uuid, request=request)
+    except InstanceInvalidUserError:
+        error = OpenRosaResponseBadRequest(_(u"Username or ID required."))
+    except InstanceEmptyError:
+        error = OpenRosaResponseBadRequest(
+            _(u"Received empty submission. No instance was created")
+        )
+    except FormInactiveError:
+        error = OpenRosaResponseNotAllowed(_(u"Form is not active"))
+    except XForm.DoesNotExist:
+        error = OpenRosaResponseNotFound(
+            _(u"Form does not exist on this account")
+        )
+    except ExpatError:
+        error = OpenRosaResponseBadRequest(_(u"Improperly formatted XML."))
+    except DuplicateInstance:
+        response = OpenRosaResponse(_(u"Duplicate submission"))
+        response.status_code = 202
+        response['Location'] = request.build_absolute_uri(request.path)
+        error = response
+    except PermissionDenied as e:
+        error = OpenRosaResponseForbidden(e)
+
+    return [error, instance]
 
 
 def report_exception(subject, info, exc_info=None):

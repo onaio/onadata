@@ -4,7 +4,6 @@ import os
 import tempfile
 
 import pytz
-from xml.parsers.expat import ExpatError
 
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
@@ -14,7 +13,6 @@ from django.contrib import messages
 from django.core.files.storage import get_storage_class
 from django.core.files import File
 from django.core.urlresolvers import reverse
-from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render_to_response, get_object_or_404
@@ -28,18 +26,22 @@ from django_digest import HttpDigestAuthenticator
 
 from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.logger.import_tools import import_instances_from_zip
-from onadata.apps.logger.xform_instance_parser import InstanceEmptyError,\
-    InstanceInvalidUserError, DuplicateInstance
 from onadata.apps.logger.models.attachment import Attachment
-from onadata.apps.logger.models.instance import FormInactiveError, Instance
+from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.ziggy_instance import ZiggyInstance
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.viewer_tools import enketo_url
-from onadata.libs.utils.logger_tools import create_instance,\
-    OpenRosaResponseBadRequest, OpenRosaResponseNotAllowed, OpenRosaResponse,\
-    OpenRosaResponseNotFound, BaseOpenRosaResponse, inject_instanceid,\
-    remove_xform, publish_xml_form, publish_form, OpenRosaResponseForbidden
+from onadata.libs.utils.logger_tools import (
+    safe_create_instance,
+    OpenRosaResponseBadRequest,
+    OpenRosaResponse,
+    BaseOpenRosaResponse,
+    inject_instanceid,
+    remove_xform,
+    publish_xml_form,
+    publish_form,
+    OpenRosaResponseForbidden)
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.user_auth import helper_auth_helper, has_permission,\
@@ -259,39 +261,16 @@ def submission(request, username=None):
         # get uuid from post request
         uuid = request.POST.get('uuid')
 
-        try:
-            instance = create_instance(
-                username, xml_file_list[0], media_files,
-                uuid=uuid, request=request
-            )
-        except InstanceInvalidUserError:
-            return OpenRosaResponseBadRequest(_(u"Username or ID required."))
-        except InstanceEmptyError:
-            return OpenRosaResponseBadRequest(
-                _(u"Received empty submission. No instance was created")
-            )
-        except FormInactiveError:
-            return OpenRosaResponseNotAllowed(_(u"Form is not active"))
-        except XForm.DoesNotExist:
-            return OpenRosaResponseNotFound(
-                _(u"Form does not exist on this account")
-            )
-        except ExpatError:
-            return OpenRosaResponseBadRequest(_(u"Improperly formatted XML."))
-        except DuplicateInstance:
-            response = OpenRosaResponse(_(u"Duplicate submission"))
-            response.status_code = 202
-            response['Location'] = request.build_absolute_uri(request.path)
-            return response
-        except PermissionDenied as e:
-            return OpenRosaResponseForbidden(e)
+        error, instance = safe_create_instance(
+            username, xml_file_list[0], media_files, uuid, request)
 
-        if instance is None:
+        if error:
+            return error
+        elif instance is None:
             return OpenRosaResponseBadRequest(
                 _(u"Unable to create submission."))
 
-        # Do not allow non-owners to submit
-        # if form is private i.e. (require_auth=True)
+        # If require_auth is set check authorization
         if username and request.user.username != profile.user.username\
                 and instance.xform.require_auth:
             return OpenRosaResponseForbidden(
