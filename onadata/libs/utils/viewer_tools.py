@@ -214,18 +214,20 @@ def create_attachments_zipfile(attachments):
     return tmp
 
 
-def _get_form_url(request, username):
+def _get_form_url(request, username, protocol='https'):
     if settings.TESTING_MODE:
         http_host = settings.HTTP_HOST
         username = settings.USERNAME
     else:
         http_host = request.META.get('HTTP_HOST', 'ona.io')
 
-    return '%s://%s/%s' % (settings.ENKETO_PROTOCOL, http_host, username)
+    return '%s://%s/%s' % (protocol, http_host, username)
 
 
 def get_enketo_edit_url(request, instance, return_url):
-    form_url = _get_form_url(request, request.user.username)
+    form_url = _get_form_url(request,
+                             request.user.username,
+                             settings.ENKETO_PROTOCOL)
     try:
         url = enketo_url(
             form_url, instance.xform.id_string, instance_xml=instance.xml,
