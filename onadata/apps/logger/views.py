@@ -287,7 +287,7 @@ def submission(request, username=None):
             return OpenRosaResponseForbidden(e)
 
         if instance is None:
-            return OpenRosaResponseBadRequest(
+            return OpenRosaResponse(
                 _(u"Unable to create submission."))
 
         # Do not allow non-owners to submit
@@ -295,7 +295,7 @@ def submission(request, username=None):
         if username:
             if request.user.username != profile.user.username:
                 if instance.xform.require_auth:
-                    return OpenRosaResponseBadRequest(
+                    return OpenRosaResponseForbidden(
                         _(u"Submission not allowed. Form is private."))
 
         audit = {

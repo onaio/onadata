@@ -15,6 +15,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     owner = serializers.HyperlinkedRelatedField(
         view_name='user-detail',
         source='user', lookup_field='username')
+    private = BooleanField(
+        source='require_auth', widget=widgets.CheckboxInput())
     public = BooleanField(
         source='shared', widget=widgets.CheckboxInput())
     public_data = BooleanField(

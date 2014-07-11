@@ -572,7 +572,8 @@ https://ona.io/api/v1/forms/123.json
     lookup_field = 'pk'
     extra_lookup_fields = None
     permission_classes = [XFormPermissions, ]
-    updatable_fields = set(('description', 'shared', 'shared_data', 'title'))
+    updatable_fields = set(('description', 'require_auth',
+                            'shared', 'shared_data', 'title'))
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
                        filters.XFormOwnerFilter)
 

@@ -5,6 +5,7 @@ from django.db.models import Sum
 from django_digest.test import Client as DigestClient
 from guardian.shortcuts import assign_perm
 
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
@@ -39,6 +40,28 @@ class TestFormSubmission(TestBase):
         )
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
+
+    def test_submission_to_private_non_owner_form(self):
+        """
+        test submission to a private form by non-owner is forbidden.
+        """
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        data = {'private': True}
+        self.assertFalse(self.xform.require_auth)
+        request = self.factory.patch('/', data=data, **{
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
+        response = view(request, pk=self.xform.id)
+        self.xform.reload()
+        self.assertTrue(self.xform.require_auth)
+
+        xml_submission_file_path = os.path.join(
+           os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
+        )
+        self._make_submission(xml_submission_file_path)
+        self.assertEqual(self.response.status_code, 403)
 
     def test_form_post_to_missing_form(self):
         xml_submission_file_path = os.path.join(
