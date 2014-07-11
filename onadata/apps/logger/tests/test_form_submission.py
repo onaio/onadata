@@ -4,6 +4,7 @@ import re
 from django.db.models import Sum
 from django_digest.test import Client as DigestClient
 from guardian.shortcuts import assign_perm
+from nose import SkipTest
 
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models.user_profile import UserProfile
@@ -41,31 +42,10 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
 
-    def test_submission_to_private_non_owner_form(self):
+    def test_submission_to_require_auth_anon(self):
         """
-        test submission to a private form by non-owner is forbidden.
-        """
-        view = XFormViewSet.as_view({
-            'patch': 'partial_update'
-        })
-        data = {'require_auth': True}
-        self.assertFalse(self.xform.require_auth)
-        request = self.factory.patch('/', data=data, **{
-            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
-        view(request, pk=self.xform.id)
-        self.xform.reload()
-        self.assertTrue(self.xform.require_auth)
-
-        xml_submission_file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
-        )
-        self._make_submission(xml_submission_file_path)
-        self.assertEqual(self.response.status_code, 403)
-
-    def test_submission_to_private_non_owner_form_with_perm(self):
-        """
-        test submission to a private form by non-owner is forbidden.
+        test submission to a private form by non-owner without perm is
+        forbidden.
         """
         view = XFormViewSet.as_view({
             'patch': 'partial_update'
@@ -82,8 +62,77 @@ class TestFormSubmission(TestBase):
             os.path.dirname(os.path.abspath(__file__)),
             "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
         )
+
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 403)
+
+    def test_submission_to_require_auth_without_perm(self):
+        """
+        test submission to a private form by non-owner without perm is
+        forbidden.
+        """
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        data = {'require_auth': True}
+        self.assertFalse(self.xform.require_auth)
+        request = self.factory.patch('/', data=data, **{
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
+        view(request, pk=self.xform.id)
+        self.xform.reload()
+        self.assertTrue(self.xform.require_auth)
+
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
+        )
+
+        # create a new user
+        username = 'alice'
+        self._create_user(username, username)
+
+        client = DigestClient()
+        client.set_authorization(username, username, 'Digest')
+
+        self._make_submission(xml_submission_file_path, client=client)
+        self.assertEqual(self.response.status_code, 403)
+
+    def test_submission_to_require_auth_with_perm(self):
+        """
+        test submission to a private form by non-owner is forbidden.
+
+        TODO send authentication challenge when xform.require_auth is set.
+        This is non-trivial because we do not know the xform until we have
+        parsed the XML.
+        """
+        raise SkipTest
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        data = {'require_auth': True}
+        self.assertFalse(self.xform.require_auth)
+        request = self.factory.patch('/', data=data, **{
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
+        view(request, pk=self.xform.id)
+        self.xform.reload()
+        self.assertTrue(self.xform.require_auth)
+
+        # create a new user
+        username = 'alice'
+        alice = self._create_user(username, username)
+
+        # assign report perms to user
+        assign_perm('report_xform', alice, self.xform)
+        client = DigestClient()
+        client.set_authorization(username, username, 'Digest')
+
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
+        )
+        self._make_submission(xml_submission_file_path, client=client)
+        self.assertEqual(self.response.status_code, 201)
 
     def test_form_post_to_missing_form(self):
         xml_submission_file_path = os.path.join(
