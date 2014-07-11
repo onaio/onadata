@@ -23,6 +23,10 @@ class MyError(Exception):
     pass
 
 
+class EnketoError(Exception):
+    pass
+
+
 def image_urls_for_form(xform):
     return sum([
         image_urls(s) for s in xform.instances.all()
@@ -193,7 +197,7 @@ def enketo_url(form_url, id_string, instance_xml=None,
             pass
         else:
             if 'message' in response:
-                raise Exception(response['message'])
+                raise EnketoError(response['message'])
     return False
 
 
@@ -228,12 +232,7 @@ def get_enketo_edit_url(request, instance, return_url):
     form_url = _get_form_url(request,
                              request.user.username,
                              settings.ENKETO_PROTOCOL)
-    try:
-        url = enketo_url(
-            form_url, instance.xform.id_string, instance_xml=instance.xml,
-            instance_id=instance.uuid, return_url=return_url
-        )
-    except Exception as e:
-        raise e
-    else:
-        return url
+    url = enketo_url(
+        form_url, instance.xform.id_string, instance_xml=instance.xml,
+        instance_id=instance.uuid, return_url=return_url)
+    return url

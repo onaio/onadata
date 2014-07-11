@@ -19,7 +19,9 @@ from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import (
     DataSerializer, DataListSerializer, DataInstanceSerializer)
 from onadata.libs import filters
-from onadata.libs.utils.viewer_tools import get_enketo_edit_url
+from onadata.libs.utils.viewer_tools import (
+    EnketoError,
+    get_enketo_edit_url)
 
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
@@ -423,8 +425,11 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
                 if not return_url:
                     raise ParseError(_(u"return_url not provided."))
 
-                data["url"] = get_enketo_edit_url(
-                    request, self.object, return_url)
+                try:
+                    data["url"] = get_enketo_edit_url(
+                        request, self.object, return_url)
+                except EnketoError as e:
+                    data['detail'] = "{}".format(e)
             else:
                 raise PermissionDenied(_(u"You do not have edit permissions."))
 
