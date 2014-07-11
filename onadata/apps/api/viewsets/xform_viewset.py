@@ -303,6 +303,7 @@ https://ona.io/api/v1/forms
 >           "owner": "https://ona.io/api/v1/users/ona",
 >           "public": false,
 >           "public_data": false,
+>           "require_auth": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
 >           "date_modified": "2013-07-25T14:14:22.892Z"
 >       }

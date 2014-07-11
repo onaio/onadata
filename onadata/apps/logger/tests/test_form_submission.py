@@ -48,7 +48,29 @@ class TestFormSubmission(TestBase):
         view = XFormViewSet.as_view({
             'patch': 'partial_update'
         })
-        data = {'private': True}
+        data = {'require_auth': True}
+        self.assertFalse(self.xform.require_auth)
+        request = self.factory.patch('/', data=data, **{
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
+        view(request, pk=self.xform.id)
+        self.xform.reload()
+        self.assertTrue(self.xform.require_auth)
+
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
+        )
+        self._make_submission(xml_submission_file_path)
+        self.assertEqual(self.response.status_code, 403)
+
+    def test_submission_to_private_non_owner_form_with_perm(self):
+        """
+        test submission to a private form by non-owner is forbidden.
+        """
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        data = {'require_auth': True}
         self.assertFalse(self.xform.require_auth)
         request = self.factory.patch('/', data=data, **{
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
