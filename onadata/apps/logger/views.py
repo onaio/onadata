@@ -287,7 +287,7 @@ def submission(request, username=None):
             return OpenRosaResponseForbidden(e)
 
         if instance is None:
-            return OpenRosaResponse(
+            return OpenRosaResponseBadRequest(
                 _(u"Unable to create submission."))
 
         # Do not allow non-owners to submit
