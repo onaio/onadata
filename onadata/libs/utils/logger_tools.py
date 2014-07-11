@@ -5,6 +5,7 @@ import re
 import tempfile
 import traceback
 from xml.dom import Node
+from xml.parsers.expat import ExpatError
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -27,14 +28,20 @@ import sys
 
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models.instance import InstanceHistory
-from onadata.apps.logger.models.instance import get_id_string_from_xml_str
+from onadata.apps.logger.models.instance import (
+    FormInactiveError,
+    InstanceHistory,
+    get_id_string_from_xml_str)
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XLSFormError
-from onadata.apps.logger.xform_instance_parser import\
-    InstanceInvalidUserError, DuplicateInstance,\
-    clean_and_parse_xml, get_uuid_from_xml, get_deprecated_uuid_from_xml,\
-    get_submission_date_from_xml
+from onadata.apps.logger.xform_instance_parser import (
+    InstanceEmptyError,
+    InstanceInvalidUserError,
+    DuplicateInstance,
+    clean_and_parse_xml,
+    get_uuid_from_xml,
+    get_deprecated_uuid_from_xml,
+    get_submission_date_from_xml)
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import _remove_from_mongo,\
     xform_instances, ParsedInstance
@@ -130,18 +137,28 @@ def check_edit_submission_permissions(request_user, xform):
 
 
 def check_submission_permissions(request, xform):
-    """Since we have a username, the Instance creation logic will
+    """Check that permission is required and the request user has permission.
+
+    The user does no have permissions iff:
+        * the user is authed,
+        * either the profile or the form require auth,
+        * the xform user is not submitting.
+
+    Since we have a username, the Instance creation logic will
     handle checking for the forms existence by its id_string.
+
+    :returns: None.
+    :raises: PermissionDenied based on the above criteria.
     """
-    if xform and request and request.user.is_authenticated():
-        if xform.user.profile.require_auth and xform.user != request.user\
-                and not request.user.has_perm('report_xform', xform):
-            raise PermissionDenied(
-                _(u"%(request_user)s is not allowed to make submissions "
-                  u"to %(form_user)s's %(form_title)s form." % {
-                      'request_user': request.user,
-                      'form_user': xform.user,
-                      'form_title': xform.title}))
+    if request and (xform.user.profile.require_auth or xform.require_auth)\
+            and xform.user != request.user\
+            and not request.user.has_perm('report_xform', xform):
+        raise PermissionDenied(
+            _(u"%(request_user)s is not allowed to make submissions "
+              u"to %(form_user)s's %(form_title)s form." % {
+                  'request_user': request.user,
+                  'form_user': xform.user,
+                  'form_title': xform.title}))
 
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
@@ -191,7 +208,10 @@ def create_instance(username, xml_file, media_files,
         instance = None
         submitted_by = request.user \
             if request and request.user.is_authenticated() else None
-        username = username.lower() if username else username
+
+        if username:
+            username = username.lower()
+
         xml = xml_file.read()
         xform = get_xform_from_submission(xml, username, uuid)
         check_submission_permissions(request, xform)
@@ -239,6 +259,42 @@ def create_instance(username, xml_file, media_files,
     except Exception:
         transaction.rollback()
         raise
+
+
+def safe_create_instance(username, xml_file, media_files, uuid, request):
+    """Create an instance and catch exceptions.
+
+    :returns: A list [error, instance] where error is None if there was no
+        error.
+    """
+    error = instance = None
+
+    try:
+        instance = create_instance(
+            username, xml_file, media_files, uuid=uuid, request=request)
+    except InstanceInvalidUserError:
+        error = OpenRosaResponseBadRequest(_(u"Username or ID required."))
+    except InstanceEmptyError:
+        error = OpenRosaResponseBadRequest(
+            _(u"Received empty submission. No instance was created")
+        )
+    except FormInactiveError:
+        error = OpenRosaResponseNotAllowed(_(u"Form is not active"))
+    except XForm.DoesNotExist:
+        error = OpenRosaResponseNotFound(
+            _(u"Form does not exist on this account")
+        )
+    except ExpatError:
+        error = OpenRosaResponseBadRequest(_(u"Improperly formatted XML."))
+    except DuplicateInstance:
+        response = OpenRosaResponse(_(u"Duplicate submission"))
+        response.status_code = 202
+        response['Location'] = request.build_absolute_uri(request.path)
+        error = response
+    except PermissionDenied as e:
+        error = OpenRosaResponseForbidden(e)
+
+    return [error, instance]
 
 
 def report_exception(subject, info, exc_info=None):

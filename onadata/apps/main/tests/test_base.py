@@ -14,6 +14,8 @@ from django.test.client import Client
 from django_digest.test import Client as DigestClient
 from django.utils import timezone
 
+from rest_framework.test import APIRequestFactory
+
 from onadata.apps.logger.models import XForm, Instance, Attachment
 
 
@@ -29,6 +31,7 @@ class TestBase(TransactionTestCase):
         self.maxDiff = None
         self._create_user_and_login()
         self.base_url = 'http://testserver'
+        self.factory = APIRequestFactory()
 
     def tearDown(self):
         # clear mongo db after each test

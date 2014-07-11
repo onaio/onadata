@@ -28,6 +28,15 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self._org_create()
         request = self.factory.get('/')
         response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(
+            response.data,
+            {u'detail': u'Authentication credentials were not provided.'})
+
+    def test_orgs_list_for_authenticated_user(self):
+        self._org_create()
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.company_data])
 

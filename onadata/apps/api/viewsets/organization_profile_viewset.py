@@ -159,7 +159,7 @@ https://ona.io/api/v1/orgs/modilabs/members
     model = OrganizationProfile
     serializer_class = OrganizationSerializer
     lookup_field = 'user'
-    permission_classes = [permissions.DjangoObjectPermissionsAllowAnon]
+    permission_classes = [permissions.DjangoObjectPermissions]
 
     @action(methods=['DELETE', 'GET', 'POST'])
     def members(self, request, *args, **kwargs):

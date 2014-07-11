@@ -19,6 +19,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         source='shared', widget=widgets.CheckboxInput())
     public_data = BooleanField(
         source='shared_data')
+    require_auth = BooleanField(
+        source='require_auth', widget=widgets.CheckboxInput())
     tags = TagListSerializer(read_only=True)
     users = serializers.SerializerMethodField('get_xform_permissions')
 
