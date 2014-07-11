@@ -40,8 +40,7 @@ from onadata.libs.utils.logger_tools import (
     inject_instanceid,
     remove_xform,
     publish_xml_form,
-    publish_form,
-    OpenRosaResponseForbidden)
+    publish_form)
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.user_auth import helper_auth_helper, has_permission,\
@@ -269,12 +268,6 @@ def submission(request, username=None):
         elif instance is None:
             return OpenRosaResponseBadRequest(
                 _(u"Unable to create submission."))
-
-        # If require_auth is set check authorization
-        if username and request.user.username != profile.user.username\
-                and instance.xform.require_auth:
-            return OpenRosaResponseForbidden(
-                _(u"Submission not allowed. Form is private."))
 
         audit = {
             "xform": instance.xform.id_string
