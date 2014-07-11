@@ -168,7 +168,15 @@ def formList(request, username):
         if not request.user.is_active:
             return HttpResponseNotAuthorized()
 
-    xforms = XForm.objects.filter(downloadable=True, user__username=username)
+    # filter private forms (where require_auth=True)
+    # for users who are non-owner
+    if request.user.username == profile.user.username:
+        xforms = XForm.objects.filter(downloadable=True,
+                                      user__username=username)
+    else:
+        xforms = XForm.objects.filter(downloadable=True,
+                                      user__username=username,
+                                      require_auth=False)
 
     audit = {}
     audit_log(Actions.USER_FORMLIST_REQUESTED, request.user, formlist_user,
@@ -281,6 +289,14 @@ def submission(request, username=None):
         if instance is None:
             return OpenRosaResponseBadRequest(
                 _(u"Unable to create submission."))
+
+        # Do not allow non-owners to submit
+        # if form is private i.e. (require_auth=True)
+        if username:
+            if request.user.username != profile.user.username:
+                if instance.xform.require_auth:
+                    return OpenRosaResponseBadRequest(
+                        _(u"Submission not allowed. Form is private."))
 
         audit = {
             "xform": instance.xform.id_string
