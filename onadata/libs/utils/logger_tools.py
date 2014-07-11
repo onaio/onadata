@@ -137,18 +137,28 @@ def check_edit_submission_permissions(request_user, xform):
 
 
 def check_submission_permissions(request, xform):
-    """Since we have a username, the Instance creation logic will
+    """Check that permission is required and the request user has permission.
+
+    The user does no have permissions iff:
+        * the user is authed,
+        * either the profile or the form require auth,
+        * the xform user is not submitting.
+
+    Since we have a username, the Instance creation logic will
     handle checking for the forms existence by its id_string.
+
+    :returns: None.
+    :raises: PermissionDenied based on the above criteria.
     """
-    if xform and request and request.user.is_authenticated():
-        if xform.user.profile.require_auth and xform.user != request.user\
-                and not request.user.has_perm('report_xform', xform):
-            raise PermissionDenied(
-                _(u"%(request_user)s is not allowed to make submissions "
-                  u"to %(form_user)s's %(form_title)s form." % {
-                      'request_user': request.user,
-                      'form_user': xform.user,
-                      'form_title': xform.title}))
+    if (xform.user.profile.require_auth or xform.require_auth)\
+            and xform.user != request.user\
+            and not request.user.has_perm('report_xform', xform):
+        raise PermissionDenied(
+            _(u"%(request_user)s is not allowed to make submissions "
+              u"to %(form_user)s's %(form_title)s form." % {
+                  'request_user': request.user,
+                  'form_user': xform.user,
+                  'form_title': xform.title}))
 
 
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
@@ -198,7 +208,10 @@ def create_instance(username, xml_file, media_files,
         instance = None
         submitted_by = request.user \
             if request and request.user.is_authenticated() else None
-        username = username.lower() if username else username
+
+        if username:
+            username = username.lower()
+
         xml = xml_file.read()
         xform = get_xform_from_submission(xml, username, uuid)
         check_submission_permissions(request, xform)
