@@ -40,6 +40,22 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.company_data])
 
+    def test_orgs_list_restricted(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'get': 'list'
+        })
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self.assertEqual(self.user.username, 'alice')
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
     def test_orgs_get(self):
         self._org_create()
         view = OrganizationProfileViewSet.as_view({
@@ -184,7 +200,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
 
         response = view(request, user='denoinc')
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
         self.assertNotEqual(response.data, [u'denoinc', u'aboy'])
 
     def test_remove_members_from_org(self):

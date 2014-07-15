@@ -1,19 +1,19 @@
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 
-from rest_framework import status
+from rest_framework import filters, status
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
-from onadata.libs.serializers.organization_serializer import(
-    OrganizationSerializer)
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tools import (get_organization_members,
                                     add_user_to_organization,
                                     remove_user_from_organization)
 from onadata.apps.api import permissions
+from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.serializers.organization_serializer import(
+    OrganizationSerializer)
 
 
 def _try_function_org_username(f, organization, username):
@@ -159,7 +159,8 @@ https://ona.io/api/v1/orgs/modilabs/members
     model = OrganizationProfile
     serializer_class = OrganizationSerializer
     lookup_field = 'user'
-    permission_classes = [permissions.DjangoObjectPermissions]
+    permission_classes = [permissions.ViewDjangoObjectPermissions]
+    filter_backends = (filters.DjangoObjectPermissionsFilter,)
 
     @action(methods=['DELETE', 'GET', 'POST'])
     def members(self, request, *args, **kwargs):

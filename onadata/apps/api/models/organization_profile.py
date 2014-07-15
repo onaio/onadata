@@ -48,7 +48,7 @@ class OrganizationProfile(UserProfile):
         app_label = 'api'
         permissions = (
             ('can_add_xform', "Can add/upload an xform to organization"),
-            ('view_profile', "Can view organization profile"),
+            ('view_organizationprofile', "Can view organization profile"),
         )
 
     is_organization = models.BooleanField(default=True)
