@@ -55,7 +55,7 @@ class Role(object):
         has_perms = False
 
         for permission, klass in cls.permissions:
-            if isinstance(obj, klass):
+            if type(obj) is klass:
                 if not user.has_perm(permission, obj):
                     return False
 
