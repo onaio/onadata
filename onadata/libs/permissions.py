@@ -8,6 +8,7 @@ from onadata.apps.logger.models import XForm
 from onadata.apps.api.models import Project
 
 CAN_ADD_XFORM_TO_PROFILE = 'can_add_xform'
+CAN_VIEW_ORGANIZATION_PROFILE = 'view_organizationprofile'
 CAN_VIEW_PROFILE = 'view_profile'
 CAN_CHANGE_XFORM = 'change_xform'
 CAN_ADD_XFORM = 'add_xform'
@@ -54,7 +55,7 @@ class Role(object):
         has_perms = False
 
         for permission, klass in cls.permissions:
-            if isinstance(obj, klass):
+            if type(obj) is klass:
                 if not user.has_perm(permission, obj):
                     return False
 
@@ -66,64 +67,68 @@ class Role(object):
 class ReadOnlyRole(Role):
     name = 'readonly'
     permissions = (
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_VIEW_XFORM, XForm),
-        (CAN_VIEW_PROJECT, Project)
+        (CAN_VIEW_PROJECT, Project),
     )
 
 
 class DataEntryRole(Role):
     name = 'dataentry'
     permissions = (
-        (CAN_VIEW_XFORM, XForm),
         (CAN_ADD_SUBMISSIONS, XForm),
+        (CAN_ADD_XFORM, Project),
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_XFORM, Project)
+        (CAN_VIEW_XFORM, XForm),
     )
 
 
 class EditorRole(Role):
     name = 'editor'
     permissions = (
-        (CAN_VIEW_XFORM, XForm),
         (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_CHANGE_XFORM, XForm),
-        (CAN_VIEW_PROJECT, Project),
         (CAN_ADD_XFORM, Project),
-        (CAN_CHANGE_PROJECT, Project)
+        (CAN_CHANGE_PROJECT, Project),
+        (CAN_CHANGE_XFORM, XForm),
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_VIEW_PROJECT, Project),
+        (CAN_VIEW_XFORM, XForm),
     )
 
 
 class ManagerRole(Role):
     name = 'manager'
     permissions = (
-        (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
-        (CAN_VIEW_PROFILE, UserProfile),
         (CAN_ADD_XFORM, XForm),
-        (CAN_VIEW_XFORM, XForm),
-        (CAN_CHANGE_XFORM, XForm),
-        (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_XFORM, Project),
+        (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
         (CAN_CHANGE_PROJECT, Project),
-        (CAN_DELETE_PROJECT, Project)
+        (CAN_CHANGE_XFORM, XForm),
+        (CAN_DELETE_PROJECT, Project),
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_VIEW_PROFILE, UserProfile),
+        (CAN_VIEW_PROJECT, Project),
+        (CAN_VIEW_XFORM, XForm),
     )
 
 
 class OwnerRole(Role):
     name = 'owner'
     permissions = (
-        (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
-        (CAN_VIEW_PROFILE, UserProfile),
+        (CAN_ADD_XFORM, Project),
         (CAN_ADD_XFORM, XForm),
-        (CAN_VIEW_XFORM, XForm),
+        (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
+        (CAN_CHANGE_PROJECT, Project),
         (CAN_CHANGE_XFORM, XForm),
+        (CAN_DELETE_PROJECT, Project),
         (CAN_DELETE_XFORM, XForm),
         (CAN_MOVE_TO_FOLDER, XForm),
         (CAN_TRANSFER_OWNERSHIP, XForm),
+        (CAN_TRANSFER_PROJECT_OWNERSHIP, Project),
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_VIEW_PROFILE, UserProfile),
         (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_XFORM, Project),
-        (CAN_CHANGE_PROJECT, Project),
-        (CAN_DELETE_PROJECT, Project),
-        (CAN_TRANSFER_PROJECT_OWNERSHIP, Project)
+        (CAN_VIEW_XFORM, XForm),
     )
 
 ROLES = {role.name: role for role in [ReadOnlyRole,
