@@ -6,14 +6,17 @@ from onadata import koboform
 # Always redirect to user profile,
 # regardless of koboform setting
 DISABLED_VIEWS = [
+        'home',
         'form_gallery',
-        'stats',
-        'resources',
         'faq',
+        'support',
+        'resources',
+        'syntax',
         'members_list',
         'about_us',
-        'syntax',
-        'home',
+        'getting_started',
+        'xls2xform',
+        'stats',
         'public_profile',
     ]
 
