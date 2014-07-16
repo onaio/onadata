@@ -113,19 +113,25 @@ class TestAbstractViewSet(TestCase):
         self.organization = OrganizationProfile.objects.get(
             user__username=data['org'])
 
-    def _project_create(self, project_data={}):
+    def _project_create(self, project_data={}, merge=True):
         view = ProjectViewSet.as_view({
             'post': 'create'
         })
-        data = {
-            'name': u'demo',
-            'owner': 'http://testserver/api/v1/users/%s' % self.user.username,
-            'metadata': {'description': 'Some description',
-                         'location': 'Naivasha, Kenya',
-                         'category': 'governance'},
-            'public': False
-        }
-        data.update(project_data)
+
+        if merge:
+            data = {
+                'name': u'demo',
+                'owner':
+                'http://testserver/api/v1/users/%s' % self.user.username,
+                'metadata': {'description': 'Some description',
+                             'location': 'Naivasha, Kenya',
+                             'category': 'governance'},
+                'public': False
+            }
+            data.update(project_data)
+        else:
+            data = project_data
+
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)

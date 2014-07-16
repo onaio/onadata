@@ -1,11 +1,8 @@
 from django.db import models
 from django.db.models.signals import post_save
 from django.contrib.auth.models import User
+from guardian.shortcuts import assign_perm, get_perms_for_model
 from jsonfield import JSONField
-
-from guardian.shortcuts import \
-    assign_perm, \
-    get_perms_for_model
 
 
 class Project(models.Model):
@@ -19,7 +16,7 @@ class Project(models.Model):
         )
 
     name = models.CharField(max_length=255)
-    metadata = JSONField(default={'category': 'none'}, null=False)
+    metadata = JSONField(blank=True)
     organization = models.ForeignKey(User, related_name='project_organization')
     created_by = models.ForeignKey(User, related_name='project_creator')
     shared = models.BooleanField(default=False)

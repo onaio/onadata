@@ -28,20 +28,26 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     def restore_object(self, attrs, instance=None):
         if instance:
             metadata = JsonField.to_json(attrs.get('metadata'))
+
             if self.partial and metadata:
                 if not isinstance(instance.metadata, dict):
                     instance.metadata = {}
+
                 instance.metadata.update(metadata)
                 attrs['metadata'] = instance.metadata
-            return super(ProjectSerializer, self)\
-                .restore_object(attrs, instance)
+
+            return super(ProjectSerializer, self).restore_object(
+                attrs, instance)
+
         if 'request' in self.context:
             created_by = self.context['request'].user
+
             return Project(
                 name=attrs.get('name'),
                 organization=attrs.get('organization'),
                 created_by=created_by,
                 metadata=attrs.get('metadata'),)
+
         return attrs
 
     def get_project_permissions(self, obj):
