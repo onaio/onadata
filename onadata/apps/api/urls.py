@@ -161,6 +161,7 @@ Update teams
 xlsforms information
 * [/api/v1/data](/api/v1/data) - List, Retrieve submission data
 * [/api/v1/charts](/api/v1/charts) - List, Retrieve Charts of collected data
+* [/api/v1/stats](/api/v1/stats) - Summary statistics
 
 ## Status Codes
 

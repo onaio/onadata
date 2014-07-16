@@ -34,6 +34,24 @@ class TestProjectViewSet(TestAbstractViewSet):
 
     def test_projects_create(self):
         self._project_create()
+        self.assertIsNotNone(self.project_data)
+
+        projects = Project.objects.all()
+        self.assertEqual(len(projects), 1)
+
+        for project in projects:
+            self.assertEqual(self.user, project.created_by)
+            self.assertEqual(self.user, project.organization)
+
+    def test_projects_create_no_metadata(self):
+        data = {
+            'name': u'demo',
+            'owner':
+            'http://testserver/api/v1/users/%s' % self.user.username,
+            'public': False
+        }
+        self._project_create(project_data=data,
+                             merge=False)
         self.assertIsNotNone(self.project)
         self.assertIsNotNone(self.project_data)
 
