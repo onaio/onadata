@@ -133,7 +133,7 @@ You can share a project with a specific user by `POST` a payload with
 
 > Example
 >
->       curl -X POST -d '{"username": "alice", "role": "readonly"}' \
+>       curl -X POST -d username=alice -d role=readonly\
 https://ona.io/api/v1/projects/1/share
 
 > Response
