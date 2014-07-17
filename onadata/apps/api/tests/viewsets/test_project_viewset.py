@@ -32,6 +32,30 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.project_data)
 
+    def test_projects_tags(self):
+        self._project_create()
+        view = ProjectViewSet.as_view({
+            'get': 'labels',
+            'post': 'labels',
+            'delete': 'labels'
+        })
+        project_id = self.project.pk
+        # no tags
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=project_id)
+        self.assertEqual(response.data, [])
+        # add tag "hello"
+        request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
+        response = view(request, pk=project_id)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, [u'hello'])
+        # remove tag "hello"
+        request = self.factory.delete('/', data={"tags": "hello"},
+                                      **self.extra)
+        response = view(request, pk=project_id, label='hello')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
     def test_projects_create(self):
         self._project_create()
         self.assertIsNotNone(self.project_data)

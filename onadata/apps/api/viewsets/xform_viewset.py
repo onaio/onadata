@@ -3,7 +3,6 @@ import json
 
 from datetime import datetime
 
-from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.http import Http404
@@ -17,17 +16,15 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
-from taggit.forms import TagField
-
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
-from onadata.libs.models.signals import xform_tags_add, xform_tags_delete
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.share_xform_serializer import (
     ShareXFormSerializer)
 from onadata.apps.api import tools as utils
+from onadata.apps.api.helpers.labels import process_label_request
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.viewer_tools import enketo_url
@@ -73,43 +70,6 @@ def _get_extension_from_export_type(export_type):
         extension = 'zip'
 
     return extension
-
-
-class TagForm(forms.Form):
-    tags = TagField()
-
-
-def _labels_post(request, xform):
-    """Process a post request to labels.
-
-    :param request: The HTTP request to extract data from.
-    :param xform: The XForm to interact with.
-    :returns: A HTTP status code or None.
-    """
-    form = TagForm(request.DATA)
-
-    if form.is_valid():
-        tags = form.cleaned_data.get('tags', None)
-
-        if tags:
-            for tag in tags:
-                xform.tags.add(tag)
-            xform_tags_add.send(
-                sender=XForm, xform=xform, tags=tags)
-
-            return 201
-
-
-def _labels_delete(label, xform):
-    count = xform.tags.count()
-    xform.tags.remove(label)
-    xform_tags_delete.send(sender=XForm, xform=xform, tag=label)
-
-    # Accepted, label does not exist hence nothing removed
-    http_status = status.HTTP_202_ACCEPTED if count == xform.tags.count()\
-        else status.HTTP_200_OK
-
-    return [http_status, list(xform.tags.names())]
 
 
 def _set_start_end_params(request, query):
@@ -603,23 +563,9 @@ https://ona.io/api/v1/forms/123.json
 
     @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
     def labels(self, request, format='json', **kwargs):
-        http_status = status.HTTP_200_OK
         xform = self.get_object()
-
-        if request.method == 'POST':
-            http_status = _labels_post(request, xform)
-
-        label = kwargs.get('label', None)
-
-        if request.method == 'GET' and label:
-            data = [tag['name']
-                    for tag in xform.tags.filter(name=label).values('name')]
-        elif request.method == 'DELETE' and label:
-            http_status, data = _labels_delete(label, xform)
-        else:
-            data = list(xform.tags.names())
-
-        return Response(data, status=http_status)
+        label = kwargs.get('label')
+        return process_label_request(request, label, xform)
 
     @action(methods=['GET'])
     def enketo(self, request, **kwargs):
