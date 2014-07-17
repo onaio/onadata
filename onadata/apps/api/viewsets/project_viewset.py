@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.libs.filters import AnonUserProjectFilter, ProjectOwnerFilter
+from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.share_project_serializer import \
     ShareProjectSerializer
@@ -16,7 +17,7 @@ from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.logger.models import XForm
 
 
-class ProjectViewSet(ModelViewSet):
+class ProjectViewSet(LabelsMixin, ModelViewSet):
     """
 List, Retrieve, Update, Create Project and Project Forms
 

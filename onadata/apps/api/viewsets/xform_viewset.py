@@ -19,12 +19,12 @@ from rest_framework.viewsets import ModelViewSet
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
+from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.share_xform_serializer import (
     ShareXFormSerializer)
 from onadata.apps.api import tools as utils
-from onadata.apps.api.helpers.labels import process_label_request
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.viewer_tools import enketo_url
@@ -164,7 +164,7 @@ def value_for_type(form, field, value):
     return value
 
 
-class XFormViewSet(AnonymousUserPublicFormsMixin, ModelViewSet):
+class XFormViewSet(AnonymousUserPublicFormsMixin, LabelsMixin, ModelViewSet):
     """
 Publish XLSForms, List, Retrieve Published Forms.
 
@@ -560,12 +560,6 @@ https://ona.io/api/v1/forms/123.json
         form = self.get_object()
 
         return response_for_format(form, format=format)
-
-    @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
-    def labels(self, request, format='json', **kwargs):
-        xform = self.get_object()
-        label = kwargs.get('label')
-        return process_label_request(request, label, xform)
 
     @action(methods=['GET'])
     def enketo(self, request, **kwargs):

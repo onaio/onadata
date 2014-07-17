@@ -1,5 +1,6 @@
 from django import forms
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from taggit.forms import TagField
 
@@ -61,3 +62,11 @@ def process_label_request(request, label, instance):
         data = list(instance.tags.names())
 
     return Response(data, status=http_status)
+
+
+class LabelsMixin(object):
+    @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
+    def labels(self, request, format='json', **kwargs):
+        xform = self.get_object()
+        label = kwargs.get('label')
+        return process_label_request(request, label, xform)
