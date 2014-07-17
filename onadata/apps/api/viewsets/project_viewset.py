@@ -99,11 +99,10 @@ Where:
 <b>PATCH</b> /api/v1/projects/<code>{pk}</code></pre></pre>
 > Example
 
->        curl -X PATCH -d '{metadata: { "description": "Lorem ipsum",\
+>        curl -X PATCH -d 'metadata={"description": "Lorem ipsum",\
 "location": "Nakuru, Kenya",\
-"category": "water"}} \
-https://ona.io/api/v1/projects/1  "Content-Type: application/json"
-
+"category": "water"}' \
+https://ona.io/api/v1/projects/1
 
 > Response
 >
