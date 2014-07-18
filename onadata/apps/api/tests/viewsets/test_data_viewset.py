@@ -72,8 +72,8 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/')
         formid = self.xform.pk
         response = view(request, pk=formid)
-        # permission denied for anonymous access to private data
-        self.assertEqual(response.status_code, 401)
+        # data not found for anonymous access to private data
+        self.assertEqual(response.status_code, 404)
         self.xform.shared_data = True
         self.xform.save()
         response = view(request, pk=formid)

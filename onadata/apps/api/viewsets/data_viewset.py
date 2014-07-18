@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import six
 from django.utils.translation import ugettext as _
@@ -371,11 +372,10 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
                     raise ParseError(_(u"Invalid pk %(pk)s" % {'pk': pk}))
             else:
                 filter_kwargs = {self.lookup_field: pk}
-                xform = get_object_or_404(self.model, **filter_kwargs)
+                qs = qs.filter(**filter_kwargs)
 
-                if not qs and self.request.method in SAFE_METHODS and\
-                        not self.request.user.has_perm(xform, 'view_xform'):
-                    self.permission_denied(self.request)
+                if not qs:
+                    raise Http404(_(u"No data matches with given query."))
 
         return qs
 
