@@ -332,9 +332,9 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 
     @action(methods=['POST', 'GET'])
     def forms(self, request, **kwargs):
-        """Add a form to a porject or list forms for the project.
+        """Add a form to a project or list forms for the project.
 
-        xls_file -- xlsform file object
+        The request key `xls_file` holds the XLSForm file object.
         """
         project = get_object_or_404(Project, pk=kwargs.get('pk'))
 
