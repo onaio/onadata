@@ -221,26 +221,28 @@ https://ona.io/api/v1/projects/1/forms
 >               "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >               "id_string": "Birds",
 >               "sms_id_string": "Birds",
->              "title": "Birds",
+>               "title": "Birds",
 >               "allows_sms": false,
 >               "bamboo_dataset": "",
 >               "description": "",
->              "downloadable": true,
+>               "downloadable": true,
 >               "encrypted": false,
 >               "owner": "ona",
 >               "public": false,
->              "public_data": false,
+>               "public_data": false,
 >               "date_created": "2013-07-25T14:14:22.892Z",
 >               "date_modified": "2013-07-25T14:14:22.892Z",
 >               "tags": [],
->            "users": [
->                       {
->                           "role": "owner",
->                           "user": "alice",
->                           "permissions": ["report_xform", ...]
->                       }
->                   ]
->           }
+>               "users": [
+>                   {
+>                       "role": "owner",
+>                       "user": "alice",
+>                       "permissions": ["report_xform", ...]
+>                   },
+>                   ...
+>               ]
+>           },
+>           ...
 >       ]
 
 ## Get list of projects with specific tag(s)
