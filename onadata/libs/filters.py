@@ -50,7 +50,7 @@ class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
             .filter_queryset(request, queryset, view)
 
 
-class TagFilter(object):
+class TagFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
         # filter by tags if available.
         tags = request.QUERY_PARAMS.get('tags', None)
@@ -59,4 +59,4 @@ class TagFilter(object):
             tags = tags.split(',')
             return queryset.filter(tags__name__in=tags)
 
-        return super(TagFilter, self).filter_queryset(request, queryset, view)
+        return queryset

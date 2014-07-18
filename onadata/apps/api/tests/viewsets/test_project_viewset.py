@@ -1,10 +1,12 @@
 import json
+
+from onadata.apps.api.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
-from onadata.apps.api.models import Project
+from onadata.libs.serializers.project_serializer import ProjectSerializer
 
 
 class TestProjectViewSet(TestAbstractViewSet):
@@ -39,6 +41,9 @@ class TestProjectViewSet(TestAbstractViewSet):
             'post': 'labels',
             'delete': 'labels'
         })
+        list_view = ProjectViewSet.as_view({
+            'get': 'list',
+        })
         project_id = self.project.pk
         # no tags
         request = self.factory.get('/', **self.extra)
@@ -49,6 +54,20 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=project_id)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'hello'])
+
+        # check filter by tag
+        request = self.factory.get('/', data={"tags": "hello"}, **self.extra)
+        self.project_data = ProjectSerializer(
+            self.project, context={'request': request}).data
+        response = list_view(request, pk=project_id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.project_data])
+
+        request = self.factory.get('/', data={"tags": "goodbye"}, **self.extra)
+        response = list_view(request, pk=project_id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
         # remove tag "hello"
         request = self.factory.delete('/', **self.extra)
         response = view(request, pk=project_id, label='hello')
