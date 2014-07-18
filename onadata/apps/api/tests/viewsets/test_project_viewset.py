@@ -50,8 +50,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'hello'])
         # remove tag "hello"
-        request = self.factory.delete('/', data={"tags": "hello"},
-                                      **self.extra)
+        request = self.factory.delete('/', **self.extra)
         response = view(request, pk=project_id, label='hello')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
