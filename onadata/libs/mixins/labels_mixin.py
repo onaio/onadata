@@ -31,7 +31,7 @@ def _labels_post(request, instance):
             if isinstance(instance, XForm):
                 xform_tags_add.send(sender=XForm, xform=instance, tags=tags)
 
-            return 201
+            return status.HTTP_201_CREATED
 
 
 def _labels_delete(label, instance):
