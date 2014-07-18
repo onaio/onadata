@@ -141,7 +141,7 @@ https://ona.io/api/v1/projects/1/share
 >
 >        HTTP 204 NO CONTENT
 
-### Assign a form to a project
+## Assign a form to a project
 To [re]assign an existing form to a project you need to `POST` a payload of
 `formid=FORMID` to the endpoint below.
 
@@ -203,35 +203,122 @@ https://ona.io/api/v1/projects/1/forms
 >           "date_modified": "2013-07-25T14:14:22.892Z"
 >       }
 
-## Get Form Information for a project
+## Get forms for a project
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/projects/<code>{pk}</code>/forms/<code>{formid}</code>
+<b>GET</b> /api/v1/projects/<code>{pk}</code>/forms
 </pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/projects/1/forms/28058
+>       curl -X GET https://ona.io/api/v1/projects/1/forms
 
 > Response
 >
->       {
->           "url": "https://ona.io/api/v1/forms/28058",
->           "formid": 28058,
->           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
->           "id_string": "Birds",
->           "sms_id_string": "Birds",
->           "title": "Birds",
->           "allows_sms": false,
->           "bamboo_dataset": "",
->           "description": "",
->           "downloadable": true,
->           "encrypted": false,
->           "owner": "ona",
->           "public": false,
->           "public_data": false,
->           "date_created": "2013-07-25T14:14:22.892Z",
->           "date_modified": "2013-07-25T14:14:22.892Z"
->       }
+>       [
+>           {
+>              "url": "https://ona.io/api/v1/forms/28058",
+>               "formid": 28058,
+>               "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
+>               "id_string": "Birds",
+>               "sms_id_string": "Birds",
+>              "title": "Birds",
+>               "allows_sms": false,
+>               "bamboo_dataset": "",
+>               "description": "",
+>              "downloadable": true,
+>               "encrypted": false,
+>               "owner": "ona",
+>               "public": false,
+>              "public_data": false,
+>               "date_created": "2013-07-25T14:14:22.892Z",
+>               "date_modified": "2013-07-25T14:14:22.892Z",
+>               "tags": [],
+>            "users": [
+>                       {
+>                           "role": "owner",
+>                           "user": "alice",
+>                           "permissions": ["report_xform", ...]
+>                       }
+>                   ]
+>           }
+>       ]
+
+## Get list of projects with specific tag(s)
+
+Use the `tags` query parameter to filter the list of projects, `tags` should be
+a comma separated list of tags.
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/projects?<code>tags</code>=<code>tag1,tag2</code></pre>
+
+List projects tagged `smart` or `brand new` or both.
+> Request
+>
+>       curl -X GET https://ona.io/api/v1/projects?tag=smart,brand+new
+
+> Response
+>        HTTP 200 OK
+>
+>       [
+>           {
+>               "url": "https://ona.io/api/v1/projects/1",
+>               "owner": "https://ona.io/api/v1/users/ona",
+>               "name": "project 1",
+>               "date_created": "2013-07-24T13:37:39Z",
+>               "date_modified": "2013-07-24T13:37:39Z"
+>           },
+>           ...
+>       ]
+
+
+## Get list of Tags for a specific Project
+<pre class="prettyprint">
+<b>GET</b> /api/v1/project/<code>{pk}</code>/labels
+</pre>
+> Request
+>
+>       curl -X GET https://ona.io/api/v1/projects/28058/labels
+
+> Response
+>
+>       ["old", "smart", "clean house"]
+
+## Tag a Project
+
+A `POST` payload of parameter `tags` with a comma separated list of tags.
+
+Examples
+
+- `animal fruit denim` - space delimited, no commas
+- `animal, fruit denim` - comma delimited
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/projects/<code>{pk}</code>/labels
+</pre>
+
+Payload
+
+    {"tags": "tag1, tag2"}
+
+## Remove a tag from a Project
+
+<pre class="prettyprint">
+<b>DELETE</b> /api/v1/projects/<code>{pk}</code>/labels/<code>tag_name</code>
+</pre>
+
+> Request
+>
+>       curl -X DELETE \
+https://ona.io/api/v1/projects/28058/labels/tag1
+>
+> or to delete the tag "hello world"
+>
+>       curl -X DELETE \
+https://ona.io/api/v1/projects/28058/labels/hello%20world
+>
+> Response
+>
+>        HTTP 200 OK
     """
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
