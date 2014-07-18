@@ -5,6 +5,7 @@ from onadata.apps.api.models import Project
 from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
@@ -20,6 +21,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     users = serializers.SerializerMethodField('get_project_permissions')
     public = BooleanField(
         source='shared', widget=widgets.CheckboxInput())
+    tags = TagListSerializer(read_only=True)
 
     class Meta:
         model = Project

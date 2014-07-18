@@ -3,6 +3,7 @@ from django.db.models.signals import post_save
 from django.contrib.auth.models import User
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from jsonfield import JSONField
+from taggit.managers import TaggableManager
 
 
 class Project(models.Model):
@@ -22,6 +23,8 @@ class Project(models.Model):
     shared = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
+
+    tags = TaggableManager()
 
     def __unicode__(self):
         return u'%s|%s' % (self.organization, self.name)
