@@ -43,6 +43,10 @@ class InstanceEmptyError(InstanceParseError):
         return unicode(self).encode('utf-8')
 
 
+class InstanceMultipleNodeError(Exception):
+    pass
+
+
 def get_meta_from_xml(xml_str, meta_name):
     xml = clean_and_parse_xml(xml_str)
     children = xml.childNodes
@@ -161,8 +165,9 @@ def _xml_node_to_dict(node, repeats=[]):
                 if child_name not in value:
                     value[child_name] = d[child_name]
                 else:
-                    raise Exception(_(u"Multiple nodes with the same name '%s'"
-                                      u" while not a repeat" % child_name))
+                    raise InstanceMultipleNodeError(
+                        _(u"Multiple nodes with the same name '%s'"
+                          u" while not a repeat" % child_name))
             else:
                 if child_name not in value:
                     value[child_name] = [d[child_name]]
