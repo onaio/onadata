@@ -29,10 +29,10 @@ build
 .sass-cache
 
 *.bak
+*.gz
 *.pyc
 *.sql
 *.sqlite3
-*.tar.gz
 *~
 *orig
 celerybeat-schedule
