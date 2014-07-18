@@ -135,7 +135,7 @@ To add a user to an organization requires a JSON payload of
 > Example
 >
 >       curl -X POST -d '{"username": "member1"}' \
-https://ona.io/api/v1/orgs/modilabs/members
+https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
 > Response
 >
@@ -150,7 +150,7 @@ To remove a user from an organization requires a JSON payload of
 > Example
 >
 >       curl -X DELETE -d '{"username": "member1"}' \
-https://ona.io/api/v1/orgs/modilabs/members
+https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
 > Response
 >

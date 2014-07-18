@@ -150,7 +150,7 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 > Example
 >
 >       curl -X POST -d '{"formid": 28058}' \
-https://ona.io/api/v1/projects/1/forms
+https://ona.io/api/v1/projects/1/forms -H "Content-Type: application/json"
 
 > Response
 >
