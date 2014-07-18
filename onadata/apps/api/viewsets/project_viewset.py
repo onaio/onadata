@@ -11,7 +11,7 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.share_project_serializer import \
     ShareProjectSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
-from onadata.apps.api.models import Project, ProjectXForm
+from onadata.apps.api.models import Project
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.logger.models import XForm
@@ -328,15 +328,14 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
     filter_backends = (AnonUserProjectFilter,
                        ProjectOwnerFilter)
 
-    @action(methods=['POST', 'GET'], extra_lookup_fields=['formid', ])
+    @action(methods=['POST', 'GET'])
     def forms(self, request, **kwargs):
-        """
-        POST - publish xlsform file to a specific project.
+        """Add a form to a porject or list forms for the project.
 
         xls_file -- xlsform file object
         """
-        project = get_object_or_404(
-            Project, pk=kwargs.get('pk'))
+        project = get_object_or_404(Project, pk=kwargs.get('pk'))
+
         if request.method.upper() == 'POST':
             survey = utils.publish_project_xform(request, project)
 
@@ -345,24 +344,15 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
                 serializer = XFormSerializer(
                     xform, context={'request': request})
 
-                return Response(serializer.data, status=201)
+                return Response(serializer.data,
+                                status=status.HTTP_201_CREATED)
 
-            return Response(survey, status=400)
+            return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
-        qfilter = {'project': project}
-        many = True
-        if 'formid' in kwargs:
-            many = False
-            qfilter['xform__pk'] = int(kwargs.get('formid'))
-        if many:
-            qs = ProjectXForm.objects.filter(**qfilter)
-            data = [px.xform for px in qs]
-        else:
-            qs = get_object_or_404(ProjectXForm, **qfilter)
-            data = qs.xform
-
-        serializer = XFormSerializer(
-            data, many=many, context={'request': request})
+        project_xforms = project.projectxform_set.values('xform')
+        xforms = XForm.objects.filter(pk__in=project_xforms)
+        serializer = XFormSerializer(xforms, context={'request': request},
+                                     many=True)
 
         return Response(serializer.data)
 

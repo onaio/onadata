@@ -109,9 +109,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.form_data])
-        response = view(request, pk=self.project.pk, formid=self.xform.pk)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, self.form_data)
 
     def test_assign_form_to_project(self):
         view = ProjectViewSet.as_view({
