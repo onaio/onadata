@@ -1,4 +1,5 @@
 import json
+from operator import itemgetter
 
 from onadata.apps.api.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
@@ -338,9 +339,13 @@ class TestProjectViewSet(TestAbstractViewSet):
         # get star users as alice
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        bob_profile, alice_profile = response.data
 
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        alice_profile, bob_profile = sorted(response.data,
+                                            key=itemgetter('username'))
+
         self.assertEqual(set(bob_profile.items()),
                          user_profile_data)
         self.assertEqual(alice_profile['username'], 'alice')
