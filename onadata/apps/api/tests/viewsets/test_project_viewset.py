@@ -276,3 +276,81 @@ class TestProjectViewSet(TestAbstractViewSet):
         json_metadata.update(project.metadata)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(project.metadata, json_metadata)
+
+    def test_project_add_star(self):
+        self._project_create()
+        self.assertEqual(len(self.project.user_stars.all()), 0)
+
+        view = ProjectViewSet.as_view({
+            'post': 'star'
+        })
+        request = self.factory.post('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.project.reload()
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(len(self.project.user_stars.all()), 1)
+        self.assertEqual(self.project.user_stars.all()[0], self.user)
+
+    def test_project_delete_star(self):
+        self._project_create()
+
+        view = ProjectViewSet.as_view({
+            'delete': 'star',
+            'post': 'star'
+        })
+        request = self.factory.post('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.project.reload()
+        self.assertEqual(len(self.project.user_stars.all()), 1)
+        self.assertEqual(self.project.user_stars.all()[0], self.user)
+
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.project.reload()
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(len(self.project.user_stars.all()), 0)
+
+    def test_project_get_star(self):
+        self._project_create()
+
+        # share project with alice
+        view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        data = {'username': 'alice', 'role': ReadOnlyRole.name}
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request, pk=self.project.id)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(ReadOnlyRole.has_role(alice_profile.user,
+                                              self.project))
+
+        # add star as bob
+        view = ProjectViewSet.as_view({
+            'get': 'star',
+            'post': 'star'
+        })
+        request = self.factory.post('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.project.reload()
+        self.assertEqual(len(self.project.user_stars.all()), 1)
+        self.assertEqual(self.project.user_stars.all()[0], self.user)
+
+        # ensure email not shared
+        user_profile_data = self.user_profile_data()
+        del user_profile_data['email']
+        user_profile_data = set(user_profile_data.items())
+
+        # get star users as alice
+        self._login_user_and_profile(alice_data)
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.project.reload()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.data[0].items()),
+                         user_profile_data)

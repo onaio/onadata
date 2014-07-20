@@ -46,6 +46,22 @@ class TestAbstractViewSet(TestCase):
         self._login_user_and_profile()
         self.maxDiff = None
 
+    def user_profile_data(self):
+        return {
+            'url': 'http://testserver/api/v1/profiles/bob',
+            'username': u'bob',
+            'name': u'Bob',
+            'email': u'bob@columbia.edu',
+            'city': u'Bobville',
+            'country': u'US',
+            'organization': u'Bob Inc.',
+            'website': u'bob.com',
+            'twitter': u'boberama',
+            'gravatar': self.user.profile.gravatar,
+            'require_auth': False,
+            'user': 'http://testserver/api/v1/users/bob'
+        }
+
     def _set_api_permissions(self, user):
         add_userprofile = Permission.objects.get(
             content_type__app_label='main', content_type__model='userprofile',
