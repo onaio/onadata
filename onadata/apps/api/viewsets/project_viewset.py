@@ -5,7 +5,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.libs.filters import AnonUserProjectFilter, ProjectOwnerFilter
+from onadata.libs.filters import (
+    AnonUserProjectFilter,
+    ProjectOwnerFilter,
+    TagFilter)
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.share_project_serializer import \
@@ -328,7 +331,8 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
     extra_lookup_fields = None
     permission_classes = [ProjectPermissions]
     filter_backends = (AnonUserProjectFilter,
-                       ProjectOwnerFilter)
+                       ProjectOwnerFilter,
+                       TagFilter)
 
     @action(methods=['POST', 'GET'])
     def forms(self, request, **kwargs):
