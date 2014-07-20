@@ -315,20 +315,6 @@ class TestProjectViewSet(TestAbstractViewSet):
     def test_project_get_star(self):
         self._project_create()
 
-        # share project with alice
-        view = ProjectViewSet.as_view({
-            'post': 'share'
-        })
-        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
-        alice_profile = self._create_user_profile(alice_data)
-        data = {'username': 'alice', 'role': ReadOnlyRole.name}
-        request = self.factory.post('/', data=data, **self.extra)
-        response = view(request, pk=self.project.id)
-
-        self.assertEqual(response.status_code, 204)
-        self.assertTrue(ReadOnlyRole.has_role(alice_profile.user,
-                                              self.project))
-
         # add star as bob
         view = ProjectViewSet.as_view({
             'get': 'star',
@@ -336,21 +322,25 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
         request = self.factory.post('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        self.project.reload()
-        self.assertEqual(len(self.project.user_stars.all()), 1)
-        self.assertEqual(self.project.user_stars.all()[0], self.user)
 
         # ensure email not shared
         user_profile_data = self.user_profile_data()
         del user_profile_data['email']
         user_profile_data = set(user_profile_data.items())
 
-        # get star users as alice
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(alice_data)
+
+        # add star as alice
+        request = self.factory.post('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        # get star users as alice
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        self.project.reload()
+        bob_profile, alice_profile = response.data
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(set(response.data[0].items()),
+        self.assertEqual(set(bob_profile.items()),
                          user_profile_data)
+        self.assertEqual(alice_profile['username'], 'alice')

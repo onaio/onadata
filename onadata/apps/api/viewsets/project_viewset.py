@@ -393,7 +393,7 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 
     @action(methods=['DELETE', 'GET', 'POST'])
     def star(self, request, *args, **kwargs):
-        project = self.get_object()
+        project = get_object_or_404(Project, pk=kwargs.get('pk'))
         user = request.user
 
         if request.method == 'DELETE':
