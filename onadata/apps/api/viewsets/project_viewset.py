@@ -339,6 +339,10 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 ## Get user profiles that have starred a project
 <pre class="prettyprint">
 <b>GET</b> /api/v1/projects/<code>{pk}</code>/star</pre>
+
+## Get projects that the authenticating user has starred
+<pre class="prettyprint">
+<b>GET</b> /api/v1/projects/star</pre>
     """
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
@@ -393,8 +397,18 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 
     @action(methods=['DELETE', 'GET', 'POST'])
     def star(self, request, *args, **kwargs):
-        project = get_object_or_404(Project, pk=kwargs.get('pk'))
         user = request.user
+        pk = kwargs.get('pk')
+
+        # return projects starred for this user
+        if not pk:
+            projects = user.project_set.all()
+            serializer = ProjectSerializer(projects,
+                                           context={'request': request},
+                                           many=True)
+            return Response(data=serializer.data)
+
+        project = get_object_or_404(Project, pk=pk)
 
         if request.method == 'DELETE':
             project.user_stars.remove(user)
