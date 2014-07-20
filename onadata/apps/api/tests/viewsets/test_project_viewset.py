@@ -349,21 +349,3 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(set(bob_profile.items()),
                          user_profile_data)
         self.assertEqual(alice_profile['username'], 'alice')
-
-    def test_projects_get_starred_for(self):
-        self._project_create()
-
-        # add star as bob
-        view = ProjectViewSet.as_view({
-            'get': 'star',
-            'post': 'star'
-        })
-        request = self.factory.post('/', **self.extra)
-        response = view(request, pk=self.project.pk)
-
-        # get starred projects
-        request = self.factory.get('/', **self.extra)
-        response = view(request)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [self.project_data])
