@@ -34,7 +34,7 @@
 	        {% endif %}
 			{{ form.RECAPTCHA_HTML|safe }}
 		{% endif %}
-	<p>{% blocktrans %}By clicking the Register button, you acknowledge that this is beta software; we make no guarantees about the reliability or continuity of our service. We reserve the right to pause or terminate your service, or delete your account and data, at any time without notice. We will not be liable for any losses, either direct or indirect, that such service interruption or data loss may cause you. Use the service at your own risk.{% endblocktrans %}</p>
+                <p>{% blocktrans %}By clicking the button, you agree to our <a href="/privacy">privacy policy</a> and <a href="/tos">terms of service</a>.{% endblocktrans %}</p>
         <input type="submit" class="btn large btn-primary" value="{% trans 'Register' %}" />
       </form>
     </div>
