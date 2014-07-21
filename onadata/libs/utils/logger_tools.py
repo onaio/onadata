@@ -375,7 +375,7 @@ def publish_form(callback):
     except (PyXFormError, XLSFormError) as e:
         return {
             'type': 'alert-error',
-            'text': e
+            'text': unicode(e)
         }
     except IntegrityError as e:
         transaction.rollback()
@@ -393,7 +393,7 @@ def publish_form(callback):
         # form.publish returned None, not sure why...
         return {
             'type': 'alert-error',
-            'text': e
+            'text': unicode(e)
         }
     except ProcessTimedOut as e:
         # catch timeout errors
@@ -405,7 +405,7 @@ def publish_form(callback):
         # error in the XLS file; show an error to the user
         return {
             'type': 'alert-error',
-            'text': e
+            'text': unicode(e)
         }
 
 
