@@ -292,7 +292,9 @@ def submission(request, username=None):
         response['Location'] = request.build_absolute_uri(request.path)
         return response
     except IOError as e:
-        if 'request data read error' in e.strerror:
+        strerror = e.strerror
+
+        if strerror and 'request data read error' in strerror:
             return OpenRosaResponseBadRequest(
                 _(u"File transfer interruption."))
         else:
