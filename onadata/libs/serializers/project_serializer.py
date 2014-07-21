@@ -14,9 +14,13 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         view_name='project-detail', lookup_field='pk')
     owner = serializers.HyperlinkedRelatedField(
         view_name='user-detail',
-        source='organization', lookup_field='username')
+        source='organization',
+        lookup_field='username')
     created_by = serializers.HyperlinkedRelatedField(
-        view_name='user-detail', lookup_field='username', read_only=True)
+        view_name='user-detail',
+        source='created_by',
+        lookup_field='username',
+        read_only=True)
     metadata = JsonField(source='metadata', required=False)
     users = serializers.SerializerMethodField('get_project_permissions')
     public = BooleanField(
@@ -25,7 +29,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Project
-        exclude = ('organization', 'created_by')
+        exclude = ('organization', 'created_by', 'user_stars')
 
     def restore_object(self, attrs, instance=None):
         if instance:

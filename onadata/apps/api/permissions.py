@@ -67,6 +67,9 @@ class ProjectPermissions(DjangoObjectPermissions):
         if request.user.is_anonymous() and view.action == 'list':
             return True
 
+        if not request.user.is_anonymous() and view.action == 'star':
+            return True
+
         return \
             super(ProjectPermissions, self).has_permission(request, view)
 

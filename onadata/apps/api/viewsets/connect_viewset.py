@@ -1,14 +1,16 @@
 from rest_framework import permissions
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
-
+from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.user_profile_serializer import (
     UserProfileWithTokenSerializer)
 from onadata.apps.main.models.user_profile import UserProfile
 
 
-class ConnectViewSet (viewsets.GenericViewSet):
+class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
 
     """This endpoint allows you retrieve the authenticated user's profile info.
 
@@ -34,7 +36,11 @@ class ConnectViewSet (viewsets.GenericViewSet):
             "website": ""
 }
 
+## Get projects that the authenticating user has starred
+<pre class="prettyprint">
+<b>GET</b> /api/v1/user/<code>{username}</code>/starred</pre>
 """
+    lookup_field = 'user'
     model = UserProfile
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = UserProfileWithTokenSerializer
@@ -46,3 +52,15 @@ class ConnectViewSet (viewsets.GenericViewSet):
             context={"request": request})
 
         return Response(serializer.data)
+
+    @action(methods=['GET'])
+    def starred(self, request, *args, **kwargs):
+        """Return projects starred for this user."""
+        user_profile = self.get_object()
+        user = user_profile.user
+        projects = user.project_set.all()
+        serializer = ProjectSerializer(projects,
+                                       context={'request': request},
+                                       many=True)
+
+        return Response(data=serializer.data)

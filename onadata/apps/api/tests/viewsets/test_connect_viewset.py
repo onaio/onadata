@@ -1,6 +1,7 @@
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 
 
 class TestConnectViewSet(TestAbstractViewSet):
@@ -31,3 +32,24 @@ class TestConnectViewSet(TestAbstractViewSet):
         }
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
+
+    def test_get_starred_projects(self):
+        self._project_create()
+
+        # add star as bob
+        view = ProjectViewSet.as_view({
+            'get': 'star',
+            'post': 'star'
+        })
+        request = self.factory.post('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        # get starred projects
+        view = ConnectViewSet.as_view({
+            'get': 'starred',
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, user=self.user)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.project_data])

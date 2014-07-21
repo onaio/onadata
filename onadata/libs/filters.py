@@ -1,5 +1,5 @@
 from django.db.models import Q
-
+from django.utils import six
 from rest_framework import filters
 
 
@@ -48,3 +48,15 @@ class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
 
         return super(AnonUserProjectFilter, self)\
             .filter_queryset(request, queryset, view)
+
+
+class TagFilter(filters.BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        # filter by tags if available.
+        tags = request.QUERY_PARAMS.get('tags', None)
+
+        if tags and isinstance(tags, six.string_types):
+            tags = tags.split(',')
+            return queryset.filter(tags__name__in=tags)
+
+        return queryset

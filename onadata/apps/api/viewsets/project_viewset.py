@@ -5,16 +5,22 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.libs.filters import AnonUserProjectFilter, ProjectOwnerFilter
+from onadata.libs.filters import (
+    AnonUserProjectFilter,
+    ProjectOwnerFilter,
+    TagFilter)
 from onadata.libs.mixins.labels_mixin import LabelsMixin
+from onadata.libs.serializers.user_profile_serializer import\
+    UserProfileSerializer
 from onadata.libs.serializers.project_serializer import ProjectSerializer
-from onadata.libs.serializers.share_project_serializer import \
+from onadata.libs.serializers.share_project_serializer import\
     ShareProjectSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.api.models import Project
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.logger.models import XForm
+from onadata.apps.main.models import UserProfile
 
 
 class ProjectViewSet(LabelsMixin, ModelViewSet):
@@ -321,6 +327,18 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 > Response
 >
 >        HTTP 200 OK
+
+## Add a star to a project
+<pre class="prettyprint">
+<b>POST</b> /api/v1/projects/<code>{pk}</code>/star</pre>
+
+## Remove a star to a project
+<pre class="prettyprint">
+<b>DELETE</b> /api/v1/projects/<code>{pk}</code>/star</pre>
+
+## Get user profiles that have starred a project
+<pre class="prettyprint">
+<b>GET</b> /api/v1/projects/<code>{pk}</code>/star</pre>
     """
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
@@ -328,13 +346,14 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
     extra_lookup_fields = None
     permission_classes = [ProjectPermissions]
     filter_backends = (AnonUserProjectFilter,
-                       ProjectOwnerFilter)
+                       ProjectOwnerFilter,
+                       TagFilter)
 
     @action(methods=['POST', 'GET'])
     def forms(self, request, **kwargs):
-        """Add a form to a porject or list forms for the project.
+        """Add a form to a project or list forms for the project.
 
-        xls_file -- xlsform file object
+        The request key `xls_file` holds the XLSForm file object.
         """
         project = get_object_or_404(Project, pk=kwargs.get('pk'))
 
@@ -369,5 +388,25 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
         else:
             return Response(data=serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(methods=['DELETE', 'GET', 'POST'])
+    def star(self, request, *args, **kwargs):
+        user = request.user
+        project = get_object_or_404(Project, pk=kwargs.get('pk'))
+
+        if request.method == 'DELETE':
+            project.user_stars.remove(user)
+        elif request.method == 'POST':
+            project.user_stars.add(user)
+        elif request.method == 'GET':
+            users = project.user_stars.values('pk')
+            user_profiles = UserProfile.objects.filter(user__in=users)
+            serializer = UserProfileSerializer(user_profiles,
+                                               context={'request': request},
+                                               many=True)
+
+            return Response(serializer.data)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

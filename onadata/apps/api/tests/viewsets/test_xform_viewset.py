@@ -15,6 +15,7 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
+from onadata.libs.serializers.xform_serializer import XFormSerializer
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
@@ -203,16 +204,35 @@ class TestXFormViewSet(TestAbstractViewSet):
             'post': 'labels',
             'delete': 'labels'
         })
+        list_view = XFormViewSet.as_view({
+            'get': 'list',
+        })
         formid = self.xform.pk
+
         # no tags
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.data, [])
+
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'hello'])
+
+        # check filter by tag
+        request = self.factory.get('/', data={"tags": "hello"}, **self.extra)
+        self.form_data = XFormSerializer(
+            self.xform, context={'request': request}).data
+        response = list_view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.form_data])
+
+        request = self.factory.get('/', data={"tags": "goodbye"}, **self.extra)
+        response = list_view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
         # remove tag "hello"
         request = self.factory.delete('/', data={"tags": "hello"},
                                       **self.extra)

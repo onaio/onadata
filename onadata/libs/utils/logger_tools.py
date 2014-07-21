@@ -37,6 +37,7 @@ from onadata.apps.logger.models.xform import XLSFormError
 from onadata.apps.logger.xform_instance_parser import (
     InstanceEmptyError,
     InstanceInvalidUserError,
+    InstanceMultipleNodeError,
     DuplicateInstance,
     clean_and_parse_xml,
     get_uuid_from_xml,
@@ -293,6 +294,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = response
     except PermissionDenied as e:
         error = OpenRosaResponseForbidden(e)
+    except InstanceMultipleNodeError as e:
+        error = OpenRosaResponseBadRequest(e)
 
     return [error, instance]
 
