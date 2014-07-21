@@ -21,24 +21,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
     def test_profiles_list(self):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
-        data = [
-            {
-                'url': 'http://testserver/api/v1/profiles/bob',
-                'username': u'bob',
-                'name': u'Bob',
-                'email': u'bob@columbia.edu',
-                'city': u'Bobville',
-                'country': u'US',
-                'organization': u'Bob Inc.',
-                'website': u'bob.com',
-                'twitter': u'boberama',
-                'gravatar': self.user.profile.gravatar,
-                'require_auth': False,
-                'user': 'http://testserver/api/v1/users/bob'
-            }
-        ]
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, data)
+        self.assertEqual(response.data, [self.user_profile_data()])
 
     def test_profiles_get(self):
         view = UserProfileViewSet.as_view({
@@ -51,22 +35,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             response.data, {'detail': 'Expected URL keyword argument `user`.'})
         request = self.factory.get('/', **self.extra)
         response = view(request, user='bob')
-        data = {
-            'url': 'http://testserver/api/v1/profiles/bob',
-            'username': u'bob',
-            'name': u'Bob',
-            'email': u'bob@columbia.edu',
-            'city': u'Bobville',
-            'country': u'US',
-            'organization': u'Bob Inc.',
-            'website': u'bob.com',
-            'twitter': u'boberama',
-            'gravatar': self.user.profile.gravatar,
-            'require_auth': False,
-            'user': 'http://testserver/api/v1/users/bob'
-        }
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, data)
+        self.assertEqual(response.data, self.user_profile_data())
 
     def test_profiles_get_anon(self):
         view = UserProfileViewSet.as_view({
@@ -79,19 +49,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             response.data, {'detail': 'Expected URL keyword argument `user`.'})
         request = self.factory.get('/')
         response = view(request, user='bob')
-        data = {
-            'url': 'http://testserver/api/v1/profiles/bob',
-            'username': u'bob',
-            'name': u'Bob',
-            'city': u'Bobville',
-            'country': u'US',
-            'organization': u'Bob Inc.',
-            'website': u'bob.com',
-            'twitter': u'boberama',
-            'gravatar': self.user.profile.gravatar,
-            'require_auth': False,
-            'user': 'http://testserver/api/v1/users/bob'
-        }
+        data = self.user_profile_data()
+        del data['email']
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
         self.assertNotIn('email', response.data)
@@ -112,7 +71,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             'require_auth': False,
             'password': 'denodeno',
         }
-        # response = self.client.post(
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
@@ -138,7 +96,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             'require_auth': False,
             'password': 'denodeno',
         }
-        # response = self.client.post(
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json")
@@ -168,7 +125,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             'require_auth': False,
             'password': 'denodeno',
         }
-        # response = self.client.post(
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)

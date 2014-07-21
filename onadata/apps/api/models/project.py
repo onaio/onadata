@@ -5,8 +5,10 @@ from guardian.shortcuts import assign_perm, get_perms_for_model
 from jsonfield import JSONField
 from taggit.managers import TaggableManager
 
+from onadata.libs.models.base_model import BaseModel
 
-class Project(models.Model):
+
+class Project(BaseModel):
     class Meta:
         app_label = 'api'
         unique_together = (('name', 'organization'),)
@@ -20,6 +22,7 @@ class Project(models.Model):
     metadata = JSONField(blank=True)
     organization = models.ForeignKey(User, related_name='project_organization')
     created_by = models.ForeignKey(User, related_name='project_creator')
+    user_stars = models.ManyToManyField(User)
     shared = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
