@@ -3,6 +3,7 @@ import sys
 
 from fabric.api import cd, env, prefix, run
 from fabric.contrib import files
+from fabric.operations import put
 
 DEPLOYMENTS = {
     'stage': {
@@ -135,3 +136,28 @@ def deploy(deployment_name, branch='master'):
 
     run("sudo %s restart" % env.celeryd)
     run("sudo /usr/local/bin/uwsgi --reload %s" % env.pid)
+
+
+def update_xforms(deployment_name, username, path):
+    # compress and upload
+    dir_name = os.path.basename(path)
+    path_compressed = '%s.tgz' % path
+
+    run('tar czvf %s.tgz %s' % (path_compressed, path))
+
+    with cd('/tmp'):
+        put(path_compressed, '%s.tgz' % dir_name)
+
+        # decompress on server
+        run('tar xzvf %s.tgz' % dir_name)
+
+    setup_env(deployment_name)
+    with cd(env.code_src):
+        with source(env.virtualenv):
+            # run replace command
+            for file in os.listdir('/tmp/%s' % dir_name):
+                file_path = '/tmp/%s/%s' % (dir_name, file)
+                run('python manage.py publish_xls -r %s %s --settings=%s' %
+                    (file_path, username, env.django_config_module))
+
+    run('rm -r /tmp/%s /tmp/%s.tgz' % (dir_name, dir_name))
