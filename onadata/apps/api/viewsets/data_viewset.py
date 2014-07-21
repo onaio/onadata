@@ -354,6 +354,19 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
     def _get_public_forms_queryset(self):
         return XForm.objects.filter(Q(shared=True) | Q(shared_data=True))
 
+    def _filtered_or_shared_qs(self, qs, pk):
+        filter_kwargs = {self.lookup_field: pk}
+        qs = qs.filter(**filter_kwargs)
+
+        if not qs:
+            filter_kwargs['shared_data'] = True
+            qs = XForm.objects.filter(**filter_kwargs)
+
+            if not qs:
+                raise Http404(_(u"No data matches with given query."))
+
+        return qs
+
     def filter_queryset(self, queryset, view=None):
         qs = super(DataViewSet, self).filter_queryset(queryset)
         pk = self.kwargs.get(self.lookup_field)
@@ -372,15 +385,7 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
                 else:
                     raise ParseError(_(u"Invalid pk %(pk)s" % {'pk': pk}))
             else:
-                filter_kwargs = {self.lookup_field: pk}
-                qs = qs.filter(**filter_kwargs)
-
-                if not qs:
-                    filter_kwargs['shared_data'] = True
-                    qs = XForm.objects.filter(**filter_kwargs)
-
-                    if not qs:
-                        raise Http404(_(u"No data matches with given query."))
+                qs = self._filtered_or_shared_qs(qs, pk)
 
         return qs
 
