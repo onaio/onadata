@@ -140,7 +140,7 @@ class TestUserPermissions(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
 
         response = data_view(request, pk=formid)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
 
         role.ReadOnlyRole.add(self.user, self.xform)
         response = view(request, pk=formid)
@@ -189,7 +189,7 @@ class TestUserPermissions(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
 
         response = data_view(request, pk=formid)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
 
         role.DataEntryRole.add(self.user, self.xform)
         response = view(request, pk=formid)
@@ -238,7 +238,7 @@ class TestUserPermissions(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
 
         response = data_view(request, pk=formid)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
 
         role.EditorRole.add(self.user, self.xform)
 
@@ -289,7 +289,7 @@ class TestUserPermissions(TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
 
         response = data_view(request, pk=formid)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
 
         role.OwnerRole.add(self.user, self.xform)
         response = view(request, pk=formid)
