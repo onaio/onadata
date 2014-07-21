@@ -5,6 +5,7 @@ from django.utils import six
 from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
 
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -353,6 +354,19 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
     def _get_public_forms_queryset(self):
         return XForm.objects.filter(Q(shared=True) | Q(shared_data=True))
 
+    def _filtered_or_shared_qs(self, qs, pk):
+        filter_kwargs = {self.lookup_field: pk}
+        qs = qs.filter(**filter_kwargs)
+
+        if not qs:
+            filter_kwargs['shared_data'] = True
+            qs = XForm.objects.filter(**filter_kwargs)
+
+            if not qs:
+                raise Http404(_(u"No data matches with given query."))
+
+        return qs
+
     def filter_queryset(self, queryset, view=None):
         qs = super(DataViewSet, self).filter_queryset(queryset)
         pk = self.kwargs.get(self.lookup_field)
@@ -371,23 +385,19 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
                 else:
                     raise ParseError(_(u"Invalid pk %(pk)s" % {'pk': pk}))
             else:
-                filter_kwargs = {self.lookup_field: pk}
-                qs = qs.filter(**filter_kwargs)
-
-                if not qs:
-                    raise Http404(_(u"No data matches with given query."))
+                qs = self._filtered_or_shared_qs(qs, pk)
 
         return qs
 
     @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
     def labels(self, request, formid, dataid, **kwargs):
         self.object = self.get_object()
-        status = 400
+        http_status = status.HTTP_400_BAD_REQUEST
         instance = get_object_or_404(ParsedInstance, instance__pk=int(dataid))
 
         if request.method == 'POST':
             if add_tags_to_instance(request, instance.instance):
-                status = 201
+                http_status = status.HTTP_201_CREATED
 
         label = kwargs.get('label', None)
 
@@ -402,16 +412,16 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 
             # Accepted, label does not exist hence nothing removed
             if count == instance.instance.tags.count():
-                status = 202
+                http_status = status.HTTP_202_ACCEPTED
 
             data = list(instance.instance.tags.names())
         else:
             data = list(instance.instance.tags.names())
 
         if request.method == 'GET':
-            status = 200
+            http_status = status.HTPP_200_OK
 
-        return Response(data, status=status)
+        return Response(data, status=http_status)
 
     @action(methods=['GET'])
     def enketo(self, request, *args, **kwargs):
