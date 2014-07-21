@@ -286,6 +286,21 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertDictContainsSubset(data, response.data)
             self.assertTrue(OwnerRole.has_role(self.user, xform))
 
+    def test_publish_invalid_xls_form(self):
+        view = XFormViewSet.as_view({
+            'post': 'create'
+        })
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation.bad_id.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+            self.assertEqual(response.status_code, 400)
+            error_msg = '[row : 5] Question or group with no name.'
+            self.assertEqual(response.data.get('text'), error_msg)
+
     def test_partial_update(self):
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({
