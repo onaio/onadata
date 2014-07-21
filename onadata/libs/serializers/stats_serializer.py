@@ -37,6 +37,10 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
         field = request.QUERY_PARAMS.get('group')
         name = request.QUERY_PARAMS.get('name', field)
 
+        if field is None:
+            raise exceptions.ParseError(_(u"Expecting `group` and `name`"
+                                          u" query parameters."))
+
         try:
             data = get_form_submissions_grouped_by_field(
                 obj, field, name)
