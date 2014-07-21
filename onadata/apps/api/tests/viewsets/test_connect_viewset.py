@@ -49,7 +49,7 @@ class TestConnectViewSet(TestAbstractViewSet):
             'get': 'starred',
         })
         request = self.factory.get('/', **self.extra)
-        response = view(request)
+        response = view(request, user=self.user)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.project_data])
