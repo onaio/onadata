@@ -8,8 +8,7 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
         """
         Anonymous user has no object permissions, return queryset as it is.
         """
-        user = request.user
-        if user.is_anonymous():
+        if request.user.is_anonymous():
             return queryset
 
         return super(AnonDjangoObjectPermissionFilter, self)\

@@ -18,6 +18,29 @@ def enketo_mock(url, request):
     return response
 
 
+def _data_list(formid):
+    return [{
+        u'id': formid,
+        u'id_string': u'transportation_2011_07_25',
+        u'title': 'transportation_2011_07_25',
+        u'description': 'transportation_2011_07_25',
+        u'url': u'http://testserver/api/v1/data/%s' % formid
+    }]
+
+
+def _data_instance(dataid):
+    return {
+        u'_bamboo_dataset_id': u'',
+        u'_attachments': [],
+        u'_geolocation': [None, None],
+        u'_xform_id_string': u'transportation_2011_07_25',
+        u'transport/available_transportation_types_to_referral_facility':
+        u'none',
+        u'_status': u'submitted_via_web',
+        u'_id': dataid
+    }
+
+
 class TestDataViewSet(TestBase):
 
     def setUp(self):
@@ -35,13 +58,7 @@ class TestDataViewSet(TestBase):
         response = view(request)
         self.assertEqual(response.status_code, 200)
         formid = self.xform.pk
-        data = [{
-            u'id': formid,
-            u'id_string': u'transportation_2011_07_25',
-            u'title': 'transportation_2011_07_25',
-            u'description': 'transportation_2011_07_25',
-            u'url': u'http://testserver/api/v1/data/%s' % formid
-        }]
+        data = _data_list(formid)
         self.assertEqual(response.data, data)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
@@ -49,16 +66,7 @@ class TestDataViewSet(TestBase):
         self.assertTrue(self.xform.instances.count())
 
         dataid = self.xform.instances.all().order_by('id')[0].pk
-        data = {
-            u'_bamboo_dataset_id': u'',
-            u'_attachments': [],
-            u'_geolocation': [None, None],
-            u'_xform_id_string': u'transportation_2011_07_25',
-            u'transport/available_transportation_types_to_referral_facility':
-            u'none',
-            u'_status': u'submitted_via_web',
-            u'_id': dataid
-        }
+        data = _data_instance(dataid)
         self.assertDictContainsSubset(data, sorted(response.data)[0])
 
         view = DataViewSet.as_view({'get': 'retrieve'})
@@ -82,17 +90,8 @@ class TestDataViewSet(TestBase):
         self.assertIsInstance(response.data, list)
         self.assertTrue(self.xform.instances.count())
         dataid = self.xform.instances.all().order_by('id')[0].pk
+        data = _data_instance(dataid)
 
-        data = {
-            u'_bamboo_dataset_id': u'',
-            u'_attachments': [],
-            u'_geolocation': [None, None],
-            u'_xform_id_string': u'transportation_2011_07_25',
-            u'transport/available_transportation_types_to_referral_facility':
-            u'none',
-            u'_status': u'submitted_via_web',
-            u'_id': dataid
-        }
         self.assertDictContainsSubset(data, sorted(response.data)[0])
 
         view = DataViewSet.as_view({'get': 'retrieve'})
@@ -110,13 +109,7 @@ class TestDataViewSet(TestBase):
         self.xform.shared_data = True
         self.xform.save()
         formid = self.xform.pk
-        data = [{
-            u'id': formid,
-            u'id_string': u'transportation_2011_07_25',
-            u'title': 'transportation_2011_07_25',
-            u'description': 'transportation_2011_07_25',
-            u'url': u'http://testserver/api/v1/data/%s' % formid
-        }]
+        data = _data_list(formid)
         response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
@@ -130,13 +123,7 @@ class TestDataViewSet(TestBase):
         self.xform.shared_data = True
         self.xform.save()
         formid = self.xform.pk
-        data = [{
-            u'id': formid,
-            u'id_string': u'transportation_2011_07_25',
-            u'title': 'transportation_2011_07_25',
-            u'description': 'transportation_2011_07_25',
-            u'url': u'http://testserver/api/v1/data/%s' % formid
-        }]
+        data = _data_list(formid)
         response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
@@ -150,13 +137,7 @@ class TestDataViewSet(TestBase):
         self.xform.shared_data = True
         self.xform.save()
         formid = self.xform.pk
-        data = [{
-            u'id': formid,
-            u'id_string': u'transportation_2011_07_25',
-            u'title': 'transportation_2011_07_25',
-            u'description': 'transportation_2011_07_25',
-            u'url': u'http://testserver/api/v1/data/%s' % formid
-        }]
+        data = _data_list(formid)
         response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
@@ -167,30 +148,14 @@ class TestDataViewSet(TestBase):
         response = view(request)
         self.assertEqual(response.status_code, 200)
         formid = self.xform.pk
-        data = [{
-            u'id': formid,
-            u'id_string': u'transportation_2011_07_25',
-            u'title': 'transportation_2011_07_25',
-            u'description': 'transportation_2011_07_25',
-            u'url': u'http://testserver/api/v1/data/%s' % formid
-        }]
+        data = _data_list(formid)
         self.assertEqual(response.data, data)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, list)
         self.assertTrue(self.xform.instances.count())
         dataid = 'INVALID'
-
-        data = {
-            u'_bamboo_dataset_id': u'',
-            u'_attachments': [],
-            u'_geolocation': [None, None],
-            u'_xform_id_string': u'transportation_2011_07_25',
-            u'transport/available_transportation_types_to_referral_facility':
-            u'none',
-            u'_status': u'submitted_via_web',
-            u'_id': dataid
-        }
+        data = _data_instance(dataid)
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 400)
@@ -249,13 +214,7 @@ class TestDataViewSet(TestBase):
     def test_data_list_filter_by_user(self):
         view = DataViewSet.as_view({'get': 'list'})
         formid = self.xform.pk
-        bobs_data = {
-            u'id': formid,
-            u'id_string': u'transportation_2011_07_25',
-            u'title': 'transportation_2011_07_25',
-            u'description': 'transportation_2011_07_25',
-            u'url': u'http://testserver/api/v1/data/%s' % formid
-        }
+        bobs_data = _data_list(formid)[0]
 
         previous_user = self.user
         self._create_user_and_login('alice', 'alice')
@@ -270,13 +229,7 @@ class TestDataViewSet(TestBase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
         formid = self.xform.pk
-        alice_data = {
-            u'id': formid,
-            u'id_string': u'transportation_2011_07_25',
-            u'title': 'transportation_2011_07_25',
-            u'description': 'transportation_2011_07_25',
-            u'url': u'http://testserver/api/v1/data/%s' % formid
-        }
+        alice_data = _data_list(formid)[0]
 
         request = self.factory.get('/', **self.extra)
         response = view(request)
@@ -325,3 +278,38 @@ class TestDataViewSet(TestBase):
             self.assertEqual(
                 response.data['url'],
                 "https://hmh2a.enketo.formhub.org")
+
+    def test_get_form_public_data(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/')
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+
+        # data not found for anonymous access to private data
+        self.assertEqual(response.status_code, 404)
+        self.xform.shared_data = True
+        self.xform.save()
+
+        # access to a public data as anon
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertTrue(self.xform.instances.count())
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        data = _data_instance(dataid)
+        self.assertDictContainsSubset(data, sorted(response.data)[0])
+
+        # access to a public data as other user
+        self._create_user_and_login('alice', 'alice')
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertTrue(self.xform.instances.count())
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        data = _data_instance(dataid)
+        self.assertDictContainsSubset(data, sorted(response.data)[0])
