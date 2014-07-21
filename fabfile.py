@@ -158,12 +158,14 @@ def update_xforms(deployment_name, username, path):
         # decompress on server
         run('tar xzvf %s.tgz' % dir_name)
 
-    with cd(env.code_src):
-        with source(env.virtualenv):
-            # run replace command
-            for f in glob.glob(os.path.join(path, '*')):
-                file_path = '/tmp/%s/%s' % (dir_name, os.path.basename(f))
-                run('python manage.py publish_xls -r %s %s --settings=%s' %
-                    (file_path, username, env.django_config_module))
-
-    run('rm -r /tmp/%s /tmp/%s.tgz' % (dir_name, dir_name))
+    try:
+        with cd(env.code_src):
+            with source(env.virtualenv):
+                # run replace command
+                for f in glob.glob(os.path.join(path, '*')):
+                    file_path = '/tmp/%s/%s' % (dir_name, os.path.basename(f))
+                    run('python manage.py publish_xls -r %s %s --settings=%s' %
+                        (file_path, username, env.django_config_module))
+    finally:
+        run('rm -r /tmp/%s /tmp/%s.tgz' % (dir_name, dir_name))
+        check_call(['rm', path_compressed])
