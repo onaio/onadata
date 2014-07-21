@@ -1,4 +1,6 @@
+import glob
 import os
+from subprocess import check_call
 import sys
 
 from fabric.api import cd, env, prefix, run
@@ -139,11 +141,16 @@ def deploy(deployment_name, branch='master'):
 
 
 def update_xforms(deployment_name, username, path):
-    # compress and upload
-    dir_name = os.path.basename(path)
-    path_compressed = '%s.tgz' % path
+    setup_env(deployment_name)
 
-    run('tar czvf %s.tgz %s' % (path_compressed, path))
+    # compress and upload
+    path = path.rstrip("/")
+
+    dir_name = os.path.basename(path)
+    path_compressed = '%s.tgz' % dir_name
+
+    check_call(['tar', 'czvf', path_compressed, '-C', os.path.dirname(path),
+                dir_name])
 
     with cd('/tmp'):
         put(path_compressed, '%s.tgz' % dir_name)
@@ -151,12 +158,11 @@ def update_xforms(deployment_name, username, path):
         # decompress on server
         run('tar xzvf %s.tgz' % dir_name)
 
-    setup_env(deployment_name)
     with cd(env.code_src):
         with source(env.virtualenv):
             # run replace command
-            for file in os.listdir('/tmp/%s' % dir_name):
-                file_path = '/tmp/%s/%s' % (dir_name, file)
+            for f in glob.glob(os.path.join(path, '*')):
+                file_path = '/tmp/%s/%s' % (dir_name, os.path.basename(f))
                 run('python manage.py publish_xls -r %s %s --settings=%s' %
                     (file_path, username, env.django_config_module))
 
