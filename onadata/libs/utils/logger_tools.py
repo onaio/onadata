@@ -8,8 +8,7 @@ from xml.dom import Node
 from xml.parsers.expat import ExpatError
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import ValidationError, PermissionDenied
 from django.core.files.storage import get_storage_class
 from django.core.mail import mail_admins
 from django.core.servers.basehttp import FileWrapper
@@ -19,6 +18,7 @@ from django.db.models.signals import pre_delete
 from django.http import HttpResponse, HttpResponseNotFound, \
     StreamingHttpResponse
 from django.shortcuts import get_object_or_404
+from django.utils.encoding import DjangoUnicodeDecodeError
 from django.utils.translation import ugettext as _
 from django.utils import timezone
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
@@ -296,6 +296,10 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseForbidden(e)
     except InstanceMultipleNodeError as e:
         error = OpenRosaResponseBadRequest(e)
+    except DjangoUnicodeDecodeError:
+        error = OpenRosaResponseBadRequest(_(u"File likely corrupted during "
+                                             u"transmission, please try later."
+                                             ))
 
     return [error, instance]
 
