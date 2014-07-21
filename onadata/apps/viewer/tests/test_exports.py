@@ -1256,6 +1256,18 @@ class TestExports(TestBase):
         }
         self.assertEqual(sorted(data), sorted(expected_data))
 
+    def test_create_xls_export_non_existent_id(self):
+        self._publish_transportation_form()
+
+        # make a submission and create a valid export
+        self._submit_transport_instance()
+        non_existent_id = 42
+        result = create_xls_export(
+            self.user.username,
+            self.xform.id_string, non_existent_id)
+
+        self.assertEqual(result, None)
+
 
 class TestExportBuilder(TestBase):
     data = [
