@@ -22,7 +22,7 @@ class TestStatsViewSet(TestBase):
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
     @patch('onadata.apps.logger.models.instance.submission_time')
-    def test_form_list(self, mock_time):
+    def test_submissions_stats(self, mock_time):
         self._set_mock_time(mock_time)
         self._publish_transportation_form()
         self._make_submissions()
@@ -39,6 +39,12 @@ class TestStatsViewSet(TestBase):
         self.assertEqual(response.data, data)
 
         view = SubmissionStatsViewSet.as_view({'get': 'retrieve'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 400)
+        data = {u'detail': u'Expecting `group` and `name` query parameters.'}
+        self.assertEqual(response.data, data)
+
         request = self.factory.get('/?group=_xform_id_string', **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
