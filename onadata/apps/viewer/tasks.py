@@ -85,7 +85,12 @@ def create_xls_export(username, id_string, export_id, query=None,
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
     ext = 'xls' if not force_xlsx else 'xlsx'
 
-    export = Export.objects.get(id=export_id)
+    try:
+        export = Export.objects.get(id=export_id)
+    except Export.DoesNotExist:
+        # no export for this ID return None.
+        return None
+
     # though export is not available when for has 0 submissions, we
     # catch this since it potentially stops celery
     try:
