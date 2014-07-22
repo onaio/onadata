@@ -9,6 +9,7 @@ from onadata.libs.filters import (
     AnonUserProjectFilter,
     ProjectOwnerFilter,
     TagFilter)
+from onadata.libs.models.share_project import ShareProject
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
@@ -377,14 +378,17 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 
         return Response(serializer.data)
 
-    @action(methods=['POST'])
+    @action(methods=['DELETE', 'POST'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = dict(request.DATA.items() + [('project', self.object.pk)])
         serializer = ShareProjectSerializer(data=data)
 
         if serializer.is_valid():
-            serializer.save()
+            if request.method == 'POST':
+                serializer.save()
+            if request.method == 'DELETE':
+                serializer.remove_user()
         else:
             return Response(data=serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)

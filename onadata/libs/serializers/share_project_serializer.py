@@ -43,3 +43,6 @@ class ShareProjectSerializer(serializers.Serializer):
                                     % {"role": value}))
 
         return attrs
+
+    def remove_user(self):
+        self.object.remove_user()

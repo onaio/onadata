@@ -181,6 +181,32 @@ class TestProjectViewSet(TestAbstractViewSet):
 
             self.assertEqual(response.status_code, 400)
 
+    def test_project_share_remove_user(self):
+        self._project_create()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        projectid = self.project.pk
+        role_class = ReadOnlyRole
+        data = {'username': 'alice', 'role': role_class.name}
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(role_class.has_role(alice_profile.user,
+                                            self.project))
+
+        view = ProjectViewSet.as_view({
+            'delete': 'share'
+        })
+        request = self.factory.delete('/', data=data, **self.extra)
+        response = view(request, pk=projectid)
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(role_class.has_role(alice_profile.user,
+                                             self.project))
+
     def test_project_filter_by_owner(self):
         self._project_create()
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
