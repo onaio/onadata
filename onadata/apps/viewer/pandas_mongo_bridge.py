@@ -11,6 +11,7 @@ from pyxform.question import Question
 
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY
@@ -65,10 +66,6 @@ def get_prefix_from_xpath(xpath):
     else:
         raise ValueError(
             '%s cannot be prefixed, it returns %s' % (xpath, str(parts)))
-
-
-class NoRecordsFoundError(Exception):
-    pass
 
 
 class AbstractDataFrameBuilder(object):

@@ -29,7 +29,7 @@ from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.viewer_tools import enketo_url
 from onadata.apps.viewer.models import Export
-from onadata.apps.viewer.pandas_mongo_bridge import NoRecordsFoundError
+from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import generate_export,\
     should_create_new_export
 from onadata.libs.utils.common_tags import SUBMISSION_TIME

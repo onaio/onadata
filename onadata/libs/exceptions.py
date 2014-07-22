@@ -1,0 +1,2 @@
+class NoRecordsFoundError(Exception):
+    pass

@@ -6,7 +6,7 @@ from django.conf import settings
 from django.core.mail import mail_admins
 
 from onadata.apps.viewer.models.export import Export
-from pandas_mongo_bridge import NoRecordsFoundError
+from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import generate_export,\
     generate_attachments_zip_export, generate_kml_export
 from onadata.libs.utils.logger_tools import mongo_sync_status, report_exception
