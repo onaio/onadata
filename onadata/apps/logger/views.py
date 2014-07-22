@@ -292,7 +292,7 @@ def submission(request, username=None):
         response['Location'] = request.build_absolute_uri(request.path)
         return response
     except IOError as e:
-        strerror = e.strerror
+        strerror = unicode(e)
 
         if strerror and 'request data read error' in strerror:
             return OpenRosaResponseBadRequest(
