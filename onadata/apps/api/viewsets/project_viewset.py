@@ -131,7 +131,8 @@ https://ona.io/api/v1/projects/1
 You can share a project with a specific user by `POST` a payload with
 
 - `username` of the user you want to share the form with and
-- `role` you want the user to have on the project. Available roles are `readonly`,
+- `role` you want the user to have on the project. \
+Available roles are `readonly`,
 `dataentry`, `editor`, `manager`.
 
 <pre class="prettyprint">
