@@ -9,7 +9,6 @@ from onadata.libs.filters import (
     AnonUserProjectFilter,
     ProjectOwnerFilter,
     TagFilter)
-from onadata.libs.models.share_project import ShareProject
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
