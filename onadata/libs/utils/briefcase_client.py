@@ -71,6 +71,12 @@ def retry(tries, delay=3, backoff=2):
     return decorator_retry
 
 
+def node_value(node, tag_name):
+    tag = node.getElementsByTagName(tag_name)[0]
+
+    return tag.childNodes[0].nodeValue
+
+
 class BriefcaseClient(object):
     def __init__(self, url, username, password, user):
         self.url = url
@@ -85,62 +91,98 @@ class BriefcaseClient(object):
         self.resumption_cursor = 0
         self.logger = logging.getLogger('console_logger')
 
-    def download_xforms(self, include_instances=False):
-        # fetch formList
-        response = requests.get(self.form_list_url, auth=self.auth)
-        self.logger.debug('Successfull fetched %s.' % self.form_list_url)
-        xml_doc = clean_and_parse_xml(response.content)
+    def _get_form_list(self, xml_text):
+        xml_doc = clean_and_parse_xml(xml_text)
         forms = []
+
         for childNode in xml_doc.childNodes:
             if childNode.nodeName == 'xforms':
                 for xformNode in childNode.childNodes:
                     if xformNode.nodeName == 'xform':
-                        form_id = xformNode.getElementsByTagName('formID')[0]
-                        id_string = form_id.childNodes[0].nodeValue
-                        d = xformNode.getElementsByTagName('downloadUrl')[0]
-                        download_url = d.childNodes[0].nodeValue
-                        m = xformNode.getElementsByTagName('manifestUrl')[0]
-                        manifest_url = m.childNodes[0].nodeValue
+                        id_string = node_value(xformNode, 'formID')
+                        download_url = node_value(xformNode, 'downloadUrl')
+                        manifest_url = node_value(xformNode, 'manifestUrl')
                         forms.append((id_string, download_url, manifest_url))
-        # download each xform
-        if forms:
-            for id_string, download_url, manifest_url in forms:
-                form_path = os.path.join(
-                    self.forms_path, id_string, '%s.xml' % id_string)
-                if not default_storage.exists(form_path):
-                    form_res = requests.get(download_url, auth=self.auth)
-                    content = ContentFile(form_res.content.strip())
-                    default_storage.save(form_path, content)
-                else:
-                    form_res = default_storage.open(form_path)
-                    content = form_res.read()
-                self.logger.debug("Fetched %s." % download_url)
-                manifest_res = requests.get(manifest_url, auth=self.auth)
-                try:
-                    manifest_doc = clean_and_parse_xml(manifest_res.content)
-                except ExpatError:
+
+        return forms
+
+    def download_manifest(self, manifest_url, id_string):
+        if self._get_response(manifest_url):
+            manifest_res = self._current_response
+
+            try:
+                manifest_doc = clean_and_parse_xml(manifest_res.content)
+            except ExpatError:
+                return
+
+            manifest_path = os.path.join(
+                self.forms_path, id_string, 'form-media')
+            self.logger.debug("Downloading media files for %s" % id_string)
+
+            self.download_media_files(manifest_doc, manifest_path)
+
+    def download_xforms(self, include_instances=False):
+        # fetch formList
+        if not self._get_response(self.form_list_url):
+            response = self._current_response.content \
+                if self._current_response else "Unknown Error"
+            self.logger.error("Failed to download xforms %s." % response)
+
+            return
+
+        response = self._current_response
+        forms = self._get_form_list(response.content)
+
+        self.logger.debug('Successfull fetched %s.' % self.form_list_url)
+
+        for id_string, download_url, manifest_url in forms:
+            form_path = os.path.join(
+                self.forms_path, id_string, '%s.xml' % id_string)
+
+            if not default_storage.exists(form_path):
+                if not self._get_response(download_url):
+                    self.logger.error("Failed to download xform %s."
+                                      % download_url)
                     continue
-                manifest_path = os.path.join(
-                    self.forms_path, id_string, 'form-media')
-                self.logger.debug("Downloading media files for %s" % id_string)
-                self.download_media_files(manifest_doc, manifest_path)
-                if include_instances:
-                    self.logger.debug("Downloading submissions for %s" %
-                                      id_string)
-                    self.download_instances(id_string)
-                    self.logger.debug("Done downloading submissions for %s" %
-                                      id_string)
+
+                form_res = self._current_response
+                content = ContentFile(form_res.content.strip())
+                default_storage.save(form_path, content)
+            else:
+                form_res = default_storage.open(form_path)
+                content = form_res.read()
+
+            self.logger.debug("Fetched %s." % download_url)
+
+            self.download_manifest(manifest_url, id_string)
+
+            if include_instances:
+                self.download_instances(id_string)
+                self.logger.debug("Done downloading submissions for %s" %
+                                  id_string)
 
     @retry(NUM_RETRIES)
-    def _get_response(self, url):
+    def _get_response(self, url, params=None):
         self._current_response = None
-        # S3 redirects, avoid using formhub digest on S3
+        response = requests.get(url, auth=self.auth, params=params)
+        success = response.status_code == 200
+        self._current_response = response
+
+        return success
+
+    @retry(NUM_RETRIES)
+    def _get_media_response(self, url):
+        self._current_response = None
         head_response = requests.head(url, auth=self.auth)
+
+        # S3 redirects, avoid using formhub digest on S3
         if head_response.status_code == 302:
             url = head_response.headers.get('location')
+
         response = requests.get(url)
         success = response.status_code == 200
         self._current_response = response
+
         return success
 
     def download_media_files(self, xml_doc, media_path):
@@ -153,7 +195,7 @@ class BriefcaseClient(object):
                 if default_storage.exists(path):
                     continue
                 download_url = url_node[0].childNodes[0].nodeValue
-                if self._get_response(download_url):
+                if self._get_media_response(download_url):
                     download_res = self._current_response
                     media_content = ContentFile(download_res.content)
                     default_storage.save(path, media_content)
@@ -163,27 +205,37 @@ class BriefcaseClient(object):
 
     def get_instances_uuids(self, xml_doc):
         uuids = []
+
         for child_node in xml_doc.childNodes:
             if child_node.nodeName == 'idChunk':
                 for id_node in child_node.getElementsByTagName('id'):
                     if id_node.childNodes:
                         uuid = id_node.childNodes[0].nodeValue
                         uuids.append(uuid)
+
         return uuids
 
     def download_instances(self, form_id, cursor=0, num_entries=100):
-        response = requests.get(self.submission_list_url, auth=self.auth,
-                                params={'formId': form_id,
-                                        'numEntries': num_entries,
-                                        'cursor': cursor})
+        self.logger.debug("Starting submissions download for %s" % form_id)
+        if not self._get_response(self.submission_list_url,
+                                  params={'formId': form_id,
+                                          'numEntries': num_entries,
+                                          'cursor': cursor}):
+            self.logger.error("Fetching %s formId: %s, cursor: %s" %
+                              (self.submission_list_url, form_id, cursor))
+            return
+
+        response = self._current_response
         self.logger.debug("Fetching %s formId: %s, cursor: %s" %
                           (self.submission_list_url, form_id, cursor))
         try:
             xml_doc = clean_and_parse_xml(response.content)
         except ExpatError:
             return
+
         instances = self.get_instances_uuids(xml_doc)
         path = os.path.join(self.forms_path, form_id, 'instances')
+
         for uuid in instances:
             self.logger.debug("Fetching %s %s submission" % (uuid, form_id))
             form_str = u'%(formId)s[@version=null and @uiVersion=null]/'\
@@ -194,24 +246,30 @@ class BriefcaseClient(object):
             instance_path = os.path.join(path, uuid.replace(':', ''),
                                          'submission.xml')
             if not default_storage.exists(instance_path):
-                instance_res = requests.get(self.download_submission_url,
-                                            auth=self.auth,
-                                            params={'formId': form_str})
-                content = instance_res.content.strip()
-                default_storage.save(instance_path, ContentFile(content))
+                if self._get_response(self.download_submission_url,
+                                      params={'formId': form_str}):
+                    instance_res = self._current_response
+                    content = instance_res.content.strip()
+                    default_storage.save(instance_path, ContentFile(content))
+                else:
+                    continue
             else:
                 instance_res = default_storage.open(instance_path)
                 content = instance_res.read()
+
             try:
                 instance_doc = clean_and_parse_xml(content)
             except ExpatError:
                 continue
+
             media_path = os.path.join(path, uuid.replace(':', ''))
             self.download_media_files(instance_doc, media_path)
             self.logger.debug("Fetched %s %s submission" % (form_id, uuid))
+
         if xml_doc.getElementsByTagName('resumptionCursor'):
             rs_node = xml_doc.getElementsByTagName('resumptionCursor')[0]
             cursor = rs_node.childNodes[0].nodeValue
+
             if self.resumption_cursor != cursor:
                 self.resumption_cursor = cursor
                 self.download_instances(form_id, cursor)
@@ -239,6 +297,7 @@ class BriefcaseClient(object):
         new_xml_file.content_type = 'text/xml'
         xml.close()
         attachments = []
+
         for attach in de_node.getElementsByTagName('mediaFile'):
             filename_node = attach.getElementsByTagName('filename')
             filename = filename_node[0].childNodes[0].nodeValue
@@ -248,19 +307,23 @@ class BriefcaseClient(object):
                 mimetype, encoding = mimetypes.guess_type(file_obj.name)
                 media_obj = django_file(file_obj, 'media_files[]', mimetype)
                 attachments.append(media_obj)
+
         create_instance(self.user.username, new_xml_file, attachments)
 
     def _upload_instances(self, path):
         instances_count = 0
         dirs, not_in_use = default_storage.listdir(path)
+
         for instance_dir in dirs:
             instance_dir_path = os.path.join(path, instance_dir)
             i_dirs, files = default_storage.listdir(instance_dir_path)
             xml_file = None
+
             if 'submission.xml' in files:
                 file_obj = default_storage.open(
                     os.path.join(instance_dir_path, 'submission.xml'))
                 xml_file = file_obj
+
             if xml_file:
                 try:
                     self._upload_instance(xml_file, instance_dir_path, files)
@@ -270,6 +333,7 @@ class BriefcaseClient(object):
                     pass
                 else:
                     instances_count += 1
+
         return instances_count
 
     def push(self):
