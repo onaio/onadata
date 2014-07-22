@@ -36,6 +36,10 @@ class DataListSerializer(serializers.Serializer):
 
     def to_native(self, obj):
         request = self.context.get('request')
+
+        if obj is None:
+            return super(DataListSerializer, self).to_native(obj)
+
         query_params = (request and request.QUERY_PARAMS) or {}
         query = {
             ParsedInstance.USERFORM_ID:
@@ -61,6 +65,9 @@ class DataListSerializer(serializers.Serializer):
 
 class DataInstanceSerializer(serializers.Serializer):
     def to_native(self, obj):
+        if obj is None:
+            return super(DataInstanceSerializer, self).to_native(obj)
+
         request = self.context.get('request')
         query_params = (request and request.QUERY_PARAMS) or {}
         query = {

@@ -142,6 +142,28 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
+    def test_data_bad_formid(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        formid = self.xform.pk
+        data = _data_list(formid)
+        self.assertEqual(response.data, data)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+
+        formid = 98918
+        self.assertEqual(XForm.objects.filter(pk=formid).count(), 0)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 404)
+
+        formid = "INVALID"
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 400)
+        data = {u'detail': u'Invalid pk INVALID'}
+        self.assertEqual(response.data, data)
+
     def test_data_bad_dataid(self):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
