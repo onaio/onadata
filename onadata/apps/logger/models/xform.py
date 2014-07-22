@@ -79,7 +79,7 @@ class XForm(BaseModel):
     uuid_bind_location = 4
     bamboo_dataset = models.CharField(max_length=60, default=u'')
     instances_with_geopoints = models.BooleanField(default=False)
-    num_of_submissions = models.IntegerField(default=-1)
+    num_of_submissions = models.IntegerField(default=0)
 
     tags = TaggableManager()
 
@@ -188,7 +188,7 @@ class XForm(BaseModel):
         return getattr(self, "id_string", "")
 
     def submission_count(self, force_update=False):
-        if self.num_of_submissions == -1 or force_update:
+        if self.num_of_submissions == 0 or force_update:
             count = self.instances.filter(deleted_at__isnull=True).count()
             self.num_of_submissions = count
             self.save()
