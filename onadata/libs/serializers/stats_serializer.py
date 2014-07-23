@@ -33,6 +33,10 @@ class SubmissionStatsSerializer(serializers.HyperlinkedModelSerializer):
 
 class SubmissionStatsInstanceSerializer(serializers.Serializer):
     def to_native(self, obj):
+        if obj is None:
+            return \
+                super(SubmissionStatsInstanceSerializer, self).to_native(obj)
+
         request = self.context.get('request')
         field = request.QUERY_PARAMS.get('group')
         name = request.QUERY_PARAMS.get('name', field)
@@ -71,6 +75,9 @@ class StatsSerializer(serializers.HyperlinkedModelSerializer):
 
 class StatsInstanceSerializer(serializers.Serializer):
     def to_native(self, obj):
+        if obj is None:
+            return super(StatsInstanceSerializer, self).to_native(obj)
+
         request = self.context.get('request')
         method = request.QUERY_PARAMS.get('method', None)
         field = request.QUERY_PARAMS.get('field', None)
