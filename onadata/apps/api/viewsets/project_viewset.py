@@ -149,15 +149,16 @@ Available roles are `readonly`,
 >        HTTP 204 NO CONTENT
 
 ## Remove a user from a project
-You can remove a specific user from a project using `DELETE` with payload:
+You can remove a specific user from a project using `POST` with payload:
 
 - `username` of the user you want to remove
 - `role` the user has on the project
+- `remove` set remove to True
 
 > Example
 >
->       curl -X DELETE -d "username=alice" -d "role=readonly"\
- http://localhost:8000/api/v1/projects/1/share
+>       curl -X POST -d "username=alice" -d "role=readonly" \
+ -d "remove=True" http://localhost:8000/api/v1/projects/1/share
 
 > Response
 >
@@ -393,17 +394,17 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 
         return Response(serializer.data)
 
-    @action(methods=['DELETE', 'POST'])
+    @action(methods=['POST'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = dict(request.DATA.items() + [('project', self.object.pk)])
         serializer = ShareProjectSerializer(data=data)
 
         if serializer.is_valid():
-            if request.method == 'POST':
-                serializer.save()
-            if request.method == 'DELETE':
+            if data.get("remove"):
                 serializer.remove_user()
+            else:
+                serializer.save()
         else:
             return Response(data=serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)

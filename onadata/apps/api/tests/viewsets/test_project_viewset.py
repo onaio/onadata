@@ -199,9 +199,10 @@ class TestProjectViewSet(TestAbstractViewSet):
                                             self.project))
 
         view = ProjectViewSet.as_view({
-            'delete': 'share'
+            'post': 'share'
         })
-        request = self.factory.delete('/', data=data, **self.extra)
+        data['remove'] = True
+        request = self.factory.post('/', data=data, **self.extra)
         response = view(request, pk=projectid)
         self.assertEqual(response.status_code, 204)
         self.assertFalse(role_class.has_role(alice_profile.user,
