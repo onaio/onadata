@@ -17,3 +17,9 @@ class ShareProject(object):
 
         if role and self.user and self.project:
             role.add(self.user, self.project)
+
+    def remove_user(self):
+        role = ROLES.get(self.role)
+
+        if role and self.user and self.project:
+            role._remove_obj_permissions(self.user, self.project)

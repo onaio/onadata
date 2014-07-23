@@ -131,7 +131,8 @@ https://ona.io/api/v1/projects/1
 You can share a project with a specific user by `POST` a payload with
 
 - `username` of the user you want to share the form with and
-- `role` you want the user to have on the form. Available roles are `readonly`,
+- `role` you want the user to have on the project. \
+Available roles are `readonly`,
 `dataentry`, `editor`, `manager`.
 
 <pre class="prettyprint">
@@ -141,7 +142,23 @@ You can share a project with a specific user by `POST` a payload with
 > Example
 >
 >       curl -X POST -d username=alice -d role=readonly\
-https://ona.io/api/v1/projects/1/share
+ https://ona.io/api/v1/projects/1/share
+
+> Response
+>
+>        HTTP 204 NO CONTENT
+
+## Remove a user from a project
+You can remove a specific user from a project using `POST` with payload:
+
+- `username` of the user you want to remove
+- `role` the user has on the project
+- `remove` set remove to True
+
+> Example
+>
+>       curl -X POST -d "username=alice" -d "role=readonly" \
+ -d "remove=True" http://localhost:8000/api/v1/projects/1/share
 
 > Response
 >
@@ -384,7 +401,10 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
         serializer = ShareProjectSerializer(data=data)
 
         if serializer.is_valid():
-            serializer.save()
+            if data.get("remove"):
+                serializer.remove_user()
+            else:
+                serializer.save()
         else:
             return Response(data=serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)
