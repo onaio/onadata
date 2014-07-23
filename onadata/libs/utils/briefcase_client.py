@@ -9,6 +9,8 @@ from urlparse import urljoin
 from xml.parsers.expat import ExpatError
 
 from cStringIO import StringIO
+
+from django.db import transaction
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -274,6 +276,7 @@ class BriefcaseClient(object):
                 self.resumption_cursor = cursor
                 self.download_instances(form_id, cursor)
 
+    @transaction.autocommit
     def _upload_xform(self, path, file_name):
         class PublishXForm(object):
             def __init__(self, xml_file, user):
