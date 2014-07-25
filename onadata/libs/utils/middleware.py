@@ -1,5 +1,6 @@
 import traceback
 
+from django.db import connection
 from django.http import HttpResponseNotAllowed
 from django.template import RequestContext
 from django.template import loader
@@ -42,3 +43,14 @@ class LocaleMiddlewareWithTweaks(LocaleMiddleware):
             pass
 
         super(LocaleMiddlewareWithTweaks, self).process_request(request)
+
+
+class SqlLogging:
+    def process_response(self, request, response):
+        from sys import stdout
+        if stdout.isatty():
+            for query in connection.queries:
+                print "\033[1;31m[%s]\033[0m \033[1m%s\033[0m" % (
+                    query['time'], " ".join(query['sql'].split()))
+
+        return response
