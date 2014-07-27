@@ -26,6 +26,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     public = BooleanField(
         source='shared', widget=widgets.CheckboxInput())
     tags = TagListSerializer(read_only=True)
+    num_datasets = serializers.SerializerMethodField('get_num_datasets')
 
     class Meta:
         model = Project
@@ -58,3 +59,10 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_project_permissions(self, obj):
         return get_object_users_with_permissions(obj)
+
+    def get_num_datasets(self, obj):
+        """Return the number of datasets attached to the object.
+
+        :param obj: The object to find datasets for.
+        """
+        return obj.projectxform_set.count()
