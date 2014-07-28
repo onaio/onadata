@@ -6,6 +6,7 @@ from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
+from onadata.apps.logger.models import Instance
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
@@ -27,6 +28,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         source='shared', widget=widgets.CheckboxInput())
     tags = TagListSerializer(read_only=True)
     num_datasets = serializers.SerializerMethodField('get_num_datasets')
+    last_submission_date = serializers.SerializerMethodField(
+        'get_last_submission_date')
 
     class Meta:
         model = Project
@@ -63,6 +66,18 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     def get_num_datasets(self, obj):
         """Return the number of datasets attached to the object.
 
-        :param obj: The object to find datasets for.
+        :param obj: The project to find datasets for.
         """
         return obj.projectxform_set.count()
+
+    def get_last_submission_date(self, obj):
+        """Return the most recent submission date to any of the projects
+        datasets.
+
+        :param obj: The project to find the last submission date for.
+        """
+        xform_ids = obj.projectxform_set.values_list('id', flat=True)
+        last_submission = Instance.objects.order_by('-date_created').filter(
+            xform_id__in=xform_ids).values_list('date_created', flat=True)
+
+        return last_submission and last_submission[0]

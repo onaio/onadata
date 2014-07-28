@@ -120,6 +120,24 @@ class TestProjectViewSet(TestAbstractViewSet):
     def test_publish_xls_form_to_project(self):
         self._publish_xls_form_to_project()
 
+    def test_num_datasets(self):
+        self._publish_xls_form_to_project()
+        request = self.factory.post('/', data={}, **self.extra)
+        self.project_data = ProjectSerializer(
+            self.project, context={'request': request}).data
+        self.assertEqual(self.project_data['num_datasets'], 1)
+
+    def test_last_submission_date(self):
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+        request = self.factory.post('/', data={}, **self.extra)
+        self.project_data = ProjectSerializer(
+            self.project, context={'request': request}).data
+        date_created = self.xform.instances.order_by(
+            '-date_created').values_list('date_created', flat=True)[0]
+        self.assertEqual(str(self.project_data['last_submission_date']),
+                         str(date_created))
+
     def test_view_xls_form(self):
         self._publish_xls_form_to_project()
         view = ProjectViewSet.as_view({
