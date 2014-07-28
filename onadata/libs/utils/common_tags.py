@@ -36,6 +36,7 @@ DELETEDAT = u"_deleted_at"  # marker for delete surveys
 BAMBOO_DATASET_ID = u"_bamboo_dataset_id"
 SUBMITTED_BY = u"_submitted_by"
 
+INSTANCE_ID = u"instanceID"
 META_INSTANCE_ID = u"meta/instanceID"
 INDEX = u"_index"
 PARENT_INDEX = u"_parent_index"

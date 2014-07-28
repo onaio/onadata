@@ -2,12 +2,14 @@ from django.http import Http404
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import permissions
 from rest_framework import viewsets
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.renderers import (
     TemplateHTMLRenderer, BrowsableAPIRenderer, JSONRenderer)
 
 from onadata.apps.logger.models.xform import XForm
-from onadata.libs.serializers.chart_serializer import ChartSerializer
+from onadata.libs.serializers.chart_serializer import (
+    ChartSerializer, FieldsChartSerializer)
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.chart_tools import build_chart_data_for_field
 
@@ -93,7 +95,8 @@ View chart for specific fields in a form or dataset.
 - `format` - can be `html` or `json`
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/charts/<code>{formid}</code>.<code>{format}</code>?field_name=<code>field_name</code></pre> # noqa
+<b>GET</b> /api/v1/charts/<code>{formid}</code>.<code>{format}</code>?\
+field_name=<code>field_name</code></pre>
 
 > Example
 >
@@ -105,6 +108,25 @@ View chart for specific fields in a form or dataset.
 > - `json` format response is the `JSON` data that can be passed to a charting
 > library
 
+### Get a chart data for all fields in a form
+
+The only field ommitted is instanceID since it is unique for every record.
+
+- `fields` - is a comma separated list of fields to be included in the \
+response. If `fields=all` then all the fields of the form will be returned.
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/charts/<code>{formid}</code>?<code>fields=all</code>
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/charts/4240?fields=all
+
+> Response
+>
+> - `json` format response is the `JSON` data for each field that can be
+> passed to a charting library
     """
     model = XForm
     serializer_class = ChartSerializer
@@ -115,15 +137,25 @@ View chart for specific fields in a form or dataset.
                         )
     permission_classes = [permissions.DjangoObjectPermissions, ]
 
-    def list(self, request, *args, **kwargs):
-        return super(ChartsViewSet, self).list(request, *args, **kwargs)
-
     def retrieve(self, request, *args, **kwargs):
         xform = self.get_object()
         serializer = self.get_serializer(xform)
         dd = xform.data_dictionary()
 
         field_name = request.QUERY_PARAMS.get('field_name')
+        fields = request.QUERY_PARAMS.get('fields')
+
+        if fields:
+            fmt = kwargs.get('format')
+
+            if fmt is not None and fmt != 'json':
+                raise ParseError("Error: only JSON format supported.")
+
+            xform = self.get_object()
+            context = self.get_serializer_context()
+            serializer = FieldsChartSerializer(instance=xform, context=context)
+
+            return Response(serializer.data)
 
         if field_name:
             # check if its the special _submission_time META

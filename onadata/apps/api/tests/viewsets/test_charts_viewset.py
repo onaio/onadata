@@ -60,3 +60,53 @@ class TestChartsViewSet(TestBase):
         self.assertEqual(response.data['field_type'], 'integer')
         self.assertEqual(response.data['field_name'], 'age')
         self.assertEqual(response.data['data_type'], 'numeric')
+
+    def test_get_all_fields(self):
+        data = {'fields': 'all'}
+        request = self.request_factory.get('/', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('age', response.data)
+        self.assertIn('date', response.data)
+        self.assertIn('gender', response.data)
+        self.assertEqual(response.data['age']['field_type'], 'integer')
+        self.assertEqual(response.data['age']['field_name'], 'age')
+        self.assertEqual(response.data['age']['data_type'], 'numeric')
+
+    def test_get_specific_fields(self):
+        data = {'fields': 'date,age'}
+        request = self.request_factory.get('/', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id
+        )
+        self.assertEqual(response.status_code, 200)
+
+        self.assertNotIn('gender', response.data)
+
+        self.assertIn('age', response.data)
+        data = response.data['age']
+        self.assertEqual(data['field_type'], 'integer')
+        self.assertEqual(data['field_name'], 'age')
+        self.assertEqual(data['data_type'], 'numeric')
+
+        self.assertIn('date', response.data)
+        data = response.data['date']
+        self.assertEqual(data['field_type'], 'date')
+        self.assertEqual(data['field_name'], 'date')
+        self.assertEqual(data['data_type'], 'time_based')
+
+    def test_get_invalid_field_name(self):
+        data = {'fields': 'invalid_field_name'}
+        request = self.request_factory.get('/', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id
+        )
+        self.assertEqual(response.status_code, 404)
