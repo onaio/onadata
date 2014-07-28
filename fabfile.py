@@ -12,7 +12,7 @@ DEPLOYMENTS = {
         'home': '/home/ubuntu/src/',
         'host_string': 'ubuntu@stage.ona.io',
         'project': 'ona',
-        # 'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
+        'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
         'celeryd': '/etc/init.d/celeryd-ona',
         'django_config_module': 'onadata.settings.local_settings',
         'pid': '/var/run/ona.pid',
@@ -89,7 +89,7 @@ def setup_env(deployment_name):
 
     env.update(deployment)
 
-    # check_key_filename(deployment_name)
+    check_key_filename(deployment_name)
 
     env.virtualenv = os.path.join('/home', 'ubuntu', '.virtualenvs',
                                   env.project, 'bin', 'activate')
