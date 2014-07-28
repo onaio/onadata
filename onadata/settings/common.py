@@ -418,13 +418,6 @@ NA_REP = 'n/a'
 # specifically for site urls sent to enketo
 ENKETO_PROTOCOL = 'https'
 
-# legacy setting for old sites who still use a local_settings.py file and have
-# not updated to presets/
-try:
-    from local_settings import *  # nopep8
-except ImportError:
-    pass
-
 # MongoDB
 if MONGO_DATABASE.get('USER') and MONGO_DATABASE.get('PASSWORD'):
     MONGO_CONNECTION_URL = (
@@ -460,3 +453,10 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
     'text/csv',
     'application/zip'
 ]
+
+# legacy setting for old sites who still use a local_settings.py file and have
+# not updated to presets/
+try:
+    from local_settings import *  # nopep8
+except ImportError:
+    pass
