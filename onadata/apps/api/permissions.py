@@ -73,4 +73,11 @@ class ProjectPermissions(DjangoObjectPermissions):
         return \
             super(ProjectPermissions, self).has_permission(request, view)
 
+
+class MetaDataObjectPermissions(DjangoObjectPermissions):
+    """Use xform permissions for MetaData objects"""
+    def has_object_permission(self, request, view, obj):
+        return super(MetaDataObjectPermissions, self).has_object_permission(
+            request, view, obj.xform)
+
 __permissions__ = [DjangoObjectPermissions, IsAuthenticated]
