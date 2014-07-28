@@ -68,7 +68,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         :param obj: The project to find datasets for.
         """
-        return obj.projectxform_set.count()
+        if obj:
+            return obj.projectxform_set.count()
 
     def get_last_submission_date(self, obj):
         """Return the most recent submission date to any of the projects
@@ -76,8 +77,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         :param obj: The project to find the last submission date for.
         """
-        xform_ids = obj.projectxform_set.values_list('id', flat=True)
-        last_submission = Instance.objects.order_by('-date_created').filter(
-            xform_id__in=xform_ids).values_list('date_created', flat=True)
+        if obj:
+            xform_ids = obj.projectxform_set.values_list('id', flat=True)
+            last_submission = Instance.objects.\
+                order_by('-date_created').\
+                filter(xform_id__in=xform_ids).values_list('date_created',
+                                                           flat=True)
 
-        return last_submission and last_submission[0]
+            return last_submission and last_submission[0]
