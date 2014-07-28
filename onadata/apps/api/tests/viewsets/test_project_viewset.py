@@ -138,7 +138,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(str(self.project_data['last_submission_date']),
                          str(date_created))
 
-    def test_view_xls_form(self):
+    def test_get_forms(self):
         self._publish_xls_form_to_project()
         view = ProjectViewSet.as_view({
             'get': 'forms'
@@ -147,6 +147,22 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.form_data])
+
+    def test_get_forms_num_submissions(self):
+        self._publish_xls_form_to_project()
+        view = ProjectViewSet.as_view({
+            'get': 'forms'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]['num_submissions'], 0)
+
+        self._make_submissions()
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]['num_submissions'], 4)
 
     def test_assign_form_to_project(self):
         view = ProjectViewSet.as_view({

@@ -23,6 +23,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         source='require_auth', widget=widgets.CheckboxInput())
     tags = TagListSerializer(read_only=True)
     users = serializers.SerializerMethodField('get_xform_permissions')
+    num_submissions = serializers.SerializerMethodField('get_num_submissions')
 
     class Meta:
         model = XForm
@@ -34,3 +35,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_xform_permissions(self, obj):
         return get_object_users_with_permissions(obj)
+
+    def get_num_submissions(self, obj):
+        if obj:
+            return obj.instances.count()
