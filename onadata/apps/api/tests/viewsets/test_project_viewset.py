@@ -18,6 +18,10 @@ class TestProjectViewSet(TestAbstractViewSet):
             'post': 'create'
         })
 
+    def _date_created(self):
+        return self.xform.instances.order_by(
+            '-date_created').values_list('date_created', flat=True)[0]
+
     def test_projects_list(self):
         self._project_create()
         request = self.factory.get('/', **self.extra)
@@ -133,8 +137,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data={}, **self.extra)
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
-        date_created = self.xform.instances.order_by(
-            '-date_created').values_list('date_created', flat=True)[0]
+        date_created = self._date_created()
         self.assertEqual(str(self.project_data['last_submission_date']),
                          str(date_created))
 
@@ -163,6 +166,25 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]['num_submissions'], 4)
+
+    def test_get_forms_last_submission(self):
+        self._publish_xls_form_to_project()
+        view = ProjectViewSet.as_view({
+            'get': 'forms'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]['last_submission'], [])
+
+        self._make_submissions()
+        date_created = self._date_created()
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(str(response.data[0]['last_submission']),
+                         str(date_created))
 
     def test_assign_form_to_project(self):
         view = ProjectViewSet.as_view({
