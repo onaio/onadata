@@ -34,9 +34,8 @@ class FieldsChartSerializer(serializers.ModelSerializer):
                 if isinstance(selected_fields, basestring) \
                         and selected_fields != 'all':
                     fields = selected_fields.split(',')
-                    fields = filter(
-                        lambda f: f.name in fields,
-                        [e for e in dd.survey_elements])
+                    fields = [e for e in dd.survey_elements
+                              if e.name in fields]
 
                     if len(fields) == 0:
                         raise Http404(
