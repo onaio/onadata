@@ -14,7 +14,7 @@ from onadata.apps.api.models import OrganizationProfile, Project
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.main.models import UserProfile
+from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.main import tests as main_tests
 from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.serializers.project_serializer import ProjectSerializer
@@ -261,3 +261,21 @@ class TestAbstractViewSet(TestCase):
         xform = XForm.objects.get(pk=self.xform.pk)
         self.assertEqual(xform.num_of_submissions, post_count)
         self.assertEqual(xform.user.profile.num_of_submissions, post_count)
+
+    def _add_form_metadata(self, xform, data_type, data_value, path=None):
+        count = MetaData.objects.count()
+        if path and data_value:
+            with open(path) as media_file:
+                data = {
+                    'data_type': data_type,
+                    'data_file': media_file,
+                    'data_value': data_value,
+                    'xform': xform.pk
+                }
+                request = self.factory.post('/', data)
+                response = self.view(request)
+                self.assertEqual(response.status_code, 201)
+                another_count = MetaData.objects.count()
+                self.assertEqual(another_count, count + 1)
+                doc = MetaData.objects.all().reverse()[0]
+                self.assertEqual(doc.data_type, data['data_type'])
