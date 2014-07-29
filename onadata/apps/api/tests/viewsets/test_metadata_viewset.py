@@ -59,3 +59,19 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             }
             self._post_form_metadata(data)
             self.assertEqual(self.metadata.data_file_type, 'text/csv')
+
+    def test_add_media_url(self):
+        data_type = 'media'
+        data_value = 'https://devtrac.ona.io/fieldtrips.csv'
+        self._add_form_metadata(self.xform, data_type, data_value)
+
+    def test_add_invalid_media_url(self):
+        data = {
+            'data_value': 'httptracfieldtrips.csv',
+            'data_type': 'media',
+            'xform': self.xform.pk
+        }
+        response = self._post_form_metadata(data, False)
+        self.assertEqual(response.status_code, 400)
+        error = {"data_value": ["Invalid url %s." % data['data_value']]}
+        self.assertEqual(response.data, error)

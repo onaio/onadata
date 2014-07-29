@@ -1,3 +1,4 @@
+from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
@@ -25,6 +26,19 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = MetaData
+
+    def validate_data_value(self, attrs, source):
+        """Ensure we have a valid url if we are adding a media uri
+        instead of a media file
+        """
+        value = attrs[source]
+        media = attrs.get('data_type')
+        data_file = attrs.get('data_file')
+
+        if media == 'media' and data_file is None:
+            URLValidator(message=_(u"Invalid url %s." % value))(value)
+
+        return attrs
 
     def restore_object(self, attrs, instance=None):
         data_type = attrs.get('data_type')
