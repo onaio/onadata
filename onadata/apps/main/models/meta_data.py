@@ -112,8 +112,8 @@ class MetaData(models.Model):
     xform = models.ForeignKey(XForm)
     data_type = models.CharField(max_length=255)
     data_value = models.CharField(max_length=255)
-    data_file = models.FileField(upload_to=upload_to, null=True)
-    data_file_type = models.CharField(max_length=255, null=True)
+    data_file = models.FileField(upload_to=upload_to, blank=True, null=True)
+    data_file_type = models.CharField(max_length=255, blank=True, null=True)
 
     @property
     def hash(self):
