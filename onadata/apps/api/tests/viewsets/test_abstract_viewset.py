@@ -286,12 +286,12 @@ class TestAbstractViewSet(TestCase):
                 self.assertEqual(response.status_code, 201)
                 another_count = MetaData.objects.count()
                 self.assertEqual(another_count, count + 1)
-                doc = MetaData.objects.all().reverse()[0]
-                self.assertEqual(doc.data_type, data['data_type'])
+                doc = MetaData.objects.filter(data_type=data_type).reverse()[0]
+                self.assertEqual(doc.data_value, data['data_value'])
         else:
             response = self._post_form_metadata(data)
             self.assertEqual(response.status_code, 201)
             another_count = MetaData.objects.count()
             self.assertEqual(another_count, count + 1)
-            doc = MetaData.objects.all().reverse()[0]
-            self.assertEqual(doc.data_type, data['data_type'])
+            doc = MetaData.objects.filter(data_type=data_type).reverse()[0]
+            self.assertEqual(doc.data_value, data['data_value'])

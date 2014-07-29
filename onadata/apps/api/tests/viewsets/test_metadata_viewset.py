@@ -16,19 +16,13 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         })
         self._publish_xls_form_to_project()
 
-    def test_add_media_metadata(self):
+    def test_add_metadat_with_file_attachment(self):
         data_value = "screenshot.png"
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", data_value)
-        self._add_form_metadata(self.xform, 'media', data_value, path)
-
-    def test_add_supporting_document(self):
-        data_value = "transportation.xls"
-        path = os.path.join(
-            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", data_value)
-        self._add_form_metadata(self.xform, 'supporting_doc', data_value, path)
+        for data_type in ['supporting_doc', 'media', 'source']:
+            self._add_form_metadata(self.xform, data_type, data_value, path)
 
     def test_add_mapbox_layer(self):
         data_type = 'mapbox_layer'
