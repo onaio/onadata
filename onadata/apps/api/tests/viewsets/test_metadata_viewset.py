@@ -29,3 +29,8 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", data_value)
         self._add_form_metadata(self.xform, 'supporting_doc', data_value, path)
+
+    def test_add_mapbox_layer(self):
+        data_type = 'mapbox_layer'
+        data_value = 'test_mapbox_layer||http://0.0.0.0:8080||attribution'
+        self._add_form_metadata(self.xform, data_type, data_value)
