@@ -263,14 +263,21 @@ class TestAbstractViewSet(TestCase):
         self.assertEqual(xform.num_of_submissions, post_count)
         self.assertEqual(xform.user.profile.num_of_submissions, post_count)
 
-    def _post_form_metadata(self, data):
+    def _post_form_metadata(self, data, test=True):
+        count = MetaData.objects.count()
         view = MetaDataViewSet.as_view({'post': 'create'})
         request = self.factory.post('/', data)
+        response = view(request)
 
-        return view(request)
+        if test:
+            self.assertEqual(response.status_code, 201)
+            another_count = MetaData.objects.count()
+            self.assertEqual(another_count, count + 1)
+            self.metadata = MetaData.objects.get(pk=response.data['id'])
+
+        return response
 
     def _add_form_metadata(self, xform, data_type, data_value, path=None):
-        count = MetaData.objects.count()
         data = {
             'data_type': data_type,
             'data_value': data_value,
@@ -282,16 +289,6 @@ class TestAbstractViewSet(TestCase):
                 data.update({
                     'data_file': media_file,
                 })
-                response = self._post_form_metadata(data)
-                self.assertEqual(response.status_code, 201)
-                another_count = MetaData.objects.count()
-                self.assertEqual(another_count, count + 1)
-                doc = MetaData.objects.filter(data_type=data_type).reverse()[0]
-                self.assertEqual(doc.data_value, data['data_value'])
+                self._post_form_metadata(data)
         else:
-            response = self._post_form_metadata(data)
-            self.assertEqual(response.status_code, 201)
-            another_count = MetaData.objects.count()
-            self.assertEqual(another_count, count + 1)
-            doc = MetaData.objects.filter(data_type=data_type).reverse()[0]
-            self.assertEqual(doc.data_value, data['data_value'])
+            self._post_form_metadata(data)
