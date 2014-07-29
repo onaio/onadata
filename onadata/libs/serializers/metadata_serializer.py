@@ -15,6 +15,7 @@ METADATA_TYPES = (
 
 
 class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     xform = serializers.PrimaryKeyRelatedField()
     data_value = serializers.CharField(max_length=255,
                                        required=False)
