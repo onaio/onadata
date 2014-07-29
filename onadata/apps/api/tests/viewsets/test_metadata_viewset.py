@@ -1,6 +1,7 @@
 import os
 
 from django.conf import settings
+from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
     TestAbstractViewSet)
@@ -18,9 +19,11 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         })
         self._publish_xls_form_to_project()
         self.data_value = "screenshot.png"
-        self.path = os.path.join(
+        self.fixture_dir = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", self.data_value)
+            "transportation"
+        )
+        self.path = os.path.join(self.fixture_dir, self.data_value)
 
     def test_add_metadata_with_file_attachment(self):
         for data_type in ['supporting_doc', 'media', 'source']:
@@ -41,3 +44,18 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             response = self.view(request, pk=self.metadata.pk)
             self.assertEqual(response.status_code, 204)
             self.assertEqual(count, MetaData.objects.count())
+
+    def test_windows_csv_file_upload_to_metadata(self):
+        data_value = 'transportation.csv'
+        path = os.path.join(self.fixture_dir, data_value)
+        with open(path) as f:
+            f = InMemoryUploadedFile(
+                f, 'media', data_value, 'application/octet-stream', 2625, None)
+            data = {
+                'data_value': data_value,
+                'data_file': f,
+                'data_type': 'media',
+                'xform': self.xform.pk
+            }
+            self._post_form_metadata(data)
+            self.assertEqual(self.metadata.data_file_type, 'text/csv')
