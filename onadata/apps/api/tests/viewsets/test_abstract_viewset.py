@@ -11,6 +11,7 @@ from rest_framework.test import APIRequestFactory
 from tempfile import NamedTemporaryFile
 
 from onadata.apps.api.models import OrganizationProfile, Project
+from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
@@ -262,20 +263,35 @@ class TestAbstractViewSet(TestCase):
         self.assertEqual(xform.num_of_submissions, post_count)
         self.assertEqual(xform.user.profile.num_of_submissions, post_count)
 
+    def _post_form_metadata(self, data):
+        view = MetaDataViewSet.as_view({'post': 'create'})
+        request = self.factory.post('/', data)
+
+        return view(request)
+
     def _add_form_metadata(self, xform, data_type, data_value, path=None):
         count = MetaData.objects.count()
+        data = {
+            'data_type': data_type,
+            'data_value': data_value,
+            'xform': xform.pk
+        }
+
         if path and data_value:
             with open(path) as media_file:
-                data = {
-                    'data_type': data_type,
+                data.update({
                     'data_file': media_file,
-                    'data_value': data_value,
-                    'xform': xform.pk
-                }
-                request = self.factory.post('/', data)
-                response = self.view(request)
+                })
+                response = self._post_form_metadata(data)
                 self.assertEqual(response.status_code, 201)
                 another_count = MetaData.objects.count()
                 self.assertEqual(another_count, count + 1)
                 doc = MetaData.objects.all().reverse()[0]
                 self.assertEqual(doc.data_type, data['data_type'])
+        else:
+            response = self._post_form_metadata(data)
+            self.assertEqual(response.status_code, 201)
+            another_count = MetaData.objects.count()
+            self.assertEqual(another_count, count + 1)
+            doc = MetaData.objects.all().reverse()[0]
+            self.assertEqual(doc.data_type, data['data_type'])
