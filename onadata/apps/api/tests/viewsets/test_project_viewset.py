@@ -182,16 +182,16 @@ class TestProjectViewSet(TestAbstractViewSet):
                  ManagerRole,
                  OwnerRole]
         for role_class in ROLES:
-            self.assertFalse(role_class.has_role(alice_profile.user,
-                                                 self.project))
+            self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                      self.project))
 
             data = {'username': 'alice', 'role': role_class.name}
             request = self.factory.post('/', data=data, **self.extra)
             response = view(request, pk=projectid)
 
             self.assertEqual(response.status_code, 204)
-            self.assertTrue(role_class.has_role(alice_profile.user,
-                                                self.project))
+            self.assertTrue(role_class.user_has_role(alice_profile.user,
+                                                     self.project))
 
             data = {'username': 'alice', 'role': ''}
             request = self.factory.post('/', data=data, **self.extra)
@@ -213,8 +213,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=projectid)
 
         self.assertEqual(response.status_code, 204)
-        self.assertTrue(role_class.has_role(alice_profile.user,
-                                            self.project))
+        self.assertTrue(role_class.user_has_role(alice_profile.user,
+                                                 self.project))
 
         view = ProjectViewSet.as_view({
             'post': 'share'
@@ -223,8 +223,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data, **self.extra)
         response = view(request, pk=projectid)
         self.assertEqual(response.status_code, 204)
-        self.assertFalse(role_class.has_role(alice_profile.user,
-                                             self.project))
+        self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                  self.project))
 
     def test_project_filter_by_owner(self):
         self._project_create()

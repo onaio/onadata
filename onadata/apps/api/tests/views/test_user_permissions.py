@@ -312,4 +312,5 @@ class TestUserPermissions(TestAbstractViewSet):
 
     def test_org_creator_permissions(self):
         self._org_create()
-        self.assertTrue(role.OwnerRole.has_role(self.user, self.organization))
+        self.assertTrue(role.OwnerRole.user_has_role(
+            self.user, self.organization))

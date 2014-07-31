@@ -284,7 +284,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'http://testserver/api/v1/forms/%s' % xform.pk
             })
             self.assertDictContainsSubset(data, response.data)
-            self.assertTrue(OwnerRole.has_role(self.user, xform))
+            self.assertTrue(OwnerRole.user_has_role(self.user, xform))
 
     def test_publish_invalid_xls_form(self):
         view = XFormViewSet.as_view({
@@ -406,13 +406,13 @@ class TestXFormViewSet(TestAbstractViewSet):
                  ManagerRole,
                  OwnerRole]
         for role_class in ROLES:
-            self.assertFalse(role_class.has_role(alice_profile.user,
-                                                 self.xform))
+            self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                      self.xform))
 
             data = {'username': 'alice', 'role': role_class.name}
             request = self.factory.post('/', data=data, **self.extra)
             response = view(request, pk=formid)
 
             self.assertEqual(response.status_code, 204)
-            self.assertTrue(role_class.has_role(alice_profile.user,
-                                                self.xform))
+            self.assertTrue(role_class.user_has_role(alice_profile.user,
+                                                     self.xform))
