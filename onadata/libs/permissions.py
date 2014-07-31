@@ -54,8 +54,21 @@ class Role(object):
 
     @classmethod
     def has_role(cls, permissions, obj):
-        """Check that a user has this role"""
+        """Check that permission correspond to this role for this object.
+
+        :param permissions: A list of permissions.
+        :param obj: An object to get the permissions of.
+        """
         return set(permissions) == set(cls.class_to_permissions[type(obj)])
+
+    @classmethod
+    def user_has_role(cls, user, obj):
+        """Check that a user has this role.
+
+        :param user: A user object.
+        :param obj: An object to get the permissions of.
+        """
+        return user.has_perms(cls.class_to_permissions[type(obj)], obj)
 
 
 class ReadOnlyRole(Role):
@@ -95,7 +108,8 @@ class ManagerRole(Role):
     name = 'manager'
     permissions = (
         (CAN_ADD_XFORM, XForm),
-        (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
+        (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
+        (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
         (CAN_CHANGE_PROJECT, Project),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_DELETE_PROJECT, Project),
@@ -111,7 +125,8 @@ class OwnerRole(Role):
     permissions = (
         (CAN_ADD_XFORM, Project),
         (CAN_ADD_XFORM, XForm),
-        (CAN_ADD_XFORM_TO_PROFILE, (UserProfile, OrganizationProfile)),
+        (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
+        (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
         (CAN_CHANGE_PROJECT, Project),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_DELETE_PROJECT, Project),
