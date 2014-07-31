@@ -1,3 +1,4 @@
+from collections import defaultdict
 from django.contrib.contenttypes.models import ContentType
 from guardian.shortcuts import (
     assign_perm,
@@ -27,6 +28,7 @@ CAN_DELETE_PROJECT = 'delete_project'
 
 
 class Role(object):
+    class_to_permissions = None
     permissions = None
     name = None
 
@@ -51,18 +53,9 @@ class Role(object):
                 assign_perm(codename, user, obj)
 
     @classmethod
-    def has_role(cls, user, obj):
+    def has_role(cls, permissions, obj):
         """Check that a user has this role"""
-        has_perms = False
-
-        for permission, klass in cls.permissions:
-            if type(obj) is klass:
-                if not user.has_perm(permission, obj):
-                    return False
-
-                has_perms = True
-
-        return has_perms
+        return set(permissions) == set(cls.class_to_permissions[type(obj)])
 
 
 class ReadOnlyRole(Role):
@@ -138,23 +131,27 @@ ROLES = {role.name: role for role in [ReadOnlyRole,
                                       ManagerRole,
                                       OwnerRole]}
 
+# Memoize a class to permissions dict.
+for role in ROLES.values():
+    role.class_to_permissions = defaultdict(list)
+    [role.class_to_permissions[k].append(p) for p, k in role.permissions]
 
-def get_role(self, obj):
+
+def get_role(permissions, obj):
     for role in ROLES.values():
-        if role.has_role(self, obj):
-                return role.name
+        if role.has_role(permissions, obj):
+            return role.name
 
 
 def get_object_users_with_permissions(obj):
-    """
-    Returns users, roles and permissions for a object
+    """Returns users, roles and permissions for a object.
     """
     users_with_perms = []
     if obj:
         users_with_perms = [{
-            'user': k,
-            'role': get_role(k, obj),
-            'permissions': v} for k, v in
+            'user': user,
+            'role': get_role(permissions, obj),
+            'permissions': permissions} for user, permissions in
             get_users_with_perms(obj, attach_perms=True).items()]
 
     return users_with_perms
