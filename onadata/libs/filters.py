@@ -2,6 +2,8 @@ from django.db.models import Q
 from django.utils import six
 from rest_framework import filters
 
+from onadata.apps.logger.models import XForm
+
 
 class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
     def filter_queryset(self, request, queryset, view):
@@ -59,3 +61,13 @@ class TagFilter(filters.BaseFilterBackend):
             return queryset.filter(tags__name__in=tags)
 
         return queryset
+
+
+class MetaDataFilter(filters.DjangoObjectPermissionsFilter):
+    def filter_queryset(self, request, queryset, view):
+        """Use XForm permissions"""
+        xform_qs = XForm.objects.all()
+        xforms = super(MetaDataFilter, self).filter_queryset(
+            request, xform_qs, view)
+
+        return queryset.filter(xform__in=xforms)
