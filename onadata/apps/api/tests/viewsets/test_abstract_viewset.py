@@ -266,7 +266,7 @@ class TestAbstractViewSet(TestCase):
     def _post_form_metadata(self, data, test=True):
         count = MetaData.objects.count()
         view = MetaDataViewSet.as_view({'post': 'create'})
-        request = self.factory.post('/', data)
+        request = self.factory.post('/', data, **self.extra)
         response = view(request)
 
         if test:
@@ -274,6 +274,7 @@ class TestAbstractViewSet(TestCase):
             another_count = MetaData.objects.count()
             self.assertEqual(another_count, count + 1)
             self.metadata = MetaData.objects.get(pk=response.data['id'])
+            self.metadata_data = response.data
 
         return response
 

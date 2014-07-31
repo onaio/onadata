@@ -30,6 +30,20 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             self._add_form_metadata(self.xform, data_type,
                                     self.data_value, self.path)
 
+    def test_get_metadata_with_file_attachment(self):
+        for data_type in ['supporting_doc', 'media', 'source']:
+            self._add_form_metadata(self.xform, data_type,
+                                    self.data_value, self.path)
+            request = self.factory.get('/', **self.extra)
+            response = self.view(request, pk=self.metadata.pk)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data, self.metadata_data)
+            ext = self.data_value[self.data_value.rindex('.') + 1:]
+            request = self.factory.get('/', **self.extra)
+            response = self.view(request, pk=self.metadata.pk, format=ext)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.content_type, 'image/png')
+
     def test_add_mapbox_layer(self):
         data_type = 'mapbox_layer'
         data_value = 'test_mapbox_layer||http://0.0.0.0:8080||attribution'
@@ -40,7 +54,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             count = MetaData.objects.count()
             self._add_form_metadata(self.xform, data_type,
                                     self.data_value, self.path)
-            request = self.factory.delete('/')
+            request = self.factory.delete('/', **self.extra)
             response = self.view(request, pk=self.metadata.pk)
             self.assertEqual(response.status_code, 204)
             self.assertEqual(count, MetaData.objects.count())
