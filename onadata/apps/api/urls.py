@@ -343,7 +343,7 @@ Example using curl:
                     name = route.name.format(basename=basename)
                     ret.append(url(regex, view, name=name))
         if self.include_format_suffixes:
-            ret = format_suffix_patterns(ret)
+            ret = format_suffix_patterns(ret, allowed=['[a-z]+[0-9]*'])
         return ret
 
 router = MultiLookupRouter(trailing_slash=False)
