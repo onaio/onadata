@@ -1,6 +1,7 @@
 clint
 django-extensions
 django-kombu
+django-snippetscream
 django-statsd-mozilla
 fabric
 gunicorn
