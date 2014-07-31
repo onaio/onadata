@@ -1,6 +1,7 @@
 from rest_framework.permissions import DjangoObjectPermissions, IsAuthenticated
 from onadata.libs.permissions import CAN_ADD_XFORM_TO_PROFILE, CAN_CHANGE_XFORM
 from onadata.apps.api.tools import get_user_profile_or_none
+from onadata.apps.logger.models import XForm
 
 
 class ViewDjangoObjectPermissions(DjangoObjectPermissions):
@@ -75,8 +76,31 @@ class ProjectPermissions(DjangoObjectPermissions):
 
 
 class MetaDataObjectPermissions(DjangoObjectPermissions):
-    """Use xform permissions for MetaData objects"""
+    """Use XForm permissions for MetaData objects"""
+    def has_permission(self, request, view):
+        model_cls = None
+
+        # Workaround to ensure DjangoModelPermissions are not applied
+        # to the root view when using DefaultRouter.
+        if (model_cls is None and
+                getattr(view, '_ignore_model_permissions', False)):
+            return True
+
+        model_cls = XForm
+        perms = self.get_required_permissions(request.method, model_cls)
+
+        if (request.user and
+                (request.user.is_authenticated() or
+                 not self.authenticated_users_only) and
+                request.user.has_perms(perms)):
+
+            return True
+
+        return False
+
     def has_object_permission(self, request, view, obj):
+        view.model = XForm
+
         return super(MetaDataObjectPermissions, self).has_object_permission(
             request, view, obj.xform)
 
