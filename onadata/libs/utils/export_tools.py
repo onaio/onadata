@@ -25,9 +25,10 @@ from onadata.apps.viewer.models.parsed_instance import\
     _decode_from_mongo
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     image_urls
-from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
-    ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID, DELETEDAT, USERFORM_ID,\
-    INDEX, PARENT_INDEX, PARENT_TABLE_NAME, SUBMISSION_TIME, UUID, TAGS, NOTES
+from onadata.libs.utils.common_tags import (
+    ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
+    DELETEDAT, USERFORM_ID, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
+    SUBMISSION_TIME, UUID, TAGS, NOTES)
 
 
 # this is Mongo Collection where we will store the parsed submissions
@@ -321,7 +322,8 @@ class ExportBuilder(object):
                         xpath, selection) for selection in data.split()]
             if not cls.BINARY_SELECT_MULTIPLES:
                 row.update(dict(
-                    [(choice, choice in selections) for choice in choices]))
+                    [(choice, choice in selections if selections else None)
+                     for choice in choices]))
             else:
                 YES = 1
                 NO = 0
