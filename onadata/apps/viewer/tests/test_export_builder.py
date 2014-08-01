@@ -474,6 +474,22 @@ class TestExportBuilder(TestBase):
                 'children/fav_colors/pink': False
             }
         self.assertEqual(new_row, expected_row)
+        row = \
+            {
+                'children/name': 'Mike',
+                'children/age': 5,
+            }
+        new_row = ExportBuilder.split_select_multiples(
+            row, select_multiples)
+        expected_row = \
+            {
+                'children/name': 'Mike',
+                'children/age': 5,
+                'children/fav_colors/red': None,
+                'children/fav_colors/blue': None,
+                'children/fav_colors/pink': None
+            }
+        self.assertEqual(new_row, expected_row)
 
     def test_split_select_multiples_works_when_data_is_blank(self):
         select_multiples =\
@@ -495,9 +511,9 @@ class TestExportBuilder(TestBase):
                 'children/name': 'Mike',
                 'children/age': 5,
                 'children/fav_colors': '',
-                'children/fav_colors/red': False,
-                'children/fav_colors/blue': False,
-                'children/fav_colors/pink': False
+                'children/fav_colors/red': None,
+                'children/fav_colors/blue': None,
+                'children/fav_colors/pink': None
             }
         self.assertEqual(new_row, expected_row)
 
