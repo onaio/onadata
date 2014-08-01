@@ -1,13 +1,16 @@
 from django.http import Http404
 from django.core.exceptions import ImproperlyConfigured
-from rest_framework import permissions
 from rest_framework import viewsets
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.renderers import (
     TemplateHTMLRenderer, BrowsableAPIRenderer, JSONRenderer)
 
+from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
+from onadata.libs import filters
+from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
+    AnonymousUserPublicFormsMixin)
 from onadata.libs.serializers.chart_serializer import (
     ChartSerializer, FieldsChartSerializer)
 from onadata.libs.utils import common_tags
@@ -44,7 +47,8 @@ class ChartBrowsableAPIRenderer(BrowsableAPIRenderer):
         return content
 
 
-class ChartsViewSet(viewsets.ReadOnlyModelViewSet):
+class ChartsViewSet(AnonymousUserPublicFormsMixin,
+                    viewsets.ReadOnlyModelViewSet):
     """
 View chart for specific fields in a form or dataset.
 
@@ -128,6 +132,7 @@ response. If `fields=all` then all the fields of the form will be returned.
 > - `json` format response is the `JSON` data for each field that can be
 > passed to a charting library
     """
+    filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
     model = XForm
     serializer_class = ChartSerializer
     lookup_field = 'pk'
@@ -135,7 +140,7 @@ response. If `fields=all` then all the fields of the form will be returned.
                         TemplateHTMLRenderer,
                         JSONRenderer,
                         )
-    permission_classes = [permissions.DjangoObjectPermissions, ]
+    permission_classes = [XFormPermissions, ]
 
     def retrieve(self, request, *args, **kwargs):
         xform = self.get_object()

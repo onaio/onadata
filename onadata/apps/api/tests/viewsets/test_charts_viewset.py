@@ -110,3 +110,20 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_chart_list(self):
+        self.view = ChartsViewSet.as_view({
+            'get': 'list'
+        })
+        request = self.request_factory.get('/charts')
+        force_authenticate(request, user=self.user)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        data = {'id': self.xform.pk, 'id_string': self.xform.id_string,
+                'url': 'http://testserver/api/v1/charts/%s' % self.xform.pk}
+        self.assertEqual(response.data, [data])
+
+        request = self.request_factory.get('/charts')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
