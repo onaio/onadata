@@ -90,7 +90,7 @@ class TestStatsViewSet(TestBase):
         view = SubmissionStatsViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
         response = view(request)
-        self.assertTrue(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
     def _tutorial_form_submission(self):

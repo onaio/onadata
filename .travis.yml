@@ -21,6 +21,7 @@ install:
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
   # make ~/tmp dir writable for npm downloads
+  - mkdir -p "$HOME/tmp"
   - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then sudo chmod a+w $HOME/tmp ; fi
   - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then sudo npm install ; fi
   - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then bower install --force-latest ; fi
