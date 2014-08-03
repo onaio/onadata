@@ -39,7 +39,7 @@ def get_absolute_path(subdirectory):
         os.path.dirname(os.path.abspath(__file__)), subdirectory)
 
 
-class TestWaterSubmission(TestCase):
+class TestInstanceCreation(TestCase):
 
     def setUp(self):
         self.user = User.objects.create(username="bob")
