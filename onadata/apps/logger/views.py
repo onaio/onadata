@@ -49,6 +49,18 @@ from onadata.libs.utils.user_auth import helper_auth_helper, has_permission,\
 from onadata.libs.utils.viewer_tools import _get_form_url
 
 
+IO_ERROR_STRINGS = [
+    'request data read error',
+    'error during read(65536) on wsgi.input'
+]
+
+
+def _bad_request(e):
+    strerror = unicode(e)
+
+    return strerror and strerror in IO_ERROR_STRINGS
+
+
 def _extract_uuid(text):
     text = text[text.find("@key="):-1].replace("@key=", "")
     if text.startswith("uuid:"):
@@ -292,9 +304,7 @@ def submission(request, username=None):
         response['Location'] = request.build_absolute_uri(request.path)
         return response
     except IOError as e:
-        strerror = unicode(e)
-
-        if strerror and 'request data read error' in strerror:
+        if _bad_request(e):
             return OpenRosaResponseBadRequest(
                 _(u"File transfer interruption."))
         else:

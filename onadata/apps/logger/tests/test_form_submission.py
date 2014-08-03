@@ -4,6 +4,7 @@ import re
 from django.db.models import Sum
 from django_digest.test import Client as DigestClient
 from guardian.shortcuts import assign_perm
+from mock import patch
 from nose import SkipTest
 
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
@@ -41,6 +42,38 @@ class TestFormSubmission(TestBase):
         )
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
+
+    @patch('django.utils.datastructures.MultiValueDict.pop')
+    def test_fail_with_ioerror_read(self, mock_pop):
+        mock_pop.side_effect = IOError(
+            'request data read error')
+
+        self.assertEquals(0, self.xform.instances.count())
+
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
+        )
+        self._make_submission(xml_submission_file_path)
+        self.assertEqual(self.response.status_code, 400)
+
+        self.assertEquals(0, self.xform.instances.count())
+
+    @patch('django.utils.datastructures.MultiValueDict.pop')
+    def test_fail_with_ioerror_wsgi(self, mock_pop):
+        mock_pop.side_effect = IOError(
+            'error during read(65536) on wsgi.input')
+
+        self.assertEquals(0, self.xform.instances.count())
+
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
+        )
+        self._make_submission(xml_submission_file_path)
+        self.assertEqual(self.response.status_code, 400)
+
+        self.assertEquals(0, self.xform.instances.count())
 
     def test_submission_to_require_auth_anon(self):
         """
