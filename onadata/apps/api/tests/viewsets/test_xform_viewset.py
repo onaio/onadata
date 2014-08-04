@@ -1,12 +1,11 @@
 # coding=utf-8
-
 import os
 import re
 import requests
 
 from django.conf import settings
 from httmock import urlmatch, HTTMock
-
+from rest_framework import status
 from xml.dom import minidom, Node
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -24,6 +23,16 @@ def enketo_mock(url, request):
     response.status_code = 201
     response._content = \
         '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform",\n'\
+        '  "code": "200"\n}'
+    return response
+
+
+@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+def enketo_error_mock(url, request):
+    response = requests.Response()
+    response.status_code = 400
+    response._content = \
+        '{\n  "message": "no account exists for this OpenRosa server",\n'\
         '  "code": "200"\n}'
     return response
 
@@ -240,6 +249,21 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
+    def test_enketo_url_no_account(self):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({
+            'get': 'enketo'
+        })
+        formid = self.xform.pk
+        # no tags
+        request = self.factory.get('/', **self.extra)
+        with HTTMock(enketo_error_mock):
+            response = view(request, pk=formid)
+            data = {'message': u"Enketo not properly configured."}
+
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertEqual(response.data, data)
+
     def test_enketo_url(self):
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({
@@ -299,6 +323,23 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request)
             self.assertEqual(response.status_code, 400)
             error_msg = '[row : 5] Question or group with no name.'
+            self.assertEqual(response.data.get('text'), error_msg)
+
+    def test_publish_invalid_xls_form_no_choices(self):
+        view = XFormViewSet.as_view({
+            'post': 'create'
+        })
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation.no_choices.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+            self.assertEqual(response.status_code, 400)
+            error_msg = (
+                'There should be a choices sheet in this xlsform. Please '
+                'ensure that the choices sheet name is all in small caps.')
             self.assertEqual(response.data.get('text'), error_msg)
 
     def test_partial_update(self):

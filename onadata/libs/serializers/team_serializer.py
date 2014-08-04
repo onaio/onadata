@@ -25,8 +25,9 @@ class TeamSerializer(serializers.Serializer):
     def get_team_users(self, obj):
         users = []
 
-        for user in obj.user_set.all():
-            users.append(UserSerializer(instance=user).data)
+        if obj:
+            for user in obj.user_set.all():
+                users.append(UserSerializer(instance=user).data)
 
         return users
 
