@@ -21,8 +21,7 @@ from savReaderWriter import SavWriter
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.viewer.models.parsed_instance import\
-    _is_invalid_for_mongo, _encode_for_mongo, dict_for_mongo,\
-    _decode_from_mongo
+    dict_for_mongo, _decode_from_mongo
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     image_urls
 from onadata.libs.utils.common_tags import (
@@ -242,12 +241,6 @@ class ExportBuilder(object):
                             'xpath': child_xpath,
                             'type': child.bind.get(u"type")
                         })
-
-                        if _is_invalid_for_mongo(child_xpath):
-                            if current_section_name not in encoded_fields:
-                                encoded_fields[current_section_name] = {}
-                            encoded_fields[current_section_name].update(
-                                {child_xpath: _encode_for_mongo(child_xpath)})
 
                     # if its a select multiple, make columns out of its choices
                     if child.bind.get(u"type") == MULTIPLE_SELECT_BIND_TYPE\
