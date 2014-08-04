@@ -162,11 +162,14 @@ def get_object_users_with_permissions(obj):
     """Returns users, roles and permissions for a object.
     """
     users_with_perms = []
+
     if obj:
         users_with_perms = [{
             'user': user,
             'role': get_role(permissions, obj),
             'permissions': permissions} for user, permissions in
-            get_users_with_perms(obj, attach_perms=True).items()]
+            get_users_with_perms(obj,
+                                 attach_perms=True,
+                                 with_group_users=False).items()]
 
     return users_with_perms
