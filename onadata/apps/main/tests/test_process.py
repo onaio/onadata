@@ -12,6 +12,7 @@ from xlrd import open_workbook
 from xml.dom import minidom, Node
 
 from onadata.apps.main.models import MetaData
+from onadata.apps.main.tests.unicode_reader import UnicodeReader
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.apps.logger.views import submission
@@ -325,15 +326,13 @@ class TestProcess(TestBase):
         self.assertEqual(instance.get_dict(), expected_dict)
 
     def _get_csv_(self):
-        # todo: get the csv.reader to handle unicode as done here:
-        # http://docs.python.org/library/csv.html#examples
         url = reverse('csv_export', kwargs={
             'username': self.user.username, 'id_string': self.xform.id_string})
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         actual_csv = self._get_response_content(response)
         actual_lines = actual_csv.split("\n")
-        return csv.reader(actual_lines)
+        return UnicodeReader(actual_lines)
 
     def _check_csv_export_first_pass(self):
         actual_csv = self._get_csv_()

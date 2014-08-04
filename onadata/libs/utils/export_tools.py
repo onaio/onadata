@@ -1,3 +1,4 @@
+import codecs
 import csv
 from datetime import datetime, date
 import json
@@ -481,7 +482,7 @@ class ExportBuilder(object):
     def to_flat_csv_export(self, path, data):
         def writer(path, csv_defs):
             # write zipfile
-            with open(path, 'w') as final_csv:
+            with codecs.open(path, 'w', 'utf-8') as final_csv:
                 for section_name, csv_def in csv_defs.iteritems():
                     csv_file = csv_def['csv_file']
                     csv_file.seek(0)
