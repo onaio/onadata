@@ -402,7 +402,7 @@ class ExportBuilder(object):
 
         return row
 
-    def to_zipped_csv(self, path, data, *args):
+    def _build_csv_files(self, path, data, writer):
         def write_row(row, csv_writer, fields):
             csv_writer.writerow(
                 [encode_if_str(row, field) for field in fields])
@@ -458,17 +458,25 @@ class ExportBuilder(object):
                             csv_writer, fields)
             index += 1
 
-        # write zipfile
-        with ZipFile(path, 'w') as zip_file:
-            for section_name, csv_def in csv_defs.iteritems():
-                csv_file = csv_def['csv_file']
-                csv_file.seek(0)
-                zip_file.write(
-                    csv_file.name, "_".join(section_name.split("/")) + ".csv")
+        # write file
+        writer(path, csv_defs)
 
         # close files when we are done
         for section_name, csv_def in csv_defs.iteritems():
             csv_def['csv_file'].close()
+
+    def to_zipped_csv(self, path, data):
+        def writer(path, csv_defs):
+            # write zipfile
+            with ZipFile(path, 'w') as zip_file:
+                for section_name, csv_def in csv_defs.iteritems():
+                    csv_file = csv_def['csv_file']
+                    csv_file.seek(0)
+                    zip_file.write(
+                        csv_file.name,
+                        "_".join(section_name.split("/")) + ".csv")
+
+        self._build_csv_files(self, path, data, writer)
 
     @classmethod
     def get_valid_sheet_name(cls, desired_name, existing_names):
