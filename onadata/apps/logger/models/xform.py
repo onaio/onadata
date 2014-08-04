@@ -16,7 +16,6 @@ from guardian.shortcuts import \
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
-from onadata.apps.stats.tasks import stat_log
 from onadata.libs.models.base_model import BaseModel
 
 
@@ -234,13 +233,6 @@ class XForm(BaseModel):
     @classmethod
     def public_forms(cls):
         return cls.objects.filter(shared=True)
-
-
-def stats_forms_created(sender, instance, created, **kwargs):
-    if created:
-        stat_log.delay('formhub-forms-created', 1)
-
-post_save.connect(stats_forms_created, sender=XForm)
 
 
 def update_profile_num_submissions(sender, instance, **kwargs):
