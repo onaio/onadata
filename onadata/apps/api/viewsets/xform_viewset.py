@@ -27,7 +27,7 @@ from onadata.libs.serializers.share_xform_serializer import (
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import XForm
-from onadata.libs.utils.viewer_tools import enketo_url
+from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
 from onadata.apps.viewer.models import Export
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import generate_export,\
@@ -566,13 +566,18 @@ https://ona.io/api/v1/forms/123.json
     def enketo(self, request, **kwargs):
         self.object = self.get_object()
         form_url = _get_form_url(request, self.object.user.username)
-        url = enketo_url(form_url, self.object.id_string)
+
         data = {'message': _(u"Enketo not properly configured.")}
         http_status = status.HTTP_400_BAD_REQUEST
 
-        if url:
-            http_status = status.HTTP_200_OK
-            data = {"enketo_url": url}
+        try:
+            url = enketo_url(form_url, self.object.id_string)
+        except EnketoError:
+            pass
+        else:
+            if url:
+                http_status = status.HTTP_200_OK
+                data = {"enketo_url": url}
 
         return Response(data, http_status)
 

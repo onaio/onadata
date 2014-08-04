@@ -1,12 +1,11 @@
 # coding=utf-8
-
 import os
 import re
 import requests
 
 from django.conf import settings
 from httmock import urlmatch, HTTMock
-
+from rest_framework import status
 from xml.dom import minidom, Node
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -24,6 +23,16 @@ def enketo_mock(url, request):
     response.status_code = 201
     response._content = \
         '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform",\n'\
+        '  "code": "200"\n}'
+    return response
+
+
+@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+def enketo_error_mock(url, request):
+    response = requests.Response()
+    response.status_code = 400
+    response._content = \
+        '{\n  "message": "no account exists for this OpenRosa server",\n'\
         '  "code": "200"\n}'
     return response
 
@@ -239,6 +248,21 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=formid, label='hello')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
+
+    def test_enketo_url_no_account(self):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({
+            'get': 'enketo'
+        })
+        formid = self.xform.pk
+        # no tags
+        request = self.factory.get('/', **self.extra)
+        with HTTMock(enketo_error_mock):
+            response = view(request, pk=formid)
+            data = {'message': u"Enketo not properly configured."}
+
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertEqual(response.data, data)
 
     def test_enketo_url(self):
         self._publish_xls_form_to_project()
