@@ -78,7 +78,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         :param obj: The project to find the last submission date for.
         """
         if obj:
-            xform_ids = obj.projectxform_set.values_list('id', flat=True)
+            xform_ids = obj.projectxform_set.values_list('xform', flat=True)
             last_submission = Instance.objects.\
                 order_by('-date_created').\
                 filter(xform_id__in=xform_ids).values_list('date_created',
