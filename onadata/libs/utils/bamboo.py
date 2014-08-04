@@ -54,7 +54,6 @@ def ensure_rest_service(xform):
 
 
 def get_new_bamboo_dataset(xform, force_last=False):
-
     dataset_id = u''
 
     try:
@@ -62,7 +61,7 @@ def get_new_bamboo_dataset(xform, force_last=False):
         dataset = Dataset(connection=Connection(url=get_bamboo_url(xform)),
                           content=content_data,
                           na_values=['n/a'])
-    except NoRecordsFoundError:
+    except (ErrorParsingBambooData, NoRecordsFoundError):
         return dataset_id
 
     if dataset.id:
