@@ -1,4 +1,5 @@
-import csv, codecs
+import csv
+
 
 class UnicodeReader:
     """A CSV reader which will iterate over lines in the CSV file "f",
