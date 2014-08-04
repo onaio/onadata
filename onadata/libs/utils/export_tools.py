@@ -476,7 +476,7 @@ class ExportBuilder(object):
                         csv_file.name,
                         "_".join(section_name.split("/")) + ".csv")
 
-        self._build_csv_files(self, path, data, writer)
+        self._build_csv_files(path, data, writer)
 
     def to_flat_csv_export(self, path, data):
         def writer(path, csv_defs):
@@ -487,7 +487,7 @@ class ExportBuilder(object):
                     csv_file.seek(0)
                     final_csv.write(csv_file.read())
 
-        self._build_csv_files(self, path, data, writer)
+        self._build_csv_files(path, data, writer)
 
     @classmethod
     def get_valid_sheet_name(cls, desired_name, existing_names):
