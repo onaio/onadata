@@ -5,7 +5,7 @@ sudo add-apt-repository -y ppa:chris-lea/node.js
 sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main" >> /etc/apt/sources.list'
 wget --quiet -O - http://apt.postgresql.org/pub/repos/apt/ACCC4CF8.asc | sudo apt-key add -
 sudo apt-get update -qqy
-sudo apt-get install -qq gfortran libatlas-base-dev libjpeg-dev python-numpy zlib1g-dev python-software-properties ghostscript
+sudo apt-get install -qq libjpeg-dev python-numpy zlib1g-dev python-software-properties ghostscript
 # install Geospatial libraries for GeoDjango
 sudo apt-get install -qq binutils libproj-dev gdal-bin Postgresql-9.3-postgis
 sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so ~/virtualenv/python2.7/lib/
