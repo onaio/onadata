@@ -325,6 +325,23 @@ class TestXFormViewSet(TestAbstractViewSet):
             error_msg = '[row : 5] Question or group with no name.'
             self.assertEqual(response.data.get('text'), error_msg)
 
+    def test_publish_invalid_xls_form_no_choices(self):
+        view = XFormViewSet.as_view({
+            'post': 'create'
+        })
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation.no_choices.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+            self.assertEqual(response.status_code, 400)
+            error_msg = (
+                'There should be a choices sheet in this xlsform. Please '
+                'ensure that the choices sheet name is all in small caps.')
+            self.assertEqual(response.data.get('text'), error_msg)
+
     def test_partial_update(self):
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({
