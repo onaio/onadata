@@ -1,7 +1,6 @@
 import os
 import re
 
-from django.db.models import Sum
 from django_digest.test import Client as DigestClient
 from guardian.shortcuts import assign_perm
 from mock import patch
@@ -10,12 +9,10 @@ from nose import SkipTest
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
-from onadata.apps.viewer.models.parsed_instance import\
-    GLOBAL_SUBMISSION_STATS, ParsedInstance
-from onadata.apps.stats.models import StatsCount
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.utils.common_tags import GEOLOCATION
 
 
@@ -194,28 +191,6 @@ class TestFormSubmission(TestBase):
         self.assertEqual(self.response.status_code, 201)
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 202)
-
-    def test_submission_stats_count(self):
-        """Test global submission counts, should not reduce on
-        submission delete."""
-        submission_count = StatsCount.objects.filter(
-            key=GLOBAL_SUBMISSION_STATS).aggregate(Sum('value'))
-        self.assertIsNone(submission_count['value__sum'])
-        self._publish_transportation_form()
-        self.xform = XForm.objects.get(id_string='transportation_2011_07_25')
-        self._make_submissions()
-        submission_count = StatsCount.objects.filter(
-            key=GLOBAL_SUBMISSION_STATS).aggregate(Sum('value'))
-        self.assertIsNotNone(submission_count['value__sum'])
-        stat_submission_count = submission_count['value__sum']
-
-        # deleting submissions should not reduce submission counter
-        Instance.objects.all().delete()
-        self.assertEqual(Instance.objects.count(), 0)
-        submission_count = StatsCount.objects.filter(
-            key=GLOBAL_SUBMISSION_STATS).aggregate(Sum('value'))
-        self.assertEqual(
-            submission_count['value__sum'], stat_submission_count)
 
     def test_unicode_submission(self):
         """Test xml submissions that contain unicode characters

@@ -11,7 +11,6 @@ from django.db import models
 from django.db.models.signals import post_save, pre_delete
 from django.utils.translation import ugettext as _
 
-from onadata.apps.stats.tasks import stat_log
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.models import Note
 from onadata.apps.restservice.utils import call_service
@@ -27,7 +26,6 @@ from onadata.libs.utils.model_tools import queryset_iterator
 xform_instances = settings.MONGO_DB.instances
 key_whitelist = ['$or', '$and', '$exists', '$in', '$gt', '$gte',
                  '$lt', '$lte', '$regex', '$options', '$all']
-GLOBAL_SUBMISSION_STATS = u'global_submission_stats'
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
 
@@ -379,16 +377,3 @@ def rest_service_form_submission(sender, **kwargs):
 
 
 post_save.connect(rest_service_form_submission, sender=ParsedInstance)
-
-
-def submission_count(sender, **kwargs):
-    parsed_instance = kwargs.get('instance')
-    created = kwargs.get('created')
-    if created:
-        stat_log.delay(GLOBAL_SUBMISSION_STATS, 1)
-        key = '%(username)s_%(xform_id_string)s_submissions'\
-            % {"username": parsed_instance.instance.xform.user.username,
-               "xform_id_string": parsed_instance.instance.xform.id_string}
-        stat_log.delay(key, 1)
-
-post_save.connect(submission_count, sender=ParsedInstance)
