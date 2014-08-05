@@ -1,3 +1,4 @@
+import codecs
 import csv
 from datetime import datetime, date
 import json
@@ -402,7 +403,7 @@ class ExportBuilder(object):
 
         return row
 
-    def to_zipped_csv(self, path, data, *args):
+    def _build_csv_files(self, path, data, writer):
         def write_row(row, csv_writer, fields):
             csv_writer.writerow(
                 [encode_if_str(row, field) for field in fields])
@@ -458,17 +459,36 @@ class ExportBuilder(object):
                             csv_writer, fields)
             index += 1
 
-        # write zipfile
-        with ZipFile(path, 'w') as zip_file:
-            for section_name, csv_def in csv_defs.iteritems():
-                csv_file = csv_def['csv_file']
-                csv_file.seek(0)
-                zip_file.write(
-                    csv_file.name, "_".join(section_name.split("/")) + ".csv")
+        # write file
+        writer(path, csv_defs)
 
         # close files when we are done
         for section_name, csv_def in csv_defs.iteritems():
             csv_def['csv_file'].close()
+
+    def to_zipped_csv(self, path, data):
+        def writer(path, csv_defs):
+            # write zipfile
+            with ZipFile(path, 'w') as zip_file:
+                for section_name, csv_def in csv_defs.iteritems():
+                    csv_file = csv_def['csv_file']
+                    csv_file.seek(0)
+                    zip_file.write(
+                        csv_file.name,
+                        "_".join(section_name.split("/")) + ".csv")
+
+        self._build_csv_files(path, data, writer)
+
+    def to_flat_csv_export(self, path, data):
+        def writer(path, csv_defs):
+            # write zipfile
+            with codecs.open(path, 'w', 'utf-8') as final_csv:
+                for section_name, csv_def in csv_defs.iteritems():
+                    csv_file = csv_def['csv_file']
+                    csv_file.seek(0)
+                    final_csv.write(csv_file.read())
+
+        self._build_csv_files(path, data, writer)
 
     @classmethod
     def get_valid_sheet_name(cls, desired_name, existing_names):
@@ -492,7 +512,7 @@ class ExportBuilder(object):
             i += 1
         return generated_name
 
-    def to_xls_export(self, path, data, *args):
+    def to_xls_export(self, path, data):
         def write_row(data, work_sheet, fields, work_sheet_titles):
             # update parent_table with the generated sheet's title
             data[PARENT_TABLE_NAME] = work_sheet_titles.get(
@@ -559,18 +579,7 @@ class ExportBuilder(object):
 
         wb.save(filename=path)
 
-    def to_flat_csv_export(
-            self, path, data, username, id_string, filter_query):
-        # TODO resolve circular import
-        from onadata.apps.viewer.pandas_mongo_bridge import\
-            CSVDataFrameBuilder
-
-        csv_builder = CSVDataFrameBuilder(
-            username, id_string, filter_query, self.GROUP_DELIMITER,
-            self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES)
-        csv_builder.export_to(path)
-
-    def to_zipped_sav(self, path, data, *args):
+    def to_zipped_sav(self, path, data):
         def write_row(row, csv_writer, fields):
             sav_writer.writerow(
                 [encode_if_str(row, field, True) for field in fields])
@@ -696,8 +705,7 @@ def generate_export(export_type, extension, username, id_string,
     func = getattr(export_builder, export_type_func_map[export_type])
 
     try:
-        func.__call__(
-            temp_file.name, records, username, id_string, filter_query)
+        func.__call__(temp_file.name, records)
     except Exception as e:
         e_str = str(e)
 

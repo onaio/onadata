@@ -29,7 +29,6 @@ python_digest
 django_digest
 
 # new export code relies on
-pandas>=0.11.0
 
 requests
 
