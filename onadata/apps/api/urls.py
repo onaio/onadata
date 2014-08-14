@@ -180,13 +180,13 @@ and API Token Authentication through the `Authorization` header.
 
 Example using curl:
 
-    curl -X GET https://ona.io/api/v1 -u username:password
+    curl -X GET https://ona.io/api/v1/ -u username:password
 
 ### Token Authentication
 
 Example using curl:
 
-    curl -X GET https://ona.io/api/v1 -H "Authorization: Token TOKEN_KEY"
+    curl -X GET https://ona.io/api/v1/ -H "Authorization: Token TOKEN_KEY"
 
 ### Ona Tagging API
 
