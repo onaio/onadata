@@ -89,3 +89,41 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         error = {"data_value": ["Invalid url %s." % data['data_value']]}
         self.assertEqual(response.data, error)
+
+    def _add_test_metadata(self):
+        for data_type in ['supporting_doc', 'media', 'source']:
+            self._add_form_metadata(self.xform, data_type,
+                                    self.data_value, self.path)
+
+    def test_list_metadata(self):
+        self._add_test_metadata()
+        self.view = MetaDataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+
+    def test_list_metadata_for_specific_form(self):
+        self._add_test_metadata()
+        self.view = MetaDataViewSet.as_view({'get': 'list'})
+        data = {'xform': self.xform.pk}
+        request = self.factory.get('/', data)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+
+        request = self.factory.get('/', data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+
+        data['xform'] = 1234509909
+        request = self.factory.get('/', data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 404)
+
+        data['xform'] = "INVALID"
+        request = self.factory.get('/', data, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
