@@ -115,6 +115,10 @@ class MetaData(models.Model):
     data_file = models.FileField(upload_to=upload_to, blank=True, null=True)
     data_file_type = models.CharField(max_length=255, blank=True, null=True)
 
+    class Meta:
+        app_label = 'main'
+        unique_together = ('xform', 'data_type', 'data_value')
+
     @property
     def hash(self):
         file_exists = self.data_file.storage.exists(self.data_file.name)
@@ -215,6 +219,3 @@ class MetaData(models.Model):
             return data_values
         else:
             return None
-
-    class Meta:
-        app_label = 'main'
