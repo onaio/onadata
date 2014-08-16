@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
@@ -31,12 +32,14 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         """Ensure we have a valid url if we are adding a media uri
         instead of a media file
         """
-        value = attrs[source]
+        value = attrs.get(source)
         media = attrs.get('data_type')
         data_file = attrs.get('data_file')
 
         if media == 'media' and data_file is None:
             URLValidator(message=_(u"Invalid url %s." % value))(value)
+        if value is None:
+            raise ValidationError(u"This field is required.")
 
         return attrs
 

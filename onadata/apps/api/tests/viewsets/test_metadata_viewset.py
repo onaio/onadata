@@ -90,6 +90,18 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         error = {"data_value": ["Invalid url %s." % data['data_value']]}
         self.assertEqual(response.data, error)
 
+    def test_invalid_post(self):
+        response = self._post_form_metadata({}, False)
+        self.assertEqual(response.status_code, 400)
+        response = self._post_form_metadata({
+            'data_type': 'supporting_doc'}, False)
+        self.assertEqual(response.status_code, 400)
+        response = self._post_form_metadata({
+            'data_type': 'supporting_doc',
+            'xform': self.xform.pk
+        }, False)
+        self.assertEqual(response.status_code, 400)
+
     def _add_test_metadata(self):
         for data_type in ['supporting_doc', 'media', 'source']:
             self._add_form_metadata(self.xform, data_type,
