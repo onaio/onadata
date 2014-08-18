@@ -163,7 +163,8 @@ class TestAbstractViewSet(TestCase):
             self.project, context={'request': request}).data
 
     def _publish_xls_form_to_project(self):
-        self._project_create()
+        if not hasattr(self, 'project'):
+            self._project_create()
         view = ProjectViewSet.as_view({
             'post': 'forms'
         })
