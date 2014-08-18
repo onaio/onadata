@@ -1,6 +1,10 @@
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from django.utils import six
 from rest_framework import filters
+from rest_framework.exceptions import ParseError
+
+from onadata.apps.logger.models import XForm
 
 
 class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
@@ -59,3 +63,23 @@ class TagFilter(filters.BaseFilterBackend):
             return queryset.filter(tags__name__in=tags)
 
         return queryset
+
+
+class MetaDataFilter(filters.DjangoObjectPermissionsFilter):
+    def filter_queryset(self, request, queryset, view):
+        """Use XForm permissions"""
+        xform = request.QUERY_PARAMS.get('xform')
+        if xform:
+            try:
+                int(xform)
+            except ValueError:
+                raise ParseError(
+                    u"Invalid value for formid %s." % xform)
+            xform = get_object_or_404(XForm, pk=xform)
+            xform_qs = XForm.objects.filter(pk=xform.pk)
+        else:
+            xform_qs = XForm.objects.all()
+        xforms = super(MetaDataFilter, self).filter_queryset(
+            request, xform_qs, view)
+
+        return queryset.filter(xform__in=xforms)

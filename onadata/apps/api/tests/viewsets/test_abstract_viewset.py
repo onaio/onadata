@@ -11,10 +11,11 @@ from rest_framework.test import APIRequestFactory
 from tempfile import NamedTemporaryFile
 
 from onadata.apps.api.models import OrganizationProfile, Project
+from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.main.models import UserProfile
+from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.main import tests as main_tests
 from onadata.apps.logger.models import Instance, XForm
 from onadata.libs.serializers.project_serializer import ProjectSerializer
@@ -261,3 +262,34 @@ class TestAbstractViewSet(TestCase):
         xform = XForm.objects.get(pk=self.xform.pk)
         self.assertEqual(xform.num_of_submissions, post_count)
         self.assertEqual(xform.user.profile.num_of_submissions, post_count)
+
+    def _post_form_metadata(self, data, test=True):
+        count = MetaData.objects.count()
+        view = MetaDataViewSet.as_view({'post': 'create'})
+        request = self.factory.post('/', data, **self.extra)
+        response = view(request)
+
+        if test:
+            self.assertEqual(response.status_code, 201)
+            another_count = MetaData.objects.count()
+            self.assertEqual(another_count, count + 1)
+            self.metadata = MetaData.objects.get(pk=response.data['id'])
+            self.metadata_data = response.data
+
+        return response
+
+    def _add_form_metadata(self, xform, data_type, data_value, path=None):
+        data = {
+            'data_type': data_type,
+            'data_value': data_value,
+            'xform': xform.pk
+        }
+
+        if path and data_value:
+            with open(path) as media_file:
+                data.update({
+                    'data_file': media_file,
+                })
+                self._post_form_metadata(data)
+        else:
+            self._post_form_metadata(data)

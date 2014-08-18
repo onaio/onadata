@@ -8,9 +8,10 @@ from rest_framework.views import APIView
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
+from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
+from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
-from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.stats_viewset import StatsViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
@@ -162,6 +163,7 @@ xlsforms information
 * [/api/v1/data](/api/v1/data) - List, Retrieve submission data
 * [/api/v1/charts](/api/v1/charts) - List, Retrieve Charts of collected data
 * [/api/v1/stats](/api/v1/stats) - Summary statistics
+* [/api/v1/metadata](/api/v1/metadata) - List, Retrieve form metadata
 
 ## Status Codes
 
@@ -342,7 +344,7 @@ Example using curl:
                     name = route.name.format(basename=basename)
                     ret.append(url(regex, view, name=name))
         if self.include_format_suffixes:
-            ret = format_suffix_patterns(ret)
+            ret = format_suffix_patterns(ret, allowed=['[a-z]+[0-9]*'])
         return ret
 
 router = MultiLookupRouter(trailing_slash=False)
@@ -359,4 +361,5 @@ router.register(r'stats', StatsViewSet, base_name='stats')
 router.register(r'stats/submissions', SubmissionStatsViewSet,
                 base_name='submissionstats')
 router.register(r'charts', ChartsViewSet, base_name='chart')
+router.register(r'metadata', MetaDataViewSet, base_name='metadata')
 urlpatterns = router.urls

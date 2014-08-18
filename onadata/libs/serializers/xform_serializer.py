@@ -5,6 +5,7 @@ from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 
 
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
@@ -23,6 +24,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         source='require_auth', widget=widgets.CheckboxInput())
     tags = TagListSerializer(read_only=True)
     users = serializers.SerializerMethodField('get_xform_permissions')
+    metadata = serializers.SerializerMethodField('get_xform_metadata')
 
     class Meta:
         model = XForm
@@ -34,3 +36,6 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_xform_permissions(self, obj):
         return get_object_users_with_permissions(obj)
+
+    def get_xform_metadata(self, obj):
+        return MetaDataSerializer(obj.metadata_set.all(), many=True).data
