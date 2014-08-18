@@ -1,6 +1,7 @@
 from django.utils.translation import ugettext as _
 from django_digest import HttpDigestAuthenticator
-from rest_framework.authentication import BaseAuthentication
+from rest_framework.authentication import (
+    BaseAuthentication, get_authorization_header)
 from rest_framework.exceptions import AuthenticationFailed
 
 
@@ -9,12 +10,16 @@ class DigestAuthentication(BaseAuthentication):
         self.authenticator = HttpDigestAuthenticator()
 
     def authenticate(self, request):
-        if 'HTTP_AUTHORIZATION' in request.META:
-            if self.authenticator.authenticate(request):
-                return request.user, None
-            else:
-                raise AuthenticationFailed(
-                    _(u"Invalid username or password supplied!"))
+        auth = get_authorization_header(request).split()
+
+        if not auth or auth[0].lower() != b'digest':
+            return None
+
+        if self.authenticator.authenticate(request):
+            return request.user, None
+        else:
+            raise AuthenticationFailed(
+                _(u"Invalid username/password"))
 
     def authenticate_header(self, request):
         response = self.authenticator.build_challenge_response()

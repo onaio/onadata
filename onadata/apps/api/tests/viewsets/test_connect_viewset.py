@@ -1,4 +1,5 @@
-from django_digest.test import DigestAuth
+from django_digest.test import DigestAuth, BasicAuth
+from rest_framework import authentication
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
@@ -68,9 +69,29 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
-                         u"Invalid username or password supplied!")
+                         u"Invalid username/password")
         auth = DigestAuth('bob', 'bobbob')
         request.META.update(auth(request.META, response))
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.data)
+
+    def test_user_list_with_basic_and_digest(self):
+        view = ConnectViewSet.as_view(
+            {'get': 'list'},
+            authentication_classes=(
+                DigestAuthentication,
+                authentication.BasicAuthentication
+            ))
+        request = self.factory.get('/')
+        auth = BasicAuth('bob', 'bob')
+        request.META.update(auth(request.META))
+        response = view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data['detail'],
+                         u"Invalid username/password")
+        auth = BasicAuth('bob', 'bobbob')
+        request.META.update(auth(request.META))
         response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.data)
