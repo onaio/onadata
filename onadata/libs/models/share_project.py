@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from onadata.libs.permissions import ROLES
+from onadata.libs.permissions import ROLES, ReadOnlyRole
 
 
 class ShareProject(object):
@@ -17,6 +17,10 @@ class ShareProject(object):
 
         if role and self.user and self.project:
             role.add(self.user, self.project)
+
+            # add readonly role to forms under the project
+            for px in self.project.projectxform_set.all():
+                ReadOnlyRole.add(self.user, px.xform)
 
     def remove_user(self):
         role = ROLES.get(self.role)

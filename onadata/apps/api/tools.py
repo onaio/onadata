@@ -22,6 +22,8 @@ from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.user_auth import check_and_set_form_by_id, \
     check_and_set_form_by_id_string
 from onadata.libs.data.statistics import _chk_asarray
+from onadata.libs.permissions import (get_object_users_with_permissions,
+                                      ReadOnlyRole)
 
 DECIMAL_PRECISION = 2
 
@@ -192,6 +194,12 @@ def add_xform_to_project(xform, project, creator):
     instance = ProjectXForm.objects.create(
         xform=xform, project=project, created_by=creator)
     instance.save()
+
+    for perm in get_object_users_with_permissions(project):
+        user = perm['user']
+
+        if user != creator:
+            ReadOnlyRole.add(user, xform)
 
     return instance
 
