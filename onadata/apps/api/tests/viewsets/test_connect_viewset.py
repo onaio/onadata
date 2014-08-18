@@ -1,7 +1,10 @@
+from django_digest.test import DigestAuth
+
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.libs.authentication import DigestAuthentication
 
 
 class TestConnectViewSet(TestAbstractViewSet):
@@ -10,12 +13,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.view = ConnectViewSet.as_view({
             "get": "list"
         })
-
-    def test_get_profile(self):
-
-        request = self.factory.get('/', **self.extra)
-        response = self.view(request)
-        data = {
+        self.data = {
             'url': 'http://testserver/api/v1/profiles/bob',
             'username': u'bob',
             'name': u'Bob',
@@ -30,8 +28,13 @@ class TestConnectViewSet(TestAbstractViewSet):
             'user': 'http://testserver/api/v1/users/bob',
             'api_token': self.user.auth_token.key
         }
+
+    def test_get_profile(self):
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, data)
+        self.assertEqual(response.data, self.data)
 
     def test_get_starred_projects(self):
         self._project_create()
@@ -53,3 +56,21 @@ class TestConnectViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.project_data])
+
+    def test_user_list_with_digest(self):
+        view = ConnectViewSet.as_view(
+            {'get': 'list'},
+            authentication_classes=(DigestAuthentication,))
+        request = self.factory.get('/')
+        auth = DigestAuth('bob', 'bob')
+        response = view(request)
+        request.META.update(auth(request.META, response))
+        response = view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data['detail'],
+                         u"Invalid username or password supplied!")
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.data)
