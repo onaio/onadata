@@ -457,3 +457,16 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 204)
             self.assertTrue(role_class.user_has_role(alice_profile.user,
                                                      self.xform))
+
+    def test_xform_serializer_none(self):
+        data = {
+            'url': None, 'formid': u'', 'title': u'', 'owner': None,
+            'public': False, 'public_data': False, 'require_auth': False,
+            'tags': u'', 'users': [], 'metadata': [], 'description': u'',
+            'downloadable': False, 'allows_sms': False, 'encrypted': False,
+            'sms_id_string': u'', 'id_string': u'', 'date_created': None,
+            'date_modified': None, 'last_submission_time': None, 'uuid': u'',
+            'bamboo_dataset': u'', 'instances_with_geopoints': False,
+            'num_of_submissions': u''
+        }
+        self.assertEqual(data, XFormSerializer(None).data)

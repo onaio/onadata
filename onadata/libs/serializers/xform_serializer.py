@@ -38,4 +38,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         return get_object_users_with_permissions(obj)
 
     def get_xform_metadata(self, obj):
-        return MetaDataSerializer(obj.metadata_set.all(), many=True).data
+        if obj:
+            return MetaDataSerializer(obj.metadata_set.all(), many=True).data
+
+        return []
