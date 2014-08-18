@@ -167,6 +167,19 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertTrue(self.project.projectxform_set.filter(xform=self.xform))
         self.assertFalse(old_project.projectxform_set.filter(xform=self.xform))
 
+    def test_project_users_get_readonly_role_on_add_form(self):
+        self._project_create()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        ReadOnlyRole.add(alice_profile.user, self.project)
+        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                   self.project))
+        self._publish_xls_form_to_project()
+        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                   self.xform))
+        self.assertFalse(OwnerRole.user_has_role(alice_profile.user,
+                                                 self.xform))
+
     def test_project_share_endpoint(self):
         # create project and publish form to project
         self._publish_xls_form_to_project()
