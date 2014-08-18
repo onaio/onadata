@@ -165,6 +165,9 @@ class TestAbstractViewSet(TestCase):
     def _publish_xls_form_to_project(self):
         if not hasattr(self, 'project'):
             self._project_create()
+        elif self.project.created_by != self.user:
+            self._project_create()
+
         view = ProjectViewSet.as_view({
             'post': 'forms'
         })
