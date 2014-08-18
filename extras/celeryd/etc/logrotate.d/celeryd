@@ -1,0 +1,12 @@
+/var/log/celery/*.log {
+        daily
+        size 30M
+        missingok
+        rotate 52
+        compress
+        delaycompress
+        create 666 ubuntu ubuntu
+        notifempty
+        copytruncate
+}
+

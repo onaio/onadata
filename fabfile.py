@@ -3,7 +3,7 @@ import os
 from subprocess import check_call
 import sys
 
-from fabric.api import cd, env, prefix, run
+from fabric.api import cd, env, prefix, run, sudo
 from fabric.contrib import files
 from fabric.operations import put
 
@@ -169,3 +169,11 @@ def update_xforms(deployment_name, username, path):
     finally:
         run('rm -r /tmp/%s /tmp/%s.tgz' % (dir_name, dir_name))
         check_call(['rm', path_compressed])
+
+
+def deploy_logrotate_celery(deployment_name, branch='master'):
+    setup_env(deployment_name)
+    with cd(env.code_src):
+        run("git fetch origin")
+        run("git checkout origin/%s" % branch)
+        sudo("cp  extras/celeryd/etc/logrotate.d/celeryd /etc/logrotate.d/")
