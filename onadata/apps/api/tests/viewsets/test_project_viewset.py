@@ -168,7 +168,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertFalse(old_project.projectxform_set.filter(xform=self.xform))
 
     def test_project_share_endpoint(self):
-        self._project_create()
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         alice_profile = self._create_user_profile(alice_data)
         view = ProjectViewSet.as_view({
@@ -192,6 +193,8 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 204)
             self.assertTrue(role_class.user_has_role(alice_profile.user,
                                                      self.project))
+            self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                       self.xform))
 
             data = {'username': 'alice', 'role': ''}
             request = self.factory.post('/', data=data, **self.extra)
