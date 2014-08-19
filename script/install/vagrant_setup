@@ -1,6 +1,6 @@
 #! /bin/bash
 set -e
-# script for setting up environment using vagrant
+# script for setting up environment using vagrant or on ubuntu machines
 # install memcached
 
 echo "[apt-get] Memcached"
