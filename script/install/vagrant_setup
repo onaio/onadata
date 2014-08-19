@@ -34,8 +34,6 @@ pip install -r requirements/dev.pip --allow-all-external
 pip install numpy
 pip install pandas==0.12.0
 
-echo "Create local settings"
-
 echo "[EXPORT] Exporting local django settings to bashrc"
 echo "export DJANGO_SETTINGS_MODULE=local_settings" >> ~/.bashrc
 source ~/.bashrc
@@ -43,5 +41,9 @@ source ~/.bashrc
 printf "\n\n\n[!!!SUCCESS!!!]\n\n\n"
 
 echo "[ATTENTION]"
+echo "[SYNCDB]"
+echo "Before you syndb, ensure you create a local_settings.py file."
+echo "You can use the onadata/settings/default_settings.py as a template."
 echo "When running onadata in the vm, ensure you call it with the server port specified below:"
+echo "[RUNSERVER]"
 echo "./manage.py runserver 0.0.0.0:8000"
