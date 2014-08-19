@@ -18,13 +18,13 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
     def test_retrieve_view(self):
         pk = self.attachment.pk
-        request = self.factory.get('/')
+        request = self.factory.get('/', **self.extra)
         response = self.retrieve_view(request, pk=pk)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, dict))
 
     def test_list_view(self):
-        request = self.factory.get('/')
+        request = self.factory.get('/', **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
