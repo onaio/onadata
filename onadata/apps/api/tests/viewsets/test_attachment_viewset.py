@@ -32,6 +32,14 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertTrue(isinstance(response.data, dict))
         self.assertEqual(response.data, data)
 
+        # file download
+        filename = data['filename']
+        ext = filename[filename.rindex('.') + 1:]
+        request = self.factory.get('/', **self.extra)
+        response = self.retrieve_view(request, pk=pk, format=ext)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content_type, 'image/jpeg')
+
     def test_list_view(self):
         request = self.factory.get('/', **self.extra)
         response = self.list_view(request)
