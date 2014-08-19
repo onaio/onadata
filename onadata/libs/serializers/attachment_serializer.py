@@ -1,18 +1,16 @@
 from rest_framework import serializers
 
 from onadata.apps.logger.models.attachment import Attachment
-from onadata.libs.serializers.fields.hyperlinked_multi_related_field import \
-    HyperlinkedMultiRelatedField
 
 
 class AttachmentSerializer(serializers.ModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name='attachment-detail',
                                                lookup_field='pk')
-    instance = HyperlinkedMultiRelatedField(
-        view_name='data-detail',
-        lookup_fields=(('pk', 'xform.pk'), ('dataid', 'pk'))
-    )
+    xform = serializers.Field(source='instance.xform.pk')
+    data_id = serializers.Field(source='instance.pk')
+    filename = serializers.Field(source='media_file.name')
 
     class Meta:
-        model = Attachment
+        fields = ('url', 'id', 'xform', 'data_id', 'mimetype', 'filename')
         lookup_field = 'pk'
+        model = Attachment
