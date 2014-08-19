@@ -53,3 +53,4 @@ custom_template
 
 # ignore vagrant file
 .vagrant/
+ansible/
