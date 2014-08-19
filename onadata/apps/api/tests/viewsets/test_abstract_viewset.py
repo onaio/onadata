@@ -17,7 +17,7 @@ from onadata.apps.api.viewsets.organization_profile_viewset import\
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.main import tests as main_tests
-from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models import Instance, XForm, Attachment
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 
 
@@ -203,7 +203,7 @@ class TestAbstractViewSet(TestCase):
 
     def _make_submission(self, path, username=None, add_uuid=False,
                          forced_submission_time=None,
-                         client=None):
+                         client=None, media_file=None):
         # store temporary file with dynamic uuid
         client = client or Client()
         tmp_file = None
@@ -224,6 +224,9 @@ class TestAbstractViewSet(TestCase):
 
         with open(path) as f:
             post_data = {'xml_submission_file': f}
+
+            if media_file is not None:
+                post_data['media_file'] = media_file
 
             if username is None:
                 username = self.user.username
@@ -266,6 +269,19 @@ class TestAbstractViewSet(TestCase):
         xform = XForm.objects.get(pk=self.xform.pk)
         self.assertEqual(xform.num_of_submissions, post_count)
         self.assertEqual(xform.user.profile.num_of_submissions, post_count)
+
+    def _submit_transport_instance_w_attachment(self, survey_at=0):
+        s = self.surveys[survey_at]
+        media_file = "1335783522563.jpg"
+        path = os.path.join(self.main_directory, 'fixtures',
+                            'transportation', 'instances', s, media_file)
+        with open(path) as f:
+            self._make_submission(os.path.join(
+                self.main_directory, 'fixtures',
+                'transportation', 'instances', s, s + '.xml'), media_file=f)
+
+        attachment = Attachment.objects.all().reverse()[0]
+        self.attachment = attachment
 
     def _post_form_metadata(self, data, test=True):
         count = MetaData.objects.count()
