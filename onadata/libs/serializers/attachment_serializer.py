@@ -6,6 +6,8 @@ from onadata.libs.serializers.fields.hyperlinked_multi_related_field import \
 
 
 class AttachmentSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='attachment-detail',
+                                               lookup_field='pk')
     instance = HyperlinkedMultiRelatedField(
         view_name='data-detail',
         lookup_fields=(('pk', 'xform.pk'), ('dataid', 'pk'))

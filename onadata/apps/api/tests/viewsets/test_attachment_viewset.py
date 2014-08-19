@@ -19,6 +19,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
     def test_retrieve_view(self):
         pk = self.attachment.pk
         data = {
+            'url': 'http://testserver/api/v1/media/%s' % pk,
             "instance": "http://testserver/api/v1/data/%s/%s"
             % (self.xform.pk, self.attachment.instance.pk),
             "id": pk,
