@@ -8,7 +8,7 @@ from onadata.libs.serializers.fields.hyperlinked_multi_related_field import \
 class AttachmentSerializer(serializers.ModelSerializer):
     instance = HyperlinkedMultiRelatedField(
         view_name='data-detail',
-        lookup_fields=(('pk', 'xform'), ('dataid', 'pk'))
+        lookup_fields=(('pk', 'xform.pk'), ('dataid', 'pk'))
     )
 
     class Meta:

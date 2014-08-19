@@ -18,10 +18,18 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
     def test_retrieve_view(self):
         pk = self.attachment.pk
+        data = {
+            "instance": "http://testserver/api/v1/data/%s/%s"
+            % (self.xform.pk, self.attachment.instance.pk),
+            "id": pk,
+            "media_file": self.attachment.media_file.name,
+            "mimetype": self.attachment.mimetype
+        }
         request = self.factory.get('/', **self.extra)
         response = self.retrieve_view(request, pk=pk)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, dict))
+        self.assertEqual(response.data, data)
 
     def test_list_view(self):
         request = self.factory.get('/', **self.extra)
