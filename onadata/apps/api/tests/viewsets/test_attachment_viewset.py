@@ -20,6 +20,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         pk = self.attachment.pk
         data = {
             'url': 'http://testserver/api/v1/media/%s' % pk,
+            'download_url': 'http://testserver/api/v1/media/%s.jpg' % pk,
             "id": pk,
             'xform': self.xform.pk,
             'data_id': self.attachment.instance.pk,
