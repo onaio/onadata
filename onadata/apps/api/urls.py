@@ -20,6 +20,7 @@ from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.api.viewsets.user_viewset import UserViewSet
 from onadata.apps.api.viewsets.submissionstats_viewset import\
     SubmissionStatsViewSet
+from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 
 
 def make_routes(template_text):
@@ -362,4 +363,5 @@ router.register(r'stats/submissions', SubmissionStatsViewSet,
                 base_name='submissionstats')
 router.register(r'charts', ChartsViewSet, base_name='chart')
 router.register(r'metadata', MetaDataViewSet, base_name='metadata')
+router.register(r'media', AttachmentViewSet, base_name='attachment')
 urlpatterns = router.urls
