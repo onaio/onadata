@@ -50,3 +50,6 @@ celerybeat-schedule
 /onadata/apps/main/static/bower_components
 custom_template
 /node_modules
+
+# ignore vagrant file
+.vagrant/

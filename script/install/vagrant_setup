@@ -1,0 +1,47 @@
+#! /bin/bash
+set -e
+# script for setting up environment using vagrant
+# install memcached
+
+echo "[apt-get] Memcached"
+sudo apt-get install -qq memcached libmemcached-dev
+echo "Installed."
+echo "Installing postgis"
+sudo apt-get install -qq binutils libproj-dev gdal-bin Postgresql-9.3-postgis
+
+echo "[psql] postgis extensions"
+sudo su -c 'psql -U postgres -d onadata -c "CREATE EXTENSION IF NOT EXISTS postgis;"' postgres
+sudo su -c 'psql -U postgres -d onadata -c "CREATE EXTENSION IF NOT EXISTS postgis_topology;"' postgres
+
+# install mongod
+echo "[apt-get] install mongod"
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7F0CEB10
+echo 'deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen' | sudo tee /etc/apt/sources.list.d/mongodb.list
+sudo apt-get update
+sudo apt-get install mongodb-org
+
+echo "[workon] Onadata"
+workon onadata
+
+# setup pip cache
+echo "[pip] Setting up pip cache"
+printf "[global] \ndownload_cache = ~/.cache/pip" > ~/.pip/pip.conf
+
+echo "[pip] Install requirements"
+pip install -r requirements/common.pip --allow-all-external
+pip install -r requirements/latest.pip --allow-all-external
+pip install -r requirements/dev.pip --allow-all-external
+pip install numpy
+pip install pandas
+
+echo "Create local settings"
+
+echo "[EXPORT] Exporting local django settings to bashrc"
+echo "export DJANGO_SETTINGS_MODULE=local_settings" >> ~/.bashrc
+source ~/.bashrc
+
+printf "\n\n\n[!!!SUCCESS!!!]\n\n\n"
+
+echo "[ATTENTION]"
+echo "When running onadata in the vm, ensure you call it with the server port specified below:"
+echo "./manage.py runserver 0.0.0.0:8000"
