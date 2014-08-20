@@ -13,10 +13,9 @@ from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
 
 class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ### This endpoint allows you to list and retrieve attachments
-    <pre class="prettyprint">
-    <b>GET</b> /api/v1/media</pre>
 
+    ## Lists attachments of all xforms
+    >        GET /api/v1/media/
     > Example
     >
     >       curl -X GET https://ona.io/api/v1/media
@@ -24,14 +23,89 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     > Response
     >
     >        [{
-    >            "url":
-    >            "id":
-    >            "xform":
-    >            "data_id":
-    >            "mimetype":
-    >            "filename":
+    >           "download_url": "http://ona.io/api/v1/media/1.jpg",
+    >           "filename": "doe/attachments/1408520136827.jpg",
+    >           "id": 1,
+    >           "instance": 1,
+    >           "mimetype": "image/jpeg",
+    >           "url": "http://ona.io/api/v1/media/1",
+    >           "xform": 1,
     >        }
     >        ...
+
+    ## Retrieve details of an attachment
+    ><pre class="prettyprint">  GET /api/v1/media/<code>{pk}</code></pre>
+    > Example
+    >
+    >       curl -X GET https://ona.io/api/v1/media/1
+
+    > Response
+    >
+    >        {
+    >           "download_url": "http://ona.io/api/v1/media/1.jpg",
+    >           "filename": "doe/attachments/1408520136827.jpg",
+    >           "id": 1,
+    >           "instance": 1,
+    >           "mimetype": "image/jpeg",
+    >           "url": "http://ona.io/api/v1/media/1",
+    >           "xform": 1,
+    >        }
+
+    ## Retrieve an attachment file
+
+    ><pre class="prettyprint">
+    >     GET /api/v1/media/<code>{pk}.{format}</code></pre>
+    >
+    >         curl -X GET https://ona.io/api/v1/media/1.png -o a.png
+
+    >Alternatively, if the request is made with an `Accept` header of the
+    >content type of the file the file would be returned e.g
+
+    ><pre class="prettyprint">
+    > GET /api/v1/media/<code>{pk}</code> Accept: image/png </pre>
+    >
+    >     curl -X GET https://ona.io/api/v1/media/1 -H "Accept: image/png" -o a.png
+
+    ## Lists attachments of a specific xform
+    ><pre class="prettyprint">
+    > GET /api/v1/media/?xform=<code>{xform}</code></pre>
+    > Example
+    >
+    >     curl -X GET https://ona.io/api/v1/media?xform=1
+
+    > Response
+    >
+    >        [{
+    >           "download_url": "http://ona.io/api/v1/media/1.jpg",
+    >           "filename": "doe/attachments/1408520136827.jpg",
+    >           "id": 1,
+    >           "instance": 1,
+    >           "mimetype": "image/jpeg",
+    >           "url": "http://ona.io/api/v1/media/1",
+    >           "xform": 1,
+    >        }
+    >        ...
+
+    ## Lists attachments of a specific instance
+    ><pre class="prettyprint">
+    > GET /api/v1/media?instance=<code>{instance}</code></pre>
+    > Example
+    >
+    >     curl -X GET https://ona.io/api/v1/media?instance=1
+
+    > Response
+    >
+    >        [{
+    >           "download_url": "http://ona.io/api/v1/media/1.jpg",
+    >           "filename": "doe/attachments/1408520136827.jpg",
+    >           "id": 1,
+    >           "instance": 1,
+    >           "mimetype": "image/jpeg",
+    >           "url": "http://ona.io/api/v1/media/1",
+    >           "xform": 1,
+    >        }
+    >        ...
+
     """
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.AttachmentFilter,)
