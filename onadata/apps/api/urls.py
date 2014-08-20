@@ -165,6 +165,7 @@ xlsforms information
 * [/api/v1/charts](/api/v1/charts) - List, Retrieve Charts of collected data
 * [/api/v1/stats](/api/v1/stats) - Summary statistics
 * [/api/v1/metadata](/api/v1/metadata) - List, Retrieve form metadata
+* [/api/v1/media](/api/v1/media) - List, Retrieve media attachments
 
 ## Status Codes
 
