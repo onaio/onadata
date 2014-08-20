@@ -12,6 +12,27 @@ from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
 
 
 class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ### This endpoint allows you to list and retrieve attachments
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/media</pre>
+
+    > Example
+    >
+    >       curl -X GET https://ona.io/api/v1/media
+
+    > Response
+    >
+    >        [{
+    >            "url":
+    >            "id":
+    >            "xform":
+    >            "data_id":
+    >            "mimetype":
+    >            "filename":
+    >        }
+    >        ...
+    """
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.AttachmentFilter,)
     lookup_field = 'pk'
