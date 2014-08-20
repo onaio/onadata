@@ -8,11 +8,11 @@ class AttachmentSerializer(serializers.ModelSerializer):
                                                lookup_field='pk')
     download_url = serializers.SerializerMethodField('get_download_url')
     xform = serializers.Field(source='instance.xform.pk')
-    data_id = serializers.Field(source='instance.pk')
+    instance = serializers.Field(source='instance.pk')
     filename = serializers.Field(source='media_file.name')
 
     class Meta:
-        fields = ('url', 'download_url', 'id', 'xform', 'data_id',
+        fields = ('url', 'download_url', 'id', 'xform', 'instance',
                   'mimetype', 'filename')
         lookup_field = 'pk'
         model = Attachment

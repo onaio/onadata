@@ -23,7 +23,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
             'download_url': 'http://testserver/api/v1/media/%s.jpg' % pk,
             "id": pk,
             'xform': self.xform.pk,
-            'data_id': self.attachment.instance.pk,
+            'instance': self.attachment.instance.pk,
             "mimetype": self.attachment.mimetype,
             "filename": self.attachment.media_file.name
         }
@@ -65,7 +65,6 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 400)
-
 
     def test_list_view_filter_by_instance(self):
         data = {
