@@ -46,3 +46,42 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         response = self.list_view(request)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
+
+    def test_list_view_filter_by_xform(self):
+        data = {
+            'xform': self.xform.pk
+        }
+        request = self.factory.get('/', data, **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+
+        data['xform'] = 10000000
+        request = self.factory.get('/', data, **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 404)
+
+        data['xform'] = 'lol'
+        request = self.factory.get('/', data, **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 400)
+
+
+    def test_list_view_filter_by_instance(self):
+        data = {
+            'instance': self.attachment.instance.pk
+        }
+        request = self.factory.get('/', data, **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+
+        data['instance'] = 10000000
+        request = self.factory.get('/', data, **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 404)
+
+        data['instance'] = 'lol'
+        request = self.factory.get('/', data, **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 400)
