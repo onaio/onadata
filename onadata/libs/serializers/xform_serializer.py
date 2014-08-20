@@ -1,5 +1,6 @@
 from django.forms import widgets
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import get_object_users_with_permissions
@@ -42,3 +43,38 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             return MetaDataSerializer(obj.metadata_set.all(), many=True).data
 
         return []
+
+
+class XFormListSerializer(serializers.Serializer):
+    formID = serializers.Field(source='id_string')
+    name = serializers.Field(source='title')
+    majorMinorVersion = serializers.SerializerMethodField('get_version')
+    version = serializers.SerializerMethodField('get_version')
+    hash = serializers.SerializerMethodField('get_hash')
+    descriptionText = serializers.Field(source='description')
+    downloadUrl = serializers.SerializerMethodField('get_url')
+    manifestUrl = serializers.SerializerMethodField('get_manifest_url')
+
+    def get_version(self, obj):
+        return None
+
+    def get_hash(self, obj):
+        if obj:
+            return u"md5:%s" % obj.hash
+
+    def get_url(self, obj):
+        if obj:
+            kwargs = {'pk': obj.pk}
+            request = self.context.get('request')
+
+            return reverse('formlist-detail', kwargs=kwargs,
+                           request=request, format='xml')
+
+    def get_manifest_url(self, obj):
+        if obj:
+            kwargs = {
+                'username': obj.user.username, 'id_string': obj.id_string}
+            request = self.context.get('request')
+
+            return reverse('manifest-url', kwargs=kwargs,
+                           request=request)
