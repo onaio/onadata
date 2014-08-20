@@ -1,4 +1,9 @@
 from rest_framework import negotiation
+from django.utils.xmlutils import SimplerXMLGenerator
+
+from rest_framework.compat import StringIO
+from rest_framework.compat import six
+from rest_framework.compat import smart_text
 from rest_framework.renderers import BaseRenderer
 
 
@@ -68,3 +73,54 @@ class MediaFileRenderer(BaseRenderer):
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data
+
+
+class XFormListRenderer(BaseRenderer):
+    """
+    Renderer which serializes to XML.
+    """
+
+    media_type = 'application/xml'
+    format = 'xml'
+    charset = 'utf-8'
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        """
+        Renders *obj* into serialized XML.
+        """
+        if data is None:
+            return ''
+
+        stream = StringIO()
+
+        xml = SimplerXMLGenerator(stream, self.charset)
+        xml.startDocument()
+        xml.startElement("xforms", {
+            'xmlns': "http://openrosa.org/xforms/xformsList"
+        })
+
+        self._to_xml(xml, data)
+
+        xml.endElement("xforms")
+        xml.endDocument()
+        return stream.getvalue()
+
+    def _to_xml(self, xml, data):
+        if isinstance(data, (list, tuple)):
+            for item in data:
+                xml.startElement("xform", {})
+                self._to_xml(xml, item)
+                xml.endElement("xform")
+
+        elif isinstance(data, dict):
+            for key, value in six.iteritems(data):
+                xml.startElement(key, {})
+                self._to_xml(xml, value)
+                xml.endElement(key)
+
+        elif data is None:
+            # Don't output any value
+            pass
+
+        else:
+            xml.characters(smart_text(data))
