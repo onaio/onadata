@@ -20,6 +20,7 @@ from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.api.viewsets.user_viewset import UserViewSet
 from onadata.apps.api.viewsets.submissionstats_viewset import\
     SubmissionStatsViewSet
+from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
 
 
 def make_routes(template_text):
@@ -164,6 +165,7 @@ xlsforms information
 * [/api/v1/charts](/api/v1/charts) - List, Retrieve Charts of collected data
 * [/api/v1/stats](/api/v1/stats) - Summary statistics
 * [/api/v1/metadata](/api/v1/metadata) - List, Retrieve form metadata
+* [/api/v1/media](/api/v1/media) - List, Retrieve media attachments
 
 ## Status Codes
 
@@ -362,4 +364,5 @@ router.register(r'stats/submissions', SubmissionStatsViewSet,
                 base_name='submissionstats')
 router.register(r'charts', ChartsViewSet, base_name='chart')
 router.register(r'metadata', MetaDataViewSet, base_name='metadata')
+router.register(r'media', AttachmentViewSet, base_name='attachment')
 urlpatterns = router.urls

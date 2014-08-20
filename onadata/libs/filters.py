@@ -4,7 +4,7 @@ from django.utils import six
 from rest_framework import filters
 from rest_framework.exceptions import ParseError
 
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import XForm, Instance
 
 
 class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
@@ -65,8 +65,8 @@ class TagFilter(filters.BaseFilterBackend):
         return queryset
 
 
-class MetaDataFilter(filters.DjangoObjectPermissionsFilter):
-    def filter_queryset(self, request, queryset, view):
+class XFormPermissionFilterMixin(object):
+    def _xform_filter_queryset(self, request, queryset, view, keyword):
         """Use XForm permissions"""
         xform = request.QUERY_PARAMS.get('xform')
         if xform:
@@ -79,7 +79,32 @@ class MetaDataFilter(filters.DjangoObjectPermissionsFilter):
             xform_qs = XForm.objects.filter(pk=xform.pk)
         else:
             xform_qs = XForm.objects.all()
-        xforms = super(MetaDataFilter, self).filter_queryset(
+        xforms = super(XFormPermissionFilterMixin, self).filter_queryset(
             request, xform_qs, view)
+        kwarg = {"%s__in" % keyword: xforms}
 
-        return queryset.filter(xform__in=xforms)
+        return queryset.filter(**kwarg)
+
+
+class MetaDataFilter(XFormPermissionFilterMixin,
+                     filters.DjangoObjectPermissionsFilter):
+    def filter_queryset(self, request, queryset, view):
+        return self._xform_filter_queryset(request, queryset, view, 'xform')
+
+
+class AttachmentFilter(XFormPermissionFilterMixin,
+                       filters.DjangoObjectPermissionsFilter):
+    def filter_queryset(self, request, queryset, view):
+        queryset = self._xform_filter_queryset(request, queryset, view,
+                                               'instance__xform')
+        instance_id = request.QUERY_PARAMS.get('instance')
+        if instance_id:
+            try:
+                int(instance_id)
+            except ValueError:
+                raise ParseError(
+                    u"Invalid value for instance %s." % instance_id)
+            instance = get_object_or_404(Instance, pk=instance_id)
+            queryset = queryset.filter(instance=instance)
+
+        return queryset
