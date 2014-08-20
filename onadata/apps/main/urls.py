@@ -182,7 +182,7 @@ urlpatterns = patterns(
     url(r"^(?P<username>\w+)/formList$",
         'onadata.apps.logger.views.formList'),
     url(r"^(?P<username>\w+)/xformsManifest/(?P<id_string>[^/]+)$",
-        'onadata.apps.logger.views.xformsManifest'),
+        'onadata.apps.logger.views.xformsManifest', name='manifest-url'),
     url(r"^(?P<username>\w+)/submission$",
         'onadata.apps.logger.views.submission'),
     url(r"^(?P<username>\w+)/bulk-submission$",

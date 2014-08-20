@@ -21,6 +21,7 @@ from onadata.apps.api.viewsets.user_viewset import UserViewSet
 from onadata.apps.api.viewsets.submissionstats_viewset import\
     SubmissionStatsViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
+from onadata.apps.api.viewsets.xform_list_api import XFormListApi
 
 
 def make_routes(template_text):
@@ -365,4 +366,5 @@ router.register(r'stats/submissions', SubmissionStatsViewSet,
 router.register(r'charts', ChartsViewSet, base_name='chart')
 router.register(r'metadata', MetaDataViewSet, base_name='metadata')
 router.register(r'media', AttachmentViewSet, base_name='attachment')
+router.register(r'formlist', XFormListApi, base_name='formlist')
 urlpatterns = router.urls
