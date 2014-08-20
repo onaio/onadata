@@ -15,7 +15,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     """
 
     ## Lists attachments of all xforms
-    >        GET /api/v1/media/
+    >       GET /api/v1/media/
     > Example
     >
     >       curl -X GET https://ona.io/api/v1/media
@@ -35,6 +35,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
 
     ## Retrieve details of an attachment
     ><pre class="prettyprint">  GET /api/v1/media/<code>{pk}</code></pre>
+    >
     > Example
     >
     >       curl -X GET https://ona.io/api/v1/media/1
@@ -58,17 +59,21 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >
     >         curl -X GET https://ona.io/api/v1/media/1.png -o a.png
 
-    >Alternatively, if the request is made with an `Accept` header of the
-    >content type of the file the file would be returned e.g
+    Alternatively, if the request is made with an `Accept` header of the
+    content type of the file the file would be returned e.g
 
     ><pre class="prettyprint">
     > GET /api/v1/media/<code>{pk}</code> Accept: image/png </pre>
     >
-    >     curl -X GET https://ona.io/api/v1/media/1 -H "Accept: image/png" -o a.png
+    > Example
+    >
+    >     curl -X GET https://ona.io/api/v1/media/1 -H "Accept: image/png" -o
+    >     a.png
 
     ## Lists attachments of a specific xform
     ><pre class="prettyprint">
     > GET /api/v1/media/?xform=<code>{xform}</code></pre>
+    >
     > Example
     >
     >     curl -X GET https://ona.io/api/v1/media?xform=1
@@ -89,6 +94,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     ## Lists attachments of a specific instance
     ><pre class="prettyprint">
     > GET /api/v1/media?instance=<code>{instance}</code></pre>
+    >
     > Example
     >
     >     curl -X GET https://ona.io/api/v1/media?instance=1
