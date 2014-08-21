@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 
 from django.core.exceptions import ValidationError
+from django.core.files.storage import default_storage
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.utils.translation import ugettext as _
@@ -32,6 +33,10 @@ from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
 from onadata.apps.viewer.models.export import Export
+<<<<<<< HEAD
+=======
+from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
+>>>>>>> ME: refactored clone api endpoint and added a test for it
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import generate_export,\
     should_create_new_export
