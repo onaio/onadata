@@ -27,6 +27,7 @@ from onadata.libs.serializers.clone_xform_serializer import \
 from onadata.libs.serializers.share_xform_serializer import (
     ShareXFormSerializer)
 from onadata.apps.api import tools as utils
+from onadata.apps.main.views import clone_xlsform
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
