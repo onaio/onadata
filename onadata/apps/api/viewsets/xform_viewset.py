@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 
 from django.core.exceptions import ValidationError
+from django.core.files.storage import default_storage
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.utils.translation import ugettext as _
@@ -27,9 +28,10 @@ from onadata.libs.serializers.share_xform_serializer import (
 from onadata.apps.api import tools as utils
 from onadata.apps.main.views import clone_xlsform
 from onadata.apps.api.permissions import XFormPermissions
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
-from onadata.apps.viewer.models import Export
+from onadata.apps.viewer.models.export import Export
+from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import generate_export,\
     should_create_new_export
@@ -663,5 +665,20 @@ https://ona.io/api/v1/forms/123.json
 
     @action(methods=['POST'])
     def clone(self, request, *args, **kwargs):
-        clone_xlsform(request, request.user.username)
-        return Response("%s form has been cloned to %s's account" % (request.POST.get('id_string'), request.POST.get('username')))
+        self.object = self.get_object()
+        username = request.POST.get('username')
+        user = User.objects.get(username=username)
+        xls_file_path = upload_to(None, '%s%s.xls' % (
+                                  self.object.id_string,
+                                  XForm.CLONED_SUFFIX),
+                                  username)
+        xls_data = default_storage.open(self.object.xls.name)
+        xls_file = default_storage.save(xls_file_path, xls_data)
+        survey = DataDictionary.objects.create(
+            user=user,
+            xls=xls_file
+        ).survey
+        response_data = "%s form has been cloned to %s's account" % (self.object.id_string,
+                                                                     request.POST.get('username'))
+
+        return Response(data=response_data, status=status.HTTP_201_CREATED)

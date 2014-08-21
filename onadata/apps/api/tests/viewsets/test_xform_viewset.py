@@ -458,6 +458,24 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertTrue(role_class.user_has_role(alice_profile.user,
                                                      self.xform))
 
+    def test_form_clone_endpoint(self):
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        view = XFormViewSet.as_view({
+            'post': 'clone'
+        })
+        formid = self.xform.pk
+        count = XForm.objects.count()
+        data = {'username': 'alice'}
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+        response_data = "%s form has been cloned to alice's account" % self.xform.id_string
+        
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, response_data)
+        self.assertEqual(count + 1, XForm.objects.count())
+
     def test_xform_serializer_none(self):
         data = {
             'url': None, 'formid': u'', 'title': u'', 'owner': None,
