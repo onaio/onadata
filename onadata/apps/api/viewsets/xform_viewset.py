@@ -25,6 +25,7 @@ from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.share_xform_serializer import (
     ShareXFormSerializer)
 from onadata.apps.api import tools as utils
+from onadata.apps.main.views import clone_xlsform
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
@@ -659,3 +660,8 @@ https://ona.io/api/v1/forms/123.json
                             status=status.HTTP_400_BAD_REQUEST)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(methods=['POST'])
+    def clone(self, request, *args, **kwargs):
+        clone_xlsform(request, request.user.username)
+        return Response("%s form has been cloned to %s's account" % (request.POST.get('id_string'), request.POST.get('username')))
