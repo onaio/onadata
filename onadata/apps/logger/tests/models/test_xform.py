@@ -30,13 +30,15 @@ class TestXForm(TestBase):
 
         self.assertTrue(isinstance(self.xform.xml, unicode))
 
+        # change title
+        self.xform.title = u'Random Title'
+
+        self.assertNotIn(self.xform.title, self.xform.xml)
+
         # convert xml to str
         self.xform.xml = self.xform.xml.encode('utf-8')
         self.assertTrue(isinstance(self.xform.xml, str))
 
-        # change title
-        self.xform.title = u'Random Title'
-
-        with self.assertRaises(UnicodeDecodeError):
-            # set title in xform xml
-            self.xform._set_title()
+        # set title in xform xml
+        self.xform._set_title()
+        self.assertIn(self.xform.title, self.xform.xml)
