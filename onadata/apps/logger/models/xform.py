@@ -132,6 +132,8 @@ class XForm(BaseModel):
 
         if self.title and title_xml != self.title:
             title_xml = self.title[:XFORM_TITLE_LENGTH]
+            if isinstance(self.xml, str):
+                self.xml = self.xml.decode('utf-8')
             self.xml = title_pattern.sub(
                 u"<h:title>%s</h:title>" % title_xml, self.xml)
 
