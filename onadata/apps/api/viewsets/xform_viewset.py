@@ -4,7 +4,6 @@ import json
 from datetime import datetime
 
 from django.core.exceptions import ValidationError
-from django.core.files.storage import default_storage
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.utils.translation import ugettext as _
@@ -23,8 +22,12 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+<<<<<<< HEAD
 from onadata.libs.serializers.clone_xform_serializer import \
     CloneXFormSerializer
+=======
+from onadata.libs.serializers.clone_xform_serializer import CloneXFormSerializer
+>>>>>>> ME: WIP accessing endpoint now clones xform using serializer save method
 from onadata.libs.serializers.share_xform_serializer import (
     ShareXFormSerializer)
 from onadata.apps.api import tools as utils
@@ -34,9 +37,12 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
 from onadata.apps.viewer.models.export import Export
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
 >>>>>>> ME: refactored clone api endpoint and added a test for it
+=======
+>>>>>>> ME: WIP accessing endpoint now clones xform using serializer save method
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import generate_export,\
     should_create_new_export
@@ -700,6 +706,7 @@ You can clone a form to a specific user account using `GET` with
 
     @action(methods=['GET'])
     def clone(self, request, *args, **kwargs):
+        from pprint import pprint
         self.object = self.get_object()
         data = {'xform': self.object.pk, 'username': request.DATA['username']}
         serializer = CloneXFormSerializer(data=data)
