@@ -4,11 +4,7 @@ from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
 from onadata.libs.models.clone_xform import CloneXForm
-from onadata.libs.permissions import ROLES
 from onadata.libs.serializers.fields.xform_field import XFormField
-from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
-from django.core.files.storage import default_storage
-from onadata.apps.logger.models.xform import XForm
 
 
 class CloneXFormSerializer(serializers.Serializer):

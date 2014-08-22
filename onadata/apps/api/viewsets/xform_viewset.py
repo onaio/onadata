@@ -167,6 +167,7 @@ def value_for_type(form, field, value):
 
 
 class XFormViewSet(AnonymousUserPublicFormsMixin, LabelsMixin, ModelViewSet):
+
     """
 Publish XLSForms, List, Retrieve Published Forms.
 
@@ -665,14 +666,20 @@ https://ona.io/api/v1/forms/123.json
     @action(methods=['GET'])
     def clone(self, request, *args, **kwargs):
         self.object = self.get_object()
-        data = {'xform': self.object.pk, 'username':request.DATA['username']}
+        data = {'xform': self.object.pk, 'username': request.DATA['username']}
         serializer = CloneXFormSerializer(data=data)
         if serializer.is_valid():
+            clone_to_user = User.objects.get(username=data['username'])
+            if not request.user.has_perm('can_add_xform', clone_to_user.profile):
+                raise exceptions.PermissionDenied(
+                    detail=_(u"User %(user)s has no permission to add xforms to "
+                             "account %(account)s" % {'user': request.user.username,
+                                                      'account': data['username']}))
             xform = serializer.save()
-            serializer = XFormSerializer(xform.cloned_form, context={'request': request})
-            
+            serializer = XFormSerializer(
+                xform.cloned_form, context={'request': request})
+
             return Response(data=serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(data=serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
-
+                        status=status.HTTP_400_BAD_REQUEST)

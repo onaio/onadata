@@ -38,6 +38,7 @@ def enketo_error_mock(url, request):
 
 
 class TestXFormViewSet(TestAbstractViewSet):
+
     def setUp(self):
         super(self.__class__, self).setUp()
         self.view = XFormViewSet.as_view({
@@ -467,13 +468,23 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         formid = self.xform.pk
         count = XForm.objects.count()
+
+        data = {'username': 'mjomba'}
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 400)
+
         data = {'username': 'alice'}
         request = self.factory.post('/', data=data, **self.extra)
         response = view(request, pk=formid)
-        response_data = "%s form has been cloned to alice's account" % self.xform.id_string
-        
+        self.assertFalse(self.user.has_perm('can_add_xform', alice_profile))
+        self.assertEqual(response.status_code, 403)
+
+        ManagerRole.add(self.user, alice_profile)
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+        self.assertTrue(self.user.has_perm('can_add_xform', alice_profile))
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, response_data)
         self.assertEqual(count + 1, XForm.objects.count())
 
     def test_xform_serializer_none(self):
