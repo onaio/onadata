@@ -4,7 +4,6 @@ import json
 from datetime import datetime
 
 from django.core.exceptions import ValidationError
-from django.core.files.storage import default_storage
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.utils.translation import ugettext as _
@@ -23,6 +22,7 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.clone_xform_serializer import CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import (
     ShareXFormSerializer)
 from onadata.apps.api import tools as utils
@@ -31,7 +31,6 @@ from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
 from onadata.apps.viewer.models.export import Export
-from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import generate_export,\
     should_create_new_export
@@ -663,22 +662,23 @@ https://ona.io/api/v1/forms/123.json
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['POST'])
+    @action(methods=['GET'])
     def clone(self, request, *args, **kwargs):
+        from pprint import pprint
         self.object = self.get_object()
-        username = request.POST.get('username')
-        user = User.objects.get(username=username)
-        xls_file_path = upload_to(None, '%s%s.xls' % (
-                                  self.object.id_string,
-                                  XForm.CLONED_SUFFIX),
-                                  username)
-        xls_data = default_storage.open(self.object.xls.name)
-        xls_file = default_storage.save(xls_file_path, xls_data)
-        survey = DataDictionary.objects.create(
-            user=user,
-            xls=xls_file
-        ).survey
-        response_data = "%s form has been cloned to %s's account" % (self.object.id_string,
-                                                                     request.POST.get('username'))
+        data = {'xform': self.object.pk, 'username':request.DATA['username']}
+        response_data = "Form cloned"
+        serializer = CloneXFormSerializer(data=data)
+        # print "can add form: %s " % request.user.has_perm('can_add_xform', request.user.profile)
+        if serializer.is_valid():
+            returned = serializer.save()
+            print "returned : %s " % returned.xform
+            print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+            # xform = XForm.objects.get(id=returned)
+            serializer = XFormSerializer(returned.xform, context={'request': request})
+            
+            return Response(data=serializer.data, status=status.HTTP_201_CREATED)
 
-        return Response(data=response_data, status=status.HTTP_201_CREATED)
+        return Response(data=serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
