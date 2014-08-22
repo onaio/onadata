@@ -706,7 +706,6 @@ You can clone a form to a specific user account using `GET` with
 
     @action(methods=['GET'])
     def clone(self, request, *args, **kwargs):
-        from pprint import pprint
         self.object = self.get_object()
         data = {'xform': self.object.pk, 'username': request.DATA['username']}
         serializer = CloneXFormSerializer(data=data)
