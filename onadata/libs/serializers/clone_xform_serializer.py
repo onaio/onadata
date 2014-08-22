@@ -34,18 +34,3 @@ class CloneXFormSerializer(serializers.Serializer):
                                     % {"value": value}))
 
         return attrs
-
-    def save_object(self, obj):
-        user = User.objects.get(username=obj.username)
-        xls_file_path = upload_to(None, '%s%s.xls' % (
-                                  obj.xform.id_string,
-                                  XForm.CLONED_SUFFIX),
-                                  obj.username)
-        xls_data = default_storage.open(obj.xform.xls.name)
-        xls_file = default_storage.save(xls_file_path, xls_data)
-        survey = DataDictionary.objects.create(
-            user=user,
-            xls=xls_file
-        )
-        
-        return survey

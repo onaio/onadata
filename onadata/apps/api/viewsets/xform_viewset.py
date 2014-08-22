@@ -664,18 +664,12 @@ https://ona.io/api/v1/forms/123.json
 
     @action(methods=['GET'])
     def clone(self, request, *args, **kwargs):
-        from pprint import pprint
         self.object = self.get_object()
         data = {'xform': self.object.pk, 'username':request.DATA['username']}
-        response_data = "Form cloned"
         serializer = CloneXFormSerializer(data=data)
-        # print "can add form: %s " % request.user.has_perm('can_add_xform', request.user.profile)
         if serializer.is_valid():
-            returned = serializer.save()
-            print "returned : %s " % returned.xform
-            print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-            # xform = XForm.objects.get(id=returned)
-            serializer = XFormSerializer(returned.xform, context={'request': request})
+            xform = serializer.save()
+            serializer = XFormSerializer(xform.cloned_form, context={'request': request})
             
             return Response(data=serializer.data, status=status.HTTP_201_CREATED)
 
