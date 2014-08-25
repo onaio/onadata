@@ -522,6 +522,35 @@ https://ona.io/api/v1/forms/123.json
 > Response
 >
 >        HTTP 204 NO CONTENT
+
+## Clone a form to a specific user account
+
+You can clone a form to a specific user account using `GET` with
+
+- `username` of the user you want to clone the form to
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/<code>{pk}</code>/clone
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/forms/123/clone \
+-d username=alice -u alice:alice123
+
+> Response
+>
+>        HTTP 201 CREATED
+>       {
+>           "url": "https://ona.io/api/v1/forms/124",
+>           "formid": 124,
+>           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1e",
+>           "id_string": "Birds_cloned_1",
+>           "sms_id_string": "Birds_cloned_1",
+>           "title": "Birds_cloned_1",
+>           ...
+>       }
+
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
