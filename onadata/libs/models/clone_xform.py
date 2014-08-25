@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
-from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
+from onadata.apps.viewer.models.data_dictionary import \
+    DataDictionary, upload_to
 from django.core.files.storage import default_storage
 from onadata.apps.logger.models.xform import XForm
 

@@ -22,11 +22,11 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
-from onadata.libs.serializers.clone_xform_serializer import CloneXFormSerializer
+from onadata.libs.serializers.clone_xform_serializer import \
+    CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import (
     ShareXFormSerializer)
 from onadata.apps.api import tools as utils
-from onadata.apps.main.views import clone_xlsform
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
@@ -699,16 +699,19 @@ You can clone a form to a specific user account using `GET` with
         serializer = CloneXFormSerializer(data=data)
         if serializer.is_valid():
             clone_to_user = User.objects.get(username=data['username'])
-            if not request.user.has_perm('can_add_xform', clone_to_user.profile):
+            if not request.user.has_perm('can_add_xform',
+                                         clone_to_user.profile):
                 raise exceptions.PermissionDenied(
-                    detail=_(u"User %(user)s has no permission to add xforms to "
-                             "account %(account)s" % {'user': request.user.username,
-                                                      'account': data['username']}))
+                    detail=_(u"User %(user)s has no permission to add "
+                             "xforms to account %(account)s" %
+                             {'user': request.user.username,
+                              'account': data['username']}))
             xform = serializer.save()
             serializer = XFormSerializer(
                 xform.cloned_form, context={'request': request})
 
-            return Response(data=serializer.data, status=status.HTTP_201_CREATED)
+            return Response(data=serializer.data,
+                            status=status.HTTP_201_CREATED)
 
         return Response(data=serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST)
