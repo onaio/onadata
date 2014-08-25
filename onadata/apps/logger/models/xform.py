@@ -58,10 +58,11 @@ class XForm(BaseModel):
         max_length=MAX_ID_LENGTH,
         default=''
     )
-    id_string = models.SlugField(
+    _id_string = models.SlugField(
         editable=False,
         verbose_name=ugettext_lazy("ID"),
-        max_length=MAX_ID_LENGTH
+        max_length=MAX_ID_LENGTH,
+        db_column='id_string'
     )
     title = models.CharField(editable=False, max_length=XFORM_TITLE_LENGTH)
     date_created = models.DateTimeField(auto_now_add=True)
@@ -84,10 +85,10 @@ class XForm(BaseModel):
 
     class Meta:
         app_label = 'logger'
-        unique_together = (("user", "id_string"), ("user", "sms_id_string"))
+        unique_together = (("user", "_id_string"), ("user", "sms_id_string"))
         verbose_name = ugettext_lazy("XForm")
         verbose_name_plural = ugettext_lazy("XForms")
-        ordering = ("id_string",)
+        ordering = ("_id_string",)
         permissions = (
             ("view_xform", _("Can view associated data")),
             ("report_xform", _("Can make submissions to the form")),
@@ -95,15 +96,19 @@ class XForm(BaseModel):
             ("transfer_xform", _(u"Can transfer form ownership.")),
         )
 
+    @property
+    def id_string(self):
+        return self._id_string.lower()
+
     def file_name(self):
-        return self.id_string + ".xml"
+        return self._id_string + ".xml"
 
     def url(self):
         return reverse(
             "download_xform",
             kwargs={
                 "username": self.user.username,
-                "id_string": self.id_string
+                "id_string": self._id_string
             }
         )
 
@@ -120,7 +125,7 @@ class XForm(BaseModel):
         matches = self.instance_id_regex.findall(self.xml)
         if len(matches) != 1:
             raise XLSFormError(_("There should be a single id string."))
-        self.id_string = matches[0]
+        self._id_string = matches[0]
 
     def _set_title(self):
         text = re.sub(r"\s+", " ", self.xml)
@@ -157,19 +162,19 @@ class XForm(BaseModel):
     def save(self, *args, **kwargs):
         self._set_title()
         self._set_description()
-        old_id_string = self.id_string
+        old_id_string = self._id_string
         self._set_id_string()
         self._set_encrypted_field()
         # check if we have an existing id_string,
         # if so, the one must match but only if xform is NOT new
-        if self.pk and old_id_string and old_id_string != self.id_string:
+        if self.pk and old_id_string and old_id_string != self._id_string:
             raise XLSFormError(
                 _(u"Your updated form's id_string '%(new_id)s' must match "
                   "the existing forms' id_string '%(old_id)s'." %
-                  {'new_id': self.id_string, 'old_id': old_id_string}))
+                  {'new_id': self._id_string, 'old_id': old_id_string}))
 
         if getattr(settings, 'STRICT', True) and \
-                not re.search(r"^[\w-]+$", self.id_string):
+                not re.search(r"^[\w-]+$", self._id_string):
             raise XLSFormError(_(u'In strict mode, the XForm ID must be a '
                                'valid slug and contain no spaces.'))
 
@@ -179,9 +184,9 @@ class XForm(BaseModel):
                 # from it's json rep (from XLSForm)
                 # otherwise, use id_string to ensure uniqueness
                 self.sms_id_string = json.loads(self.json).get('sms_keyword',
-                                                               self.id_string)
+                                                               self._id_string)
             except:
-                self.sms_id_string = self.id_string
+                self.sms_id_string = self._id_string
 
         super(XForm, self).save(*args, **kwargs)
 
