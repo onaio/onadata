@@ -90,6 +90,8 @@ class XFormListRenderer(BaseRenderer):
         """
         if data is None:
             return ''
+        elif isinstance(data, six.string_types):
+            return data
 
         stream = StringIO()
 
