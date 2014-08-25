@@ -27,12 +27,10 @@ from onadata.libs.serializers.clone_xform_serializer import \
 from onadata.libs.serializers.share_xform_serializer import (
     ShareXFormSerializer)
 from onadata.apps.api import tools as utils
-from onadata.apps.main.views import clone_xlsform
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
 from onadata.apps.viewer.models.export import Export
-from onadata.apps.viewer.models.data_dictionary import DataDictionary, upload_to
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import generate_export,\
     should_create_new_export
@@ -538,7 +536,7 @@ You can clone a form to a specific user account using `GET` with
 > Example
 >
 >       curl -X GET https://ona.io/api/v1/forms/123/clone \
--d username=alice -u alice:alice123
+-d username=alice
 
 > Response
 >

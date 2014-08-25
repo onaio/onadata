@@ -4,6 +4,7 @@ from onadata.apps.viewer.models.data_dictionary import \
 from django.core.files.storage import default_storage
 from onadata.apps.logger.models.xform import XForm
 
+
 class CloneXForm(object):
     def __init__(self, xform, username):
         self.xform = xform
