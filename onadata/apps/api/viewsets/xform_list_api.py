@@ -44,6 +44,5 @@ class XFormListApi(viewsets.ReadOnlyModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         self.object = self.get_object()
-        serializer = self.get_serializer(self.object)
 
-        return Response(serializer.data, headers=self.get_openrosa_headers())
+        return Response(self.object.xml, headers=self.get_openrosa_headers())

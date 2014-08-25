@@ -98,3 +98,31 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             self.assertTrue(response.has_header('Date'))
             self.assertEqual(response['Content-Type'],
                              'text/xml; charset=utf-8')
+
+    def test_retrieve_xform_xml(self):
+        self.view = XFormListApi.as_view({
+            "get": "retrieve"
+        })
+        request = self.factory.head('/')
+        response = self.view(request)
+        auth = DigestAuth('bob', 'bobbob')
+        request = self.factory.get('/')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+
+        path = os.path.join(
+            os.path.dirname(__file__),
+            '..', 'fixtures', 'Transportation Form.xml')
+
+        with open(path) as f:
+            form_xml = f.read().strip()
+            data = {"form_uuid": self.xform.uuid}
+            content = response.render().content.strip()
+            self.assertEqual(content, form_xml % data)
+            self.assertTrue(response.has_header('X-OpenRosa-Version'))
+            self.assertTrue(
+                response.has_header('X-OpenRosa-Accept-Content-Length'))
+            self.assertTrue(response.has_header('Date'))
+            self.assertEqual(response['Content-Type'],
+                             'text/xml; charset=utf-8')
