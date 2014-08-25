@@ -12,7 +12,9 @@ class DigestAuthentication(BaseAuthentication):
     def authenticate(self, request):
         auth = get_authorization_header(request).split()
 
-        if not auth or auth[0].lower() != b'digest':
+        # If it is a head request, let assume it is a digest auth request
+        if not auth or auth[0].lower() != b'digest' \
+                and request.method != 'HEAD':
             return None
 
         if self.authenticator.authenticate(request):
