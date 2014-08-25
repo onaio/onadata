@@ -80,7 +80,7 @@ class XFormListRenderer(BaseRenderer):
     Renderer which serializes to XML.
     """
 
-    media_type = 'application/xml'
+    media_type = 'text/xml'
     format = 'xml'
     charset = 'utf-8'
 
@@ -103,6 +103,7 @@ class XFormListRenderer(BaseRenderer):
 
         xml.endElement("xforms")
         xml.endDocument()
+
         return stream.getvalue()
 
     def _to_xml(self, xml, data):

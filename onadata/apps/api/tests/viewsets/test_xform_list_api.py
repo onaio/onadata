@@ -34,6 +34,8 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
             content = response.render().content
             self.assertEqual(content, form_list_xml % data)
+            self.assertEqual(response['Content-Type'],
+                             'text/xml; charset=utf-8')
 
     def test_get_xform_list_other_user_with_no_role(self):
         request = self.factory.get('/')
@@ -54,6 +56,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(
             content, '<?xml version="1.0" encoding="utf-8"?>\n<xforms '
             'xmlns="http://openrosa.org/xforms/xformsList"></xforms>')
+        self.assertEqual(response['Content-Type'], 'text/xml; charset=utf-8')
 
     def test_get_xform_list_other_user_with_readonly_role(self):
         request = self.factory.get('/')
@@ -81,3 +84,5 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
             content = response.render().content
             self.assertEqual(content, form_list_xml % data)
+            self.assertEqual(response['Content-Type'],
+                             'text/xml; charset=utf-8')
