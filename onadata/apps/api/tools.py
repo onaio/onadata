@@ -61,6 +61,15 @@ def get_accessible_forms(owner=None, shared_form=False, shared_data=False):
 
     return xforms.distinct()
 
+def validate_username(username):
+    """Check that username is cases insensitive"""
+    username = username.lower()
+    all_usernames = [user.username.lower() for user in User.objects.all()]
+    
+    if username in all_usernames:
+        return False
+
+    return True
 
 def create_organization(name, creator):
     """
@@ -69,11 +78,13 @@ def create_organization(name, creator):
         - Team(name='Owners', organization=organization).save()
 
     """
-    organization = User.objects.create(username=name)
-    organization_profile = OrganizationProfile.objects.create(
-        user=organization, creator=creator)
-    return organization_profile
+    if self.validate_username(name):
+        organization = User.objects.create(username=name)
+        organization_profile = OrganizationProfile.objects.create(
+            user=organization, creator=creator)
+        return organization_profile
 
+    return False
 
 def create_organization_object(org_name, creator, attrs={}):
     '''Creates an OrganizationProfile object without saving to the database'''
