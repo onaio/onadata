@@ -4,7 +4,6 @@ import numpy as np
 from django import forms
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils.translation import ugettext as _
 from django.shortcuts import get_object_or_404
@@ -63,16 +62,6 @@ def get_accessible_forms(owner=None, shared_form=False, shared_data=False):
     return xforms.distinct()
 
 
-def validate_username(username):
-    """Check that username is cases insensitive"""
-    username = username.lower()
-    all_usernames = [user.username.lower() for user in User.objects.all()]
-    if username in all_usernames:
-        raise ValidationError('user with username already exists')
-
-    return True
-
-
 def create_organization(name, creator):
     """
     Organization created by a user
@@ -80,11 +69,10 @@ def create_organization(name, creator):
         - Team(name='Owners', organization=organization).save()
 
     """
-    if validate_username(name):
-        organization = User.objects.create(username=name)
-        organization_profile = OrganizationProfile.objects.create(
-            user=organization, creator=creator)
-        return organization_profile
+    organization = User.objects.create(username=name)
+    organization_profile = OrganizationProfile.objects.create(
+        user=organization, creator=creator)
+    return organization_profile
 
 
 def create_organization_object(org_name, creator, attrs={}):

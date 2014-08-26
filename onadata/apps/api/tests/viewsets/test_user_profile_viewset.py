@@ -1,6 +1,5 @@
 import json
 
-from django.core.exceptions import ValidationError
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
@@ -11,6 +10,7 @@ from onadata.libs.serializers.user_profile_serializer import (
 
 
 class TestUserProfileViewSet(TestAbstractViewSet):
+
     def setUp(self):
         super(self.__class__, self).setUp()
         self.view = UserProfileViewSet.as_view({
@@ -176,7 +176,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
         del data['password']
-        profile = UserProfile.objects.get(user__username=data['username'].lower())
+        profile = UserProfile.objects.get(
+            user__username=data['username'].lower())
         data['gravatar'] = unicode(profile.gravatar)
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
@@ -189,4 +190,5 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
-        self.assertIn("%s already exists" % data['username'], response.data['username'])
+        self.assertIn("%s already exists" %
+                      data['username'], response.data['username'])

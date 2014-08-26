@@ -63,7 +63,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
                 u"%s is a reserved name, please choose another" % org)
         elif not RegistrationFormUserProfile.legal_usernames_re.search(org):
             raise ValidationError(
-                u'organisastion may only contain alpha-numeric characters and '
+                u'organization may only contain alpha-numeric characters and '
                 u'underscores')
         try:
             User.objects.get(username=org)

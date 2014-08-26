@@ -136,10 +136,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
     def validate_username(self, attrs, source):
         username = attrs[source].lower()
-        if username in RegistrationFormUserProfile._reserved_usernames:
+        form = RegistrationFormUserProfile
+        if username in form._reserved_usernames:
             raise ValidationError(
                 u"%s is a reserved name, please choose another" % username)
-        elif not RegistrationFormUserProfile.legal_usernames_re.search(username):
+        elif not form.legal_usernames_re.search(username):
             raise ValidationError(
                 u'username may only contain alpha-numeric characters and '
                 u'underscores')
