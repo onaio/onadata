@@ -64,12 +64,6 @@ class TestUserProfile(TestCase):
             self._login_user_and_profile({'username': username})
             self.assertEqual(User.objects.count(), users_before)
 
-    def test_disallow_same_username_with_different_cases(self):
-        users_before = User.objects.count()
-        username = 'BoB'
-        self._login_user_and_profile({'username': username})
-        self.assertEqual(User.objects.count(), users_before)
-
     def test_disallow_reserved_name(self):
         users_before = User.objects.count()
         self._login_user_and_profile({'username': 'admin'})

@@ -2,6 +2,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.api import tools
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
+from django.core.exceptions import ValidationError
 
 
 class TestOrganizationProfile(TestBase):
@@ -22,3 +23,8 @@ class TestOrganizationProfile(TestBase):
         self.assertIsInstance(team, Team)
         self.assertIn(team.group_ptr, self.user.groups.all())
         self.assertTrue(self.user.has_perm('api.is_org_owner'))
+
+    def test_disallow_same_username_with_different_cases(self):
+        profile = tools.create_organization("modilabs", self.user)
+        with self.assertRaises(ValidationError):
+            tools.create_organization("ModiLabs", self.user)

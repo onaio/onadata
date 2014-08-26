@@ -4,6 +4,7 @@ import numpy as np
 from django import forms
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils.translation import ugettext as _
 from django.shortcuts import get_object_or_404
@@ -65,10 +66,9 @@ def validate_username(username):
     """Check that username is cases insensitive"""
     username = username.lower()
     all_usernames = [user.username.lower() for user in User.objects.all()]
-    
     if username in all_usernames:
-        return False
-
+        raise ValidationError('user with username already exists')
+        
     return True
 
 def create_organization(name, creator):
@@ -78,13 +78,11 @@ def create_organization(name, creator):
         - Team(name='Owners', organization=organization).save()
 
     """
-    if self.validate_username(name):
+    if validate_username(name):
         organization = User.objects.create(username=name)
         organization_profile = OrganizationProfile.objects.create(
             user=organization, creator=creator)
         return organization_profile
-
-    return False
 
 def create_organization_object(org_name, creator, attrs={}):
     '''Creates an OrganizationProfile object without saving to the database'''
