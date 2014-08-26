@@ -1,9 +1,11 @@
 from django.contrib.auth.models import User
+from django.core.validators import ValidationError
 from rest_framework import serializers
 
 from onadata.apps.api import tools
 from onadata.apps.api.models import OrganizationProfile
 from onadata.libs.permissions import get_object_users_with_permissions
+from onadata.apps.main.forms import RegistrationFormUserProfile
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
@@ -53,6 +55,23 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             self.errors['name'] = u'name is required!'
 
         return attrs
+
+    def validate_org(self, attrs, source):
+        org = attrs[source].lower()
+        if org in RegistrationFormUserProfile._reserved_usernames:
+            raise ValidationError(
+                u"%s is a reserved name, please choose another" % org)
+        elif not RegistrationFormUserProfile.legal_usernames_re.search(org):
+            raise ValidationError(
+                u'organisastion may only contain alpha-numeric characters and '
+                u'underscores')
+        try:
+            User.objects.get(username=org)
+        except User.DoesNotExist:
+            attrs[source] = org
+
+            return attrs
+        raise ValidationError(u'%s already exists' % org)
 
     def get_org_permissions(self, obj):
         return get_object_users_with_permissions(obj)
