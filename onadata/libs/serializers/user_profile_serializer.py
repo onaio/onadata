@@ -3,6 +3,7 @@ import six
 
 from django.forms import widgets
 from django.contrib.auth.models import User
+from django.core.validators import ValidationError
 from rest_framework import serializers
 
 from onadata.apps.main.models import UserProfile
@@ -132,6 +133,23 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             self.errors.update(form.errors)
 
         return attrs
+
+    def validate_username(self, attrs, source):
+        username = attrs[source].lower()
+        if username in RegistrationFormUserProfile._reserved_usernames:
+            raise ValidationError(
+                u"%s is a reserved name, please choose another" % username)
+        elif not RegistrationFormUserProfile.legal_usernames_re.search(username):
+            raise ValidationError(
+                u'username may only contain alpha-numeric characters and '
+                u'underscores')
+        try:
+            User.objects.get(username=username)
+        except User.DoesNotExist:
+            attrs[source] = username
+
+            return attrs
+        raise ValidationError(u'%s already exists' % username)
 
 
 class UserProfileWithTokenSerializer(UserProfileSerializer):

@@ -1,5 +1,6 @@
 import json
 
+from django.core.exceptions import ValidationError
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
@@ -151,3 +152,41 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.country, country)
+
+
+    def test_profile_create_mixed_case(self):
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        data = {
+            'username': u'DeNo',
+            'name': u'Dennis',
+            'email': u'deno@columbia.edu',
+            'city': u'Denoville',
+            'country': u'US',
+            'organization': u'Dono Inc.',
+            'website': u'deno.com',
+            'twitter': u'denoerama',
+            'require_auth': False,
+            'password': 'denodeno',
+        }
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        del data['password']
+        profile = UserProfile.objects.get(user__username=data['username'].lower())
+        data['gravatar'] = unicode(profile.gravatar)
+        data['url'] = 'http://testserver/api/v1/profiles/deno'
+        data['user'] = 'http://testserver/api/v1/users/deno'
+        data['username'] = u'deno'
+        self.assertEqual(response.data, data)
+
+        data['username'] = u'deno'
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("%s already exists" % data['username'], response.data['username'])
