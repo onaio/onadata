@@ -228,30 +228,3 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'denoinc'])
-
-    def test_orgs_create_with_mixed_case(self):
-        data = {
-            'name': u'denoinc',
-            'org': u'DenoINC',
-            'city': u'Denoville',
-            'country': u'US',
-            'home_page': u'deno.com',
-            'twitter': u'denoinc',
-            'description': u'',
-            'address': u'',
-            'phonenumber': u'',
-            'require_auth': False,
-        }
-        request = self.factory.post(
-            '/', data=json.dumps(data),
-            content_type="application/json", **self.extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 201)
-
-        data['org'] = 'denoinc'
-        request = self.factory.post(
-            '/', data=json.dumps(data),
-            content_type="application/json", **self.extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("%s already exists", response.data['org'])
