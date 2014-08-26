@@ -25,6 +25,6 @@ class TestOrganizationProfile(TestBase):
         self.assertTrue(self.user.has_perm('api.is_org_owner'))
 
     def test_disallow_same_username_with_different_cases(self):
-        profile = tools.create_organization("modilabs", self.user)
+        tools.create_organization("modilabs", self.user)
         with self.assertRaises(ValidationError):
             tools.create_organization("ModiLabs", self.user)
