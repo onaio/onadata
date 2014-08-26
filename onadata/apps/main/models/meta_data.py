@@ -114,13 +114,27 @@ class MetaData(models.Model):
     data_value = models.CharField(max_length=255)
     data_file = models.FileField(upload_to=upload_to, blank=True, null=True)
     data_file_type = models.CharField(max_length=255, blank=True, null=True)
+    file_hash = models.CharField(max_length=50, blank=True, null=True)
 
     class Meta:
         app_label = 'main'
         unique_together = ('xform', 'data_type', 'data_value')
 
+    def save(self, *args, **kwargs):
+        self._set_hash()
+        super(MetaData, self).save(*args, **kwargs)
+
     @property
     def hash(self):
+        if self.file_hash is not None and self.file_hash != '':
+            return self.file_hash
+        else:
+            return self._set_hash()
+
+    def _set_hash(self):
+        if not self.data_file:
+            return None
+
         file_exists = self.data_file.storage.exists(self.data_file.name)
 
         if (file_exists and self.data_file.name != '') \
@@ -130,7 +144,9 @@ class MetaData(models.Model):
             except IOError:
                 return u''
             else:
-                return u'%s' % md5(self.data_file.read()).hexdigest()
+                self.file_hash = u'%s' % md5(self.data_file.read()).hexdigest()
+
+                return self.file_hash
 
         return u''
 
