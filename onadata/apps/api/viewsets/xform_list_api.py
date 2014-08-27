@@ -1,7 +1,10 @@
 import pytz
 
 from datetime import datetime
+
 from django.conf import settings
+from django.shortcuts import get_object_or_404
+
 from rest_framework import viewsets
 from rest_framework import permissions
 from rest_framework.response import Response
@@ -9,6 +12,7 @@ from rest_framework.decorators import action
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.renderers.renderers import XFormListRenderer
@@ -25,7 +29,7 @@ class XFormListApi(viewsets.ReadOnlyModelViewSet):
     authentication_classes = (DigestAuthentication,)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     model = XForm
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.AllowAny,)
     renderer_classes = (XFormListRenderer,)
     serializer_class = XFormListSerializer
     template_name = 'api/xformsList.xml'
@@ -46,8 +50,29 @@ class XFormListApi(viewsets.ReadOnlyModelViewSet):
 
         return super(XFormListApi, self).get_renderers()
 
+    def filter_queryset(self, queryset):
+        username = self.kwargs.get('username')
+        if username is None and self.request.user.is_anonymous():
+            # raises a permission denied exception, forces authentication
+            self.permission_denied(self.request)
+
+        if username is not None and self.request.user.is_anonymous():
+            profile = get_object_or_404(
+                UserProfile, user__username=username.lower())
+
+            if profile.require_auth:
+                # raises a permission denied exception, forces authentication
+                self.permission_denied(self.request)
+            else:
+                queryset = queryset.filter(user=profile.user)
+        else:
+            queryset = super(XFormListApi, self).filter_queryset(queryset)
+
+        return queryset
+
     def list(self, request, *args, **kwargs):
         self.object_list = self.filter_queryset(self.get_queryset())
+
         serializer = self.get_serializer(self.object_list, many=True)
 
         return Response(serializer.data, headers=self.get_openrosa_headers())

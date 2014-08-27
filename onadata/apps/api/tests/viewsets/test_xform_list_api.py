@@ -105,7 +105,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             "get": "retrieve"
         })
         request = self.factory.head('/')
-        response = self.view(request)
+        response = self.view(request, pk=self.xform.pk)
         auth = DigestAuth('bob', 'bobbob')
         request = self.factory.get('/')
         request.META.update(auth(request.META, response))
@@ -146,7 +146,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             "get": "manifest"
         })
         request = self.factory.head('/')
-        response = self.view(request)
+        response = self.view(request, pk=self.xform.pk)
         auth = DigestAuth('bob', 'bobbob')
         request = self.factory.get('/')
         request.META.update(auth(request.META, response))
