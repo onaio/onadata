@@ -2,7 +2,10 @@ from hashlib import md5
 import json
 import os
 import re
+import pytz
 
+from django.utils import timezone
+from datetime import datetime
 from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
@@ -195,6 +198,18 @@ class XForm(BaseModel):
             self.save()
         return self.num_of_submissions
     submission_count.short_description = ugettext_lazy("Submission Count")
+
+    @property
+    def submission_count_for_today(self):
+        current_timzone_name = timezone.get_current_timezone_name()
+        current_timezone = pytz.timezone(current_timzone_name)
+        current_date = current_timezone.localize(datetime(datetime.today().year,
+                                                 datetime.today().month,
+                                                 datetime.today().day))
+        count = self.instances.filter(
+            deleted_at__isnull=True,
+            date_created=current_date).count()
+        return count
 
     def geocoded_submission_count(self):
         """Number of geocoded submissions."""
