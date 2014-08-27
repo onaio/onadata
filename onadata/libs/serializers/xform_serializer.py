@@ -78,3 +78,18 @@ class XFormListSerializer(serializers.Serializer):
 
             return reverse('manifest-url', kwargs=kwargs,
                            request=request)
+
+
+class XFormManifestSerializer(serializers.Serializer):
+    filename = serializers.Field(source='data_value')
+    hash = serializers.Field('file_hash')
+    downloadUrl = serializers.SerializerMethodField('get_url')
+
+    def get_url(self, obj):
+        if obj:
+            kwargs = {'pk': obj.pk}
+            request = self.context.get('request')
+            format = obj.data_value[obj.data_value.rindex('.') + 1:]
+
+            return reverse('metadata-detail', kwargs=kwargs,
+                           request=request, format=format)
