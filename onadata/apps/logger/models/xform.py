@@ -203,9 +203,11 @@ class XForm(BaseModel):
     def submission_count_for_today(self):
         current_timzone_name = timezone.get_current_timezone_name()
         current_timezone = pytz.timezone(current_timzone_name)
-        current_date = current_timezone.localize(datetime(datetime.today().year,
-                                                 datetime.today().month,
-                                                 datetime.today().day))
+        today = datetime.today()
+        current_date = current_timezone.localize(
+            datetime(today.year,
+                     today.month,
+                     today.day))
         count = self.instances.filter(
             deleted_at__isnull=True,
             date_created=current_date).count()

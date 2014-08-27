@@ -2,7 +2,10 @@
 import os
 import re
 import requests
+import pytz
 
+from datetime import datetime
+from django.utils import timezone
 from django.conf import settings
 from httmock import urlmatch, HTTMock
 from rest_framework import status
@@ -50,6 +53,38 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
+
+    def test_submission_count_for_today_in_form_list(self):
+
+        self._publish_xls_form_to_project()
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('submission_count_for_today', response.data[0].keys())
+        self.assertEqual(response.data[0]['submission_count_for_today'], 0)
+        self.assertEqual(response.data[0]['num_of_submissions'], 0)
+
+        paths = [os.path.join(
+            self.main_directory, 'fixtures', 'transportation',
+            'instances_w_uuid', s, s + '.xml') for s in [
+                'transport_2011-07-25_19-05-36']]
+
+        # instantiate date that is NOT naive; timezone is enabled
+        current_timzone_name = timezone.get_current_timezone_name()
+        current_timezone = pytz.timezone(current_timzone_name)
+        today = datetime.today()
+        current_date = current_timezone.localize(
+            datetime(today.year,
+                     today.month,
+                     today.day))
+        self._make_submission(paths[0], forced_submission_time=current_date)
+        self.assertEqual(self.response.status_code, 201)
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]['submission_count_for_today'], 1)
+        self.assertEqual(response.data[0]['num_of_submissions'], 1)
 
     def test_form_list_anon(self):
         self._publish_xls_form_to_project()
@@ -496,6 +531,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             'sms_id_string': u'', 'id_string': u'', 'date_created': None,
             'date_modified': None, 'last_submission_time': None, 'uuid': u'',
             'bamboo_dataset': u'', 'instances_with_geopoints': False,
-            'num_of_submissions': u''
+            'num_of_submissions': u'', 'submission_count_for_today': u''
         }
         self.assertEqual(data, XFormSerializer(None).data)
