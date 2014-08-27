@@ -72,8 +72,7 @@ class XFormListSerializer(serializers.Serializer):
 
     def get_manifest_url(self, obj):
         if obj:
-            kwargs = {
-                'username': obj.user.username, 'id_string': obj.id_string}
+            kwargs = {'pk': obj.pk, 'username': obj.user.username}
             request = self.context.get('request')
 
             return reverse('manifest-url', kwargs=kwargs,

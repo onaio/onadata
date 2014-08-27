@@ -114,7 +114,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
 
         path = os.path.join(
             os.path.dirname(__file__),
-            '..', '', 'Transportation Form.xml')
+            '..', 'fixtures', 'Transportation Form.xml')
 
         with open(path) as f:
             form_xml = f.read().strip()
