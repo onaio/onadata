@@ -83,6 +83,9 @@ class XFormListRenderer(BaseRenderer):
     media_type = 'text/xml'
     format = 'xml'
     charset = 'utf-8'
+    root_node = 'xforms'
+    element_node = 'xform'
+    xmlns = "http://openrosa.org/xforms/xformsList"
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
         """
@@ -97,13 +100,11 @@ class XFormListRenderer(BaseRenderer):
 
         xml = SimplerXMLGenerator(stream, self.charset)
         xml.startDocument()
-        xml.startElement("xforms", {
-            'xmlns': "http://openrosa.org/xforms/xformsList"
-        })
+        xml.startElement(self.root_node, {'xmlns': self.xmlns})
 
         self._to_xml(xml, data)
 
-        xml.endElement("xforms")
+        xml.endElement(self.root_node)
         xml.endDocument()
 
         return stream.getvalue()
@@ -111,9 +112,9 @@ class XFormListRenderer(BaseRenderer):
     def _to_xml(self, xml, data):
         if isinstance(data, (list, tuple)):
             for item in data:
-                xml.startElement("xform", {})
+                xml.startElement(self.element_node, {})
                 self._to_xml(xml, item)
-                xml.endElement("xform")
+                xml.endElement(self.element_node)
 
         elif isinstance(data, dict):
             for key, value in six.iteritems(data):
@@ -127,3 +128,9 @@ class XFormListRenderer(BaseRenderer):
 
         else:
             xml.characters(smart_text(data))
+
+
+class XFormManifestRenderer(XFormListRenderer):
+    root_node = "manifest"
+    element_node = "mediaFile"
+    xmlns = "http://openrosa.org/xforms/xformsManifest"
