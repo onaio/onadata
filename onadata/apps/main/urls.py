@@ -3,6 +3,7 @@ from django.conf import settings
 from django.views.generic import RedirectView
 
 from onadata.apps.api.urls import router
+from onadata.apps.api.urls import XFormListApi
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
@@ -180,9 +181,10 @@ urlpatterns = patterns(
     # odk data urls
     url(r"^submission$", 'onadata.apps.logger.views.submission'),
     url(r"^(?P<username>\w+)/formList$",
-        'onadata.apps.logger.views.formList'),
-    url(r"^(?P<username>\w+)/xformsManifest/(?P<id_string>[^/]+)$",
-        'onadata.apps.logger.views.xformsManifest', name='manifest-url'),
+        XFormListApi.as_view({'get': 'list'})),
+    url(r"^(?P<username>\w+)/xformsManifest/(?P<pk>[^/]+)$",
+        XFormListApi.as_view({'get': 'manifest'}),
+        name='manifest-url'),
     url(r"^(?P<username>\w+)/submission$",
         'onadata.apps.logger.views.submission'),
     url(r"^(?P<username>\w+)/bulk-submission$",
