@@ -135,6 +135,10 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return attrs
 
     def validate_username(self, attrs, source):
+        if self.context['request'].method == 'PATCH':
+
+            return attrs
+
         username = attrs[source].lower()
         form = RegistrationFormUserProfile
         if username in form._reserved_usernames:
