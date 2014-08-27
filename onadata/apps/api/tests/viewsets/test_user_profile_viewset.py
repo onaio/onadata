@@ -153,7 +153,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.country, country)
 
-
     def test_profile_create_mixed_case(self):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
