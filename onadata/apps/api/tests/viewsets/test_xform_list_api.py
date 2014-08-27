@@ -1,5 +1,6 @@
 import os
 
+from django.conf import settings
 from django.test import TransactionTestCase
 from django_digest.test import DigestAuth
 
@@ -113,7 +114,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
 
         path = os.path.join(
             os.path.dirname(__file__),
-            '..', 'fixtures', 'Transportation Form.xml')
+            '..', '', 'Transportation Form.xml')
 
         with open(path) as f:
             form_xml = f.read().strip()
@@ -126,3 +127,39 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             self.assertTrue(response.has_header('Date'))
             self.assertEqual(response['Content-Type'],
                              'text/xml; charset=utf-8')
+
+    def _load_metadata(self, xform=None):
+        data_value = "screenshot.png"
+        data_type = 'media'
+        fixture_dir = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation"
+        )
+        path = os.path.join(fixture_dir, data_value)
+        xform = xform or self.xform
+
+        self._add_form_metadata(xform, data_type, data_value, path)
+
+    def test_retrieve_xform_manifest(self):
+        self._load_metadata(self.xform)
+        self.view = XFormListApi.as_view({
+            "get": "manifest"
+        })
+        request = self.factory.head('/')
+        response = self.view(request)
+        auth = DigestAuth('bob', 'bobbob')
+        request = self.factory.get('/')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+
+        manifest_xml = """<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>screenshot.png</filename><hash>%(hash)s</hash><downloadUrl>http://testserver/api/v1/metadata/%(pk)s.png</downloadUrl></mediaFile></manifest>"""  # noqa
+        data = {"hash": self.metadata.hash, "pk": self.metadata.pk}
+        content = response.render().content.strip()
+        self.assertEqual(content, manifest_xml % data)
+        self.assertTrue(response.has_header('X-OpenRosa-Version'))
+        self.assertTrue(
+            response.has_header('X-OpenRosa-Accept-Content-Length'))
+        self.assertTrue(response.has_header('Date'))
+        self.assertEqual(response['Content-Type'], 'text/xml; charset=utf-8')

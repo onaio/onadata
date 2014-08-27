@@ -5,12 +5,16 @@ from django.conf import settings
 from rest_framework import viewsets
 from rest_framework import permissions
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.renderers.renderers import XFormListRenderer
+from onadata.libs.renderers.renderers import XFormManifestRenderer
 from onadata.libs.serializers.xform_serializer import XFormListSerializer
+from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
 
 
 # 10,000,000 bytes
@@ -36,6 +40,12 @@ class XFormListApi(viewsets.ReadOnlyModelViewSet):
             'X-OpenRosa-Accept-Content-Length': DEFAULT_CONTENT_LENGTH
         }
 
+    def get_renderers(self):
+        if self.action and self.action == 'manifest':
+            return [XFormManifestRenderer()]
+
+        return super(XFormListApi, self).get_renderers()
+
     def list(self, request, *args, **kwargs):
         self.object_list = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(self.object_list, many=True)
@@ -46,3 +56,13 @@ class XFormListApi(viewsets.ReadOnlyModelViewSet):
         self.object = self.get_object()
 
         return Response(self.object.xml, headers=self.get_openrosa_headers())
+
+    @action(methods=['GET'])
+    def manifest(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        object_list = MetaData.objects.filter(data_type='media')
+        context = self.get_serializer_context()
+        serializer = XFormManifestSerializer(object_list, many=True,
+                                             context=context)
+
+        return Response(serializer.data, headers=self.get_openrosa_headers())
