@@ -81,7 +81,7 @@ class XFormListSerializer(serializers.Serializer):
 
 class XFormManifestSerializer(serializers.Serializer):
     filename = serializers.Field(source='data_value')
-    hash = serializers.Field('file_hash')
+    hash = serializers.SerializerMethodField('get_hash')
     downloadUrl = serializers.SerializerMethodField('get_url')
 
     def get_url(self, obj):
@@ -91,4 +91,8 @@ class XFormManifestSerializer(serializers.Serializer):
             format = obj.data_value[obj.data_value.rindex('.') + 1:]
 
             return reverse('metadata-detail', kwargs=kwargs,
-                           request=request, format=format)
+                           request=request, format=format.lower())
+
+    def get_hash(self, obj):
+        if obj:
+            return u"%s" % (obj.file_hash or 'md5:')

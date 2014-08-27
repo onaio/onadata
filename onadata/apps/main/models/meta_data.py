@@ -144,7 +144,8 @@ class MetaData(models.Model):
             except IOError:
                 return u''
             else:
-                self.file_hash = u'%s' % md5(self.data_file.read()).hexdigest()
+                self.file_hash = u'md5:%s' \
+                    % md5(self.data_file.read()).hexdigest()
 
                 return self.file_hash
 
