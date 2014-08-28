@@ -173,8 +173,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
         self.assertIn('forms', response.data.keys())
-        self.assertEqual(response.data['forms'][0], {
-                         'id': 1, 'name': u'transportation_2011_07_25'})
+        self.assertEqual(len(response.data['forms']), 1)
 
     def test_project_users_get_readonly_role_on_add_form(self):
         self._project_create()
