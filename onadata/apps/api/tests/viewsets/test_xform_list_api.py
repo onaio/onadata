@@ -21,6 +21,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
     def test_get_xform_list(self):
         request = self.factory.get('/')
         response = self.view(request)
+        self.assertEqual(response.status_code, 401)
         auth = DigestAuth('bob', 'bobbob')
         request.META.update(auth(request.META, response))
         response = self.view(request)
@@ -41,6 +42,38 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             self.assertTrue(response.has_header('Date'))
             self.assertEqual(response['Content-Type'],
                              'text/xml; charset=utf-8')
+
+    def test_get_xform_list_anonymous_user(self):
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        response = self.view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 200)
+
+        path = os.path.join(
+            os.path.dirname(__file__),
+            '..', 'fixtures', 'formList.xml')
+
+        with open(path) as f:
+            form_list_xml = f.read().strip()
+            data = {"hash": self.xform.hash, "pk": self.xform.pk}
+            content = response.render().content
+            self.assertEqual(content, form_list_xml % data)
+            self.assertTrue(response.has_header('X-OpenRosa-Version'))
+            self.assertTrue(
+                response.has_header('X-OpenRosa-Accept-Content-Length'))
+            self.assertTrue(response.has_header('Date'))
+            self.assertEqual(response['Content-Type'],
+                             'text/xml; charset=utf-8')
+
+    def test_get_xform_list_anonymous_user_require_auth(self):
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        response = self.view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 401)
 
     def test_get_xform_list_other_user_with_no_role(self):
         request = self.factory.get('/')
@@ -163,3 +196,40 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             response.has_header('X-OpenRosa-Accept-Content-Length'))
         self.assertTrue(response.has_header('Date'))
         self.assertEqual(response['Content-Type'], 'text/xml; charset=utf-8')
+
+    def test_retrieve_xform_manifest_anonymous_user(self):
+        self._load_metadata(self.xform)
+        self.view = XFormListApi.as_view({
+            "get": "manifest"
+        })
+        request = self.factory.get('/')
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 401)
+        response = self.view(request, pk=self.xform.pk,
+                             username=self.user.username)
+        self.assertEqual(response.status_code, 200)
+
+        manifest_xml = """<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>screenshot.png</filename><hash>%(hash)s</hash><downloadUrl>http://testserver/api/v1/metadata/%(pk)s.png</downloadUrl></mediaFile></manifest>"""  # noqa
+        data = {"hash": self.metadata.hash, "pk": self.metadata.pk}
+        content = response.render().content.strip()
+        self.assertEqual(content, manifest_xml % data)
+        self.assertTrue(response.has_header('X-OpenRosa-Version'))
+        self.assertTrue(
+            response.has_header('X-OpenRosa-Accept-Content-Length'))
+        self.assertTrue(response.has_header('Date'))
+        self.assertEqual(response['Content-Type'], 'text/xml; charset=utf-8')
+
+    def test_retrieve_xform_manifest_anonymous_user_require_auth(self):
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+        self._load_metadata(self.xform)
+        self.view = XFormListApi.as_view({
+            "get": "manifest"
+        })
+        request = self.factory.get('/')
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 401)
+        response = self.view(request, pk=self.xform.pk,
+                             username=self.user.username)
+        self.assertEqual(response.status_code, 401)
