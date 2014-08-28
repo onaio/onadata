@@ -11,6 +11,7 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 
 
 class TestProjectViewSet(TestAbstractViewSet):
+
     def setUp(self):
         super(self.__class__, self).setUp()
         self.view = ProjectViewSet.as_view({
@@ -150,7 +151,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
     def test_assign_form_to_project(self):
         view = ProjectViewSet.as_view({
-            'post': 'forms'
+            'post': 'forms',
+            'get': 'retrieve'
         })
         self._publish_xls_form_to_project()
         formid = self.xform.pk
@@ -166,6 +168,13 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertTrue(self.project.projectxform_set.filter(xform=self.xform))
         self.assertFalse(old_project.projectxform_set.filter(xform=self.xform))
+
+        # check if form added appears in the project details
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertIn('forms', response.data.keys())
+        self.assertEqual(response.data['forms'][0], {
+                         'id': 1, 'name': u'transportation_2011_07_25'})
 
     def test_project_users_get_readonly_role_on_add_form(self):
         self._project_create()
