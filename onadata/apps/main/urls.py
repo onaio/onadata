@@ -180,9 +180,14 @@ urlpatterns = patterns(
 
     # odk data urls
     url(r"^submission$", 'onadata.apps.logger.views.submission'),
+    url(r"^formList$",
+        XFormListApi.as_view({'get': 'list'})),
     url(r"^(?P<username>\w+)/formList$",
         XFormListApi.as_view({'get': 'list'})),
     url(r"^(?P<username>\w+)/xformsManifest/(?P<pk>[^/]+)$",
+        XFormListApi.as_view({'get': 'manifest'}),
+        name='manifest-url'),
+    url(r"^xformsManifest/(?P<pk>[^/]+)$",
         XFormListApi.as_view({'get': 'manifest'}),
         name='manifest-url'),
     url(r"^(?P<username>\w+)/submission$",
