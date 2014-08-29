@@ -177,30 +177,19 @@ class TestProcess(TestBase):
         url = '/%s/formList' % self.user.username
         response = self.anon.get(url)
         self.download_url = \
-            'http://testserver/%s/forms/transportation_2011_07_25/form.xml'\
-            % self.user.username
+            'http://testserver/%s/forms/%s/form.xml'\
+            % (self.user.username, self.xform.pk)
         self.manifest_url = \
-            'http://testserver/%s/xformsManifest/transportation_2011_07_25'\
-            % self.user.username
+            'http://testserver/%s/xformsManifest/%s'\
+            % (self.user.username, self.xform.pk)
         md5_hash = md5(self.xform.xml).hexdigest()
-        expected_content = """<?xml version='1.0' encoding='UTF-8' ?>
-
-<xforms xmlns="http://openrosa.org/xforms/xformsList">
-
-  <xform>
-    <formID>transportation_2011_07_25</formID>
-    <name>transportation_2011_07_25</name>
-    <majorMinorVersion/>
-    <version/>
-    <hash>md5:%(hash)s</hash>
-    <descriptionText>transportation_2011_07_25</descriptionText>
-    <downloadUrl>%(download_url)s</downloadUrl>
-    <manifestUrl>%(manifest_url)s</manifestUrl>
-  </xform>
-
-</xforms>
-""" % {'download_url': self.download_url, 'manifest_url': self.manifest_url,
-            'hash': md5_hash}
+        expected_content = """<?xml version="1.0" encoding="utf-8"?>
+<xforms xmlns="http://openrosa.org/xforms/xformsList"><xform><formID>transportation_2011_07_25</formID><name>transportation_2011_07_25</name><majorMinorVersion></majorMinorVersion><version></version><hash>md5:%(hash)s</hash><descriptionText>transportation_2011_07_25</descriptionText><downloadUrl>%(download_url)s</downloadUrl><manifestUrl>%(manifest_url)s</manifestUrl></xform></xforms>"""  # noqa
+        expected_content = expected_content % {
+            'download_url': self.download_url,
+            'manifest_url': self.manifest_url,
+            'hash': md5_hash
+        }
         self.assertEqual(response.content, expected_content)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
         self.assertTrue(response.has_header('Date'))
@@ -480,10 +469,6 @@ class TestProcess(TestBase):
                                   data_value='screenshot.png')
         # assert checksum string has been generated, hash length > 1
         self.assertTrue(len(md.hash) > 16)
-        md.data_file.storage.delete(md.data_file.name)
-        md = MetaData.objects.get(xform=self.xform,
-                                  data_value='screenshot.png')
-        self.assertEqual(len(md.hash), 0)
 
     def test_uuid_injection_in_cascading_select(self):
         """Test that the uuid is injected in the right instance node for
