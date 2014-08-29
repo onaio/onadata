@@ -49,6 +49,7 @@ class ChartBrowsableAPIRenderer(BrowsableAPIRenderer):
 
 class ChartsViewSet(AnonymousUserPublicFormsMixin,
                     viewsets.ReadOnlyModelViewSet):
+
     """
 View chart for specific fields in a form or dataset.
 

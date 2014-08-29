@@ -64,7 +64,6 @@ def get_choice_label(choices, name):
 
 def build_chart_data_for_field(xform, field, language_index=0):
     # check if its the special _submission_time META
-
     if isinstance(field, basestring) and field == common_tags.SUBMISSION_TIME:
         field_label = 'Submission Time'
         field_xpath = '_submission_time'
@@ -92,7 +91,7 @@ def build_chart_data_for_field(xform, field, language_index=0):
 
     # truncate field name to 63 characters to fix #354
     truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
-
+    truncated_name = truncated_name.encode('utf-8')
     if data_type == 'categorized':
 
         if result:
@@ -101,6 +100,7 @@ def build_chart_data_for_field(xform, field, language_index=0):
                     field.children, item[truncated_name])
 
     # replace truncated field names in the result set with the field name key
+    field_name = field_name.encode('utf-8')
     for item in result:
         if field_name != truncated_name:
             item[field_name] = item[truncated_name]

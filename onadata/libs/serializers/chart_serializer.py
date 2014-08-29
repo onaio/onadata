@@ -17,6 +17,7 @@ class ChartSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class FieldsChartSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = XForm
 
