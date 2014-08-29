@@ -64,11 +64,11 @@ class XFormListSerializer(serializers.Serializer):
 
     def get_url(self, obj):
         if obj:
-            kwargs = {'pk': obj.pk}
+            kwargs = {'pk': obj.pk, 'username': obj.user.username}
             request = self.context.get('request')
 
-            return reverse('formlist-detail', kwargs=kwargs,
-                           request=request, format='xml')
+            return reverse('download_xform', kwargs=kwargs,
+                           request=request)
 
     def get_manifest_url(self, obj):
         if obj:
