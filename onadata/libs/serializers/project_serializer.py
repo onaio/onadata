@@ -68,9 +68,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         if obj is not None:
             xforms_details = obj.projectxform_set.values(
                 'xform__pk', 'xform__title')
-            if len(xforms_details) > 0:
-                return [{'name': form['xform__title'], 'id':form['xform__pk']}
-                        for form in xforms_details]
+            return [{'name': form['xform__title'], 'id':form['xform__pk']}
+                    for form in xforms_details]
 
     def get_num_datasets(self, obj):
         """Return the number of datasets attached to the object.
