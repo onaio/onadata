@@ -2,7 +2,6 @@ from django.forms import widgets
 from rest_framework import serializers
 
 from onadata.apps.api.models import Project
-from onadata.apps.logger.models.xform import XForm
 from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
@@ -67,14 +66,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_project_forms(self, obj):
         if obj is not None:
-            project_xforms = obj.projectxform_set.values('xform')
-            if len(project_xforms) > 0:
-                xform_ids = [form['xform'] for form in project_xforms]
-                xforms = XForm.objects.filter(pk__in=xform_ids)
-                project_xforms = [{'id': xform.id, 'name': xform.id_string}
-                                  for xform in xforms]
-
-                return project_xforms
+            xforms_details = obj.projectxform_set.values(
+                'xform__pk', 'xform__title')
+            if len(xforms_details) > 0:
+                return [{'name': form['xform__title'], 'id':form['xform__pk']}
+                        for form in xforms_details]
 
     def get_num_datasets(self, obj):
         """Return the number of datasets attached to the object.
