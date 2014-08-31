@@ -1,9 +1,12 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 import os
 import unittest
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.chart_tools import build_chart_data_for_field,\
     build_chart_data, utc_time_string_for_javascript, calculate_ranges
+from onadata.apps.logger.models import XForm
 
 
 def find_field_by_name(dd, field_name):
@@ -32,6 +35,30 @@ class TestChartTools(TestBase):
         self.assertEqual(data['field_name'], '_submission_time')
         self.assertEqual(data['field_type'], 'datetime')
         self.assertEqual(data['data_type'], 'time_based')
+
+    def test_build_chart_data_for_fields_with_accents(self):
+        xls_path = os.path.join(
+            self.this_directory, "fixtures",
+            "sample_accent.xlsx")
+        response = self._publish_xls_file(xls_path)
+
+        self.assertEquals(response.status_code, 200)
+
+        xform = XForm.objects.all()[0]
+        self.assertEqual(xform.title, "sample_accent")
+
+        dd = xform.data_dictionary()
+        field = find_field_by_name(dd, u'tête')
+        data = build_chart_data_for_field(self.xform, field)
+        self.assertEqual(data['field_name'], u'words_with_accents-tête')
+
+        field = find_field_by_name(dd, u'té')
+        data = build_chart_data_for_field(self.xform, field)
+        self.assertEqual(data['field_name'], u'words_with_accents-té')
+
+        field = find_field_by_name(dd, u'père')
+        data = build_chart_data_for_field(self.xform, field)
+        self.assertEqual(data['field_name'], u'words_with_accents-père')
 
     def test_build_chart_data_for_field_on_select_one(self):
         dd = self.xform.data_dictionary()
