@@ -621,7 +621,7 @@ class TestPandasMongoBridge(TestBase):
             u'web_browsers/ie': False,
             u'web_browsers/safari': False,
             u'gps': u'-1.2626156 36.7923571 0.0 30.0',
-            u'_geolocation': [u'-1.2626156', u'36.7923571'],
+            u'_geolocation': [-1.2626156, 36.7923571],
             u'_gps_latitude': u'-1.2626156',
             u'_gps_longitude': u'36.7923571',
             u'_gps_altitude': u'0.0',
