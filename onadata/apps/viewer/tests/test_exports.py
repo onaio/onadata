@@ -189,6 +189,12 @@ class TestExports(TestBase):
             'id_string': self.xform.id_string,
             'export_type': Export.XLS_EXPORT
         })
+
+        # anonymous user has to login first
+        response = self.anon.post(create_export_url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login", response['location'])
+
         response = self.client.post(create_export_url)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Export.objects.count(), num_exports + 1)
@@ -207,6 +213,12 @@ class TestExports(TestBase):
             'export_type': 'xls'
         })
         post_data = {'export_id': export.id}
+
+        # anonymous user has to login first
+        response = self.anon.post(delete_url, post_data)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login", response['location'])
+
         response = self.client.post(delete_url, post_data)
         self.assertEqual(response.status_code, 302)
         exports = Export.objects.filter(id=export.id)
