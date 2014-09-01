@@ -11,7 +11,7 @@ from django.db import models
 from django.db.models.signals import post_save, pre_delete
 from django.utils.translation import ugettext as _
 
-from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import Note
 from onadata.apps.restservice.utils import call_service
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
@@ -309,27 +309,10 @@ class ParsedInstance(models.Model):
 
     # TODO: figure out how much of this code should be here versus
     # data_dictionary.py.
-    def _get_geopoint(self):
-        doc = self.to_dict()
-        xpath = self.data_dictionary.xpath_of_first_geopoint()
-        text = doc.get(xpath, u'')
-        return dict(
-            zip(
-                [u'latitude', u'longitude', u'altitude', u'accuracy'],
-                text.split()
-            )
-        )
-
     def _set_geopoint(self):
-        g = self._get_geopoint()
-        self.lat = g.get(u'latitude')
-        self.lng = g.get(u'longitude')
-        # update xform incase we have a latitude
-        xform = XForm.objects.select_related().select_for_update()\
-            .get(pk=self.instance.xform.pk)
-        if self.lat is not None and not xform.instances_with_geopoints:
-            xform.instances_with_geopoints = True
-            xform.save()
+        if self.instance.point:
+            self.lat = self.instance.point.y
+            self.lng = self.instance.point.x
 
     def save(self, async=False, *args, **kwargs):
         # start/end_time obsolete: originally used to approximate for
