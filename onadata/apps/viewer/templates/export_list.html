@@ -9,6 +9,7 @@
     <h1>{{ export_type_name|upper }} {% blocktrans %}Exports{% endblocktrans %} (<a href="{% url "onadata.apps.main.views.show" username xform.id_string %}">{{ xform.id_string }}</a>)</h1>
   </div>
 
+    {% if user.is_authenticated %}
     <form action="{% url "onadata.apps.viewer.views.create_export" username xform.id_string export_type %}" method="post" enctype="application/x-www-form-urlencoded">
         {% csrf_token %}
             <span style='float:middle;'>
@@ -18,6 +19,7 @@
             </div>
             </span>
     </form>
+    {% endif %}
 
     <div id="advanced-export-modal" class="modal hide fade">
       <form action="{% url "onadata.apps.viewer.views.create_export" username xform.id_string export_type %}" method="post" enctype="application/x-www-form-urlencoded">
