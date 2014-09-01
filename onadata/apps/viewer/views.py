@@ -6,6 +6,7 @@ from time import strftime, strptime
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.core.files.storage import get_storage_class
 from django.core.servers.basehttp import FileWrapper
@@ -274,6 +275,7 @@ def data_export(request, username, id_string, export_type):
     return response
 
 
+@login_required
 @require_POST
 def create_export(request, username, id_string, export_type):
     owner = get_object_or_404(User, username=username)
@@ -481,6 +483,7 @@ def export_download(request, username, id_string, export_type, filename):
     return response
 
 
+@login_required
 @require_POST
 def delete_export(request, username, id_string, export_type):
     owner = get_object_or_404(User, username=username)
