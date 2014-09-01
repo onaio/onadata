@@ -243,10 +243,11 @@ class TestFormMetadata(TestBase):
             data_file=File(open(media_file), name),
             data_file_type='image/png')
         f = open(media_file)
-        media_hash = hashlib.md5(f.read()).hexdigest()
+        media_hash = 'md5:%s' % hashlib.md5(f.read()).hexdigest()
         f.close()
         meta_hash = m.hash
         self.assertEqual(meta_hash, media_hash)
+        self.assertEqual(m.file_hash, media_hash)
 
     def test_add_media_url(self):
         uri = 'https://devtrac.ona.io/fieldtrips.csv'

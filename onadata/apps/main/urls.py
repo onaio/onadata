@@ -3,6 +3,7 @@ from django.conf import settings
 from django.views.generic import RedirectView
 
 from onadata.apps.api.urls import router
+from onadata.apps.api.urls import XFormListApi
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
@@ -179,16 +180,25 @@ urlpatterns = patterns(
 
     # odk data urls
     url(r"^submission$", 'onadata.apps.logger.views.submission'),
+    url(r"^formList$",
+        XFormListApi.as_view({'get': 'list'}), name='form-list'),
     url(r"^(?P<username>\w+)/formList$",
-        'onadata.apps.logger.views.formList'),
-    url(r"^(?P<username>\w+)/xformsManifest/(?P<id_string>[^/]+)$",
-        'onadata.apps.logger.views.xformsManifest'),
+        XFormListApi.as_view({'get': 'list'}), name='form-list'),
+    url(r"^(?P<username>\w+)/xformsManifest/(?P<pk>[\d+^/]+)$",
+        XFormListApi.as_view({'get': 'manifest'}),
+        name='manifest-url'),
+    url(r"^xformsManifest/(?P<pk>[\d+^/]+)$",
+        XFormListApi.as_view({'get': 'manifest'}),
+        name='manifest-url'),
     url(r"^(?P<username>\w+)/submission$",
         'onadata.apps.logger.views.submission'),
     url(r"^(?P<username>\w+)/bulk-submission$",
         'onadata.apps.logger.views.bulksubmission'),
     url(r"^(?P<username>\w+)/bulk-submission-form$",
         'onadata.apps.logger.views.bulksubmission_form'),
+    url(r"^(?P<username>\w+)/forms/(?P<pk>[\d+^/]+)/form\.xml$",
+        XFormListApi.as_view({'get': 'retrieve'}),
+        name="download_xform"),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/form\.xml$",
         'onadata.apps.logger.views.download_xform', name="download_xform"),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/form\.xls$",

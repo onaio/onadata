@@ -62,9 +62,13 @@ class TestConnectViewSet(TestAbstractViewSet):
         view = ConnectViewSet.as_view(
             {'get': 'list'},
             authentication_classes=(DigestAuthentication,))
-        request = self.factory.get('/')
+        request = self.factory.head('/')
         auth = DigestAuth('bob', 'bob')
         response = view(request)
+        self.assertTrue(response.has_header('WWW-Authenticate'))
+        self.assertTrue(
+            response['WWW-Authenticate'].startswith('Digest nonce='))
+        request = self.factory.get('/')
         request.META.update(auth(request.META, response))
         response = view(request)
         self.assertEqual(response.status_code, 401)

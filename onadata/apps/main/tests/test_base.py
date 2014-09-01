@@ -17,6 +17,7 @@ from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.logger.models import XForm, Instance, Attachment
+from onadata.apps.main.models import UserProfile
 
 
 class TestBase(TransactionTestCase):
@@ -247,3 +248,8 @@ class TestBase(TransactionTestCase):
     def _set_mock_time(self, mock_time):
         current_time = timezone.now()
         mock_time.return_value = current_time
+
+    def _set_require_auth(self, auth=True):
+        profile, created = UserProfile.objects.get_or_create(user=self.user)
+        profile.require_auth = auth
+        profile.save()

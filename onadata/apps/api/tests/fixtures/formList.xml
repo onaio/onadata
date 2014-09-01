@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xforms xmlns="http://openrosa.org/xforms/xformsList"><xform><formID>transportation_2011_07_25</formID><name>transportation_2011_07_25</name><majorMinorVersion></majorMinorVersion><version></version><hash>md5:%(hash)s</hash><descriptionText>transportation_2011_07_25</descriptionText><downloadUrl>http://testserver/bob/forms/%(pk)s/form.xml</downloadUrl><manifestUrl>http://testserver/bob/xformsManifest/%(pk)s</manifestUrl></xform></xforms>
