@@ -8,6 +8,7 @@ from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 
 
 class TestChartsViewSet(TestBase):
+
     def setUp(self):
         super(self.__class__, self).setUp()
         # publish tutorial form as it has all the different field types
@@ -35,6 +36,16 @@ class TestChartsViewSet(TestBase):
         self.assertEqual(response.data['field_type'], 'select one')
         self.assertEqual(response.data['field_name'], 'gender')
         self.assertEqual(response.data['data_type'], 'categorized')
+
+    def test_return_bad_request_on_non_json_request_with_field_name(self):
+        request = self.request_factory.get('/charts/%s.html' % self.xform.id)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_text, u'BAD REQUEST')
 
     def test_get_on_date_field(self):
         data = {'field_name': 'date'}
