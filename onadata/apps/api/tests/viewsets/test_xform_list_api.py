@@ -7,6 +7,7 @@ from django_digest.test import DigestAuth
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_list_api import XFormListApi
+from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.libs.permissions import ReadOnlyRole
 
 
@@ -232,4 +233,46 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 401)
         response = self.view(request, pk=self.xform.pk,
                              username=self.user.username)
+        self.assertEqual(response.status_code, 401)
+
+    def test_retrieve_xform_media(self):
+        self._load_metadata(self.xform)
+        self.view = XFormListApi.as_view({
+            "get": "media"
+        })
+        request = self.factory.head('/')
+        response = self.view(request, pk=self.xform.pk,
+                             metadata=self.metadata.pk, format='png')
+        auth = DigestAuth('bob', 'bobbob')
+        request = self.factory.get('/')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, pk=self.xform.pk,
+                             metadata=self.metadata.pk, format='png')
+        self.assertEqual(response.status_code, 200)
+
+    def test_retrieve_xform_media_anonymous_user(self):
+        self._load_metadata(self.xform)
+        self.view = XFormListApi.as_view({
+            "get": "media"
+        })
+        request = self.factory.get('/')
+        response = self.view(request, pk=self.xform.pk,
+                             metadata=self.metadata.pk, format='png')
+        self.assertEqual(response.status_code, 401)
+
+        response = self.view(request, pk=self.xform.pk,
+                             username=self.user.username,
+                             metadata=self.metadata.pk, format='png')
+        self.assertEqual(response.status_code, 200)
+
+    def test_retrieve_xform_media_anonymous_user_require_auth(self):
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+        self._load_metadata(self.xform)
+        self.view = XFormListApi.as_view({
+            "get": "media"
+        })
+        request = self.factory.get('/')
+        response = self.view(request, pk=self.xform.pk,
+                             metadata=self.metadata.pk, format='png')
         self.assertEqual(response.status_code, 401)
