@@ -63,3 +63,6 @@ django-db-readonly
 
 # memcached support
 pylibmc
+
+# statsd
+django-statsd-mozilla
