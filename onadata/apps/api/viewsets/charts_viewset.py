@@ -138,8 +138,8 @@ response. If `fields=all` then all the fields of the form will be returned.
     serializer_class = ChartSerializer
     lookup_field = 'pk'
     renderer_classes = (ChartBrowsableAPIRenderer,
-                        TemplateHTMLRenderer,
                         JSONRenderer,
+                        TemplateHTMLRenderer,
                         )
     permission_classes = [XFormPermissions, ]
 
@@ -150,10 +150,9 @@ response. If `fields=all` then all the fields of the form will be returned.
 
         field_name = request.QUERY_PARAMS.get('field_name')
         fields = request.QUERY_PARAMS.get('fields')
+        fmt = kwargs.get('format')
 
         if fields:
-            fmt = kwargs.get('format')
-
             if fmt is not None and fmt != 'json':
                 raise ParseError("Error: only JSON format supported.")
 
@@ -189,6 +188,9 @@ response. If `fields=all` then all the fields of the form will be returned.
             })
 
             return Response(data, template_name='chart_detail.html')
+
+        if fmt != 'json' and field_name is None:
+            return Response(template_name='not_supported.html')
 
         data = serializer.data
         data["fields"] = {}
