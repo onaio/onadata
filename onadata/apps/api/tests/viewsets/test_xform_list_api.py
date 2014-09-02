@@ -188,8 +188,9 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
 
         manifest_xml = """<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>screenshot.png</filename><hash>%(hash)s</hash><downloadUrl>http://testserver/api/v1/metadata/%(pk)s.png</downloadUrl></mediaFile></manifest>"""  # noqa
-        data = {"hash": self.metadata.hash, "pk": self.metadata.pk}
+<manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>screenshot.png</filename><hash>%(hash)s</hash><downloadUrl>http://testserver/bob/xformsMedia/%(xform)s/%(pk)s.png</downloadUrl></mediaFile></manifest>"""  # noqa
+        data = {"hash": self.metadata.hash, "pk": self.metadata.pk,
+                "xform": self.xform.pk}
         content = response.render().content.strip()
         self.assertEqual(content, manifest_xml % data)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
@@ -211,8 +212,9 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
 
         manifest_xml = """<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>screenshot.png</filename><hash>%(hash)s</hash><downloadUrl>http://testserver/api/v1/metadata/%(pk)s.png</downloadUrl></mediaFile></manifest>"""  # noqa
-        data = {"hash": self.metadata.hash, "pk": self.metadata.pk}
+<manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>screenshot.png</filename><hash>%(hash)s</hash><downloadUrl>http://testserver/bob/xformsMedia/%(xform)s/%(pk)s.png</downloadUrl></mediaFile></manifest>"""  # noqa
+        data = {"hash": self.metadata.hash, "pk": self.metadata.pk,
+                "xform": self.xform.pk}
         content = response.render().content.strip()
         self.assertEqual(content, manifest_xml % data)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
