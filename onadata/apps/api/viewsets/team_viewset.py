@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.permissions import DjangoObjectPermissions
 
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.apps.api.models import Team
@@ -13,6 +14,7 @@ from onadata.apps.api.tools import add_user_to_team, remove_user_from_team
 
 
 class TeamViewSet(ModelViewSet):
+
     """
 This endpoint allows you to create, update and view team information.
 
@@ -104,6 +106,7 @@ A list of usernames is the response for members of the team.
     serializer_class = TeamSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
+    permission_classes = [DjangoObjectPermissions]
     filter_backends = (filters.DjangoObjectPermissionsFilter,)
 
     @action(methods=['DELETE', 'GET', 'POST'])
