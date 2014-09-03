@@ -390,7 +390,7 @@ def get_media_file_response(metadata):
             response = response_with_mimetype_and_name(
                 metadata.data_file_type,
                 filename, extension=extension, show_date=False,
-                file_path=file_path)
+                file_path=file_path, full_mime=True)
 
             return response
         else:

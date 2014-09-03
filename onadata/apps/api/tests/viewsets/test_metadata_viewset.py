@@ -42,7 +42,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             response = self.view(request, pk=self.metadata.pk, format=ext)
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.content_type, 'image/png')
+            self.assertEqual(response['Content-Type'], 'image/png')
 
     def test_add_mapbox_layer(self):
         data_type = 'mapbox_layer'

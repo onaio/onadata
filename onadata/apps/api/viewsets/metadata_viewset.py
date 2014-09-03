@@ -1,10 +1,9 @@
-from django.http import HttpResponseRedirect
-
 from rest_framework import renderers
 from rest_framework import viewsets
 from rest_framework.response import Response
 
 from onadata.apps.api.permissions import MetaDataObjectPermissions
+from onadata.apps.api.tools import get_media_file_response
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs import filters
@@ -189,12 +188,8 @@ Accept: image/png </pre>
 
         if isinstance(request.accepted_renderer, MediaFileRenderer) \
                 and self.object.data_file is not None:
-            if self.object.data_file:
-                data = self.object.data_file.read()
-            else:
-                return HttpResponseRedirect(self.object.data_value)
 
-            return Response(data, content_type=self.object.data_file_type)
+            return get_media_file_response(self.object)
 
         serializer = self.get_serializer(self.object)
 
