@@ -7,6 +7,7 @@ from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 
 
 class TestTeamViewSet(TestAbstractViewSet):
+
     def setUp(self):
         super(self.__class__, self).setUp()
         self.view = TeamViewSet.as_view({
@@ -16,6 +17,13 @@ class TestTeamViewSet(TestAbstractViewSet):
 
     def test_teams_list(self):
         self._team_create()
+
+        # access the url with an unauthorised user
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+
+        # access the url with an authorised user
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         owner_team = {
