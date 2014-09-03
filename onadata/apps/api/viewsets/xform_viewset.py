@@ -5,7 +5,7 @@ from datetime import datetime
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
-from django.http import Http404
+from django.http import Http404, HttpResponseBadRequest
 from django.utils.translation import ugettext as _
 from django.utils import six
 
@@ -591,7 +591,10 @@ You can clone a form to a specific user account using `GET` with
     @action(methods=['GET'])
     def form(self, request, format='json', **kwargs):
         form = self.get_object()
-
+        if format not in ['json', 'xml']:
+            return HttpResponseBadRequest('400 BAD REQUEST',
+                                          mimetype='application/json',
+                                          status=400)
         return response_for_format(form, format=format)
 
     @action(methods=['GET'])

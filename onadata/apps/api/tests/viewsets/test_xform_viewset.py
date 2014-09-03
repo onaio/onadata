@@ -176,6 +176,11 @@ class TestXFormViewSet(TestAbstractViewSet):
             "type": "survey",
         }
         request = self.factory.get('/', **self.extra)
+        # test for unsupported format
+        response = view(request, pk=formid, format='csvzip')
+        self.assertEqual(response.status_code, 400)
+
+        # test for supported formats
         response = view(request, pk=formid, format='json')
         self.assertEqual(response.status_code, 200)
         self.assertDictContainsSubset(data, response.data)
