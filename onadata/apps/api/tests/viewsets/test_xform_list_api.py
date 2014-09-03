@@ -7,7 +7,6 @@ from django_digest.test import DigestAuth
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_list_api import XFormListApi
-from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.libs.permissions import ReadOnlyRole
 
 
