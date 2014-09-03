@@ -1,10 +1,15 @@
+import os
+
 from datetime import datetime
 import numpy as np
 
 from django import forms
+from django.core.files.storage import get_storage_class
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
+from django.http import HttpResponseNotFound
+from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.shortcuts import get_object_or_404
 from taggit.forms import TagField
@@ -19,6 +24,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.data.query import get_field_records, get_numeric_fields
 from onadata.libs.utils.logger_tools import publish_form
+from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.user_auth import check_and_set_form_by_id, \
     check_and_set_form_by_id_string
 from onadata.libs.data.statistics import _chk_asarray
@@ -371,3 +377,23 @@ def add_tags_to_instance(request, instance):
             for tag in tags:
                 instance.instance.tags.add(tag)
             instance.save()
+
+
+def get_media_file_response(metadata):
+    if metadata.data_file:
+        file_path = metadata.data_file.name
+        filename, extension = os.path.splitext(file_path.split('/')[-1])
+        extension = extension.strip('.')
+        dfs = get_storage_class()()
+
+        if dfs.exists(file_path):
+            response = response_with_mimetype_and_name(
+                metadata.data_file_type,
+                filename, extension=extension, show_date=False,
+                file_path=file_path)
+
+            return response
+        else:
+            return HttpResponseNotFound()
+    else:
+        return HttpResponseRedirect(metadata.data_value)

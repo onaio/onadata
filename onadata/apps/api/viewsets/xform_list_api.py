@@ -4,7 +4,6 @@ from datetime import datetime
 
 from django.conf import settings
 from django.http import Http404
-from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets
@@ -12,6 +11,7 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
+from onadata.apps.api.tools import get_media_file_response
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
@@ -101,15 +101,11 @@ class XFormListApi(viewsets.ReadOnlyModelViewSet):
     def media(self, request, *args, **kwargs):
         self.object = self.get_object()
         pk = kwargs.get('metadata')
+
         if not pk:
             raise Http404()
 
         meta_obj = get_object_or_404(
             MetaData, data_type='media', xform=self.object, pk=pk)
 
-        if meta_obj.data_file:
-            data = meta_obj.data_file.read()
-        else:
-            return HttpResponseRedirect(meta_obj.data_value)
-
-        return Response(data, content_type=meta_obj.data_file_type)
+        return get_media_file_response(meta_obj)
