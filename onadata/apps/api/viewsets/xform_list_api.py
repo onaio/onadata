@@ -3,6 +3,8 @@ import pytz
 from datetime import datetime
 
 from django.conf import settings
+from django.http import Http404
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets
@@ -15,6 +17,7 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
+from onadata.libs.renderers.renderers import MediaFileContentNegotiation
 from onadata.libs.renderers.renderers import XFormListRenderer
 from onadata.libs.renderers.renderers import XFormManifestRenderer
 from onadata.libs.serializers.xform_serializer import XFormListSerializer
@@ -27,6 +30,7 @@ DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 
 class XFormListApi(viewsets.ReadOnlyModelViewSet):
     authentication_classes = (DigestAuthentication,)
+    content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     model = XForm
     permission_classes = (permissions.AllowAny,)
@@ -92,3 +96,20 @@ class XFormListApi(viewsets.ReadOnlyModelViewSet):
                                              context=context)
 
         return Response(serializer.data, headers=self.get_openrosa_headers())
+
+    @action(methods=['GET'])
+    def media(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        pk = kwargs.get('metadata')
+        if not pk:
+            raise Http404()
+
+        meta_obj = get_object_or_404(
+            MetaData, data_type='media', xform=self.object, pk=pk)
+
+        if meta_obj.data_file:
+            data = meta_obj.data_file.read()
+        else:
+            return HttpResponseRedirect(meta_obj.data_value)
+
+        return Response(data, content_type=meta_obj.data_file_type)

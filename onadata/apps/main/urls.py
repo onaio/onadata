@@ -190,6 +190,17 @@ urlpatterns = patterns(
     url(r"^xformsManifest/(?P<pk>[\d+^/]+)$",
         XFormListApi.as_view({'get': 'manifest'}),
         name='manifest-url'),
+    url(r"^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)"
+        "/(?P<metadata>[\d+^/.]+)$",
+        XFormListApi.as_view({'get': 'media'}), name='xform-media'),
+    url(r"^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)"
+        "/(?P<metadata>[\d+^/.]+)\.(?P<format>[a-z]+[0-9]*)$",
+        XFormListApi.as_view({'get': 'media'}), name='xform-media'),
+    url(r"^xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)$",
+        XFormListApi.as_view({'get': 'media'}), name='xform-media'),
+    url(r"^xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)\."
+        "(?P<format>[a-z]+[0-9]*)$",
+        XFormListApi.as_view({'get': 'media'}), name='xform-media'),
     url(r"^(?P<username>\w+)/submission$",
         'onadata.apps.logger.views.submission'),
     url(r"^(?P<username>\w+)/bulk-submission$",

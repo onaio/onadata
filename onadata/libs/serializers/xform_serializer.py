@@ -86,11 +86,12 @@ class XFormManifestSerializer(serializers.Serializer):
 
     def get_url(self, obj):
         if obj:
-            kwargs = {'pk': obj.pk}
+            kwargs = {'pk': obj.xform.pk, 'username': obj.xform.user.username,
+                      'metadata': obj.pk}
             request = self.context.get('request')
             format = obj.data_value[obj.data_value.rindex('.') + 1:]
 
-            return reverse('metadata-detail', kwargs=kwargs,
+            return reverse('xform-media', kwargs=kwargs,
                            request=request, format=format.lower())
 
     def get_hash(self, obj):

@@ -187,8 +187,9 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
 
         manifest_xml = """<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>screenshot.png</filename><hash>%(hash)s</hash><downloadUrl>http://testserver/api/v1/metadata/%(pk)s.png</downloadUrl></mediaFile></manifest>"""  # noqa
-        data = {"hash": self.metadata.hash, "pk": self.metadata.pk}
+<manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>screenshot.png</filename><hash>%(hash)s</hash><downloadUrl>http://testserver/bob/xformsMedia/%(xform)s/%(pk)s.png</downloadUrl></mediaFile></manifest>"""  # noqa
+        data = {"hash": self.metadata.hash, "pk": self.metadata.pk,
+                "xform": self.xform.pk}
         content = response.render().content.strip()
         self.assertEqual(content, manifest_xml % data)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
@@ -210,8 +211,9 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
 
         manifest_xml = """<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>screenshot.png</filename><hash>%(hash)s</hash><downloadUrl>http://testserver/api/v1/metadata/%(pk)s.png</downloadUrl></mediaFile></manifest>"""  # noqa
-        data = {"hash": self.metadata.hash, "pk": self.metadata.pk}
+<manifest xmlns="http://openrosa.org/xforms/xformsManifest"><mediaFile><filename>screenshot.png</filename><hash>%(hash)s</hash><downloadUrl>http://testserver/bob/xformsMedia/%(xform)s/%(pk)s.png</downloadUrl></mediaFile></manifest>"""  # noqa
+        data = {"hash": self.metadata.hash, "pk": self.metadata.pk,
+                "xform": self.xform.pk}
         content = response.render().content.strip()
         self.assertEqual(content, manifest_xml % data)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
@@ -232,4 +234,46 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 401)
         response = self.view(request, pk=self.xform.pk,
                              username=self.user.username)
+        self.assertEqual(response.status_code, 401)
+
+    def test_retrieve_xform_media(self):
+        self._load_metadata(self.xform)
+        self.view = XFormListApi.as_view({
+            "get": "media"
+        })
+        request = self.factory.head('/')
+        response = self.view(request, pk=self.xform.pk,
+                             metadata=self.metadata.pk, format='png')
+        auth = DigestAuth('bob', 'bobbob')
+        request = self.factory.get('/')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, pk=self.xform.pk,
+                             metadata=self.metadata.pk, format='png')
+        self.assertEqual(response.status_code, 200)
+
+    def test_retrieve_xform_media_anonymous_user(self):
+        self._load_metadata(self.xform)
+        self.view = XFormListApi.as_view({
+            "get": "media"
+        })
+        request = self.factory.get('/')
+        response = self.view(request, pk=self.xform.pk,
+                             metadata=self.metadata.pk, format='png')
+        self.assertEqual(response.status_code, 401)
+
+        response = self.view(request, pk=self.xform.pk,
+                             username=self.user.username,
+                             metadata=self.metadata.pk, format='png')
+        self.assertEqual(response.status_code, 200)
+
+    def test_retrieve_xform_media_anonymous_user_require_auth(self):
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+        self._load_metadata(self.xform)
+        self.view = XFormListApi.as_view({
+            "get": "media"
+        })
+        request = self.factory.get('/')
+        response = self.view(request, pk=self.xform.pk,
+                             metadata=self.metadata.pk, format='png')
         self.assertEqual(response.status_code, 401)
