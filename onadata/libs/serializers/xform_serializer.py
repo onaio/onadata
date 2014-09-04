@@ -13,6 +13,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
                                                lookup_field='pk')
     formid = serializers.Field(source='id')
+    submission_count_for_today = serializers.Field(
+        source='submission_count_for_today')
     title = serializers.CharField(max_length=255, source='title')
     owner = serializers.HyperlinkedRelatedField(
         view_name='user-detail',
