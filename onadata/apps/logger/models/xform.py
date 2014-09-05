@@ -163,6 +163,7 @@ class XForm(BaseModel):
         super(XForm, self).save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
+        self.id_string = self.id_string.lower()
         self._set_title()
         self._set_description()
         old_id_string = self._id_string
