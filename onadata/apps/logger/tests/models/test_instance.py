@@ -4,6 +4,7 @@ from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.logger.models.instance import get_id_string_from_xml_str
 from onadata.apps.viewer.models import ParsedInstance
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME,\
     XFORM_ID_STRING, SUBMITTED_BY
@@ -88,3 +89,17 @@ class TestInstance(TestBase):
         xform = XForm.objects.get(pk=self.xform.pk)
 
         self.assertTrue(xform.instances_with_geopoints)
+
+    def test_get_id_string_from_xml_str(self):
+        submission = """<?xml version="1.0" encoding="UTF-8" ?>
+        <submission xmlns:orx="http://openrosa.org/xforms">
+            <data>
+                <id_string id="id_string">
+                    <element>data</element>
+                    <data>random</data>
+                </id_string>
+            </data>
+        </submission>
+        """
+        id_string = get_id_string_from_xml_str(submission)
+        self.assertEqual(id_string, 'id_string')
