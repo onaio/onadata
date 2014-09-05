@@ -58,7 +58,7 @@ django-oauth-toolkit==0.5.0
 savReaderWriter
 
 # JSON data type support
-jsonfield
+jsonfield<1.0
 django-db-readonly
 
 # memcached support
