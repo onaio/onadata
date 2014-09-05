@@ -87,12 +87,21 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/static/'
 
 # Enketo URL
-ENKETO_URL = os.environ.get('ENKETO_URL', 'https://enketo.formhub.org/')
-ENKETO_API_SURVEY_PATH = '/api_v1/survey'
-ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
-ENKETO_PREVIEW_URL = ENKETO_URL + 'webform/preview'
-ENKETO_API_TOKEN = ''
-ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v1/instance/iframe"
+ENKETO_API_URL_PARTIAL= os.environ.get('ENKETO_API_URL_PARTIAL', '/api_v1')
+ENKETO_SURVEY_URL_PARTIAL= os.environ.get('ENKETO_SURVEY_URL_PARTIAL', '/survey')
+ENKETO_INSTANCE_URL_PARTIAL= os.environ.get('ENKETO_INSTANCE_URL_PARTIAL', '/instance')
+ENKETO_PREVIEW_URL_PARTIAL= os.environ.get('ENKETO_PREVIEW_URL_PARTIAL', '/webform/preview')
+ENKETO_INSTANCE_IFRAME_URL_PARTIAL= os.environ.get('ENKETO_INSTANCE_IFRAME_URL_PARTIAL', '/instance/iframe')
+
+ENKETO_URL = os.environ.get('ENKETO_URL', 'https://enketo.formhub.org')
+ENKETO_API_SURVEY_PATH = ENKETO_API_URL_PARTIAL + ENKETO_SURVEY_URL_PARTIAL
+ENKETO_API_INSTANCE_PATH = ENKETO_API_URL_PARTIAL + ENKETO_INSTANCE_URL_PARTIAL
+ENKETO_PREVIEW_URL = ENKETO_URL + ENKETO_PREVIEW_URL_PARTIAL
+ENKETO_API_TOKEN = os.environ.get('ENKETO_API_TOKEN', '')
+ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + ENKETO_API_URL_PARTIAL + ENKETO_INSTANCE_IFRAME_URL_PARTIAL
+
+# specifically for site urls sent to enketo
+ENKETO_PROTOCOL = os.environ.get('ENKETO_PROTOCOL', 'https')
 
 # Login URLs
 LOGIN_URL = '/accounts/login/'
@@ -404,9 +413,6 @@ BINARY_SELECT_MULTIPLES = False
 
 # Use 'n/a' for empty values by default on csv exports
 NA_REP = 'n/a'
-
-# specifically for site urls sent to enketo
-ENKETO_PROTOCOL = 'https'
 
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
