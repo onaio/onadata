@@ -33,8 +33,23 @@ class FormInactiveError(Exception):
 def get_id_string_from_xml_str(xml_str):
     xml_obj = clean_and_parse_xml(xml_str)
     root_node = xml_obj.documentElement
+    id_string = root_node.getAttribute(u"id")
 
-    return root_node.getAttribute(u"id")
+    if len(id_string) == 0:
+        # may be hidden in submission/data/id_string
+        elems = root_node.getElementsByTagName('data')
+
+        for data in elems:
+            for child in data.childNodes:
+                id_string = data.childNodes[0].getAttribute('id')
+
+                if len(id_string) > 0:
+                    break
+
+            if len(id_string) > 0:
+                break
+
+    return id_string
 
 
 def submission_time():
