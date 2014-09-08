@@ -166,7 +166,8 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         # should be both bob's and alice's form
-        self.assertEqual(response.data, [bobs_form_data, self.form_data])
+        self.assertEqual(sorted(response.data),
+                         sorted([bobs_form_data, self.form_data]))
 
         # apply filter, see only bob's forms
         request = self.factory.get('/', data={'owner': 'bob'}, **self.extra)
