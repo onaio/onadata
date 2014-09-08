@@ -60,7 +60,8 @@ class TestAbstractViewSet(TestCase):
             'twitter': u'boberama',
             'gravatar': self.user.profile.gravatar,
             'require_auth': False,
-            'user': 'http://testserver/api/v1/users/bob'
+            'user': 'http://testserver/api/v1/users/bob',
+            'is_org': False,
         }
 
     def _set_api_permissions(self, user):
