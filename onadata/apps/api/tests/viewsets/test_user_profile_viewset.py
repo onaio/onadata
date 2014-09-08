@@ -52,9 +52,12 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user='bob')
         data = self.user_profile_data()
         del data['email']
+        is_org = response.data.pop('is_org')
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
         self.assertNotIn('email', response.data)
+        self.assertEqual(is_org, False)
 
     def test_profiles_get_org_anon(self):
         self._org_create()

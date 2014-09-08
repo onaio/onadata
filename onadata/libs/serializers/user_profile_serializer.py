@@ -6,7 +6,8 @@ from django.contrib.auth.models import User
 from django.core.validators import ValidationError
 from rest_framework import serializers
 
-from onadata.apps.main.models import OrganizationProfile, UserProfile
+from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.main.models import UserProfile
 from onadata.apps.main.forms import UserProfileForm,\
     RegistrationFormUserProfile
 from onadata.libs.permissions import CAN_VIEW_PROFILE
@@ -56,7 +57,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         try:
             OrganizationProfile.objects.get(user=obj.user)
             return True
-        except OrganizationProfile.DoesNotExists:
+        except OrganizationProfile.DoesNotExist:
             return False
 
     def to_native(self, obj):
