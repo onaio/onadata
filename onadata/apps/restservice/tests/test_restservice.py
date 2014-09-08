@@ -15,6 +15,7 @@ from onadata.apps.restservice.models import RestService
 
 
 class RestServiceTest(TestBase):
+
     def setUp(self):
         self.service_url = u'http://0.0.0.0:8001/%(id_string)s/post/%(uuid)s'
         self.service_name = u'f2dhis2'
@@ -35,13 +36,21 @@ class RestServiceTest(TestBase):
         self.restservice = rs
 
     def _add_rest_service(self, service_url, service_name):
-        add_service_url = reverse(add_service, kwargs={
+        kwargs = {
             'username': self.user.username,
             'id_string': self.xform.id_string
-        })
+        }
+        add_service_url = reverse(add_service, kwargs=kwargs)
         response = self.client.get(add_service_url, {})
         count = RestService.objects.all().count()
         self.assertEqual(response.status_code, 200)
+
+        # test with username in uppercase
+        kwargs['username'] = self.user.username.upper()
+        add_service_url = reverse(add_service, kwargs=kwargs)
+        response = self.client.get(add_service_url, {})
+        self.assertEqual(response.status_code, 200)
+
         post_data = {'service_url': service_url,
                      'service_name': service_name}
         response = self.client.post(add_service_url, post_data)
