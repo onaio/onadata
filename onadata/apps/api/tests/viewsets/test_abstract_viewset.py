@@ -181,7 +181,7 @@ class TestAbstractViewSet(TestCase):
             'allows_sms': False,
             'encrypted': False,
             'sms_id_string': u'transportation_2011_07_25',
-            'id_string': u'transportation_2011_07_25',
+            'id_string': u'TRANSPORTATION_2011_07_25',
             'title': u'transportation_2011_07_25',
             'bamboo_dataset': u''
         }
@@ -198,6 +198,7 @@ class TestAbstractViewSet(TestCase):
                 'url':
                 'http://testserver/api/v1/forms/%s' % (self.xform.pk)
             })
+            data['id_string'] = data['id_string'].lower()
             self.assertDictContainsSubset(data, response.data)
             self.form_data = response.data
 

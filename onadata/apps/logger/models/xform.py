@@ -98,6 +98,9 @@ class XForm(BaseModel):
             ("transfer_xform", _(u"Can transfer form ownership.")),
         )
 
+    def clean_id_string(self):
+        return self.cleaned_data["id_string"].lower()
+
     def file_name(self):
         return self.id_string + ".xml"
 
