@@ -56,6 +56,19 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, data)
         self.assertNotIn('email', response.data)
 
+    def test_profiles_get_org_anon(self):
+        self._org_create()
+        self.client.logout()
+        view = UserProfileViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/')
+        response = view(request, user=self.company_data['org'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['name'], self.company_data['name'])
+        self.assertIn('is_org', response.data)
+        self.assertEqual(response.data['is_org'], True)
+
     def test_profile_create(self):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)

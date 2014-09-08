@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.core.validators import ValidationError
 from rest_framework import serializers
 
-from onadata.apps.main.models import UserProfile
+from onadata.apps.main.models import OrganizationProfile, UserProfile
 from onadata.apps.main.forms import UserProfileForm,\
     RegistrationFormUserProfile
 from onadata.libs.permissions import CAN_VIEW_PROFILE
@@ -34,6 +34,7 @@ def _get_first_last_names(name, limit=30):
 
 
 class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
+    is_org = serializers.SerializerMethodField('is_organization')
     username = serializers.WritableField(source='user.username')
     email = serializers.WritableField(source='user.email')
     website = serializers.WritableField(source='home_page', required=False)
@@ -45,10 +46,18 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ('url', 'username', 'name', 'password', 'email', 'city',
+        fields = ('is_org', 'url', 'username', 'name', 'password', 'email',
+                  'city',
                   'country', 'organization', 'website', 'twitter', 'gravatar',
                   'require_auth', 'user')
         lookup_field = 'user'
+
+    def is_organization(self, obj):
+        try:
+            OrganizationProfile.objects.get(user=obj.user)
+            return True
+        except OrganizationProfile.DoesNotExists:
+            return False
 
     def to_native(self, obj):
         """
