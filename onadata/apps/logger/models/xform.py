@@ -64,7 +64,8 @@ class XForm(BaseModel):
     id_string = models.SlugField(
         editable=False,
         verbose_name=ugettext_lazy("ID"),
-        max_length=MAX_ID_LENGTH
+        max_length=MAX_ID_LENGTH,
+        db_column='id_string'
     )
     title = models.CharField(editable=False, max_length=XFORM_TITLE_LENGTH)
     date_created = models.DateTimeField(auto_now_add=True)
@@ -161,6 +162,7 @@ class XForm(BaseModel):
         super(XForm, self).save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
+        self.id_string = self.id_string.lower()
         self._set_title()
         self._set_description()
         old_id_string = self.id_string

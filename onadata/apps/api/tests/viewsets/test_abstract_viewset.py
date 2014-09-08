@@ -199,6 +199,8 @@ class TestAbstractViewSet(TestCase):
                 'http://testserver/api/v1/forms/%s' % (self.xform.pk)
             })
             data['id_string'] = data['id_string'].lower()
+            # check if 'id_string' was converted to lowercase before being
+            # saved
             self.assertDictContainsSubset(data, response.data)
             self.form_data = response.data
 
