@@ -55,7 +55,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
     def is_organization(self, obj):
         try:
-            OrganizationProfile.objects.get(user=obj.user)
+            obj.organizationprofile
             return True
         except OrganizationProfile.DoesNotExist:
             return False
