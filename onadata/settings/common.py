@@ -134,7 +134,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.messages.context_processors.messages',
     'readonly.context_processors.readonly',
     'onadata.apps.main.context_processors.google_analytics',
-    'onadata.apps.main.context_processors.site_name'
+    'onadata.apps.main.context_processors.site_name',
+    'onadata.apps.main.context_processors.base_url'
 )
 
 MIDDLEWARE_CLASSES = (
