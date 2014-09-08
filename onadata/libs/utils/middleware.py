@@ -26,6 +26,7 @@ class HTTPResponseNotAllowedMiddleware(object):
 
 
 class LocaleMiddlewareWithTweaks(LocaleMiddleware):
+
     """
     Overrides LocaleMiddleware from django with:
         Khmer `km` language code in Accept-Language is rewritten to km-kh
@@ -46,6 +47,7 @@ class LocaleMiddlewareWithTweaks(LocaleMiddleware):
 
 
 class SqlLogging:
+
     def process_response(self, request, response):
         from sys import stdout
         if stdout.isatty():

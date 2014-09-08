@@ -32,7 +32,7 @@ def import_submission(request, username):
         'status': one of 'ACCEPTED', 'REJECTED', 'PARSING_FAILED'
         'message': Error message if not ACCEPTED.
         'id: Unique submission ID if ACCEPTED. """
-
+    username = username if username is None else username.lower()
     return import_submission_for_form(request, username, None)
 
 
@@ -44,7 +44,7 @@ def import_multiple_submissions(request, username):
         :param json messages: JSON list of {"identity": "x", "text": "x"}
         :returns json list of
             {"status": "x", "message": "x", "id": "x"} '''
-
+    username = username if username is None else username.lower()
     return import_multiple_submissions_for_form(request, username, None)
 
 
