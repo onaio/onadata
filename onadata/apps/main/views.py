@@ -54,15 +54,17 @@ from onadata.libs.utils.viewer_tools import enketo_url
 def home(request):
     if request.user.username:
         return HttpResponseRedirect(
-            reverse(profile, kwargs={'username': request.user.username}))
+            reverse(profile,
+                    kwargs={'username': request.user.username}))
     context = RequestContext(request)
     return render_to_response('home.html', context_instance=context)
 
 
 @login_required
 def login_redirect(request):
-    return HttpResponseRedirect(reverse(profile,
-                                kwargs={'username': request.user.username}))
+    return HttpResponseRedirect(
+        reverse(profile,
+                kwargs={'username': request.user.username}))
 
 
 @require_POST
@@ -72,12 +74,13 @@ def clone_xlsform(request, username):
     Copy a public/Shared form to a users list of forms.
     Eliminates the need to download Excel File and upload again.
     """
+    username = username if username is None else username.lower()
     to_username = request.user.username
     context = RequestContext(request)
     context.message = {'type': None, 'text': '....'}
 
     def set_form():
-        form_owner = request.POST.get('username')
+        form_owner = request.POST.get('username').lower()
         id_string = request.POST.get('id_string')
         xform = XForm.objects.get(user__username=form_owner,
                                   id_string=id_string)
@@ -140,6 +143,7 @@ def clone_xlsform(request, username):
 
 
 def profile(request, username):
+    username = username if username is None else username.lower()
     context = RequestContext(request)
     content_user = get_object_or_404(User, username=username)
     context.form = QuickConverter()
@@ -239,6 +243,7 @@ def members_list(request):
 
 @login_required
 def profile_settings(request, username):
+    username = username if username is None else username.lower()
     context = RequestContext(request)
     content_user = check_and_set_user(request, username)
     context.content_user = content_user
@@ -257,7 +262,8 @@ def profile_settings(request, username):
                 Actions.PROFILE_SETTINGS_UPDATED, request.user, content_user,
                 _("Profile settings updated."), audit, request)
             return HttpResponseRedirect(reverse(
-                public_profile, kwargs={'username': request.user.username}
+                public_profile, kwargs={
+                    'username': request.user.username}
             ))
     else:
         form = UserProfileForm(
@@ -268,6 +274,7 @@ def profile_settings(request, username):
 
 @require_GET
 def public_profile(request, username):
+    username = username if username is None else username.lower()
     content_user = check_and_set_user(request, username)
     if isinstance(content_user, HttpResponseRedirect):
         return content_user
@@ -287,7 +294,8 @@ def dashboard(request):
     context.form = QuickConverter()
     content_user = request.user
     set_profile_data(context, content_user)
-    context.url = request.build_absolute_uri("/%s" % request.user.username)
+    context.url = request.build_absolute_uri(
+        "/%s" % request.user.username)
     return render_to_response("dashboard.html", context_instance=context)
 
 
@@ -297,12 +305,13 @@ def redirect_to_public_link(request, uuid):
         xform.uuid if MetaData.public_link(xform) else False
 
     return HttpResponseRedirect(reverse(show, kwargs={
-        'username': xform.user.username,
+        'username': xform.user.username.lower(),
         'id_string': xform.id_string
     }))
 
 
 def set_xform_owner_context(context, xform, request, username, id_string):
+    username = username if username is None else username.lower()
     context.sms_support_form = ActivateSMSSupportFom(
         initial={'enable_sms_support': xform.allows_sms,
                  'sms_id_string': xform.sms_id_string})
@@ -342,6 +351,7 @@ def set_xform_owner_context(context, xform, request, username, id_string):
 
 @require_GET
 def show(request, username=None, id_string=None, uuid=None):
+    username = username if username is None else username.lower()
     if uuid:
         return redirect_to_public_link(request, uuid)
 
@@ -381,6 +391,7 @@ def show(request, username=None, id_string=None, uuid=None):
 
 @require_GET
 def api_token(request, username=None):
+    username = username if username is None else username.lower()
     user = get_object_or_404(User, username=username)
     context = RequestContext(request)
     context.token_key, created = Token.objects.get_or_create(user=user)
@@ -402,6 +413,7 @@ def api(request, username=None, id_string=None):
 
     E.g. api?query='{"last_name": "Smith"}'
     """
+    username = username if username is None else username.lower()
     if request.method == "OPTIONS":
         response = HttpResponse()
         add_cors_headers(response)
@@ -451,7 +463,7 @@ def public_api(request, username, id_string):
     """
     Returns public information about the form as JSON
     """
-
+    username = username if username is None else username.lower()
     xform = get_object_or_404(XForm,
                               user__username=username, id_string=id_string)
 
@@ -473,6 +485,7 @@ def public_api(request, username, id_string):
 
 @login_required
 def edit(request, username, id_string):
+    username = username if username is None else username.lower()
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     owner = xform.user
 
@@ -711,6 +724,7 @@ def tutorial(request):
     context.template = 'tutorial.html'
     username = request.user.username if request.user.username else \
         'your-user-name'
+    username = username.lower()
     context.url = request.build_absolute_uri("/%s" % username)
     return render_to_response('base.html', context_instance=context)
 
@@ -729,6 +743,7 @@ def about_us(request):
     context.a_flatpage = '/about-us/'
     username = request.user.username if request.user.username else \
         'your-user-name'
+    username = username.lower()
     context.url = request.build_absolute_uri("/%s" % username)
     return render_to_response('base.html', context_instance=context)
 
@@ -776,6 +791,7 @@ def form_gallery(request):
 
 
 def download_metadata(request, username, id_string, data_id):
+    username = username if username is None else username.lower()
     xform = get_object_or_404(XForm,
                               user__username=username, id_string=id_string)
     owner = xform.user
@@ -808,6 +824,7 @@ def download_metadata(request, username, id_string, data_id):
 
 @login_required()
 def delete_metadata(request, username, id_string, data_id):
+    username = username if username is None else username.lower()
     xform = get_object_or_404(XForm,
                               user__username=username, id_string=id_string)
     owner = xform.user
@@ -853,6 +870,7 @@ def delete_metadata(request, username, id_string, data_id):
 
 
 def download_media_data(request, username, id_string, data_id):
+    username = username if username is None else username.lower()
     xform = get_object_or_404(
         XForm, user__username=username, id_string=id_string)
     owner = xform.user
@@ -914,6 +932,7 @@ def download_media_data(request, username, id_string, data_id):
 
 
 def form_photos(request, username, id_string):
+    username = username if username is None else username.lower()
     xform, owner = check_and_set_user_and_form(username, id_string, request)
 
     if not xform:
@@ -947,6 +966,7 @@ def form_photos(request, username, id_string):
 
 @require_POST
 def set_perm(request, username, id_string):
+    username = username if username is None else username.lower()
     xform = get_object_or_404(XForm,
                               user__username=username, id_string=id_string)
     owner = xform.user
@@ -1057,6 +1077,7 @@ def set_perm(request, username, id_string):
 @require_POST
 @login_required
 def delete_data(request, username=None, id_string=None):
+    username = username if username is None else username.lower()
     xform, owner = check_and_set_user_and_form(username, id_string, request)
     response_text = u''
     if not xform:
@@ -1088,6 +1109,7 @@ def delete_data(request, username=None, id_string=None):
 @require_POST
 @is_owner
 def link_to_bamboo(request, username, id_string):
+    username = username if username is None else username.lower()
     xform = get_object_or_404(XForm,
                               user__username=username, id_string=id_string)
     owner = xform.user
@@ -1128,6 +1150,7 @@ def link_to_bamboo(request, username, id_string):
 @require_POST
 @is_owner
 def update_xform(request, username, id_string):
+    username = username if username is None else username.lower()
     xform = get_object_or_404(
         XForm, user__username=username, id_string=id_string)
     owner = xform.user
@@ -1168,6 +1191,7 @@ def update_xform(request, username, id_string):
 
 @is_owner
 def activity(request, username):
+    username = username if username is None else username.lower()
     owner = get_object_or_404(User, username=username)
     context = RequestContext(request)
     context.user = owner
@@ -1210,6 +1234,8 @@ def activity_fields(request):
 def activity_api(request, username):
     from bson.objectid import ObjectId
 
+    username = username if username is None else username.lower()
+
     def stringify_unknowns(obj):
         if isinstance(obj, ObjectId):
             return str(obj)
@@ -1245,6 +1271,7 @@ def activity_api(request, username):
 
 
 def qrcode(request, username, id_string):
+    username = username if username is None else username.lower()
     try:
         formhub_url = "http://%s/" % request.META['HTTP_HOST']
     except:
@@ -1275,6 +1302,7 @@ def qrcode(request, username, id_string):
 
 
 def enketo_preview(request, username, id_string):
+    username = username if username is None else username.lower()
     xform = get_object_or_404(
         XForm, user__username=username, id_string=id_string)
     owner = xform.user
@@ -1297,6 +1325,8 @@ def username_list(request):
     query = request.GET.get('query', None)
     if query:
         users = User.objects.values('username')\
-            .filter(username__startswith=query, is_active=True, pk__gte=0)
+            .filter(username__startswith=query.lower(),
+                    is_active=True,
+                    pk__gte=0)
         data = [user['username'] for user in users]
     return HttpResponse(json.dumps(data), mimetype='application/json')

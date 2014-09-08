@@ -37,6 +37,7 @@ def _main_fixture_path(instance_name):
 
 
 class TestExports(TestBase):
+
     def setUp(self):
         super(TestExports, self).setUp()
         self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
@@ -64,6 +65,16 @@ class TestExports(TestBase):
                 'id_string': self.xform.id_string
             }))
         self.assertEqual(response.status_code, 200)
+
+        # test with username in uppercase
+        response = self.client.get(reverse(
+            'csv_export',
+            kwargs={
+                'username': self.user.username.upper(),
+                'id_string': self.xform.id_string
+            }))
+        self.assertEqual(response.status_code, 200)
+
         test_file_path = viewer_fixture_path('transportation.csv')
         content = self._get_response_content(response)
         with open(test_file_path, 'r') as test_file:
@@ -406,6 +417,16 @@ class TestExports(TestBase):
         })
         response = self.client.get(csv_export_url)
         self.assertEqual(response.status_code, 200)
+
+        # test with username in uppercase
+        csv_export_url = reverse(export_download, kwargs={
+            "username": self.user.username.upper(),
+            "id_string": self.xform.id_string,
+            "export_type": Export.CSV_EXPORT,
+            "filename": export.filename
+        })
+        response = self.client.get(csv_export_url)
+        self.assertEqual(response.status_code, 200)
         # test xls
         export = generate_export(Export.XLS_EXPORT, 'xls', self.user.username,
                                  self.xform.id_string)
@@ -630,6 +651,14 @@ class TestExports(TestBase):
         num_xls_exports = Export.objects.filter(
             xform=self.xform, export_type=Export.XLS_EXPORT).count()
         self.assertEqual(num_xls_exports, initial_num_xls_exports + 1)
+
+        # test 'xls_export' with username in uppercase
+        xls_export_url = reverse('xls_export', kwargs={
+            'username': self.user.username.upper(),
+            'id_string': self.xform.id_string
+        })
+        response = self.client.get(xls_export_url)
+        self.assertEqual(response.status_code, 200)
 
         sleep(1)
         # check that data edits cause a re-generation

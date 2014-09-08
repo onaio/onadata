@@ -97,6 +97,7 @@ def average(values):
 
 
 def map_view(request, username, id_string, template='map.html'):
+    username = username if username is None else username.lower()
     owner = get_object_or_404(User, username=username)
     xform = get_object_or_404(XForm, id_string=id_string, user=owner)
     if not has_permission(xform, owner, request):
@@ -138,11 +139,12 @@ def map_view(request, username, id_string, template='map.html'):
 
 
 def map_embed_view(request, username, id_string):
+    username = username if username is None else username.lower()
     return map_view(request, username, id_string, template='map_embed.html')
 
 
 def add_submission_with(request, username, id_string):
-
+    username = username if username is None else username.lower()
     import uuid
     import requests
 
@@ -193,6 +195,7 @@ def thank_you_submission(request, username, id_string):
 
 
 def data_export(request, username, id_string, export_type):
+    username = username if username is None else username.lower()
     owner = get_object_or_404(User, username=username)
     xform = get_object_or_404(XForm, id_string=id_string, user=owner)
     helper_auth_helper(request)
@@ -278,6 +281,7 @@ def data_export(request, username, id_string, export_type):
 @login_required
 @require_POST
 def create_export(request, username, id_string, export_type):
+    username = username if username is None else username.lower()
     owner = get_object_or_404(User, username=username)
     xform = get_object_or_404(XForm, id_string=id_string, user=owner)
     if not has_permission(xform, owner, request):
@@ -351,6 +355,7 @@ def _get_google_token(request, redirect_to_url):
 
 
 def export_list(request, username, id_string, export_type):
+    username = username if username is None else username.lower()
     if export_type == Export.GDOC_EXPORT:
         redirect_url = reverse(
             export_list,
@@ -386,6 +391,7 @@ def export_list(request, username, id_string, export_type):
 
 
 def export_progress(request, username, id_string, export_type):
+    username = username if username is None else username.lower()
     owner = get_object_or_404(User, username=username)
     xform = get_object_or_404(XForm, id_string=id_string, user=owner)
     if not has_permission(xform, owner, request):
@@ -443,6 +449,7 @@ def export_progress(request, username, id_string, export_type):
 
 
 def export_download(request, username, id_string, export_type, filename):
+    username = username if username is None else username.lower()
     owner = get_object_or_404(User, username=username)
     xform = get_object_or_404(XForm, id_string=id_string, user=owner)
     helper_auth_helper(request)
@@ -486,6 +493,7 @@ def export_download(request, username, id_string, export_type, filename):
 @login_required
 @require_POST
 def delete_export(request, username, id_string, export_type):
+    username = username if username is None else username.lower()
     owner = get_object_or_404(User, username=username)
     xform = get_object_or_404(XForm, id_string=id_string, user=owner)
     if not has_permission(xform, owner, request):
@@ -520,6 +528,7 @@ def delete_export(request, username, id_string, export_type):
 
 
 def zip_export(request, username, id_string):
+    username = username if username is None else username.lower()
     owner = get_object_or_404(User, username=username)
     xform = get_object_or_404(XForm, id_string=id_string, user=owner)
     helper_auth_helper(request)
@@ -564,6 +573,7 @@ def zip_export(request, username, id_string):
 
 
 def kml_export(request, username, id_string):
+    username = username if username is None else username.lower()
     # read the locations from the database
     context = RequestContext(request)
     context.message = "HELLO!!"
@@ -599,6 +609,7 @@ def kml_export(request, username, id_string):
 
 
 def google_xls_export(request, username, id_string):
+    username = username if username is None else username.lower()
     token = None
     if request.user.is_authenticated():
         try:
@@ -643,6 +654,7 @@ def google_xls_export(request, username, id_string):
 
 
 def data_view(request, username, id_string):
+    username = username if username is None else username.lower()
     owner = get_object_or_404(User, username=username)
     xform = get_object_or_404(XForm, id_string=id_string, user=owner)
     if not has_permission(xform, owner, request):
@@ -686,6 +698,7 @@ def attachment_url(request, size='medium'):
 
 
 def instance(request, username, id_string):
+    username = username if username is None else username.lower()
     xform, is_owner, can_edit, can_view = get_xform_and_perms(
         username, id_string, request)
     # no access
@@ -712,6 +725,7 @@ def instance(request, username, id_string):
 
 
 def charts(request, username, id_string):
+    username = username if username is None else username.lower()
     xform, is_owner, can_edit, can_view = get_xform_and_perms(
         username, id_string, request)
 
@@ -748,6 +762,7 @@ def charts(request, username, id_string):
 
 
 def stats_tables(request, username, id_string):
+    username = username if username is None else username.lower()
     xform, is_owner, can_edit, can_view = get_xform_and_perms(
         username, id_string, request)
     # no access
