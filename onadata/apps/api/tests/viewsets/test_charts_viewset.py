@@ -3,8 +3,8 @@ import os
 from rest_framework.test import APIClient
 from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
-from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
+from onadata.apps.main.tests.test_base import TestBase
 
 
 class TestChartsViewSet(TestBase):
@@ -22,11 +22,23 @@ class TestChartsViewSet(TestBase):
         self.view = ChartsViewSet.as_view({
             'get': 'retrieve'
         })
-        self.request_factory = APIRequestFactory()
+        self.factory = APIRequestFactory()
+        self._make_submission(
+            os.path.join(
+                os.path.dirname(__file__), '..', 'fixtures', 'forms',
+                'tutorial', 'instances', '1.xml'))
+        self._make_submission(
+            os.path.join(
+                os.path.dirname(__file__), '..', 'fixtures', 'forms',
+                'tutorial', 'instances', '2.xml'))
+        self._make_submission(
+            os.path.join(
+                os.path.dirname(__file__), '..', 'fixtures', 'forms',
+                'tutorial', 'instances', '3.xml'))
 
     def test_get_on_categorized_field(self):
         data = {'field_name': 'gender'}
-        request = self.request_factory.get('/charts', data)
+        request = self.factory.get('/charts', data)
         force_authenticate(request, user=self.user)
         response = self.view(
             request,
@@ -38,7 +50,7 @@ class TestChartsViewSet(TestBase):
         self.assertEqual(response.data['data_type'], 'categorized')
 
     def test_return_bad_request_on_non_json_request_with_field_name(self):
-        request = self.request_factory.get('/charts/%s.html' % self.xform.id)
+        request = self.factory.get('/charts/%s.html' % self.xform.id)
         force_authenticate(request, user=self.user)
         response = self.view(
             request,
@@ -49,7 +61,7 @@ class TestChartsViewSet(TestBase):
 
     def test_get_on_date_field(self):
         data = {'field_name': 'date'}
-        request = self.request_factory.get('/charts', data)
+        request = self.factory.get('/charts', data)
         force_authenticate(request, user=self.user)
         response = self.view(
             request,
@@ -61,7 +73,7 @@ class TestChartsViewSet(TestBase):
 
     def test_get_on_numeric_field(self):
         data = {'field_name': 'age'}
-        request = self.request_factory.get('/charts', data)
+        request = self.factory.get('/charts', data)
         force_authenticate(request, user=self.user)
         response = self.view(
             request,
@@ -72,9 +84,41 @@ class TestChartsViewSet(TestBase):
         self.assertEqual(response.data['field_name'], 'age')
         self.assertEqual(response.data['data_type'], 'numeric')
 
+    def test_get_on_select_field(self):
+        data = {'field_name': 'gender'}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['field_type'], 'select one')
+        self.assertEqual(response.data['field_name'], 'gender')
+        self.assertEqual(response.data['data_type'], 'categorized')
+
+    def test_get_on_select_multi_field(self):
+        field_name = 'favorite_toppings'
+        data = {'field_name': field_name}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['field_type'], 'select all that apply')
+        self.assertEqual(response.data['field_name'], field_name)
+        self.assertEqual(response.data['data_type'], 'categorized')
+
+        options = response.data['data'][0][field_name]
+        self.assertEqual(options, u'green_peppers pepperoni')
+        import ipdb
+        ipdb.set_trace()
+
     def test_get_all_fields(self):
         data = {'fields': 'all'}
-        request = self.request_factory.get('/', data)
+        request = self.factory.get('/', data)
         force_authenticate(request, user=self.user)
         response = self.view(
             request,
@@ -90,7 +134,7 @@ class TestChartsViewSet(TestBase):
 
     def test_get_specific_fields(self):
         data = {'fields': 'date,age'}
-        request = self.request_factory.get('/', data)
+        request = self.factory.get('/', data)
         force_authenticate(request, user=self.user)
         response = self.view(
             request,
@@ -114,7 +158,7 @@ class TestChartsViewSet(TestBase):
 
     def test_get_invalid_field_name(self):
         data = {'fields': 'invalid_field_name'}
-        request = self.request_factory.get('/', data)
+        request = self.factory.get('/', data)
         force_authenticate(request, user=self.user)
         response = self.view(
             request,
@@ -126,7 +170,7 @@ class TestChartsViewSet(TestBase):
         self.view = ChartsViewSet.as_view({
             'get': 'list'
         })
-        request = self.request_factory.get('/charts')
+        request = self.factory.get('/charts')
         force_authenticate(request, user=self.user)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
@@ -134,7 +178,7 @@ class TestChartsViewSet(TestBase):
                 'url': 'http://testserver/api/v1/charts/%s' % self.xform.pk}
         self.assertEqual(response.data, [data])
 
-        request = self.request_factory.get('/charts')
+        request = self.factory.get('/charts')
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
