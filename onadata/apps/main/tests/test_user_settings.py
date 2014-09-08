@@ -11,9 +11,16 @@ class TestUserSettings(TestBase):
         TestBase.setUp(self)
         self.settings_url = reverse(
             profile_settings, kwargs={'username': self.user.username})
+        # url with username in upppercase
+        self.settings_url_two = reverse(
+            profile_settings, kwargs={'username': self.user.username.upper()})
 
     def test_render_user_settings(self):
         response = self.client.get(self.settings_url)
+        self.assertEqual(response.status_code, 200)
+
+        # test with username in uppercase
+        response = self.client.get(self.settings_url_two)
         self.assertEqual(response.status_code, 200)
 
     def test_show_existing_profile_data(self):
