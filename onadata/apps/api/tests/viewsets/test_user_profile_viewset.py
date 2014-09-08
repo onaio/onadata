@@ -9,6 +9,22 @@ from onadata.libs.serializers.user_profile_serializer import (
 )
 
 
+def _profile_data():
+    return {
+        'username': u'deno',
+        'name': u'Dennis',
+        'email': u'deno@columbia.edu',
+        'city': u'Denoville',
+        'country': u'US',
+        'organization': u'Dono Inc.',
+        'website': u'deno.com',
+        'twitter': u'denoerama',
+        'require_auth': False,
+        'password': 'denodeno',
+        'is_org': False,
+    }
+
+
 class TestUserProfileViewSet(TestAbstractViewSet):
 
     def setUp(self):
@@ -52,26 +68,29 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = view(request, user='bob')
         data = self.user_profile_data()
         del data['email']
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
         self.assertNotIn('email', response.data)
+
+    def test_profiles_get_org_anon(self):
+        self._org_create()
+        self.client.logout()
+        view = UserProfileViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/')
+        response = view(request, user=self.company_data['org'])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['name'], self.company_data['name'])
+        self.assertIn('is_org', response.data)
+        self.assertEqual(response.data['is_org'], True)
 
     def test_profile_create(self):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        data = {
-            'username': u'deno',
-            'name': u'Dennis',
-            'email': u'deno@columbia.edu',
-            'city': u'Denoville',
-            'country': u'US',
-            'organization': u'Dono Inc.',
-            'website': u'deno.com',
-            'twitter': u'denoerama',
-            'require_auth': False,
-            'password': 'denodeno',
-        }
+        data = _profile_data()
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
@@ -85,18 +104,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, data)
 
     def test_profile_create_anon(self):
-        data = {
-            'username': u'deno',
-            'name': u'Dennis',
-            'email': u'deno@columbia.edu',
-            'city': u'Denoville',
-            'country': u'US',
-            'organization': u'Dono Inc.',
-            'website': u'deno.com',
-            'twitter': u'denoerama',
-            'require_auth': False,
-            'password': 'denodeno',
-        }
+        data = _profile_data()
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json")
@@ -115,17 +123,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        data = {
-            'username': u'deno',
-            'email': u'deno@columbia.edu',
-            'city': u'Denoville',
-            'country': u'US',
-            'organization': u'Dono Inc.',
-            'website': u'deno.com',
-            'twitter': u'denoerama',
-            'require_auth': False,
-            'password': 'denodeno',
-        }
+        data = _profile_data()
+        del data['name']
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
@@ -157,18 +156,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
-        data = {
-            'username': u'DeNo',
-            'name': u'Dennis',
-            'email': u'deno@columbia.edu',
-            'city': u'Denoville',
-            'country': u'US',
-            'organization': u'Dono Inc.',
-            'website': u'deno.com',
-            'twitter': u'denoerama',
-            'require_auth': False,
-            'password': 'denodeno',
-        }
+        data = _profile_data()
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
