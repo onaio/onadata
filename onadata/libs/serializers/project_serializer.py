@@ -34,7 +34,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Project
-        exclude = ('organization', 'created_by', 'user_stars')
+        exclude = ('organization', 'user_stars')
 
     def restore_object(self, attrs, instance=None):
         if instance:

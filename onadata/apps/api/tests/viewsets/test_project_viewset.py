@@ -25,6 +25,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.project_data])
+        self.assertIn('created_by', response.data[0].keys())
 
     def test_projects_get(self):
         self._project_create()
