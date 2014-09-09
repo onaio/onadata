@@ -112,9 +112,7 @@ class TestChartsViewSet(TestBase):
         self.assertEqual(response.data['data_type'], 'categorized')
 
         options = response.data['data'][0][field_name]
-        self.assertEqual(options, u'green_peppers pepperoni')
-        import ipdb
-        ipdb.set_trace()
+        self.assertEqual(options, ['Green Peppers', 'Pepperoni'])
 
     def test_get_all_fields(self):
         data = {'fields': 'all'}

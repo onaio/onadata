@@ -51,15 +51,17 @@ def utc_time_string_for_javascript(date_string):
     return "{}+{}".format(date_time, tz)
 
 
-def get_choice_label(choices, name):
-    label = name
+def get_choice_label(choices, string):
+    labels = []
 
-    for choice in choices:
-        if choice['name'] == name:
-            label = choice['label']
-            break
+    if string:
+        for name in string.split(' '):
+            for choice in choices:
+                if choice['name'] == name:
+                    labels.append(choice['label'])
+                    break
 
-    return label
+    return labels
 
 
 def build_chart_data_for_field(xform, field, language_index=0):
@@ -92,8 +94,8 @@ def build_chart_data_for_field(xform, field, language_index=0):
     # truncate field name to 63 characters to fix #354
     truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
     truncated_name = truncated_name.encode('utf-8')
-    if data_type == 'categorized':
 
+    if data_type == 'categorized':
         if result:
             for item in result:
                 item[truncated_name] = get_choice_label(
@@ -120,7 +122,7 @@ def build_chart_data_for_field(xform, field, language_index=0):
                 except ValueError:
                     pass
 
-    data = {
+    return {
         'data': result,
         'data_type': data_type,
         'field_label': field_label,
@@ -128,8 +130,6 @@ def build_chart_data_for_field(xform, field, language_index=0):
         'field_name': field_xpath.replace('/', '-'),
         'field_type': field_type
     }
-
-    return data
 
 
 def calculate_ranges(page, items_per_page, total_items):
