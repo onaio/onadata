@@ -64,7 +64,8 @@ class XForm(BaseModel):
     id_string = models.SlugField(
         editable=False,
         verbose_name=ugettext_lazy("ID"),
-        max_length=MAX_ID_LENGTH
+        max_length=MAX_ID_LENGTH,
+        db_column='id_string'
     )
     title = models.CharField(editable=False, max_length=XFORM_TITLE_LENGTH)
     date_created = models.DateTimeField(auto_now_add=True)
@@ -98,6 +99,9 @@ class XForm(BaseModel):
             ("transfer_xform", _(u"Can transfer form ownership.")),
         )
 
+    def clean_id_string(self):
+        return self.cleaned_data["id_string"].lower()
+
     def file_name(self):
         return self.id_string + ".xml"
 
@@ -123,7 +127,7 @@ class XForm(BaseModel):
         matches = self.instance_id_regex.findall(self.xml)
         if len(matches) != 1:
             raise XLSFormError(_("There should be a single id string."))
-        self.id_string = matches[0]
+        self.id_string = matches[0].lower()
 
     def _set_title(self):
         text = re.sub(r"\s+", " ", self.xml)
@@ -158,6 +162,7 @@ class XForm(BaseModel):
         super(XForm, self).save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
+        self.id_string = self.id_string.lower()
         self._set_title()
         self._set_description()
         old_id_string = self.id_string

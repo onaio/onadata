@@ -15,9 +15,18 @@ class TestDataView(TestBase):
             'username': self.user.username,
             'id_string': self.xform.id_string
         })
+        # username in uppercase
+        self.url_two = reverse(data_view, kwargs={
+            'username': self.user.username.lower(),
+            'id_string': self.xform.id_string
+        })
 
     def test_data_view(self):
         response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+
+        # test with username in uppercase
+        response = self.client.get(self.url_two)
         self.assertEqual(response.status_code, 200)
 
     def test_restrict_for_anon(self):

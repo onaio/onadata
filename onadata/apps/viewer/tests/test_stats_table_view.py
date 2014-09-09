@@ -4,6 +4,7 @@ from onadata.apps.viewer.views import stats_tables
 
 
 class TestStatsTableView(TestBase):
+
     def setUp(self):
         super(TestStatsTableView, self).setUp()
         # Every test needs access to the request factory.
@@ -14,6 +15,16 @@ class TestStatsTableView(TestBase):
         request = self.factory.get(
             '/{}/forms/{}/tables'.format(
                 self.user.username, self.xform.id_string))
+
+        request.user = self.user
+        response = stats_tables(
+            request, self.user.username, self.xform.id_string)
+        self.assertEqual(response.status_code, 200)
+
+        # test with a username in uppercase
+        request = self.factory.get(
+            '/{}/forms/{}/tables'.format(
+                self.user.username.upper(), self.xform.id_string))
 
         request.user = self.user
         response = stats_tables(

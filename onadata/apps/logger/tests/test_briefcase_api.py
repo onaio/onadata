@@ -52,6 +52,56 @@ class TestBriefcaseAPI(TestBase):
         self.client = self._authenticated_client(self._submission_list_url)
         self.anon = self.client
 
+    def test_urls_with_username_in_uppercase(self):
+        submission_list_url = reverse(
+            view_submission_list,
+            kwargs={'username': self.user.username.upper()})
+        submission_url = reverse(
+            submission,
+            kwargs={'username': self.user.username.upper()})
+        download_submission_url = reverse(
+            view_download_submission,
+            kwargs={'username': self.user.username.upper()})
+        form_upload_url = reverse(
+            form_upload,
+            kwargs={'username': self.user.username.upper()})
+
+        # test 'submission_list_url'
+        self._publish_xml_form()
+        self._make_submissions()
+        response = self.client.get(
+            submission_list_url,
+            data={'formId': self.xform.id_string})
+        self.assertEqual(response.status_code, 200)
+
+        # test 'submission_url'
+        submission_path = os.path.join(
+            self.this_directory, 'fixtures', 'transportation',
+            'view', 'submission.xml')
+        with codecs.open(submission_path, encoding='utf-8') as f:
+            post_data = {'xml_submission_file': f}
+            response = self.client.post(submission_url, post_data)
+            self.assertEqual(response.status_code, 202)
+
+        # test 'download_submission_url'
+        instanceId = u'5b2cc313-fc09-437e-8149-fcd32f695d41'
+        formId = u'%(formId)s[@version=null and @uiVersion=null]/' \
+                 u'%(formId)s[@key=uuid:%(instanceId)s]' % {
+                     'formId': self.xform.id_string,
+                     'instanceId': instanceId}
+        params = {'formId': formId}
+        response = self.client.get(download_submission_url, data=params)
+        self.assertEqual(response.status_code, 200)
+
+        # test 'form_upload_url'
+        with codecs.open(self.form_def_path, encoding='utf-8') as f:
+            params = {'form_def_file': f, 'dataFile': ''}
+            response = self.client.post(form_upload_url, data=params)
+            self.assertContains(
+                response,
+                u'Form with this id or SMS-keyword already exists',
+                status_code=400)
+
     def test_view_submission_list(self):
         self._publish_xml_form()
         self._make_submissions()

@@ -43,6 +43,12 @@ class TestExportList(TestBase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
 
+        # test with username in uppercase
+        kwargs['username'] = self.user.username.upper()
+        url = reverse(export_list, kwargs=kwargs)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
     def test_xls_export_list(self):
         kwargs = {'username': self.user.username,
                   'id_string': self.xform.id_string,

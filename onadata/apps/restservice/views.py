@@ -17,6 +17,7 @@ from onadata.apps.restservice.models import RestService
 
 @login_required
 def add_service(request, username, id_string):
+    username = username if username is None else username.lower()
     context = RequestContext(request)
     form = RestServiceForm()
     xform = get_object_or_404(
@@ -62,6 +63,7 @@ def add_service(request, username, id_string):
 
 
 def delete_service(request, username, id_string):
+    username = username if username is None else username.lower()
     success = "FAILED"
     if request.method == 'POST':
         pk = request.POST.get('service-id')

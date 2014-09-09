@@ -98,6 +98,8 @@ def _submission_response(context, instance):
 @require_POST
 @csrf_exempt
 def bulksubmission(request, username):
+    username = username if username is None else username.lower()
+
     # puts it in a temp directory.
     # runs "import_tools(temp_directory)"
     # deletes
@@ -155,6 +157,7 @@ def bulksubmission(request, username):
 
 @login_required
 def bulksubmission_form(request, username=None):
+    username = username if username is None else username.lower()
     if request.user.username == username:
         context = RequestContext(request)
         return render_to_response(
@@ -168,6 +171,7 @@ def formList(request, username):
     """
     This is where ODK Collect gets its download list.
     """
+    username = username if username is None else username.lower()
     formlist_user = get_object_or_404(User, username=username)
     profile, created = UserProfile.objects.get_or_create(user=formlist_user)
 
@@ -209,6 +213,7 @@ def formList(request, username):
 
 @require_GET
 def xformsManifest(request, username, id_string):
+    username = username if username is None else username.lower()
     xform = get_object_or_404(
         XForm, id_string=id_string, user__username=username)
     formlist_user = xform.user
@@ -234,6 +239,7 @@ def xformsManifest(request, username, id_string):
 @require_http_methods(["HEAD", "POST"])
 @csrf_exempt
 def submission(request, username=None):
+    username = username if username is None else username.lower()
     if username:
         formlist_user = get_object_or_404(User, username=username.lower())
         profile, created = UserProfile.objects.get_or_create(
@@ -317,6 +323,7 @@ def submission(request, username=None):
 
 
 def download_xform(request, username, id_string):
+    username = username if username is None else username.lower()
     user = get_object_or_404(User, username=username)
     xform = get_object_or_404(XForm,
                               user=user, id_string=id_string)
@@ -343,6 +350,7 @@ def download_xform(request, username, id_string):
 
 
 def download_xlsform(request, username, id_string):
+    username = username if username is None else username.lower()
     xform = get_object_or_404(XForm,
                               user__username=username, id_string=id_string)
     owner = User.objects.get(username=username)
@@ -386,6 +394,7 @@ def download_xlsform(request, username, id_string):
 
 
 def download_jsonform(request, username, id_string):
+    username = username if username is None else username.lower()
     owner = get_object_or_404(User, username=username)
     xform = get_object_or_404(XForm, user__username=username,
                               id_string=id_string)
@@ -412,6 +421,7 @@ def download_jsonform(request, username, id_string):
 @is_owner
 @require_POST
 def delete_xform(request, username, id_string):
+    username = username if username is None else username.lower()
     xform = get_object_or_404(XForm, user__username=username,
                               id_string=id_string)
 
@@ -430,6 +440,7 @@ def delete_xform(request, username, id_string):
 
 @is_owner
 def toggle_downloadable(request, username, id_string):
+    username = username if username is None else username.lower()
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     xform.downloadable = not xform.downloadable
     xform.save()
@@ -446,6 +457,7 @@ def toggle_downloadable(request, username, id_string):
 
 
 def enter_data(request, username, id_string):
+    username = username if username is None else username.lower()
     owner = get_object_or_404(User, username=username)
     xform = get_object_or_404(XForm, user__username=username,
                               id_string=id_string)
@@ -482,6 +494,7 @@ def enter_data(request, username, id_string):
 
 
 def edit_data(request, username, id_string, data_id):
+    username = username if username is None else username.lower()
     context = RequestContext(request)
     owner = User.objects.get(username=username)
     xform = get_object_or_404(
@@ -530,6 +543,7 @@ def edit_data(request, username, id_string, data_id):
 
 
 def view_submission_list(request, username):
+    username = username if username is None else username.lower()
     form_user = get_object_or_404(User, username=username)
     profile, created = \
         UserProfile.objects.get_or_create(user=form_user)
@@ -570,6 +584,7 @@ def view_submission_list(request, username):
 
 
 def view_download_submission(request, username):
+    username = username if username is None else username.lower()
     form_user = get_object_or_404(User, username=username)
     profile, created = \
         UserProfile.objects.get_or_create(user=form_user)
@@ -611,7 +626,10 @@ def view_download_submission(request, username):
 @require_http_methods(["HEAD", "POST"])
 @csrf_exempt
 def form_upload(request, username):
+    username = username if username is None else username.lower()
+
     class DoXmlFormUpload():
+
         def __init__(self, xml_file, user):
             self.xml_file = xml_file
             self.user = user
@@ -660,6 +678,7 @@ def ziggy_submissions(request, username):
         - ZiggyInstance Django Model
     Copy form_instance - to create actual Instances for a specific form?
     """
+    username = username if username is None else username.lower()
     data = {'message': _(u"Invalid request!")}
     status = 400
     form_user = get_object_or_404(User, username=username)
