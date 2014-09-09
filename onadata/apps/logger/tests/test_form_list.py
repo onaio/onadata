@@ -7,6 +7,7 @@ from onadata.apps.logger.views import formList
 
 
 class TestFormList(TestBase):
+
     def setUp(self):
         super(TestFormList, self).setUp()
         self.factory = RequestFactory()
@@ -18,6 +19,12 @@ class TestFormList(TestBase):
         response = formList(request, self.user.username)
         request.META.update(auth(request.META, response))
         response = formList(request, self.user.username)
+        self.assertEqual(response.status_code, 200)
+
+        # test with username in upper case
+        response = formList(request, self.user.username.upper())
+        request.META.update(auth(request.META, response))
+        response = formList(request, self.user.username.upper())
         self.assertEqual(response.status_code, 200)
 
     def test_return_401_for_anon_when_require_auth_true(self):

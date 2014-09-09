@@ -12,8 +12,6 @@ class TestStatsTableView(TestBase):
         self._publish_transportation_form_and_submit_instance()
 
     def test_view_returns_200(self):
-        import ipdb
-        ipdb.set_trace()
         request = self.factory.get(
             '/{}/forms/{}/tables'.format(
                 self.user.username, self.xform.id_string))
