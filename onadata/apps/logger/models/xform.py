@@ -127,7 +127,7 @@ class XForm(BaseModel):
         matches = self.instance_id_regex.findall(self.xml)
         if len(matches) != 1:
             raise XLSFormError(_("There should be a single id string."))
-        self.id_string = matches[0]
+        self.id_string = matches[0].lower()
 
     def _set_title(self):
         text = re.sub(r"\s+", " ", self.xml)
