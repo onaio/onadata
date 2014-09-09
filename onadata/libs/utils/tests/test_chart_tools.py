@@ -61,18 +61,19 @@ class TestChartTools(TestBase):
         self.assertEqual(data['field_name'], u'words_with_accents-père')
 
     def test_build_chart_data_for_field_on_select_one(self):
+        field_name = 'gender'
         dd = self.xform.data_dictionary()
-        field = find_field_by_name(dd, 'gender')
+        field = find_field_by_name(dd, field_name)
         data = build_chart_data_for_field(self.xform, field)
-        self.assertEqual(data['field_name'], 'gender')
+        self.assertEqual(data['field_name'], field_name)
         self.assertEqual(data['field_type'], 'select one')
         self.assertEqual(data['data_type'], 'categorized')
         # map the list to a dict
-        values = dict([(d['gender'], d['count'], ) for d in data['data']])
-        self.assertEqual(values, {
-            'Male': 1,
-            'Female': 1
-        })
+        for d in data['data']:
+            genders = d[field_name]
+            count = d['count']
+            self.assertEqual(type(genders), list)
+            self.assertEqual(count, 1)
 
     def test_build_chart_data_for_field_on_grouped_field(self):
         dd = self.xform.data_dictionary()
