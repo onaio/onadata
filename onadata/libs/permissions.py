@@ -120,7 +120,15 @@ class ManagerRole(Role):
     )
 
 
+class MemberRole(Role):
+    """This is a role for a member of an organization.
+    """
+    name = 'member'
+
+
 class OwnerRole(Role):
+    """This is a role for an owner of a dataset, organization, or project.
+    """
     name = 'owner'
     permissions = (
         (CAN_ADD_XFORM, Project),

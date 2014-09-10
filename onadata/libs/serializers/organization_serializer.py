@@ -7,11 +7,12 @@ from onadata.apps.api import tools
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.tools import get_organization_members
 from onadata.apps.main.forms import RegistrationFormUserProfile
+from onadata.libs.permissions import MemberRole, OwnerRole
 
 
 def get_role_for_org(user, organization):
-    return 'owner' if 'is_org_owner' in get_perms(
-        user, organization) else 'member'
+    return OwnerRole.name if 'is_org_owner' in get_perms(
+        user, organization) else MemberRole.name
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
