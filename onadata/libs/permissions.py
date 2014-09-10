@@ -158,11 +158,7 @@ def get_role(permissions, obj):
             return role.name
 
 
-def get_org_role(permissions, obj):
-    return 'owner' if 'is_org_owner' in permissions else 'member'
-
-
-def get_object_users_with_permissions(obj, role_func=get_role):
+def get_object_users_with_permissions(obj):
     """Returns users, roles and permissions for a object.
     """
     users_with_perms = []
@@ -170,7 +166,7 @@ def get_object_users_with_permissions(obj, role_func=get_role):
     if obj:
         users_with_perms = [{
             'user': user,
-            'role': role_func(permissions, obj),
+            'role': get_role(permissions, obj),
             'permissions': permissions} for user, permissions in
             get_users_with_perms(obj,
                                  attach_perms=True,

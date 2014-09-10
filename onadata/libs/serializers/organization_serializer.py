@@ -1,13 +1,17 @@
 from django.contrib.auth.models import User
 from django.core.validators import ValidationError
 from rest_framework import serializers
+from guardian.shortcuts import get_perms
 
 from onadata.apps.api import tools
 from onadata.apps.api.models import OrganizationProfile
-from onadata.libs.permissions import (
-    get_object_users_with_permissions,
-    get_org_role)
+from onadata.apps.api.tools import get_organization_members
 from onadata.apps.main.forms import RegistrationFormUserProfile
+
+
+def get_role_for_org(user, organization):
+    return 'owner' if 'is_org_owner' in get_perms(
+        user, organization) else 'member'
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
@@ -76,4 +80,9 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         raise ValidationError(u'%s already exists' % org)
 
     def get_org_permissions(self, obj):
-        return get_object_users_with_permissions(obj, get_org_role)
+        members = get_organization_members(obj)
+
+        return [{
+            'user': u.username,
+            'role': get_role_for_org(u, obj)
+        } for u in members]
