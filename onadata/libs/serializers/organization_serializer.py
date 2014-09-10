@@ -4,7 +4,9 @@ from rest_framework import serializers
 
 from onadata.apps.api import tools
 from onadata.apps.api.models import OrganizationProfile
-from onadata.libs.permissions import get_object_users_with_permissions
+from onadata.libs.permissions import (
+    get_object_users_with_permissions,
+    get_org_role)
 from onadata.apps.main.forms import RegistrationFormUserProfile
 
 
@@ -74,4 +76,4 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         raise ValidationError(u'%s already exists' % org)
 
     def get_org_permissions(self, obj):
-        return get_object_users_with_permissions(obj)
+        return get_object_users_with_permissions(obj, get_org_role)
