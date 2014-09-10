@@ -81,7 +81,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         raise ValidationError(u'%s already exists' % org)
 
     def get_org_permissions(self, obj):
-        members = get_organization_members(obj)
+        members = get_organization_members(obj) if obj else []
 
         return [{
             'user': u.username,
