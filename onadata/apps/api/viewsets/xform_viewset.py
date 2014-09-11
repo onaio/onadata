@@ -460,7 +460,7 @@ https://ona.io/api/v1/forms/28058/labels/hello%20world
 ## Get webform/enketo link
 
 <pre class="prettyprint">
-<b>DELETE</b> /api/v1/forms/<code>{pk}</code>/enketo</pre>
+<b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo</pre>
 
 > Request
 >
