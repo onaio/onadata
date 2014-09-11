@@ -262,6 +262,11 @@ Your client application should use the `code` to request for an access_token.
 
 ### 3. Request for access token.
 
+You need to make a `POST` request with `grant_type`, `code`, `client_id` and
+ `redirect_uri` as `POST` payload params. You should authenticate the request
+ with `Basic Authentication` using your `client_id` and `client_secret` as
+ `username:password` pair.
+
 Request:
 
 <pre class="prettyprint">

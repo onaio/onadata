@@ -72,6 +72,10 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', response.data.keys())
 
+        for user in response.data['users']:
+            self.assertEqual(user['role'], 'owner')
+            self.assertEqual(type(user['user']), unicode)
+
     def test_orgs_create(self):
         self._org_create()
 
@@ -165,6 +169,35 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'denoinc', u'aboy'])
+
+    def test_role_for_org_non_owner(self):
+        # creating org with member
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+
+        User.objects.create(username='aboy')
+        data = {'username': 'aboy'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, user='denoinc')
+
+        # getting profile
+        view = OrganizationProfileViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('users', response.data.keys())
+
+        for user in response.data['users']:
+            username = user['user']
+            role = 'owner' if username == 'denoinc' else 'member'
+
+            self.assertEqual(user['role'], role)
 
     def test_add_members_to_org_with_anonymous_user(self):
         self._org_create()
