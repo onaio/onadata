@@ -42,12 +42,15 @@ class TestChartsViewSet(TestBase):
         force_authenticate(request, user=self.user)
         response = self.view(
             request,
-            pk=self.xform.id
+            pk=self.xform.id,
+            format='html'
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['field_type'], 'select one')
         self.assertEqual(response.data['field_name'], 'gender')
         self.assertEqual(response.data['data_type'], 'categorized')
+        self.assertEqual(response.data['data'][0]['gender'], 'Male')
+        self.assertEqual(response.data['data'][1]['gender'], 'Female')
 
     def test_return_bad_request_on_non_json_request_with_field_name(self):
         request = self.factory.get('/charts/%s.html' % self.xform.id)
@@ -113,6 +116,24 @@ class TestChartsViewSet(TestBase):
 
         options = response.data['data'][0][field_name]
         self.assertEqual(options, ['Green Peppers', 'Pepperoni'])
+
+    def test_get_on_select_multi_field_html_format(self):
+        field_name = 'favorite_toppings'
+        data = {'field_name': field_name}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='html'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['field_type'], 'select all that apply')
+        self.assertEqual(response.data['field_name'], field_name)
+        self.assertEqual(response.data['data_type'], 'categorized')
+
+        options = response.data['data'][0][field_name]
+        self.assertEqual(options, 'Green Peppers, Pepperoni')
 
     def test_get_all_fields(self):
         data = {'fields': 'all'}

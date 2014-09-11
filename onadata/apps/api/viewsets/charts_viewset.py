@@ -182,6 +182,10 @@ response. If `fields=all` then all the fields of the form will be returned.
 
             if request.accepted_renderer.format == 'json':
                 xform = xform.pk
+            elif request.accepted_renderer.format == 'html' and 'data' in data:
+                for item in data['data']:
+                    if isinstance(item[field_name], list):
+                        item[field_name] = u', '.join(item[field_name])
 
             data.update({
                 'xform': xform
