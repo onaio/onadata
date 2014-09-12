@@ -34,8 +34,8 @@ class TestExportList(TestBase):
         self.assertEqual(response.status_code, 200)
 
     def test_csv_export_list(self):
-        kwargs = {'username': self.user.username,
-                  'id_string': self.xform.id_string,
+        kwargs = {'username': self.user.username.upper(),
+                  'id_string': self.xform.id_string.upper(),
                   'export_type': Export.CSV_EXPORT}
 
         # test csv
@@ -106,8 +106,8 @@ class TestDataExportURL(TestBase):
     def test_csv_export_url(self):
         self._submit_transport_instance()
         url = reverse('csv_export', kwargs={
-            'username': self.user.username,
-            'id_string': self.xform.id_string,
+            'username': self.user.username.upper(),
+            'id_string': self.xform.id_string.upper(),
         })
         response = self.client.get(url)
         headers = dict(response.items())
@@ -130,8 +130,8 @@ class TestDataExportURL(TestBase):
     def test_xls_export_url(self):
         self._submit_transport_instance()
         url = reverse('xls_export', kwargs={
-            'username': self.user.username,
-            'id_string': self.xform.id_string,
+            'username': self.user.username.upper(),
+            'id_string': self.xform.id_string.upper(),
         })
         response = self.client.get(url)
         headers = dict(response.items())
@@ -145,8 +145,8 @@ class TestDataExportURL(TestBase):
     def test_csv_zip_export_url(self):
         self._submit_transport_instance()
         url = reverse('csv_zip_export', kwargs={
-            'username': self.user.username,
-            'id_string': self.xform.id_string,
+            'username': self.user.username.upper(),
+            'id_string': self.xform.id_string.upper(),
         })
         response = self.client.get(url)
         headers = dict(response.items())

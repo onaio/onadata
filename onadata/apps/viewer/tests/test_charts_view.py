@@ -5,6 +5,7 @@ from onadata.apps.viewer.views import charts
 
 
 class TestChartsView(TestBase):
+
     def setUp(self):
         TestBase.setUp(self)
         self._publish_transportation_form_and_submit_instance()

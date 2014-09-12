@@ -20,6 +20,14 @@ class TestDataView(TestBase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
 
+    def test_data_view_with_username_and_id_string_in_uppercase(self):
+        url = reverse(data_view, kwargs={
+            'username': self.user.username.upper(),
+            'id_string': self.xform.id_string.upper()
+        })
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
     def test_restrict_for_anon(self):
         response = self.anon.get(self.url)
         self.assertEqual(response.status_code, 403)
