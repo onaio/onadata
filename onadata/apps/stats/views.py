@@ -13,7 +13,7 @@ def stats(request, username=None, id_string=None):
     context = RequestContext(request)
     if id_string:
         xform = get_object_or_404(
-            XForm, user=request.user, id_string=id_string)
+            XForm, user=request.user, id_string__iexact=id_string)
         context.xform = xform
         context.submission_stats = get_form_submissions_per_day(xform)
     else:
