@@ -28,6 +28,14 @@ class TestFormGallery(TestBase):
             self.url, {'id_string': self.xform.id_string, 'username': 'bob'})
         self.assertEqual(count + 1, XForm.objects.count())
 
+    def test_clone_with_username_and_id_string_in_uppercase(self):
+        self._create_user_and_login('alice', 'alice')
+        count = XForm.objects.count()
+        self.client.post(
+            self.url, {'id_string': self.xform.id_string.upper(),
+                       'username': 'bob'.upper()})
+        self.assertEqual(count + 1, XForm.objects.count())
+
     def test_clone_id_string_starts_with_number(self):
         self._publish_transportation_id_string_starts_with_number_form()
         self._create_user_and_login('alice', 'alice')
