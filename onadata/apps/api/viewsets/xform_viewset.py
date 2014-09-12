@@ -149,7 +149,13 @@ def _get_owner(request):
 
 
 def response_for_format(data, format=None):
-    formatted_data = data.xml if format == 'xml' else json.loads(data.json)
+    #formatted_data = data.xml if format == 'xml' else json.loads(data.json)
+    if format == 'xml':
+        formatted_data = data.xml
+    elif format == 'xls':
+        formatted_data = data.xls
+    else:
+        formatted_data = json.loads(data.json)
     return Response(formatted_data)
 
 
@@ -339,7 +345,7 @@ https://ona.io/api/v1/forms/28058
 >           ...
 >       }, ...]
 
-## Get `JSON` | `XML` Form Representation
+## Get `JSON` | `XML` | `XLS` Form Representation
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms/<code>{pk}</code>/form.\
 <code>{format}</code></pre>
@@ -380,6 +386,14 @@ https://ona.io/api/v1/forms/28058
 >                 .....
 >          </h:body>
 >        </h:html>
+
+> XLS Example
+>
+>       curl -X GET https://ona.io/api/v1/forms/28058/form.xls
+
+> Response
+>
+>       Xls file downloaded
 
 ## Get list of forms with specific tag(s)
 
@@ -591,7 +605,7 @@ You can clone a form to a specific user account using `GET` with
     @action(methods=['GET'])
     def form(self, request, format='json', **kwargs):
         form = self.get_object()
-        if format not in ['json', 'xml']:
+        if format not in ['json', 'xml', 'xls']:
             return HttpResponseBadRequest('400 BAD REQUEST',
                                           mimetype='application/json',
                                           status=400)
