@@ -52,7 +52,7 @@ def encode(time_str):
 
 def dd_for_params(id_string, owner, request):
     start = end = None
-    dd = DataDictionary.objects.get(id_string=id_string,
+    dd = DataDictionary.objects.get(id_string__iexact=id_string,
                                     user=owner)
     if request.GET.get('start'):
         try:
@@ -97,8 +97,8 @@ def average(values):
 
 
 def map_view(request, username, id_string, template='map.html'):
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, id_string=id_string, user=owner)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
     context = RequestContext(request)
@@ -152,7 +152,7 @@ def add_submission_with(request, username, id_string):
 
     def geopoint_xpaths(username, id_string):
         d = DataDictionary.objects.get(
-            user__username=username, id_string=id_string)
+            user__username__iexact=username, id_string__iexact=id_string)
         return [e.get_abbreviated_xpath()
                 for e in d.get_survey_elements()
                 if e.bind.get(u'type') == u'geopoint']
@@ -193,8 +193,8 @@ def thank_you_submission(request, username, id_string):
 
 
 def data_export(request, username, id_string, export_type):
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, id_string=id_string, user=owner)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -278,8 +278,8 @@ def data_export(request, username, id_string, export_type):
 @login_required
 @require_POST
 def create_export(request, username, id_string, export_type):
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, id_string=id_string, user=owner)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
@@ -360,8 +360,8 @@ def export_list(request, username, id_string, export_type):
         token = _get_google_token(request, redirect_url)
         if isinstance(token, HttpResponse):
             return token
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, id_string=id_string, user=owner)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
@@ -386,8 +386,8 @@ def export_list(request, username, id_string, export_type):
 
 
 def export_progress(request, username, id_string, export_type):
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, id_string=id_string, user=owner)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
@@ -443,8 +443,8 @@ def export_progress(request, username, id_string, export_type):
 
 
 def export_download(request, username, id_string, export_type, filename):
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, id_string=id_string, user=owner)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -486,8 +486,8 @@ def export_download(request, username, id_string, export_type, filename):
 @login_required
 @require_POST
 def delete_export(request, username, id_string, export_type):
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, id_string=id_string, user=owner)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
@@ -520,8 +520,8 @@ def delete_export(request, username, id_string, export_type):
 
 
 def zip_export(request, username, id_string):
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, id_string=id_string, user=owner)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -567,8 +567,8 @@ def kml_export(request, username, id_string):
     # read the locations from the database
     context = RequestContext(request)
     context.message = "HELLO!!"
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, id_string=id_string, user=owner)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -614,8 +614,8 @@ def google_xls_export(request, username, id_string):
             google_xls_export,
             kwargs={'username': username, 'id_string': id_string})
         return HttpResponseRedirect(redirect_uri)
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, id_string=id_string, user=owner)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
     valid, dd = dd_for_params(id_string, owner, request)
@@ -643,8 +643,8 @@ def google_xls_export(request, username, id_string):
 
 
 def data_view(request, username, id_string):
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, id_string=id_string, user=owner)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
