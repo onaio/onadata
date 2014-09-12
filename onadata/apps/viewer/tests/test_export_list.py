@@ -106,8 +106,8 @@ class TestDataExportURL(TestBase):
     def test_csv_export_url(self):
         self._submit_transport_instance()
         url = reverse('csv_export', kwargs={
-            'username': self.user.username.upper(),
-            'id_string': self.xform.id_string.upper(),
+            'username': self.user.username,
+            'id_string': self.xform.id_string,
         })
         response = self.client.get(url)
         headers = dict(response.items())
