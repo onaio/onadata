@@ -223,6 +223,8 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=formid, format='xml')
         self.assertEqual(response.status_code, 200)
         response_doc = minidom.parseString(response.data)
+        response = view(request, pk=formid, format='xls')
+        self.assertEqual(response.status_code, 200)
 
         xml_path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
