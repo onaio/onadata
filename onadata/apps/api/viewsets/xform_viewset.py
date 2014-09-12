@@ -149,7 +149,6 @@ def _get_owner(request):
 
 
 def response_for_format(data, format=None):
-    #formatted_data = data.xml if format == 'xml' else json.loads(data.json)
     if format == 'xml':
         formatted_data = data.xml
     elif format == 'xls':
