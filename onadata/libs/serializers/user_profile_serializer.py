@@ -11,6 +11,7 @@ from onadata.apps.main.models import UserProfile
 from onadata.apps.main.forms import UserProfileForm,\
     RegistrationFormUserProfile
 from registration.models import RegistrationProfile
+from django.contrib.sites.models import Site
 from onadata.libs.permissions import CAN_VIEW_PROFILE
 
 
@@ -125,7 +126,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             new_user = RegistrationProfile.objects.create_inactive_user(
                 username=username,
                 password=password,
-                email=email)
+                email=email,
+                site=Site)
             new_user.save()
 
             created_by = self.context['request'].user

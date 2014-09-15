@@ -15,6 +15,7 @@ from django.shortcuts import get_object_or_404
 from taggit.forms import TagField
 from rest_framework import exceptions
 from registration.models import RegistrationProfile
+from django.contrib.sites.models import Site
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.project import Project
@@ -88,7 +89,9 @@ def create_organization_object(org_name, creator, attrs={}):
 
     new_user = RegistrationProfile.objects.create_inactive_user(
         username=org_name,
-        email=attrs.get('email', u''))
+        password='',
+        email=attrs.get('email', u''),
+        site=Site)
     new_user.save()
     profile = OrganizationProfile(
         user=new_user, name=name, creator=creator,
