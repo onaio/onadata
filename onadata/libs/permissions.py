@@ -26,6 +26,10 @@ CAN_CHANGE_PROJECT = 'change_project'
 CAN_TRANSFER_PROJECT_OWNERSHIP = 'transfer_project'
 CAN_DELETE_PROJECT = 'delete_project'
 
+CAN_ADD_DATA_DIC = 'add_datadictionary'
+CAN_CHANGE_DATA_DIC = 'change_datadictionary'
+CAN_DELETE_DATA_DIC = 'delete_datadictionary'
+
 
 class Role(object):
     class_to_permissions = None
@@ -59,7 +63,8 @@ class Role(object):
         :param permissions: A list of permissions.
         :param obj: An object to get the permissions of.
         """
-        return set(permissions) == set(cls.class_to_permissions[type(obj)])
+        return set(permissions)\
+            .issubset(set(cls.class_to_permissions[type(obj)]))
 
     @classmethod
     def user_has_role(cls, user, obj):
@@ -146,6 +151,10 @@ class OwnerRole(Role):
         (CAN_VIEW_PROFILE, UserProfile),
         (CAN_VIEW_PROJECT, Project),
         (CAN_VIEW_XFORM, XForm),
+        (CAN_ADD_DATA_DIC, XForm),
+        (CAN_CHANGE_DATA_DIC, XForm),
+        (CAN_DELETE_DATA_DIC, XForm),
+        (CAN_ADD_SUBMISSIONS, XForm),
     )
 
 ROLES = {role.name: role for role in [ReadOnlyRole,
