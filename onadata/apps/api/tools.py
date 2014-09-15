@@ -91,7 +91,8 @@ def create_organization_object(org_name, creator, attrs={}):
         username=org_name,
         password='',
         email=attrs.get('email', u''),
-        site=Site)
+        site=Site,
+        send_email=True)
     new_user.save()
     profile = OrganizationProfile(
         user=new_user, name=name, creator=creator,

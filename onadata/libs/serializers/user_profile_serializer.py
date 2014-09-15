@@ -127,7 +127,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 username=username,
                 password=password,
                 email=email,
-                site=Site)
+                site=Site,
+                send_email=True)
             new_user.save()
 
             created_by = self.context['request'].user
