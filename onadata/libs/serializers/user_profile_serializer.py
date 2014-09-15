@@ -10,6 +10,7 @@ from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.main.models import UserProfile
 from onadata.apps.main.forms import UserProfileForm,\
     RegistrationFormUserProfile
+from registration.models import RegistrationProfile
 from onadata.libs.permissions import CAN_VIEW_PROFILE
 
 
@@ -121,11 +122,12 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         form.REGISTRATION_REQUIRE_CAPTCHA = False
 
         if form.is_valid():
-            first_name, last_name = _get_first_last_names(name)
-            new_user = User(username=username, first_name=first_name,
-                            last_name=last_name, email=email)
-            new_user.set_password(password)
+            new_user = RegistrationProfile.objects.create_inactive_user(
+                username=username,
+                password=password,
+                email=email)
             new_user.save()
+
             created_by = self.context['request'].user
             created_by = None if created_by.is_anonymous() else created_by
             profile = UserProfile(
