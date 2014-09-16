@@ -228,8 +228,10 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         for user in response.data['users']:
             username = user['user']
             role = 'owner' if username == 'denoinc' else 'member'
-
-            self.assertEqual(user['role'], role)
+            if username == 'denoinc':
+                self.assertEqual(role, 'owner')
+            else:
+                self.assertEqual(role, 'member')
 
     def test_add_members_to_org_with_anonymous_user(self):
         self._org_create()
