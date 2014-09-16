@@ -7,6 +7,7 @@ from onadata.apps.main.views import profile
 
 
 class TestUserProfile(TestCase):
+
     def setup(self):
         self.client = Client()
         self.assertEqual(len(User.objects.all()), 0)

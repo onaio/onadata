@@ -77,6 +77,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
     def test_orgs_create(self):
         self._org_create()
+        self.assertFalse(self.organization.user.is_active)
 
     def test_orgs_create_without_name(self):
         data = {

@@ -4,6 +4,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.apps.main.models import UserProfile
+from django.contrib.auth.models import User
 from onadata.libs.serializers.user_profile_serializer import (
     _get_first_last_names
 )
@@ -102,6 +103,9 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         self.assertEqual(response.data, data)
+
+        user = User.objects.get(username='deno')
+        self.assertFalse(user.is_active)
 
     def test_profile_create_anon(self):
         data = _profile_data()
