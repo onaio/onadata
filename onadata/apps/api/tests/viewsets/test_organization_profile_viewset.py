@@ -71,9 +71,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', response.data.keys())
-
         for user in response.data['users']:
-            self.assertEqual(user['role'], 'owner')
+            self.assertEqual(user['role'], 'member')
             self.assertEqual(type(user['user']), unicode)
 
     def test_orgs_create(self):
