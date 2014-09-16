@@ -447,6 +447,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                           sorted(user_profile_data.items()))
         self.assertEqual(alice_profile['username'], 'alice')
 
+<<<<<<< HEAD
     def test_user_can_view_public_projects(self):
         public_project = Project(name='demo',
                                  shared=True,
@@ -571,3 +572,30 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEquals(self.xform.shared, True)
         self.assertEquals(self.xform.shared_data, True)
+=======
+    def test_publish_same_form_to_diff_project(self):
+        # create the two project
+        project_data = {
+            'name': 'project1',
+        }
+        self._project_create(project_data, True)
+        project1 = self.project
+
+        project_data2 = {
+            'name': 'project2',
+        }
+        self._project_create(project_data2, True)
+        project2 = self.project
+
+        self.assertNotEquals(project1, project2)
+
+        #publish to the first
+        self.project = project1
+        self._publish_xls_form_to_project()
+
+
+        #publish to the second
+        self.project = project2
+        self._publish_xls_form_to_project()
+
+>>>>>>> DW: Added test for the issue

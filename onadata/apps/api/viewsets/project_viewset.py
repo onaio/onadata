@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from pyxform.builder import create_survey_from_xls
 
 from onadata.libs.filters import (
     AnonUserProjectFilter,
@@ -25,6 +26,7 @@ from onadata.apps.main.models import UserProfile
 from onadata.settings.common import (
     DEFAULT_FROM_EMAIL,
     SHARE_PROJECT_SUBJECT)
+from onadata.apps.main.forms import QuickConverter
 
 
 class ProjectViewSet(LabelsMixin, ModelViewSet):
@@ -397,6 +399,8 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
         if request.method.upper() == 'POST':
             survey = utils.publish_project_xform(request, project)
 
+
+
             if isinstance(survey, XForm):
                 xform = XForm.objects.get(pk=survey.pk)
                 serializer = XFormSerializer(
@@ -404,6 +408,18 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
+            # Error returned
+            if survey['text'] == \
+                u'Form with this id or SMS-keyword already exists.':
+
+                f_name = request.FILES['xls_file'].name
+                ql = project.projectxform_set.values('xform')
+
+                import ipdb
+                ipdb.set_trace()
+
+                #use name to search for the xform
+
 
             return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
