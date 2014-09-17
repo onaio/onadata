@@ -88,3 +88,14 @@ class TestImportingDatabase(TestBase):
             post_data = {'zip_submission_file': zip_file}
             response = self.client.post(url, post_data)
         self.assertEqual(response.status_code, 200)
+
+    def test_bulk_import_post_with_username_in_uppercase(self):
+        zip_file_path = os.path.join(
+            DB_FIXTURES_PATH, "bulk_submission_w_extra_instance.zip")
+        url = reverse(bulksubmission, kwargs={
+            "username": self.user.username.upper()
+        })
+        with open(zip_file_path, "rb") as zip_file:
+            post_data = {'zip_submission_file': zip_file}
+            response = self.client.post(url, post_data)
+        self.assertEqual(response.status_code, 200)

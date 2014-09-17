@@ -62,6 +62,7 @@ def question_types_to_exclude(_type):
 
 
 class DictOrganizer(object):
+
     def set_dict_iterator(self, dict_iterator):
         self._dict_iterator = dict_iterator
 
@@ -679,7 +680,8 @@ def generate_export(export_type, extension, username, id_string,
         Export.SAV_ZIP_EXPORT: 'to_zipped_sav',
     }
 
-    xform = XForm.objects.get(user__username=username, id_string=id_string)
+    xform = XForm.objects.get(
+        user__username__iexact=username, id_string__iexact=id_string)
 
     # query mongo for the cursor
     records = query_mongo(username, id_string, filter_query)

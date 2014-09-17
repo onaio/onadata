@@ -20,7 +20,7 @@ def add_service(request, username, id_string):
     context = RequestContext(request)
     form = RestServiceForm()
     xform = get_object_or_404(
-        XForm, user__username=username, id_string=id_string)
+        XForm, user__username__iexact=username, id_string__iexact=id_string)
     if request.method == 'POST':
         form = RestServiceForm(request.POST)
         context.restservice = None

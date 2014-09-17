@@ -101,7 +101,7 @@ def bulksubmission(request, username):
     # puts it in a temp directory.
     # runs "import_tools(temp_directory)"
     # deletes
-    posting_user = get_object_or_404(User, username=username)
+    posting_user = get_object_or_404(User, username__iexact=username)
 
     # request.FILES is a django.utils.datastructures.MultiValueDict
     # for each key we have a list of values
@@ -155,6 +155,7 @@ def bulksubmission(request, username):
 
 @login_required
 def bulksubmission_form(request, username=None):
+    username = username if username is None else username.lower()
     if request.user.username == username:
         context = RequestContext(request)
         return render_to_response(
@@ -168,7 +169,7 @@ def formList(request, username):
     """
     This is where ODK Collect gets its download list.
     """
-    formlist_user = get_object_or_404(User, username=username)
+    formlist_user = get_object_or_404(User, username__iexact=username)
     profile, created = UserProfile.objects.get_or_create(user=formlist_user)
 
     if profile.require_auth:
@@ -185,10 +186,10 @@ def formList(request, username):
     # for users who are non-owner
     if request.user.username == profile.user.username:
         xforms = XForm.objects.filter(downloadable=True,
-                                      user__username=username)
+                                      user__username__iexact=username)
     else:
         xforms = XForm.objects.filter(downloadable=True,
-                                      user__username=username,
+                                      user__username__iexact=username,
                                       require_auth=False)
 
     audit = {}
@@ -210,7 +211,7 @@ def formList(request, username):
 @require_GET
 def xformsManifest(request, username, id_string):
     xform = get_object_or_404(
-        XForm, id_string=id_string, user__username=username)
+        XForm, id_string__iexact=id_string, user__username__iexact=username)
     formlist_user = xform.user
     profile, created = \
         UserProfile.objects.get_or_create(user=formlist_user)
@@ -235,7 +236,7 @@ def xformsManifest(request, username, id_string):
 @csrf_exempt
 def submission(request, username=None):
     if username:
-        formlist_user = get_object_or_404(User, username=username.lower())
+        formlist_user = get_object_or_404(User, username__iexact=username)
         profile, created = UserProfile.objects.get_or_create(
             user=formlist_user)
 
@@ -317,9 +318,9 @@ def submission(request, username=None):
 
 
 def download_xform(request, username, id_string):
-    user = get_object_or_404(User, username=username)
+    user = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm,
-                              user=user, id_string=id_string)
+                              user=user, id_string__iexact=id_string)
     profile, created =\
         UserProfile.objects.get_or_create(user=user)
 
@@ -344,8 +345,9 @@ def download_xform(request, username, id_string):
 
 def download_xlsform(request, username, id_string):
     xform = get_object_or_404(XForm,
-                              user__username=username, id_string=id_string)
-    owner = User.objects.get(username=username)
+                              user__username__iexact=username,
+                              id_string__iexact=id_string)
+    owner = User.objects.get(username__iexact=username)
     helper_auth_helper(request)
 
     if not has_permission(xform, owner, request, xform.shared):
@@ -386,9 +388,9 @@ def download_xlsform(request, username, id_string):
 
 
 def download_jsonform(request, username, id_string):
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, user__username=username,
-                              id_string=id_string)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, user__username__iexact=username,
+                              id_string__iexact=id_string)
     if request.method == "OPTIONS":
         response = HttpResponse()
         add_cors_headers(response)
@@ -412,8 +414,8 @@ def download_jsonform(request, username, id_string):
 @is_owner
 @require_POST
 def delete_xform(request, username, id_string):
-    xform = get_object_or_404(XForm, user__username=username,
-                              id_string=id_string)
+    xform = get_object_or_404(XForm, user__username__iexact=username,
+                              id_string__iexact=id_string)
 
     # delete xform and submissions
     remove_xform(xform)
@@ -430,7 +432,8 @@ def delete_xform(request, username, id_string):
 
 @is_owner
 def toggle_downloadable(request, username, id_string):
-    xform = XForm.objects.get(user__username=username, id_string=id_string)
+    xform = XForm.objects.get(user__username__iexact=username,
+                              id_string__iexact=id_string)
     xform.downloadable = not xform.downloadable
     xform.save()
     audit = {}
@@ -446,9 +449,9 @@ def toggle_downloadable(request, username, id_string):
 
 
 def enter_data(request, username, id_string):
-    owner = get_object_or_404(User, username=username)
-    xform = get_object_or_404(XForm, user__username=username,
-                              id_string=id_string)
+    owner = get_object_or_404(User, username__iexact=username)
+    xform = get_object_or_404(XForm, user__username__iexact=username,
+                              id_string__iexact=id_string)
     if not has_edit_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
 
@@ -463,7 +466,7 @@ def enter_data(request, username, id_string):
         return HttpResponseRedirect(url)
     except Exception as e:
         context = RequestContext(request)
-        owner = User.objects.get(username=username)
+        owner = User.objects.get(username__iexact=username)
         context.profile, created = \
             UserProfile.objects.get_or_create(user=owner)
         context.xform = xform
@@ -483,9 +486,9 @@ def enter_data(request, username, id_string):
 
 def edit_data(request, username, id_string, data_id):
     context = RequestContext(request)
-    owner = User.objects.get(username=username)
+    owner = User.objects.get(username__iexact=username)
     xform = get_object_or_404(
-        XForm, user__username=username, id_string=id_string)
+        XForm, user__username__iexact=username, id_string__iexact=id_string)
     instance = get_object_or_404(
         Instance, pk=data_id, xform=xform)
     if not has_edit_permission(xform, owner, request, xform.shared):
@@ -530,7 +533,7 @@ def edit_data(request, username, id_string, data_id):
 
 
 def view_submission_list(request, username):
-    form_user = get_object_or_404(User, username=username)
+    form_user = get_object_or_404(User, username__iexact=username)
     profile, created = \
         UserProfile.objects.get_or_create(user=form_user)
     authenticator = HttpDigestAuthenticator()
@@ -539,7 +542,7 @@ def view_submission_list(request, username):
     context = RequestContext(request)
     id_string = request.GET.get('formId', None)
     xform = get_object_or_404(
-        XForm, id_string=id_string, user__username=username)
+        XForm, id_string__iexact=id_string, user__username__iexact=username)
     if not has_permission(xform, form_user, request, xform.shared_data):
         return HttpResponseForbidden('Not shared.')
     num_entries = request.GET.get('numEntries', None)
@@ -570,7 +573,7 @@ def view_submission_list(request, username):
 
 
 def view_download_submission(request, username):
-    form_user = get_object_or_404(User, username=username)
+    form_user = get_object_or_404(User, username__iexact=username)
     profile, created = \
         UserProfile.objects.get_or_create(user=form_user)
     authenticator = HttpDigestAuthenticator()
@@ -588,7 +591,7 @@ def view_download_submission(request, username):
 
     uuid = _extract_uuid(form_id_parts[1])
     instance = get_object_or_404(
-        Instance, xform__id_string=id_string, uuid=uuid,
+        Instance, xform__id_string__iexact=id_string, uuid=uuid,
         xform__user__username=username, deleted_at=None)
     xform = instance.xform
     if not has_permission(xform, form_user, request, xform.shared_data):
@@ -612,6 +615,7 @@ def view_download_submission(request, username):
 @csrf_exempt
 def form_upload(request, username):
     class DoXmlFormUpload():
+
         def __init__(self, xml_file, user):
             self.xml_file = xml_file
             self.user = user
@@ -619,7 +623,7 @@ def form_upload(request, username):
         def publish(self):
             return publish_xml_form(self.xml_file, self.user)
 
-    form_user = get_object_or_404(User, username=username)
+    form_user = get_object_or_404(User, username__iexact=username)
     profile, created = \
         UserProfile.objects.get_or_create(user=form_user)
     authenticator = HttpDigestAuthenticator()
@@ -662,7 +666,7 @@ def ziggy_submissions(request, username):
     """
     data = {'message': _(u"Invalid request!")}
     status = 400
-    form_user = get_object_or_404(User, username=username)
+    form_user = get_object_or_404(User, username__iexact=username)
     if request.method == 'POST':
         json_post = request.body
         if json_post:

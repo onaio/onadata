@@ -66,8 +66,8 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         paths = [os.path.join(
             self.main_directory, 'fixtures', 'transportation',
-            'instances_w_uuid', s, s + '.xml') for s in [
-                'transport_2011-07-25_19-05-36']]
+            'instances_w_uuid', s, s + '.xml')
+            for s in ['transport_2011-07-25_19-05-36']]
 
         # instantiate date that is NOT naive; timezone is enabled
         current_timzone_name = timezone.get_current_timezone_name()

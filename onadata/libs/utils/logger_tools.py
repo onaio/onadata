@@ -112,7 +112,7 @@ def get_xform_from_submission(xml, username, uuid=None):
 
         id_string = get_id_string_from_xml_str(xml)
 
-        return get_object_or_404(XForm, id_string=id_string,
+        return get_object_or_404(XForm, id_string__iexact=id_string,
                                  user__username=username)
 
 
