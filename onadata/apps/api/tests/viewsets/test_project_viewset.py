@@ -575,28 +575,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEquals(self.xform.shared_data, True)
 
     def test_publish_same_form_to_diff_project(self):
-        # create the two project
-        # project_data = {
-        #     'name': 'project1',
-        # }
-        # self._project_create(project_data, True)
-        # project1 = self.project
-
-        # project_data2 = {
-        #     'name': 'project2',
-        # }
-        # self._project_create(project_data2, True)
-        # project2 = self.project
-
-        # self.assertNotEquals(project1, project2)
-
-        # publish to the first
-        # self.project = project1
-        # self._publish_xls_form_to_project()
-
-        # publish to the second
-        # self.project = project2
-        # self._publish_xls_form_to_project()
         self._publish_xls_form_to_project()
 
         view = ProjectViewSet.as_view({
@@ -611,6 +589,4 @@ class TestProjectViewSet(TestAbstractViewSet):
             post_data = {'xls_file': xls_file}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=project_id)
-            self.assertEqual(response.status_code, 400)
-
-        self.assertEqual(1, 1)
+            self.assertEqual(response.status_code, 201)
