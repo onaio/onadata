@@ -26,6 +26,10 @@ CAN_CHANGE_PROJECT = 'change_project'
 CAN_TRANSFER_PROJECT_OWNERSHIP = 'transfer_project'
 CAN_DELETE_PROJECT = 'delete_project'
 
+CAN_ADD_DATADICTIONARY = 'add_datadictionary'
+CAN_CHANGE_DATADICTIONARY = 'change_datadictionary'
+CAN_DELETE_DATADICTIONARY = 'delete_datadictionary'
+
 
 class Role(object):
     class_to_permissions = None
@@ -59,7 +63,9 @@ class Role(object):
         :param permissions: A list of permissions.
         :param obj: An object to get the permissions of.
         """
-        return set(permissions) == set(cls.class_to_permissions[type(obj)])
+        perms_for_role = set(cls.class_to_permissions[type(obj)])
+
+        return perms_for_role.issubset(set(permissions))
 
     @classmethod
     def user_has_role(cls, user, obj):
@@ -146,13 +152,19 @@ class OwnerRole(Role):
         (CAN_VIEW_PROFILE, UserProfile),
         (CAN_VIEW_PROJECT, Project),
         (CAN_VIEW_XFORM, XForm),
+        (CAN_ADD_DATADICTIONARY, XForm),
+        (CAN_CHANGE_DATADICTIONARY, XForm),
+        (CAN_DELETE_DATADICTIONARY, XForm),
+        (CAN_ADD_SUBMISSIONS, XForm),
     )
 
-ROLES = {role.name: role for role in [ReadOnlyRole,
-                                      DataEntryRole,
-                                      EditorRole,
-                                      ManagerRole,
-                                      OwnerRole]}
+ROLES_ORDERED = [ReadOnlyRole,
+                 DataEntryRole,
+                 EditorRole,
+                 ManagerRole,
+                 OwnerRole]
+
+ROLES = {role.name: role for role in ROLES_ORDERED}
 
 # Memoize a class to permissions dict.
 for role in ROLES.values():
@@ -161,7 +173,7 @@ for role in ROLES.values():
 
 
 def get_role(permissions, obj):
-    for role in ROLES.values():
+    for role in reversed(ROLES_ORDERED):
         if role.has_role(permissions, obj):
             return role.name
 

@@ -353,6 +353,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             })
             self.assertDictContainsSubset(data, response.data)
             self.assertTrue(OwnerRole.user_has_role(self.user, xform))
+            self.assertEquals("owner", response.data['users'][0]['role'])
 
     def test_publish_invalid_xls_form(self):
         view = XFormViewSet.as_view({
