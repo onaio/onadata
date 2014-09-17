@@ -63,8 +63,9 @@ class Role(object):
         :param permissions: A list of permissions.
         :param obj: An object to get the permissions of.
         """
-        return all([l in set(permissions)
-                    for l in set(cls.class_to_permissions[type(obj)])])
+        perms_for_role = set(cls.class_to_permissions[type(obj)])
+
+        return perms_for_role.issubset(set(permissions))
 
     @classmethod
     def user_has_role(cls, user, obj):
