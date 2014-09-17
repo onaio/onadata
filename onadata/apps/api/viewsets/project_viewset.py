@@ -6,6 +6,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from pyxform.builder import create_survey_from_xls
+from django.db import connection
+connection._rollback()
 
 from onadata.libs.filters import (
     AnonUserProjectFilter,
@@ -22,6 +24,7 @@ from onadata.apps.api.models import Project
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.logger.models import XForm
+from onadata.apps.api.models import ProjectXForm
 from onadata.apps.main.models import UserProfile
 from onadata.settings.common import (
     DEFAULT_FROM_EMAIL,
@@ -30,6 +33,7 @@ from onadata.apps.main.forms import QuickConverter
 
 
 class ProjectViewSet(LabelsMixin, ModelViewSet):
+
     """
 List, Retrieve, Update, Create Project and Project Forms
 
@@ -399,8 +403,6 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
         if request.method.upper() == 'POST':
             survey = utils.publish_project_xform(request, project)
 
-
-
             if isinstance(survey, XForm):
                 xform = XForm.objects.get(pk=survey.pk)
                 serializer = XFormSerializer(
@@ -409,19 +411,27 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
             # Error returned
-            if survey['text'] == \
-                u'Form with this id or SMS-keyword already exists.':
-
-                f_name = request.FILES['xls_file'].name
-                ql = project.projectxform_set.values('xform')
-
-                import ipdb
-                ipdb.set_trace()
-
-                #use name to search for the xform
-
-
-            return Response(survey, status=status.HTTP_400_BAD_REQUEST)
+            error = u'Form with this id or SMS-keyword already exists.'
+            if survey['text'] == error:
+                file_name = request.FILES['xls_file'].name
+                file_name = file_name[:len(file_name) - 5]
+                project_id = kwargs.get('pk')
+                xform = XForm.objects.get(id_string=file_name)
+                counter = ProjectXForm.objects.filter(
+                    xform=xform, project__id=project_id)
+                if counter:
+                    return Response(survey,
+                                    status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    file_name = request.FILES['xls_file'].name
+                    splitter = file_name.split('.')
+                    renamed = "%s%s%s" % (splitter[0], "001.", splitter[1])
+                    # renamed = file_name[
+                    #     :len(file_name) - 5] + '001' + file_name[len(file_name) - 5:]
+                    request.FILES['xls_file'].name = renamed
+                    sur = utils.publish_project_xform(request, project)
+                    print ">>>>>>>>>>>>>>>>>>>>>>> sur: %s" % sur
+                # use name to search for the xform
 
         project_xforms = project.projectxform_set.values('xform')
         xforms = XForm.objects.filter(pk__in=project_xforms)

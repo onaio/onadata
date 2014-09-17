@@ -1,7 +1,9 @@
 import json
 from mock import patch
+import os
 from operator import itemgetter
 
+from django.conf import settings
 from onadata.apps.api.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
@@ -447,7 +449,6 @@ class TestProjectViewSet(TestAbstractViewSet):
                           sorted(user_profile_data.items()))
         self.assertEqual(alice_profile['username'], 'alice')
 
-<<<<<<< HEAD
     def test_user_can_view_public_projects(self):
         public_project = Project(name='demo',
                                  shared=True,
@@ -572,30 +573,44 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEquals(self.xform.shared, True)
         self.assertEquals(self.xform.shared_data, True)
-=======
+
     def test_publish_same_form_to_diff_project(self):
         # create the two project
-        project_data = {
-            'name': 'project1',
-        }
-        self._project_create(project_data, True)
-        project1 = self.project
+        # project_data = {
+        #     'name': 'project1',
+        # }
+        # self._project_create(project_data, True)
+        # project1 = self.project
 
-        project_data2 = {
-            'name': 'project2',
-        }
-        self._project_create(project_data2, True)
-        project2 = self.project
+        # project_data2 = {
+        #     'name': 'project2',
+        # }
+        # self._project_create(project_data2, True)
+        # project2 = self.project
 
-        self.assertNotEquals(project1, project2)
+        # self.assertNotEquals(project1, project2)
 
-        #publish to the first
-        self.project = project1
+        # publish to the first
+        # self.project = project1
+        # self._publish_xls_form_to_project()
+
+        # publish to the second
+        # self.project = project2
+        # self._publish_xls_form_to_project()
         self._publish_xls_form_to_project()
 
+        view = ProjectViewSet.as_view({
+            'post': 'forms'
+        })
+        project_id = self.project.pk
 
-        #publish to the second
-        self.project = project2
-        self._publish_xls_form_to_project()
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=project_id)
+            self.assertEqual(response.status_code, 400)
 
->>>>>>> DW: Added test for the issue
+        self.assertEqual(1, 1)
