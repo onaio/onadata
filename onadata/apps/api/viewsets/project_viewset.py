@@ -419,7 +419,7 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
                 file_name = request.FILES['xls_file'].name
                 (shortname, extension) = os.path.splitext(file_name)
                 project_id = kwargs.get('pk')
-                xform = XForm.objects.get(id_string=shortname)
+                xform = XForm.objects.filter(id_string=shortname)
                 exists = ProjectXForm.objects.filter(
                     xform=xform, project__id=project_id)
                 if exists:
