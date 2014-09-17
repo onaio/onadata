@@ -158,16 +158,13 @@ class OwnerRole(Role):
         (CAN_ADD_SUBMISSIONS, XForm),
     )
 
-ROLES = {role.name: role for role in [ReadOnlyRole,
-                                      DataEntryRole,
-                                      EditorRole,
-                                      ManagerRole,
-                                      OwnerRole]}
 ROLES_ORDERED = [ReadOnlyRole,
                  DataEntryRole,
                  EditorRole,
                  ManagerRole,
                  OwnerRole]
+
+ROLES = {role.name: role for role in ROLES_ORDERED}
 
 # Memoize a class to permissions dict.
 for role in ROLES.values():
