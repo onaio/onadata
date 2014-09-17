@@ -10,22 +10,18 @@ from rest_framework import permissions
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.renderers import TemplateHTMLRenderer
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
+from onadata.libs.renderers.renderers import TemplateXMLRenderer
 from onadata.libs.serializers.data_serializer import SubmissionSerializer
 from onadata.libs.utils.logger_tools import safe_create_instance
 
 
 # 10,000,000 bytes
 DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
-
-class TemplateXMLRenderer(TemplateHTMLRenderer):
-    format = 'xml'
-    media_type = 'text/xml'
 
 
 class XFormSubmissionApi(viewsets.ModelViewSet):

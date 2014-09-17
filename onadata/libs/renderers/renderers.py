@@ -5,6 +5,7 @@ from rest_framework.compat import StringIO
 from rest_framework.compat import six
 from rest_framework.compat import smart_text
 from rest_framework.renderers import BaseRenderer
+from rest_framework.renderers import TemplateHTMLRenderer
 
 
 class XLSRenderer(BaseRenderer):
@@ -134,3 +135,8 @@ class XFormManifestRenderer(XFormListRenderer):
     root_node = "manifest"
     element_node = "mediaFile"
     xmlns = "http://openrosa.org/xforms/xformsManifest"
+
+
+class TemplateXMLRenderer(TemplateHTMLRenderer):
+    format = 'xml'
+    media_type = 'text/xml'
