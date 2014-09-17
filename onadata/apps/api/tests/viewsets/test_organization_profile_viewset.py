@@ -170,6 +170,38 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'denoinc', u'aboy'])
 
+    def test_member_sees_orgs_added_to(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'get': 'list',
+            'post': 'members'
+        })
+
+        member = 'aboy'
+        expected_data = self.company_data
+        expected_data['users'].append({'role': 'member', 'user': member})
+        cur_username = self.profile_data['username']
+        self.profile_data['username'] = member
+        self._login_user_and_profile()
+        self.profile_data['username'] = cur_username
+        self._login_user_and_profile()
+
+        data = {'username': member}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, [u'denoinc', u'aboy'])
+
+        self.profile_data['username'] = member
+        self._login_user_and_profile()
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [expected_data])
+
     def test_role_for_org_non_owner(self):
         # creating org with member
         self._org_create()
