@@ -3,6 +3,7 @@ import pytz
 from datetime import datetime
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 
@@ -51,9 +52,10 @@ class XFormSubmissionApi(mixins.CreateModelMixin, viewsets.GenericViewSet):
             # raises a permission denied exception, forces authentication
             self.permission_denied(self.request)
         elif username is not None and self.request.user.is_anonymous():
-            profile = get_object_or_404(
-                UserProfile, user__username=username.lower())
+            user = get_object_or_404(
+                User, username=username.lower())
 
+            profile, created = UserProfile.objects.get_or_create(user=user)
             if profile.require_auth:
                 # raises a permission denied exception, forces authentication
                 self.permission_denied(self.request)
