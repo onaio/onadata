@@ -19,6 +19,8 @@ class TestPublishXLS(TestBase):
         count = XForm.objects.count()
         call_command('publish_xls', xls_file_path, self.user.username)
         self.assertEqual(XForm.objects.count(), count + 1)
+        form = XForm.objects.get()
+        self.assertTrue(form.require_auth)
 
     def test_publish_xls_replacement(self):
         count = XForm.objects.count()
