@@ -312,7 +312,7 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
 
-    def test_fail_submission_if_no_username(self):
+    def _test_fail_submission_if_no_username(self):
         """
         Test that a submission fails if no username is provided
         and the UUIDs don't match.
