@@ -60,6 +60,11 @@ class XFormSubmissionApi(mixins.CreateModelMixin, viewsets.GenericViewSet):
                 # raises a permission denied exception, forces authentication
                 self.permission_denied(self.request)
 
+        if request.method.upper() == 'HEAD':
+            return Response(status=status.HTTP_204_NO_CONTENT,
+                            headers=self.get_openrosa_headers(request),
+                            template_name=self.template_name)
+
         xml_file_list = request.FILES.pop('xml_submission_file', [])
         xml_file = xml_file_list[0] if len(xml_file_list) else None
         media_files = request.FILES.values()
