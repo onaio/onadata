@@ -1,5 +1,7 @@
 import os
+
 from datetime import datetime
+from django_digest.test import DigestAuth
 from mock import patch
 
 from onadata.apps.main.tests.test_base import TestBase
@@ -43,13 +45,15 @@ class TestInstance(TestBase):
 
         # make account require phone auth
         self.user.profile.require_auth = True
-        self.user.save()
+        self.user.profile.save()
 
         # submit instance with a request user
         path = os.path.join(
             self.this_directory, 'fixtures', 'transportation', 'instances',
             self.surveys[0], self.surveys[0] + '.xml')
-        self._make_submission(path, client=self.client)
+
+        auth = DigestAuth(self.login_username, self.login_password)
+        self._make_submission(path, auth=auth)
 
         instances = Instance.objects.filter(xform_id=self.xform).all()
         self.assertTrue(len(instances) > 0)
