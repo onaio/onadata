@@ -477,9 +477,6 @@ class TestFormSubmission(TestBase):
         cursor = ParsedInstance.query_mongo(**query_args)
         self.assertEqual(cursor[0]['count'], num_mongo_instances + 1)
 
-        # require authentication
-        self.user.profile.require_auth = True
-        self.user.profile.save()
 
         # create a new user
         alice = self._create_user('alice', 'alice')
