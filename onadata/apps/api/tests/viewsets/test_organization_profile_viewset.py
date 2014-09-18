@@ -72,12 +72,12 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', response.data.keys())
         for user in response.data['users']:
-            self.assertEqual(user['role'], 'member')
+            self.assertEqual(user['role'], 'owner')
             self.assertEqual(type(user['user']), unicode)
 
     def test_orgs_create(self):
         self._org_create()
-        self.assertFalse(self.organization.user.is_active)
+        self.assertTrue(self.organization.user.is_active)
 
     def test_orgs_create_without_name(self):
         data = {
