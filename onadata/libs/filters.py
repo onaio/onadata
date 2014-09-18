@@ -19,6 +19,17 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
             .filter_queryset(request, queryset, view)
 
 
+class OrganizationPermissionFilter(filters.DjangoObjectPermissionsFilter):
+    def filter_queryset(self, request, queryset, view):
+        filtered_queryset = super(self.__class__, self).filter_queryset(
+            request, queryset, view)
+        org_users = set([group.team.organization
+                         for group in request.user.groups.all()] + [
+            o.user for o in filtered_queryset])
+
+        return queryset.model.objects.filter(user__in=org_users)
+
+
 class XFormOwnerFilter(filters.BaseFilterBackend):
 
     owner_prefix = 'user'
