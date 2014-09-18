@@ -60,7 +60,8 @@ class XFormSubmissionApi(mixins.CreateModelMixin, viewsets.GenericViewSet):
                 # raises a permission denied exception, forces authentication
                 self.permission_denied(self.request)
 
-        xml_file = request.FILES.get('xml_submission_file')
+        xml_file_list = request.FILES.pop('xml_submission_file', [])
+        xml_file = xml_file_list[0] if len(xml_file_list) else None
         media_files = request.FILES.values()
 
         error, instance = safe_create_instance(

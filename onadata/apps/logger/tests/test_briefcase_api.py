@@ -5,12 +5,12 @@ import codecs
 from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
 from django_digest.test import Client as DigestClient
+from rest_framework.test import APIRequestFactory
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.views import view_submission_list
 from onadata.apps.logger.views import view_download_submission
 from onadata.apps.logger.views import form_upload
-from onadata.apps.logger.views import submission
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 
@@ -36,6 +36,7 @@ class TestBriefcaseAPI(TestBase):
 
     def setUp(self):
         super(TestBase, self).setUp()
+        self.factory = APIRequestFactory()
         self._create_user_and_login()
         self._logout()
         self.form_def_path = os.path.join(
@@ -44,7 +45,7 @@ class TestBriefcaseAPI(TestBase):
         self._submission_list_url = reverse(
             view_submission_list, kwargs={'username': self.user.username})
         self._submission_url = reverse(
-            submission, kwargs={'username': self.user.username})
+            'submissions', kwargs={'username': self.user.username})
         self._download_submission_url = reverse(
             view_download_submission, kwargs={'username': self.user.username})
         self._form_upload_url = reverse(
