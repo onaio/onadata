@@ -4,9 +4,11 @@ from datetime import datetime
 import numpy as np
 
 from django import forms
+from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.contrib.auth.models import User, Permission
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.sites.models import Site
 from django.db.models import Q
 from django.http import HttpResponseNotFound
 from django.http import HttpResponseRedirect
@@ -15,7 +17,6 @@ from django.shortcuts import get_object_or_404
 from taggit.forms import TagField
 from rest_framework import exceptions
 from registration.models import RegistrationProfile
-from django.contrib.sites.models import Site
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.project import Project
@@ -86,14 +87,15 @@ def create_organization(name, creator):
 def create_organization_object(org_name, creator, attrs={}):
     '''Creates an OrganizationProfile object without saving to the database'''
     name = attrs.get('name', org_name)
-
-    new_user = RegistrationProfile.objects.create_inactive_user(
-        username=org_name,
-        password='',
-        email=attrs.get('email', u''),
-        site=Site,
-        send_email=True)
+    first_name, last_name = _get_first_last_names(name)
+    email = attrs.get('email', u'')
+    new_user = User(username=org_name, first_name=first_name,
+                    last_name=last_name, email=email)
     new_user.save()
+    registration_profile = RegistrationProfile.objects.create_profile(new_user)
+    if email:
+        site = Site.objects.get(pk=settings.SITE_ID)
+        registration_profile.send_activation_email(site)
     profile = OrganizationProfile(
         user=new_user, name=name, creator=creator,
         created_by=creator,

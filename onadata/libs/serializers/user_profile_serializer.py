@@ -1,17 +1,18 @@
 import copy
 import six
 
+from django.conf import settings
 from django.forms import widgets
 from django.contrib.auth.models import User
+from django.contrib.sites.models import Site
 from django.core.validators import ValidationError
+from registration.models import RegistrationProfile
 from rest_framework import serializers
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
+from onadata.apps.main.forms import UserProfileForm
+from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
-from onadata.apps.main.forms import UserProfileForm,\
-    RegistrationFormUserProfile
-from registration.models import RegistrationProfile
-from django.contrib.sites.models import Site
 from onadata.libs.permissions import CAN_VIEW_PROFILE
 
 
@@ -123,11 +124,12 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         form.REGISTRATION_REQUIRE_CAPTCHA = False
 
         if form.is_valid():
+            site = Site.objects.get(pk=settings.SITE_ID)
             new_user = RegistrationProfile.objects.create_inactive_user(
                 username=username,
                 password=password,
                 email=email,
-                site=Site,
+                site=site,
                 send_email=True)
             new_user.save()
 
