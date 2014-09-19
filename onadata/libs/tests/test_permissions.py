@@ -1,9 +1,15 @@
 from guardian.shortcuts import get_users_with_perms
 
+from onadata.apps.api import tools
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.permissions import (
-    ManagerRole, CAN_ADD_XFORM_TO_PROFILE, ReadOnlyRole, OwnerRole, EditorRole)
+    get_object_users_with_permissions,
+    ManagerRole,
+    CAN_ADD_XFORM_TO_PROFILE,
+    ReadOnlyRole,
+    OwnerRole,
+    EditorRole)
 
 
 def perms_for(user, obj):
@@ -75,3 +81,12 @@ class TestPermissions(TestBase):
             perms_for(alice, self.xform), self.xform))
         self.assertTrue(EditorRole.has_role(
             perms_for(alice, self.xform), self.xform))
+
+    def test_get_object_users_with_permission(self):
+        alice = self._create_user('alice', 'alice')
+        org_user = tools.create_organization("modilabs", alice).user
+        self._publish_transportation_form()
+        EditorRole.add(org_user, self.xform)
+
+        users_with_perms = get_object_users_with_permissions(self.xform)
+        self.assertFalse(org_user in [d['user'] for d in users_with_perms])

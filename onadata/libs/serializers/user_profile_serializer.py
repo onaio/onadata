@@ -9,11 +9,10 @@ from django.core.validators import ValidationError
 from registration.models import RegistrationProfile
 from rest_framework import serializers
 
-from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.main.forms import UserProfileForm
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
-from onadata.libs.permissions import CAN_VIEW_PROFILE
+from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 
 
 def _get_first_last_names(name, limit=30):
@@ -57,11 +56,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         lookup_field = 'user'
 
     def is_organization(self, obj):
-        try:
-            obj.organizationprofile
-            return True
-        except OrganizationProfile.DoesNotExist:
-            return False
+        return is_organization(obj)
 
     def to_native(self, obj):
         """
