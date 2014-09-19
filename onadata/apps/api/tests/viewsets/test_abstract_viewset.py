@@ -8,7 +8,6 @@ from django.contrib.auth.models import User
 from django_digest.test import Client as DigestClient
 from django.contrib.auth.models import Permission
 from django.test import TestCase
-from django.test.client import Client
 from django_digest.test import Client as DigestClient
 from rest_framework.test import APIRequestFactory
 from tempfile import NamedTemporaryFile
@@ -212,7 +211,6 @@ class TestAbstractViewSet(TestCase):
                          client=None, media_file=None, auth=None):
         # store temporary file with dynamic uuid
 
-        #client = client or Client()
         if client is None:
             self.user.profile.require_auth = True
             self.user.profile.save()
