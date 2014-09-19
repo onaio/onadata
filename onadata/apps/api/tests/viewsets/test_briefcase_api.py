@@ -10,9 +10,6 @@ from rest_framework.test import APIRequestFactory
 from onadata.apps.api.tests.viewsets import test_abstract_viewset
 from onadata.apps.api.viewsets.briefcase_api import BriefcaseApi
 from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
-from onadata.apps.logger.views import view_submission_list
-from onadata.apps.logger.views import view_download_submission
-from onadata.apps.logger.views import form_upload
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 
@@ -37,13 +34,14 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             self.main_directory, 'fixtures', 'transportation',
             'transportation.xml')
         self._submission_list_url = reverse(
-            view_submission_list, kwargs={'username': self.user.username})
+            'view-submission-list', kwargs={'username': self.user.username})
         self._submission_url = reverse(
             'submissions', kwargs={'username': self.user.username})
         self._download_submission_url = reverse(
-            view_download_submission, kwargs={'username': self.user.username})
+            'view-download-submission',
+            kwargs={'username': self.user.username})
         self._form_upload_url = reverse(
-            form_upload, kwargs={'username': self.user.username})
+            'form-upload', kwargs={'username': self.user.username})
 
     def test_view_submission_list(self):
         view = BriefcaseApi.as_view({'get': 'list'})

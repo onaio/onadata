@@ -4,7 +4,7 @@ import codecs
 
 from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
-from django_digest.test import Client as DigestClient
+from django_digest.test import DigestAuth
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.main.tests.test_base import TestBase
@@ -24,16 +24,6 @@ def ordered_instances(xform):
 
 class TestBriefcaseAPI(TestBase):
 
-    def _authenticated_client(
-            self, url, username='bob', password='bob', extra={}):
-        client = DigestClient()
-        # request with no credentials
-        req = client.get(url, {}, **extra)
-        self.assertEqual(req.status_code, 401)
-        # apply credentials
-        client.set_authorization(username, password, 'Digest')
-        return client
-
     def setUp(self):
         super(TestBase, self).setUp()
         self.factory = APIRequestFactory()
@@ -43,22 +33,25 @@ class TestBriefcaseAPI(TestBase):
             self.this_directory, 'fixtures', 'transportation',
             'transportation.xml')
         self._submission_list_url = reverse(
-            view_submission_list, kwargs={'username': self.user.username})
+            'view-submission-list', kwargs={'username': self.user.username})
         self._submission_url = reverse(
             'submissions', kwargs={'username': self.user.username})
         self._download_submission_url = reverse(
-            view_download_submission, kwargs={'username': self.user.username})
+            'view-download-submission',
+            kwargs={'username': self.user.username})
         self._form_upload_url = reverse(
-            form_upload, kwargs={'username': self.user.username})
-        self.client = self._authenticated_client(self._submission_list_url)
-        self.anon = self.client
+            'form-upload', kwargs={'username': self.user.username})
 
     def test_view_submission_list(self):
         self._publish_xml_form()
         self._make_submissions()
-        response = self.client.get(
-            self._submission_list_url,
-            data={'formId': self.xform.id_string})
+        params = {'formId': self.xform.id_string}
+        request = self.factory.get(self._submission_list_url, params)
+        response = view_submission_list(request, self.user.username)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth(self.login_username, self.login_password)
+        request.META.update(auth(request.META, response))
+        response = view_submission_list(request, self.user.username)
         self.assertEqual(response.status_code, 200)
         submission_list_path = os.path.join(
             self.this_directory, 'fixtures', 'transportation',
@@ -80,9 +73,13 @@ class TestBriefcaseAPI(TestBase):
         self._make_submissions()
         uuid = 'f3d8dc65-91a6-4d0f-9e97-802128083390'
         Instance.objects.filter(uuid=uuid).order_by('id').delete()
-        response = self.client.get(
-            self._submission_list_url,
-            data={'formId': self.xform.id_string})
+        params = {'formId': self.xform.id_string}
+        request = self.factory.get(self._submission_list_url, params)
+        response = view_submission_list(request, self.user.username)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth(self.login_username, self.login_password)
+        request.META.update(auth(request.META, response))
+        response = view_submission_list(request, self.user.username)
         self.assertEqual(response.status_code, 200)
         submission_list_path = os.path.join(
             self.this_directory, 'fixtures', 'transportation',
@@ -110,13 +107,15 @@ class TestBriefcaseAPI(TestBase):
     def test_view_submission_list_OtherUser(self):
         self._publish_xml_form()
         self._make_submissions()
+        params = {'formId': self.xform.id_string}
         # deno cannot view bob's submissionList
         self._create_user('deno', 'deno')
-        client = self._authenticated_client(
-            self._submission_list_url, 'deno', 'deno')
-        response = client.get(
-            self._submission_list_url,
-            data={'formId': self.xform.id_string})
+        request = self.factory.get(self._submission_list_url, params)
+        response = view_submission_list(request, self.user.username)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('deno', 'deno')
+        request.META.update(auth(request.META, response))
+        response = view_submission_list(request, self.user.username)
         self.assertEqual(response.status_code, 403)
 
     def test_view_submission_list_num_entries(self):
@@ -143,13 +142,18 @@ class TestBriefcaseAPI(TestBase):
         last_index = instances[:2][1].pk
         last_expected_submission_list = ""
         for index in range(1, 5):
-            response = self.client.get(
-                self._submission_list_url,
-                data=params)
+            request = self.factory.get(self._submission_list_url, params)
+            response = view_submission_list(request, self.user.username)
+            self.assertEqual(response.status_code, 401)
+            auth = DigestAuth(self.login_username, self.login_password)
+            request.META.update(auth(request.META, response))
+            response = view_submission_list(request, self.user.username)
             self.assertEqual(response.status_code, 200)
+
             if index > 2:
                 last_index = get_last_index(self.xform, last_index)
             filename = 'submissionList-%s.xml' % index
+
             if index == 4:
                 self.assertEqual(
                     response.content, last_expected_submission_list)
@@ -178,7 +182,12 @@ class TestBriefcaseAPI(TestBase):
                      'formId': self.xform.id_string,
                      'instanceId': instanceId}
         params = {'formId': formId}
-        response = self.client.get(self._download_submission_url, data=params)
+        request = self.factory.get(self._download_submission_url, params)
+        response = view_download_submission(request, self.user.username)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth(self.login_username, self.login_password)
+        request.META.update(auth(request.META, response))
+        response = view_download_submission(request, self.user.username)
         text = "uuid:%s" % instanceId
         download_submission_path = os.path.join(
             self.this_directory, 'fixtures', 'transportation',
@@ -202,20 +211,27 @@ class TestBriefcaseAPI(TestBase):
         params = {'formId': formId}
         # deno cannot view bob's downloadSubmission
         self._create_user('deno', 'deno')
-        client = self._authenticated_client(
-            self._submission_list_url, 'deno', 'deno')
-        response = client.get(self._download_submission_url, data=params)
+        request = self.factory.get(self._download_submission_url, params)
+        response = view_download_submission(request, self.user.username)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('deno', 'deno')
+        request.META.update(auth(request.META, response))
+        response = view_download_submission(request, self.user.username)
         self.assertEqual(response.status_code, 403)
 
     def test_publish_xml_form_OtherUser(self):
         # deno cannot publish form to bob's account
         self._create_user('deno', 'deno')
-        client = self._authenticated_client(
-            self._submission_list_url, 'deno', 'deno')
         count = XForm.objects.count()
+
         with codecs.open(self.form_def_path, encoding='utf-8') as f:
             params = {'form_def_file': f, 'dataFile': ''}
-            response = client.post(self._form_upload_url, data=params)
+            request = self.factory.post(self._form_upload_url, params)
+            response = form_upload(request, username=self.user.username)
+            self.assertEqual(response.status_code, 401)
+            auth = DigestAuth('deno', 'deno')
+            request.META.update(auth(request.META, response))
+            response = form_upload(request, username=self.user.username)
             self.assertNotEqual(XForm.objects.count(), count + 1)
             self.assertEqual(response.status_code, 403)
 
@@ -226,26 +242,41 @@ class TestBriefcaseAPI(TestBase):
         count = XForm.objects.count()
         with codecs.open(form_def_path, encoding='utf-8') as f:
             params = {'form_def_file': f, 'dataFile': ''}
-            response = self.client.post(self._form_upload_url, data=params)
-            self.assertEqual(XForm.objects.count(), count + 1)
+            request = self.factory.post(self._form_upload_url, params)
+            response = form_upload(request, username=self.user.username)
+            self.assertEqual(response.status_code, 401)
+            auth = DigestAuth(self.login_username, self.login_password)
+            request.META.update(auth(request.META, response))
+            response = form_upload(request, username=self.user.username)
             self.assertContains(
                 response, "successfully published.", status_code=201)
+            self.assertEqual(XForm.objects.count(), count + 1)
 
     def _publish_xml_form(self):
         count = XForm.objects.count()
         with codecs.open(self.form_def_path, encoding='utf-8') as f:
             params = {'form_def_file': f, 'dataFile': ''}
-            response = self.client.post(self._form_upload_url, data=params)
-            self.assertEqual(XForm.objects.count(), count + 1)
+            request = self.factory.post(self._form_upload_url, params)
+            response = form_upload(request, username=self.user.username)
+            self.assertEqual(response.status_code, 401)
+            auth = DigestAuth(self.login_username, self.login_password)
+            request.META.update(auth(request.META, response))
+            response = form_upload(request, username=self.user.username)
             self.assertContains(
                 response, "successfully published.", status_code=201)
+            self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.order_by('pk').reverse()[0]
 
     def test_form_upload(self):
         self._publish_xml_form()
         with codecs.open(self.form_def_path, encoding='utf-8') as f:
             params = {'form_def_file': f, 'dataFile': ''}
-            response = self.client.post(self._form_upload_url, data=params)
+            request = self.factory.post(self._form_upload_url, params)
+            response = form_upload(request, username=self.user.username)
+            self.assertEqual(response.status_code, 401)
+            auth = DigestAuth(self.login_username, self.login_password)
+            request.META.update(auth(request.META, response))
+            response = form_upload(request, username=self.user.username)
             self.assertContains(
                 response,
                 u'Form with this id or SMS-keyword already exists',
