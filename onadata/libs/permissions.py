@@ -1,9 +1,11 @@
 from collections import defaultdict
+
 from django.contrib.contenttypes.models import ContentType
 from guardian.shortcuts import (
     assign_perm,
     remove_perm,
     get_users_with_perms)
+
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models import XForm
@@ -172,24 +174,33 @@ for role in ROLES.values():
     [role.class_to_permissions[k].append(p) for p, k in role.permissions]
 
 
+def is_organization(obj):
+    try:
+        obj.organizationprofile
+        return True
+    except OrganizationProfile.DoesNotExist:
+        return False
+
+
 def get_role(permissions, obj):
     for role in reversed(ROLES_ORDERED):
         if role.has_role(permissions, obj):
             return role.name
 
 
-def get_object_users_with_permissions(obj):
+def get_object_users_with_permissions(obj, exclude=None):
     """Returns users, roles and permissions for a object.
     """
-    users_with_perms = []
+    result = []
 
     if obj:
-        users_with_perms = [{
+        users_with_perms = get_users_with_perms(
+            obj, attach_perms=True, with_group_users=False).items()
+
+        result = [{
             'user': user,
             'role': get_role(permissions, obj),
             'permissions': permissions} for user, permissions in
-            get_users_with_perms(obj,
-                                 attach_perms=True,
-                                 with_group_users=False).items()]
+            users_with_perms if not is_organization(user.profile)]
 
-    return users_with_perms
+    return result
