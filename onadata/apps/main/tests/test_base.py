@@ -196,6 +196,8 @@ class TestBase(TransactionTestCase):
         :param add_uuid: add UUID to submission, default False.
         :param should_store: should submissions be save, default True.
         """
+        self.user.profile.require_auth = True
+        self.user.profile.save()
         paths = [os.path.join(
             self.this_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
