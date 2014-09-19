@@ -142,7 +142,6 @@ class TestBase(TransactionTestCase):
         if client is None:
             self.user.profile.require_auth = True
             self.user.profile.save()
-
             client = DigestClient()
             client.set_authorization('bob', 'bob', 'Digest')
 
