@@ -7,6 +7,7 @@ from rest_framework.compat import smart_text
 from rest_framework.renderers import BaseRenderer
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.renderers import StaticHTMLRenderer
+from rest_framework.renderers import XMLRenderer
 
 
 class XLSRenderer(BaseRenderer):
@@ -141,6 +142,17 @@ class XFormManifestRenderer(XFormListRenderer):
 class TemplateXMLRenderer(TemplateHTMLRenderer):
     format = 'xml'
     media_type = 'text/xml'
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        renderer_context = renderer_context or {}
+        response = renderer_context['response']
+
+        if response and response.exception:
+            return XMLRenderer().render(
+                data, accepted_media_type, renderer_context)
+
+        return super(TemplateXMLRenderer, self).render(
+            data, accepted_media_type, renderer_context)
 
 
 class StaticXMLRenderer(StaticHTMLRenderer):
