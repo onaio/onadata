@@ -135,9 +135,17 @@ class TestBase(TransactionTestCase):
             self._make_submission(path)
 
     def _make_submission(self, path, username=None, add_uuid=False,
-                         forced_submission_time=None, auth=None):
+                         forced_submission_time=None, auth=None, client=None):
         # store temporary file with dynamic uuid
-        self.factory = APIRequestFactory()
+
+
+        if client is None:
+            self.user.profile.require_auth = True
+            self.user.profile.save()
+
+            client = DigestClient()
+            client.set_authorization('bob', 'bob', 'Digest')
+
         tmp_file = None
 
         if add_uuid:
