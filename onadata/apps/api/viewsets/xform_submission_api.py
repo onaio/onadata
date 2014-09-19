@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import mixins
 from rest_framework.response import Response
+from rest_framework.renderers import BrowsableAPIRenderer
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.user_profile import UserProfile
@@ -25,11 +26,15 @@ DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 
 class XFormSubmissionApi(OpenRosaHeadersMixin,
                          mixins.CreateModelMixin, viewsets.GenericViewSet):
+    """
+    Implements OpenRosa Api [FormSubmissionAPI](\
+        https://bitbucket.org/javarosa/javarosa/wiki/FormSubmissionAPI)
+    """
     authentication_classes = (DigestAuthentication,)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     model = Instance
     permission_classes = (permissions.AllowAny,)
-    renderer_classes = (TemplateXMLRenderer,)
+    renderer_classes = (TemplateXMLRenderer, BrowsableAPIRenderer)
     serializer_class = SubmissionSerializer
     template_name = 'submission.xml'
 

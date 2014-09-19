@@ -3,12 +3,15 @@ from django.core.validators import ValidationError
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.utils.translation import ugettext as _
+from django.utils import six
 
 from rest_framework import exceptions
+from rest_framework import mixins
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import permissions
 from rest_framework.generics import get_object_or_404
+from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
@@ -30,10 +33,26 @@ from onadata.libs.utils.logger_tools import publish_xml_form
 
 
 def _extract_uuid(text):
-    text = text[text.find("@key="):-1].replace("@key=", "")
-    if text.startswith("uuid:"):
-        text = text.replace("uuid:", "")
+    if isinstance(text, six.string_types):
+        form_id_parts = text.split('/')
+
+        if form_id_parts.__len__() < 2:
+            raise ValidationError(_(u"Invalid formId %s." % text))
+
+        text = form_id_parts[1]
+        text = text[text.find("@key="):-1].replace("@key=", "")
+
+        if text.startswith("uuid:"):
+            text = text.replace("uuid:", "")
+
     return text
+
+
+def _extract_id_string(formId):
+    if isinstance(formId, six.string_types):
+        return formId[0:formId.find('[')]
+
+    return formId
 
 
 def _parse_int(num):
@@ -53,25 +72,26 @@ class DoXmlFormUpload():
         return publish_xml_form(self.xml_file, self.user)
 
 
-class BriefcaseApi(OpenRosaHeadersMixin, viewsets.ReadOnlyModelViewSet):
+class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
+                   mixins.RetrieveModelMixin, mixins.ListModelMixin,
+                   viewsets.GenericViewSet):
+    """
+    Implements the [Briefcase Aggregate API](\
+    https://code.google.com/p/opendatakit/wiki/BriefcaseAggregateAPI).
+    """
     authentication_classes = (DigestAuthentication,)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     model = XForm
     permission_classes = (permissions.IsAuthenticated,
                           ViewDjangoObjectPermissions)
-    renderer_classes = (TemplateXMLRenderer,)
+    renderer_classes = (TemplateXMLRenderer, BrowsableAPIRenderer)
     serializer_class = XFormListSerializer
     template_name = 'openrosa_response.xml'
 
     def get_object(self, queryset=None):
-        formId = self.request.GET.get('formId')
-        form_id_parts = formId.split('/')
-
-        if form_id_parts.__len__() < 2:
-            raise ValidationError(_(u"Invalid formId %s." % formId))
-
-        id_string = formId[0:formId.find('[')]
-        uuid = _extract_uuid(form_id_parts[1])
+        formId = self.request.GET.get('formId', '')
+        id_string = _extract_id_string(formId)
+        uuid = _extract_uuid(formId)
         username = self.kwargs.get('username')
 
         obj = get_object_or_404(Instance,
@@ -100,10 +120,10 @@ class BriefcaseApi(OpenRosaHeadersMixin, viewsets.ReadOnlyModelViewSet):
         else:
             queryset = super(BriefcaseApi, self).filter_queryset(queryset)
 
-        formId = self.request.GET.get('formId')
+        formId = self.request.GET.get('formId', '')
 
         if formId.find('[') != -1:
-            formId = formId[0:formId.find('[')]
+            formId = _extract_id_string(formId)
 
         xform = get_object_or_404(queryset, id_string__iexact=formId)
         self.check_object_permissions(self.request, xform)
@@ -133,8 +153,9 @@ class BriefcaseApi(OpenRosaHeadersMixin, viewsets.ReadOnlyModelViewSet):
         xform_def = request.FILES.get('form_def_file', None)
         response_status = status.HTTP_201_CREATED
         username = kwargs.get('username')
-        form_user = username and get_object_or_404(User, username=username)
-        form_user = form_user or request.user
+        form_user = (username and get_object_or_404(User, username=username)) \
+            or request.user
+
         if not request.user.has_perm('can_add_xform', form_user.profile):
             raise exceptions.PermissionDenied(
                 detail=_(u"User %(user)s has no permission to add xforms to "

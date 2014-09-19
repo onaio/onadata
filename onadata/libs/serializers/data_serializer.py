@@ -89,7 +89,7 @@ class DataInstanceSerializer(serializers.Serializer):
 class SubmissionSerializer(serializers.Serializer):
     def to_native(self, obj):
         if obj is None:
-            return super(DataInstanceSerializer, self).to_native(obj)
+            return super(SubmissionSerializer, self).to_native(obj)
 
         return {
             'message': _("Successful submission."),
