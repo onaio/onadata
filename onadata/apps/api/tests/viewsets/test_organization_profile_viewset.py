@@ -6,6 +6,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
+from onadata.libs.permissions import OwnerRole
 
 
 class TestOrganizationProfileViewSet(TestAbstractViewSet):
@@ -322,3 +323,12 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
         self.assertIn("%s already exists" % data['org'], response.data['org'])
+
+    def test_publish_xls_form_to_organization_project(self):
+        self._org_create()
+        project_data = {
+            'owner':  self.company_data['user']
+        }
+        self._project_create(project_data)
+        self._publish_xls_form_to_project()
+        self.assertTrue(OwnerRole.user_has_role(self.user, self.xform))
