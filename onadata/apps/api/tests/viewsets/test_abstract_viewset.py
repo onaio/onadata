@@ -8,6 +8,8 @@ from django.contrib.auth.models import User
 from django_digest.test import Client as DigestClient
 from django.contrib.auth.models import Permission
 from django.test import TestCase
+from django.test.client import Client
+from django_digest.test import Client as DigestClient
 from rest_framework.test import APIRequestFactory
 from tempfile import NamedTemporaryFile
 
@@ -209,10 +211,16 @@ class TestAbstractViewSet(TestCase):
                          forced_submission_time=None,
                          client=None, media_file=None, auth=None):
         # store temporary file with dynamic uuid
-        submission = XFormSubmissionApi.as_view({
-            'head': 'create',
-            'post': 'create'
-        })
+
+        #client = client or Client()
+        if client is None:
+            self.user.profile.require_auth = True
+            self.user.profile.save()
+            client = DigestClient()
+            client.set_authorization(self.profile_data['username'],
+                                     self.profile_data['password1'],
+                                     'Digest')
+
         tmp_file = None
 
         if add_uuid:
@@ -241,13 +249,7 @@ class TestAbstractViewSet(TestCase):
             url_prefix = '%s/' % username if username else ''
             url = '/%ssubmission' % url_prefix
 
-            request = self.factory.post(url, post_data)
-            request.user = AnonymousUser()
-            self.response = submission(request, username=username)
-
-            if auth and self.response.status_code == 401:
-                request.META.update(auth(request.META, self.response))
-                self.response = submission(request, username=username)
+            self.response = client.post(url, post_data)
 
         if forced_submission_time:
             instance = Instance.objects.order_by('-pk').all()[0]
@@ -271,6 +273,12 @@ class TestAbstractViewSet(TestCase):
             self.main_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+        client = DigestClient()
+        client.set_authorization(self.profile_data['username'],
+                                 self.profile_data['password1'],
+                                 'Digest')
 
         client = self._get_digest_client()
 
