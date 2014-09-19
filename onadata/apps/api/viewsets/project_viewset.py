@@ -394,7 +394,7 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 
         return Response(serializer.data)
 
-    @action(methods=['POST'])
+    @action(methods=['PUT'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = dict(request.DATA.items() + [('project', self.object.pk)])
