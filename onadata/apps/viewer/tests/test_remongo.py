@@ -35,7 +35,8 @@ class TestRemongo(TestBase):
         self._publish_transportation_form()
         s = self.surveys[1]
         self._make_submission(os.path.join(self.this_directory, 'fixtures',
-                              'transportation', 'instances', s, s + '.xml'))
+                              'transportation', 'instances', s, s + '.xml'),
+                              client=self.client)
         self.assertEqual(ParsedInstance.objects.count(), 2)
         # clear mongo
         settings.MONGO_DB.instances.drop()
