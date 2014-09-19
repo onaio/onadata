@@ -3,7 +3,7 @@ import os
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django_digest.test import Client as DigestClient
+from django_digest.test import DigestAuth
 from rest_framework.renderers import JSONRenderer
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -167,9 +167,8 @@ class TestUserPermissions(TestAbstractViewSet):
         paths = [os.path.join(
             self.main_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
-        client = DigestClient()
-        client.set_authorization('alice', 'alice', 'Digest')
-        self._make_submission(paths[0], username='bob', client=client)
+        auth = DigestAuth('alice', 'alice')
+        self._make_submission(paths[0], username='bob', auth=auth)
         self.assertEqual(self.response.status_code, 403)
 
     def test_data_entry_role(self):
@@ -216,9 +215,8 @@ class TestUserPermissions(TestAbstractViewSet):
         paths = [os.path.join(
             self.main_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
-        client = DigestClient()
-        client.set_authorization('alice', 'alice', 'Digest')
-        self._make_submission(paths[0], username='bob', client=client)
+        auth = DigestAuth('alice', 'alice')
+        self._make_submission(paths[0], username='bob', auth=auth)
         self.assertEqual(self.response.status_code, 201)
 
     def test_editor_role(self):
@@ -262,13 +260,12 @@ class TestUserPermissions(TestAbstractViewSet):
                       'password1': 'alice', 'password2': 'alice'}
         self._login_user_and_profile(extra_post_data=alice_data)
 
-        client = DigestClient()
-        client.set_authorization('alice', 'alice', 'Digest')
-        self._make_submission(paths[1], username='bob', client=client)
+        auth = DigestAuth('alice', 'alice')
+        self._make_submission(paths[1], username='bob', auth=auth)
         self.assertEqual(self.response.status_code, 403)
 
         role.EditorRole.add(self.user, self.xform)
-        self._make_submission(paths[1], username='bob', client=client)
+        self._make_submission(paths[1], username='bob', auth=auth)
         self.assertEqual(self.response.status_code, 201)
 
     def test_owner_role(self):

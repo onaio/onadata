@@ -9,6 +9,7 @@ from cStringIO import StringIO
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.auth.models import AnonymousUser
 from django.test import TransactionTestCase
 from django.test.client import Client
 from django_digest.test import Client as DigestClient
@@ -17,6 +18,7 @@ from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.logger.models import XForm, Instance, Attachment
+from onadata.apps.logger.views import submission
 from onadata.apps.main.models import UserProfile
 
 
@@ -133,10 +135,9 @@ class TestBase(TransactionTestCase):
             self._make_submission(path)
 
     def _make_submission(self, path, username=None, add_uuid=False,
-                         forced_submission_time=None,
-                         client=None):
+                         forced_submission_time=None, auth=None):
         # store temporary file with dynamic uuid
-        client = client or self.anon
+        self.factory = APIRequestFactory()
         tmp_file = None
 
         if add_uuid:
@@ -162,7 +163,13 @@ class TestBase(TransactionTestCase):
             url_prefix = '%s/' % username if username else ''
             url = '/%ssubmission' % url_prefix
 
-            self.response = client.post(url, post_data)
+            request = self.factory.post(url, post_data)
+            request.user = AnonymousUser()
+            self.response = submission(request, username=username)
+
+            if auth and self.response.status_code == 401:
+                request.META.update(auth(request.META, self.response))
+                self.response = submission(request, username=username)
 
         if forced_submission_time:
             instance = Instance.objects.order_by('-pk').all()[0]

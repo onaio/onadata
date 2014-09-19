@@ -7,7 +7,6 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
-from onadata.apps.logger.views import submission
 
 
 class TestEncryptedForms(TestBase):
@@ -16,7 +15,7 @@ class TestEncryptedForms(TestBase):
         super(TestBase, self).setUp()
         self._create_user_and_login()
         self._submission_url = reverse(
-            submission, kwargs={'username': self.user.username})
+            'submissions', kwargs={'username': self.user.username})
 
     def test_encrypted_submissions(self):
         self._publish_xls_file(os.path.join(

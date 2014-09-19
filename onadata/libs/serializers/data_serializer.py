@@ -84,3 +84,18 @@ class DataInstanceSerializer(serializers.Serializer):
         records = list(record for record in cursor)
 
         return (len(records) and records[0]) or records
+
+
+class SubmissionSerializer(serializers.Serializer):
+    def to_native(self, obj):
+        if obj is None:
+            return super(SubmissionSerializer, self).to_native(obj)
+
+        return {
+            'message': _("Successful submission."),
+            'formid': obj.xform.id_string,
+            'encrypted': obj.xform.encrypted,
+            'instanceID': u'uuid:%s' % obj.uuid,
+            'submissionDate': obj.date_created.isoformat(),
+            'markedAsCompleteDate': obj.date_modified.isoformat()
+        }
