@@ -186,7 +186,11 @@ class TestBase(TransactionTestCase):
             a = open(attachment_path)
             post_data = {'xml_submission_file': f, 'media_file': a}
             url = '/%s/submission' % self.user.username
-            self.response = self.anon.post(url, post_data)
+            self.user.profile.require_auth = True
+            self.user.profile.save()
+            client = DigestClient()
+            client.set_authorization('bob', 'bob', 'Digest')
+            self.response = client.post(url, post_data)
 
     def _make_submissions(self, username=None, add_uuid=False,
                           should_store=True):

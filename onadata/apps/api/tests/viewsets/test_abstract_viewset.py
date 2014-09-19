@@ -270,9 +270,15 @@ class TestAbstractViewSet(TestCase):
             self.main_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+        client = DigestClient()
+        client.set_authorization(self.profile_data['username'],
+                                 self.profile_data['password1'],
+                                 'Digest')
 
         for path in paths:
-            self._make_submission(path, username, add_uuid)
+            self._make_submission(path, username, add_uuid, client=client)
 
         post_count = pre_count + len(self.surveys) if should_store\
             else pre_count

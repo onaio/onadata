@@ -294,6 +294,8 @@ class TestBriefcaseAPI(TestBase):
         count = Instance.objects.count()
         with codecs.open(submission_path, encoding='utf-8') as f:
             post_data = {'xml_submission_file': f}
+            self.user.profile.require_auth = True
+            self.user.profile.save()
             response = self.client.post(self._submission_url, post_data)
             self.assertContains(response, message, status_code=201)
             self.assertContains(response, instanceId, status_code=201)
