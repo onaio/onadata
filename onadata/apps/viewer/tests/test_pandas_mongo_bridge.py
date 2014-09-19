@@ -603,7 +603,7 @@ class TestPandasMongoBridge(TestBase):
             u'_status': u'submitted_via_web',
             u'_tags': u'',
             u'_notes': u'',
-            u"_submitted_by": None,
+            u"_submitted_by": u'bob',
             u'name': u'Abe',
             u'age': u'88',
             u'has_children': u'1',
