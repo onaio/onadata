@@ -6,6 +6,7 @@ from rest_framework.compat import six
 from rest_framework.compat import smart_text
 from rest_framework.renderers import BaseRenderer
 from rest_framework.renderers import TemplateHTMLRenderer
+from rest_framework.renderers import StaticHTMLRenderer
 
 
 class XLSRenderer(BaseRenderer):
@@ -138,5 +139,10 @@ class XFormManifestRenderer(XFormListRenderer):
 
 
 class TemplateXMLRenderer(TemplateHTMLRenderer):
+    format = 'xml'
+    media_type = 'text/xml'
+
+
+class StaticXMLRenderer(StaticHTMLRenderer):
     format = 'xml'
     media_type = 'text/xml'
