@@ -440,7 +440,7 @@ class TestProcess(TestBase):
         url = reverse('submissions')
         response = self.client.get(url)
         self.assertContains(
-            response, "405 Error: Method Not Allowed", status_code=405)
+            response, "Method 'GET' not allowed", status_code=405)
 
     def test_publish_bad_xls_with_unicode_in_error(self):
         """
