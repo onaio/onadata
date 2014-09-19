@@ -311,6 +311,21 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
                  }
             )
 
+    def test_upload_head_request(self):
+        view = BriefcaseApi.as_view({'head': 'create'})
+
+        auth = DigestAuth(self.login_username, self.login_password)
+        request = self.factory.head(self._form_upload_url)
+        response = view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 401)
+        request.META.update(auth(request.META, response))
+        response = view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(response.has_header('X-OpenRosa-Version'))
+        self.assertTrue(
+            response.has_header('X-OpenRosa-Accept-Content-Length'))
+        self.assertTrue(response.has_header('Date'))
+
     def test_submission_with_instance_id_on_root_node(self):
         view = XFormSubmissionApi.as_view({'post': 'create'})
         self._publish_xml_form()
