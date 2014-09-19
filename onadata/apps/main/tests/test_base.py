@@ -212,6 +212,10 @@ class TestBase(TransactionTestCase):
             self.this_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+        client = DigestClient()
+        client.set_authorization('bob', 'bob', 'Digest')
 
         client = self._get_digest_client()
 
