@@ -14,7 +14,6 @@ from xml.dom import minidom, Node
 from onadata.apps.main.models import MetaData
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
-from onadata.apps.logger.views import submission
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME
@@ -438,7 +437,7 @@ class TestProcess(TestBase):
         self.assertEquals(self.user.xforms.count(), 0)
 
     def test_405_submission(self):
-        url = reverse(submission)
+        url = reverse('submissions')
         response = self.client.get(url)
         self.assertContains(
             response, "405 Error: Method Not Allowed", status_code=405)

@@ -3,10 +3,10 @@ import os
 import re
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth.models import User
 from django.contrib.auth.models import Permission
 from django.test import TestCase
-from django.test.client import Client
 from rest_framework.test import APIRequestFactory
 from tempfile import NamedTemporaryFile
 
@@ -15,6 +15,7 @@ from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
 from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.main import tests as main_tests
 from onadata.apps.logger.models import Instance, XForm, Attachment
@@ -204,9 +205,12 @@ class TestAbstractViewSet(TestCase):
 
     def _make_submission(self, path, username=None, add_uuid=False,
                          forced_submission_time=None,
-                         client=None, media_file=None):
+                         client=None, media_file=None, auth=None):
         # store temporary file with dynamic uuid
-        client = client or Client()
+        submission = XFormSubmissionApi.as_view({
+            'head': 'create',
+            'post': 'create'
+        })
         tmp_file = None
 
         if add_uuid:
@@ -235,7 +239,13 @@ class TestAbstractViewSet(TestCase):
             url_prefix = '%s/' % username if username else ''
             url = '/%ssubmission' % url_prefix
 
-            self.response = client.post(url, post_data)
+            request = self.factory.post(url, post_data)
+            request.user = AnonymousUser()
+            self.response = submission(request, username=username)
+
+            if auth and self.response.status_code == 401:
+                request.META.update(auth(request.META, self.response))
+                self.response = submission(request, username=username)
 
         if forced_submission_time:
             instance = Instance.objects.order_by('-pk').all()[0]

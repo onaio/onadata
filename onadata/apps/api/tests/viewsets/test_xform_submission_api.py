@@ -15,7 +15,7 @@ class TestXFormSubmissionApi(TestAbstractViewSet, TransactionTestCase):
     def setUp(self):
         super(self.__class__, self).setUp()
         self.view = XFormSubmissionApi.as_view({
-            "get": "list",
+            "head": "create",
             "post": "create"
         })
         self._publish_xls_form_to_project()
