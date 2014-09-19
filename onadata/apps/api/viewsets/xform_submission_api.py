@@ -17,6 +17,7 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
+from onadata.libs.mixins.openrosa_headers_mixin import OpenRosaHeadersMixin
 from onadata.libs.renderers.renderers import TemplateXMLRenderer
 from onadata.libs.serializers.data_serializer import SubmissionSerializer
 from onadata.libs.utils.logger_tools import safe_create_instance
@@ -26,7 +27,8 @@ from onadata.libs.utils.logger_tools import safe_create_instance
 DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 
 
-class XFormSubmissionApi(mixins.CreateModelMixin, viewsets.GenericViewSet):
+class XFormSubmissionApi(OpenRosaHeadersMixin,
+                         mixins.CreateModelMixin, viewsets.GenericViewSet):
     authentication_classes = (DigestAuthentication,)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     model = Instance
@@ -34,17 +36,6 @@ class XFormSubmissionApi(mixins.CreateModelMixin, viewsets.GenericViewSet):
     renderer_classes = (TemplateXMLRenderer,)
     serializer_class = SubmissionSerializer
     template_name = 'submission.xml'
-
-    def get_openrosa_headers(self, request):
-        tz = pytz.timezone(settings.TIME_ZONE)
-        dt = datetime.now(tz).strftime('%a, %d %b %Y %H:%M:%S %Z')
-
-        return {
-            'Date': dt,
-            'Location': request.build_absolute_uri(request.path),
-            'X-OpenRosa-Version': '1.0',
-            'X-OpenRosa-Accept-Content-Length': DEFAULT_CONTENT_LENGTH
-        }
 
     def create(self, request, *args, **kwargs):
         username = self.kwargs.get('username')
