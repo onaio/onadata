@@ -5,6 +5,7 @@ from django.views.generic import RedirectView
 from onadata.apps.api.urls import router
 from onadata.apps.api.urls import XFormListApi
 from onadata.apps.api.urls import XFormSubmissionApi
+from onadata.apps.api.urls import BriefcaseApi
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
@@ -119,13 +120,17 @@ urlpatterns = patterns(
 
     # briefcase api urls
     url(r"^(?P<username>\w+)/view/submissionList$",
-        'onadata.apps.logger.views.view_submission_list'),
+        BriefcaseApi.as_view({'get': 'list', 'head': 'list'}),
+        name='view-submission-list'),
     url(r"^(?P<username>\w+)/view/downloadSubmission$",
-        'onadata.apps.logger.views.view_download_submission'),
+        BriefcaseApi.as_view({'get': 'retrieve', 'head': 'retrieve'}),
+        name='view-download-submission'),
     url(r"^(?P<username>\w+)/formUpload$",
-        'onadata.apps.logger.views.form_upload'),
+        BriefcaseApi.as_view({'post': 'create', 'head': 'create'}),
+        name='form-upload'),
     url(r"^(?P<username>\w+)/upload$",
-        'onadata.apps.logger.views.form_upload'),
+        BriefcaseApi.as_view({'post': 'create', 'head': 'create'}),
+        name='upload'),
 
     # stats
     url(r"^stats/submissions/$", 'onadata.apps.stats.views.submissions'),
