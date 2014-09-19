@@ -150,6 +150,11 @@ class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
         return instances
 
     def create(self, request, *args, **kwargs):
+        if request.method.upper() == 'HEAD':
+            return Response(status=status.HTTP_204_NO_CONTENT,
+                            headers=self.get_openrosa_headers(request),
+                            template_name=self.template_name)
+
         xform_def = request.FILES.get('form_def_file', None)
         response_status = status.HTTP_201_CREATED
         username = kwargs.get('username')
