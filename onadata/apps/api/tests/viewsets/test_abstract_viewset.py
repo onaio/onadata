@@ -174,7 +174,8 @@ class TestAbstractViewSet(TestCase):
         })
         project_id = self.project.pk
         data = {
-            'owner': 'http://testserver/api/v1/users/%s' % self.user.username,
+            'owner': 'http://testserver/api/v1/users/%s'
+            % self.project.organization.username,
             'public': False,
             'public_data': False,
             'description': u'transportation_2011_07_25',
@@ -194,7 +195,7 @@ class TestAbstractViewSet(TestCase):
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=project_id)
             self.assertEqual(response.status_code, 201)
-            self.xform = self.user.xforms.all()[0]
+            self.xform = XForm.objects.all().order_by('pk').reverse()[0]
             data.update({
                 'url':
                 'http://testserver/api/v1/forms/%s' % (self.xform.pk)

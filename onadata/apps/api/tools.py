@@ -6,7 +6,8 @@ import numpy as np
 from django import forms
 from django.conf import settings
 from django.core.files.storage import get_storage_class
-from django.contrib.auth.models import User, Permission
+from django.contrib.auth.models import Permission
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.db.models import Q
@@ -25,14 +26,16 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
-from onadata.libs.data.query import get_field_records, get_numeric_fields
+from onadata.libs.data.query import get_field_records
+from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
-from onadata.libs.utils.user_auth import check_and_set_form_by_id, \
-    check_and_set_form_by_id_string
+from onadata.libs.utils.user_auth import check_and_set_form_by_id
+from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
 from onadata.libs.data.statistics import _chk_asarray
-from onadata.libs.permissions import (get_object_users_with_permissions,
-                                      ReadOnlyRole)
+from onadata.libs.permissions import get_object_users_with_permissions
+from onadata.libs.permissions import OwnerRole
+from onadata.libs.permissions import ReadOnlyRole
 
 DECIMAL_PRECISION = 2
 
@@ -214,6 +217,8 @@ def add_xform_to_project(xform, project, creator):
 
         if user != creator:
             ReadOnlyRole.add(user, xform)
+        else:
+            OwnerRole.add(user, xform)
 
     return instance
 
