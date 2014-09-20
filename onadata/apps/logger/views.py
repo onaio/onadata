@@ -15,8 +15,10 @@ from django.core.files import File
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseRedirect, HttpResponseForbidden
-from django.shortcuts import render_to_response, get_object_or_404
-from django.template import RequestContext, loader
+from django.shortcuts import get_object_or_404
+from django.shortcuts import render
+from django.template import loader
+from django.template import RequestContext
 from django.utils import six
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_GET, require_POST
@@ -75,21 +77,25 @@ def _parse_int(num):
         pass
 
 
-def _html_submission_response(context, instance):
-    context.username = instance.xform.user.username
-    context.id_string = instance.xform.id_string
-    context.domain = Site.objects.get(id=settings.SITE_ID).domain
+def _html_submission_response(request, instance):
+    data = {}
+    data['username'] = instance.xform.user.username
+    data['id_string'] = instance.xform.id_string
+    data['domain'] = Site.objects.get(id=settings.SITE_ID).domain
 
-    return render_to_response("submission.html", context_instance=context)
+    return render(request, "submission.html", data)
 
 
-def _submission_response(context, instance):
-    context.message = _("Successful submission.")
-    context.formid = instance.xform.id_string
-    context.encrypted = instance.xform.encrypted
-    context.instanceID = u'uuid:%s' % instance.uuid
-    context.submissionDate = instance.date_created.isoformat()
-    context.markedAsCompleteDate = instance.date_modified.isoformat()
+def _submission_response(request, instance):
+    data = {}
+    data['message'] = _("Successful submission.")
+    data['formid'] = instance.xform.id_string
+    data['encrypted'] = instance.xform.encrypted
+    data['instanceID'] = u'uuid:%s' % instance.uuid
+    data['submissionDate'] = instance.date_created.isoformat()
+    data['markedAsCompleteDate'] = instance.date_modified.isoformat()
+
+    context = RequestContext(request, data)
     t = loader.get_template('submission.xml')
 
     return BaseOpenRosaResponse(t.render(context))
@@ -157,9 +163,7 @@ def bulksubmission(request, username):
 def bulksubmission_form(request, username=None):
     username = username if username is None else username.lower()
     if request.user.username == username:
-        context = RequestContext(request)
-        return render_to_response(
-            "bulk_submission_form.html", context_instance=context)
+        return render(request, 'bulk_submission_form.html')
     else:
         return HttpResponseRedirect('/%s' % request.user.username)
 
@@ -196,15 +200,18 @@ def formList(request, username):
     audit_log(Actions.USER_FORMLIST_REQUESTED, request.user, formlist_user,
               _("Requested forms list."), audit, request)
 
-    response = render_to_response("xformsList.xml", {
+    data = {
         'host': request.build_absolute_uri().replace(
             request.get_full_path(), ''),
         'xforms': xforms
-    }, content_type="text/xml; charset=utf-8")
+    }
+    response = render(request, "xformsList.xml", data,
+                      content_type="text/xml; charset=utf-8")
     response['X-OpenRosa-Version'] = '1.0'
     tz = pytz.timezone(settings.TIME_ZONE)
     dt = datetime.now(tz).strftime('%a, %d %b %Y %H:%M:%S %Z')
     response['Date'] = dt
+
     return response
 
 
@@ -220,7 +227,8 @@ def xformsManifest(request, username, id_string):
         authenticator = HttpDigestAuthenticator()
         if not authenticator.authenticate(request):
             return authenticator.build_challenge_response()
-    response = render_to_response("xformsManifest.xml", {
+
+    response = render(request, "xformsManifest.xml", {
         'host': request.build_absolute_uri().replace(
             request.get_full_path(), ''),
         'media_files': MetaData.media_upload(xform, download=True)
@@ -229,6 +237,7 @@ def xformsManifest(request, username, id_string):
     tz = pytz.timezone(settings.TIME_ZONE)
     dt = datetime.now(tz).strftime('%a, %d %b %Y %H:%M:%S %Z')
     response['Date'] = dt
+
     return response
 
 
@@ -255,7 +264,6 @@ def submission(request, username=None):
                 request.get_full_path(), '/submission')
         return response
 
-    context = RequestContext(request)
     xml_file_list = []
     media_files = []
 
@@ -294,9 +302,9 @@ def submission(request, username=None):
 
         # response as html if posting with a UUID
         if not username and uuid:
-            response = _html_submission_response(context, instance)
+            response = _html_submission_response(request, instance)
         else:
-            response = _submission_response(context, instance)
+            response = _submission_response(request, instance)
 
         # ODK needs two things for a form to be considered successful
         # 1) the status code needs to be 201 (created)
@@ -465,20 +473,21 @@ def enter_data(request, username, id_string):
                                                 'id_string': id_string}))
         return HttpResponseRedirect(url)
     except Exception as e:
-        context = RequestContext(request)
+        data = {}
         owner = User.objects.get(username__iexact=username)
-        context.profile, created = \
+        data['profile'], created = \
             UserProfile.objects.get_or_create(user=owner)
-        context.xform = xform
-        context.content_user = owner
-        context.form_view = True
-        context.message = {
+        data['xform'] = xform
+        data['content_user'] = owner
+        data['form_view'] = True
+        data['message'] = {
             'type': 'alert-error',
             'text': u"Enketo error, reason: %s" % e}
         messages.add_message(
             request, messages.WARNING,
             _("Enketo error: enketo replied %s") % e, fail_silently=True)
-        return render_to_response("profile.html", context_instance=context)
+        return render(request, "profile.html", data)
+
     return HttpResponseRedirect(reverse('onadata.apps.main.views.show',
                                 kwargs={'username': username,
                                         'id_string': id_string}))
@@ -539,7 +548,6 @@ def view_submission_list(request, username):
     authenticator = HttpDigestAuthenticator()
     if not authenticator.authenticate(request):
         return authenticator.build_challenge_response()
-    context = RequestContext(request)
     id_string = request.GET.get('formId', None)
     xform = get_object_or_404(
         XForm, id_string__iexact=id_string, user__username__iexact=username)
@@ -557,18 +565,19 @@ def view_submission_list(request, username):
     if num_entries:
         instances = instances[:num_entries]
 
-    context.instances = instances
+    data = {'instances': instances}
 
+    resumptionCursor = 0
     if instances.count():
         last_instance = instances[instances.count() - 1]
-        context.resumptionCursor = last_instance.pk
+        resumptionCursor = last_instance.pk
     elif instances.count() == 0 and cursor:
-        context.resumptionCursor = cursor
-    else:
-        context.resumptionCursor = 0
+        resumptionCursor = cursor
 
-    return render_to_response(
-        'submissionList.xml', context_instance=context,
+    data['resumptionCursor'] = resumptionCursor
+
+    return render(
+        request, 'submissionList.xml', data,
         content_type="text/xml; charset=utf-8")
 
 
@@ -579,7 +588,7 @@ def view_download_submission(request, username):
     authenticator = HttpDigestAuthenticator()
     if not authenticator.authenticate(request):
         return authenticator.build_challenge_response()
-    context = RequestContext(request)
+    data = {}
     formId = request.GET.get('formId', None)
     if not isinstance(formId, six.string_types):
         return HttpResponseBadRequest()
@@ -602,12 +611,13 @@ def view_download_submission(request, username):
     submission_xml_root_node.setAttribute(
         'submissionDate', instance.date_created.isoformat()
     )
-    context.submission_data = submission_xml_root_node.toxml()
-    context.media_files = Attachment.objects.filter(instance=instance)
-    context.host = request.build_absolute_uri().replace(
+    data['submission_data'] = submission_xml_root_node.toxml()
+    data['media_files'] = Attachment.objects.filter(instance=instance)
+    data['host'] = request.build_absolute_uri().replace(
         request.get_full_path(), '')
-    return render_to_response(
-        'downloadSubmission.xml', context_instance=context,
+
+    return render(
+        request, 'downloadSubmission.xml', data,
         content_type="text/xml; charset=utf-8")
 
 
