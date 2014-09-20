@@ -2,7 +2,6 @@ import json
 import os
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
 from django_digest.test import DigestAuth
 from rest_framework.renderers import JSONRenderer
 
@@ -77,8 +76,8 @@ class TestUserPermissions(TestAbstractViewSet):
         self.assertFalse(self.xform.shared)
 
         request = self.factory.put('/', data=data, **self.extra)
-        with self.assertRaises(ValidationError):
-            response = view(request, pk=self.xform.id)
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 400)
         self.assertFalse(self.xform.shared)
 
         role.ManagerRole.add(self.user, self.xform)
