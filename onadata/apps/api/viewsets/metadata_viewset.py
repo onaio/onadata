@@ -175,7 +175,7 @@ Accept: image/png </pre>
     """
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.MetaDataFilter,)
-    model = MetaData
+    queryset = MetaData.objects.all()
     permission_classes = (MetaDataObjectPermissions,)
     renderer_classes = (
         renderers.JSONRenderer,

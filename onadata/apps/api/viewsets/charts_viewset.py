@@ -134,7 +134,7 @@ response. If `fields=all` then all the fields of the form will be returned.
 > passed to a charting library
     """
     filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
-    model = XForm
+    queryset = XForm.objects.all()
     serializer_class = ChartSerializer
     lookup_field = 'pk'
     renderer_classes = (ChartBrowsableAPIRenderer,

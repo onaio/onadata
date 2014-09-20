@@ -53,7 +53,7 @@ Response:
     ]
 """
     lookup_field = 'pk'
-    model = XForm
+    queryset = XForm.objects.all()
     filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
     permission_classes = [XFormPermissions, ]
     serializer_class = StatsSerializer

@@ -184,7 +184,7 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 >
 >       []
 """
-    model = OrganizationProfile
+    queryset = OrganizationProfile.objects.all()
     serializer_class = OrganizationSerializer
     lookup_field = 'user'
     permission_classes = [permissions.DjangoObjectPermissions]

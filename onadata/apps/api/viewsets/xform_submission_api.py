@@ -32,7 +32,7 @@ class XFormSubmissionApi(OpenRosaHeadersMixin,
     """
     authentication_classes = (DigestAuthentication,)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
-    model = Instance
+    queryset = Instance.objects.all()
     permission_classes = (permissions.AllowAny,)
     renderer_classes = (TemplateXMLRenderer, BrowsableAPIRenderer)
     serializer_class = SubmissionSerializer

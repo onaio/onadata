@@ -81,7 +81,7 @@ class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
     """
     authentication_classes = (DigestAuthentication,)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
-    model = XForm
+    queryset = XForm.objects.all()
     permission_classes = (permissions.IsAuthenticated,
                           ViewDjangoObjectPermissions)
     renderer_classes = (TemplateXMLRenderer, BrowsableAPIRenderer)

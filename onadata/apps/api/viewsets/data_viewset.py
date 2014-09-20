@@ -317,7 +317,7 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
     extra_lookup_fields = None
     public_data_endpoint = 'public'
 
-    model = XForm
+    queryset = XForm.objects.all()
 
     def get_serializer_class(self):
         pk_lookup, dataid_lookup = self.lookup_fields

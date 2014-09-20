@@ -573,7 +573,7 @@ You can clone a form to a specific user account using `GET` with
         renderers.SAVZIPRenderer,
         renderers.SurveyRenderer
     ]
-    model = XForm
+    queryset = XForm.objects.all()
     serializer_class = XFormSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None

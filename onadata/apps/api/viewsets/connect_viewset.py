@@ -41,7 +41,7 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
 <b>GET</b> /api/v1/user/<code>{username}</code>/starred</pre>
 """
     lookup_field = 'user'
-    model = UserProfile
+    queryset = UserProfile.objects.all()
     permission_classes = (permissions.IsAuthenticated,)
     serializer_class = UserProfileWithTokenSerializer
 
