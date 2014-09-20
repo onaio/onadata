@@ -51,10 +51,10 @@ def _set_submission_time_to_query(query, request):
     try:
         if request.GET.get('start'):
             query[SUBMISSION_TIME]['$gte'] = format_date_for_mongo(
-                request.GET['start'], datetime)
+                request.GET['start'])
         if request.GET.get('end'):
             query[SUBMISSION_TIME]['$lte'] = format_date_for_mongo(
-                request.GET['end'], datetime)
+                request.GET['end'])
     except ValueError:
         return HttpResponseBadRequest(
             _("Dates must be in the format YY_MM_DD_hh_mm_ss"))
@@ -245,7 +245,8 @@ def data_export(request, username, id_string, export_type):
         if 'start' in request.GET or 'end' in request.GET:
             if not query:
                 query = '{}'
-            query = _set_submission_time_to_query(json.loads(query), request)
+            query = json.dumps(
+                _set_submission_time_to_query(json.loads(query), request))
         try:
             export = generate_export(
                 export_type, extension, username, id_string, None, query)

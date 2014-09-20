@@ -6,20 +6,26 @@ from bson import json_util
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.core.files.storage import default_storage, get_storage_class
+from django.core.files.storage import default_storage
+from django.core.files.storage import get_storage_class
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db import IntegrityError
 from rest_framework.authtoken.models import Token
-from django.http import HttpResponse, HttpResponseBadRequest, \
-    HttpResponseRedirect, HttpResponseForbidden, HttpResponseNotFound,\
-    HttpResponseServerError
-from django.shortcuts import render_to_response, get_object_or_404
+from django.http import HttpResponse
+from django.http import HttpResponseBadRequest
+from django.http import HttpResponseForbidden
+from django.http import HttpResponseNotFound
+from django.http import HttpResponseRedirect
+from django.http import HttpResponseServerError
+from django.shortcuts import get_object_or_404
+from django.shortcuts import render
 from django.template import loader, RequestContext
 from django.utils.translation import ugettext as _
-from django.views.decorators.http import require_GET, require_POST,\
-    require_http_methods
+from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_http_methods
 from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
 
 from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
@@ -43,9 +49,13 @@ from onadata.libs.utils.bamboo import get_new_bamboo_dataset,\
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
     publish_form
-from onadata.libs.utils.user_auth import check_and_set_user, set_profile_data,\
-    has_permission, helper_auth_helper, get_xform_and_perms,\
-    check_and_set_user_and_form, add_cors_headers
+from onadata.libs.utils.user_auth import add_cors_headers
+from onadata.libs.utils.user_auth import check_and_set_user_and_form
+from onadata.libs.utils.user_auth import check_and_set_user
+from onadata.libs.utils.user_auth import get_xform_and_perms
+from onadata.libs.utils.user_auth import has_permission
+from onadata.libs.utils.user_auth import helper_auth_helper
+from onadata.libs.utils.user_auth import set_profile_data
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.qrcode import generate_qrcode
 from onadata.libs.utils.viewer_tools import enketo_url
@@ -55,8 +65,8 @@ def home(request):
     if request.user.username:
         return HttpResponseRedirect(
             reverse(profile, kwargs={'username': request.user.username}))
-    context = RequestContext(request)
-    return render_to_response('home.html', context_instance=context)
+
+    return render(request, 'home.html')
 
 
 @login_required
@@ -73,8 +83,8 @@ def clone_xlsform(request, username):
     Eliminates the need to download Excel File and upload again.
     """
     to_username = request.user.username
-    context = RequestContext(request)
-    context.message = {'type': None, 'text': '....'}
+    message = {'type': None, 'text': '....'}
+    message_list = []
 
     def set_form():
         form_owner = request.POST.get('username')
@@ -89,7 +99,6 @@ def clone_xlsform(request, username):
                                  id_string, XForm.CLONED_SUFFIX), to_username)
             xls_data = default_storage.open(path)
             xls_file = default_storage.save(xls_file, xls_data)
-            context.message = u'%s-%s' % (form_owner, xls_file)
             survey = DataDictionary.objects.create(
                 user=request.user,
                 xls=xls_file
@@ -124,25 +133,31 @@ def clone_xlsform(request, username):
         # until then, it checks if form barely related to sms
         if is_sms_related(form_result.get('form_o')):
             form_result_sms = check_form_sms_compatibility(form_result)
-            context.message_list = [form_result, form_result_sms]
+            message_list = [form_result, form_result_sms]
         else:
-            context.message = form_result
+            message = form_result
     else:
-        context.message = form_result
+        message = form_result
+
+    context = RequestContext(request, {
+        'message': message, 'message_list': message_list})
+
     if request.is_ajax():
         res = loader.render_to_string(
             'message.html',
-            context_instance=context).replace("'", r"\'").replace('\n', '')
+            context_instance=context
+        ).replace("'", r"\'").replace('\n', '')
+
         return HttpResponse(
             "$('#mfeedback').html('%s').show();" % res)
     else:
-        return HttpResponse(context.message['text'])
+        return HttpResponse(message['text'])
 
 
 def profile(request, username):
-    context = RequestContext(request)
     content_user = get_object_or_404(User, username__iexact=username)
-    context.form = QuickConverter()
+    form = QuickConverter()
+    data = {'form': form}
 
     # xlsform submission...
     if request.method == 'POST' and request.user.is_authenticated():
@@ -181,67 +196,75 @@ def profile(request, username):
             # until then, it checks if form barely related to sms
             if is_sms_related(form_result.get('form_o')):
                 form_result_sms = check_form_sms_compatibility(form_result)
-                context.message_list = [form_result, form_result_sms]
+                data['message_list'] = [form_result, form_result_sms]
             else:
-                context.message = form_result
+                data['message'] = form_result
         else:
-            context.message = form_result
+            data['message'] = form_result
 
     # profile view...
     # for the same user -> dashboard
     if content_user == request.user:
-        context.show_dashboard = True
-        context.all_forms = content_user.xforms.count()
-        context.form = QuickConverterFile()
-        context.form_url = QuickConverterURL()
+        show_dashboard = True
+        all_forms = content_user.xforms.count()
+        form = QuickConverterFile()
+        form_url = QuickConverterURL()
 
         request_url = request.build_absolute_uri(
             "/%s" % request.user.username)
-        context.url = request_url.replace('http://', 'https://')
+        url = request_url.replace('http://', 'https://')
         xforms = XForm.objects.filter(user=content_user)\
             .select_related('user', 'instances')
-        context.user_xforms = xforms
+        user_xforms = xforms
         # forms shared with user
         xfct = ContentType.objects.get(app_label='logger', model='xform')
         xfs = content_user.userobjectpermission_set.filter(content_type=xfct)
         shared_forms_pks = list(set([xf.object_pk for xf in xfs]))
-        context.forms_shared_with = XForm.objects.filter(
+        forms_shared_with = XForm.objects.filter(
             pk__in=shared_forms_pks).exclude(user=content_user)\
             .select_related('user')
-        context.xforms_list = [
+        xforms_list = [
             {
                 'id': 'published',
-                'xforms': context.user_xforms,
+                'xforms': user_xforms,
                 'title': _(u"Published Forms"),
                 'small': _("Export, map, and view submissions.")
             },
             {
                 'id': 'shared',
-                'xforms': context.forms_shared_with,
+                'xforms': forms_shared_with,
                 'title': _(u"Shared Forms"),
                 'small': _("List of forms shared with you.")
             }
         ]
+        data.update({
+            'all_forms': all_forms,
+            'show_dashboard': show_dashboard,
+            'form': form,
+            'form_url': form_url,
+            'url': url,
+            'user_xforms': user_xforms,
+            'xforms_list': xforms_list,
+            'forms_shared_with': forms_shared_with
+        })
     # for any other user -> profile
-    set_profile_data(context, content_user)
-    return render_to_response("profile.html", context_instance=context)
+    set_profile_data(data, content_user)
+
+    return render(request, "profile.html", data)
 
 
 def members_list(request):
     if not request.user.is_staff and not request.user.is_superuser:
         return HttpResponseForbidden(_(u'Forbidden.'))
-    context = RequestContext(request)
     users = User.objects.all()
-    context.template = 'people.html'
-    context.users = users
-    return render_to_response("people.html", context_instance=context)
+    template = 'people.html'
+
+    return render(request, template, {'template': template, 'users': users})
 
 
 @login_required
 def profile_settings(request, username):
-    context = RequestContext(request)
     content_user = check_and_set_user(request, username)
-    context.content_user = content_user
     profile, created = UserProfile.objects.get_or_create(user=content_user)
     if request.method == 'POST':
         form = UserProfileForm(request.POST, instance=profile)
@@ -262,8 +285,9 @@ def profile_settings(request, username):
     else:
         form = UserProfileForm(
             instance=profile, initial={"email": content_user.email})
-    return render_to_response("settings.html", {'form': form},
-                              context_instance=context)
+
+    return render(request, "settings.html",
+                  {'content_user': content_user, 'form': form})
 
 
 @require_GET
@@ -271,24 +295,28 @@ def public_profile(request, username):
     content_user = check_and_set_user(request, username)
     if isinstance(content_user, HttpResponseRedirect):
         return content_user
-    context = RequestContext(request)
-    set_profile_data(context, content_user)
-    context.is_owner = request.user == content_user
+    data = {}
+    set_profile_data(data, content_user)
+    data['is_owner'] = request.user == content_user
     audit = {}
     audit_log(
         Actions.PUBLIC_PROFILE_ACCESSED, request.user, content_user,
         _("Public profile accessed."), audit, request)
-    return render_to_response("profile.html", context_instance=context)
+
+    return render(request, "profile.html", data)
 
 
 @login_required
 def dashboard(request):
-    context = RequestContext(request)
-    context.form = QuickConverter()
     content_user = request.user
-    set_profile_data(context, content_user)
-    context.url = request.build_absolute_uri("/%s" % request.user.username)
-    return render_to_response("dashboard.html", context_instance=context)
+    data = {
+        'form': QuickConverter(),
+        'content_user': content_user,
+        'url': request.build_absolute_uri("/%s" % request.user.username)
+    }
+    set_profile_data(data, content_user)
+
+    return render(request, "dashboard.html", data)
 
 
 def redirect_to_public_link(request, uuid):
@@ -302,29 +330,29 @@ def redirect_to_public_link(request, uuid):
     }))
 
 
-def set_xform_owner_context(context, xform, request, username, id_string):
-    context.sms_support_form = ActivateSMSSupportFom(
+def set_xform_owner_data(data, xform, request, username, id_string):
+    data['sms_support_form'] = ActivateSMSSupportFom(
         initial={'enable_sms_support': xform.allows_sms,
                  'sms_id_string': xform.sms_id_string})
     if not xform.allows_sms:
-        context.sms_compatible = check_form_sms_compatibility(
+        data['sms_compatible'] = check_form_sms_compatibility(
             None, json_survey=json.loads(xform.json))
     else:
         url_root = request.build_absolute_uri('/')[:-1]
-        context.sms_providers_doc = providers_doc(
+        data['sms_providers_doc'] = providers_doc(
             url_root=url_root,
             username=username,
             id_string=id_string)
-        context.url_root = url_root
+        data['url_root'] = url_root
 
-    context.form_license_form = FormLicenseForm(
-        initial={'value': context.form_license})
-    context.data_license_form = DataLicenseForm(
-        initial={'value': context.data_license})
-    context.doc_form = SupportDocForm()
-    context.source_form = SourceForm()
-    context.media_form = MediaForm()
-    context.mapbox_layer_form = MapboxLayerForm()
+    data['form_license_form'] = FormLicenseForm(
+        initial={'value': data['form_license']})
+    data['data_license_form'] = DataLicenseForm(
+        initial={'value': data['data_license']})
+    data['doc_form'] = SupportDocForm()
+    data['source_form'] = SourceForm()
+    data['media_form'] = MediaForm()
+    data['mapbox_layer_form'] = MapboxLayerForm()
     users_with_perms = []
 
     for perm in get_users_with_perms(xform, attach_perms=True).items():
@@ -336,8 +364,8 @@ def set_xform_owner_context(context, xform, request, username, id_string):
         if 'report_xform' in perm[1]:
             has_perm.append(_(u"Can submit to"))
         users_with_perms.append((perm[0], u" | ".join(has_perm)))
-    context.users_with_perms = users_with_perms
-    context.permission_form = PermissionForm(username)
+    data['users_with_perms'] = users_with_perms
+    data['permission_form'] = PermissionForm(username)
 
 
 @require_GET
@@ -351,40 +379,41 @@ def show(request, username=None, id_string=None, uuid=None):
     if not (xform.shared or can_view or request.session.get('public_link')):
         return HttpResponseRedirect(reverse(home))
 
-    context = RequestContext(request)
-    context.cloned = len(
+    data = {}
+    data['cloned'] = len(
         XForm.objects.filter(user__username__iexact=request.user.username,
                              id_string__iexact=id_string + XForm.CLONED_SUFFIX)
     ) > 0
-    context.public_link = MetaData.public_link(xform)
-    context.is_owner = is_owner
-    context.can_edit = can_edit
-    context.can_view = can_view or request.session.get('public_link')
-    context.xform = xform
-    context.content_user = xform.user
-    context.base_url = "https://%s" % request.get_host()
-    context.source = MetaData.source(xform)
-    context.form_license = MetaData.form_license(xform).data_value
-    context.data_license = MetaData.data_license(xform).data_value
-    context.supporting_docs = MetaData.supporting_docs(xform)
-    context.media_upload = MetaData.media_upload(xform)
-    context.mapbox_layer = MetaData.mapbox_layer_upload(xform)
+    data['public_link'] = MetaData.public_link(xform)
+    data['is_owner'] = is_owner
+    data['can_edit'] = can_edit
+    data['can_view'] = can_view or request.session.get('public_link')
+    data['xform'] = xform
+    data['content_user'] = xform.user
+    data['base_url'] = "https://%s" % request.get_host()
+    data['source'] = MetaData.source(xform)
+    data['form_license'] = MetaData.form_license(xform).data_value
+    data['data_license'] = MetaData.data_license(xform).data_value
+    data['supporting_docs'] = MetaData.supporting_docs(xform)
+    data['media_upload'] = MetaData.media_upload(xform)
+    data['mapbox_layer'] = MetaData.mapbox_layer_upload(xform)
 
     if is_owner:
-        set_xform_owner_context(context, xform, request, username, id_string)
+        set_xform_owner_data(data, xform, request, username, id_string)
 
     if xform.allows_sms:
-        context.sms_support_doc = get_autodoc_for(xform)
+        data['sms_support_doc'] = get_autodoc_for(xform)
 
-    return render_to_response("show.html", context_instance=context)
+    return render(request, "show.html", data)
 
 
 @require_GET
 def api_token(request, username=None):
     user = get_object_or_404(User, username=username)
-    context = RequestContext(request)
-    context.token_key, created = Token.objects.get_or_create(user=user)
-    return render_to_response("api_token.html", context_instance=context)
+    data = {}
+    data['token_key'], created = Token.objects.get_or_create(user=user)
+
+    return render(request, "api_token.html", data)
 
 
 @require_http_methods(["GET", "OPTIONS"])
@@ -469,6 +498,7 @@ def public_api(request, username, id_string):
                'uuid': xform.uuid,
                }
     response_text = json.dumps(exports)
+
     return HttpResponse(response_text, content_type='application/json')
 
 
@@ -681,76 +711,77 @@ def edit(request, username, id_string):
                 'username': username,
                 'id_string': id_string
             }))
+
     return HttpResponseForbidden(_(u'Update failed.'))
 
 
 def getting_started(request):
-    context = RequestContext(request)
-    context.template = 'getting_started.html'
-    return render_to_response('base.html', context_instance=context)
+    template = 'getting_started.html'
+
+    return render(request, 'base.html', {'template': template})
 
 
 def support(request):
-    context = RequestContext(request)
-    context.template = 'support.html'
-    return render_to_response('base.html', context_instance=context)
+    template = 'support.html'
+
+    return render(request, 'base.html', {'template': template})
 
 
 def faq(request):
-    context = RequestContext(request)
-    context.template = 'faq.html'
-    return render_to_response('base.html', context_instance=context)
+    template = 'faq.html'
+
+    return render(request, 'base.html', {'template': template})
 
 
 def xls2xform(request):
-    context = RequestContext(request)
-    context.template = 'xls2xform.html'
-    return render_to_response('base.html', context_instance=context)
+    template = 'xls2xform.html'
+
+    return render(request, 'base.html', {'template': template})
 
 
 def tutorial(request):
-    context = RequestContext(request)
-    context.template = 'tutorial.html'
+    template = 'tutorial.html'
     username = request.user.username if request.user.username else \
         'your-user-name'
-    context.url = request.build_absolute_uri("/%s" % username)
-    return render_to_response('base.html', context_instance=context)
+    url = request.build_absolute_uri("/%s" % username)
+
+    return render(request, 'base.html', {'template': template, 'url': url})
 
 
 def resources(request):
-    context = RequestContext(request)
     if 'fr' in request.LANGUAGE_CODE.lower():
-        context.deck_id = 'a351f6b0a3730130c98b12e3c5740641'
+        deck_id = 'a351f6b0a3730130c98b12e3c5740641'
     else:
-        context.deck_id = '1a33a070416b01307b8022000a1de118'
-    return render_to_response('resources.html', context_instance=context)
+        deck_id = '1a33a070416b01307b8022000a1de118'
+
+    return render(request, 'resources.html', {'deck_id': deck_id})
 
 
 def about_us(request):
-    context = RequestContext(request)
-    context.a_flatpage = '/about-us/'
+    a_flatpage = '/about-us/'
     username = request.user.username if request.user.username else \
         'your-user-name'
-    context.url = request.build_absolute_uri("/%s" % username)
-    return render_to_response('base.html', context_instance=context)
+    url = request.build_absolute_uri("/%s" % username)
+
+    return render(request, 'base.html', {'a_flatpage': a_flatpage, 'url': url})
 
 
 def privacy(request):
-    context = RequestContext(request)
-    context.template = 'privacy.html'
-    return render_to_response('base.html', context_instance=context)
+    template = 'privacy.html'
+
+    return render(request, 'base.html', {'template': template})
 
 
 def tos(request):
-    context = RequestContext(request)
-    context.template = 'tos.html'
-    return render_to_response('base.html', context_instance=context)
+    template = 'tos.html'
+
+    return render(request, 'base.html', {'template': template})
 
 
 def syntax(request):
-    context = RequestContext(request)
-    context.template = 'syntax.html'
-    return render_to_response('base.html', context_instance=context)
+    template = 'syntax.html'
+
+    return render(request, 'base.html', {'template': template})
 
 
 def form_gallery(request):
@@ -758,23 +789,24 @@ def form_gallery(request):
     Return a list of urls for all the shared xls files. This could be
     made a lot prettier.
     """
-    context = RequestContext(request)
+    data = {}
     if request.user.is_authenticated():
-        context.loggedin_user = request.user
-    context.shared_forms = XForm.objects.filter(shared=True)
+        data['loggedin_user'] = request.user
+    data['shared_forms'] = XForm.objects.filter(shared=True)
     # build list of shared forms with cloned suffix
     id_strings_with_cloned_suffix = [
-        x.id_string + XForm.CLONED_SUFFIX for x in context.shared_forms
+        x.id_string + XForm.CLONED_SUFFIX for x in data['shared_forms']
     ]
     # build list of id_strings for forms this user has cloned
-    context.cloned = [
+    data['cloned'] = [
         x.id_string.split(XForm.CLONED_SUFFIX)[0]
         for x in XForm.objects.filter(
             user__username__iexact=request.user.username,
             id_string__in=id_strings_with_cloned_suffix
         )
     ]
-    return render_to_response('form_gallery.html', context_instance=context)
+
+    return render(request, 'form_gallery.html', data)
 
 
 def download_metadata(request, username, id_string, data_id):
@@ -806,6 +838,7 @@ def download_metadata(request, username, id_string, data_id):
             return response
         else:
             return HttpResponseNotFound()
+
     return HttpResponseForbidden(_(u'Permission denied.'))
 
 
@@ -853,6 +886,7 @@ def delete_metadata(request, username, id_string, data_id):
             'username': username,
             'id_string': id_string
         }))
+
     return HttpResponseForbidden(_(u'Permission denied.'))
 
 
@@ -915,6 +949,7 @@ def download_media_data(request, username, id_string, data_id):
                 return response
             else:
                 return HttpResponseNotFound()
+
     return HttpResponseForbidden(_(u'Permission denied.'))
 
 
@@ -924,10 +959,10 @@ def form_photos(request, username, id_string):
     if not xform:
         return HttpResponseForbidden(_(u'Not shared.'))
 
-    context = RequestContext(request)
-    context.form_view = True
-    context.content_user = owner
-    context.xform = xform
+    data = {}
+    data['form_view'] = True
+    data['content_user'] = owner
+    data['xform'] = xform
     image_urls = []
 
     for instance in xform.instances.all():
@@ -945,9 +980,10 @@ def form_photos(request, username, id_string):
 
             image_urls.append(data)
 
-    context.images = image_urls
-    context.profile, created = UserProfile.objects.get_or_create(user=owner)
-    return render_to_response('form_photos.html', context_instance=context)
+    data['images'] = image_urls
+    data['profilei'], created = UserProfile.objects.get_or_create(user=owner)
+
+    return render(request, 'form_photos.html', data)
 
 
 @require_POST
@@ -965,6 +1001,7 @@ def set_perm(request, username, id_string):
         for_user = request.POST['for_user']
     except KeyError:
         return HttpResponseBadRequest()
+
     if perm_type in ['edit', 'view', 'report', 'remove']:
         try:
             user = User.objects.get(username=for_user)
@@ -1050,10 +1087,12 @@ def set_perm(request, username, id_string):
                 if for_user == "all" or
                 (for_user == "toggle" and not current) else "removed"
             }, audit, request)
+
     if request.is_ajax():
         return HttpResponse(
             json.dumps(
                 {'status': 'success'}), content_type='application/json')
+
     return HttpResponseRedirect(reverse(show, kwargs={
         'username': username,
         'id_string': id_string
@@ -1088,6 +1127,7 @@ def delete_data(request, username=None, id_string=None):
     if 'callback' in request.GET and request.GET.get('callback') != '':
         callback = request.GET.get('callback')
         response_text = ("%s(%s)" % (callback, response_text))
+
     return HttpResponse(response_text, content_type='application/json')
 
 
@@ -1167,6 +1207,7 @@ def update_xform(request, username, id_string):
     message = publish_form(set_form)
     messages.add_message(
         request, messages.INFO, message['text'], extra_tags=message['type'])
+
     return HttpResponseRedirect(reverse(show, kwargs={
         'username': username,
         'id_string': id_string
@@ -1176,9 +1217,8 @@ def update_xform(request, username, id_string):
 @is_owner
 def activity(request, username):
     owner = get_object_or_404(User, username=username)
-    context = RequestContext(request)
-    context.user = owner
-    return render_to_response('activity.html', context_instance=context)
+
+    return render(request, 'activity.html', {'user': owner})
 
 
 def activity_fields(request):
@@ -1210,6 +1250,7 @@ def activity_fields(request):
         },
     ]
     response_text = json.dumps(fields)
+
     return HttpResponse(response_text, content_type='application/json')
 
 
@@ -1243,11 +1284,13 @@ def activity_api(request, username):
         cursor = AuditLog.query_mongo(**query_args)
     except ValueError as e:
         return HttpResponseBadRequest(e.__str__())
+
     records = list(record for record in cursor)
     response_text = json.dumps(records, default=stringify_unknowns)
     if 'callback' in request.GET and request.GET.get('callback') != '':
         callback = request.GET.get('callback')
         response_text = ("%s(%s)" % (callback, response_text))
+
     return HttpResponse(response_text, content_type='application/json')
 
 
@@ -1278,6 +1321,7 @@ def qrcode(request, username, id_string):
                 % (image, url, url, url)
         else:
             status = 400
+
     return HttpResponse(results, content_type='text/html', status=status)
 
 
@@ -1306,4 +1350,5 @@ def username_list(request):
         users = User.objects.values('username')\
             .filter(username__startswith=query, is_active=True, pk__gte=0)
         data = [user['username'] for user in users]
+
     return HttpResponse(json.dumps(data), content_type='application/json')

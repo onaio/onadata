@@ -34,24 +34,28 @@ def check_and_set_user(request, username):
     return content_user
 
 
-def set_profile_data(context, content_user):
+def set_profile_data(data, content_user):
     # create empty profile if none exists
-    context.content_user = content_user
-    context.profile, created = UserProfile.objects\
+    profile, created = UserProfile.objects\
         .get_or_create(user=content_user)
-    context.location = ""
-    if context.profile.city:
-        context.location = context.profile.city
-    if context.profile.country:
-        if context.profile.city:
-            context.location += ", "
-        context.location += context.profile.country
-    context.forms = content_user.xforms.filter(shared__exact=1)
-    context.num_forms = context.forms.count()
-    context.user_instances = context.profile.num_of_submissions
-    context.home_page = context.profile.home_page
-    if context.home_page and re.match("http", context.home_page) is None:
-        context.home_page = "http://%s" % context.home_page
+    location = ""
+    if profile.city:
+        location = profile.city
+    if profile.country:
+        if profile.city:
+            location += ", "
+        location += profile.country
+    forms = content_user.xforms.filter(shared__exact=1)
+    num_forms = forms.count()
+    user_instances = profile.num_of_submissions
+    home_page = profile.home_page
+    if home_page and re.match("http", home_page) is None:
+        home_page = "http://%s" % home_page
+
+    data.update({'location': location, 'user_instances': user_instances,
+                 'home_page': home_page, 'num_forms': num_forms,
+                 'forms': forms, 'profile': profile,
+                 'content_user': content_user})
 
 
 def has_permission(xform, owner, request, shared=False):

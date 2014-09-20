@@ -19,4 +19,5 @@ def generate_qrcode(message, stream=None,
 
     datauri = "data:image/png;base64,%s" % b64encode(stream.getvalue())
     stream.close()
+
     return datauri

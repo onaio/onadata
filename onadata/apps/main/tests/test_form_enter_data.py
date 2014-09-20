@@ -74,6 +74,7 @@ class TestFormEnterData(TestBase):
         request.user = self.user
         response = qrcode(
             request, self.user.username, self.xform.id_string)
+
         return response
 
     def test_qrcode_view(self):
