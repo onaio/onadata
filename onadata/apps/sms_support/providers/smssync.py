@@ -74,7 +74,7 @@ def get_response(data):
             messages += [{"to": data.get('identity'), "message": text}
                          for text in sendouts]
         response['payload'].update({"messages": messages})
-    return HttpResponse(json.dumps(response), mimetype='application/json')
+    return HttpResponse(json.dumps(response), content_type='application/json')
 
 
 @require_POST

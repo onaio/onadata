@@ -326,17 +326,19 @@ def response_with_mimetype_and_name(
             if not use_local_filesystem:
                 default_storage = get_storage_class()()
                 wrapper = FileWrapper(default_storage.open(file_path))
-                response = StreamingHttpResponse(wrapper, mimetype=mimetype)
+                response = StreamingHttpResponse(wrapper,
+                                                 content_type=mimetype)
                 response['Content-Length'] = default_storage.size(file_path)
             else:
                 wrapper = FileWrapper(open(file_path))
-                response = StreamingHttpResponse(wrapper, mimetype=mimetype)
+                response = StreamingHttpResponse(wrapper,
+                                                 content_type=mimetype)
                 response['Content-Length'] = os.path.getsize(file_path)
         except IOError:
             response = HttpResponseNotFound(
                 _(u"The requested file could not be found."))
     else:
-        response = HttpResponse(mimetype=mimetype)
+        response = HttpResponse(content_type=mimetype)
     response['Content-Disposition'] = disposition_ext_and_date(
         name, extension, show_date)
     return response

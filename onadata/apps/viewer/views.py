@@ -185,7 +185,7 @@ def add_submission_with(request, username, id_string):
     r = requests.post(url, data=payload,
                       auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
 
-    return HttpResponse(r.text, mimetype='application/json')
+    return HttpResponse(r.text, content_type='application/json')
 
 
 def thank_you_submission(request, username, id_string):
@@ -439,7 +439,7 @@ def export_progress(request, username, id_string, export_type):
         statuses.append(status)
 
     return HttpResponse(
-        json.dumps(statuses), mimetype='application/json')
+        json.dumps(statuses), content_type='application/json')
 
 
 def export_download(request, username, id_string, export_type, filename):
@@ -575,7 +575,7 @@ def kml_export(request, username, id_string):
     context.data = kml_export_data(id_string, user=owner)
     response = \
         render_to_response("survey.kml", context_instance=context,
-                           mimetype="application/vnd.google-earth.kml+xml")
+                           content_type="application/vnd.google-earth.kml+xml")
     response['Content-Disposition'] = \
         disposition_ext_and_date(id_string, 'kml')
     audit = {

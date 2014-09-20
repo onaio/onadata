@@ -606,7 +606,7 @@ You can clone a form to a specific user account using `GET` with
         form = self.get_object()
         if format not in ['json', 'xml', 'xls']:
             return HttpResponseBadRequest('400 BAD REQUEST',
-                                          mimetype='application/json',
+                                          content_type='application/json',
                                           status=400)
         return response_for_format(form, format=format)
 

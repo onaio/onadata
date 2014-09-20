@@ -45,7 +45,7 @@ PROVIDERS = {
 
 def unknown_service(request, username=None, id_string=None):
     """ 400 view for request with unknown service name """
-    r = HttpResponse(u"Unknown SMS Gateway Service", mimetype='text/plain')
+    r = HttpResponse(u"Unknown SMS Gateway Service", content_type='text/plain')
     r.status_code = 400
     return r
 

@@ -76,7 +76,7 @@ def send_sms_via_textit(payload):
     response = {"phone": [payload.get('phone')],
                 "text": payload.get('text')}
 
-    return HttpResponse(json.dumps(response), mimetype='application/json')
+    return HttpResponse(json.dumps(response), content_type='application/json')
 
 
 @require_POST

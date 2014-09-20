@@ -18,7 +18,7 @@ def get_response(data):
                 'message': data.get('text'),
                 'instanceID': data.get('id'),
                 'sendouts': data.get('sendouts')}
-    return HttpResponse(json.dumps(response), mimetype='application/json')
+    return HttpResponse(json.dumps(response), content_type='application/json')
 
 
 @require_GET
@@ -80,4 +80,4 @@ def import_multiple_submissions_for_form(request, username, id_string):
                   'sendouts': d.get('sendouts')} for d
                  in process_incoming_smses(username, incomings, id_string)]
 
-    return HttpResponse(json.dumps(responses), mimetype='application/json')
+    return HttpResponse(json.dumps(responses), content_type='application/json')

@@ -68,7 +68,7 @@ def get_response(data):
         response_dict.update({"Response": {'Sms': messages}})
 
     response = xml_head + dict2xml(response_dict)
-    return HttpResponse(response, mimetype='text/xml')
+    return HttpResponse(response, content_type='text/xml')
 
 
 @require_POST

@@ -440,7 +440,7 @@ def api(request, username=None, id_string=None):
         callback = request.GET.get('callback')
         response_text = ("%s(%s)" % (callback, response_text))
 
-    response = HttpResponse(response_text, mimetype='application/json')
+    response = HttpResponse(response_text, content_type='application/json')
     add_cors_headers(response)
 
     return response
@@ -469,7 +469,7 @@ def public_api(request, username, id_string):
                'uuid': xform.uuid,
                }
     response_text = json.dumps(exports)
-    return HttpResponse(response_text, mimetype='application/json')
+    return HttpResponse(response_text, content_type='application/json')
 
 
 @login_required
@@ -1053,7 +1053,7 @@ def set_perm(request, username, id_string):
     if request.is_ajax():
         return HttpResponse(
             json.dumps(
-                {'status': 'success'}), mimetype='application/json')
+                {'status': 'success'}), content_type='application/json')
     return HttpResponseRedirect(reverse(show, kwargs={
         'username': username,
         'id_string': id_string
@@ -1088,7 +1088,7 @@ def delete_data(request, username=None, id_string=None):
     if 'callback' in request.GET and request.GET.get('callback') != '':
         callback = request.GET.get('callback')
         response_text = ("%s(%s)" % (callback, response_text))
-    return HttpResponse(response_text, mimetype='application/json')
+    return HttpResponse(response_text, content_type='application/json')
 
 
 @require_POST
@@ -1210,7 +1210,7 @@ def activity_fields(request):
         },
     ]
     response_text = json.dumps(fields)
-    return HttpResponse(response_text, mimetype='application/json')
+    return HttpResponse(response_text, content_type='application/json')
 
 
 @is_owner
@@ -1248,7 +1248,7 @@ def activity_api(request, username):
     if 'callback' in request.GET and request.GET.get('callback') != '':
         callback = request.GET.get('callback')
         response_text = ("%s(%s)" % (callback, response_text))
-    return HttpResponse(response_text, mimetype='application/json')
+    return HttpResponse(response_text, content_type='application/json')
 
 
 def qrcode(request, username, id_string):
@@ -1278,7 +1278,7 @@ def qrcode(request, username, id_string):
                 % (image, url, url, url)
         else:
             status = 400
-    return HttpResponse(results, mimetype='text/html', status=status)
+    return HttpResponse(results, content_type='text/html', status=status)
 
 
 def enketo_preview(request, username, id_string):
@@ -1306,4 +1306,4 @@ def username_list(request):
         users = User.objects.values('username')\
             .filter(username__startswith=query, is_active=True, pk__gte=0)
         data = [user['username'] for user in users]
-    return HttpResponse(json.dumps(data), mimetype='application/json')
+    return HttpResponse(json.dumps(data), content_type='application/json')

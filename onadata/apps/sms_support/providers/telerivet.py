@@ -60,7 +60,7 @@ def get_response(data):
         if len(sendouts):
             messages += [{"content": text} for text in sendouts]
         response.update({"messages": messages})
-    return HttpResponse(json.dumps(response), mimetype='application/json')
+    return HttpResponse(json.dumps(response), content_type='application/json')
 
 
 @require_POST

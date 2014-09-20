@@ -200,7 +200,7 @@ def formList(request, username):
         'host': request.build_absolute_uri().replace(
             request.get_full_path(), ''),
         'xforms': xforms
-    }, mimetype="text/xml; charset=utf-8")
+    }, content_type="text/xml; charset=utf-8")
     response['X-OpenRosa-Version'] = '1.0'
     tz = pytz.timezone(settings.TIME_ZONE)
     dt = datetime.now(tz).strftime('%a, %d %b %Y %H:%M:%S %Z')
@@ -224,7 +224,7 @@ def xformsManifest(request, username, id_string):
         'host': request.build_absolute_uri().replace(
             request.get_full_path(), ''),
         'media_files': MetaData.media_upload(xform, download=True)
-    }, mimetype="text/xml; charset=utf-8")
+    }, content_type="text/xml; charset=utf-8")
     response['X-OpenRosa-Version'] = '1.0'
     tz = pytz.timezone(settings.TIME_ZONE)
     dt = datetime.now(tz).strftime('%a, %d %b %Y %H:%M:%S %Z')
@@ -569,7 +569,7 @@ def view_submission_list(request, username):
 
     return render_to_response(
         'submissionList.xml', context_instance=context,
-        mimetype="text/xml; charset=utf-8")
+        content_type="text/xml; charset=utf-8")
 
 
 def view_download_submission(request, username):
@@ -608,7 +608,7 @@ def view_download_submission(request, username):
         request.get_full_path(), '')
     return render_to_response(
         'downloadSubmission.xml', context_instance=context,
-        mimetype="text/xml; charset=utf-8")
+        content_type="text/xml; charset=utf-8")
 
 
 @require_http_methods(["HEAD", "POST"])
