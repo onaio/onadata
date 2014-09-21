@@ -122,7 +122,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >       curl -X GET https://ona.io/api/v1/media/1\
 ?filename=doe/attachments/1408520136827.jpg
 
-    > Respons
+    > Response
     >
     >        http://ona.io/api/v1/media/1.jpg
 

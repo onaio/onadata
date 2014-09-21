@@ -21,11 +21,11 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         data = {
             'url': 'http://testserver/api/v1/media/%s' % pk,
             'download_url': 'http://testserver/api/v1/media/%s.jpg' % pk,
-            "id": pk,
+            'id': pk,
             'xform': self.xform.pk,
             'instance': self.attachment.instance.pk,
-            "mimetype": self.attachment.mimetype,
-            "filename": self.attachment.media_file.name
+            'mimetype': self.attachment.mimetype,
+            'filename': self.attachment.media_file.name
         }
         request = self.factory.get('/', **self.extra)
         response = self.retrieve_view(request, pk=pk)
