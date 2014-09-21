@@ -42,7 +42,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_xform_metadata(self, obj):
         if obj:
-            return MetaDataSerializer(obj.metadata_set.all(), many=True).data
+            return MetaDataSerializer(obj.metadata_set.all(),
+                                      many=True, context=self.context).data
 
         return []
 
