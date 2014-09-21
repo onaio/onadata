@@ -151,7 +151,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(self.object)
 
         if filename:
-            if filename == serializer.data['filename']:
+            if filename == self.object.media_file.name:
                 return Response(serializer.get_download_url(self.object))
             else:
                 raise Http404(_("Filename '%s' not found." % filename))
