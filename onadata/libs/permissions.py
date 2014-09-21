@@ -4,6 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from guardian.shortcuts import (
     assign_perm,
     remove_perm,
+    get_perms,
     get_users_with_perms)
 
 from onadata.apps.api.models import OrganizationProfile
@@ -186,6 +187,15 @@ def get_role(permissions, obj):
     for role in reversed(ROLES_ORDERED):
         if role.has_role(permissions, obj):
             return role.name
+
+
+def get_role_in_org(user, organization):
+    perms = get_perms(user, organization)
+
+    if 'is_org_owner' in perms:
+        return OwnerRole.name
+    else:
+        return get_role(perms, organization) or MemberRole.name
 
 
 def get_object_users_with_permissions(obj, exclude=None):
