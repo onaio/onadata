@@ -140,7 +140,6 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         self.object = self.get_object()
-        filename = request.QUERY_PARAMS.get('filename')
 
         if isinstance(request.accepted_renderer, MediaFileRenderer) \
                 and self.object.media_file is not None:
@@ -148,6 +147,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
 
             return Response(data, content_type=self.object.mimetype)
 
+        filename = request.QUERY_PARAMS.get('filename')
         serializer = self.get_serializer(self.object)
 
         if filename:
