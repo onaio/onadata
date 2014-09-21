@@ -156,7 +156,7 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
 ## Change the role of a user in an organization
 
-To change the role of a user to in an organization pass the username and role
+To change the role of a user in an organization pass the username and role
 `{"username": "member1", "role": "owner|manager|editor|dataentry|readonly"}`.
 
 <pre class="prettyprint"><b>PUT</b> /api/v1/orgs/{username}/members</pre>
@@ -210,7 +210,9 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
             if not role or not role_cls:
                 status_code = status.HTTP_400_BAD_REQUEST
-                data = {'role': [_(u"This field is required.")]}
+                message = (_(u"'%s' is not a valid role." % role) if role
+                           else _(u"This field is required."))
+                data = {'role': [message]}
             else:
                 _update_username_role(organization, username, role_cls)
         elif request.method == 'DELETE':
