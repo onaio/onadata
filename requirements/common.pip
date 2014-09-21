@@ -55,7 +55,7 @@ django-taggit==0.12.1
 django-oauth-toolkit==0.7.2
 
 # spss
-# savReaderWriter
+savReaderWriter
 
 # JSON data type support
 jsonfield<1.0
