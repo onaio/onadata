@@ -114,6 +114,18 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >        }
     >        ...
 
+    ## Retrieve image link of an attachment
+    ><pre class="prettyprint">  GET /api/v1/media/<code>{pk}</code></pre>
+    >
+    > Example
+    >
+    >       curl -X GET https://ona.io/api/v1/media/1\
+?filename=doe/attachments/1408520136827.jpg
+
+    > Respons
+    >
+    >        http://ona.io/api/v1/media/1.jpg
+
     """
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.AttachmentFilter,)
