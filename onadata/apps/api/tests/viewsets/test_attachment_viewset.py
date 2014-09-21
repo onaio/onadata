@@ -92,7 +92,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data, **self.extra)
         response = self.retrieve_view(request, pk=self.attachment.instance.pk)
         self.assertEqual(response.status_code, 200)
-        # self.assertTrue(isinstance(response.data, basestring))
+        self.assertTrue(isinstance(response.data, basestring))
         self.assertEqual(response.data,
                          'http://testserver/api/v1/media/%s.jpg'
                          % self.attachment.pk)
