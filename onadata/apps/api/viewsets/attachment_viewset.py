@@ -1,3 +1,5 @@
+from django.http import Http404
+from django.utils.translation import ugettext as _
 from rest_framework import renderers
 from rest_framework import viewsets
 from rest_framework.response import Response
@@ -126,6 +128,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         self.object = self.get_object()
+        filename = request.QUERY_PARAMS.get('filename')
 
         if isinstance(request.accepted_renderer, MediaFileRenderer) \
                 and self.object.media_file is not None:
@@ -134,5 +137,11 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(data, content_type=self.object.mimetype)
 
         serializer = self.get_serializer(self.object)
+
+        if filename:
+            if filename == serializer.data['filename']:
+                return Response(serializer.get_download_url(self.object))
+            else:
+                raise Http404(_("Filename '%s' not found." % filename))
 
         return Response(serializer.data)

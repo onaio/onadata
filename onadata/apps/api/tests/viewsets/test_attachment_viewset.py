@@ -84,3 +84,25 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 400)
+
+    def test_direct_image_link(self):
+        data = {
+            'filename': self.attachment.media_file.name
+        }
+        request = self.factory.get('/', data, **self.extra)
+        response = self.retrieve_view(request, pk=self.attachment.instance.pk)
+        self.assertEqual(response.status_code, 200)
+        # self.assertTrue(isinstance(response.data, basestring))
+        self.assertEqual(response.data,
+                         'http://testserver/api/v1/media/%s.jpg'
+                         % self.attachment.pk)
+
+        data['filename'] = 10000000
+        request = self.factory.get('/', data, **self.extra)
+        response = self.retrieve_view(request, pk=self.attachment.instance.pk)
+        self.assertEqual(response.status_code, 404)
+
+        data['filename'] = 'lol'
+        request = self.factory.get('/', data, **self.extra)
+        response = self.retrieve_view(request, pk=self.attachment.instance.pk)
+        self.assertEqual(response.status_code, 404)
