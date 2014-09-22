@@ -120,13 +120,9 @@ class TestFormSubmission(TestBase):
             "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
         )
 
-        # create a new user
-        username = 'alice'
-        self._create_user(username, username)
 
-        auth = DigestAuth(username, username)
+        self._make_submission(xml_submission_file_path, client=DigestClient())
 
-        self._make_submission(xml_submission_file_path, auth=auth)
         self.assertEqual(self.response.status_code, 403)
 
     def test_submission_to_require_auth_with_perm(self):

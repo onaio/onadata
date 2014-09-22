@@ -212,12 +212,8 @@ class TestAbstractViewSet(TestCase):
         # store temporary file with dynamic uuid
 
         if client is None:
-            self.user.profile.require_auth = True
-            self.user.profile.save()
-            client = DigestClient()
-            client.set_authorization(self.profile_data['username'],
-                                     self.profile_data['password1'],
-                                     'Digest')
+
+            client = self._get_digest_client()
 
         tmp_file = None
 
@@ -271,12 +267,8 @@ class TestAbstractViewSet(TestCase):
             self.main_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
-        self.user.profile.require_auth = True
-        self.user.profile.save()
-        client = DigestClient()
-        client.set_authorization(self.profile_data['username'],
-                                 self.profile_data['password1'],
-                                 'Digest')
+
+        client = self._get_digest_client()
 
         client = self._get_digest_client()
 
