@@ -11,13 +11,14 @@ from onadata.apps.api.tools import (get_organization_members,
                                     add_user_to_organization,
                                     remove_user_from_organization)
 from onadata.apps.api import permissions
-from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.filters import OrganizationPermissionFilter
+from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.permissions import ROLES
 from onadata.libs.serializers.organization_serializer import(
     OrganizationSerializer)
 
 
-def _try_function_org_username(f, organization, username):
+def _try_function_org_username(f, organization, username, args=None):
     data = []
 
     try:
@@ -28,10 +29,21 @@ def _try_function_org_username(f, organization, username):
                 [_(u"User `%(username)s` does not exist."
                    % {'username': username})]}
     else:
-        f(organization, user)
+        if args:
+            f(organization, user, *args)
+        else:
+            f(organization, user)
         status_code = status.HTTP_201_CREATED
 
     return [data, status_code]
+
+
+def _update_username_role(organization, username, role_cls):
+    f = lambda org, user, role_cls: role_cls.add(user, organization)
+    return _try_function_org_username(f,
+                                      organization,
+                                      username,
+                                      [role_cls])
 
 
 def _add_username_to_organization(organization, username):
@@ -142,6 +154,21 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 >
 >       ["member1"]
 
+## Change the role of a user in an organization
+
+To change the role of a user in an organization pass the username and role
+`{"username": "member1", "role": "owner|manager|editor|dataentry|readonly"}`.
+
+<pre class="prettyprint"><b>PUT</b> /api/v1/orgs/{username}/members</pre>
+> Example
+>
+>       curl -X PUT -d '{"username": "member1", "role": "editor"}' \
+https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
+
+> Response
+>
+>       ["member1"]
+
 ## Remove a user from an organization
 
 To remove a user from an organization requires a JSON payload of
@@ -163,7 +190,7 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
     permission_classes = [permissions.DjangoObjectPermissions]
     filter_backends = (OrganizationPermissionFilter,)
 
-    @action(methods=['DELETE', 'GET', 'POST'])
+    @action(methods=['DELETE', 'GET', 'POST', 'PUT'])
     def members(self, request, *args, **kwargs):
         organization = self.get_object()
         status_code = status.HTTP_200_OK
@@ -171,12 +198,23 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
         username = request.DATA.get('username') or request.QUERY_PARAMS.get(
             'username')
 
-        if request.method in ['DELETE', 'POST'] and not username:
+        if request.method in ['DELETE', 'POST', 'PUT'] and not username:
             status_code = status.HTTP_400_BAD_REQUEST
             data = {'username': [_(u"This field is required.")]}
         elif request.method == 'POST':
             data, status_code = _add_username_to_organization(
                 organization, username)
+        elif request.method == 'PUT':
+            role = request.DATA.get('role')
+            role_cls = ROLES.get(role)
+
+            if not role or not role_cls:
+                status_code = status.HTTP_400_BAD_REQUEST
+                message = (_(u"'%s' is not a valid role." % role) if role
+                           else _(u"This field is required."))
+                data = {'role': [message]}
+            else:
+                _update_username_role(organization, username, role_cls)
         elif request.method == 'DELETE':
             data, status_code = _remove_username_to_organization(
                 organization, username)

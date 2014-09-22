@@ -207,20 +207,19 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         # creating org with member
         self._org_create()
         view = OrganizationProfileViewSet.as_view({
+            'get': 'retrieve',
             'post': 'members'
         })
 
         User.objects.create(username='aboy')
         data = {'username': 'aboy'}
+        user_role = 'member'
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
         response = view(request, user='denoinc')
 
         # getting profile
-        view = OrganizationProfileViewSet.as_view({
-            'get': 'retrieve'
-        })
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 200)
@@ -228,11 +227,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         for user in response.data['users']:
             username = user['user']
-            role = 'owner' if username == 'denoinc' else 'member'
-            if username == 'denoinc':
-                self.assertEqual(role, 'owner')
-            else:
-                self.assertEqual(role, 'member')
+            role = user['role']
+            expected_role = 'owner' if username == 'denoinc' else user_role
+            self.assertEqual(role, expected_role)
 
     def test_add_members_to_org_with_anonymous_user(self):
         self._org_create()
@@ -332,3 +329,98 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self._project_create(project_data)
         self._publish_xls_form_to_project()
         self.assertTrue(OwnerRole.user_has_role(self.user, self.xform))
+
+    def test_put_change_role(self):
+        self._org_create()
+        newname = 'aboy'
+        view = OrganizationProfileViewSet.as_view({
+            'get': 'retrieve',
+            'post': 'members',
+            'put': 'members'
+        })
+
+        User.objects.create(username=newname)
+        data = {'username': newname}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, [u'denoinc', newname])
+
+        user_role = 'editor'
+        data = {'username': newname, 'role': user_role}
+        request = self.factory.put(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [u'denoinc', newname])
+
+        # getting profile
+        request = self.factory.get('/', **self.extra)
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('users', response.data.keys())
+
+        for user in response.data['users']:
+            username = user['user']
+            role = user['role']
+            expected_role = 'owner' if username == 'denoinc' else user_role
+            self.assertEqual(role, expected_role)
+
+    def test_put_require_role(self):
+        self._org_create()
+        newname = 'aboy'
+        view = OrganizationProfileViewSet.as_view({
+            'get': 'retrieve',
+            'post': 'members',
+            'put': 'members'
+        })
+
+        User.objects.create(username=newname)
+        data = {'username': newname}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, [u'denoinc', newname])
+
+        data = {'username': newname}
+        request = self.factory.put(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
+
+    def test_put_bad_role(self):
+        self._org_create()
+        newname = 'aboy'
+        view = OrganizationProfileViewSet.as_view({
+            'get': 'retrieve',
+            'post': 'members',
+            'put': 'members'
+        })
+
+        User.objects.create(username=newname)
+        data = {'username': newname}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, [u'denoinc', newname])
+
+        data = {'username': newname, 'role': 42}
+        request = self.factory.put(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
