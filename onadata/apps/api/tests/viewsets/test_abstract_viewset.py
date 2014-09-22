@@ -5,6 +5,7 @@ import re
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth.models import User
+from django_digest.test import Client as DigestClient
 from django.contrib.auth.models import Permission
 from django.test import TestCase
 from rest_framework.test import APIRequestFactory
@@ -270,12 +271,8 @@ class TestAbstractViewSet(TestCase):
             self.main_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
-        self.user.profile.require_auth = True
-        self.user.profile.save()
-        client = DigestClient()
-        client.set_authorization(self.profile_data['username'],
-                                 self.profile_data['password1'],
-                                 'Digest')
+
+        client = self._get_digest_client()
 
         for path in paths:
             self._make_submission(path, username, add_uuid, client=client)
@@ -331,3 +328,12 @@ class TestAbstractViewSet(TestCase):
                 self._post_form_metadata(data)
         else:
             self._post_form_metadata(data)
+
+    def _get_digest_client(self):
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+        client = DigestClient()
+        client.set_authorization(self.profile_data['username'],
+                                 self.profile_data['password1'],
+                                 'Digest')
+        return client

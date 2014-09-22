@@ -39,18 +39,8 @@ class TestFormSubmission(TestBase):
             os.path.dirname(os.path.abspath(__file__)),
             "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
         )
-        self.user.profile.require_auth = True
-        self.user.profile.save()
 
-        # create a new user
-        alice = self._create_user('alice', 'alice')
-
-        # assign report perms to user
-        assign_perm('report_xform', alice, self.xform)
-        client = DigestClient()
-        client.set_authorization('alice', 'alice', 'Digest')
-
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
 
     @patch('django.utils.datastructures.MultiValueDict.pop')
@@ -198,20 +188,10 @@ class TestFormSubmission(TestBase):
             "../fixtures/test_forms/survey_names/instances/"
             "survey_names_2012-08-17_11-24-53.xml"
         )
-        self.user.profile.require_auth = True
-        self.user.profile.save()
 
-        # create a new user
-        alice = self._create_user('alice', 'alice')
-
-        # assign report perms to user
-        assign_perm('report_xform', alice, self.xform)
-        client = DigestClient()
-        client.set_authorization('bob', 'bob', 'Digest')
-
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 202)
 
     def test_unicode_submission(self):
@@ -233,7 +213,7 @@ class TestFormSubmission(TestBase):
         client = DigestClient()
         client.set_authorization('alice', 'alice', 'Digest')
 
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
 
     def test_duplicate_submission_with_same_instanceID(self):
@@ -244,20 +224,10 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_uuid.xml"
         )
-        self.user.profile.require_auth = True
-        self.user.profile.save()
 
-        # create a new user
-        alice = self._create_user('alice', 'alice')
-
-        # assign report perms to user
-        assign_perm('report_xform', alice, self.xform)
-        client = DigestClient()
-        client.set_authorization('alice', 'alice', 'Digest')
-
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 202)
 
     def test_duplicate_submission_with_different_content(self):
@@ -273,24 +243,13 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_uuid_same_instanceID.xml"
         )
-        self.user.profile.require_auth = True
-        self.user.profile.save()
-
-        # create a new user
-        alice = self._create_user('alice', 'alice')
-
-        # assign report perms to user
-        assign_perm('report_xform', alice, self.xform)
-        client = DigestClient()
-        client.set_authorization('alice', 'alice', 'Digest')
 
         pre_count = Instance.objects.count()
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
         self.assertEqual(Instance.objects.count(), pre_count + 1)
         inst = Instance.objects.all().reverse()[0]
-        self._make_submission(duplicate_xml_submission_file_path,
-                              client=client)
+        self._make_submission(duplicate_xml_submission_file_path)
         self.assertEqual(self.response.status_code, 202)
         self.assertEqual(Instance.objects.count(), pre_count + 1)
         # this is exactly the same instance
@@ -317,21 +276,11 @@ class TestFormSubmission(TestBase):
             'sort': '[]',
             'count': True
         }
-        self.user.profile.require_auth = True
-        self.user.profile.save()
-
-        # create a new user
-        alice = self._create_user('alice', 'alice')
-
-        # assign report perms to user
-        assign_perm('report_xform', alice, self.xform)
-        client = DigestClient()
-        client.set_authorization('alice', 'alice', 'Digest')
 
         cursor = ParsedInstance.query_mongo(**query_args)
         num_mongo_instances = cursor[0]['count']
         # make first submission
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
         self.assertEqual(Instance.objects.count(), num_instances + 1)
         # no new record in instances history
@@ -378,18 +327,8 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_xform_uuid.xml"
         )
-        self.user.profile.require_auth = True
-        self.user.profile.save()
 
-        # create a new user
-        alice = self._create_user('alice', 'alice')
-
-        # assign report perms to user
-        assign_perm('report_xform', alice, self.xform)
-        client = DigestClient()
-        client.set_authorization('alice', 'alice', 'Digest')
-
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
 
     def _test_fail_submission_if_no_username(self):
@@ -430,18 +369,8 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_uuid.xml"
         )
-        self.user.profile.require_auth = True
-        self.user.profile.save()
 
-        # create a new user
-        alice = self._create_user('alice', 'alice')
-
-        # assign report perms to user
-        assign_perm('report_xform', alice, self.xform)
-        client = DigestClient()
-        client.set_authorization('bob', 'bob', 'Digest')
-
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
         # query mongo for the _geopoint field
         query_args['count'] = False
@@ -453,7 +382,7 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"
         )
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
         records = ParsedInstance.query_mongo(**query_args)
         self.assertEqual(len(records), 1)

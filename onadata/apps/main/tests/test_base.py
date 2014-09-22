@@ -200,16 +200,13 @@ class TestBase(TransactionTestCase):
         :param add_uuid: add UUID to submission, default False.
         :param should_store: should submissions be save, default True.
         """
-        self.user.profile.require_auth = True
-        self.user.profile.save()
+
         paths = [os.path.join(
             self.this_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
-        self.user.profile.require_auth = True
-        self.user.profile.save()
-        client = DigestClient()
-        client.set_authorization('bob', 'bob', 'Digest')
+
+        client = self._get_digest_client()
 
         for path in paths:
             self._make_submission(path, username, add_uuid, client=client)
@@ -270,3 +267,9 @@ class TestBase(TransactionTestCase):
         profile, created = UserProfile.objects.get_or_create(user=self.user)
         profile.require_auth = auth
         profile.save()
+
+    def _get_digest_client(self):
+        self._set_require_auth(True)
+        client = DigestClient()
+        client.set_authorization('bob', 'bob', 'Digest')
+        return client
