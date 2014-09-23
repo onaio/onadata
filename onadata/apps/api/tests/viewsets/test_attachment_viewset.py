@@ -90,7 +90,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
             'filename': self.attachment.media_file.name
         }
         request = self.factory.get('/', data, **self.extra)
-        response = self.retrieve_view(request, pk=self.attachment.instance.pk)
+        response = self.retrieve_view(request, pk=self.attachment.pk)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, basestring))
         self.assertEqual(response.data,
