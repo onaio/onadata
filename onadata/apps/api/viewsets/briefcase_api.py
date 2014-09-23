@@ -184,7 +184,8 @@ class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
             response_status = status.HTTP_400_BAD_REQUEST
 
         return Response(data, status=response_status,
-                        headers=self.get_openrosa_headers(request),
+                        headers=self.get_openrosa_headers(request,
+                                                          location=False),
                         template_name=self.template_name)
 
     def list(self, request, *args, **kwargs):
@@ -194,7 +195,8 @@ class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
                 'resumptionCursor': self.resumptionCursor}
 
         return Response(data,
-                        headers=self.get_openrosa_headers(request),
+                        headers=self.get_openrosa_headers(request,
+                                                          location=False),
                         template_name='submissionList.xml')
 
     def retrieve(self, request, *args, **kwargs):
@@ -213,7 +215,8 @@ class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
                 request.get_full_path(), '')
         }
         return Response(data,
-                        headers=self.get_openrosa_headers(request),
+                        headers=self.get_openrosa_headers(request,
+                                                          location=False),
                         template_name='downloadSubmission.xml')
 
     @action(methods=['GET'])
@@ -225,7 +228,9 @@ class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
         serializer = XFormManifestSerializer(object_list, many=True,
                                              context=context)
 
-        return Response(serializer.data, headers=self.get_openrosa_headers())
+        return Response(serializer.data,
+                        headers=self.get_openrosa_headers(request,
+                                                          location=False))
 
     @action(methods=['GET'])
     def media(self, request, *args, **kwargs):
