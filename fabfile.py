@@ -48,6 +48,17 @@ DEPLOYMENTS = {
         'pid': '/run/kobocat.pid',
         'template': 'git@github.com:kobotoolbox/kobocat-template.git',
     },
+    'whodcp': {
+        'home': '/home/ubuntu/src/',
+        'host_string': 'ubuntu@whodcp.org',
+        'project': 'ona',
+        'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
+        'celeryd': '/etc/init.d/celeryd',
+        'django_config_module': 'onadata.preset.local_settings',
+        'pid': '/run/whodcp.pid',
+        'template': 'git@github.com:onaio/who-dcp.git',
+        'virtualenv': '/home/ubuntu/src/.virtualenvs/ona/bin/activate'
+    },
 }
 
 CONFIG_PATH_DEPRECATED = 'formhub/local_settings.py'
@@ -91,12 +102,17 @@ def setup_env(deployment_name):
 
     check_key_filename(deployment_name)
 
-    env.virtualenv = os.path.join('/home', 'ubuntu', '.virtualenvs',
-                                  env.project, 'bin', 'activate')
+    if not hasattr(env, 'virtualenv'):
+        env.virtualenv = os.path.join('/home', 'ubuntu', '.virtualenvs',
+                                      env.project, 'bin', 'activate')
 
     env.code_src = os.path.join(env.home, env.project)
     env.pip_requirements_file = os.path.join(env.code_src,
                                              'requirements/common.pip')
+    env.pip_requirements_file_s3 = os.path.join(env.code_src,
+                                                'requirements/s3.pip')
+    env.pip_requirements_file_ses = os.path.join(env.code_src,
+                                                 'requirements/ses.pip')
     env.template_dir = 'onadata/libs/custom_template'
 
 
@@ -125,6 +141,8 @@ def deploy(deployment_name, branch='master'):
     with source(env.virtualenv):
         run("pip install numpy")
         run("pip install -r %s" % env.pip_requirements_file)
+        run("pip install -r %s" % env.pip_requirements_file_s3)
+        run("pip install -r %s" % env.pip_requirements_file_ses)
 
     with cd(env.code_src):
         config_module = env.django_config_module
@@ -136,8 +154,11 @@ def deploy(deployment_name, branch='master'):
             run("python manage.py collectstatic --settings=%s --noinput"
                 % config_module)
 
-    run("sudo %s restart" % env.celeryd)
-    run("sudo /usr/local/bin/uwsgi --reload %s" % env.pid)
+    if deployment_name == 'whodcp':
+        run("sudo supervisorctl reload")
+    else:
+        run("sudo %s restart" % env.celeryd)
+        run("sudo /usr/local/bin/uwsgi --reload %s" % env.pid)
 
 
 def update_xforms(deployment_name, username, path):
