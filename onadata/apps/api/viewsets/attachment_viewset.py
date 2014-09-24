@@ -1,3 +1,5 @@
+from django.http import Http404
+from django.utils.translation import ugettext as _
 from rest_framework import renderers
 from rest_framework import viewsets
 from rest_framework.response import Response
@@ -112,6 +114,18 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >        }
     >        ...
 
+    ## Retrieve image link of an attachment
+    ><pre class="prettyprint">  GET /api/v1/media/<code>{pk}</code></pre>
+    >
+    > Example
+    >
+    >       curl -X GET https://ona.io/api/v1/media/1\
+?filename=doe/attachments/1408520136827.jpg
+
+    > Response
+    >
+    >        http://ona.io/api/v1/media/1.jpg
+
     """
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.AttachmentFilter,)
@@ -133,6 +147,13 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
 
             return Response(data, content_type=self.object.mimetype)
 
+        filename = request.QUERY_PARAMS.get('filename')
         serializer = self.get_serializer(self.object)
+
+        if filename:
+            if filename == self.object.media_file.name:
+                return Response(serializer.get_download_url(self.object))
+            else:
+                raise Http404(_("Filename '%s' not found." % filename))
 
         return Response(serializer.data)
