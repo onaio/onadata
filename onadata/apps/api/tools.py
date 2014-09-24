@@ -93,7 +93,7 @@ def create_organization_object(org_name, creator, attrs={}):
     first_name, last_name = _get_first_last_names(name)
     email = attrs.get('email', u'')
     new_user = User(username=org_name, first_name=first_name,
-                    last_name=last_name, email=email)
+                    last_name=last_name, email=email, is_active=True)
     new_user.save()
     registration_profile = RegistrationProfile.objects.create_profile(new_user)
     if email:

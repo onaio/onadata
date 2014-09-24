@@ -76,6 +76,7 @@ class PermissionForm(forms.Form):
 
 
 class UserProfileForm(ModelForm):
+
     class Meta:
         model = UserProfile
         exclude = ('user', 'created_by', 'num_of_submissions')
@@ -121,6 +122,7 @@ class UserProfileFormRegister(forms.Form):
 # order of inheritance control order of form display
 class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
                                   UserProfileFormRegister):
+
     class Meta:
         pass
 
