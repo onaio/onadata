@@ -105,7 +105,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, data)
 
         user = User.objects.get(username='deno')
-        self.assertFalse(user.is_active)
+        self.assertTrue(user.is_active)
 
     def test_profile_create_anon(self):
         data = _profile_data()
