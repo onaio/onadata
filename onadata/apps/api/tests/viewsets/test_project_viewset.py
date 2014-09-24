@@ -348,6 +348,22 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(project.metadata, json_metadata)
 
+    def test_project_update_shared_cascades_to_xforms(self):
+        self._publish_xls_form_to_project()
+        view = ProjectViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        projectid = self.project.pk
+        data = {'public': 'true'}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = view(request, pk=projectid)
+        project = Project.objects.get(pk=projectid)
+        project_xforms = project.projectxform_set.all()
+        xforms_status = {p.xform.shared for p in project_xforms}
+        xforms_status = list(xforms_status)
+        self.assertTrue(xforms_status[0])
+        self.assertEqual(response.status_code, 200)
+
     def test_project_add_star(self):
         self._project_create()
         self.assertEqual(len(self.project.user_stars.all()), 0)

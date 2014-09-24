@@ -5,6 +5,7 @@ from guardian.shortcuts import assign_perm, get_perms_for_model
 from jsonfield import JSONField
 from taggit.managers import TaggableManager
 
+from onadata.apps.logger.models import XForm
 from onadata.libs.models.base_model import BaseModel
 
 
@@ -40,5 +41,19 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
             if instance.created_by:
                 assign_perm(perm.codename, instance.created_by, instance)
+
+
+def update_xform_share_settings(sender,
+                                instance=None,
+                                created=False,
+                                **kwargs):
+    if not created:
+        project_xforms = instance.projectxform_set.exclude(
+            xform__shared=instance.shared).values_list('xform', flat=True)
+        XForm.objects.filter(pk__in=project_xforms).update(
+            shared=instance.shared)
+
 post_save.connect(set_object_permissions, sender=Project,
                   dispatch_uid='set_project_object_permissions')
+post_save.connect(update_xform_share_settings, sender=Project,
+                  dispatch_uid='update_xform_share_settings')
