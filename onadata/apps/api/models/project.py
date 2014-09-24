@@ -47,8 +47,8 @@ def update_xform_share_settings(sender,
                                 created=False,
                                 **kwargs):
     if not created:
-        project_xforms = instance.projectxform_set.all()
-        xforms = [p_xform.xform for p_xform in project_xforms]
+        project_xforms = instance.projectxform_set.values('xform')
+        xforms = XForm.objects.filter(pk__in=project_xforms)
         # create a set of xform status
         xform_shared = {xform.shared for xform in xforms}
         xform_shared = list(xform_shared)
