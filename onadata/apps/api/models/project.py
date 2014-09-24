@@ -40,5 +40,27 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
             if instance.created_by:
                 assign_perm(perm.codename, instance.created_by, instance)
+
+
+def update_xform_share_settings(sender,
+                                instance=None,
+                                created=False,
+                                **kwargs):
+    if not created:
+        project_xforms = instance.projectxform_set.all()
+        xforms = [p_xform.xform for p_xform in project_xforms]
+        # create a set of xform status
+        xform_shared = {xform.shared for xform in xforms}
+        xform_shared = list(xform_shared)
+        if xform_shared and \
+                (len(xform_shared) > 1 or xform_shared[0] != instance.shared):
+            # update the status of all xforms
+            for xform in xforms:
+                xform.shared = instance.shared
+                xform.shared_data = instance.shared
+                xform.save()
+
 post_save.connect(set_object_permissions, sender=Project,
                   dispatch_uid='set_project_object_permissions')
+post_save.connect(update_xform_share_settings, sender=Project,
+                  dispatch_uid='update_xform_share_settings')
