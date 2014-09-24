@@ -387,8 +387,8 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 
             return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
-        project_xforms = project.projectxform_set.values('xform')
-        xforms = XForm.objects.filter(pk__in=project_xforms)
+        project_xforms = project.projectxform_set.all()
+        xforms = [p_xform.xform for p_xform in project_xforms]
         serializer = XFormSerializer(xforms, context={'request': request},
                                      many=True)
 
