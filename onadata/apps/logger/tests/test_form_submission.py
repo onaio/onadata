@@ -120,7 +120,6 @@ class TestFormSubmission(TestBase):
             "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
         )
 
-
         self._make_submission(xml_submission_file_path, client=DigestClient())
 
         self.assertEqual(self.response.status_code, 403)

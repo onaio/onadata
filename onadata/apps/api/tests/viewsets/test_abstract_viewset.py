@@ -3,7 +3,6 @@ import os
 import re
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth.models import User
 from django_digest.test import Client as DigestClient
 from django.contrib.auth.models import Permission
@@ -17,7 +16,6 @@ from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
 from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.main import tests as main_tests
 from onadata.apps.logger.models import Instance, XForm, Attachment
