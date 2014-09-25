@@ -1,7 +1,6 @@
 import os
 
 from django_digest.test import DigestAuth
-from django_digest.test import Client as DigestClient
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.main.models import UserProfile
@@ -46,18 +45,12 @@ class TestDigestAuthentication(TestBase):
             'transportation', 'instances', s, s + '.xml'
         )
 
-        url = '/%s/submission' % self.user.username
-        extra = {
-            'REQUEST_METHOD': 'HEAD',
-        }
-        client = self._authenticated_client(
-            url, username=username, password=username, extra=extra)
         self._make_submission(xml_submission_file_path, add_uuid=True,
-                              client=DigestClient())
+                              auth=DigestAuth('alice', 'alice'))
         # Not allowed
         self.assertEqual(self.response.status_code, 401)
-        self.anon = client
+        auth = DigestAuth('dennis', 'dennis')
         self._make_submission(xml_submission_file_path, add_uuid=True,
-                              client=client)
+                              auth=auth)
         # Not allowed
         self.assertEqual(self.response.status_code, 400)

@@ -9,7 +9,6 @@ from cStringIO import StringIO
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.auth.models import AnonymousUser
 from django.test import TransactionTestCase
 from django.test.client import Client
 from django_digest.test import Client as DigestClient
@@ -170,8 +169,9 @@ class TestBase(TransactionTestCase):
             url = '/%ssubmission' % url_prefix
 
             request = self.factory.post(url, post_data)
-            request.user = authenticate(username='bob',
-                                        password='bob')
+            request.user = authenticate(username=auth.username,
+                                        password=auth.password)
+
             self.response = submission(request, username=username)
 
             if auth and self.response.status_code == 401:

@@ -2,6 +2,7 @@ import os
 
 from django.conf import settings
 from django.core.management import call_command
+from django_digest.test import DigestAuth
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
@@ -32,11 +33,13 @@ class TestRemongo(TestBase):
         # publish and submit for a different user
         self._logout()
         self._create_user_and_login("harry", "harry")
+        auth = DigestAuth("harry", "harry")
         self._publish_transportation_form()
         s = self.surveys[1]
         self._make_submission(os.path.join(self.this_directory, 'fixtures',
                               'transportation', 'instances', s, s + '.xml'),
-                              client=self.client)
+                              username="harry", auth=auth)
+
         self.assertEqual(ParsedInstance.objects.count(), 2)
         # clear mongo
         settings.MONGO_DB.instances.drop()

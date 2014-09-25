@@ -96,7 +96,12 @@ class TestFormSubmission(TestBase):
             "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
         )
 
-        self._make_submission(xml_submission_file_path, client=DigestClient())
+        # create a new user
+        username = 'alice'
+        self._create_user(username, username)
+
+        self._make_submission(xml_submission_file_path,
+                              auth=DigestAuth('alice', 'alice'))
         self.assertEqual(self.response.status_code, 403)
 
     def test_submission_to_require_auth_without_perm(self):
@@ -120,7 +125,12 @@ class TestFormSubmission(TestBase):
             "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
         )
 
-        self._make_submission(xml_submission_file_path, client=DigestClient())
+        # create a new user
+        username = 'alice'
+        self._create_user(username, username)
+
+        self._make_submission(xml_submission_file_path,
+                              auth=DigestAuth('alice', 'alice'))
 
         self.assertEqual(self.response.status_code, 403)
 
@@ -441,13 +451,6 @@ class TestFormSubmission(TestBase):
         self.user.profile.require_auth = True
         self.user.profile.save()
 
-        # create a new user
-        alice = self._create_user('alice', 'alice')
-        UserProfile.objects.create(user=alice)
-
-        client = DigestClient()
-        client.set_authorization('bob', 'bob', 'Digest')
-
         num_instances_history = InstanceHistory.objects.count()
         num_instances = Instance.objects.count()
         query_args = {
@@ -461,7 +464,7 @@ class TestFormSubmission(TestBase):
         cursor = ParsedInstance.query_mongo(**query_args)
         num_mongo_instances = cursor[0]['count']
         # make first submission
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_submission_file_path)
 
         self.assertEqual(self.response.status_code, 201)
         self.assertEqual(Instance.objects.count(), num_instances + 1)

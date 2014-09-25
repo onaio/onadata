@@ -216,10 +216,6 @@ class TestAbstractViewSet(TestCase):
             auth = DigestAuth(self.profile_data['username'],
                               self.profile_data['password1'])
 
-        if client is None:
-
-            client = self._get_digest_client()
-
         tmp_file = None
 
         if add_uuid:
@@ -249,8 +245,8 @@ class TestAbstractViewSet(TestCase):
             url = '/%ssubmission' % url_prefix
 
             request = self.factory.post(url, post_data)
-            request.user = authenticate(username='bob',
-                                        password='bobbob')
+            request.user = authenticate(username=auth.username,
+                                        password=auth.password)
             self.response = submission(request, username=username)
 
             if auth and self.response.status_code == 401:
@@ -280,9 +276,10 @@ class TestAbstractViewSet(TestCase):
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
 
+        auth = DigestAuth(self.profile_data['username'],
+                          self.profile_data['password1'])
         for path in paths:
-            self._make_submission(path, username, add_uuid)
-
+            self._make_submission(path, username, add_uuid, auth=auth)
         post_count = pre_count + len(self.surveys) if should_store\
             else pre_count
         self.assertEqual(Instance.objects.count(), post_count)
