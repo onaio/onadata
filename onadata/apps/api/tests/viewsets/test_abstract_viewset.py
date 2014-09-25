@@ -3,13 +3,15 @@ import os
 import re
 
 from django.conf import settings
-from django.contrib.auth.models import User
-from django_digest.test import Client as DigestClient
 from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django_digest.test import Client as DigestClient
-from rest_framework.test import APIRequestFactory
 from tempfile import NamedTemporaryFile
+from django.contrib.auth.models import User
+from django_digest.test import DigestAuth
+from django.contrib.auth import authenticate
+
+from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models import OrganizationProfile, Project
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
@@ -20,6 +22,7 @@ from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.main import tests as main_tests
 from onadata.apps.logger.models import Instance, XForm, Attachment
 from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.apps.logger.views import submission
 
 
 class TestAbstractViewSet(TestCase):
@@ -208,6 +211,10 @@ class TestAbstractViewSet(TestCase):
                          forced_submission_time=None,
                          client=None, media_file=None, auth=None):
         # store temporary file with dynamic uuid
+        self.factory = APIRequestFactory()
+        if auth is None:
+            auth = DigestAuth(self.profile_data['username'],
+                              self.profile_data['password1'])
 
         if client is None:
 
@@ -241,7 +248,14 @@ class TestAbstractViewSet(TestCase):
             url_prefix = '%s/' % username if username else ''
             url = '/%ssubmission' % url_prefix
 
-            self.response = client.post(url, post_data)
+            request = self.factory.post(url, post_data)
+            request.user = authenticate(username='bob',
+                                        password='bobbob')
+            self.response = submission(request, username=username)
+
+            if auth and self.response.status_code == 401:
+                request.META.update(auth(request.META, self.response))
+                self.response = submission(request, username=username)
 
         if forced_submission_time:
             instance = Instance.objects.order_by('-pk').all()[0]
@@ -266,12 +280,8 @@ class TestAbstractViewSet(TestCase):
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
 
-        client = self._get_digest_client()
-
-        client = self._get_digest_client()
-
         for path in paths:
-            self._make_submission(path, username, add_uuid, client=client)
+            self._make_submission(path, username, add_uuid)
 
         post_count = pre_count + len(self.surveys) if should_store\
             else pre_count

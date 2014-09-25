@@ -472,7 +472,6 @@ class TestFormSubmission(TestBase):
         cursor = ParsedInstance.query_mongo(**query_args)
         self.assertEqual(cursor[0]['count'], num_mongo_instances + 1)
 
-
         # create a new user
         alice = self._create_user('alice', 'alice')
         UserProfile.objects.create(user=alice)

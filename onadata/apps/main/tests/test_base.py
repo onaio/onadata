@@ -13,6 +13,8 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import TransactionTestCase
 from django.test.client import Client
 from django_digest.test import Client as DigestClient
+from django_digest.test import DigestAuth
+from django.contrib.auth import authenticate
 from django.utils import timezone
 
 from rest_framework.test import APIRequestFactory
@@ -138,9 +140,9 @@ class TestBase(TransactionTestCase):
                          forced_submission_time=None, auth=None, client=None):
         # store temporary file with dynamic uuid
 
-
-        if client is None:
-            client = self._get_digest_client()
+        self.factory = APIRequestFactory()
+        if auth is None:
+            auth = DigestAuth('bob', 'bob')
 
         tmp_file = None
 
@@ -190,11 +192,18 @@ class TestBase(TransactionTestCase):
             a = open(attachment_path)
             post_data = {'xml_submission_file': f, 'media_file': a}
             url = '/%s/submission' % self.user.username
-            self.user.profile.require_auth = True
-            self.user.profile.save()
-            client = DigestClient()
-            client.set_authorization('bob', 'bob', 'Digest')
-            self.response = client.post(url, post_data)
+            auth = DigestAuth('bob', 'bob')
+            self.factory = APIRequestFactory()
+            request = self.factory.post(url, post_data)
+            request.user = authenticate(username='bob',
+                                        password='bob')
+            self.response = submission(request,
+                                       username=self.user.username)
+
+            if auth and self.response.status_code == 401:
+                request.META.update(auth(request.META, self.response))
+                self.response = submission(request,
+                                           username=self.user.username)
 
     def _make_submissions(self, username=None, add_uuid=False,
                           should_store=True):
@@ -210,12 +219,8 @@ class TestBase(TransactionTestCase):
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
 
-        client = self._get_digest_client()
-
-        client = self._get_digest_client()
-
         for path in paths:
-            self._make_submission(path, username, add_uuid, client=client)
+            self._make_submission(path, username, add_uuid)
 
         post_count = pre_count + len(self.surveys) if should_store\
             else pre_count
