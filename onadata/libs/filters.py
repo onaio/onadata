@@ -57,8 +57,17 @@ class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
         Anonymous user has no object permissions, return queryset as it is.
         """
         user = request.user
+        project_id = view.kwargs.get(view.lookup_field)
+
         if user.is_anonymous():
             return queryset.filter(Q(shared=True))
+
+        if project_id:
+            # check if project is public and return it
+            project = queryset.get(id=project_id)
+
+            if project.shared:
+                return queryset.filter(Q(id=project_id))
 
         return super(AnonUserProjectFilter, self)\
             .filter_queryset(request, queryset, view)
