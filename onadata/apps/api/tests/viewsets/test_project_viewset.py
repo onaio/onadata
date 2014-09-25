@@ -435,3 +435,23 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(set(bob_profile.items()),
                          user_profile_data)
         self.assertEqual(alice_profile['username'], 'alice')
+
+    def test_user_can_view_public_projects(self):
+        public_project = Project(name='demo',
+                                 shared=True,
+                                 metadata=json.dumps({'description': ''}),
+                                 created_by=self.user,
+                                 organization=self.user)
+        public_project.save()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(alice_data)
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=public_project.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['public'], True)
+        self.assertEqual(response.data['projectid'], public_project.pk)
+        self.assertEqual(response.data['name'], 'demo')
