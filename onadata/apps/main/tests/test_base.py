@@ -170,7 +170,8 @@ class TestBase(TransactionTestCase):
             url = '/%ssubmission' % url_prefix
 
             request = self.factory.post(url, post_data)
-            request.user = AnonymousUser()
+            request.user = authenticate(username='bob',
+                                        password='bob')
             self.response = submission(request, username=username)
 
             if auth and self.response.status_code == 401:
