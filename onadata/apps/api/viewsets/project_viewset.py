@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.core.mail import send_mail
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -412,7 +413,6 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 
                 if email_msg:
                     # send out email message.
-                    from django.core.mail import send_mail
                     user = serializer.object.user
                     send_mail(SHARE_PROJECT_SUBJECT.format(self.object.name),
                               email_msg,

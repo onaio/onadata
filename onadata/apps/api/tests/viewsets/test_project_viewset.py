@@ -190,7 +190,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertFalse(OwnerRole.user_has_role(alice_profile.user,
                                                  self.xform))
 
-    @patch('django.core.mail.send_mail')
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
     def test_project_share_endpoint(self, mock_send_mail):
         # create project and publish form to project
         self._publish_xls_form_to_project()
