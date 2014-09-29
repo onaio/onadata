@@ -2,11 +2,15 @@ import os
 import codecs
 
 from django.core.urlresolvers import reverse
+from django.contrib.auth import authenticate
+
+from rest_framework.test import APIRequestFactory
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
+from onadata.apps.logger.views import submission
 
 
 class TestEncryptedForms(TestBase):
@@ -40,7 +44,11 @@ class TestEncryptedForms(TestBase):
                 post_data = {
                     'xml_submission_file': f,
                     'submission.xml.enc': ef}
-                response = self.client.post(self._submission_url, post_data)
+                self.factory = APIRequestFactory()
+                request = self.factory.post(self._submission_url, post_data)
+                request.user = authenticate(username='bob',
+                                            password='bob')
+                response = submission(request, username=self.user.username)
                 self.assertContains(response, message, status_code=201)
                 self.assertEqual(Instance.objects.count(), count + 1)
                 self.assertEqual(Attachment.objects.count(), acount + 1)

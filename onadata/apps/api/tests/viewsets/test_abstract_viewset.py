@@ -3,23 +3,26 @@ import os
 import re
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
-from django.contrib.auth.models import User
 from django.contrib.auth.models import Permission
 from django.test import TestCase
-from rest_framework.test import APIRequestFactory
+from django_digest.test import Client as DigestClient
 from tempfile import NamedTemporaryFile
+from django.contrib.auth.models import User
+from django_digest.test import DigestAuth
+from django.contrib.auth import authenticate
+
+from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.models import OrganizationProfile, Project
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
 from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.main import tests as main_tests
 from onadata.apps.logger.models import Instance, XForm, Attachment
 from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.apps.logger.views import submission
 
 
 class TestAbstractViewSet(TestCase):
@@ -208,10 +211,11 @@ class TestAbstractViewSet(TestCase):
                          forced_submission_time=None,
                          client=None, media_file=None, auth=None):
         # store temporary file with dynamic uuid
-        submission = XFormSubmissionApi.as_view({
-            'head': 'create',
-            'post': 'create'
-        })
+        self.factory = APIRequestFactory()
+        if auth is None:
+            auth = DigestAuth(self.profile_data['username'],
+                              self.profile_data['password1'])
+
         tmp_file = None
 
         if add_uuid:
@@ -241,7 +245,8 @@ class TestAbstractViewSet(TestCase):
             url = '/%ssubmission' % url_prefix
 
             request = self.factory.post(url, post_data)
-            request.user = AnonymousUser()
+            request.user = authenticate(username=auth.username,
+                                        password=auth.password)
             self.response = submission(request, username=username)
 
             if auth and self.response.status_code == 401:
@@ -271,9 +276,10 @@ class TestAbstractViewSet(TestCase):
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
 
+        auth = DigestAuth(self.profile_data['username'],
+                          self.profile_data['password1'])
         for path in paths:
-            self._make_submission(path, username, add_uuid)
-
+            self._make_submission(path, username, add_uuid, auth=auth)
         post_count = pre_count + len(self.surveys) if should_store\
             else pre_count
         self.assertEqual(Instance.objects.count(), post_count)
@@ -325,3 +331,12 @@ class TestAbstractViewSet(TestCase):
                 self._post_form_metadata(data)
         else:
             self._post_form_metadata(data)
+
+    def _get_digest_client(self):
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+        client = DigestClient()
+        client.set_authorization(self.profile_data['username'],
+                                 self.profile_data['password1'],
+                                 'Digest')
+        return client

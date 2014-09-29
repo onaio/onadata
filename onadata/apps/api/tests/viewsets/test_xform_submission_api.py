@@ -3,6 +3,7 @@ import os
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.test import TransactionTestCase
 from django_digest.test import DigestAuth
+from django.contrib.auth.models import AnonymousUser
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
@@ -47,6 +48,8 @@ class TestXFormSubmissionApi(TestAbstractViewSet, TransactionTestCase):
                                  'text/xml; charset=utf-8')
 
     def test_post_submission_anonymous(self):
+        self.xform.require_auth = False
+        self.xform.save()
         s = self.surveys[0]
         media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
@@ -60,6 +63,7 @@ class TestXFormSubmissionApi(TestAbstractViewSet, TransactionTestCase):
             with open(submission_path) as sf:
                 data = {'xml_submission_file': sf, 'media_file': f}
                 request = self.factory.post('/submission', data)
+                request.user = AnonymousUser()
                 response = self.view(request, username=self.user.username)
                 self.assertContains(response, 'Successful submission',
                                     status_code=201)

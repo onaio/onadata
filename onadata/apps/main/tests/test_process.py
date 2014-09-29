@@ -7,6 +7,7 @@ import re
 
 from django.core.urlresolvers import reverse
 from django.conf import settings
+from django_digest.test import Client as DigestClient
 from django.core.files.uploadedfile import UploadedFile
 from xlrd import open_workbook
 from xml.dom import minidom, Node
@@ -73,7 +74,7 @@ class TestProcess(TestBase):
         with open(path) as f:
             post_data = {'xml_submission_file': f, 'uuid': self.xform.uuid}
             url = '/submission'
-            self.response = self.anon.post(url, post_data)
+            self.response = self.client.post(url, post_data)
 
     def test_publish_xlsx_file(self):
         self._publish_xlsx_file()
@@ -146,7 +147,7 @@ class TestProcess(TestBase):
             path = os.path.join(self.this_directory, path)
         with open(path) as xls_file:
             post_data = {'xls_file': xls_file}
-            return self.anon.post('/%s/' % self.user.username, post_data)
+            return self.client.post('/%s/' % self.user.username, post_data)
 
     def _publish_file(self, xls_path, strict=True):
         """
@@ -174,7 +175,9 @@ class TestProcess(TestBase):
 
     def _check_formList(self):
         url = '/%s/formList' % self.user.username
-        response = self.anon.get(url)
+        client = DigestClient()
+        client.set_authorization('bob', 'bob')
+        response = client.get(url)
         self.download_url = \
             'http://testserver/%s/forms/%s/form.xml'\
             % (self.user.username, self.xform.pk)
@@ -194,7 +197,9 @@ class TestProcess(TestBase):
         self.assertTrue(response.has_header('Date'))
 
     def _download_xform(self):
-        response = self.anon.get(self.download_url)
+        client = DigestClient()
+        client.set_authorization('bob', 'bob')
+        response = client.get(self.download_url)
         response_doc = minidom.parseString(response.content)
 
         xml_path = os.path.join(self.this_directory, "fixtures",

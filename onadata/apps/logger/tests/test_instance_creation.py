@@ -51,7 +51,8 @@ class TestInstanceCreation(TestCase):
                     '"title": "Water_2011_03_17", "type": "survey"}'
         for path, open_file in open_forms.items():
             XForm.objects.create(
-                xml=open_file.read(), user=self.user, json=self.json)
+                xml=open_file.read(), user=self.user, json=self.json,
+                require_auth=False)
             open_file.close()
 
         self._create_water_translated_form()

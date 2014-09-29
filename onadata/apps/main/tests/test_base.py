@@ -9,10 +9,11 @@ from cStringIO import StringIO
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.contrib.auth.models import AnonymousUser
 from django.test import TransactionTestCase
 from django.test.client import Client
 from django_digest.test import Client as DigestClient
+from django_digest.test import DigestAuth
+from django.contrib.auth import authenticate
 from django.utils import timezone
 
 from rest_framework.test import APIRequestFactory
@@ -135,9 +136,13 @@ class TestBase(TransactionTestCase):
             self._make_submission(path)
 
     def _make_submission(self, path, username=None, add_uuid=False,
-                         forced_submission_time=None, auth=None):
+                         forced_submission_time=None, auth=None, client=None):
         # store temporary file with dynamic uuid
+
         self.factory = APIRequestFactory()
+        if auth is None:
+            auth = DigestAuth('bob', 'bob')
+
         tmp_file = None
 
         if add_uuid:
@@ -164,7 +169,9 @@ class TestBase(TransactionTestCase):
             url = '/%ssubmission' % url_prefix
 
             request = self.factory.post(url, post_data)
-            request.user = AnonymousUser()
+            request.user = authenticate(username=auth.username,
+                                        password=auth.password)
+
             self.response = submission(request, username=username)
 
             if auth and self.response.status_code == 401:
@@ -186,7 +193,18 @@ class TestBase(TransactionTestCase):
             a = open(attachment_path)
             post_data = {'xml_submission_file': f, 'media_file': a}
             url = '/%s/submission' % self.user.username
-            self.response = self.anon.post(url, post_data)
+            auth = DigestAuth('bob', 'bob')
+            self.factory = APIRequestFactory()
+            request = self.factory.post(url, post_data)
+            request.user = authenticate(username='bob',
+                                        password='bob')
+            self.response = submission(request,
+                                       username=self.user.username)
+
+            if auth and self.response.status_code == 401:
+                request.META.update(auth(request.META, self.response))
+                self.response = submission(request,
+                                           username=self.user.username)
 
     def _make_submissions(self, username=None, add_uuid=False,
                           should_store=True):
@@ -196,6 +214,7 @@ class TestBase(TransactionTestCase):
         :param add_uuid: add UUID to submission, default False.
         :param should_store: should submissions be save, default True.
         """
+
         paths = [os.path.join(
             self.this_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
@@ -260,3 +279,9 @@ class TestBase(TransactionTestCase):
         profile, created = UserProfile.objects.get_or_create(user=self.user)
         profile.require_auth = auth
         profile.save()
+
+    def _get_digest_client(self):
+        self._set_require_auth(True)
+        client = DigestClient()
+        client.set_authorization('bob', 'bob', 'Digest')
+        return client

@@ -3,6 +3,7 @@ import re
 
 from django.http import Http404
 from django_digest.test import DigestAuth
+from django_digest.test import Client as DigestClient
 from guardian.shortcuts import assign_perm
 from mock import patch
 from nose import SkipTest
@@ -38,6 +39,7 @@ class TestFormSubmission(TestBase):
             os.path.dirname(os.path.abspath(__file__)),
             "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
         )
+
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
 
@@ -82,31 +84,7 @@ class TestFormSubmission(TestBase):
             'patch': 'partial_update'
         })
         data = {'require_auth': True}
-        self.assertFalse(self.xform.require_auth)
-        request = self.factory.patch('/', data=data, **{
-            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
-        view(request, pk=self.xform.id)
-        self.xform.reload()
         self.assertTrue(self.xform.require_auth)
-
-        xml_submission_file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
-        )
-
-        self._make_submission(xml_submission_file_path)
-        self.assertEqual(self.response.status_code, 403)
-
-    def test_submission_to_require_auth_without_perm(self):
-        """
-        test submission to a private form by non-owner without perm is
-        forbidden.
-        """
-        view = XFormViewSet.as_view({
-            'patch': 'partial_update'
-        })
-        data = {'require_auth': True}
-        self.assertFalse(self.xform.require_auth)
         request = self.factory.patch('/', data=data, **{
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
         view(request, pk=self.xform.id)
@@ -122,9 +100,38 @@ class TestFormSubmission(TestBase):
         username = 'alice'
         self._create_user(username, username)
 
-        auth = DigestAuth(username, username)
+        self._make_submission(xml_submission_file_path,
+                              auth=DigestAuth('alice', 'alice'))
+        self.assertEqual(self.response.status_code, 403)
 
-        self._make_submission(xml_submission_file_path, auth=auth)
+    def test_submission_to_require_auth_without_perm(self):
+        """
+        test submission to a private form by non-owner without perm is
+        forbidden.
+        """
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        data = {'require_auth': True}
+        self.assertTrue(self.xform.require_auth)
+        request = self.factory.patch('/', data=data, **{
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
+        view(request, pk=self.xform.id)
+        self.xform.reload()
+        self.assertTrue(self.xform.require_auth)
+
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
+        )
+
+        # create a new user
+        username = 'alice'
+        self._create_user(username, username)
+
+        self._make_submission(xml_submission_file_path,
+                              auth=DigestAuth('alice', 'alice'))
+
         self.assertEqual(self.response.status_code, 403)
 
     def test_submission_to_require_auth_with_perm(self):
@@ -186,6 +193,7 @@ class TestFormSubmission(TestBase):
             "../fixtures/test_forms/survey_names/instances/"
             "survey_names_2012-08-17_11-24-53.xml"
         )
+
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
         self._make_submission(xml_submission_file_path)
@@ -199,6 +207,17 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_unicode_submission.xml"
         )
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
+        # create a new user
+        alice = self._create_user('alice', 'alice')
+
+        # assign report perms to user
+        assign_perm('report_xform', alice, self.xform)
+        client = DigestClient()
+        client.set_authorization('alice', 'alice', 'Digest')
+
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
 
@@ -210,6 +229,7 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_uuid.xml"
         )
+
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
         self._make_submission(xml_submission_file_path)
@@ -228,6 +248,7 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_uuid_same_instanceID.xml"
         )
+
         pre_count = Instance.objects.count()
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
@@ -260,6 +281,7 @@ class TestFormSubmission(TestBase):
             'sort': '[]',
             'count': True
         }
+
         cursor = ParsedInstance.query_mongo(**query_args)
         num_mongo_instances = cursor[0]['count']
         # make first submission
@@ -278,7 +300,9 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"
         )
-        self._make_submission(xml_submission_file_path)
+        client = DigestClient()
+        client.set_authorization('bob', 'bob', 'Digest')
+        self._make_submission(xml_submission_file_path, client=client)
         self.assertEqual(self.response.status_code, 201)
         # we must have the same number of instances
         self.assertEqual(Instance.objects.count(), num_instances + 1)
@@ -308,6 +332,7 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_xform_uuid.xml"
         )
+
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
 
@@ -349,6 +374,7 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_uuid.xml"
         )
+
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
         # query mongo for the _geopoint field
@@ -421,6 +447,10 @@ class TestFormSubmission(TestBase):
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_uuid.xml"
         )
+        # require authentication
+        self.user.profile.require_auth = True
+        self.user.profile.save()
+
         num_instances_history = InstanceHistory.objects.count()
         num_instances = Instance.objects.count()
         query_args = {
@@ -435,6 +465,7 @@ class TestFormSubmission(TestBase):
         num_mongo_instances = cursor[0]['count']
         # make first submission
         self._make_submission(xml_submission_file_path)
+
         self.assertEqual(self.response.status_code, 201)
         self.assertEqual(Instance.objects.count(), num_instances + 1)
         # no new record in instances history
@@ -443,10 +474,6 @@ class TestFormSubmission(TestBase):
         # check count of mongo instances after first submission
         cursor = ParsedInstance.query_mongo(**query_args)
         self.assertEqual(cursor[0]['count'], num_mongo_instances + 1)
-
-        # require authentication
-        self.user.profile.require_auth = True
-        self.user.profile.save()
 
         # create a new user
         alice = self._create_user('alice', 'alice')

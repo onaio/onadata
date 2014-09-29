@@ -6,6 +6,7 @@ from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
 from django_digest.test import DigestAuth
 from rest_framework.test import APIRequestFactory
+from django.contrib.auth import authenticate
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.views import view_submission_list
@@ -13,6 +14,7 @@ from onadata.apps.logger.views import view_download_submission
 from onadata.apps.logger.views import form_upload
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
+from onadata.apps.logger.views import submission
 
 NUM_INSTANCES = 4
 storage = get_storage_class()()
@@ -294,7 +296,11 @@ class TestBriefcaseAPI(TestBase):
         count = Instance.objects.count()
         with codecs.open(submission_path, encoding='utf-8') as f:
             post_data = {'xml_submission_file': f}
-            response = self.client.post(self._submission_url, post_data)
+            self.factory = APIRequestFactory()
+            request = self.factory.post(self._submission_url, post_data)
+            request.user = authenticate(username='bob',
+                                        password='bob')
+            response = submission(request, username=self.user.username)
             self.assertContains(response, message, status_code=201)
             self.assertContains(response, instanceId, status_code=201)
             self.assertEqual(Instance.objects.count(), count + 1)

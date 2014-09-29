@@ -6,7 +6,7 @@ from cStringIO import StringIO
 from urlparse import urljoin
 from httmock import urlmatch, HTTMock
 
-from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth import authenticate
 from django.core.files.storage import get_storage_class
 from django.core.files.uploadedfile import UploadedFile
 from django.core.urlresolvers import reverse
@@ -28,7 +28,9 @@ def form_list_xml(url, request, **kwargs):
     response = requests.Response()
     factory = RequestFactory()
     req = factory.get(url.path)
-    req.user = AnonymousUser()
+    req.user = authenticate(username='bob', password='bob')
+    req.user.profile.require_auth = False
+    req.user.profile.save()
     id_string = 'transportation_2011_07_25'
     if url.path.endswith('formList'):
         res = formList(req, username='bob')
