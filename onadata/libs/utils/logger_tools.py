@@ -220,20 +220,15 @@ def create_instance(username, xml_file, media_files,
         existing_instance_count = Instance.objects.filter(
             xml=xml, xform__user=xform.user).count()
 
-        if existing_instance_count == 0:
-            proceed_to_create_instance = True
-        else:
+        if existing_instance_count > 0:
             existing_instance = Instance.objects.filter(
                 xml=xml, xform__user=xform.user)[0]
-            if existing_instance.xform and\
-                    not existing_instance.xform.has_start_time:
-                proceed_to_create_instance = True
-            else:
+            if not existing_instance.xform or\
+                    existing_instance.xform.has_start_time:
                 # Ignore submission as a duplicate IFF
                 #  * a submission's XForm collects start time
                 #  * the submitted XML is an exact match with one that
                 #    has already been submitted for that user.
-                proceed_to_create_instance = False
                 raise DuplicateInstance()
 
         # get new and depracated uuid's
@@ -249,12 +244,10 @@ def create_instance(username, xml_file, media_files,
             transaction.commit()
             raise DuplicateInstance()
 
-        if proceed_to_create_instance:
-            instance = save_submission(xform, xml, media_files, new_uuid,
-                                       submitted_by, status,
-                                       date_created_override)
-            # commit all changes
-            transaction.commit()
+        instance = save_submission(xform, xml, media_files, new_uuid,
+                                   submitted_by, status, date_created_override)
+        # commit all changes
+        transaction.commit()
 
         return instance
     except Exception:
