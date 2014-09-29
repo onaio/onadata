@@ -152,6 +152,22 @@ Available roles are `readonly`,
 >
 >        HTTP 204 NO CONTENT
 
+## Send an email to users on project share
+An email is only sent when the `email_msg` request variable is present.
+<pre class="prettyprint">
+<b>POST</b> /api/v1/projects/<code>{pk}</code>/share
+</pre>
+
+> Example
+>
+>       curl -X POST -d username=alice -d role=readonly -d email_msg=I have\
+ shared the project with you\
+ https://ona.io/api/v1/projects/1/share
+
+> Response
+>
+>        HTTP 204 NO CONTENT
+
 ## Remove a user from a project
 You can remove a specific user from a project using `POST` with payload:
 
