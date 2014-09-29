@@ -1,6 +1,4 @@
 from django.shortcuts import get_object_or_404
-from django.core.mail import send_mail
-from django.contrib.auth.models import User
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -411,10 +409,11 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
             else:
                 serializer.save()
                 email_msg = data.get('email_msg')
+
                 if email_msg:
                     # send out email message.
-                    user = User.objects.get(
-                        username=serializer.data.get("username"))
+                    from django.core.mail import send_mail
+                    user = serializer.object.user
                     send_mail(SHARE_PROJECT_SUBJECT.format(self.object.name),
                               email_msg,
                               DEFAULT_FROM_EMAIL,
