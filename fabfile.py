@@ -155,7 +155,8 @@ def deploy(deployment_name, branch='master'):
                 % config_module)
 
     if deployment_name == 'whodcp':
-        run("sudo supervisorctl reload")
+        run("sudo supervisorctl restart ona")
+        run("sudo supervisorctl restart celery")
     else:
         run("sudo %s restart" % env.celeryd)
         run("sudo /usr/local/bin/uwsgi --reload %s" % env.pid)
