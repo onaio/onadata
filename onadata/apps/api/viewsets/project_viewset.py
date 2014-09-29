@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.core.mail import send_mail
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -21,6 +22,9 @@ from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.models import UserProfile
+from onadata.settings.common import (
+    DEFAULT_FROM_EMAIL,
+    SHARE_PROJECT_SUBJECT)
 
 
 class ProjectViewSet(LabelsMixin, ModelViewSet):
@@ -142,6 +146,22 @@ Available roles are `readonly`,
 > Example
 >
 >       curl -X POST -d username=alice -d role=readonly\
+ https://ona.io/api/v1/projects/1/share
+
+> Response
+>
+>        HTTP 204 NO CONTENT
+
+## Send an email to users on project share
+An email is only sent when the `email_msg` request variable is present.
+<pre class="prettyprint">
+<b>POST</b> /api/v1/projects/<code>{pk}</code>/share
+</pre>
+
+> Example
+>
+>       curl -X POST -d username=alice -d role=readonly -d email_msg=I have\
+ shared the project with you\
  https://ona.io/api/v1/projects/1/share
 
 > Response
@@ -405,6 +425,16 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
                 serializer.remove_user()
             else:
                 serializer.save()
+                email_msg = data.get('email_msg')
+
+                if email_msg:
+                    # send out email message.
+                    user = serializer.object.user
+                    send_mail(SHARE_PROJECT_SUBJECT.format(self.object.name),
+                              email_msg,
+                              DEFAULT_FROM_EMAIL,
+                              (user.email, ))
+
         else:
             return Response(data=serializer.errors,
                             status=status.HTTP_400_BAD_REQUEST)

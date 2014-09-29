@@ -1,4 +1,5 @@
 import json
+from mock import patch
 from operator import itemgetter
 
 from onadata.apps.api.models import Project
@@ -189,14 +190,12 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertFalse(OwnerRole.user_has_role(alice_profile.user,
                                                  self.xform))
 
-    def test_project_share_endpoint(self):
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_project_share_endpoint(self, mock_send_mail):
         # create project and publish form to project
         self._publish_xls_form_to_project()
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         alice_profile = self._create_user_profile(alice_data)
-        view = ProjectViewSet.as_view({
-            'post': 'share'
-        })
         projectid = self.project.pk
 
         ROLES = [ReadOnlyRole,
@@ -208,21 +207,31 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertFalse(role_class.user_has_role(alice_profile.user,
                                                       self.project))
 
-            data = {'username': 'alice', 'role': role_class.name}
+            data = {'username': 'alice', 'role': role_class.name,
+                    'email_msg': 'I have shared the project with you'}
             request = self.factory.post('/', data=data, **self.extra)
+
+            view = ProjectViewSet.as_view({
+                'post': 'share'
+            })
             response = view(request, pk=projectid)
 
             self.assertEqual(response.status_code, 204)
+            self.assertTrue(mock_send_mail.called)
+
             self.assertTrue(role_class.user_has_role(alice_profile.user,
                                                      self.project))
             self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
                                                        self.xform))
+            # Reset the mock called value to False
+            mock_send_mail.called = False
 
             data = {'username': 'alice', 'role': ''}
             request = self.factory.post('/', data=data, **self.extra)
             response = view(request, pk=projectid)
 
             self.assertEqual(response.status_code, 400)
+            self.assertFalse(mock_send_mail.called)
 
     def test_project_share_remove_user(self):
         self._project_create()
