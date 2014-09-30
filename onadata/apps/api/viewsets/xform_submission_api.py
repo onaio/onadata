@@ -7,6 +7,7 @@ from rest_framework import permissions
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import mixins
+from rest_framework.authentication import BasicAuthentication
 from rest_framework.response import Response
 from rest_framework.renderers import BrowsableAPIRenderer
 
@@ -27,10 +28,20 @@ DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 class XFormSubmissionApi(OpenRosaHeadersMixin,
                          mixins.CreateModelMixin, viewsets.GenericViewSet):
     """
-    Implements OpenRosa Api [FormSubmissionAPI](\
-        https://bitbucket.org/javarosa/javarosa/wiki/FormSubmissionAPI)
+Implements OpenRosa Api [FormSubmissionAPI](\
+    https://bitbucket.org/javarosa/javarosa/wiki/FormSubmissionAPI)
+
+## Submit an XML XForm submission
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/submissions</pre>
+> Example
+>
+>       curl -X POST -F xml_submission_file=@/path/to/submission.xml \
+https://ona.io/api/v1/submissions
+
     """
-    authentication_classes = (DigestAuthentication,)
+    authentication_classes = (BasicAuthentication, DigestAuthentication)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     queryset = Instance.objects.all()
     permission_classes = (permissions.AllowAny,)
@@ -40,17 +51,21 @@ class XFormSubmissionApi(OpenRosaHeadersMixin,
 
     def create(self, request, *args, **kwargs):
         username = self.kwargs.get('username')
-        if username is None and self.request.user.is_anonymous():
-            # raises a permission denied exception, forces authentication
-            self.permission_denied(self.request)
-        elif username is not None and self.request.user.is_anonymous():
-            user = get_object_or_404(
-                User, username=username.lower())
 
-            profile, created = UserProfile.objects.get_or_create(user=user)
-            if profile.require_auth:
+        if self.request.user.is_anonymous():
+            if username is None:
                 # raises a permission denied exception, forces authentication
                 self.permission_denied(self.request)
+            else:
+                user = get_object_or_404(
+                    User, username=username.lower())
+
+                profile, created = UserProfile.objects.get_or_create(user=user)
+
+                if profile.require_auth:
+                    # raises a permission denied exception,
+                    # forces authentication
+                    self.permission_denied(self.request)
 
         if request.method.upper() == 'HEAD':
             return Response(status=status.HTTP_204_NO_CONTENT,
