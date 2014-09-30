@@ -41,7 +41,7 @@ Implements OpenRosa Api [FormSubmissionAPI](\
 https://ona.io/api/v1/submissions
 
     """
-    authentication_classes = (BasicAuthentication, DigestAuthentication)
+    authentication_classes = (DigestAuthentication, BasicAuthentication)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     queryset = Instance.objects.all()
     permission_classes = (permissions.AllowAny,)
