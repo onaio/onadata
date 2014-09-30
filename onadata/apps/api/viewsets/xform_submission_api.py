@@ -50,8 +50,7 @@ https://ona.io/api/v1/submissions
     template_name = 'submission.xml'
 
     def create(self, request, *args, **kwargs):
-        username = self.kwargs.get('username') or\
-            request.QUERY_PARAMS.get('username')
+        username = self.kwargs.get('username')
 
         if self.request.user.is_anonymous():
             if username is None:
@@ -66,6 +65,9 @@ https://ona.io/api/v1/submissions
                     # raises a permission denied exception,
                     # forces authentication
                     self.permission_denied(self.request)
+        elif not username:
+            # get the username from the user if not set
+            username = (request.user and request.user.username)
 
         if request.method.upper() == 'HEAD':
             return Response(status=status.HTTP_204_NO_CONTENT,
