@@ -50,15 +50,15 @@ https://ona.io/api/v1/submissions
     template_name = 'submission.xml'
 
     def create(self, request, *args, **kwargs):
-        username = self.kwargs.get('username')
+        username = self.kwargs.get('username') or\
+            request.QUERY_PARAMS.get('username')
 
         if self.request.user.is_anonymous():
             if username is None:
                 # raises a permission denied exception, forces authentication
                 self.permission_denied(self.request)
             else:
-                user = get_object_or_404(
-                    User, username=username.lower())
+                user = get_object_or_404(User, username=username.lower())
 
                 profile, created = UserProfile.objects.get_or_create(user=user)
 
