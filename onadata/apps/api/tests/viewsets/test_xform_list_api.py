@@ -7,6 +7,7 @@ from django_digest.test import DigestAuth
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_list_api import XFormListApi
+from onadata.libs.permissions import DataEntryRole
 from onadata.libs.permissions import ReadOnlyRole
 
 
@@ -107,9 +108,35 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
         alice_profile = self._create_user_profile(alice_data)
 
         ReadOnlyRole.add(alice_profile.user, self.xform)
-
         self.assertTrue(
             ReadOnlyRole.user_has_role(alice_profile.user, self.xform)
+        )
+
+        auth = DigestAuth('alice', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        content = response.render().content
+        self.assertNotIn(self.xform.id_string, content)
+        self.assertEqual(
+            content, '<?xml version="1.0" encoding="utf-8"?>\n<xforms '
+            'xmlns="http://openrosa.org/xforms/xformsList"></xforms>')
+        self.assertTrue(response.has_header('X-OpenRosa-Version'))
+        self.assertTrue(
+            response.has_header('X-OpenRosa-Accept-Content-Length'))
+        self.assertTrue(response.has_header('Date'))
+        self.assertEqual(response['Content-Type'], 'text/xml; charset=utf-8')
+
+    def test_get_xform_list_other_user_with_dataentry_role(self):
+        request = self.factory.get('/')
+        response = self.view(request)
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        DataEntryRole.add(alice_profile.user, self.xform)
+
+        self.assertTrue(
+            DataEntryRole.user_has_role(alice_profile.user, self.xform)
         )
 
         auth = DigestAuth('alice', 'bobbob')

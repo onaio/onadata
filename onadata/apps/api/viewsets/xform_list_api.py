@@ -31,7 +31,7 @@ DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 class XFormListApi(viewsets.ReadOnlyModelViewSet):
     authentication_classes = (DigestAuthentication,)
     content_negotiation_class = MediaFileContentNegotiation
-    filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
+    filter_backends = (filters.XFormListObjectPermissionFilter,)
     queryset = XForm.objects.all()
     permission_classes = (permissions.AllowAny,)
     renderer_classes = (XFormListRenderer,)
@@ -60,16 +60,17 @@ class XFormListApi(viewsets.ReadOnlyModelViewSet):
             # raises a permission denied exception, forces authentication
             self.permission_denied(self.request)
 
-        if username is not None and self.request.user.is_anonymous():
+        if username is not None:
             profile = get_object_or_404(
                 UserProfile, user__username=username.lower())
 
-            if profile.require_auth:
+            if profile.require_auth and self.request.user.is_anonymous():
                 # raises a permission denied exception, forces authentication
                 self.permission_denied(self.request)
             else:
                 queryset = queryset.filter(user=profile.user)
-        else:
+
+        if not self.request.user.is_anonymous():
             queryset = super(XFormListApi, self).filter_queryset(queryset)
 
         return queryset
