@@ -116,6 +116,7 @@ class EditorRole(Role):
 class ManagerRole(Role):
     name = 'manager'
     permissions = (
+        (CAN_ADD_SUBMISSIONS, XForm),
         (CAN_ADD_XFORM, XForm),
         (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
         (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
@@ -140,6 +141,7 @@ class OwnerRole(Role):
     """
     name = 'owner'
     permissions = (
+        (CAN_ADD_SUBMISSIONS, XForm),
         (CAN_ADD_XFORM, Project),
         (CAN_ADD_XFORM, XForm),
         (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
