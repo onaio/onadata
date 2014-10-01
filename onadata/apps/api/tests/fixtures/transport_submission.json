@@ -1,6 +1,5 @@
 {
     "id": "transportation_2011_07_25",
-    "name": "transportation",
     "submission": {
         "transport": {
             "available_transportation_types_to_referral_facility": ["ambulance", "bicycle"],
