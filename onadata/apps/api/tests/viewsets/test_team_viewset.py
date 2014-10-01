@@ -168,7 +168,6 @@ class TestTeamViewSet(TestAbstractViewSet):
 
     def test_set_default_project_permissions(self):
         self._team_create()
-        self.assertNotIn(self.team.group_ptr, self.user.groups.all())
         project = Project.objects.create(name="Test Project",
                                          organization=self.team.organization,
                                          created_by=self.user,
