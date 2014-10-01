@@ -10,6 +10,8 @@ from rest_framework.permissions import DjangoObjectPermissions
 
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.team_serializer import TeamSerializer
+from onadata.libs.serializers.share_team_project_serializer import (
+    ShareTeamProjectSerializer)
 from onadata.apps.api.models import Team
 from onadata.apps.api.tools import add_user_to_team, remove_user_from_team
 
@@ -142,3 +144,17 @@ A list of usernames is the response for members of the team.
             data = [u.username for u in team.user_set.all()]
 
         return Response(data, status=status_code)
+
+    @action(methods=['POST'])
+    def default_permissions(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        data = dict(request.DATA.items() + [('team', self.object.pk)])
+        serializer = ShareTeamProjectSerializer(data=data)
+
+        if serializer.is_valid():
+            serializer.save()
+        else:
+            return Response(data=serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
