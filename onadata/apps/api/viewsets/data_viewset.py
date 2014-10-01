@@ -172,7 +172,7 @@ Get a single specific submission json data providing `pk`
 ## Query submitted data of a specific form
 Provides a list of json submitted data for a specific form. Use `query`
 parameter to apply form data specific, see
-<a href="http://www.mongodb.org/display/DOCS/Querying.">
+<a href="http://docs.mongodb.org/manual/reference/operator/query/">
 http://www.mongodb.org/display/DOCS/Querying</a>.
 
 For more details see
