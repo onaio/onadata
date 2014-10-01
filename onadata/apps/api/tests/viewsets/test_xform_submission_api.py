@@ -22,32 +22,6 @@ class TestXFormSubmissionApi(TestAbstractViewSet, TransactionTestCase):
         })
         self._publish_xls_form_to_project()
 
-    def test_post_submission_username_required(self):
-        s = self.surveys[0]
-        media_file = "1335783522563.jpg"
-        path = os.path.join(self.main_directory, 'fixtures',
-                            'transportation', 'instances', s, media_file)
-        with open(path) as f:
-            submission_path = os.path.join(
-                self.main_directory, 'fixtures',
-                'transportation', 'instances', s, s + '.xml')
-            with open(submission_path) as sf:
-                data = {'xml_submission_file': sf, 'media_file': f}
-                request = self.factory.post('/submission', data)
-                response = self.view(request)
-                self.assertEqual(response.status_code, 401)
-                auth = DigestAuth('bob', 'bobbob')
-                request.META.update(auth(request.META, response))
-                response = self.view(request)
-                self.assertContains(response, 'Username or ID required',
-                                    status_code=400)
-                self.assertTrue(response.has_header('X-OpenRosa-Version'))
-                self.assertTrue(
-                    response.has_header('X-OpenRosa-Accept-Content-Length'))
-                self.assertTrue(response.has_header('Date'))
-                self.assertEqual(response['Content-Type'],
-                                 'text/xml; charset=utf-8')
-
     def test_post_submission_anonymous(self):
         s = self.surveys[0]
         media_file = "1335783522563.jpg"
