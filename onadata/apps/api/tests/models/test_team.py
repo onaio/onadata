@@ -89,7 +89,6 @@ class TestTeam(TestAbstractModels):
         # Add the user to the group
         tools.add_user_to_team(team, user_sam)
 
+        # assert that team member has default perm set on team
         self.assertTrue(user_sam.has_perm(CAN_VIEW_PROJECT, project))
         self.assertTrue(user_sam.has_perm(CAN_ADD_XFORM, project))
-
-        # assert that team member has default perm set on team
