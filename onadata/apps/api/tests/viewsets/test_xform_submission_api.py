@@ -114,12 +114,12 @@ class TestXFormSubmissionApi(TestAbstractViewSet, TransactionTestCase):
             'transport_submission.json')
         with open(path) as f:
             data = json.loads(f.read())
-            request = self.factory.post('/submission', data)
+            request = self.factory.post('/submission', data, format='json')
             response = self.view(request)
             self.assertEqual(response.status_code, 401)
             auth = DigestAuth('bob', 'bobbob')
             request.META.update(auth(request.META, response))
-            response = self.view(request, username=self.user.username)
+            response = self.view(request)
             self.assertContains(response, 'Successful submission',
                                 status_code=201)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
