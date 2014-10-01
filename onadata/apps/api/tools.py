@@ -183,7 +183,8 @@ def create_organization_project(organization, project_name, created_by):
 
     project = Project.objects.create(name=project_name,
                                      organization=organization,
-                                     created_by=created_by)
+                                     created_by=created_by,
+                                     metadata='{}')
 
     return project
 
