@@ -92,3 +92,8 @@ class TestTeam(TestAbstractModels):
         # assert that team member has default perm set on team
         self.assertTrue(user_sam.has_perm(CAN_VIEW_PROJECT, project))
         self.assertTrue(user_sam.has_perm(CAN_ADD_XFORM, project))
+
+        # assert that removing team member revokes perms
+        tools.remove_user_from_team(team, user_sam)
+        self.assertFalse(user_sam.has_perm(CAN_VIEW_PROJECT, project))
+        self.assertFalse(user_sam.has_perm(CAN_ADD_XFORM, project))
