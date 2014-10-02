@@ -103,6 +103,25 @@ A list of usernames is the response for members of the team.
 >
 >       ["someusername"]
 
+## Set team default permissions on a project
+
+POST `{"role":"readonly", "project": "project_id"}`
+to `/api/v1/teams/<pk>/default_permissions` to set the default permissions on a
+project for all team members.
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/teams/<code>{pk}</code>/default_permissions
+</pre>
+
+> Example
+>
+>       curl -X POST -d project=3 -d role=readonly\
+ https://ona.io/api/v1/teams/1/default_permissions
+
+> Response
+>
+>        HTTP 204 NO CONTENT
+
 """
     queryset = Team.objects.all()
     serializer_class = TeamSerializer
