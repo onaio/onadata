@@ -9,6 +9,7 @@ from onadata.libs.permissions import get_team_project_default_permissions
 
 
 class TeamSerializer(serializers.Serializer):
+    teamid = serializers.Field(source='id')
     url = HyperlinkedMultiIdentityField(
         view_name='team-detail')
     name = serializers.CharField(max_length=100, source='team_name')
