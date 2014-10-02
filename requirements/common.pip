@@ -3,7 +3,7 @@
 pybamboo==0.5.8.1
 pytz==2014.7
 
-Django<1.7
+Django>=1.6,<1.7
 django-guardian==1.2.4
 django-registration==1.0
 django-templated-email==0.4.9
