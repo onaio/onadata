@@ -9,7 +9,8 @@ from onadata.apps.api.tests.models.test_abstract_models import (
 from onadata.libs.permissions import (
     DataEntryRole,
     CAN_VIEW_PROJECT,
-    CAN_ADD_XFORM)
+    CAN_ADD_XFORM,
+    get_team_project_default_permissions)
 
 
 class TestTeam(TestAbstractModels):
@@ -79,6 +80,9 @@ class TestTeam(TestAbstractModels):
         permission_names = sorted(
             [p.permission.codename for p in object_permissions])
         self.assertEqual([CAN_ADD_XFORM, CAN_VIEW_PROJECT], permission_names)
+
+        self.assertEqual(get_team_project_default_permissions(team, project),
+                         DataEntryRole.name)
 
         # Add a new user
         user_sam = self._create_user('Sam', 'sammy_')

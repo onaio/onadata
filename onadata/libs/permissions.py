@@ -247,3 +247,8 @@ def get_object_users_with_permissions(obj, exclude=None):
             users_with_perms if not is_organization(user.profile)]
 
     return result
+
+
+def get_team_project_default_permissions(team, project):
+    perms = get_perms(team, project)
+    return get_role(perms, project)

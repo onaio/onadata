@@ -5,6 +5,7 @@ from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import\
     HyperlinkedMultiIdentityField
 from onadata.libs.serializers.user_serializer import UserSerializer
 from onadata.apps.api.models import OrganizationProfile, Team
+from onadata.libs.permissions import get_team_project_default_permissions
 
 
 class TeamSerializer(serializers.Serializer):
@@ -16,10 +17,8 @@ class TeamSerializer(serializers.Serializer):
         source='organization',
         queryset=User.objects.filter(
             pk__in=OrganizationProfile.objects.values('user')))
-    projects = serializers.HyperlinkedRelatedField(view_name='project-detail',
-                                                   source='projects',
-                                                   many=True,
-                                                   read_only=True)
+    projects = serializers.SerializerMethodField(
+        'get_default_project_permissions')
     users = serializers.SerializerMethodField('get_team_users')
 
     def get_team_users(self, obj):
@@ -30,6 +29,20 @@ class TeamSerializer(serializers.Serializer):
                 users.append(UserSerializer(instance=user).data)
 
         return users
+
+    def get_default_project_permissions(self, obj):
+        projects = []
+
+        if obj:
+            for project in obj.organization.project_organization.all():
+                project_map = {}
+                project_map['name'] = project.name
+                project_map['projectid'] = project.pk
+                project_map['default_role'] = \
+                    get_team_project_default_permissions(obj, project)
+                projects.append(project_map)
+
+        return projects
 
     def restore_object(self, attrs, instance=None):
         org = attrs.get('organization', None)
