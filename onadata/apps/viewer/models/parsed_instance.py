@@ -238,6 +238,7 @@ class ParsedInstance(models.Model):
 
     def to_dict_for_mongo(self):
         d = self.to_dict()
+        import mimetypes
         data = {
             UUID: self.instance.uuid,
             ID: self.instance.id,
@@ -245,8 +246,9 @@ class ParsedInstance(models.Model):
             self.USERFORM_ID: u'%s_%s' % (
                 self.instance.xform.user.username,
                 self.instance.xform.id_string),
-            ATTACHMENTS: [a.media_file.name for a in
-                          self.instance.attachments.all()],
+            ATTACHMENTS: [{'mimetype': mimetypes.guess_type(a.media_file.name)[0],
+                                'filename': a.media_file.name}
+                 for a in self.instance.attachments.all()],
             self.STATUS: self.instance.status,
             GEOLOCATION: [self.lat, self.lng],
             SUBMISSION_TIME: self.instance.date_created.strftime(

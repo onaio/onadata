@@ -335,3 +335,38 @@ class TestDataViewSet(TestBase):
         dataid = self.xform.instances.all().order_by('id')[0].pk
         data = _data_instance(dataid)
         self.assertDictContainsSubset(data, sorted(response.data)[0])
+
+    def test_data_attachment(self):
+        self._submit_transport_instance_w_attachment()
+
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        formid = self.xform.pk
+        data = _data_list(formid)
+        self.assertEqual(response.data, data)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertTrue(self.xform.instances.count())
+
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        data = {
+        u'_bamboo_dataset_id': u'',
+        u'_attachments': [{u'mimetype': u'image/jpeg',
+                           u'filename': u'bob/attachments/1335783522563.jpg'}],
+        u'_geolocation': [None, None],
+        u'_xform_id_string': u'transportation_2011_07_25',
+        u'transport/available_transportation_types_to_referral_facility':
+        u'none',
+        u'_status': u'submitted_via_web',
+        u'_id': dataid
+        }
+        self.assertDictContainsSubset(data, sorted(response.data)[0])
+
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, dict)
+        self.assertDictContainsSubset(data, response.data)
