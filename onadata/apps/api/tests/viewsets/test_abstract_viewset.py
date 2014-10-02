@@ -207,6 +207,22 @@ class TestAbstractViewSet(TestCase):
             self.assertDictContainsSubset(data, response.data)
             self.form_data = response.data
 
+    def _add_uuid_to_submission_xml(self, path, xform):
+        tmp_file = NamedTemporaryFile(delete=False)
+        split_xml = None
+
+        with open(path) as _file:
+            split_xml = re.split(r'(<transport>)', _file.read())
+
+        split_xml[1:1] = [
+            '<formhub><uuid>%s</uuid></formhub>' % xform.uuid
+        ]
+        tmp_file.write(''.join(split_xml))
+        path = tmp_file.name
+        tmp_file.close()
+
+        return path
+
     def _make_submission(self, path, username=None, add_uuid=False,
                          forced_submission_time=None,
                          client=None, media_file=None, auth=None):
@@ -219,19 +235,7 @@ class TestAbstractViewSet(TestCase):
         tmp_file = None
 
         if add_uuid:
-            tmp_file = NamedTemporaryFile(delete=False)
-            split_xml = None
-
-            with open(path) as _file:
-                split_xml = re.split(r'(<transport>)', _file.read())
-
-            split_xml[1:1] = [
-                '<formhub><uuid>%s</uuid></formhub>' % self.xform.uuid
-            ]
-            tmp_file.write(''.join(split_xml))
-            path = tmp_file.name
-            tmp_file.close()
-
+            path = self._add_uuid_to_submission_xml(path, self.xform)
         with open(path) as f:
             post_data = {'xml_submission_file': f}
 
