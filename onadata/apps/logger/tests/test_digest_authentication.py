@@ -47,10 +47,10 @@ class TestDigestAuthentication(TestBase):
 
         self._make_submission(xml_submission_file_path, add_uuid=True,
                               auth=DigestAuth('alice', 'alice'))
-        # Not allowed
+        # Authentication required
         self.assertEqual(self.response.status_code, 401)
         auth = DigestAuth('dennis', 'dennis')
         self._make_submission(xml_submission_file_path, add_uuid=True,
                               auth=auth)
         # Not allowed
-        self.assertEqual(self.response.status_code, 400)
+        self.assertEqual(self.response.status_code, 403)
