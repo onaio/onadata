@@ -546,3 +546,19 @@ class TestXFormViewSet(TestAbstractViewSet):
             'num_of_submissions': 0
         }
         self.assertEqual(data, XFormSerializer(None).data)
+
+    def test_external_export(self):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({
+            'get': 'retrieve',
+        })
+        formid = self.xform.pk
+        request = self.factory.get('/', **self.extra)
+        # External export
+        response = view(
+            request,
+            pk=formid,
+            format='xls',
+            url='http://localhost:8080/xls/adasdasda')
+        # Fails coz of the external webservice is down
+        self.assertEqual(response.status_code, 500)

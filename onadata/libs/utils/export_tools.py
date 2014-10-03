@@ -5,6 +5,7 @@ import os
 import re
 import six
 from zipfile import ZipFile
+import requests
 
 from bson import json_util
 from django.conf import settings
@@ -932,3 +933,37 @@ def kml_export_data(id_string, user):
                          '</table>' % (img_url, ''.join(table_rows))})
 
     return data_for_template
+
+
+def generate_external_export(
+    export_type, url, username, id_string, export_id=None,
+        filter_query=None):
+
+    headers = {'Content-type': 'application/json'}
+
+    form = XForm.objects.get(
+        user__username__iexact=username, id_string__iexact=id_string)
+    user = User.objects.get(username=username)
+
+    from onadata.apps.viewer.models.data_dictionary import DataDictionary
+    dd = DataDictionary.objects.get(id_string=id_string, user=user)
+    # Get the json data for the form
+    response = requests.post(url, data=dd.json, headers=headers)
+
+    from onadata.apps.viewer.models.export import Export
+    # get or create export object
+    if export_id:
+        export = Export.objects.get(id=export_id)
+    else:
+        export = Export.objects.create(xform=form, export_type=export_type)
+
+    if response.status_code == 201:
+        export.export_url = response.content
+        export.internal_status = Export.SUCCESSFUL
+    else:
+        export.export_url = response.content
+        export.internal_status = Export.FAILED
+
+    export.save()
+
+    return export

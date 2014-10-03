@@ -32,6 +32,7 @@ class Export(models.Model):
     CSV_ZIP_EXPORT = 'csv_zip'
     SAV_ZIP_EXPORT = 'sav_zip'
     SAV_EXPORT = 'sav'
+    EXTERNAL_EXPORT = 'external'
 
     EXPORT_MIMES = {
         'xls': 'vnd.ms-excel',
@@ -53,6 +54,7 @@ class Export(models.Model):
         (CSV_ZIP_EXPORT, 'CSV ZIP'),
         (SAV_ZIP_EXPORT, 'SAV ZIP'),
         (SAV_EXPORT, 'SAV'),
+        (EXTERNAL_EXPORT, 'Excel'),
     ]
 
     EXPORT_TYPE_DICT = dict(export_type for export_type in EXPORT_TYPES)

@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 
 from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
 from django.contrib.auth.models import User
 from django.http import Http404, HttpResponseBadRequest
 from django.utils.translation import ugettext as _
@@ -33,7 +34,7 @@ from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import generate_export,\
-    should_create_new_export
+    should_create_new_export, generate_external_export
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
 from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newset_export_for
@@ -48,7 +49,19 @@ EXPORT_EXT = {
     'csv': Export.CSV_EXPORT,
     'csvzip': Export.CSV_ZIP_EXPORT,
     'savzip': Export.SAV_ZIP_EXPORT,
+    'uuid': Export.EXTERNAL_EXPORT,
 }
+
+urlvalidate = URLValidator()
+
+
+def is_valid_url(uri):
+    try:
+        urlvalidate(uri)
+    except ValidationError:
+        return False
+
+    return True
 
 
 def _get_export_type(export_type):
@@ -102,15 +115,21 @@ def _set_start_end_params(request, query):
         return query
 
 
-def _generate_new_export(request, xform, query, export_type):
+def _generate_new_export(request, xform, query, export_type, url=None):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
     try:
-        export = generate_export(
-            export_type, extension, xform.user.username,
-            xform.id_string, None, query
-        )
+        if export_type == Export.EXTERNAL_EXPORT:
+            export = generate_external_export(
+                export_type, url, xform.user.username,
+                xform.id_string, None, query
+            )
+        else:
+            export = generate_export(
+                export_type, extension, xform.user.username,
+                xform.id_string, None, query
+            )
         audit = {
             "xform": xform.id_string,
             "export_type": export_type
@@ -653,11 +672,15 @@ You can clone a form to a specific user account using `GET` with
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
         export_type = _get_export_type(export_type)
+        url = kwargs.get('url')
+        if export_type == 'xls' and is_valid_url(url):
+            export_type = Export.EXTERNAL_EXPORT
 
         # check if we need to re-generate,
         # we always re-generate if a filter is specified
         if should_regenerate_export(xform, export_type, request):
-            export = _generate_new_export(request, xform, query, export_type)
+            export = _generate_new_export(
+                request, xform, query, export_type, url)
         else:
             export = newset_export_for(xform, export_type)
 
@@ -673,6 +696,16 @@ You can clone a form to a specific user account using `GET` with
                 'id_string': xform.id_string,
                 'export_type': export_type.upper()
             }, audit, request)
+
+        if export_type == Export.EXTERNAL_EXPORT:
+            if export.internal_status == Export.SUCCESSFUL:
+                http_status = status.HTTP_200_OK
+                data = {"external_url": export.export_url}
+            else:
+                http_status = status.HTTP_500_INTERNAL_SERVER_ERROR
+                data = {"message": export.export_url}
+
+            return Response(data, http_status)
 
         if not export.filename:
             # tends to happen when using newset_export_for.
