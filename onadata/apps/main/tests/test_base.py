@@ -48,6 +48,7 @@ class TestBase(TransactionTestCase):
         user, created = User.objects.get_or_create(username=username)
         user.set_password(password)
         user.save()
+
         return user
 
     def _login(self, username, password):
@@ -64,6 +65,12 @@ class TestBase(TransactionTestCase):
         self.login_username = username
         self.login_password = password
         self.user = self._create_user(username, password)
+
+        # create user profile and set require_auth to false for tests
+        profile, created = UserProfile.objects.get_or_create(user=self.user)
+        profile.require_auth = False
+        profile.save()
+
         self.client = self._login(username, password)
         self.anon = Client()
 
