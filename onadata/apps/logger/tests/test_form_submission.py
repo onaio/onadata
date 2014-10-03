@@ -113,7 +113,7 @@ class TestFormSubmission(TestBase):
             'patch': 'partial_update'
         })
         data = {'require_auth': True}
-        self.assertTrue(self.xform.require_auth)
+        self.assertFalse(self.xform.require_auth)
         request = self.factory.patch('/', data=data, **{
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
         view(request, pk=self.xform.id)
