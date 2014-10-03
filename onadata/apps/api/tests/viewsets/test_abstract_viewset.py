@@ -89,7 +89,9 @@ class TestAbstractViewSet(TestCase):
             country=self.profile_data['country'],
             organization=self.profile_data['organization'],
             home_page=self.profile_data['home_page'],
-            twitter=self.profile_data['twitter'])
+            twitter=self.profile_data['twitter'],
+            require_auth=False
+        )
 
         return new_profile
 
