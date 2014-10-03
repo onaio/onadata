@@ -18,7 +18,7 @@ def perms_for(user, obj):
 
 class TestPermissions(TestBase):
     def test_manager_role_add(self):
-        bob = UserProfile.objects.create(user=self.user)
+        bob, created = UserProfile.objects.get_or_create(user=self.user)
         alice = self._create_user('alice', 'alice')
         self.assertFalse(alice.has_perm(CAN_ADD_XFORM_TO_PROFILE, bob))
 
@@ -27,7 +27,7 @@ class TestPermissions(TestBase):
         self.assertTrue(alice.has_perm(CAN_ADD_XFORM_TO_PROFILE, bob))
 
     def test_manager_has_role(self):
-        bob = UserProfile.objects.create(user=self.user)
+        bob, created = UserProfile.objects.get_or_create(user=self.user)
         alice = self._create_user('alice', 'alice')
 
         self.assertFalse(ManagerRole.user_has_role(alice, bob))

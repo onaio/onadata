@@ -5,6 +5,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 
 from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.main.models import UserProfile
 
 
 def open_all_files(path):
@@ -43,6 +44,10 @@ class TestInstanceCreation(TestCase):
 
     def setUp(self):
         self.user = User.objects.create(username="bob")
+        profile, c = UserProfile.objects.get_or_create(user=self.user)
+        profile.require_auth = False
+        profile.save()
+
         absolute_path = get_absolute_path("forms")
         open_forms = open_all_files(absolute_path)
         self.json = '{"default_language": "default", ' \
