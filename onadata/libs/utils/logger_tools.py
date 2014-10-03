@@ -147,7 +147,8 @@ def check_submission_permissions(request, xform):
     :returns: None.
     :raises: PermissionDenied based on the above criteria.
     """
-    if request and (xform.user.profile.require_auth or xform.require_auth)\
+    if request and (xform.user.profile.require_auth or xform.require_auth
+                    or request.path == '/submission')\
             and xform.user != request.user\
             and not request.user.has_perm('report_xform', xform):
         raise PermissionDenied(

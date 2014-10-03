@@ -48,8 +48,6 @@ class TestXFormSubmissionApi(TestAbstractViewSet, TransactionTestCase):
                                  'text/xml; charset=utf-8')
 
     def test_post_submission_anonymous(self):
-        self.xform.require_auth = False
-        self.xform.save()
         s = self.surveys[0]
         media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
