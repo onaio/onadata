@@ -5,7 +5,6 @@ from guardian.shortcuts import assign_perm, get_perms_for_model
 from jsonfield import JSONField
 from taggit.managers import TaggableManager
 
-from onadata.apps.logger.models import XForm
 from onadata.libs.models.base_model import BaseModel
 
 
@@ -48,6 +47,7 @@ def update_xform_share_settings(sender,
                                 created=False,
                                 **kwargs):
     if not created:
+        from onadata.apps.logger.models import XForm
         project_xforms = instance.projectxform_set.exclude(
             xform__shared=instance.shared).values_list('xform', flat=True)
         XForm.objects.filter(pk__in=project_xforms).update(

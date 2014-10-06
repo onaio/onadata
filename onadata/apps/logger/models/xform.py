@@ -19,6 +19,7 @@ from guardian.shortcuts import \
     get_perms_for_model
 from taggit.managers import TaggableManager
 
+from onadata.apps.api.models.project import Project
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.models.base_model import BaseModel
 
@@ -84,12 +85,14 @@ class XForm(BaseModel):
     bamboo_dataset = models.CharField(max_length=60, default=u'')
     instances_with_geopoints = models.BooleanField(default=False)
     num_of_submissions = models.IntegerField(default=0)
+    project = models.ForeignKey(Project)
 
     tags = TaggableManager()
 
     class Meta:
         app_label = 'logger'
-        unique_together = (("user", "id_string"), ("user", "sms_id_string"))
+        unique_together = (("user", "id_string", "project"),
+                           ("user", "sms_id_string", "project"))
         verbose_name = ugettext_lazy("XForm")
         verbose_name_plural = ugettext_lazy("XForms")
         ordering = ("id_string",)
