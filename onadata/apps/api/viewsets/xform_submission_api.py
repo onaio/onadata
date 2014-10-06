@@ -161,18 +161,7 @@ Here is some example JSON, it would replace `[the JSON]` above:
             username, xml_file, media_files, None, request)
 
         if error or not instance:
-            status_code = status.HTTP_400_BAD_REQUEST
-            if not error:
-                error_msg = _(u"Unable to create submission.")
-            elif not is_json_request:
-                return error
-            else:
-                status_code = error.status_code
-                error_msg = xml_error_re.search(error.content).groups()[0]
-
-            return Response({'error': error_msg},
-                            headers=self.get_openrosa_headers(request),
-                            status=status_code)
+            return self.error_response(error, is_json_request, request)
 
         context = self.get_serializer_context()
         serializer = SubmissionSerializer(instance, context=context)
@@ -181,3 +170,17 @@ Here is some example JSON, it would replace `[the JSON]` above:
                         headers=self.get_openrosa_headers(request),
                         status=status.HTTP_201_CREATED,
                         template_name=self.template_name)
+
+    def error_response(self, error, is_json_request, request):
+        if not error:
+            error_msg = _(u"Unable to create submission.")
+            status_code = status.HTTP_400_BAD_REQUEST
+        elif not is_json_request:
+            return error
+        else:
+            error_msg = xml_error_re.search(error.content).groups()[0]
+            status_code = error.status_code
+
+        return Response({'error': error_msg},
+                        headers=self.get_openrosa_headers(request),
+                        status=status_code)
