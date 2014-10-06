@@ -15,6 +15,7 @@ from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
+from onadata.apps.api.tools import get_default_project
 from onadata.apps.api.tools import get_media_file_response
 from onadata.apps.api.permissions import ViewDjangoObjectPermissions
 from onadata.apps.logger.models.attachment import Attachment
@@ -64,12 +65,13 @@ def _parse_int(num):
 
 class DoXmlFormUpload():
 
-    def __init__(self, xml_file, user):
+    def __init__(self, xml_file, user, project):
         self.xml_file = xml_file
         self.user = user
+        self.project = project
 
     def publish(self):
-        return publish_xml_form(self.xml_file, self.user)
+        return publish_xml_form(self.xml_file, self.user, self.project)
 
 
 class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
@@ -170,7 +172,8 @@ class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
         data = {}
 
         if isinstance(xform_def, File):
-            do_form_upload = DoXmlFormUpload(xform_def, form_user)
+            project = get_default_project(form_user)
+            do_form_upload = DoXmlFormUpload(xform_def, form_user, project)
             dd = publish_form(do_form_upload.publish)
 
             if isinstance(dd, XForm):
