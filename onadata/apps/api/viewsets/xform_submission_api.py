@@ -1,7 +1,8 @@
+import re
 import StringIO
+
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 
@@ -11,7 +12,7 @@ from rest_framework import viewsets
 from rest_framework import mixins
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.response import Response
-from rest_framework.renderers import BrowsableAPIRenderer
+from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.user_profile import UserProfile
@@ -25,6 +26,7 @@ from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
 
 # 10,000,000 bytes
 DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
+xml_error_re = re.compile('>(.*)<')
 
 
 def is_json(request):
@@ -50,9 +52,7 @@ def json_request2xform(request):
 
     # convert lists in submission dict to joined strings
     submission = dict_lists2strings(dict_form['submission'])
-
-    xml_string = dict2xform(submission,
-                            dict_form['id'])
+    xml_string = dict2xform(submission, dict_form.get('id'))
 
     return StringIO.StringIO(xml_string)
 
@@ -111,10 +111,13 @@ Here is some example JSON, it would replace `[the JSON]` above:
 """
     authentication_classes = (DigestAuthentication, BasicAuthentication)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
-    queryset = Instance.objects.all()
+    model = Instance
     permission_classes = (permissions.AllowAny,)
-    renderer_classes = (TemplateXMLRenderer, BrowsableAPIRenderer)
+    renderer_classes = (TemplateXMLRenderer,
+                        JSONRenderer,
+                        BrowsableAPIRenderer)
     serializer_class = SubmissionSerializer
+    template_name_json = 'submission.json'
     template_name = 'submission.xml'
 
     def create(self, request, *args, **kwargs):
@@ -142,7 +145,11 @@ Here is some example JSON, it would replace `[the JSON]` above:
                             headers=self.get_openrosa_headers(request),
                             template_name=self.template_name)
 
-        if is_json(request):
+        is_json_request = is_json(request)
+
+        if is_json_request:
+            request.accepted_renderer = JSONRenderer()
+            request.accepted_media_type = JSONRenderer.media_type
             xml_file = json_request2xform(request)
             media_files = []
         else:
@@ -155,21 +162,29 @@ Here is some example JSON, it would replace `[the JSON]` above:
             username, xml_file, media_files, None, request)
 
         if error or not instance:
+            status_code = status.HTTP_400_BAD_REQUEST
             if not error:
-                error = _(u"Unable to create submission.")
-            elif not is_json(request):
+                error_msg = _(u"Unable to create submission.")
+            elif not is_json_request:
                 return error
             else:
-                error = error.content
+                status_code = error.status_code
+                error_msg = xml_error_re.search(error.content).groups()[0]
 
-            return HttpResponseBadRequest(error,
-                                          mimetype='application/json',
-                                          status=400)
+            return Response({'error': error_msg},
+                            headers=self.get_openrosa_headers(request),
+                            status=status_code)
 
         context = self.get_serializer_context()
         serializer = SubmissionSerializer(instance, context=context)
 
-        return Response(serializer.data,
-                        headers=self.get_openrosa_headers(request),
-                        status=status.HTTP_201_CREATED,
-                        template_name=self.template_name)
+        if is_json_request:
+            return Response(serializer.data,
+                            headers=self.get_openrosa_headers(request),
+                            status=status.HTTP_201_CREATED,
+                            template_name=self.template_name_json)
+        else:
+            return Response(serializer.data,
+                            headers=self.get_openrosa_headers(request),
+                            status=status.HTTP_201_CREATED,
+                            template_name=self.template_name)
