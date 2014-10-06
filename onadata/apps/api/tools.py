@@ -223,7 +223,7 @@ def add_xform_to_project(xform, project, creator):
     return instance
 
 
-def publish_xlsform(request, user):
+def publish_xlsform(request, user, project):
     if not request.user.has_perm('can_add_xform', user.profile):
         raise exceptions.PermissionDenied(
             detail=_(u"User %(user)s has no permission to add xforms to "
@@ -231,7 +231,10 @@ def publish_xlsform(request, user):
                                               'account': user.username}))
 
     def set_form():
-        form = QuickConverter(request.POST, request.FILES)
+        data = request.POST
+        data['project'] = project.pk
+        form = QuickConverter(data, request.FILES)
+
         return form.publish(user)
 
     return publish_form(set_form)
@@ -254,6 +257,19 @@ def publish_project_xform(request, project):
         add_xform_to_project(xform, project, request.user)
 
     return xform
+
+
+def get_default_project(user):
+    project_name = u"%s's Project" % user.username.lower()
+    kwargs = {'name': project_name, 'created_by': user, 'organization': user}
+    projects = Project.objects.filter(**kwargs)
+
+    if len(projects) > 0:
+        return projects[0]
+    else:
+        kwargs['metadata'] = u'{}'
+
+        return Project.objects.create(**kwargs)
 
 
 def mode(a, axis=0):
