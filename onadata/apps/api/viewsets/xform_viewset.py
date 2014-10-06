@@ -588,7 +588,8 @@ You can clone a form to a specific user account using `GET` with
 
     def create(self, request, *args, **kwargs):
         owner = _get_owner(request)
-        survey = utils.publish_xlsform(request, owner)
+        project = utils.get_default_project(owner)
+        survey = utils.publish_xlsform(request, owner, project)
 
         if isinstance(survey, XForm):
             xform = XForm.objects.get(pk=survey.pk)
