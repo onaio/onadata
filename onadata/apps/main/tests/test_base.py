@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from rest_framework.test import APIRequestFactory
 
+from onadata.apps.api.models.project import Project
 from onadata.apps.logger.models import XForm, Instance, Attachment
 from onadata.apps.logger.views import submission
 from onadata.apps.main.models import UserProfile
@@ -71,14 +72,23 @@ class TestBase(TransactionTestCase):
         profile.require_auth = False
         profile.save()
 
+        self.project = self._create_default_project(self.user)
+
         self.client = self._login(username, password)
         self.anon = Client()
+
+    def _create_default_project(self, user):
+        project_name = u"%s's Project" % user.username.lower()
+        kwargs = {'name': project_name, 'created_by': user,
+                  'organization': user, 'metadata': u'{}'}
+
+        return Project.objects.create(**kwargs)
 
     def _publish_xls_file(self, path):
         if not path.startswith('/%s/' % self.user.username):
             path = os.path.join(self.this_directory, path)
         with open(path) as xls_file:
-            post_data = {'xls_file': xls_file}
+            post_data = {'xls_file': xls_file, 'project': self.project.pk}
             return self.client.post('/%s/' % self.user.username, post_data)
 
     def _publish_xlsx_file(self):
