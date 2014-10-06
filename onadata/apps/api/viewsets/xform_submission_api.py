@@ -117,7 +117,6 @@ Here is some example JSON, it would replace `[the JSON]` above:
                         JSONRenderer,
                         BrowsableAPIRenderer)
     serializer_class = SubmissionSerializer
-    template_name_json = 'submission.json'
     template_name = 'submission.xml'
 
     def create(self, request, *args, **kwargs):
@@ -178,13 +177,7 @@ Here is some example JSON, it would replace `[the JSON]` above:
         context = self.get_serializer_context()
         serializer = SubmissionSerializer(instance, context=context)
 
-        if is_json_request:
-            return Response(serializer.data,
-                            headers=self.get_openrosa_headers(request),
-                            status=status.HTTP_201_CREATED,
-                            template_name=self.template_name_json)
-        else:
-            return Response(serializer.data,
-                            headers=self.get_openrosa_headers(request),
-                            status=status.HTTP_201_CREATED,
-                            template_name=self.template_name)
+        return Response(serializer.data,
+                        headers=self.get_openrosa_headers(request),
+                        status=status.HTTP_201_CREATED,
+                        template_name=self.template_name)
