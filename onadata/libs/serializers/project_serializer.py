@@ -1,6 +1,5 @@
 from django.forms import widgets
 from rest_framework import serializers
-from rest_framework.request import Request
 
 from onadata.apps.api.models import Project
 from onadata.libs.permissions import get_object_users_with_permissions
@@ -98,10 +97,9 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     def is_starred_project(self, obj):
         request = self.context['request']
-        if isinstance(request, Request):
-            user = request.user
-            user_stars = obj.user_stars.all()
-            if user in user_stars:
-                return True
+        user = request.user
+        user_stars = obj.user_stars.all()
+        if user in user_stars:
+            return True
 
         return False

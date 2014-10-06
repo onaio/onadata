@@ -5,7 +5,9 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+
 from onadata.libs.authentication import DigestAuthentication
+from onadata.libs.serializers.project_serializer import ProjectSerializer
 
 
 class TestConnectViewSet(TestAbstractViewSet):
@@ -56,6 +58,10 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request, user=self.user)
 
         self.assertEqual(response.status_code, 200)
+
+        request.user = self.user
+        self.project_data = ProjectSerializer(
+            self.project, context={'request': request}).data
         self.assertEqual(response.data, [self.project_data])
 
     def test_user_list_with_digest(self):

@@ -166,6 +166,8 @@ class TestAbstractViewSet(TestCase):
         data['url'] = 'http://testserver/api/v1/projects/%s'\
             % self.project.pk
         self.assertDictContainsSubset(data, response.data)
+
+        request.user = self.user
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
 
