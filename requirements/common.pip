@@ -19,6 +19,7 @@ pymongo==2.7.2
 lxml==3.4.0
 -e git+https://github.com/XLSForm/pyxform.git@model_instance_maybe_a_list#egg=pyxform
 South==1.0
+django-reversion==1.8.4
 xlrd==0.9.3
 xlwt==0.7.5
 openpyxl==2.0.5
