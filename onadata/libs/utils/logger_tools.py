@@ -410,30 +410,32 @@ def publish_form(callback):
         }
 
 
-def publish_xls_form(xls_file, user, id_string=None):
+def publish_xls_form(xls_file, user, project, id_string=None):
     """ Creates or updates a DataDictionary with supplied xls_file,
         user and optional id_string - if updating
     """
     # get or create DataDictionary based on user and id string
     if id_string:
         dd = DataDictionary.objects.get(
-            user=user, id_string=id_string)
+            user=user, id_string=id_string, project=project)
         dd.xls = xls_file
         dd.save()
         return dd
     else:
         return DataDictionary.objects.create(
             user=user,
-            xls=xls_file
+            xls=xls_file,
+            project=project
         )
 
 
-def publish_xml_form(xml_file, user, id_string=None):
+def publish_xml_form(xml_file, user, project, id_string=None):
     xml = xml_file.read()
     survey = create_survey_element_from_xml(xml)
     form_json = survey.to_json()
     if id_string:
-        dd = DataDictionary.objects.get(user=user, id_string=id_string)
+        dd = DataDictionary.objects.get(user=user, id_string=id_string,
+                                        project=project)
         dd.xml = xml
         dd.json = form_json
         dd._mark_start_time_boolean()
@@ -442,7 +444,8 @@ def publish_xml_form(xml_file, user, id_string=None):
         dd.save()
         return dd
     else:
-        dd = DataDictionary(user=user, xml=xml, json=form_json)
+        dd = DataDictionary(user=user, xml=xml, json=form_json,
+                            project=project)
         dd._mark_start_time_boolean()
         set_uuid(dd)
         dd._set_uuid_in_xml(file_name=xml_file.name)
