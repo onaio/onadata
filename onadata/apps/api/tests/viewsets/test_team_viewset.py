@@ -31,6 +31,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         owner_team = {
+            'teamid': self.owner_team.pk,
             'url':
             'http://testserver/api/v1/teams/%s' % self.owner_team.pk,
             'name': u'Owners',
@@ -72,6 +73,7 @@ class TestTeamViewSet(TestAbstractViewSet):
             organization=self.organization.user,
             name='%s#%s' % (self.organization.user.username, data['name']))
         data['url'] = 'http://testserver/api/v1/teams/%s' % team.pk
+        data['teamid'] = team.id
         self.assertDictContainsSubset(data, response.data)
         self.team_data = response.data
         self.team = team
