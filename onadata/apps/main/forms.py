@@ -14,6 +14,7 @@ from recaptcha.client import captcha
 from registration.forms import RegistrationFormUniqueEmail
 from registration.models import RegistrationProfile
 
+from onadata.apps.api.models.project import Project
 from onadata.apps.main.models import UserProfile
 from onadata.apps.viewer.models.data_dictionary import upload_to
 from onadata.libs.utils.country_field import COUNTRIES
@@ -263,6 +264,16 @@ class QuickConverterTextXlsForm(forms.Form):
 class QuickConverter(QuickConverterFile, QuickConverterURL,
                      QuickConverterDropboxURL, QuickConverterTextXlsForm):
     validate = URLValidator()
+    project = forms.IntegerField()
+
+    def clean_project(self):
+        project = self.cleaned_data['project']
+        try:
+            Project.objects.get(pk=project)
+        except Project.DoesNotExist:
+            raise ValueError(_(u"Project id %s does not exist."))
+
+        return project
 
     def publish(self, user, id_string=None):
         if self.is_valid():
@@ -300,8 +311,11 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 xls_data = ContentFile(urllib2.urlopen(cleaned_url).read())
                 cleaned_xls_file = \
                     default_storage.save(cleaned_xls_file, xls_data)
+
+            project = Project.objects.get(pk=self.cleaned_data['project'])
+
             # publish the xls
-            return publish_xls_form(cleaned_xls_file, user, id_string)
+            return publish_xls_form(cleaned_xls_file, user, project, id_string)
 
 
 class ActivateSMSSupportFom(forms.Form):
