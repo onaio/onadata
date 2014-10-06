@@ -124,6 +124,9 @@ class TestProjectViewSet(TestAbstractViewSet):
 
     def test_publish_xls_form_to_project(self):
         self._publish_xls_form_to_project()
+        data = {'name': 'hello'}
+        self._project_create(data)
+        self._publish_xls_form_to_project()
 
     def test_num_datasets(self):
         self._publish_xls_form_to_project()
