@@ -1,3 +1,5 @@
+import reversion
+
 from datetime import datetime
 
 from django.contrib.gis.db import models
@@ -97,6 +99,7 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
             profile.save()
 
 
+@reversion.register
 class Instance(models.Model):
     json = JSONField(default={}, null=False)
     xml = models.TextField()
