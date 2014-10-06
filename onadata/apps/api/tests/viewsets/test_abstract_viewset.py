@@ -199,7 +199,7 @@ class TestAbstractViewSet(TestCase):
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
         with open(path) as xls_file:
-            post_data = {'xls_file': xls_file}
+            post_data = {'xls_file': xls_file, 'project': project_id}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=project_id)
             self.assertEqual(response.status_code, 201)
