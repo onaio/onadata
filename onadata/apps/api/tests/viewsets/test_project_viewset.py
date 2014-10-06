@@ -61,6 +61,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         # check filter by tag
         request = self.factory.get('/', data={"tags": "hello"}, **self.extra)
+
+        request.user = self.user
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
         response = list_view(request, pk=project_id)
@@ -126,6 +128,7 @@ class TestProjectViewSet(TestAbstractViewSet):
     def test_num_datasets(self):
         self._publish_xls_form_to_project()
         request = self.factory.post('/', data={}, **self.extra)
+        request.user = self.user
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
         self.assertEqual(self.project_data['num_datasets'], 1)
@@ -134,6 +137,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
         self._make_submissions()
         request = self.factory.post('/', data={}, **self.extra)
+        request.user = self.user
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
         date_created = self.xform.instances.order_by(

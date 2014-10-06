@@ -23,6 +23,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         lookup_field='username',
         read_only=True)
     metadata = JsonField(source='metadata', required=False)
+    starred = serializers.SerializerMethodField('is_starred_project')
     users = serializers.SerializerMethodField('get_project_permissions')
     forms = serializers.SerializerMethodField('get_project_forms')
     public = BooleanField(
@@ -93,3 +94,12 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                                                            flat=True)
 
             return last_submission and last_submission[0]
+
+    def is_starred_project(self, obj):
+        request = self.context['request']
+        user = request.user
+        user_stars = obj.user_stars.all()
+        if user in user_stars:
+            return True
+
+        return False
