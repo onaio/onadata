@@ -1,6 +1,8 @@
 import os
+import reversion
 
 from datetime import datetime
+from django.utils.timezone import utc
 from django_digest.test import DigestAuth
 from mock import patch
 
@@ -26,7 +28,7 @@ class TestInstance(TestBase):
 
     @patch('django.utils.timezone.now')
     def test_json_assigns_attributes(self, mock_time):
-        mock_time.return_value = datetime.now()
+        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
         self._publish_transportation_form_and_submit_instance()
 
         xform_id_string = XForm.objects.all()[0].id_string
@@ -40,7 +42,7 @@ class TestInstance(TestBase):
 
     @patch('django.utils.timezone.now')
     def test_json_stores_user_attribute(self, mock_time):
-        mock_time.return_value = datetime.now()
+        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
         self._publish_transportation_form()
 
         # make account require phone auth
@@ -107,3 +109,6 @@ class TestInstance(TestBase):
         """
         id_string = get_id_string_from_xml_str(submission)
         self.assertEqual(id_string, 'id_string')
+
+    def test_reversion(self):
+        self.assertTrue(reversion.is_registered(Instance))
