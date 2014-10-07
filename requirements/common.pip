@@ -17,7 +17,7 @@ poster==0.8.1
 psycopg2==2.5.4
 pymongo==2.7.2
 lxml==3.4.0
--e git+https://github.com/XLSForm/pyxform.git@model_instance_maybe_a_list#egg=pyxform
+-e git+https://github.com/onaio/pyxform.git@onaio#egg=pyxform
 South==1.0
 django-reversion==1.8.4
 xlrd==0.9.3
