@@ -38,7 +38,7 @@ MANAGERS = ADMINS
 
 DEFAULT_FROM_EMAIL = 'noreply@ona.io'
 SHARE_PROJECT_SUBJECT = '{} Ona Project has been shared with you.'
-DEFAULT_SESSION_EXPIRY_TIME = 300
+DEFAULT_SESSION_EXPIRY_TIME = 21600  # 6 hours
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
