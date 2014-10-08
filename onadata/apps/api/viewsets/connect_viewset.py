@@ -1,3 +1,5 @@
+from django.contrib.auth import login
+
 from rest_framework import permissions
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -8,6 +10,8 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.user_profile_serializer import (
     UserProfileWithTokenSerializer)
 from onadata.apps.main.models.user_profile import UserProfile
+
+from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
 
 
 class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
@@ -47,6 +51,14 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
 
     def list(self, request, *args, **kwargs):
         """ Returns authenticated user profile"""
+
+        if request and not request.user.is_anonymous():
+            session = getattr(request, "session")
+            if not session.session_key:
+                # login user to create session token
+                login(request, request.user)
+                session.set_expiry(DEFAULT_SESSION_EXPIRY_TIME)
+
         serializer = UserProfileWithTokenSerializer(
             instance=request.user.profile,
             context={"request": request})

@@ -180,13 +180,23 @@ class UserProfileWithTokenSerializer(UserProfileSerializer):
     user = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     api_token = serializers.SerializerMethodField('get_api_token')
+    temp_token = serializers.SerializerMethodField('get_temp_token')
 
     class Meta:
         model = UserProfile
         fields = ('url', 'username', 'name', 'password', 'email', 'city',
                   'country', 'organization', 'website', 'twitter', 'gravatar',
-                  'require_auth', 'user', 'api_token')
+                  'require_auth', 'user', 'api_token', 'temp_token')
         lookup_field = 'user'
 
     def get_api_token(self, object):
         return object.user.auth_token.key
+
+    def get_temp_token(self, object):
+        request = self.context['request']
+        session_key = None
+        if request:
+            session = request.session
+            session_key = session.session_key
+
+        return session_key
