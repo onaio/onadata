@@ -173,17 +173,21 @@ Get a single specific submission json data providing `pk`
 Provides a list of json submitted data for a specific form. Use `query`
 parameter to apply form data specific, see
 <a href="http://docs.mongodb.org/manual/reference/operator/query/">
-http://www.mongodb.org/display/DOCS/Querying</a>.
+http://docs.mongodb.org/manual/reference/operator/query/</a>.
 
 For more details see
 <a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)#
 api-parameters">
 API Parameters</a>.
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":"value"}</pre>
+<b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":"value"}</b>
+<b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":{"op": "value"}}"</b>
+</pre>
 > Example
 >
->       curl -X GET  https://ona.io/api/v1/data/22845?query={"kind": "monthly"}
+>       curl -X GET 'https://ona.io/api/v1/data/22845?query={"kind": "monthly"}'
+>       curl -X GET 'https://ona.io/api/v1/data/22845?query={"date": \
+        {"gt$": "2014-09-29T01:02:03+0000"}}'
 
 > Response
 >
