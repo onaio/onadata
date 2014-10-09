@@ -44,8 +44,8 @@ def enketo_error_mock(url, request):
 def external_mock(url, request):
     response = requests.Response()
     response.status_code = 201
-    response.content = \
-        '{\n  "url": "/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"}'
+    response._content = \
+        "/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"
     return response
 
 
@@ -53,8 +53,8 @@ def external_mock(url, request):
 def external_error_mock(url, request):
     response = requests.Response()
     response.status_code = 500
-    response.content = \
-        '{\n  "message": "No record to export"}'
+    response._content = \
+        'No record to export'
     return response
 
 
@@ -597,8 +597,10 @@ class TestXFormViewSet(TestAbstractViewSet):
                 format='xls',
                 server='http://xls_server',
                 token='8e86d4bdfa7f435ab89485aeae4ea6f5')
-            # Fails coz of the external webservice is down
+
             self.assertEqual(response.status_code, 201)
+            self.assertEquals(response.data,
+                              {'url': '/xls/ee3ff9d8f5184fc4a8fdebc2547cc059'})
 
     def test_external_export_error(self):
         self._publish_xls_form_to_project()
@@ -617,4 +619,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 format='xls',
                 server='http://xls_server',
                 token='8e86d4bdfa7f435ab89485aeae4ea6f5')
+
             self.assertEqual(response.status_code, 500)
+            self.assertEquals(response.data,
+                              {'message': 'No record to export'})

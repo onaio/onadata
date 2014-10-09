@@ -942,8 +942,18 @@ def generate_external_export(
     form = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
 
-    cursor = query_mongo(username, id_string)
-    records = list(record for record in cursor)
+    cursor = query_mongo(username, id_string, filter_query)
+
+    records = []
+    for record in cursor:
+        # Get the keys
+        for key in record:
+            if '/' in key:
+                # replace with _
+                record[key.replace('/', '_')]\
+                    = record.pop(key)
+        records.append(record)
+
     status_code = 0
     if len(records) > 0:
         try:
