@@ -123,6 +123,8 @@ def deploy(deployment_name, branch='master'):
 
     # numpy pip install from requirements file fails
     with source(env.virtualenv):
+        # remove django-registration
+        run("pip uninstall -qy django-registration || echo $?")
         run("pip install numpy")
         run("pip install -r %s" % env.pip_requirements_file)
 
