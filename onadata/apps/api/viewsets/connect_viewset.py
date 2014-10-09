@@ -1,5 +1,3 @@
-from django.contrib.auth import login
-
 from rest_framework import permissions
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -56,7 +54,9 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
             session = getattr(request, "session")
             if not session.session_key:
                 # login user to create session token
-                login(request, request.user)
+                # TODO cannot call this without calling authenticate first or
+                # setting the backend, commented for now.
+                # login(request, request.user)
                 session.set_expiry(DEFAULT_SESSION_EXPIRY_TIME)
 
         serializer = UserProfileWithTokenSerializer(
