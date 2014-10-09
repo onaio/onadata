@@ -7,6 +7,7 @@ import traceback
 from xml.dom import Node
 from xml.parsers.expat import ExpatError
 
+from dict2xml import dict2xml
 from django.conf import settings
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.core.files.storage import get_storage_class
@@ -82,6 +83,14 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
             xml=xml, user=submitted_by, status=status, xform=xform)
 
     return instance
+
+
+def dict2xform(jsform, form_id):
+    dd = {'form_id': form_id}
+    xml_head = u"<?xml version='1.0' ?>\n<%(form_id)s id='%(form_id)s'>\n" % dd
+    xml_tail = u"\n</%(form_id)s>" % dd
+
+    return xml_head + dict2xml(jsform) + xml_tail
 
 
 def get_uuid_from_submission(xml):

@@ -4,7 +4,6 @@ import json
 import re
 import StringIO
 
-from dict2xml import dict2xml
 from django.utils.translation import ugettext as _
 
 from onadata.apps.logger.models import XForm
@@ -13,6 +12,7 @@ from onadata.apps.sms_support.tools import SMS_API_ERROR, SMS_PARSING_ERROR,\
     DEFAULT_SEPARATOR, NA_VALUE, META_FIELDS, MEDIA_TYPES,\
     DEFAULT_DATE_FORMAT, DEFAULT_DATETIME_FORMAT, SMS_SUBMISSION_ACCEPTED,\
     is_last
+from onadata.libs.utils.logger_tools import dict2xform
 
 
 class SMSSyntaxError(ValueError):
@@ -26,14 +26,6 @@ class SMSCastingError(ValueError):
             message = _(u"%(question)s: %(message)s") % {'question': question,
                                                          'message': message}
         super(SMSCastingError, self).__init__(message)
-
-
-def json2xform(jsform, form_id):
-    dd = {'form_id': form_id}
-    xml_head = u"<?xml version='1.0' ?>\n<%(form_id)s id='%(form_id)s'>\n" % dd
-    xml_tail = u"\n</%(form_id)s>" % dd
-
-    return xml_head + dict2xml(jsform) + xml_tail
 
 
 def parse_sms_text(xform, identity, text):
@@ -337,7 +329,7 @@ def process_incoming_smses(username, incomings,
                 return
 
         # convert dict object into an XForm string
-        xml_submission = json2xform(jsform=json_submission,
+        xml_submission = dict2xform(jsform=json_submission,
                                     form_id=xform.id_string)
 
         # compute notes

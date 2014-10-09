@@ -147,28 +147,28 @@ class MultiLookupRouter(routers.DefaultRouter):
 
         class OnaApi(APIView):
             """
-## Ona JSON Rest API
+## Ona JSON Rest API endpoints:
 
-Ona provides the following JSON api endpoints:
+### Data
+* [/api/v1/charts](/api/v1/charts) - List, Retrieve Charts of collected data
+* [/api/v1/data](/api/v1/data) - List, Retrieve submission data
+* [/api/v1/stats](/api/v1/stats) - Summary statistics
 
-* [/api/v1/user](/api/v1/user) - Return authenticated user profile info
-* [/api/v1/users](/api/v1/users) - List, Retrieve username, first
-and last name
-* [/api/v1/profiles](/api/v1/profiles) - List, Create,
-Update, user information
-* [/api/v1/orgs](/api/v1/orgs) - List, Retrieve, Create,
-Update organization and organization info
+### Forms
+* [/api/v1/forms](/api/v1/forms) - List, Retrieve form information
+* [/api/v1/media](/api/v1/media) - List, Retrieve media attachments
+* [/api/v1/metadata](/api/v1/metadata) - List, Retrieve form metadata
 * [/api/v1/projects](/api/v1/projects) - List, Retrieve, Create,
  Update organization projects, forms
-* [/api/v1/teams](/api/v1/teams) - List, Retrieve, Create,
-Update teams
-* [/api/v1/forms](/api/v1/forms) - List, Retrieve
-xlsforms information
-* [/api/v1/data](/api/v1/data) - List, Retrieve submission data
-* [/api/v1/charts](/api/v1/charts) - List, Retrieve Charts of collected data
-* [/api/v1/stats](/api/v1/stats) - Summary statistics
-* [/api/v1/metadata](/api/v1/metadata) - List, Retrieve form metadata
-* [/api/v1/media](/api/v1/media) - List, Retrieve media attachments
+* [/api/v1/submissions](/api/v1/submissions) - Submit XForms to a form
+
+### Users and Organizations
+* [/api/v1/orgs](/api/v1/orgs) - List, Retrieve, Create,
+Update organization and organization info
+* [/api/v1/profiles](/api/v1/profiles) - List, Create, Update user information
+* [/api/v1/teams](/api/v1/teams) - List, Retrieve, Create, Update teams
+* [/api/v1/user](/api/v1/user) - Return authenticated user profile info
+* [/api/v1/users](/api/v1/users) - List, Retrieve user data
 
 ## Status Codes
 

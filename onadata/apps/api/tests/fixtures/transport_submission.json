@@ -1,0 +1,27 @@
+{
+    "id": "transportation_2011_07_25",
+    "submission": {
+        "transport": {
+            "available_transportation_types_to_referral_facility": ["ambulance", "bicycle"],
+            "loop_over_transport_types_frequency": {
+                "ambulance": {
+                    "frequency_to_referral_facility": "daily"
+                },
+                "bicycle": {
+                    "frequency_to_referral_facility": "weekly"
+                },
+                "boat_canoe": null,
+                "bus": null,
+                "donkey_mule_cart": null,
+                "keke_pepe": null,
+                "lorry": null,
+                "motorbike": null,
+                "taxi": null,
+                "other": null
+            }
+        },
+        "meta": {
+            "instanceID": "uuid:f3d8dc65-91a6-4d0f-9e97-802128083390"
+        }
+    }
+}
