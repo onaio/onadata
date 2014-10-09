@@ -5,7 +5,6 @@ import os
 import re
 import six
 from zipfile import ZipFile
-import requests
 
 from bson import json_util
 from django.conf import settings
@@ -19,6 +18,7 @@ from openpyxl.workbook import Workbook
 from pyxform.question import Question
 from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
+from json2xlsclient.client import Client
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.viewer.models.parsed_instance import\
@@ -936,19 +936,27 @@ def kml_export_data(id_string, user):
 
 
 def generate_external_export(
-    export_type, url, username, id_string, export_id=None,
+    export_type, server, token, username, id_string, export_id=None,
         filter_query=None):
-
-    headers = {'Content-type': 'application/json'}
 
     form = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
-    user = User.objects.get(username=username)
 
-    from onadata.apps.viewer.models.data_dictionary import DataDictionary
-    dd = DataDictionary.objects.get(id_string=id_string, user=user)
-    # Get the json data for the form
-    response = requests.post(url, data=dd.json, headers=headers)
+    cursor = query_mongo(username, id_string)
+    records = list(record for record in cursor)
+    status_code = 0
+    if len(records) > 0:
+        try:
+            client = Client(server)
+            response = client.xls.create(token, json.dumps(records))
+
+            if hasattr(client.xls.conn, 'last_response'):
+                status_code = client.xls.conn.last_response.status_code
+        except Exception as e:
+            response = str(e)
+    else:
+        status_code = 500
+        response = "No record to export"
 
     from onadata.apps.viewer.models.export import Export
     # get or create export object
@@ -957,11 +965,10 @@ def generate_external_export(
     else:
         export = Export.objects.create(xform=form, export_type=export_type)
 
-    if response.status_code == 201:
-        export.export_url = response.content
+    export.export_url = response
+    if status_code == 201:
         export.internal_status = Export.SUCCESSFUL
     else:
-        export.export_url = response.content
         export.internal_status = Export.FAILED
 
     export.save()

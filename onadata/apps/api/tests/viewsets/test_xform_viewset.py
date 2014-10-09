@@ -40,6 +40,24 @@ def enketo_error_mock(url, request):
     return response
 
 
+@urlmatch(netloc=r'(.*\.)?xls_server$')
+def external_mock(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response.content = \
+        '{\n  "url": "/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"}'
+    return response
+
+
+@urlmatch(netloc=r'(.*\.)?xls_server$')
+def external_error_mock(url, request):
+    response = requests.Response()
+    response.status_code = 500
+    response.content = \
+        '{\n  "message": "No record to export"}'
+    return response
+
+
 class TestXFormViewSet(TestAbstractViewSet):
 
     def setUp(self):
@@ -549,16 +567,54 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     def test_external_export(self):
         self._publish_xls_form_to_project()
+
+        paths = [os.path.join(
+            self.main_directory, 'fixtures', 'transportation',
+            'instances_w_uuid', s, s + '.xml')
+            for s in ['transport_2011-07-25_19-05-36']]
+
+        # instantiate date that is NOT naive; timezone is enabled
+        current_timzone_name = timezone.get_current_timezone_name()
+        current_timezone = pytz.timezone(current_timzone_name)
+        today = datetime.today()
+        current_date = current_timezone.localize(
+            datetime(today.year,
+                     today.month,
+                     today.day))
+        self._make_submission(paths[0], forced_submission_time=current_date)
+        self.assertEqual(self.response.status_code, 201)
+
         view = XFormViewSet.as_view({
             'get': 'retrieve',
         })
         formid = self.xform.pk
         request = self.factory.get('/', **self.extra)
-        # External export
-        response = view(
-            request,
-            pk=formid,
-            format='xls',
-            url='http://localhost:8080/xls/adasdasda')
-        # Fails coz of the external webservice is down
-        self.assertEqual(response.status_code, 500)
+        with HTTMock(external_mock):
+            # External export
+            response = view(
+                request,
+                pk=formid,
+                format='xls',
+                server='http://xls_server',
+                token='8e86d4bdfa7f435ab89485aeae4ea6f5')
+            # Fails coz of the external webservice is down
+            self.assertEqual(response.status_code, 201)
+
+    def test_external_export_error(self):
+        self._publish_xls_form_to_project()
+
+        view = XFormViewSet.as_view({
+            'get': 'retrieve',
+        })
+        formid = self.xform.pk
+        request = self.factory.get('/', **self.extra)
+
+        with HTTMock(external_error_mock):
+            # External export
+            response = view(
+                request,
+                pk=formid,
+                format='xls',
+                server='http://xls_server',
+                token='8e86d4bdfa7f435ab89485aeae4ea6f5')
+            self.assertEqual(response.status_code, 500)

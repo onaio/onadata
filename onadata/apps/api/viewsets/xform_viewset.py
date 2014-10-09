@@ -115,14 +115,15 @@ def _set_start_end_params(request, query):
         return query
 
 
-def _generate_new_export(request, xform, query, export_type, url=None):
+def _generate_new_export(request, xform, query, export_type, server=None,
+                         token=None):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
     try:
         if export_type == Export.EXTERNAL_EXPORT:
             export = generate_external_export(
-                export_type, url, xform.user.username,
+                export_type, server, token, xform.user.username,
                 xform.id_string, None, query
             )
         else:
@@ -672,15 +673,17 @@ You can clone a form to a specific user account using `GET` with
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
         export_type = _get_export_type(export_type)
-        url = kwargs.get('url')
-        if export_type == 'xls' and is_valid_url(url):
+        server = kwargs.get('server')
+        token = kwargs.get('token')
+        if export_type == 'xls' and server is not None\
+                and token is not None:
             export_type = Export.EXTERNAL_EXPORT
 
         # check if we need to re-generate,
         # we always re-generate if a filter is specified
         if should_regenerate_export(xform, export_type, request):
             export = _generate_new_export(
-                request, xform, query, export_type, url)
+                request, xform, query, export_type, server, token)
         else:
             export = newset_export_for(xform, export_type)
 
@@ -699,8 +702,8 @@ You can clone a form to a specific user account using `GET` with
 
         if export_type == Export.EXTERNAL_EXPORT:
             if export.internal_status == Export.SUCCESSFUL:
-                http_status = status.HTTP_200_OK
-                data = {"external_url": export.export_url}
+                http_status = status.HTTP_201_CREATED
+                data = {"url": export.export_url}
             else:
                 http_status = status.HTTP_500_INTERNAL_SERVER_ERROR
                 data = {"message": export.export_url}
