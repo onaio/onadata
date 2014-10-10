@@ -4,7 +4,6 @@ import json
 from datetime import datetime
 
 from django.core.exceptions import ValidationError
-from django.core.validators import URLValidator
 from django.contrib.auth.models import User
 from django.http import Http404, HttpResponseBadRequest
 from django.utils.translation import ugettext as _
@@ -51,17 +50,6 @@ EXPORT_EXT = {
     'savzip': Export.SAV_ZIP_EXPORT,
     'uuid': Export.EXTERNAL_EXPORT,
 }
-
-urlvalidate = URLValidator()
-
-
-def is_valid_url(uri):
-    try:
-        urlvalidate(uri)
-    except ValidationError:
-        return False
-
-    return True
 
 
 def _get_export_type(export_type):
@@ -115,15 +103,14 @@ def _set_start_end_params(request, query):
         return query
 
 
-def _generate_new_export(request, xform, query, export_type, server=None,
-                         token=None):
+def _generate_new_export(request, xform, query, export_type, token=None):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
     try:
         if export_type == Export.EXTERNAL_EXPORT:
             export = generate_external_export(
-                export_type, server, token, xform.user.username,
+                export_type, token, xform.user.username,
                 xform.id_string, None, query
             )
         else:
@@ -673,9 +660,8 @@ You can clone a form to a specific user account using `GET` with
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
         export_type = _get_export_type(export_type)
-        server = kwargs.get('server')
         token = kwargs.get('token')
-        if export_type == 'xls' and server is not None\
+        if export_type == 'xls' and token is not None\
                 and token is not None:
             export_type = Export.EXTERNAL_EXPORT
 
@@ -683,7 +669,7 @@ You can clone a form to a specific user account using `GET` with
         # we always re-generate if a filter is specified
         if should_regenerate_export(xform, export_type, request):
             export = _generate_new_export(
-                request, xform, query, export_type, server, token)
+                request, xform, query, export_type, token)
         else:
             export = newset_export_for(xform, export_type)
 

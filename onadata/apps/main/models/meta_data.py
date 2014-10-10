@@ -236,3 +236,8 @@ class MetaData(models.Model):
             return data_values
         else:
             return None
+
+    @staticmethod
+    def external_export(xform, data_value=None, data_file=None):
+        data_type = 'external_export'
+        return unique_type_for_form(xform, data_type, data_value, data_file)

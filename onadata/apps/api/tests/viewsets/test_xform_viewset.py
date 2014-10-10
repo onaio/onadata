@@ -559,6 +559,9 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_external_export(self):
         self._publish_xls_form_to_project()
 
+        server = 'http://xls_server'
+        self._add_form_metadata(self.xform, 'external_export',
+                                server)
         paths = [os.path.join(
             self.main_directory, 'fixtures', 'transportation',
             'instances_w_uuid', s, s + '.xml')
@@ -586,7 +589,6 @@ class TestXFormViewSet(TestAbstractViewSet):
                 request,
                 pk=formid,
                 format='xls',
-                server='http://xls_server',
                 token='8e86d4bdfa7f435ab89485aeae4ea6f5')
 
             self.assertEqual(response.status_code, 201)
@@ -595,6 +597,10 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     def test_external_export_error(self):
         self._publish_xls_form_to_project()
+
+        server = 'http://xls_server'
+        self._add_form_metadata(self.xform, 'external_export',
+                                server)
 
         paths = [os.path.join(
             self.main_directory, 'fixtures', 'transportation',
@@ -623,7 +629,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             request,
             pk=formid,
             format='xls',
-            server='http://xls_server',
             token='8e86d4bdfa7f435ab89485aeae4ea6f5')
 
         error = \

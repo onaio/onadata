@@ -12,7 +12,8 @@ METADATA_TYPES = (
     ('media', _(u"Media")),
     ('public_link', _(u"Public Link")),
     ('source', _(u"Source")),
-    ('supporting_doc', _(u"Supporting Document"))
+    ('supporting_doc', _(u"Supporting Document")),
+    ('external_export', _(u"External Export")),
 )
 
 

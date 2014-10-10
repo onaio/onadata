@@ -936,11 +936,16 @@ def kml_export_data(id_string, user):
 
 
 def generate_external_export(
-    export_type, server, token, username, id_string, export_id=None,
+    export_type, token, username, id_string, export_id=None,
         filter_query=None):
 
     form = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
+    from onadata.apps.main.models.meta_data import MetaData
+
+    # Get the external server from the metadata
+    result = MetaData.external_export(form)
+    server = result.data_value
 
     cursor = query_mongo(username, id_string, filter_query)
 
@@ -955,7 +960,7 @@ def generate_external_export(
         records.append(record)
 
     status_code = 0
-    if len(records) > 0:
+    if records and server:
         try:
             client = Client(server)
             response = client.xls.create(token, json.dumps(records))
@@ -965,8 +970,11 @@ def generate_external_export(
         except Exception as e:
             response = str(e)
     else:
+        if not server:
+            response = "Server not set"
+        elif not records:
+            response = "No record to export"
         status_code = 500
-        response = "No record to export"
 
     from onadata.apps.viewer.models.export import Export
     # get or create export object
