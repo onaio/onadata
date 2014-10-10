@@ -21,6 +21,8 @@ from savReaderWriter import SavWriter
 from json2xlsclient.client import Client
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
+from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import\
     _is_invalid_for_mongo, _encode_for_mongo, dict_for_mongo,\
     _decode_from_mongo
@@ -941,16 +943,18 @@ def generate_external_export(
 
     form = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
-    from onadata.apps.main.models.meta_data import MetaData
+    user = User.objects.get(username=username)
 
     # Get the external server from the metadata
     result = MetaData.external_export(form)
     server = result.data_value
 
-    cursor = query_mongo(username, id_string, filter_query)
+    instances = Instance.objects.filter(
+        xform__user=user, xform__id_string=id_string)
 
     records = []
-    for record in cursor:
+    for instance in instances:
+        record = instance.get_dict()
         # Get the keys
         for key in record:
             if '/' in key:
@@ -976,7 +980,6 @@ def generate_external_export(
             response = "No record to export"
         status_code = 500
 
-    from onadata.apps.viewer.models.export import Export
     # get or create export object
     if export_id:
         export = Export.objects.get(id=export_id)
