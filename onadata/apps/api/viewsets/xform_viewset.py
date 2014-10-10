@@ -520,7 +520,7 @@ Where:
 You can share a form with a  specific user by `POST` a payload with
 
 - `username` of the user you want to share the form with and
-- `role` you want the user to have on the form. Availabel roles are `readonly`,
+- `role` you want the user to have on the form. Available roles are `readonly`,
 `dataentry`, `editor`, `manager`.
 
 <pre class="prettyprint">
