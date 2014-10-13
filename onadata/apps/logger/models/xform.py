@@ -191,6 +191,9 @@ class XForm(BaseModel):
             except:
                 self.sms_id_string = self.id_string
 
+        if not hasattr(self, 'project'):
+            self.project = Project.get_default_user_project(self.user)
+
         super(XForm, self).save(*args, **kwargs)
 
     def __unicode__(self):

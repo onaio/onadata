@@ -32,6 +32,20 @@ class Project(BaseModel):
     def __unicode__(self):
         return u'%s|%s' % (self.organization, self.name)
 
+    @classmethod
+    def get_default_user_project(cls, user):
+        project_name = u"%s's Project" % user.username.lower()
+        kwargs = {'name': project_name, 'created_by': user,
+                  'organization': user}
+        projects = Project.objects.filter(**kwargs)
+
+        if len(projects) > 0:
+            return projects[0]
+        else:
+            kwargs['metadata'] = u'{}'
+
+            return Project.objects.create(**kwargs)
+
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
     if created:
