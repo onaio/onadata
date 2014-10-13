@@ -3,6 +3,7 @@ from onadata.apps.viewer.models.data_dictionary import \
     DataDictionary, upload_to
 from django.core.files.storage import default_storage
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.api.tools import get_default_project
 
 
 class CloneXForm(object):
@@ -24,5 +25,6 @@ class CloneXForm(object):
         xls_file = default_storage.save(xls_file_path, xls_data)
         self.cloned_form = DataDictionary.objects.create(
             user=user,
-            xls=xls_file
+            xls=xls_file,
+            project=get_default_project(user)
         )
