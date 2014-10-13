@@ -51,6 +51,9 @@ EXPORT_EXT = {
     'uuid': Export.EXTERNAL_EXPORT,
 }
 
+# Supported external exports
+external_export_types = ['xls']
+
 
 def _get_export_type(export_type):
     if export_type in EXPORT_EXT.keys():
@@ -176,6 +179,17 @@ def value_for_type(form, field, value):
         return str2bool(value)
 
     return value
+
+
+def external_export_response(export):
+    if export.internal_status == Export.SUCCESSFUL:
+        http_status = status.HTTP_201_CREATED
+        data = {"url": export.export_url}
+    else:
+        http_status = status.HTTP_500_INTERNAL_SERVER_ERROR
+        data = {"message": export.export_url}
+
+    return Response(data, http_status)
 
 
 class XFormViewSet(AnonymousUserPublicFormsMixin, LabelsMixin, ModelViewSet):
@@ -661,8 +675,7 @@ You can clone a form to a specific user account using `GET` with
 
         export_type = _get_export_type(export_type)
         token = kwargs.get('token')
-        if export_type == 'xls' and token is not None\
-                and token is not None:
+        if export_type in external_export_types and token is not None:
             export_type = Export.EXTERNAL_EXPORT
 
         # check if we need to re-generate,
@@ -687,14 +700,7 @@ You can clone a form to a specific user account using `GET` with
             }, audit, request)
 
         if export_type == Export.EXTERNAL_EXPORT:
-            if export.internal_status == Export.SUCCESSFUL:
-                http_status = status.HTTP_201_CREATED
-                data = {"url": export.export_url}
-            else:
-                http_status = status.HTTP_500_INTERNAL_SERVER_ERROR
-                data = {"message": export.export_url}
-
-            return Response(data, http_status)
+            return external_export_response(export)
 
         if not export.filename:
             # tends to happen when using newset_export_for.
