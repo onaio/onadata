@@ -142,6 +142,7 @@
                               </div>
                               <div class="modal-body">
                                   <input type="file" name="xls_file" id="id_xls_file" />
+                                  <input type="hidden" name='project' value="{{ xform.project.pk }}" />
                                   <input type="submit" class="btn large btn-primary" value="{% trans "Update" %}" data-original-title="" />
                               </div>
                           </form>

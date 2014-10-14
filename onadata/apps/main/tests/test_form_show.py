@@ -324,8 +324,9 @@ class TestFormShow(TestBase):
         xls_path = os.path.join(self.this_directory, "fixtures",
                                 "transportation", "transportation_updated.xls")
         with open(xls_path, "r") as xls_file:
-            post_data = {'xls_file': xls_file}
-            self.client.post(xform_update_url, post_data)
+            post_data = {'xls_file': xls_file, 'project': self.project.pk}
+            response = self.client.post(xform_update_url, post_data)
+            self.assertEqual(response.status_code, 302)
         self.assertEqual(XForm.objects.count(), count)
         self.xform = XForm.objects.order_by('id').reverse()[0]
         data_dictionary = self.xform.data_dictionary()

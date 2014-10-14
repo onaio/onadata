@@ -1181,29 +1181,38 @@ def update_xform(request, username, id_string):
 
     def set_form():
         form = QuickConverter(request.POST, request.FILES)
-        survey = form.publish(request.user, id_string).survey
-        enketo_webform_url = reverse(
-            enter_data,
-            kwargs={'username': username, 'id_string': survey.id_string}
-        )
-        audit = {
-            'xform': xform.id_string
-        }
-        audit_log(
-            Actions.FORM_XLS_UPDATED, request.user, owner,
-            _("XLS for '%(id_string)s' updated.") %
-            {
-                'id_string': xform.id_string,
-            }, audit, request)
-        return {
-            'type': 'alert-success',
-            'text': _(u'Successfully published %(form_id)s.'
-                      u' <a href="%(form_url)s">Enter Web Form</a>'
-                      u' or <a href="#preview-modal" data-toggle="modal">'
-                      u'Preview Web Form</a>')
-                    % {'form_id': survey.id_string,
-                       'form_url': enketo_webform_url}
-        }
+        dd = form.publish(request.user, id_string)
+        if dd:
+            survey = dd.survey
+            enketo_webform_url = reverse(
+                enter_data,
+                kwargs={'username': username, 'id_string': survey.id_string}
+            )
+            audit = {
+                'xform': xform.id_string
+            }
+            audit_log(
+                Actions.FORM_XLS_UPDATED, request.user, owner,
+                _("XLS for '%(id_string)s' updated.") %
+                {
+                    'id_string': xform.id_string,
+                }, audit, request)
+
+            return {
+                'type': 'alert-success',
+                'text': _(u'Successfully published %(form_id)s.'
+                          u' <a href="%(form_url)s">Enter Web Form</a>'
+                          u' or <a href="#preview-modal" data-toggle="modal">'
+                          u'Preview Web Form</a>')
+                        % {'form_id': survey.id_string,
+                           'form_url': enketo_webform_url}
+            }
+        else:
+            return {
+                'type': 'alert-error',
+                'text': _(u"Failed to replace form: %(msg)s"
+                          % {'msg': form.errors})
+            }
     message = publish_form(set_form)
     messages.add_message(
         request, messages.INFO, message['text'], extra_tags=message['type'])
