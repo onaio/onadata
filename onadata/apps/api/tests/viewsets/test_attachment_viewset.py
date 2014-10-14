@@ -1,3 +1,5 @@
+from os import path
+
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
@@ -14,9 +16,10 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         })
 
         self._publish_xls_form_to_project()
-        self._submit_transport_instance_w_attachment()
 
     def test_retrieve_view(self):
+        self._submit_transport_instance_w_attachment()
+
         pk = self.attachment.pk
         data = {
             'url': 'http://testserver/api/v1/media/%s' % pk,
@@ -42,12 +45,16 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertEqual(response.content_type, 'image/jpeg')
 
     def test_list_view(self):
+        self._submit_transport_instance_w_attachment()
+
         request = self.factory.get('/', **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
 
     def test_list_view_filter_by_xform(self):
+        self._submit_transport_instance_w_attachment()
+
         data = {
             'xform': self.xform.pk
         }
@@ -67,6 +74,8 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
     def test_list_view_filter_by_instance(self):
+        self._submit_transport_instance_w_attachment()
+
         data = {
             'instance': self.attachment.instance.pk
         }
@@ -86,6 +95,8 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
     def test_direct_image_link(self):
+        self._submit_transport_instance_w_attachment()
+
         data = {
             'filename': self.attachment.media_file.name
         }
@@ -106,3 +117,19 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data, **self.extra)
         response = self.retrieve_view(request, pk=self.attachment.instance.pk)
         self.assertEqual(response.status_code, 404)
+
+    def test_direct_image_link_uppercase(self):
+        self._submit_transport_instance_w_attachment(uppercase=True)
+
+        filename = self.attachment.media_file.name
+        file_base, file_extension = path.splitext(filename)
+        data = {
+            'filename': file_base + file_extension.upper()
+        }
+        request = self.factory.get('/', data, **self.extra)
+        response = self.retrieve_view(request, pk=self.attachment.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, basestring))
+        self.assertEqual(response.data,
+                         'http://testserver/api/v1/media/%s.jpg'
+                         % self.attachment.pk)

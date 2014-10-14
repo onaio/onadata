@@ -22,6 +22,7 @@ class AttachmentSerializer(serializers.ModelSerializer):
             kwargs = {'pk': obj.pk}
             request = self.context.get('request')
             format = obj.media_file.name[obj.media_file.name.rindex('.') + 1:]
+            format = format and format.lower()
 
             return reverse('attachment-detail', kwargs=kwargs,
                            request=request, format=format)
