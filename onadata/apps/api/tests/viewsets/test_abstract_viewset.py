@@ -296,9 +296,12 @@ class TestAbstractViewSet(TestCase):
         self.assertEqual(xform.num_of_submissions, post_count)
         self.assertEqual(xform.user.profile.num_of_submissions, post_count)
 
-    def _submit_transport_instance_w_attachment(self, survey_at=0):
+    def _submit_transport_instance_w_attachment(self,
+                                                survey_at=0,
+                                                media_file=None):
         s = self.surveys[survey_at]
-        media_file = "1335783522563.jpg"
+        if not media_file:
+            media_file = "1335783522563.jpg"
         path = os.path.join(self.main_directory, 'fixtures',
                             'transportation', 'instances', s, media_file)
         with open(path) as f:
