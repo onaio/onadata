@@ -39,7 +39,7 @@ def dict_lists2strings(d):
     :param d: The dict to convert.
     :returns: The converted dict."""
     for k, v in d.items():
-        if isinstance(v, list):
+        if isinstance(v, list) and all([isinstance(e, basestring) for e in v]):
             d[k] = ' '.join(v)
         elif isinstance(v, dict):
             d[k] = dict_lists2strings(v)

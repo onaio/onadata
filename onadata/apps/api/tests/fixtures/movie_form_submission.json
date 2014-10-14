@@ -1,0 +1,23 @@
+{
+  "id": "movie_form",
+  "submission": {
+    "_notes": [],
+    "_uuid": "e5ebc147-bd98-4fff-93b7-8b4acf520a7c",
+    "meta/instanceID": "uuid:e5ebc147-bd98-4fff-93b7-8b4acf520a7c",
+    "_verified": "not_verified",
+    "_submission_time": "2014-10-10T13:16:31",
+    "movie_suggestion": "Cloud Atlas",
+    "_bamboo_dataset_id": "",
+    "_tags": [],
+    "refreshment": "soda",
+    "_attachments": [],
+    "watch_date": "2014-10-10T16:30:00.000+03:00",
+    "_submitted_by": null,
+    "_geolocation": [null, null],
+    "location": "mombasa",
+    "_xform_id_string": "movie_form",
+    "_status": "submitted_via_web",
+    "_id": 394565,
+    "formhub/uuid": "27f5a700f03a432c89f9d23f2122b570"
+  }
+}
