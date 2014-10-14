@@ -17,10 +17,10 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.share_project_serializer import\
     ShareProjectSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
-from onadata.apps.api.models import Project
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
 from onadata.settings.common import (
     DEFAULT_FROM_EMAIL,

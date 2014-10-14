@@ -26,11 +26,11 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django_digest import HttpDigestAuthenticator
 
-from onadata.apps.api.models.project import Project
 from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.logger.import_tools import import_instances_from_zip
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.ziggy_instance import ZiggyInstance
 from onadata.libs.utils.log import audit_log, Actions

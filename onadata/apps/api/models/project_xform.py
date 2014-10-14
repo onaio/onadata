@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-from onadata.apps.api.models.project import Project
+from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models import XForm
 
 

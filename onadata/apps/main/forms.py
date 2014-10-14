@@ -14,7 +14,7 @@ from recaptcha.client import captcha
 from registration.forms import RegistrationFormUniqueEmail
 from registration.models import RegistrationProfile
 
-from onadata.apps.api.models.project import Project
+from onadata.apps.logger.models.project import Project
 from onadata.apps.main.models import UserProfile
 from onadata.apps.viewer.models.data_dictionary import upload_to
 from onadata.libs.utils.country_field import COUNTRIES

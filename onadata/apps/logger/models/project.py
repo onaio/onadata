@@ -10,11 +10,11 @@ from onadata.libs.models.base_model import BaseModel
 
 class Project(BaseModel):
     class Meta:
-        app_label = 'api'
+        app_label = 'logger'
         unique_together = (('name', 'organization'),)
         permissions = (
             ('view_project', "Can view project"),
-            ('add_xform', "Can add xform to project"),
+            ('add_xform_to_project', "Can add xform to project"),
             ('transfer_project', "Can transfer project to different owner"),
         )
 

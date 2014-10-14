@@ -20,10 +20,10 @@ from rest_framework import exceptions
 from registration.models import RegistrationProfile
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
-from onadata.apps.api.models.project import Project
 from onadata.apps.api.models.project_xform import ProjectXForm
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
+from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.data.query import get_field_records

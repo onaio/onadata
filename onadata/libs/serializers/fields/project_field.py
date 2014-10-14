@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from onadata.apps.api.models.project import Project
+from onadata.apps.logger.models.project import Project
 
 
 class ProjectField(serializers.WritableField):

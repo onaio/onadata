@@ -18,8 +18,8 @@ from django.utils import timezone
 
 from rest_framework.test import APIRequestFactory
 
-from onadata.apps.api.models.project import Project
 from onadata.apps.logger.models import XForm, Instance, Attachment
+from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.views import submission
 from onadata.apps.main.models import UserProfile
 

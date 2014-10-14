@@ -10,7 +10,7 @@ from guardian.shortcuts import (
 from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models import XForm
-from onadata.apps.api.models import Project
+from onadata.apps.logger.models import Project
 
 CAN_ADD_XFORM_TO_PROFILE = 'can_add_xform'
 CAN_VIEW_ORGANIZATION_PROFILE = 'view_organizationprofile'

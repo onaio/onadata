@@ -1,12 +1,12 @@
 from django.forms import widgets
 from rest_framework import serializers
 
-from onadata.apps.api.models import Project
 from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models.project import Project
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):

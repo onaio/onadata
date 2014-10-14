@@ -9,9 +9,12 @@ from django.contrib.sites.models import Site
 from django.shortcuts import get_object_or_404
 from guardian.shortcuts import get_perms_for_model, assign_perm
 
-from onadata.apps.api.models import Project, Team, OrganizationProfile
+from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.api.models import Team
 from onadata.apps.main.models import UserProfile
-from onadata.apps.logger.models import XForm, Note
+from onadata.apps.logger.models.note import Note
+from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.xform import XForm
 
 
 class HttpResponseNotAuthorized(HttpResponse):
@@ -152,5 +155,10 @@ def set_api_permissions_for_user(user):
     models = [UserProfile, XForm, Project, Team, OrganizationProfile, Note]
     for model in models:
         for perm in get_perms_for_model(model):
-            assign_perm(
-                '%s.%s' % (perm.content_type.app_label, perm.codename), user)
+            try:
+                assign_perm('%s.%s' % (
+                    perm.content_type.app_label, perm.codename), user)
+            except Exception as e:
+                import ipdb
+                ipdb.set_trace()
+                raise e

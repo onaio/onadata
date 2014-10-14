@@ -14,9 +14,34 @@ class Migration(SchemaMigration):
         # Removing unique constraint on 'XForm', fields ['user', 'id_string']
         db.delete_unique(u'logger_xform', ['user_id', 'id_string'])
 
+        # Adding model 'Project'
+        db.create_table(u'logger_project', (
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=255)),
+            ('metadata', self.gf('jsonfield.fields.JSONField')(blank=True)),
+            ('organization', self.gf('django.db.models.fields.related.ForeignKey')(related_name='project_organization', to=orm['auth.User'])),
+            ('created_by', self.gf('django.db.models.fields.related.ForeignKey')(related_name='project_creator', to=orm['auth.User'])),
+            ('shared', self.gf('django.db.models.fields.BooleanField')(default=False)),
+            ('date_created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
+            ('date_modified', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
+        ))
+        db.send_create_signal('logger', ['Project'])
+
+        # Adding M2M table for field user_stars on 'Project'
+        m2m_table_name = db.shorten_name(u'logger_project_user_stars')
+        db.create_table(m2m_table_name, (
+            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
+            ('project', models.ForeignKey(orm['logger.project'], null=False)),
+            ('user', models.ForeignKey(orm[u'auth.user'], null=False))
+        ))
+        db.create_unique(m2m_table_name, ['project_id', 'user_id'])
+
+        # Adding unique constraint on 'Project', fields ['name', 'organization']
+        db.create_unique(u'logger_project', ['name', 'organization_id'])
+
         # Adding field 'XForm.project'
         db.add_column(u'logger_xform', 'project',
-                      self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['api.Project']),
+                      self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['logger.Project']),
                       keep_default=False)
 
         # Adding unique constraint on 'XForm', fields ['user', 'id_string', 'project']
@@ -33,6 +58,15 @@ class Migration(SchemaMigration):
         # Removing unique constraint on 'XForm', fields ['user', 'id_string', 'project']
         db.delete_unique(u'logger_xform', ['user_id', 'id_string', 'project_id'])
 
+        # Removing unique constraint on 'Project', fields ['name', 'organization']
+        db.delete_unique(u'logger_project', ['name', 'organization_id'])
+
+        # Deleting model 'Project'
+        db.delete_table(u'logger_project')
+
+        # Removing M2M table for field user_stars on 'Project'
+        db.delete_table(db.shorten_name(u'logger_project_user_stars'))
+
         # Deleting field 'XForm.project'
         db.delete_column(u'logger_xform', 'project_id')
 
@@ -44,18 +78,6 @@ class Migration(SchemaMigration):
 
 
     models = {
-        'api.project': {
-            'Meta': {'unique_together': "(('name', 'organization'),)", 'object_name': 'Project'},
-            'created_by': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'project_creator'", 'to': u"orm['auth.User']"}),
-            'date_created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'date_modified': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'metadata': ('jsonfield.fields.JSONField', [], {'blank': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
-            'organization': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'project_organization'", 'to': u"orm['auth.User']"}),
-            'shared': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'user_stars': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.User']", 'symmetrical': 'False'})
-        },
         u'auth.group': {
             'Meta': {'object_name': 'Group'},
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -131,6 +153,18 @@ class Migration(SchemaMigration):
             'instance': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'notes'", 'to': "orm['logger.Instance']"}),
             'note': ('django.db.models.fields.TextField', [], {})
         },
+        'logger.project': {
+            'Meta': {'unique_together': "(('name', 'organization'),)", 'object_name': 'Project'},
+            'created_by': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'project_creator'", 'to': u"orm['auth.User']"}),
+            'date_created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'date_modified': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'metadata': ('jsonfield.fields.JSONField', [], {'blank': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
+            'organization': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'project_organization'", 'to': u"orm['auth.User']"}),
+            'shared': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'user_stars': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.User']", 'symmetrical': 'False'})
+        },
         'logger.surveytype': {
             'Meta': {'object_name': 'SurveyType'},
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -152,7 +186,7 @@ class Migration(SchemaMigration):
             'json': ('django.db.models.fields.TextField', [], {'default': "u''"}),
             'last_submission_time': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'num_of_submissions': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['api.Project']"}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['logger.Project']"}),
             'require_auth': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'shared': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'shared_data': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
