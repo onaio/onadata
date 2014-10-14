@@ -10,7 +10,9 @@ from rest_framework import permissions
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework import mixins
-from rest_framework.authentication import BasicAuthentication
+from rest_framework.authentication import (
+    BasicAuthentication,
+    TokenAuthentication)
 from rest_framework.response import Response
 from rest_framework.renderers import BrowsableAPIRenderer, JSONRenderer
 
@@ -109,7 +111,9 @@ Here is some example JSON, it would replace `[the JSON]` above:
 >           }
 >       }
 """
-    authentication_classes = (DigestAuthentication, BasicAuthentication)
+    authentication_classes = (DigestAuthentication,
+                              BasicAuthentication,
+                              TokenAuthentication)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     model = Instance
     permission_classes = (permissions.AllowAny,)
