@@ -4,6 +4,7 @@ import json
 import os
 import re
 import six
+from urlparse import urlparse
 from zipfile import ZipFile
 
 from bson import json_util
@@ -938,16 +939,19 @@ def kml_export_data(id_string, user):
 
 
 def generate_external_export(
-    export_type, token, username, id_string, export_id=None,
-        filter_query=None):
+    export_type, username, id_string, export_id=None,  token=None,
+        filter_query=None, meta=None):
 
     form = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
     user = User.objects.get(username=username)
 
-    # Get the external server from the metadata
-    result = MetaData.external_export(form)
-    server = result.data_value
+    if token is None and meta:
+        # Get the external server from the metadata
+        result = MetaData.objects.get(xform=form, pk=meta)
+        server = result.data_value
+    else:
+        server = token
 
     instances = Instance.objects.filter(
         xform__user=user, xform__id_string=id_string)
@@ -965,8 +969,13 @@ def generate_external_export(
 
     status_code = 0
     if records and server:
+        # dissect the url
+        parsed_url = urlparse(server)
+
+        token = parsed_url.path[5:]
         try:
-            client = Client(server)
+            ser = parsed_url.scheme + '://' + parsed_url.netloc
+            client = Client(ser)
             response = client.xls.create(token, json.dumps(records))
 
             if hasattr(client.xls.conn, 'last_response'):

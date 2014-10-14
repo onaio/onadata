@@ -52,7 +52,7 @@ EXPORT_EXT = {
 }
 
 # Supported external exports
-external_export_types = ['xls']
+external_export_types = ['uuid']
 
 
 def _get_export_type(export_type):
@@ -106,15 +106,16 @@ def _set_start_end_params(request, query):
         return query
 
 
-def _generate_new_export(request, xform, query, export_type, token=None):
+def _generate_new_export(request, xform, query, export_type, token=None,
+                         meta=None):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
     try:
         if export_type == Export.EXTERNAL_EXPORT:
             export = generate_external_export(
-                export_type, token, xform.user.username,
-                xform.id_string, None, query
+                export_type, xform.user.username,
+                xform.id_string, None, token, query, meta
             )
         else:
             export = generate_export(
@@ -675,14 +676,16 @@ You can clone a form to a specific user account using `GET` with
 
         export_type = _get_export_type(export_type)
         token = kwargs.get('token')
-        if export_type in external_export_types and token is not None:
+        meta = kwargs.get('meta')
+        if export_type in external_export_types and \
+                (token is not None) or (meta is not None):
             export_type = Export.EXTERNAL_EXPORT
 
         # check if we need to re-generate,
         # we always re-generate if a filter is specified
         if should_regenerate_export(xform, export_type, request):
             export = _generate_new_export(
-                request, xform, query, export_type, token)
+                request, xform, query, export_type, token, meta)
         else:
             export = newset_export_for(xform, export_type)
 

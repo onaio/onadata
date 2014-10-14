@@ -559,7 +559,7 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_external_export(self):
         self._publish_xls_form_to_project()
 
-        server = 'http://xls_server'
+        server = 'http://xls_server/xls/8e86d4bdfa7f435ab89485aeae4ea6f5'
         self._add_form_metadata(self.xform, 'external_export',
                                 server)
         paths = [os.path.join(
@@ -567,15 +567,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             'instances_w_uuid', s, s + '.xml')
             for s in ['transport_2011-07-25_19-05-36']]
 
-        # instantiate date that is NOT naive; timezone is enabled
-        current_timzone_name = timezone.get_current_timezone_name()
-        current_timezone = pytz.timezone(current_timzone_name)
-        today = datetime.today()
-        current_date = current_timezone.localize(
-            datetime(today.year,
-                     today.month,
-                     today.day))
-        self._make_submission(paths[0], forced_submission_time=current_date)
+        self._make_submission(paths[0])
         self.assertEqual(self.response.status_code, 201)
 
         view = XFormViewSet.as_view({
@@ -589,8 +581,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 request,
                 pk=formid,
                 format='xls',
-                token='8e86d4bdfa7f435ab89485aeae4ea6f5')
-
+                meta=1)
             self.assertEqual(response.status_code, 201)
             self.assertEquals(response.data,
                               {'url': '/xls/ee3ff9d8f5184fc4a8fdebc2547cc059'})
@@ -607,15 +598,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             'instances_w_uuid', s, s + '.xml')
             for s in ['transport_2011-07-25_19-05-36']]
 
-        # instantiate date that is NOT naive; timezone is enabled
-        current_timzone_name = timezone.get_current_timezone_name()
-        current_timezone = pytz.timezone(current_timzone_name)
-        today = datetime.today()
-        current_date = current_timezone.localize(
-            datetime(today.year,
-                     today.month,
-                     today.day))
-        self._make_submission(paths[0], forced_submission_time=current_date)
+        self._make_submission(paths[0])
         self.assertEqual(self.response.status_code, 201)
 
         view = XFormViewSet.as_view({
