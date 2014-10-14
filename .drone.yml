@@ -1,0 +1,11 @@
+image: onaio/python:2.7
+services:
+    - onaio/postgis
+script:
+    - psql -c "CREATE USER onadata WITH PASSWORD 'onadata';" -h 127.0.0.1 -U postgres postgres
+    - psql -c "CREATE DATABASE onadata_test OWNER onadata;" -h 127.0.0.1 -U postgres postgres
+    - pip install -r requirements/common.pip --allow-all-external
+    - pip install -q flake8
+    - python manage.py syncdb --noinput --settings=onadata.settings.drone_test
+    - python manage.py migrate --noinput --settings=onadata.settings.drone_test
+    - python manage.py test --noinput --settings=onadata.settings.drone_test

@@ -15,6 +15,7 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
+from onadata.apps.api.models.project import Project
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.libs.utils.logger_tools import publish_xml_form, publish_form, \
     create_instance
@@ -284,7 +285,9 @@ class BriefcaseClient(object):
                 self.user = user
 
             def publish_xform(self):
-                return publish_xml_form(self.xml_file, self.user)
+                project = Project.get_default_user_project(self.user)
+
+                return publish_xml_form(self.xml_file, self.user, project)
         xml_file = default_storage.open(path)
         xml_file.name = file_name
         k = PublishXForm(xml_file, self.user)
