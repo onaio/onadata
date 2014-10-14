@@ -5,6 +5,7 @@ from django.utils.translation import ugettext_lazy
 from guardian.shortcuts import get_perms_for_model, assign_perm
 from rest_framework.authtoken.models import Token
 
+from onadata.apps.logger.models.project import Project
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.gravatar import get_gravatar_img_link, gravatar_exists
 from onadata.apps.main.signals import set_api_permissions
@@ -46,6 +47,10 @@ class UserProfile(models.Model):
         if self.twitter.startswith("@"):
             return self.twitter[1:]
         return self.twitter
+
+    @property
+    def default_project_id(self):
+        return Project.get_default_user_project(self.user).pk
 
     class Meta:
         app_label = 'main'

@@ -356,7 +356,7 @@ class TestFormShow(TestBase):
             "transportation",
             "transportation_with_long_id_string_updated.xls")
         with open(updated_xls_path, "r") as xls_file:
-            post_data = {'xls_file': xls_file}
+            post_data = {'xls_file': xls_file, 'project': self.project.pk}
             self.client.post(xform_update_url, post_data)
         # Count should stay the same
         self.assertEqual(XForm.objects.count(), count + 1)
@@ -457,7 +457,7 @@ class TestFormShow(TestBase):
         xml_file = ContentFile(f.read())
         f.close()
         xml_file.name = 'contributions.xml'
-        self.xform = publish_xml_form(xml_file, self.user)
+        self.xform = publish_xml_form(xml_file, self.user, self.project)
         self.assertTrue(XForm.objects.count() > count)
         response = self.client.get(reverse(download_xlsform, kwargs={
             'username': self.user.username,

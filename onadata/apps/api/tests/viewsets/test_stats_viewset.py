@@ -115,7 +115,7 @@ class TestStatsViewSet(TestBase):
         xml_file = ContentFile(f.read())
         f.close()
         xml_file.name = 'contributions.xml'
-        self.xform = publish_xml_form(xml_file, self.user)
+        self.xform = publish_xml_form(xml_file, self.user, self.project)
         self.assertTrue(XForm.objects.count() > count)
         instances_path = os.path.join(path, 'instances')
         for uuid in os.listdir(instances_path):

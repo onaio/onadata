@@ -85,7 +85,8 @@ class TestProcess(TestBase):
                 "key=0AvhZpT7ZLAWmdDhISGhqSjBOSl9XdXd5SHZHUUE2RFE&output=xls"
             pre_count = XForm.objects.count()
             response = self.client.post('/%s/' % self.user.username,
-                                        {'xls_url': xls_url})
+                                        {'xls_url': xls_url,
+                                         'project': self.project.pk})
             # make sure publishing the survey worked
             self.assertEqual(response.status_code, 200)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
@@ -95,7 +96,8 @@ class TestProcess(TestBase):
             xls_url = 'https://ona.io/examples/forms/tutorial/form.xls'
             pre_count = XForm.objects.count()
             response = self.client.post('/%s/' % self.user.username,
-                                        {'xls_url': xls_url})
+                                        {'xls_url': xls_url,
+                                         'project': self.project.pk})
             # make sure publishing the survey worked
             self.assertEqual(response.status_code, 200)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
@@ -104,7 +106,8 @@ class TestProcess(TestBase):
         xls_url = 'formhuborg/pld/forms/transportation_2011_07_25/form.xls'
         pre_count = XForm.objects.count()
         response = self.client.post('/%s/' % self.user.username,
-                                    {'xls_url': xls_url})
+                                    {'xls_url': xls_url,
+                                     'project': self.project.pk})
         # make sure publishing the survey worked
         self.assertEqual(response.status_code, 200)
         self.assertEqual(XForm.objects.count(), pre_count)
@@ -135,7 +138,8 @@ class TestProcess(TestBase):
             xls_url = 'http://formhub.org/formhub_u/forms/tutorial/form.xls'
             pre_count = XForm.objects.count()
             response = self.client.post('/%s/' % self.user.username,
-                                        {'xls_url': xls_url})
+                                        {'xls_url': xls_url,
+                                         'project': self.project.pk})
             # make sure publishing the survey worked
             self.assertEqual(response.status_code, 200)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
@@ -146,7 +150,8 @@ class TestProcess(TestBase):
         if not path.startswith('/%s/' % self.user.username):
             path = os.path.join(self.this_directory, path)
         with open(path) as xls_file:
-            post_data = {'xls_file': xls_file}
+            post_data = {'xls_file': xls_file,
+                         'project': self.project.pk}
             return self.client.post('/%s/' % self.user.username, post_data)
 
     def _publish_file(self, xls_path, strict=True):
@@ -532,7 +537,7 @@ class TestProcess(TestBase):
                       kwargs={'username': self.user.username})
         num_xforms = XForm.objects.count()
         params = {
-            'text_xls_form': csv_text
+            'text_xls_form': csv_text, 'project': self.project.pk
         }
         self.response = self.client.post(url, params)
         self.assertEqual(XForm.objects.count(), num_xforms + 1)

@@ -6,6 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext_lazy, ugettext as _
 from pyxform.builder import create_survey_from_xls
 
+from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.logger_tools import publish_xls_form
 from onadata.libs.utils.viewer_tools import django_file
@@ -48,14 +49,17 @@ class Command(BaseCommand):
         survey = create_survey_from_xls(xls_filepath)
 
         # check if a form with this id_string exists for this user
-        form_already_exists = XForm.objects.filter(
-            user=user, id_string=survey.id_string).count() > 0
+        xforms = XForm.objects.filter(
+            user=user, id_string=survey.id_string)
+        form_already_exists = xforms.count() > 0
 
         # id_string of form to replace, if any
         id_string = None
+        project = None
         if form_already_exists:
             if 'replace' in options and options['replace']:
                 id_string = survey.id_string
+                project = xforms[0].project
                 self.stdout.write(_("Form already exist, replacing ..\n"))
             else:
                 raise CommandError(_(
@@ -63,9 +67,10 @@ class Command(BaseCommand):
                     "option to replace it.") % survey.id_string)
         else:
             self.stdout.write(_("Form does NOT exist, publishing ..\n"))
+            project = Project.get_default_user_project(user)
 
         # publish
         xls_file = django_file(
             xls_filepath, 'xls_file', 'application/vnd.ms-excel')
-        publish_xls_form(xls_file, user, id_string)
+        publish_xls_form(xls_file, user, project, id_string)
         self.stdout.write(_("Done..\n"))
