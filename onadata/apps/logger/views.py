@@ -26,6 +26,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django_digest import HttpDigestAuthenticator
 
+from onadata.apps.api.models.project import Project
 from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.logger.import_tools import import_instances_from_zip
 from onadata.apps.logger.models.attachment import Attachment
@@ -631,7 +632,9 @@ def form_upload(request, username):
             self.user = user
 
         def publish(self):
-            return publish_xml_form(self.xml_file, self.user)
+            project = Project.get_default_user_project(self.user)
+
+            return publish_xml_form(self.xml_file, self.user, project)
 
     form_user = get_object_or_404(User, username__iexact=username)
     profile, created = \

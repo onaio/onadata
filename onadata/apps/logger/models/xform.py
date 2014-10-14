@@ -19,7 +19,6 @@ from guardian.shortcuts import \
     get_perms_for_model
 from taggit.managers import TaggableManager
 
-from onadata.apps.api.models.project import Project
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.models.base_model import BaseModel
 
@@ -85,7 +84,7 @@ class XForm(BaseModel):
     bamboo_dataset = models.CharField(max_length=60, default=u'')
     instances_with_geopoints = models.BooleanField(default=False)
     num_of_submissions = models.IntegerField(default=0)
-    project = models.ForeignKey(Project)
+    project = models.ForeignKey('api.Project')
 
     tags = TaggableManager()
 
@@ -192,6 +191,7 @@ class XForm(BaseModel):
                 self.sms_id_string = self.id_string
 
         if not hasattr(self, 'project'):
+            from onadata.apps.api.models.project import Project
             self.project = Project.get_default_user_project(self.user)
 
         super(XForm, self).save(*args, **kwargs)
