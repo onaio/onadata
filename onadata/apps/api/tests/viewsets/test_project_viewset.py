@@ -468,3 +468,47 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['public'], True)
         self.assertEqual(response.data['projectid'], public_project.pk)
         self.assertEqual(response.data['name'], 'demo')
+
+    def test_projects_same_name_diff_case(self):
+        data1 = {
+            'name': u'demo',
+            'owner':
+            'http://testserver/api/v1/users/%s' % self.user.username,
+            'metadata': {'description': 'Some description',
+                         'location': 'Naivasha, Kenya',
+                         'category': 'governance'},
+            'public': False
+        }
+        self._project_create(project_data=data1,
+                             merge=False)
+        self.assertIsNotNone(self.project)
+        self.assertIsNotNone(self.project_data)
+
+        projects = Project.objects.all()
+        self.assertEqual(len(projects), 1)
+
+        data2 = {
+            'name': u'DEMO',
+            'owner':
+            'http://testserver/api/v1/users/%s' % self.user.username,
+            'metadata': {'description': 'Some description',
+                         'location': 'Naivasha, Kenya',
+                         'category': 'governance'},
+            'public': False
+        }
+        view = ProjectViewSet.as_view({
+            'post': 'create'
+        })
+
+        request = self.factory.post(
+            '/', data=json.dumps(data2),
+            content_type="application/json", **self.extra)
+
+        response = view(request, owner=self.user.username)
+        self.assertEqual(response.status_code, 400)
+        projects = Project.objects.all()
+        self.assertEqual(len(projects), 1)
+
+        for project in projects:
+            self.assertEqual(self.user, project.created_by)
+            self.assertEqual(self.user, project.organization)

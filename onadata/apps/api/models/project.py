@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models.signals import post_save
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from jsonfield import JSONField
 from taggit.managers import TaggableManager
@@ -32,6 +33,14 @@ class Project(BaseModel):
 
     def __unicode__(self):
         return u'%s|%s' % (self.organization, self.name)
+
+    def clean(self):
+        query_set = Project.objects.exclude(pk=self.pk)\
+            .filter(name__iexact=self.name, organization=self.organization)
+        if query_set.exists():
+            raise ValidationError(u'Project name "%s" is already in'
+                                  u' use in this account.'
+                                  % self.name.lower())
 
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
