@@ -24,6 +24,7 @@ CAN_TRANSFER_OWNERSHIP = 'transfer_xform'
 CAN_MOVE_TO_FOLDER = 'move_xform'
 
 # Project Permissions
+CAN_ADD_XFORM_TO_PROJECT = 'add_xform_to_project'
 CAN_VIEW_PROJECT = 'view_project'
 CAN_CHANGE_PROJECT = 'change_project'
 CAN_TRANSFER_PROJECT_OWNERSHIP = 'transfer_project'
@@ -93,7 +94,7 @@ class DataEntryRole(Role):
     name = 'dataentry'
     permissions = (
         (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_ADD_XFORM, Project),
+        (CAN_ADD_XFORM_TO_PROJECT, Project),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_VIEW_PROJECT, Project),
         (CAN_VIEW_XFORM, XForm),
@@ -104,7 +105,7 @@ class EditorRole(Role):
     name = 'editor'
     permissions = (
         (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_ADD_XFORM, Project),
+        (CAN_ADD_XFORM_TO_PROJECT, Project),
         (CAN_CHANGE_PROJECT, Project),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
@@ -142,7 +143,7 @@ class OwnerRole(Role):
     name = 'owner'
     permissions = (
         (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_ADD_XFORM, Project),
+        (CAN_ADD_XFORM_TO_PROJECT, Project),
         (CAN_ADD_XFORM, XForm),
         (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
         (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
