@@ -2,7 +2,7 @@ import json
 from mock import patch
 from operator import itemgetter
 
-from onadata.apps.api.models import Project
+from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet

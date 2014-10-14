@@ -80,9 +80,15 @@ class TestBase(TransactionTestCase):
     def _create_default_project(self, user):
         project_name = u"%s's Project" % user.username.lower()
         kwargs = {'name': project_name, 'created_by': user,
-                  'organization': user, 'metadata': u'{}'}
+                  'organization': user}
 
-        return Project.objects.create(**kwargs)
+        try:
+            project = Project.objects.get(**kwargs)
+        except Project.DoesNotExist:
+            kwargs['metadata'] = u'{}'
+            project = Project.objects.create(**kwargs)
+
+        return project
 
     def _publish_xls_file(self, path):
         if not path.startswith('/%s/' % self.user.username):
