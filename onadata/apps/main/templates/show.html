@@ -202,6 +202,18 @@
                 </li>
             </ul>
           </div>
+          <br/>
+          <div class="btn-group">
+            <a class="btn" href="{% url "onadata.apps.viewer.views.export_list" content_user.username xform.id_string 'external' %}" rel="tooltip" data-original-title="{% trans 'External export' %}" target="_blank"><i class="icon-download-alt"></i> <font color=#000>{% trans "external" %}</font></a>
+            <button class="btn dropdown-toggle" data-toggle="dropdown">
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+                <li>
+                    <input class="input-xxlarge" type="text" size="16" value="{{base_url}}{% url "onadata.apps.viewer.views.export_list" content_user.username xform.id_string 'external' %}"/>
+                </li>
+            </ul>
+          </div>
         </div>
         <h4>{% trans "Submissions:" %} {{ xform.submission_count|intcomma }}</h4>
         <br>
@@ -403,6 +415,21 @@
                 {{ mapbox_layer_form.as_table }}
                 </table>
                 <input type="submit" class="btn" value="{% trans 'Upload' %}" />
+            </form>
+            {% endif %}
+            </div>
+        </div>
+        <br/>
+        <div class="clearfix bordered">
+            <h3 data-toggle="collapse" class="toggler" data-target="#external_tab">{% trans "External Export" %}</h3>
+            <div id='external_tab' class="collapse">
+            {% if can_edit %}
+            <form action="{% url "onadata.apps.main.views.edit" content_user.username xform.id_string %}" method="post">
+                {% csrf_token %}
+                <table>
+                {{ external_export_form.as_table }}
+                </table>
+                <input type="submit" class="btn" value="{% trans 'Add External Export' %}" />
             </form>
             {% endif %}
             </div>

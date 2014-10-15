@@ -91,6 +91,17 @@ class TestExportList(TestBase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
 
+    def test_external_export_list(self):
+        kwargs = {'username': self.user.username,
+                  'id_string': self.xform.id_string,
+                  'export_type': Export.EXTERNAL_EXPORT}
+        custom_params = {
+            'token': 'http://localhost:8080/xls/23fa4c38c0054748a984ffd89021a295',
+        }
+        url = reverse(export_list, kwargs=kwargs)
+        response = self.client.get(url, custom_params)
+        self.assertEqual(response.status_code, 200)
+
 
 class TestDataExportURL(TestBase):
 

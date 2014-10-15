@@ -313,11 +313,13 @@ def create_export(request, username, id_string, export_type):
 
     binary_select_multiples = getattr(settings, 'BINARY_SELECT_MULTIPLES',
                                       False)
-
+    # external export option
+    meta = request.POST.get("meta")
     options = {
         'group_delimiter': group_delimiter,
         'split_select_multiples': split_select_multiples,
-        'binary_select_multiples': binary_select_multiples
+        'binary_select_multiples': binary_select_multiples,
+        'meta': meta
     }
 
     try:
@@ -378,11 +380,18 @@ def export_list(request, username, id_string, export_type):
     xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
+    # Get meta and token
+    export_token = request.GET.get('token')
+    export_meta = request.GET.get('meta')
+    options = {
+        'meta': export_meta,
+        'token': export_token,
+    }
 
     if should_create_new_export(xform, export_type):
         try:
             create_async_export(
-                xform, export_type, query=None, force_xlsx=True)
+                xform, export_type, query=None, force_xlsx=True, options=options)
         except Export.ExportTypeError:
             return HttpResponseBadRequest(
                 _("%s is not a valid export type" % export_type))
@@ -393,7 +402,8 @@ def export_list(request, username, id_string, export_type):
         'export_type': export_type,
         'export_type_name': Export.EXPORT_TYPE_DICT[export_type],
         'exports': Export.objects.filter(
-            xform=xform, export_type=export_type).order_by('-created_on')
+            xform=xform, export_type=export_type).order_by('-created_on'),
+        'metas': MetaData.objects.filter(xform=xform, data_type="external_export")
     }
 
     return render(request, 'export_list.html', data)

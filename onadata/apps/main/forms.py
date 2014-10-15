@@ -323,3 +323,8 @@ class ActivateSMSSupportFom(forms.Form):
                                         u" characters")
 
         return sms_id_string
+
+
+class ExternalExportForm(forms.Form):
+    template_name = forms.CharField(label='Template Name', max_length=20)
+    server_url = forms.CharField(label='URL', max_length=100)

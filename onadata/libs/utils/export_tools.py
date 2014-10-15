@@ -950,8 +950,13 @@ def generate_external_export(
         # Get the external server from the metadata
         result = MetaData.objects.get(xform=form, pk=meta)
         server = result.data_value
-    else:
+    elif token:
         server = token
+    else:
+        # Take the latest value in the metadata
+        result = MetaData.objects.filter(xform=form)\
+            .order_by('-id')[0]
+        server = result.data_value
 
     instances = Instance.objects.filter(
         xform__user=user, xform__id_string=id_string)

@@ -31,7 +31,7 @@ from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
 from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
     DataLicenseForm, SupportDocForm, QuickConverterFile, QuickConverterURL,\
     QuickConverter, SourceForm, PermissionForm, MediaForm, MapboxLayerForm,\
-    ActivateSMSSupportFom
+    ActivateSMSSupportFom, ExternalExportForm
 from onadata.apps.main.models import AuditLog, UserProfile, MetaData
 from onadata.apps.logger.models import Instance, XForm
 from onadata.apps.logger.views import enter_data
@@ -353,6 +353,7 @@ def set_xform_owner_data(data, xform, request, username, id_string):
     data['source_form'] = SourceForm()
     data['media_form'] = MediaForm()
     data['mapbox_layer_form'] = MapboxLayerForm()
+    data['external_export_form'] = ExternalExportForm()
     users_with_perms = []
 
     for perm in get_users_with_perms(xform, attach_perms=True).items():
@@ -397,6 +398,7 @@ def show(request, username=None, id_string=None, uuid=None):
     data['supporting_docs'] = MetaData.supporting_docs(xform)
     data['media_upload'] = MetaData.media_upload(xform)
     data['mapbox_layer'] = MetaData.mapbox_layer_upload(xform)
+    data['external_export'] = MetaData.external_export(xform)
 
     if is_owner:
         set_xform_owner_data(data, xform, request, username, id_string)
@@ -702,6 +704,20 @@ def edit(request, username, id_string):
                     'id_string': xform.id_string
                 }, audit, request)
             MetaData.supporting_docs(xform, request.FILES['doc'])
+        elif request.POST.get("server_url"):
+            template_name = request.POST.get("template_name")
+            server_url = request.POST.get("server_url")
+            audit = {
+                'xform': xform.id_string
+            }
+            audit_log(
+                Actions.FORM_UPDATED, request.user, owner,
+                _("External export added to '%(id_string)s'.") %
+                {
+                    'id_string': xform.id_string
+                }, audit, request)
+            merged = template_name + '|' + server_url
+            MetaData.external_export(xform, merged)
         xform.update()
 
         if request.is_ajax():

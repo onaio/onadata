@@ -28,6 +28,16 @@
           <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
           <h3>{% trans "Advanced Export" %}</h3>
         </div>
+        {% if export_type == 'external' %}
+            <div class="modal-body">
+              <label>{% trans "Template to use for the export" %}</label>
+              <select id="external_export_metadata" name="meta" class="span2">
+                {% for meta in metas %}
+                <option value="{{ meta.id }}">{% trans meta.data_value %}</option>
+                {% endfor %}
+              </select>
+        </div>
+        {% else %}
         <div class="modal-body">
           <label>{% trans "Delimiter to use to separate group names from field names" %}</label>
           <select id="options-group_delimiter" name="options[group_delimiter]" class="span2">
@@ -39,6 +49,7 @@
             {% trans "DONT split select multiple choice answers into separate columns" %}
           </label>
         </div>
+        {% endif %}
         <div class="modal-footer">
           <button class="btn" data-dismiss="modal" aria-hidden="true">{% trans "Cancel" %}</button>
           <input type="submit" class="btn large btn-primary" value="{% trans "Create Export" %}" />
