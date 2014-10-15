@@ -9,7 +9,8 @@ from requests import ConnectionError
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import generate_export,\
-    generate_attachments_zip_export, generate_kml_export, generate_external_export
+    generate_attachments_zip_export, generate_kml_export,\
+    generate_external_export
 from onadata.libs.utils.logger_tools import mongo_sync_status, report_exception
 
 
@@ -283,7 +284,7 @@ def create_external_export(username, id_string, export_id, query=None,
         # catch this since it potentially stops celery
         gen_export = generate_external_export(
             Export.EXTERNAL_EXPORT, username,
-            id_string, None, token, query, meta
+            id_string, export_id, token, query, meta
         )
     except (Exception, NoRecordsFoundError, ConnectionError) as e:
         export.internal_status = Export.FAILED
@@ -300,6 +301,7 @@ def create_external_export(username, id_string, export_id, query=None,
         raise
     else:
         return gen_export.id
+
 
 @task()
 def delete_export(export_id):

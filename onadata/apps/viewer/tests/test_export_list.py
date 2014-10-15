@@ -95,12 +95,17 @@ class TestExportList(TestBase):
         kwargs = {'username': self.user.username,
                   'id_string': self.xform.id_string,
                   'export_type': Export.EXTERNAL_EXPORT}
+        server = \
+            'http://localhost:8080/xls/23fa4c38c0054748a984ffd89021a295'
         custom_params = {
-            'token': 'http://localhost:8080/xls/23fa4c38c0054748a984ffd89021a295',
+            'token': server,
         }
         url = reverse(export_list, kwargs=kwargs)
+        count = len(Export.objects.all())
         response = self.client.get(url, custom_params)
         self.assertEqual(response.status_code, 200)
+        count1 = len(Export.objects.all())
+        self.assertEquals(count+1, count1)
 
 
 class TestDataExportURL(TestBase):

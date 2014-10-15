@@ -1116,3 +1116,26 @@ class TestExports(TestBase):
             self.xform.id_string, non_existent_id)
 
         self.assertEqual(result, None)
+
+    def test_create_external_export_url(self):
+        self._publish_transportation_form()
+        self._submit_transport_instance()
+        num_exports = Export.objects.count()
+        from onadata.apps.main.models.meta_data import MetaData
+        server = 'http://localhost:8080/xls/23fa4c38c0054748a984ffd89021a295'
+        data_value = 'template 1 |' + server
+        meta = MetaData.external_export(self.xform, data_value)
+
+        custom_params = {
+            'meta': meta.id,
+        }
+        # create export
+        create_export_url = reverse(create_export, kwargs={
+            'username': self.user.username,
+            'id_string': self.xform.id_string,
+            'export_type': Export.EXTERNAL_EXPORT
+        })
+
+        response = self.client.post(create_export_url, custom_params)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(Export.objects.count(), num_exports + 1)

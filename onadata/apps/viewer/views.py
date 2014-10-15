@@ -391,7 +391,8 @@ def export_list(request, username, id_string, export_type):
     if should_create_new_export(xform, export_type):
         try:
             create_async_export(
-                xform, export_type, query=None, force_xlsx=True, options=options)
+                xform, export_type, query=None, force_xlsx=True,
+                options=options)
         except Export.ExportTypeError:
             return HttpResponseBadRequest(
                 _("%s is not a valid export type" % export_type))
@@ -403,7 +404,8 @@ def export_list(request, username, id_string, export_type):
         'export_type_name': Export.EXPORT_TYPE_DICT[export_type],
         'exports': Export.objects.filter(
             xform=xform, export_type=export_type).order_by('-created_on'),
-        'metas': MetaData.objects.filter(xform=xform, data_type="external_export")
+        'metas': MetaData.objects.filter(xform=xform,
+                                         data_type="external_export")
     }
 
     return render(request, 'export_list.html', data)
@@ -456,6 +458,9 @@ def export_progress(request, username, id_string, export_type):
                     export.export_url = url
                     export.save()
                     status['url'] = url
+            if export.export_type == Export.EXTERNAL_EXPORT \
+                    and export.export_url is None:
+                status['url'] = url
         # mark as complete if it either failed or succeeded but NOT pending
         if export.status == Export.SUCCESSFUL \
                 or export.status == Export.FAILED:
@@ -476,7 +481,8 @@ def export_download(request, username, id_string, export_type, filename):
     # find the export entry in the db
     export = get_object_or_404(Export, xform=xform, filename=filename)
 
-    if export_type == Export.GDOC_EXPORT and export.export_url is not None:
+    if (export_type == Export.GDOC_EXPORT or export_type == Export.EXTERNAL_EXPORT) \
+            and export.export_url is not None:
         return HttpResponseRedirect(export.export_url)
 
     ext, mime_type = export_def_from_filename(export.filename)

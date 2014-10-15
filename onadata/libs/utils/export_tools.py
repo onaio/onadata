@@ -946,17 +946,25 @@ def generate_external_export(
         user__username__iexact=username, id_string__iexact=id_string)
     user = User.objects.get(username=username)
 
-    if token is None and meta:
+    server = ''
+    if meta:
         # Get the external server from the metadata
         result = MetaData.objects.get(xform=form, pk=meta)
-        server = result.data_value
+        server = result.data_value.split('|')[1]
     elif token:
         server = token
     else:
         # Take the latest value in the metadata
         result = MetaData.objects.filter(xform=form)\
             .order_by('-id')[0]
-        server = result.data_value
+
+        server = result.data_value.split('|')[1]
+    # dissect the url
+    parsed_url = urlparse(server)
+
+    token = parsed_url.path[5:]
+
+    ser = parsed_url.scheme + '://' + parsed_url.netloc
 
     instances = Instance.objects.filter(
         xform__user=user, xform__id_string=id_string)
@@ -974,12 +982,9 @@ def generate_external_export(
 
     status_code = 0
     if records and server:
-        # dissect the url
-        parsed_url = urlparse(server)
 
-        token = parsed_url.path[5:]
         try:
-            ser = parsed_url.scheme + '://' + parsed_url.netloc
+
             client = Client(ser)
             response = client.xls.create(token, json.dumps(records))
 
@@ -1003,6 +1008,8 @@ def generate_external_export(
     export.export_url = response
     if status_code == 201:
         export.internal_status = Export.SUCCESSFUL
+        export.filename = response[5:]
+        export.export_url = ser + response
     else:
         export.internal_status = Export.FAILED
 
