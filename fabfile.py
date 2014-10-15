@@ -116,14 +116,21 @@ def setup_env(deployment_name):
     env.template_dir = 'onadata/libs/custom_template'
 
 
-def deploy_template(env):
-    if env.get('template'):
-        run("git remote add template %s || true" % env.template)
-        run("git fetch template")
-        run("git reset HEAD %s && rm -rf %s" % (env.template_dir,
-                                                env.template_dir))
-        run("git read-tree --prefix=%s -u template/master"
-            % env.template_dir)
+def deploy_template(deployment_name):
+    setup_env(deployment_name)
+    _deploy_template()
+    _restart_services(deployment_name)
+
+
+def _deploy_template():
+    with cd(env.code_src):
+        if env.get('template'):
+            run("git remote add template %s || true" % env.template)
+            run("git fetch template")
+            run("git reset HEAD %s && rm -rf %s" % (env.template_dir,
+                                                    env.template_dir))
+            run("git read-tree --prefix=%s -u template/master"
+                % env.template_dir)
 
 
 def deploy(deployment_name, branch='master'):
@@ -132,7 +139,7 @@ def deploy(deployment_name, branch='master'):
         run("git fetch origin")
         run("git checkout origin/%s" % branch)
 
-        deploy_template(env)
+        _deploy_template()
 
         run('find . -name "*.pyc" -exec rm -rf {} \;')
         run('find . -type d -empty -delete')
@@ -153,7 +160,10 @@ def deploy(deployment_name, branch='master'):
             run("python manage.py migrate --settings=%s" % config_module)
             run("python manage.py collectstatic --settings=%s --noinput"
                 % config_module)
+        _restart_services(deployment_name)
 
+
+def _restart_services(deployment_name):
     if deployment_name == 'whodcp':
         run("sudo supervisorctl restart ona")
         run("sudo supervisorctl restart celery")
