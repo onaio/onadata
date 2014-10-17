@@ -23,7 +23,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         pk = self.attachment.pk
         data = {
             'url': 'http://testserver/api/v1/media/%s' % pk,
-            'download_url': 'http://testserver/api/v1/media/%s.jpg' % pk,
+            'download_url': self.attachment.media_file.url,
             'id': pk,
             'xform': self.xform.pk,
             'instance': self.attachment.instance.pk,
@@ -104,9 +104,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         response = self.retrieve_view(request, pk=self.attachment.pk)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, basestring))
-        self.assertEqual(response.data,
-                         'http://testserver/api/v1/media/%s.jpg'
-                         % self.attachment.pk)
+        self.assertEqual(response.data, self.attachment.media_file.url)
 
         data['filename'] = 10000000
         request = self.factory.get('/', data, **self.extra)
@@ -131,6 +129,4 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         response = self.retrieve_view(request, pk=self.attachment.pk)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, basestring))
-        self.assertEqual(response.data,
-                         'http://testserver/api/v1/media/%s.jpg'
-                         % self.attachment.pk)
+        self.assertEqual(response.data, self.attachment.media_file.url)
