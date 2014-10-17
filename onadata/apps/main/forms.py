@@ -327,4 +327,4 @@ class ActivateSMSSupportFom(forms.Form):
 
 class ExternalExportForm(forms.Form):
     template_name = forms.CharField(label='Template Name', max_length=20)
-    server_url = forms.CharField(label='URL', max_length=100)
+    template_token = forms.URLField(label='Template Token', max_length=100)

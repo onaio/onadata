@@ -608,13 +608,14 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         formid = self.xform.pk
         request = self.factory.get('/', **self.extra)
-
+        token = 'http://xls_server/xls/' +\
+            '8e86d4bdfa7f435ab89485aeae4ea6f5'
         # External export
         response = view(
             request,
             pk=formid,
             format='xls',
-            token='8e86d4bdfa7f435ab89485aeae4ea6f5')
+            token=token)
 
         error = \
             "('Connection aborted.', " \

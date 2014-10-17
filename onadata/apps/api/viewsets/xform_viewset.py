@@ -52,7 +52,7 @@ EXPORT_EXT = {
 }
 
 # Supported external exports
-external_export_types = ['uuid']
+external_export_types = ['xls']
 
 
 def _get_export_type(export_type):

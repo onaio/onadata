@@ -397,6 +397,13 @@ def export_list(request, username, id_string, export_type):
             return HttpResponseBadRequest(
                 _("%s is not a valid export type" % export_type))
 
+    metadata = MetaData.objects.filter(xform=xform,
+                                       data_type="external_export")\
+        .values('id', 'data_value')
+
+    for m in metadata:
+        m['data_value'] = m.get('data_value').split('|')[0]
+
     data = {
         'username': owner.username,
         'xform': xform,
@@ -404,8 +411,7 @@ def export_list(request, username, id_string, export_type):
         'export_type_name': Export.EXPORT_TYPE_DICT[export_type],
         'exports': Export.objects.filter(
             xform=xform, export_type=export_type).order_by('-created_on'),
-        'metas': MetaData.objects.filter(xform=xform,
-                                         data_type="external_export")
+        'metas': metadata
     }
 
     return render(request, 'export_list.html', data)

@@ -26,6 +26,7 @@ from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
+from django.core.files.base import ContentFile
 from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
 
 from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
@@ -59,6 +60,7 @@ from onadata.libs.utils.user_auth import set_profile_data
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.qrcode import generate_qrcode
 from onadata.libs.utils.viewer_tools import enketo_url
+from onadata.libs.utils.export_tools import upload_template_for_external_export
 
 
 def home(request):
@@ -693,7 +695,7 @@ def edit(request, username, id_string):
                         'id_string': xform.id_string
                     }, audit, request)
                 MetaData.mapbox_layer_upload(xform, mapbox_layer.cleaned_data)
-        elif request.FILES:
+        elif request.FILES.get('doc'):
             audit = {
                 'xform': xform.id_string
             }
@@ -703,10 +705,11 @@ def edit(request, username, id_string):
                 {
                     'id_string': xform.id_string
                 }, audit, request)
-            MetaData.supporting_docs(xform, request.FILES['doc'])
-        elif request.POST.get("server_url"):
+            MetaData.supporting_docs(xform, request.FILES.get('doc'))
+        elif request.POST.get("template_token") \
+                and request.POST.get("template_token"):
             template_name = request.POST.get("template_name")
-            server_url = request.POST.get("server_url")
+            template_token = request.POST.get("template_token")
             audit = {
                 'xform': xform.id_string
             }
@@ -716,8 +719,26 @@ def edit(request, username, id_string):
                 {
                     'id_string': xform.id_string
                 }, audit, request)
-            merged = template_name + '|' + server_url
+            merged = template_name + '|' + template_token
             MetaData.external_export(xform, merged)
+        elif request.POST.get("external_url") \
+                and request.FILES.get("xls_template"):
+            template_upload_name = request.POST.get("template_upload_name")
+            external_url = request.POST.get("external_url")
+            xls_template = request.FILES.get("xls_template")
+
+            # upload the file and get the template token
+            tmp = os.path.join(settings.MEDIA_ROOT, 'tmp', xls_template.name)
+            path = default_storage.save(tmp, ContentFile(xls_template.read()))
+
+            result = upload_template_for_external_export(external_url, path)
+            status_code = result.split('|')[0]
+            token = result.split('|')[1]
+            if status_code == '201':
+                data_value =\
+                    template_upload_name + '|' + external_url + '/xls/' + token
+                MetaData.external_export(xform, data_value=data_value)
+
         xform.update()
 
         if request.is_ajax():

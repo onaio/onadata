@@ -955,10 +955,13 @@ def generate_external_export(
         server = token
     else:
         # Take the latest value in the metadata
-        result = MetaData.objects.filter(xform=form)\
+        result = MetaData.objects.filter(xform=form,
+                                         data_type="external_export")\
             .order_by('-id')[0]
-
+        if result is None:
+            return "Could not find the template token"
         server = result.data_value.split('|')[1]
+
     # dissect the url
     parsed_url = urlparse(server)
 
@@ -1016,3 +1019,18 @@ def generate_external_export(
     export.save()
 
     return export
+
+
+def upload_template_for_external_export(server, file_upload):
+
+    try:
+        client = Client(server)
+        response = client.template.create(file_upload)
+
+        if hasattr(client.template.conn, 'last_response'):
+            status_code = client.template.conn.last_response.status_code
+    except Exception as e:
+        response = str(e)
+        status_code = 500
+
+    return str(status_code) + '|' + response
