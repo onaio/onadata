@@ -398,33 +398,34 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
     def labels(self, request, formid, dataid, **kwargs):
         self.object = self.get_object()
         http_status = status.HTTP_400_BAD_REQUEST
-        instance = get_object_or_404(ParsedInstance, instance__pk=int(dataid))
+        instance = get_object_or_404(ParsedInstance,
+                                     instance__pk=int(dataid)).instance
 
         if request.method == 'POST':
-            if add_tags_to_instance(request, instance.instance):
+            if add_tags_to_instance(request, instance):
                 http_status = status.HTTP_201_CREATED
 
+        tags = instance.tags
         label = kwargs.get('label', None)
 
         if request.method == 'GET' and label:
-            data = [
-                tag['name'] for tag in
-                instance.instance.tags.filter(name=label).values('name')]
+            data = [tag['name'] for tag in
+                    tags.filter(name=label).values('name')]
 
         elif request.method == 'DELETE' and label:
-            count = instance.instance.tags.count()
-            instance.instance.tags.remove(label)
+            count = tags.count()
+            tags.remove(label)
 
             # Accepted, label does not exist hence nothing removed
-            if count == instance.instance.tags.count():
-                http_status = status.HTTP_202_ACCEPTED
+            http_status = status.HTTP_200_OK if count == tags.count() \
+                else status.HTTP_404_NOT_FOUND
 
-            data = list(instance.instance.tags.names())
+            data = list(tags.names())
         else:
-            data = list(instance.instance.tags.names())
+            data = list(tags.names())
 
         if request.method == 'GET':
-            http_status = status.HTPP_200_OK
+            http_status = status.HTTP_200_OK
 
         return Response(data, status=http_status)
 
