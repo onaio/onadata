@@ -949,7 +949,8 @@ def generate_external_export(
     server = ''
     if meta:
         # Get the external server from the metadata
-        result = MetaData.objects.get(xform=form, pk=meta)
+        result = MetaData.objects.get(xform=form, pk=meta,
+                                      data_type="external_export")
         server = result.data_value.split('|')[1]
     elif token:
         server = token

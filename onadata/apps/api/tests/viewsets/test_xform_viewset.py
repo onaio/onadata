@@ -18,6 +18,7 @@ from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.apps.main.models import MetaData
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
@@ -562,6 +563,8 @@ class TestXFormViewSet(TestAbstractViewSet):
         data_value = 'template 1|http://xls_server'
         self._add_form_metadata(self.xform, 'external_export',
                                 data_value)
+        metadata = MetaData.objects.get(xform=self.xform,
+                                        data_type='external_export')
         paths = [os.path.join(
             self.main_directory, 'fixtures', 'transportation',
             'instances_w_uuid', s, s + '.xml')
@@ -581,7 +584,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 request,
                 pk=formid,
                 format='xls',
-                meta=1)
+                meta=metadata.pk)
             self.assertEqual(response.status_code, 201)
             expected_url = \
                 'http://xls_server/xls/ee3ff9d8f5184fc4a8fdebc2547cc059'
