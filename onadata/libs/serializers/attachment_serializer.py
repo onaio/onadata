@@ -1,5 +1,4 @@
 from rest_framework import serializers
-from rest_framework.reverse import reverse
 from onadata.apps.logger.models.attachment import Attachment
 
 
@@ -19,10 +18,4 @@ class AttachmentSerializer(serializers.ModelSerializer):
 
     def get_download_url(self, obj):
         if obj is not None:
-            kwargs = {'pk': obj.pk}
-            request = self.context.get('request')
-            format = obj.media_file.name[obj.media_file.name.rindex('.') + 1:]
-            format = format and format.lower()
-
-            return reverse('attachment-detail', kwargs=kwargs,
-                           request=request, format=format)
+            return obj.media_file.url if obj.media_file.url else None
