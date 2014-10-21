@@ -7,6 +7,7 @@ from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 
 from onadata.libs.authentication import DigestAuthentication
+from django.contrib.auth.models import User
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 
 
@@ -116,3 +117,17 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.data)
+
+    def test_change_password(self):
+        view = ConnectViewSet.as_view(
+            {'post': 'password'})
+        current_password = "bobbob"
+        new_password = "bobbob1"
+        post_data = {'current_password': current_password,
+                     'new_password': new_password}
+
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, user='bob')
+        user = User.objects.get(username__iexact=self.user.username)
+        self.assertTrue(user.check_password(new_password))
+        self.assertEqual(response.status_code, 200)

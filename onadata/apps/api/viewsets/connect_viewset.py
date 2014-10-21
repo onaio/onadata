@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -6,6 +7,7 @@ from rest_framework.response import Response
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.user_profile_serializer import (
+    UserProfileSerializer,
     UserProfileWithTokenSerializer)
 from onadata.apps.main.models.user_profile import UserProfile
 
@@ -36,11 +38,21 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
             "user": "http://localhost:8000/api/v1/users/demo",
             "username": "demo",
             "website": ""
-}
+        }
 
 ## Get projects that the authenticating user has starred
-<pre class="prettyprint">
-<b>GET</b> /api/v1/user/<code>{username}</code>/starred</pre>
+> <pre class="prettyprint">
+> <b>GET</b> /api/v1/user/<code>{username}</code>/starred</pre>
+
+## Change authenticated user's password
+
+> Example
+>
+>       curl -X POST -d current_password=password1 -d new_password=password2\
+ https://ona.io/api/v1/user/demouser/password
+> Response:
+>
+>        HTTP 200 OK { detail: "Successfully changed password"}
 """
     lookup_field = 'user'
     queryset = UserProfile.objects.all()
@@ -76,3 +88,12 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
                                        many=True)
 
         return Response(data=serializer.data)
+
+    @action(methods=['POST'])
+    def password(self, request, *args, **kwargs):
+        user_profile = self.get_object()
+        serializer = UserProfileSerializer(
+            instance=user_profile,)
+        serializer.restore_object(request.DATA, user_profile)
+
+        return Response(status=status.HTTP_200_OK)
