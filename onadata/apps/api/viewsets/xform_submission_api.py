@@ -23,7 +23,8 @@ from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.mixins.openrosa_headers_mixin import OpenRosaHeadersMixin
 from onadata.libs.renderers.renderers import TemplateXMLRenderer
 from onadata.libs.serializers.data_serializer import SubmissionSerializer
-from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
+from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance,\
+    OpenRosaResponseBadRequest
 
 
 # 10,000,000 bytes
@@ -53,6 +54,11 @@ def json_request2xform(request):
     dict_form = request.DATA
 
     # convert lists in submission dict to joined strings
+    # Check submission key exists
+    if 'submission' not in dict_form:
+        # return an error
+        error = OpenRosaResponseBadRequest(_(u"No submission key provided."))
+        return error
     submission = dict_lists2strings(dict_form['submission'])
     xml_string = dict2xform(submission, dict_form.get('id'))
 
@@ -160,6 +166,9 @@ Here is some example JSON, it would replace `[the JSON]` above:
             xml_file_list = request.FILES.pop('xml_submission_file', [])
             xml_file = xml_file_list[0] if len(xml_file_list) else None
             media_files = request.FILES.values()
+
+        if isinstance(xml_file, OpenRosaResponseBadRequest):
+                return self.error_response(xml_file, is_json_request, request)
 
         error, instance = safe_create_instance(
             username, xml_file, media_files, None, request)

@@ -310,3 +310,17 @@ class TestXFormSubmissionApi(TestAbstractViewSet, TransactionTestCase):
                 response = self.view(request, username=self.user.username)
                 self.assertContains(response, 'Successful submission',
                                     status_code=201)
+
+    def test_post_submission_json_without_submission_key(self):
+
+        data_str = '{"id" : "transportation_2011_07_25" }'
+        request = self.factory.post('/submission',
+                                    json.dumps(data_str), format='json')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request)
+        self.assertContains(response, 'No submission key provided.',
+                            status_code=400)
