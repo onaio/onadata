@@ -1,7 +1,6 @@
 import base64
 import datetime
 import json
-import mimetypes
 import re
 
 from bson import json_util, ObjectId
@@ -246,7 +245,7 @@ class ParsedInstance(models.Model):
             self.USERFORM_ID: u'%s_%s' % (
                 self.instance.xform.user.username,
                 self.instance.xform.id_string),
-            ATTACHMENTS: _get_attachment_from_instance(self.instance),
+            ATTACHMENTS: _get_attachments_from_instance(self.instance),
             self.STATUS: self.instance.status,
             GEOLOCATION: [self.lat, self.lng],
             SUBMISSION_TIME: self.instance.date_created.strftime(
@@ -345,13 +344,14 @@ class ParsedInstance(models.Model):
         return notes
 
 
-def _get_attachment_from_instance(instance):
+def _get_attachments_from_instance(instance):
     attachments = []
     for a in instance.attachments.all():
         attachment = dict()
-        attachment['mimetype'] = mimetypes.guess_type(a.media_file.name)[0]
+        attachment['download_url'] = a.media_file.url
+        attachment['mimetype'] = a.mimetype
         attachment['filename'] = a.media_file.name
-        attachment['instance'] = instance.id
+        attachment['instance'] = a.instance.pk
         attachment['xform'] = instance.xform.id
         attachment['id'] = a.id
         attachments.append(attachment)

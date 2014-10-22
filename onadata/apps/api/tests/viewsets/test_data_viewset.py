@@ -363,13 +363,14 @@ class TestDataViewSet(TestBase):
         self.assertIsInstance(response.data, list)
         self.assertTrue(self.xform.instances.count())
         dataid = self.xform.instances.all().order_by('id')[0].pk
+
         data = {
             u'_bamboo_dataset_id': u'',
-            u'_attachments': [{u'mimetype': u'image/jpeg',
-                               u'instance': dataid,
-                               u'filename':
-                                   u'bob/attachments/1335783522563.jpg',
-                               u'id': 1,
+            u'_attachments': [{u'download_url': self.attachment.media_file.url,
+                               u'mimetype': self.attachment.mimetype,
+                               u'instance': self.attachment.instance.pk,
+                               u'filename': self.attachment.media_file.name,
+                               u'id': self.attachment.pk,
                                u'xform': self.xform.id}
                               ],
             u'_geolocation': [None, None],
