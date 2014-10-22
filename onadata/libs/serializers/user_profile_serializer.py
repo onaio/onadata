@@ -81,8 +81,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         password = attrs.get('user.password', None)
         name = attrs.get('name', None)
         email = attrs.get('user.email', None)
-        current_password = attrs.get('current_password', None)
-        new_password = attrs.get('new_password', None)
 
         if username:
             params['username'] = username
@@ -92,11 +90,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         if password:
             params.update({'password1': password, 'password2': password})
-
-        if new_password:
-            if instance.user.check_password(current_password):
-                instance.user.set_password(new_password)
-                return instance.user.save()
 
         if instance:
             form = UserProfileForm(params, instance=instance)

@@ -120,7 +120,7 @@ class TestConnectViewSet(TestAbstractViewSet):
 
     def test_change_password(self):
         view = ConnectViewSet.as_view(
-            {'post': 'password'})
+            {'post': 'change_password'})
         current_password = "bobbob"
         new_password = "bobbob1"
         post_data = {'current_password': current_password,
@@ -129,5 +129,26 @@ class TestConnectViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, user='bob')
         user = User.objects.get(username__iexact=self.user.username)
+        self.assertEqual(response.status_code, 200)
         self.assertTrue(user.check_password(new_password))
+
+    def test_change_password_wrong_current_password(self):
+        view = ConnectViewSet.as_view(
+            {'post': 'change_password'})
+        current_password = "wrong_pass"
+        new_password = "bobbob1"
+        post_data = {'current_password': current_password,
+                     'new_password': new_password}
+
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, user='bob')
+        user = User.objects.get(username__iexact=self.user.username)
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(user.check_password(new_password))
+
+    def test_request_reset_password(self):
+        view = ConnectViewSet.as_view(
+            {'get': 'reset_password'})
+        request = self.factory.get('/')
+        response = view(request, user='bob')
         self.assertEqual(response.status_code, 200)

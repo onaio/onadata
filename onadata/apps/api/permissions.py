@@ -51,8 +51,9 @@ class UserProfilePermissions(DjangoObjectPermissions):
     authenticated_users_only = False
 
     def has_permission(self, request, view):
-        # allow anonymous users to create new profiles
-        if request.user.is_anonymous() and view.action == 'create':
+        # allow anonymous users to create new profiles or reset_password
+        if request.user.is_anonymous() and (view.action == 'create'
+                                            or view.action == 'reset_password'):
             return True
 
         return \
