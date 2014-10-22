@@ -1,6 +1,7 @@
 import base64
 import datetime
 import json
+import mimetypes
 import re
 
 from bson import json_util, ObjectId
@@ -238,7 +239,6 @@ class ParsedInstance(models.Model):
 
     def to_dict_for_mongo(self):
         d = self.to_dict()
-        import mimetypes
         data = {
             UUID: self.instance.uuid,
             ID: self.instance.id,
@@ -246,9 +246,7 @@ class ParsedInstance(models.Model):
             self.USERFORM_ID: u'%s_%s' % (
                 self.instance.xform.user.username,
                 self.instance.xform.id_string),
-            ATTACHMENTS: [{'mimetype': mimetypes.guess_type(a.media_file.name)[0],
-                                'filename': a.media_file.name}
-                 for a in self.instance.attachments.all()],
+            ATTACHMENTS: _get_attachment_from_instance(self.instance),
             self.STATUS: self.instance.status,
             GEOLOCATION: [self.lat, self.lng],
             SUBMISSION_TIME: self.instance.date_created.strftime(
@@ -345,6 +343,20 @@ class ParsedInstance(models.Model):
                 note['date_modified'].strftime(MONGO_STRFTIME)
             notes.append(note)
         return notes
+
+
+def _get_attachment_from_instance(instance):
+    attachments = []
+    for a in instance.attachments.all():
+        attachment = dict()
+        attachment['mimetype'] = mimetypes.guess_type(a.media_file.name)[0]
+        attachment['filename'] = a.media_file.name
+        attachment['instance'] = instance.id
+        attachment['xform'] = instance.xform.id
+        attachment['id'] = a.id
+        attachments.append(attachment)
+
+    return attachments
 
 
 def _remove_from_mongo(sender, **kwargs):
