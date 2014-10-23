@@ -74,9 +74,9 @@ def create_instance_from_json(username, request):
     xml_string = dict2xform(submission, dict_form.get('id'))
 
     xml_file = StringIO.StringIO(xml_string)
-    media_files = []
+
     return safe_create_instance(
-        username, xml_file, media_files, None, request)
+        username, xml_file, [], None, request)
 
 
 class XFormSubmissionApi(OpenRosaHeadersMixin,
@@ -170,10 +170,8 @@ Here is some example JSON, it would replace `[the JSON]` above:
 
         is_json_request = is_json(request)
 
-        if is_json_request:
-            error, instance = create_instance_from_json(username, request)
-        else:
-            error, instance = create_instance_from_xml(username, request)
+        error, instance = (create_instance_from_json if is_json_request else
+                           create_instance_from_xml)(username, request)
 
         if error or not instance:
             return self.error_response(error, is_json_request, request)
