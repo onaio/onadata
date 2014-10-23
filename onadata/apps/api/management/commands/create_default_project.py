@@ -18,22 +18,19 @@ class Command(BaseCommand):
 
         # Get all the users
         for user in queryset_iterator(User.objects.all()):
+            # For each user get the forms which are projectless
+            for form in queryset_iterator(XForm.objects
+                                          .select_related('projectxform')
+                                          .filter(projectxform=None,
+                                                  user=user)):
 
-            # For each user get the forms
-            for form in queryset_iterator(XForm.objects.filter(user=user)):
-
-                # Check if each form is in a project
-                if not ProjectXForm.objects.filter(xform=form).exists():
-
-                    # Create the default project
-                    project = self.create_and_assign_project(user, form)
-
-                    print "Project: "+project.name
+                # Create the default project
+                self.create_and_assign_project(user, form)
 
         print "Task completed ..."
 
     def create_and_assign_project(self, user, form):
-        name = '['+user.username + ']\'s Project'
+        name = user.username + '\'s Project'
         # Check if exists first
         projects = Project.objects.filter(organization=user, name=name)
 
@@ -41,6 +38,7 @@ class Command(BaseCommand):
             project = Project.objects.create(name=name,
                                              organization=user,
                                              created_by=user)
+            print "Created project " + project.name
         else:
             project = projects[0]
 
@@ -48,6 +46,4 @@ class Command(BaseCommand):
         ProjectXForm.objects.create(xform=form,
                                     project=project,
                                     created_by=user)
-        # Add Role
-        OwnerRole.add(project.organization, project)
-        return project
+        print "Added " + form.id_string + " to project " + project.name
