@@ -81,7 +81,7 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
 """
     lookup_field = 'user'
     queryset = UserProfile.objects.all()
-    permission_classes = (UserProfilePermissions,)
+    permission_classes = [UserProfilePermissions]
     serializer_class = UserProfileWithTokenSerializer
 
     def list(self, request, *args, **kwargs):
@@ -133,11 +133,13 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
     @action(methods=['GET', 'POST'])
     def reset_password(self, request, *args, **kwargs):
 
-        user_profile = self.get_object()
+        UserModel = get_user_model()
+        username = self.kwargs['user']
+        user = UserModel.objects.get(username__iexact=username)
 
         if request.method == 'GET':
-            data = {'token': default_token_generator.make_token(user_profile.user),
-                    'uid': urlsafe_base64_encode(force_bytes(user_profile.user.pk))}
+            data = {'token': default_token_generator.make_token(user),
+                    'uid': urlsafe_base64_encode(force_bytes(user.pk))}
 
             return Response(status=status.HTTP_200_OK, data=data)
 
@@ -146,7 +148,7 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
             token = attrs.get('token', None)
             uidb64 = attrs.get('uid', None)
             new_password = attrs.get('new_password', None)
-            UserModel = get_user_model()
+
             try:
                 uid = urlsafe_base64_decode(uidb64)
                 user = UserModel._default_manager.get(pk=uid)
@@ -156,8 +158,8 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
             valid_token = default_token_generator.check_token(user, token)
 
             if user is not None and valid_token and new_password:
-                user_profile.user.set_password(new_password)
-                user_profile.user.save()
+                user.set_password(new_password)
+                user.save()
 
                 return Response(status=status.HTTP_200_OK)
 
