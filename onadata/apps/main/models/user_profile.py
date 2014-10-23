@@ -1,10 +1,7 @@
 from django.contrib.auth.models import User
-from django.contrib.auth.tokens import default_token_generator
 
 from django.db import models
 from django.db.models.signals import post_save
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import ugettext_lazy
 
 from guardian.shortcuts import get_perms_for_model, assign_perm
@@ -51,12 +48,6 @@ class UserProfile(models.Model):
         if self.twitter.startswith("@"):
             return self.twitter[1:]
         return self.twitter
-
-    @classmethod
-    def generate_reset_password_token(cls, instance):
-        context = {'token': default_token_generator.make_token(instance),
-                   'uid': urlsafe_base64_encode(force_bytes(instance.pk))}
-        return context
 
     class Meta:
         app_label = 'main'

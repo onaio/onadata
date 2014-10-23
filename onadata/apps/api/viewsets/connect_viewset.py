@@ -1,3 +1,8 @@
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -6,7 +11,6 @@ from rest_framework.response import Response
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.user_profile_serializer import (
-    UserProfileSerializer,
     UserProfileWithTokenSerializer)
 from onadata.apps.api.permissions import UserProfilePermissions
 from onadata.apps.main.models.user_profile import UserProfile
@@ -61,14 +65,16 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
 >       curl -X GET https://ona.io/api/v1/user/demouser/reset_password
 > Response:
 >
->        {reset-token: qndoi209jf02n4}
+>        { token: qndoi209jf02n4
+>          uid: erIORE
+>        }
 
 ## Reset user's password
 
 > Example
 >
->       curl -X POST -d new_password=newpass -d rest-token=qndoi209jf02n4\
- https://ona.io/api/v1/user/demouser/reset_password
+>       curl -X POST -d token=qndoi209jf02n4 -d uid=erIORE\
+ -d new_password=newpass https://ona.io/api/v1/user/demouser/reset_password
 > Response:
 >
 >        HTTP 200 OK
@@ -114,15 +120,15 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
         attrs = request.DATA
         current_password = attrs.get('current_password', None)
         new_password = attrs.get('new_password', None)
+
         if new_password:
             if user_profile.user.check_password(current_password):
                 user_profile.user.set_password(new_password)
                 user_profile.user.save()
+
                 return Response(status=status.HTTP_200_OK)
-            else:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['GET', 'POST'])
     def reset_password(self, request, *args, **kwargs):
@@ -130,7 +136,29 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
         user_profile = self.get_object()
 
         if request.method == 'GET':
-            reset_context = UserProfile.generate_reset_password_token(user_profile.user)
-            return Response(status=status.HTTP_200_OK, data=reset_context)
-        elif request.user == 'POST':
-            return Response()
+            data = {'token': default_token_generator.make_token(user_profile.user),
+                    'uid': urlsafe_base64_encode(force_bytes(user_profile.user.pk))}
+
+            return Response(status=status.HTTP_200_OK, data=data)
+
+        elif request.method == 'POST':
+            attrs = request.DATA
+            token = attrs.get('token', None)
+            uidb64 = attrs.get('uid', None)
+            new_password = attrs.get('new_password', None)
+            UserModel = get_user_model()
+            try:
+                uid = urlsafe_base64_decode(uidb64)
+                user = UserModel._default_manager.get(pk=uid)
+            except (TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+                user = None
+
+            valid_token = default_token_generator.check_token(user, token)
+
+            if user is not None and valid_token and new_password:
+                user_profile.user.set_password(new_password)
+                user_profile.user.save()
+
+                return Response(status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
