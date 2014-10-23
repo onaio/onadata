@@ -1,9 +1,7 @@
 from django.contrib.auth.models import User
-
 from django.db import models
 from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy
-
 from guardian.shortcuts import get_perms_for_model, assign_perm
 from rest_framework.authtoken.models import Token
 
