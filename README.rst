@@ -1,22 +1,9 @@
-KoBoCat Platform
-=================
-Collect, Analyze and Share Data!
-
-
 About
 -----
 
-KoBoCat is derived from the excellent `formhub <http://github.com/SEL-Columbia/formhub>`_ platform developed by the Sustainable Engineering Lab at Columbia University.
+kobocat is the data collection platform used in KoBoToolbox. It is based on the excellent `onadata <http://github.com/onaio/onadata>`_ platform developed by Ona LLC, which in itself is a redevelopment of the `formhub <http://github.com/SEL-Columbia/formhub>`_ platform developed by the Sustainable Engineering Lab at Columbia University.
 
-Installation
-------------
-Please read the `Installation and Deployment Guide <https://github.com/kobotoolbox/kobocat/wiki/Installation-and-Deployment>`_.
-
-Contributing
-------------
-
-If you would like to contribute code please read
-`Contributing Code <https://github.com/kobotoolbox/kobocat/wiki/Contributing-Code>`_.
+Please refer to `dist-kobo-devel <https://github.com/kobotoolbox/dist-kobo-devel>`_ for  instructions on how to install KoBoToolbox.
 
 Code Structure
 --------------
