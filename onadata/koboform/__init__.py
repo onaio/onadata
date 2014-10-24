@@ -2,11 +2,8 @@ from django.conf import settings
 
 
 url = False
-if hasattr(settings, 'KOBOFORM_SERVER') and settings.KOBOFORM_SERVER:
-    server = settings.KOBOFORM_SERVER
-    if settings.KOBOFORM_SERVER_PORT:
-        server += ':%s' % (settings.KOBOFORM_SERVER_PORT)
-    url = '%s://%s' % (settings.KOBOFORM_SERVER_PROTOCOL, server)
+if hasattr(settings, 'KOBOFORM_URL') and settings.KOBOFORM_URL:
+    url = settings.KOBOFORM_URL
 else:
     url = False
 
