@@ -6,7 +6,6 @@ from onadata.apps.api.models.project import Project
 from onadata.apps.api.models.project_xform import ProjectXForm
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.model_tools import queryset_iterator
-from onadata.libs.permissions import OwnerRole
 
 
 class Command(BaseCommand):
@@ -35,9 +34,11 @@ class Command(BaseCommand):
         projects = Project.objects.filter(organization=user, name=name)
 
         if not len(projects):
+            metadata = {'description': 'Default Project'}
             project = Project.objects.create(name=name,
                                              organization=user,
-                                             created_by=user)
+                                             created_by=user,
+                                             metadata=metadata)
             print "Created project " + project.name
         else:
             project = projects[0]
