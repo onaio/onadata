@@ -54,29 +54,26 @@ def create_instance_from_xml(username, request):
     xml_file = xml_file_list[0] if len(xml_file_list) else None
     media_files = request.FILES.values()
 
-    return safe_create_instance(
-        username, xml_file, media_files, None, request)
+    return safe_create_instance(username, xml_file, media_files, None, request)
 
 
 def create_instance_from_json(username, request):
     request.accepted_renderer = JSONRenderer()
     request.accepted_media_type = JSONRenderer.media_type
     dict_form = request.DATA
+    submission = dict_form.get('submission')
+
+    if not submission:
+        # return an error
+        return [_(u"No submission key provided."), None]
 
     # convert lists in submission dict to joined strings
-    # Check submission key exists
-    if 'submission' not in dict_form:
-        # return an error
-        error = _(u"No submission key provided.")
-        return [error, None]
-
-    submission = dict_lists2strings(dict_form['submission'])
-    xml_string = dict2xform(submission, dict_form.get('id'))
+    submission_joined = dict_lists2strings(submission)
+    xml_string = dict2xform(submission_joined, dict_form.get('id'))
 
     xml_file = StringIO.StringIO(xml_string)
 
-    return safe_create_instance(
-        username, xml_file, [], None, request)
+    return safe_create_instance(username, xml_file, [], None, request)
 
 
 class XFormSubmissionApi(OpenRosaHeadersMixin,
