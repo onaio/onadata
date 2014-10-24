@@ -47,12 +47,12 @@ class TestDataViewSet(TestBase):
         super(self.__class__, self).setUp()
         self._create_user_and_login()
         self._publish_transportation_form()
-        self._make_submissions()
         self.factory = RequestFactory()
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
     def test_data(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
@@ -76,6 +76,7 @@ class TestDataViewSet(TestBase):
         self.assertDictContainsSubset(data, response.data)
 
     def test_data_anon(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
         formid = self.xform.pk
@@ -101,6 +102,7 @@ class TestDataViewSet(TestBase):
         self.assertDictContainsSubset(data, response.data)
 
     def test_data_public(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request, pk='public')
@@ -115,6 +117,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data, data)
 
     def test_data_public_anon_user(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
         response = view(request, pk='public')
@@ -129,6 +132,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data, data)
 
     def test_data_user_public(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request, pk='public')
@@ -143,6 +147,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data, data)
 
     def test_data_bad_formid(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
@@ -165,6 +170,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data, data)
 
     def test_data_bad_dataid(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
@@ -183,6 +189,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 400)
 
     def test_data_with_query_parameter(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
@@ -197,6 +204,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(len(response.data), 1)
 
     def test_anon_data_list(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
         response = view(request)
@@ -206,6 +214,7 @@ class TestDataViewSet(TestBase):
         """Test that when a tag is applied on an xform,
         it propagates to the instance submissions
         """
+        self._make_submissions()
         xform = XForm.objects.all()[0]
         pk = xform.id
         view = XFormViewSet.as_view({
@@ -234,6 +243,7 @@ class TestDataViewSet(TestBase):
             self.assertNotIn(u'hello', i.tags.names())
 
     def test_data_list_filter_by_user(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         formid = self.xform.pk
         bobs_data = _data_list(formid)[0]
@@ -279,6 +289,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data, [])
 
     def test_get_enketo_edit_url(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'enketo'})
         request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
@@ -302,6 +313,7 @@ class TestDataViewSet(TestBase):
                 "https://hmh2a.enketo.formhub.org")
 
     def test_get_form_public_data(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/')
         formid = self.xform.pk
@@ -335,3 +347,43 @@ class TestDataViewSet(TestBase):
         dataid = self.xform.instances.all().order_by('id')[0].pk
         data = _data_instance(dataid)
         self.assertDictContainsSubset(data, sorted(response.data)[0])
+
+    def test_data_w_attachment(self):
+        self._submit_transport_instance_w_attachment()
+
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        formid = self.xform.pk
+        data = _data_list(formid)
+        self.assertEqual(response.data, data)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, list)
+        self.assertTrue(self.xform.instances.count())
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+
+        data = {
+            u'_bamboo_dataset_id': u'',
+            u'_attachments': [{u'download_url': self.attachment.media_file.url,
+                               u'mimetype': self.attachment.mimetype,
+                               u'instance': self.attachment.instance.pk,
+                               u'filename': self.attachment.media_file.name,
+                               u'id': self.attachment.pk,
+                               u'xform': self.xform.id}
+                              ],
+            u'_geolocation': [None, None],
+            u'_xform_id_string': u'transportation_2011_07_25',
+            u'transport/available_transportation_types_to_referral_facility':
+            u'none',
+            u'_status': u'submitted_via_web',
+            u'_id': dataid
+        }
+        self.assertDictContainsSubset(data, sorted(response.data)[0])
+
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.data, dict)
+        self.assertDictContainsSubset(data, response.data)

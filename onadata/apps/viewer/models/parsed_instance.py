@@ -245,8 +245,7 @@ class ParsedInstance(models.Model):
             self.USERFORM_ID: u'%s_%s' % (
                 self.instance.xform.user.username,
                 self.instance.xform.id_string),
-            ATTACHMENTS: [a.media_file.name for a in
-                          self.instance.attachments.all()],
+            ATTACHMENTS: _get_attachments_from_instance(self.instance),
             self.STATUS: self.instance.status,
             GEOLOCATION: [self.lat, self.lng],
             SUBMISSION_TIME: self.instance.date_created.strftime(
@@ -343,6 +342,21 @@ class ParsedInstance(models.Model):
                 note['date_modified'].strftime(MONGO_STRFTIME)
             notes.append(note)
         return notes
+
+
+def _get_attachments_from_instance(instance):
+    attachments = []
+    for a in instance.attachments.all():
+        attachment = dict()
+        attachment['download_url'] = a.media_file.url
+        attachment['mimetype'] = a.mimetype
+        attachment['filename'] = a.media_file.name
+        attachment['instance'] = a.instance.pk
+        attachment['xform'] = instance.xform.id
+        attachment['id'] = a.id
+        attachments.append(attachment)
+
+    return attachments
 
 
 def _remove_from_mongo(sender, **kwargs):
