@@ -49,14 +49,34 @@ def dict_lists2strings(d):
     return d
 
 
-def json_request2xform(request):
+def create_instance_from_xml(username, request):
+    xml_file_list = request.FILES.pop('xml_submission_file', [])
+    xml_file = xml_file_list[0] if len(xml_file_list) else None
+    media_files = request.FILES.values()
+
+    return safe_create_instance(
+        username, xml_file, media_files, None, request)
+
+
+def create_instance_from_json(username, request):
+    request.accepted_renderer = JSONRenderer()
+    request.accepted_media_type = JSONRenderer.media_type
     dict_form = request.DATA
 
     # convert lists in submission dict to joined strings
+    # Check submission key exists
+    if 'submission' not in dict_form:
+        # return an error
+        error = _(u"No submission key provided.")
+        return [error, None]
+
     submission = dict_lists2strings(dict_form['submission'])
     xml_string = dict2xform(submission, dict_form.get('id'))
 
-    return StringIO.StringIO(xml_string)
+    xml_file = StringIO.StringIO(xml_string)
+
+    return safe_create_instance(
+        username, xml_file, [], None, request)
 
 
 class XFormSubmissionApi(OpenRosaHeadersMixin,
@@ -150,19 +170,8 @@ Here is some example JSON, it would replace `[the JSON]` above:
 
         is_json_request = is_json(request)
 
-        if is_json_request:
-            request.accepted_renderer = JSONRenderer()
-            request.accepted_media_type = JSONRenderer.media_type
-            xml_file = json_request2xform(request)
-            media_files = []
-        else:
-            # assume XML submission
-            xml_file_list = request.FILES.pop('xml_submission_file', [])
-            xml_file = xml_file_list[0] if len(xml_file_list) else None
-            media_files = request.FILES.values()
-
-        error, instance = safe_create_instance(
-            username, xml_file, media_files, None, request)
+        error, instance = (create_instance_from_json if is_json_request else
+                           create_instance_from_xml)(username, request)
 
         if error or not instance:
             return self.error_response(error, is_json_request, request)
@@ -178,6 +187,9 @@ Here is some example JSON, it would replace `[the JSON]` above:
     def error_response(self, error, is_json_request, request):
         if not error:
             error_msg = _(u"Unable to create submission.")
+            status_code = status.HTTP_400_BAD_REQUEST
+        elif isinstance(error, basestring):
+            error_msg = error
             status_code = status.HTTP_400_BAD_REQUEST
         elif not is_json_request:
             return error
