@@ -63,7 +63,7 @@ def create_instance_from_json(username, request):
     dict_form = request.DATA
     submission = dict_form.get('submission')
 
-    if not submission:
+    if submission is None:
         # return an error
         return [_(u"No submission key provided."), None]
 
