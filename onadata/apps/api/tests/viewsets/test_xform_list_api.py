@@ -44,6 +44,28 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             self.assertEqual(response['Content-Type'],
                              'text/xml; charset=utf-8')
 
+    def test_get_xform_list_inactive_form(self):
+        self.xform.downloadable = False
+        self.xform.save()
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+
+        xml = u'<?xml version="1.0" encoding="utf-8"?>\n<xforms '
+        xml += u'xmlns="http://openrosa.org/xforms/xformsList"></xforms>'
+        content = response.render().content
+        self.assertEqual(content, xml)
+        self.assertTrue(response.has_header('X-OpenRosa-Version'))
+        self.assertTrue(
+            response.has_header('X-OpenRosa-Accept-Content-Length'))
+        self.assertTrue(response.has_header('Date'))
+        self.assertEqual(response['Content-Type'],
+                         'text/xml; charset=utf-8')
+
     def test_get_xform_list_anonymous_user(self):
         request = self.factory.get('/')
         response = self.view(request)
