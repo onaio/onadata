@@ -253,15 +253,18 @@ class ExportBuilder(object):
                     # if its a select multiple, make columns out of its choices
                     if child.bind.get(u"type") == MULTIPLE_SELECT_BIND_TYPE\
                             and self.SPLIT_SELECT_MULTIPLES:
-                        current_section['elements'].extend(
-                            [{
-                                'title': ExportBuilder.format_field_title(
-                                    c.get_abbreviated_xpath(),
-                                    field_delimiter),
-                                'xpath': c.get_abbreviated_xpath(),
+                        for c in child.children:
+                            _xpath = c.get_abbreviated_xpath()
+                            _title = ExportBuilder.format_field_title(
+                                _xpath, field_delimiter)
+                            choice = {
+                                'title': _title,
+                                'xpath': _xpath,
                                 'type': 'string'
                             }
-                                for c in child.children])
+
+                            if choice not in current_section['elements']:
+                                current_section['elements'].append(choice)
                         _append_xpaths_to_section(
                             current_section_name, select_multiples,
                             child.get_abbreviated_xpath(),
@@ -697,16 +700,8 @@ def generate_export(export_type, extension, username, id_string,
     # get the export function by export type
     func = getattr(export_builder, export_type_func_map[export_type])
 
-    try:
-        func.__call__(
-            temp_file.name, records, username, id_string, filter_query)
-    except Exception as e:
-        e_str = str(e)
-
-        # TODO handle these exceptions.
-        if e_str not in ['unsupported locale setting',
-                         'expected string or Unicode object, NoneType found']:
-            raise e
+    func.__call__(
+        temp_file.name, records, username, id_string, filter_query)
 
     # generate filename
     basename = "%s_%s" % (
