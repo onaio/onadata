@@ -212,32 +212,3 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertFalse(user.check_password(new_password))
 
-    def test_request_reset_password(self):
-        view = UserProfileViewSet.as_view(
-            {'get': 'reset_password'})
-        request = self.factory.get('/')
-        response = view(request, user='bob')
-        self.assertEqual(response.status_code, 200)
-
-    def test_reset_user_password(self):
-        view = UserProfileViewSet.as_view(
-            {'get': 'reset_password',
-             'post': 'reset_password'})
-
-        request = self.factory.get('/')
-        response = view(request, user='bob')
-        self.assertEqual(response.status_code, 200)
-
-        token = response.data['token']
-        uid = response.data['uid']
-        new_password = "bobbob1"
-        post_data = {'token': token,
-                     'uid': uid,
-                     'new_password': new_password}
-
-        request = self.factory.post('/', user='bob', data=post_data)
-        response = view(request, user='bob')
-        self.assertEqual(response.status_code, 200)
-
-        user = User.objects.get(username__iexact=self.user.username)
-        self.assertTrue(user.check_password(new_password))
