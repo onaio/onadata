@@ -312,10 +312,8 @@ class TestXFormSubmissionApi(TestAbstractViewSet, TransactionTestCase):
                                     status_code=201)
 
     def test_post_submission_json_without_submission_key(self):
-
-        data_str = '{"id" : "transportation_2011_07_25" }'
-        request = self.factory.post('/submission',
-                                    json.dumps(data_str), format='json')
+        data = {"id": "transportation_2011_07_25"}
+        request = self.factory.post('/submission', data, format='json')
         response = self.view(request)
         self.assertEqual(response.status_code, 401)
 
