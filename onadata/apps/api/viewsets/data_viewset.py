@@ -312,6 +312,24 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 >       {"url": "https://hmh2a.enketo.formhub.org"}
 >
 >
+
+## Delete a specific submission instance
+
+Delete a specific submission in a form
+
+<pre class="prettyprint">
+<b>DELETE</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>
+</pre>
+
+> Example
+>
+>       curl -X DELETE https://ona.io/api/v1/data/28058/20/
+
+> Response
+>
+>       HTTP 204 No Content
+>
+>
 """
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
                        filters.XFormOwnerFilter)
@@ -451,7 +469,6 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 
         return Response(data=data)
 
-    @action(methods=['DELETE'])
     def destroy(self, request, *args, **kwargs):
         self.object = self.get_object()
 
