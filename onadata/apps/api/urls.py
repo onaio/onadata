@@ -13,7 +13,8 @@ from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.apps.api.viewsets.reset_password_viewset import ResetPasswordViewSet
+from onadata.apps.api.viewsets.reset_password_viewset import \
+    ResetPasswordViewSet
 from onadata.apps.api.viewsets.stats_viewset import StatsViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
