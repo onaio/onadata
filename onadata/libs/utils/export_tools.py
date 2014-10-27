@@ -942,26 +942,24 @@ def generate_external_export(
     export_type, username, id_string, export_id=None,  token=None,
         filter_query=None, meta=None):
 
-    form = XForm.objects.get(
+    xform = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
     user = User.objects.get(username=username)
-
+    report_templates = MetaData.external_export(xform)
     server = ''
     if meta:
         # Get the external server from the metadata
-        result = MetaData.objects.get(xform=form, pk=meta,
-                                      data_type="external_export")
-        server = result.data_value.split('|')[1]
+        result = report_templates.get(pk=meta)
+        server = result.external_export_url
     elif token:
         server = token
     else:
         # Take the latest value in the metadata
-        result = MetaData.objects.filter(xform=form,
-                                         data_type="external_export")\
-            .order_by('-id')[0]
-        if result is None:
-            return "Could not find the template token"
-        server = result.data_value.split('|')[1]
+        if not report_templates:
+            raise Exception(
+                "Could not find the template token: Please upload template.")
+
+        server = report_templates[0].external_export_url
 
     # dissect the url
     parsed_url = urlparse(server)
@@ -1007,7 +1005,7 @@ def generate_external_export(
     if export_id:
         export = Export.objects.get(id=export_id)
     else:
-        export = Export.objects.create(xform=form, export_type=export_type)
+        export = Export.objects.create(xform=xform, export_type=export_type)
 
     export.export_url = response
     if status_code == 201:
