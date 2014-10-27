@@ -63,6 +63,12 @@ a list of public data endpoints is returned.
 >            ...
 >        ]
 
+## Download data in `csv` format
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data.csv</pre>
+>
+>       curl -O https://ona.io/api/v1/data.csv
+
 ## GET JSON List of data end points filter by owner
 
 Lists the data endpoints accessible to requesting user, for the specified
