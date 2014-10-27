@@ -492,7 +492,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         d = {}
 
         # check for lists
-        if type(value) is list and len(value) > 0 and key != NOTES:
+        if type(value) is list and len(value) > 0 \
+                and key != NOTES and key != ATTACHMENTS:
             for index, item in enumerate(value):
                 # start at 1
                 index += 1
@@ -535,6 +536,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             # safe to simply assign
             if key == NOTES:
                 d[key] = u"\r\n".join(value)
+            elif key == ATTACHMENTS:
+                pass
             else:
                 d[key] = value
         return d
