@@ -12,6 +12,49 @@ from rest_framework.viewsets import ViewSet
 
 class ResetPasswordViewSet(ViewSet):
 
+    """
+
+## Request password reset
+<pre class="prettyprint">
+<b>POST</b> /api/v1/reset
+</pre>
+
+- Sends an email to the user's email with a url that \
+redirects to a reset password form on the API consumer's website.
+- `email` and `reset_url` are expected in the POST payload.
+- Expected url format is `reset_url=https://{{full_domain_name}}/\
+{{reset_password_form_path}}`.
+- Example of url that is sent to user's email is\
+`http://mydomain.com/reset_form/?token=2f3f334g3r3434`.
+
+>
+> Example
+>
+>       curl -X POST -d email=demouser@mail.com\
+ url=http://example-url.com/reset https://ona.io/api/v1/reset
+>
+> Response:
+>
+>        HTTP 200 OK
+
+
+>
+## Reset user password
+
+- Resets user's password
+- `email`, `token` and `new_password` are expected in the POST payload.
+
+>
+> Example
+>
+>       curl -X POST -d email=demouser@mail.com -d token=qndoi209jf02n4 \
+-d new_password=usernewpass https://ona.io/api/v1/reset
+>
+> Response:
+>
+>        HTTP 200 OK
+"""
+
     permission_classes = [permissions.AllowAny]
 
     def create(self, request, *args, **kwargs):
