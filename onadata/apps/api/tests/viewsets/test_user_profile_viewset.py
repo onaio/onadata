@@ -211,4 +211,3 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         user = User.objects.get(username__iexact=self.user.username)
         self.assertEqual(response.status_code, 400)
         self.assertFalse(user.check_password(new_password))
-

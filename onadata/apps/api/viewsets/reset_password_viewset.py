@@ -71,7 +71,8 @@ redirects to a reset password form on the API consumer's website.
         if user and reset_url:
             reset_token = default_token_generator.make_token(user)
             reset_url = reset_url + "?token=" + reset_token
-            email_msg = "Click on the provided link to reset your Ona password\n " + reset_url
+            email_msg = "Click on the provided link to " \
+                        "reset your Ona password\n " + reset_url
             send_mail("Ona Password Reset",
                       email_msg,
                       DEFAULT_FROM_EMAIL,
