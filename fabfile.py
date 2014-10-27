@@ -96,7 +96,7 @@ def setup_env(deployment_name):
 
     env.code_src = os.path.join(env.home, env.project)
     env.pip_requirements_file = os.path.join(env.code_src,
-                                             'requirements/common.pip')
+                                             'requirements/base.pip')
     env.template_dir = 'onadata/libs/custom_template'
 
 
