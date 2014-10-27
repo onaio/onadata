@@ -117,27 +117,6 @@ curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
 > Response:
 >
 >        HTTP 200 OK
-
-## Request to reset user's password
-
-> Example
->
->       curl -X GET https://ona.io/api/v1/profile/demouser/reset_password
-> Response:
->
->        { token: qndoi209jf02n4
->          uid: erIORE
->        }
-
-## Reset user's password
-
-> Example
->
->       curl -X POST -d token=qndoi209jf02n4 -d uid=erIORE\
- -d new_password=newpass https://ona.io/api/v1/profile/demouser/reset_password
-> Response:
->
->        HTTP 200 OK
 """
     queryset = UserProfile.objects.exclude(user__pk=settings.ANONYMOUS_USER_ID)
     serializer_class = UserProfileSerializer
