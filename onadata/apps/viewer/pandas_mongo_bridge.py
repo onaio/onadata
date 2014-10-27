@@ -537,7 +537,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if key == NOTES:
                 d[key] = u"\r\n".join(value)
             elif key == ATTACHMENTS:
-                pass
+                d[key] = []
             else:
                 d[key] = value
         return d
