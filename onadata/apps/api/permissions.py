@@ -52,8 +52,7 @@ class UserProfilePermissions(DjangoObjectPermissions):
 
     def has_permission(self, request, view):
         # allow anonymous users to create new profiles or reset_password
-        if request.user.is_anonymous() and \
-                (view.action == 'create' or view.action == 'reset_password'):
+        if request.user.is_anonymous() and view.action == 'create':
             return True
 
         return \

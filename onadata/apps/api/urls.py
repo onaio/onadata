@@ -13,6 +13,7 @@ from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.apps.api.viewsets.reset_password_viewset import ResetPasswordViewSet
 from onadata.apps.api.viewsets.stats_viewset import StatsViewSet
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
@@ -169,6 +170,7 @@ Update organization and organization info
 * [/api/v1/teams](/api/v1/teams) - List, Retrieve, Create, Update teams
 * [/api/v1/user](/api/v1/user) - Return authenticated user profile info
 * [/api/v1/users](/api/v1/users) - List, Retrieve user data
+* [/api/v1/reset](/api/v1/reset) - Reset user account password
 
 ## Status Codes
 
@@ -361,6 +363,7 @@ router = MultiLookupRouter(trailing_slash=False)
 router.register(r'users', UserViewSet)
 router.register(r'user', ConnectViewSet)
 router.register(r'profiles', UserProfileViewSet)
+router.register(r'reset', ResetPasswordViewSet, base_name='reset')
 router.register(r'orgs', OrganizationProfileViewSet)
 router.register(r'forms', XFormViewSet)
 router.register(r'projects', ProjectViewSet)
@@ -376,4 +379,3 @@ router.register(r'media', AttachmentViewSet, base_name='attachment')
 router.register(r'formlist', XFormListApi, base_name='formlist')
 router.register(r'submissions', XFormSubmissionApi, base_name='submissions')
 router.register(r'briefcase', BriefcaseApi, base_name='briefcase')
-urlpatterns = router.urls
