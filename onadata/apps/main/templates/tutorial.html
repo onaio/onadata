@@ -5,15 +5,15 @@
     <h1>{%  trans "Introduction" %}</h1>
   </div>
 
-  <p>{% blocktrans %}formhub aims to make collecting survey data with Android smart phones easy and free.{% endblocktrans %}
+  <p>{% blocktrans %}ona aims to make collecting survey data with Android smart phones easy and free.{% endblocktrans %}
   </p>
   <p>
-    {% trans "One uses formhub as follows:" %}
+    {% trans "One uses ona as follows:" %}
     <ol>
       <li><a href="./#translate-survey">{%  trans "Translate survey into the xsl2xform syntax." %}</a></li>
-      <li><a href="./#publish-form">{%  trans "Upload XLSForm file to formhub." %}</a></li>
+      <li><a href="./#publish-form">{%  trans "Upload XLSForm file to ona." %}</a></li>
       <li><a href="./#use-odk-collect">{%  trans "Use" %} ODK Collect {%  trans "to download form and submit data." %}</a></li>
-      <li><a href="./#analyze-survey-data">{%  trans "Use" %} formhub {%  trans "to download and map data submissions." %}</a></li>
+      <li><a href="./#analyze-survey-data">{%  trans "Use" %} ona {%  trans "to download and map data submissions." %}</a></li>
     </ol>
     {%  trans "This tutorial will walk you through each stop of the way." %}
   </p>
@@ -50,7 +50,7 @@
 
 <section id="publish-form">
   <div class="page-header">
-    <h2>{%  trans "Upload XLSForm file to formhub" %}</h2>
+    <h2>{%  trans "Upload XLSForm file to ona" %}</h2>
   </div>
 
   <div class="row">
@@ -86,7 +86,7 @@
             <img width="210px" class="thumbnail" src="{{ STATIC_URL }}tutorial/server_preferences.png" alt="Server Preferences">
       </a></li></ul>
       <p>
-        {%  blocktrans %}The url "of" this web application must be given to ODK Collect before it will get forms from and submit data to formhub. In ODK Collect's Main Menu, press the Menu button. Select Server Preferences, then Server. Enter <strong>{{ url }}</strong> as the server.{% endblocktrans %}
+        {%  blocktrans %}The url "of" this web application must be given to ODK Collect before it will get forms from and submit data to ona. In ODK Collect's Main Menu, press the Menu button. Select Server Preferences, then Server. Enter <strong>{{ url }}</strong> as the server.{% endblocktrans %}
       </p>
     </div>
 
@@ -121,7 +121,7 @@
 
 <section id="analyze-survey-data">
   <div class="page-header">
-    <h2>{%  trans "Use formhub to download and map data submissions" %}</h2>
+    <h2>{%  trans "Use ona to download and map data submissions" %}</h2>
   </div>
 
   <div class="row">
