@@ -29,7 +29,7 @@ env:
   - TESTFOLDER="onadata/apps/api onadata/apps/logger onadata/apps/viewer onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats onadata/libs"
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy pandas=0.12.0
-  - pip install -r requirements/common.pip --allow-all-external
+  - pip install -r requirements/base.pip --allow-all-external
   - pip install flake8
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
