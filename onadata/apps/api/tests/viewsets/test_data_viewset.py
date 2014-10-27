@@ -7,6 +7,7 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import ReadOnlyRole
+from onadata.libs import permissions as role
 from httmock import urlmatch, HTTMock
 
 
@@ -387,3 +388,31 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
+
+    def test_delete_submission(self):
+        self._make_submissions()
+        before_count = self.xform.instances.all().count()
+        view = DataViewSet.as_view({'delete': 'destroy'})
+        request = self.factory.delete('/', **self.extra)
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 204)
+        count = self.xform.instances.all().count()
+        self.assertEquals(before_count-1, count)
+
+        self._create_user_and_login(username='alice', password='alice')
+        # Only owners can delete
+        role.ManagerRole.add(self.user, self.xform)
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        request = self.factory.delete('/', **self.extra)
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 403)
+        # Nothing deleted
+        count = self.xform.instances.all().count()
+        self.assertEquals(before_count-1, count)

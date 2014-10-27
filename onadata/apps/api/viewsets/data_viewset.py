@@ -450,3 +450,19 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
                 raise PermissionDenied(_(u"You do not have edit permissions."))
 
         return Response(data=data)
+
+    @action(methods=['DELETE'])
+    def destroy(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
+        if isinstance(self.object, XForm):
+            raise ParseError(_(u"Data id not provided."))
+        elif isinstance(self.object, Instance):
+
+            if request.user.has_perm("delete_xform", self.object.xform):
+                self.object.delete()
+            else:
+                raise PermissionDenied(_(u"You do not have delete "
+                                         u"permissions."))
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
