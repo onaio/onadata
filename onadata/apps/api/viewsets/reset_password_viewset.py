@@ -66,11 +66,11 @@ redirects to a reset password form on the API consumer's website.
         except User.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        url = request.DATA.get('reset_url')
+        reset_url = request.DATA.get('reset_url')
 
-        if user and url:
+        if user and reset_url:
             reset_token = default_token_generator.make_token(user)
-            reset_url = url + "?token=" + reset_token
+            reset_url = reset_url + "?token=" + reset_token
             email_msg = "Click on the provided link to reset your Ona password\n " + reset_url
             send_mail("Ona Password Reset",
                       email_msg,
