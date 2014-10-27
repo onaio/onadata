@@ -323,7 +323,7 @@ Delete a specific submission in a form
 
 > Example
 >
->       curl -X DELETE https://ona.io/api/v1/data/28058/20/
+>       curl -X DELETE https://ona.io/api/v1/data/28058/20
 
 > Response
 >
