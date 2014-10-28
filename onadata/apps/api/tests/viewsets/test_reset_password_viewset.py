@@ -37,10 +37,14 @@ class TestResetPasswordViewSet(TestAbstractViewSet):
     def test_reset_user_password(self):
         token = default_token_generator.make_token(self.user)
         new_password = "bobbob1"
-        data = {'uid': urlsafe_base64_encode(force_bytes(self.user.pk)),
-                'token': token,
-                'new_password': new_password}
+        data = {'token': token, 'new_password': new_password}
+        # missing uid, should fail
+        request = self.factory.post('/', data=data)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
 
+        data['uid'] = urlsafe_base64_encode(force_bytes(self.user.pk))
+        # with uid, should be successful
         request = self.factory.post('/', data=data)
         response = self.view(request)
         self.assertEqual(response.status_code, 204)

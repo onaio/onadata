@@ -13,6 +13,8 @@ from urlparse import urlparse
 
 
 def get_user_from_uid(uid):
+    if uid is None:
+        raise ValidationError(_("uid is required!"))
     try:
         uid = urlsafe_base64_decode(uid)
         user = User.objects.get(pk=uid)
