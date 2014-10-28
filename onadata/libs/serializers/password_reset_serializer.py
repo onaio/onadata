@@ -66,7 +66,7 @@ class PasswordReset(object):
                 'path': result.path,
                 'site_name': site_name,
                 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                'user': user,
+                'username': user.username,
                 'token': token_generator.make_token(user),
                 'protocol': result.scheme if result.scheme != '' else 'http',
             }
