@@ -17,7 +17,7 @@ def get_user_from_uid(uid):
         uid = urlsafe_base64_decode(uid)
         user = User.objects.get(pk=uid)
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        raise ValueError(_(u"Invalid uid %s") % uid)
+        raise ValidationError(_(u"Invalid uid %s") % uid)
 
     return user
 
@@ -110,7 +110,7 @@ class PasswordResetChangeSerializer(serializers.Serializer):
         value = attrs[source]
 
         if not default_token_generator.check_token(user, value):
-            raise ValueError(_("Invalid token: %s") % value)
+            raise ValidationError(_("Invalid token: %s") % value)
 
         return attrs
 

@@ -46,3 +46,7 @@ class TestResetPasswordViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
         user = User.objects.get(email=self.user.email)
         self.assertTrue(user.check_password(new_password))
+
+        request = self.factory.post('/', data=data)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
