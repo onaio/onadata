@@ -38,6 +38,7 @@ redirects to a reset password form on the API consumer's website.
 
 - Resets user's password
 - `uid`, `token` and `new_password` are expected in the POST payload.
+- minimum password length is 4 characters
 
 >
 > Example
