@@ -242,12 +242,21 @@ class MetaData(models.Model):
         data_type = 'external_export'
 
         if data_value:
-            return unique_type_for_form(xform, data_type, data_value)
+            result = MetaData(data_type=data_type, xform=xform,
+                              data_value=data_value)
+            result.save()
+            return result
 
         return MetaData.objects.filter(xform=xform, data_type=data_type)
 
     @property
     def external_export_url(self):
-        parts = self.data_value.split()
+        parts = self.data_value.split('|')
 
         return parts[1] if len(parts) > 1 else None
+
+    @property
+    def external_export_name(self):
+        parts = self.data_value.split('|')
+
+        return parts[0] if len(parts) > 1 else None
