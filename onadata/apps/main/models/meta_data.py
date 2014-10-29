@@ -247,7 +247,8 @@ class MetaData(models.Model):
             result.save()
             return result
 
-        return MetaData.objects.filter(xform=xform, data_type=data_type)
+        return MetaData.objects.filter(xform=xform, data_type=data_type)\
+            .order_by('-id')
 
     @property
     def external_export_url(self):

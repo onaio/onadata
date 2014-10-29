@@ -908,7 +908,8 @@ def delete_metadata(request, username, id_string, data_id):
             }))
         except Exception:
             return HttpResponseServerError()
-    elif request.GET.get('map_name_del', False) and username == req_username:
+    elif (request.GET.get('map_name_del', False) or
+          request.GET.get('external_del', False)) and username == req_username:
         data.delete()
         audit = {
             'xform': xform.id_string

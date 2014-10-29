@@ -442,15 +442,15 @@
                         <table>
                             <tbody>
 				                <tr>
-                                    <th><label for="id_template_name">Template Name:</label></th>
+                                    <th><label for="id_template_name">{% trans "Template Name:" %}</label></th>
                                     <td><input type="text" name="template_upload_name" id="id_template_name"></td>
                                 </tr>
                                 <tr>
-                                    <th><label for="id_external_url">External Template Server:</label></th>
+                                    <th><label for="id_external_url">{% trans "External Template Server:" %}</label></th>
                                     <td><input type="text" name="external_url" id="id_external_url"></td>
                                 </tr>
                                 <tr>
-                                    <th><label for="id_xls_template">Template File:</label></th>
+                                    <th><label for="id_xls_template">{% trans "Template File:" %}</label></th>
                                     <td><input type="file" multiple="" name="xls_template" id="id_xls_template"></td>
                                 </tr>
                         </tbody>
@@ -460,7 +460,12 @@
                     <div class="tab-pane" id="template_list">
                             <ol>
                                 {% for meta in external_export %}
-                                    <li>{{ meta.external_export_name }}</li>
+                                    <li>
+                                        {{ meta.external_export_name }}
+                                        {% if can_edit %}
+                                            || <a href="{% url "onadata.apps.main.views.delete_metadata" content_user.username xform.id_string meta.id %}?external_del=false"> {% trans "remove" %} </a>
+                                        {% endif %}
+                                    </li>
                                 {% endfor %}
                             </ol>
                     </div>
