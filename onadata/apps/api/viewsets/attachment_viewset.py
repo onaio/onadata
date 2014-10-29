@@ -26,6 +26,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >
     >        [{
     >           "download_url": "http://ona.io/api/v1/media/1.jpg",
+    >           "small_download_url": "http://ona.io/api/v1/media/1-small.jpg",
     >           "filename": "doe/attachments/1408520136827.jpg",
     >           "id": 1,
     >           "instance": 1,
@@ -46,6 +47,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >
     >        {
     >           "download_url": "http://ona.io/api/v1/media/1.jpg",
+    >           "small_download_url": "http://ona.io/api/v1/media/1-small.jpg",
     >           "filename": "doe/attachments/1408520136827.jpg",
     >           "id": 1,
     >           "instance": 1,
@@ -84,6 +86,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >
     >        [{
     >           "download_url": "http://ona.io/api/v1/media/1.jpg",
+    >           "small_download_url": "http://ona.io/api/v1/media/1-small.jpg",
     >           "filename": "doe/attachments/1408520136827.jpg",
     >           "id": 1,
     >           "instance": 1,
@@ -105,6 +108,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >
     >        [{
     >           "download_url": "http://ona.io/api/v1/media/1.jpg",
+    >           "small_download_url": "http://ona.io/api/v1/media/1-small.jpg",
     >           "filename": "doe/attachments/1408520136827.jpg",
     >           "id": 1,
     >           "instance": 1,
