@@ -1,5 +1,8 @@
-from rest_framework.permissions import DjangoObjectPermissions, IsAuthenticated
-from onadata.libs.permissions import CAN_ADD_XFORM_TO_PROFILE, CAN_CHANGE_XFORM
+from rest_framework.permissions import DjangoObjectPermissions
+from rest_framework.permissions import IsAuthenticated
+
+from onadata.libs.permissions import CAN_ADD_XFORM_TO_PROFILE
+from onadata.libs.permissions import CAN_CHANGE_XFORM
 from onadata.apps.api.tools import get_user_profile_or_none
 from onadata.apps.logger.models import XForm
 
@@ -115,5 +118,15 @@ class AttachmentObjectPermissions(DjangoObjectPermissions):
 
         return super(AttachmentObjectPermissions, self).has_object_permission(
             request, view, obj.instance.xform)
+
+
+class ConnectViewsetPermissions(IsAuthenticated):
+
+    def has_permission(self, request, view):
+        if view.action == 'reset':
+            return True
+
+        return super(ConnectViewsetPermissions, self)\
+            .has_permission(request, view)
 
 __permissions__ = [DjangoObjectPermissions, IsAuthenticated]

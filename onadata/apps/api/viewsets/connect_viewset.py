@@ -1,13 +1,17 @@
-from rest_framework import permissions
+from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.decorators import list_route
 from rest_framework.response import Response
 
+from onadata.apps.api.permissions import ConnectViewsetPermissions
+from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.serializers.password_reset_serializer import \
+    PasswordResetSerializer, PasswordResetChangeSerializer
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.user_profile_serializer import (
     UserProfileWithTokenSerializer)
-from onadata.apps.main.models.user_profile import UserProfile
 
 from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
 
@@ -41,10 +45,54 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
 ## Get projects that the authenticating user has starred
 <pre class="prettyprint">
 <b>GET</b> /api/v1/user/<code>{username}</code>/starred</pre>
+
+## Request password reset
+<pre class="prettyprint">
+<b>POST</b> /api/v1/user/reset
+</pre>
+
+- Sends an email to the user's email with a url that \
+redirects to a reset password form on the API consumer's website.
+- `email` and `reset_url` are expected in the POST payload.
+- Expected reset_url format is `reset_url=https:/domain/path/to/reset/form`.
+- Example of reset url sent to user's email is\
+`http://mydomain.com/reset_form?uid=Mg&token=2f3f334g3r3434`.
+
+>
+> Example
+>
+>       curl -X POST -d email=demouser@mail.com\
+ url=http://example-url.com/reset https://ona.io/api/v1/user/reset
+>
+> Response:
+>
+>        HTTP 204 OK
+
+
+>
+## Reset user password
+<pre class="prettyprint">
+<b>POST</b> /api/v1/user/reset
+</pre>
+
+- Resets user's password
+- `uid`, `token` and `new_password` are expected in the POST payload.
+- minimum password length is 4 characters
+
+>
+> Example
+>
+>       curl -X POST -d uid=Mg -d token=qndoi209jf02n4 \
+-d new_password=usernewpass https://ona.io/api/v1/user/reset
+>
+> Response:
+>
+>        HTTP 204 OK
+
 """
     lookup_field = 'user'
     queryset = UserProfile.objects.all()
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (ConnectViewsetPermissions,)
     serializer_class = UserProfileWithTokenSerializer
 
     def list(self, request, *args, **kwargs):
@@ -76,3 +124,20 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
                                        many=True)
 
         return Response(data=serializer.data)
+
+    @list_route(methods=['POST'])
+    def reset(self, request, *args, **kwargs):
+        context = {'request': request}
+        data = request.DATA if request.DATA is not None else {}
+        if 'token' in request.DATA:
+            serializer = PasswordResetChangeSerializer(data=data,
+                                                       context=context)
+        else:
+            serializer = PasswordResetSerializer(data=data, context=context)
+
+        if serializer.is_valid():
+            serializer.save()
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
