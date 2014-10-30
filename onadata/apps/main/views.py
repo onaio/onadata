@@ -727,11 +727,8 @@ def edit(request, username, id_string):
             external_url = request.POST.get("external_url")
             xls_template = request.FILES.get("xls_template")
 
-            # upload the file and get the template token
-            tmp = os.path.join(settings.MEDIA_ROOT, 'tmp', xls_template.name)
-            path = default_storage.save(tmp, ContentFile(xls_template.read()))
-
-            result = upload_template_for_external_export(external_url, path)
+            result = upload_template_for_external_export(external_url,
+                                                         xls_template)
             status_code = result.split('|')[0]
             token = result.split('|')[1]
             if status_code == '201':

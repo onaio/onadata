@@ -946,13 +946,15 @@ def generate_external_export(
         user__username__iexact=username, id_string__iexact=id_string)
     user = User.objects.get(username=username)
     report_templates = MetaData.external_export(xform)
-    server = ''
+
     if meta:
         # Get the external server from the metadata
         result = report_templates.get(pk=meta)
         server = result.external_export_url
+        name = result.external_export_name
     elif token:
         server = token
+        name = None
     else:
         # Take the latest value in the metadata
         if not report_templates:
@@ -960,6 +962,7 @@ def generate_external_export(
                 "Could not find the template token: Please upload template.")
 
         server = report_templates[0].external_export_url
+        name = report_templates[0].external_export_name
 
     # dissect the url
     parsed_url = urlparse(server)
@@ -1010,7 +1013,7 @@ def generate_external_export(
     export.export_url = response
     if status_code == 201:
         export.internal_status = Export.SUCCESSFUL
-        export.filename = response[5:]
+        export.filename = name + '-' + response[5:] if name else response[5:]
         export.export_url = ser + response
     else:
         export.internal_status = Export.FAILED
@@ -1020,11 +1023,11 @@ def generate_external_export(
     return export
 
 
-def upload_template_for_external_export(server, file_upload):
+def upload_template_for_external_export(server, file_obj):
 
     try:
         client = Client(server)
-        response = client.template.create(file_upload)
+        response = client.template.create(template_file=file_obj)
 
         if hasattr(client.template.conn, 'last_response'):
             status_code = client.template.conn.last_response.status_code

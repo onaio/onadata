@@ -261,3 +261,9 @@ class MetaData(models.Model):
         parts = self.data_value.split('|')
 
         return parts[0] if len(parts) > 1 else None
+
+    @property
+    def external_export_template(self):
+        parts = self.data_value.split('|')
+
+        return parts[1].replace('xls', 'templates') if len(parts) > 1 else None
