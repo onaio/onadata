@@ -9,13 +9,15 @@ class AttachmentSerializer(serializers.ModelSerializer):
     download_url = serializers.SerializerMethodField('get_download_url')
     small_download_url = serializers.SerializerMethodField(
         'get_small_download_url')
+    medium_download_url = serializers.SerializerMethodField(
+        'get_medium_download_url')
     xform = serializers.Field(source='instance.xform.pk')
     instance = serializers.Field(source='instance.pk')
     filename = serializers.Field(source='media_file.name')
 
     class Meta:
-        fields = ('url', 'download_url', 'small_download_url', 'id',
-                  'xform', 'instance', 'mimetype', 'filename')
+        fields = ('url', 'filename', 'mimetype', 'id', 'xform', 'instance',
+                  'download_url', 'small_download_url', 'medium_download_url')
         lookup_field = 'pk'
         model = Attachment
 
@@ -24,6 +26,9 @@ class AttachmentSerializer(serializers.ModelSerializer):
             return obj.media_file.url if obj.media_file.url else None
 
     def get_small_download_url(self, obj):
-        attachment = Attachment.objects.get(media_file=obj.media_file)
-        if attachment.mimetype.startswith('image'):
-            return image_url(attachment, 'small')
+        if obj.mimetype.startswith('image'):
+            return image_url(obj, 'small')
+
+    def get_medium_download_url(self, obj):
+        if obj.mimetype.startswith('image'):
+            return image_url(obj, 'medium')
