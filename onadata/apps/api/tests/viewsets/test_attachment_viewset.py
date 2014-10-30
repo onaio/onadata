@@ -3,7 +3,6 @@ from os import path
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
-from onadata.apps.logger.models.attachment import Attachment
 from onadata.libs.utils.image_tools import image_url
 
 
@@ -24,12 +23,11 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self._submit_transport_instance_w_attachment()
 
         pk = self.attachment.pk
-        attachment = Attachment.objects.get(
-            media_file=self.attachment.media_file)
         data = {
             'url': 'http://testserver/api/v1/media/%s' % pk,
             'download_url': self.attachment.media_file.url,
-            'small_download_url': image_url(attachment, 'small'),
+            'small_download_url': image_url(self.attachment, 'small'),
+            'medium_download_url': image_url(self.attachment, 'medium'),
             'id': pk,
             'xform': self.xform.pk,
             'instance': self.attachment.instance.pk,
