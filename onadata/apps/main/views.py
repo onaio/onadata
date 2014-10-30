@@ -26,7 +26,6 @@ from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
-from django.core.files.base import ContentFile
 from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
 
 from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
