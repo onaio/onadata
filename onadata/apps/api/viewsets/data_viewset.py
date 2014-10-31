@@ -12,7 +12,11 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.settings import api_settings
 
+<<<<<<< HEAD
 from onadata.apps.api.viewsets.xform_viewset import custom_response_handler
+=======
+from onadata.apps.api.viewsets.xform_viewset import export_handler
+>>>>>>> ME: added list action
 from onadata.apps.api.tools import add_tags_to_instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
