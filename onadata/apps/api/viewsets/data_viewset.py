@@ -503,6 +503,26 @@ Delete a specific submission in a form
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, *args, **kwargs):
+        lookup_field = self.lookup_field
+        lookup = self.kwargs.get(lookup_field)
+
+        if lookup_field not in kwargs.keys():
+            self.object_list = self.filter_queryset(self.get_queryset())
+            serializer = self.get_serializer(self.object_list, many=True)
+
+            return Response(serializer.data)
+
+        if lookup == self.public_data_endpoint:
+            self.object_list = self._get_public_forms_queryset()
+
+            page = self.paginate_queryset(self.object_list)
+            if page is not None:
+                serializer = self.get_pagination_serializer(page)
+            else:
+                serializer = self.get_serializer(self.object_list, many=True)
+
+            return Response(serializer.data)
+
         xform = self.get_object()
         query = request.GET.get("query", {})
         export_type = kwargs.get('format')
