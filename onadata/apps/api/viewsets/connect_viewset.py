@@ -98,14 +98,13 @@ redirects to a reset password form on the API consumer's website.
     def list(self, request, *args, **kwargs):
         """ Returns authenticated user profile"""
 
-        if request and not request.user.is_anonymous():
-            session = getattr(request, "session")
-            if not session.session_key:
-                # login user to create session token
-                # TODO cannot call this without calling authenticate first or
-                # setting the backend, commented for now.
-                # login(request, request.user)
-                session.set_expiry(DEFAULT_SESSION_EXPIRY_TIME)
+        if (request and not request.user.is_anonymous()
+                and not request.session.session_key):
+            # login user to create session token
+            # TODO cannot call this without calling authenticate first or
+            # setting the backend, commented for now.
+            # login(request, request.user)
+            request.session.set_expiry(DEFAULT_SESSION_EXPIRY_TIME)
 
         serializer = UserProfileWithTokenSerializer(
             instance=request.user.profile,

@@ -7,7 +7,7 @@ from onadata.apps.api import permissions
 
 
 class UserViewSet(ReadOnlyModelViewSet):
-    """
+"""
 This endpoint allows you to list and retrieve user's first and last names.
 
 ## List Users
