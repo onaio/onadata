@@ -10,11 +10,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
+from rest_framework.settings import api_settings
 
+from onadata.apps.api.viewsets.xform_viewset import export_handler
 from onadata.apps.api.tools import add_tags_to_instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.apps.api.permissions import XFormPermissions
@@ -337,6 +340,15 @@ Delete a specific submission in a form
 >
 >
 """
+    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
+        renderers.XLSRenderer,
+        renderers.XLSXRenderer,
+        renderers.CSVRenderer,
+        renderers.CSVZIPRenderer,
+        renderers.SAVZIPRenderer,
+        renderers.SurveyRenderer
+    ]
+
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
                        filters.XFormOwnerFilter)
     serializer_class = DataSerializer
@@ -489,3 +501,13 @@ Delete a specific submission in a form
                                          u"permissions."))
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def list(self, request, *args, **kwargs):
+        xform = self.get_object()
+        query = request.GET.get("query", {})
+        export_type = kwargs.get('format')
+        if export_type is None or export_type in ['json']:
+            # perform default viewset retrieve, no data export
+            return super(DataViewSet, self).list(request, *args, **kwargs)
+
+        return export_handler(request, xform, query, export_type)
