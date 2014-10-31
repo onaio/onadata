@@ -194,6 +194,7 @@ def external_export_response(export):
 
 
 def log_export(request, xform, export_type):
+
     # log download as well
     audit = {
         "xform": xform.id_string,
@@ -225,6 +226,9 @@ def custom_response_handler(request, xform, query, export_type):
             export = _generate_new_export(request, xform, query, export_type)
 
     log_export(request, xform, export_type)
+
+    if export_type == Export.EXTERNAL_EXPORT:
+        return external_export_response(export)
 
     # get extension from file_path, exporter could modify to
     # xlsx if it exceeds limits
