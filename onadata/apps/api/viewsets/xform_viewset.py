@@ -5,7 +5,7 @@ from datetime import datetime
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
-from django.http import Http404, HttpResponseBadRequest
+from django.http import Http404, HttpResponseBadRequest, HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.utils import six
 
@@ -106,8 +106,7 @@ def _set_start_end_params(request, query):
         return query
 
 
-def _generate_new_export(request, xform, query, export_type, token=None,
-                         meta=None):
+def _generate_new_export(request, xform, query, export_type):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
@@ -115,7 +114,8 @@ def _generate_new_export(request, xform, query, export_type, token=None,
         if export_type == Export.EXTERNAL_EXPORT:
             export = generate_external_export(
                 export_type, xform.user.username,
-                xform.id_string, None, token, query, meta
+                xform.id_string, None, request.GET.get('token'), query,
+                request.GET.get('meta')
             )
         else:
             export = generate_export(
@@ -172,7 +172,8 @@ def response_for_format(data, format=None):
 def should_regenerate_export(xform, export_type, request):
     return should_create_new_export(xform, export_type) or\
         'start' in request.GET or 'end' in request.GET or\
-        'query' in request.GET
+        'query' in request.GET or 'meta' in request.GET or\
+        'token' in request.GET
 
 
 def value_for_type(form, field, value):
@@ -184,8 +185,7 @@ def value_for_type(form, field, value):
 
 def external_export_response(export):
     if export.internal_status == Export.SUCCESSFUL:
-        http_status = status.HTTP_201_CREATED
-        data = {"url": export.export_url}
+        return HttpResponseRedirect(export.export_url)
     else:
         http_status = status.HTTP_500_INTERNAL_SERVER_ERROR
         data = {"message": export.export_url}
@@ -667,16 +667,17 @@ You can clone a form to a specific user account using `GET` with
             return Response(serializer.data)
 
         xform = self.get_object()
-        query = request.GET.get("query", {})
         export_type = kwargs.get('format')
+        query = request.GET.get("query", {})
+        token = request.GET.get('token')
+        meta = request.GET.get('meta')
 
         if export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
         export_type = _get_export_type(export_type)
-        token = kwargs.get('token')
-        meta = kwargs.get('meta')
+
         if export_type in external_export_types and \
                 (token is not None) or (meta is not None):
             export_type = Export.EXTERNAL_EXPORT
@@ -685,7 +686,7 @@ You can clone a form to a specific user account using `GET` with
         # we always re-generate if a filter is specified
         if should_regenerate_export(xform, export_type, request):
             export = _generate_new_export(
-                request, xform, query, export_type, token, meta)
+                request, xform, query, export_type)
         else:
             export = newset_export_for(xform, export_type)
 

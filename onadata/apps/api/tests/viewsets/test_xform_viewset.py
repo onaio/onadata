@@ -576,20 +576,20 @@ class TestXFormViewSet(TestAbstractViewSet):
         view = XFormViewSet.as_view({
             'get': 'retrieve',
         })
+        data = {'meta': metadata.pk}
         formid = self.xform.pk
-        request = self.factory.get('/', **self.extra)
+        request = self.factory.get('/', data=data,
+                                   **self.extra)
         with HTTMock(external_mock):
             # External export
             response = view(
                 request,
                 pk=formid,
-                format='xls',
-                meta=metadata.pk)
-            self.assertEqual(response.status_code, 201)
+                format='xls')
+            self.assertEqual(response.status_code, 302)
             expected_url = \
                 'http://xls_server/xls/ee3ff9d8f5184fc4a8fdebc2547cc059'
-            self.assertEquals(response.data,
-                              {'url': expected_url})
+            self.assertEquals(response.url, expected_url)
 
     def test_external_export_error(self):
         self._publish_xls_form_to_project()
@@ -610,15 +610,16 @@ class TestXFormViewSet(TestAbstractViewSet):
             'get': 'retrieve',
         })
         formid = self.xform.pk
-        request = self.factory.get('/', **self.extra)
         token = 'http://xls_server/xls/' +\
             '8e86d4bdfa7f435ab89485aeae4ea6f5'
+        data = {'token': token}
+        request = self.factory.get('/', data=data, **self.extra)
+
         # External export
         response = view(
             request,
             pk=formid,
-            format='xls',
-            token=token)
+            format='xls')
 
         error = \
             "('Connection aborted.', " \

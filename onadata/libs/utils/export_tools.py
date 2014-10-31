@@ -938,13 +938,22 @@ def kml_export_data(id_string, user):
     return data_for_template
 
 
-def generate_external_export(
-    export_type, username, id_string, export_id=None,  token=None,
-        filter_query=None, meta=None):
+def _get_records(instances):
+    records = []
+    for instance in instances:
+        record = instance.get_dict()
+        # Get the keys
+        for key in record:
+            if '/' in key:
+                # replace with _
+                record[key.replace('/', '_')]\
+                    = record.pop(key)
+        records.append(record)
 
-    xform = XForm.objects.get(
-        user__username__iexact=username, id_string__iexact=id_string)
-    user = User.objects.get(username=username)
+    return records
+
+
+def _get_server_from_metadata(xform, meta, token):
     report_templates = MetaData.external_export(xform)
 
     if meta:
@@ -964,6 +973,19 @@ def generate_external_export(
         server = report_templates[0].external_export_url
         name = report_templates[0].external_export_name
 
+    return server, name
+
+
+def generate_external_export(
+    export_type, username, id_string, export_id=None,  token=None,
+        filter_query=None, meta=None):
+
+    xform = XForm.objects.get(
+        user__username__iexact=username, id_string__iexact=id_string)
+    user = User.objects.get(username=username)
+
+    server, name = _get_server_from_metadata(xform, meta, token)
+
     # dissect the url
     parsed_url = urlparse(server)
 
@@ -971,19 +993,8 @@ def generate_external_export(
 
     ser = parsed_url.scheme + '://' + parsed_url.netloc
 
-    instances = Instance.objects.filter(
-        xform__user=user, xform__id_string=id_string)
-
-    records = []
-    for instance in instances:
-        record = instance.get_dict()
-        # Get the keys
-        for key in record:
-            if '/' in key:
-                # replace with _
-                record[key.replace('/', '_')]\
-                    = record.pop(key)
-        records.append(record)
+    records = _get_records(Instance.objects.filter(
+        xform__user=user, xform__id_string=id_string))
 
     status_code = 0
     if records and server:
