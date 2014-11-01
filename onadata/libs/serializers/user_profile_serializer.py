@@ -12,6 +12,7 @@ from rest_framework import serializers
 from onadata.apps.main.forms import UserProfileForm
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
+from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 
 
@@ -46,6 +47,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         source='user.password', widget=widgets.PasswordInput(), required=False)
     user = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
+    metadata = JsonField(source='metadata', required=False)
 
     class Meta:
         model = UserProfile
