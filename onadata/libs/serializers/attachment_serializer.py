@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from onadata.apps.logger.models.attachment import Attachment
+from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.image_tools import image_url
 
 
@@ -21,9 +22,9 @@ class AttachmentSerializer(serializers.ModelSerializer):
         lookup_field = 'pk'
         model = Attachment
 
+    @check_obj
     def get_download_url(self, obj):
-        if obj is not None:
-            return obj.media_file.url if obj.media_file.url else None
+        return obj.media_file.url if obj.media_file.url else None
 
     def get_small_download_url(self, obj):
         if obj.mimetype.startswith('image'):

@@ -6,6 +6,7 @@ from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.libs.utils.decorators import check_obj
 
 
 class DataSerializer(serializers.HyperlinkedModelSerializer):
@@ -64,9 +65,9 @@ class DataListSerializer(serializers.Serializer):
 
 
 class DataInstanceSerializer(serializers.Serializer):
+    @check_obj
     def to_native(self, obj):
-        if obj is None:
-            return super(DataInstanceSerializer, self).to_native(obj)
+        return super(DataInstanceSerializer, self).to_native(obj)
 
         request = self.context.get('request')
         query_params = (request and request.QUERY_PARAMS) or {}
@@ -87,9 +88,9 @@ class DataInstanceSerializer(serializers.Serializer):
 
 
 class SubmissionSerializer(serializers.Serializer):
+    @check_obj
     def to_native(self, obj):
-        if obj is None:
-            return super(SubmissionSerializer, self).to_native(obj)
+        return super(SubmissionSerializer, self).to_native(obj)
 
         return {
             'message': _("Successful submission."),
