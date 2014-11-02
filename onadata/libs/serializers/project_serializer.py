@@ -2,11 +2,12 @@ from django.forms import widgets
 from rest_framework import serializers
 
 from onadata.apps.api.models import Project
+from onadata.apps.logger.models import Instance
 from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
-from onadata.apps.logger.models import Instance
+from onadata.libs.utils.decorators import check_obj
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
@@ -65,35 +66,35 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     def get_project_permissions(self, obj):
         return get_object_users_with_permissions(obj)
 
+    @check_obj
     def get_project_forms(self, obj):
-        if obj is not None:
-            xforms_details = obj.projectxform_set.values(
-                'xform__pk', 'xform__title')
-            return [{'name': form['xform__title'], 'id':form['xform__pk']}
-                    for form in xforms_details]
+        xforms_details = obj.projectxform_set.values(
+            'xform__pk', 'xform__title')
+        return [{'name': form['xform__title'], 'id':form['xform__pk']}
+                for form in xforms_details]
 
+    @check_obj
     def get_num_datasets(self, obj):
         """Return the number of datasets attached to the object.
 
         :param obj: The project to find datasets for.
         """
-        if obj:
-            return obj.projectxform_set.count()
+        return obj.projectxform_set.count()
 
+    @check_obj
     def get_last_submission_date(self, obj):
         """Return the most recent submission date to any of the projects
         datasets.
 
         :param obj: The project to find the last submission date for.
         """
-        if obj:
-            xform_ids = obj.projectxform_set.values_list('xform', flat=True)
-            last_submission = Instance.objects.\
-                order_by('-date_created').\
-                filter(xform_id__in=xform_ids).values_list('date_created',
-                                                           flat=True)
+        xform_ids = obj.projectxform_set.values_list('xform', flat=True)
+        last_submission = Instance.objects.\
+            order_by('-date_created').\
+            filter(xform_id__in=xform_ids).values_list('date_created',
+                                                       flat=True)
 
-            return last_submission and last_submission[0]
+        return last_submission and last_submission[0]
 
     def is_starred_project(self, obj):
         request = self.context['request']

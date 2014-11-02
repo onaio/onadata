@@ -7,12 +7,7 @@ from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
-
-
-def check_obj(f):
-    def f_wrapper(*args, **kwargs):
-        if args[0]:
-            return f(*args, **kwargs)
+from onadata.libs.utils.decorators import check_obj
 
 
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
