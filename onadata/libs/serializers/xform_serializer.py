@@ -9,9 +9,13 @@ from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 
 
+def check_obj(f):
+    def f_wrapper(*args, **kwargs):
+        if args[0]:
+            return f(*args, **kwargs)
+
+
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
-    active = BooleanField(source='downloadable',
-                          widget=widgets.CheckboxInput())
     formid = serializers.Field(source='id')
     metadata = serializers.SerializerMethodField('get_xform_metadata')
     owner = serializers.HyperlinkedRelatedField(view_name='user-detail',
@@ -61,25 +65,23 @@ class XFormListSerializer(serializers.Serializer):
     def get_version(self, obj):
         return None
 
+    @check_obj
     def get_hash(self, obj):
-        if obj:
-            return u"md5:%s" % obj.hash
+        return u"md5:%s" % obj.hash
 
+    @check_obj
     def get_url(self, obj):
-        if obj:
-            kwargs = {'pk': obj.pk, 'username': obj.user.username}
-            request = self.context.get('request')
+        kwargs = {'pk': obj.pk, 'username': obj.user.username}
+        request = self.context.get('request')
 
-            return reverse('download_xform', kwargs=kwargs,
-                           request=request)
+        return reverse('download_xform', kwargs=kwargs, request=request)
 
+    @check_obj
     def get_manifest_url(self, obj):
-        if obj:
-            kwargs = {'pk': obj.pk, 'username': obj.user.username}
-            request = self.context.get('request')
+        kwargs = {'pk': obj.pk, 'username': obj.user.username}
+        request = self.context.get('request')
 
-            return reverse('manifest-url', kwargs=kwargs,
-                           request=request)
+        return reverse('manifest-url', kwargs=kwargs, request=request)
 
 
 class XFormManifestSerializer(serializers.Serializer):
@@ -87,17 +89,17 @@ class XFormManifestSerializer(serializers.Serializer):
     hash = serializers.SerializerMethodField('get_hash')
     downloadUrl = serializers.SerializerMethodField('get_url')
 
+    @check_obj
     def get_url(self, obj):
-        if obj:
-            kwargs = {'pk': obj.xform.pk,
-                      'username': obj.xform.user.username,
-                      'metadata': obj.pk}
-            request = self.context.get('request')
-            format = obj.data_value[obj.data_value.rindex('.') + 1:]
+        kwargs = {'pk': obj.xform.pk,
+                  'username': obj.xform.user.username,
+                  'metadata': obj.pk}
+        request = self.context.get('request')
+        format = obj.data_value[obj.data_value.rindex('.') + 1:]
 
-            return reverse('xform-media', kwargs=kwargs,
-                           request=request, format=format.lower())
+        return reverse('xform-media', kwargs=kwargs,
+                       request=request, format=format.lower())
 
+    @check_obj
     def get_hash(self, obj):
-        if obj:
-            return u"%s" % (obj.file_hash or 'md5:')
+        return u"%s" % (obj.file_hash or 'md5:')
