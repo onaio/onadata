@@ -302,8 +302,8 @@ https://ona.io/api/v1/forms
 
 You can use `PUT` or `PATCH` http methods to update or set form data elements.
 If you are using `PUT`, you have to provide the `uuid, description,
-downloadable, owner, public, public_data` fields. With `PATCH` you only need
-provide atleast one of the fields.
+downloadable, owner, public, public_data, title` fields. With `PATCH` you only
+need provide at least one of the fields.
 
 <pre class="prettyprint">
 <b>PATCH</b> /api/v1/forms/<code>{pk}</code></pre>

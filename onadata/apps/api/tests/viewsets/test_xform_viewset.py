@@ -404,7 +404,8 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         title = u'مرحب'
         description = 'DESCRIPTION'
-        data = {'public': True, 'description': description, 'title': title}
+        data = {'public': True, 'description': description, 'title': title,
+                'downloadable': True}
 
         self.assertFalse(self.xform.shared)
 
@@ -412,6 +413,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=self.xform.id)
 
         self.xform.reload()
+        self.assertTrue(self.xform.downloadable)
         self.assertTrue(self.xform.shared)
         self.assertEqual(self.xform.description, description)
         self.assertEqual(response.data['public'], True)
