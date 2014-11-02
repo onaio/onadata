@@ -10,24 +10,24 @@ from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 
 
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
-                                               lookup_field='pk')
+    active = BooleanField(source='downloadable',
+                          widget=widgets.CheckboxInput())
     formid = serializers.Field(source='id')
+    metadata = serializers.SerializerMethodField('get_xform_metadata')
+    owner = serializers.HyperlinkedRelatedField(view_name='user-detail',
+                                                source='user',
+                                                lookup_field='username')
+    public = BooleanField(source='shared', widget=widgets.CheckboxInput())
+    public_data = BooleanField(source='shared_data')
+    require_auth = BooleanField(source='require_auth',
+                                widget=widgets.CheckboxInput())
     submission_count_for_today = serializers.Field(
         source='submission_count_for_today')
-    title = serializers.CharField(max_length=255, source='title')
-    owner = serializers.HyperlinkedRelatedField(
-        view_name='user-detail',
-        source='user', lookup_field='username')
-    public = BooleanField(
-        source='shared', widget=widgets.CheckboxInput())
-    public_data = BooleanField(
-        source='shared_data')
-    require_auth = BooleanField(
-        source='require_auth', widget=widgets.CheckboxInput())
     tags = TagListSerializer(read_only=True)
+    title = serializers.CharField(max_length=255, source='title')
+    url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
+                                               lookup_field='pk')
     users = serializers.SerializerMethodField('get_xform_permissions')
-    metadata = serializers.SerializerMethodField('get_xform_metadata')
 
     class Meta:
         model = XForm
@@ -89,7 +89,8 @@ class XFormManifestSerializer(serializers.Serializer):
 
     def get_url(self, obj):
         if obj:
-            kwargs = {'pk': obj.xform.pk, 'username': obj.xform.user.username,
+            kwargs = {'pk': obj.xform.pk,
+                      'username': obj.xform.user.username,
                       'metadata': obj.pk}
             request = self.context.get('request')
             format = obj.data_value[obj.data_value.rindex('.') + 1:]
