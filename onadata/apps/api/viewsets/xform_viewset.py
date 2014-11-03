@@ -194,7 +194,6 @@ def external_export_response(export):
 
 
 def log_export(request, xform, export_type):
-
     # log download as well
     audit = {
         "xform": xform.id_string,
@@ -209,11 +208,16 @@ def log_export(request, xform, export_type):
         }, audit, request)
 
 
-def custom_response_handler(request, xform, query, export_type):
+def custom_response_handler(request, xform, query, export_type,
+                            token=None, meta=None):
     if export_type in ['xml']:
         return Response(xform.xml)
 
     export_type = _get_export_type(export_type)
+
+    if export_type in external_export_types and \
+            (token is not None) or (meta is not None):
+        export_type = Export.EXTERNAL_EXPORT
 
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
@@ -725,7 +729,12 @@ You can clone a form to a specific user account using `GET` with
             # perform default viewset retrieve, no data export
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
-        return custom_response_handler(request, xform, query, export_type)
+        return custom_response_handler(request,
+                                       xform,
+                                       query,
+                                       export_type,
+                                       token,
+                                       meta)
 
     @action(methods=['POST'])
     def share(self, request, *args, **kwargs):
