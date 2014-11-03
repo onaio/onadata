@@ -527,5 +527,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         # invalid id
         response = view(request, pk='1w')
         self.assertEqual(response.status_code, 400)
-        error_data = {u'detail': u'Invalid value for project_id 1w.'}
+        error_data = {u'detail': u"Invalid value for project_id '1w' must be a"
+                                 " positive integer."}
         self.assertEqual(response.data, error_data)

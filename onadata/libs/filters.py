@@ -74,7 +74,8 @@ class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
                 int(project_id)
             except ValueError:
                 raise ParseError(
-                    u"Invalid value for project_id %s." % project_id)
+                    u"Invalid value for project_id '%s' must be a positive "
+                    "integer." % project_id)
 
             # check if project is public and return it
             try:
