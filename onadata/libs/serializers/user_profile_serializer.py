@@ -54,7 +54,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('is_org', 'url', 'username', 'name', 'password', 'email',
                   'city',
                   'country', 'organization', 'website', 'twitter', 'gravatar',
-                  'require_auth', 'user')
+                  'require_auth', 'user', 'metadata')
         lookup_field = 'user'
 
     def is_organization(self, obj):
