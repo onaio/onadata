@@ -85,7 +85,8 @@ class StatsInstanceSerializer(serializers.Serializer):
         if field and field not in obj.data_dictionary().get_keys():
             raise exceptions.ParseError(detail=_("Field not in XForm."))
 
-        stats_function = STATS_FUNCTIONS.get(method.lower(), get_all_stats)
+        stats_function = STATS_FUNCTIONS.get(method and method.lower(),
+                                             get_all_stats)
 
         try:
             data = stats_function(obj, field)
