@@ -31,7 +31,7 @@ class TeamSerializer(serializers.Serializer):
 
         return users
 
-    def get_default_project_permissions(self, obj):
+    def get_organization_projects_with_default_role(self, obj):
         projects = []
 
         if obj:
