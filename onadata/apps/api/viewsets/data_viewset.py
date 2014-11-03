@@ -12,7 +12,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.settings import api_settings
 
-from onadata.apps.api.viewsets.xform_viewset import export_handler
+from onadata.apps.api.viewsets.xform_viewset import custom_response_handler
 from onadata.apps.api.tools import add_tags_to_instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
@@ -530,4 +530,4 @@ Delete a specific submission in a form
             # perform default viewset retrieve, no data export
             return super(DataViewSet, self).list(request, *args, **kwargs)
 
-        return export_handler(request, xform, query, export_type)
+        return custom_response_handler(request, xform, query, export_type)
