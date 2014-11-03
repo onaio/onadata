@@ -206,3 +206,12 @@ class TestStatsViewSet(TestBase):
             'range': 2770
         }
         self.assertDictContainsSubset(data, response.data)
+
+    def test_wrong_stat_function_api(self):
+        self._contributions_form_submissions()
+        view = StatsViewSet.as_view({'get': 'retrieve'})
+        request = self.factory.get('/?method=modes', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+
+        self.assertEquals(response.status_code, 200)

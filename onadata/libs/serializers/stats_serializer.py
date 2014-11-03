@@ -86,7 +86,8 @@ class StatsInstanceSerializer(serializers.Serializer):
             raise exceptions.ParseError(detail=_("Field not in XForm."))
 
         try:
-            data = get_all_stats(obj, field) if method is None else\
+            data = get_all_stats(obj, field) \
+                if method not in STATS_FUNCTIONS else\
                 STATS_FUNCTIONS[method.lower()](obj, field)
         except ValueError as e:
             raise exceptions.ParseError(detail=e.message)
