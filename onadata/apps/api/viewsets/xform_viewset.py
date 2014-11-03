@@ -193,19 +193,7 @@ def external_export_response(export):
     return Response(data, http_status)
 
 
-def export_handler(request, xform, query, export_type):
-    if export_type in ['xml']:
-        return Response(xform.xml)
-
-    export_type = _get_export_type(export_type)
-
-    # check if we need to re-generate,
-    # we always re-generate if a filter is specified
-    if should_regenerate_export(xform, export_type, request):
-        export = _generate_new_export(request, xform, query, export_type)
-    else:
-        export = newset_export_for(xform, export_type)
-
+def log_export(request, xform, export_type):
     # log download as well
     audit = {
         "xform": xform.id_string,
@@ -219,9 +207,24 @@ def export_handler(request, xform, query, export_type):
             'export_type': export_type.upper()
         }, audit, request)
 
-    if not export.filename:
-        # tends to happen when using newset_export_for.
-        raise Http404("File does not exist!")
+
+def custom_response_handler(request, xform, query, export_type):
+    if export_type in ['xml']:
+        return Response(xform.xml)
+
+    export_type = _get_export_type(export_type)
+
+    # check if we need to re-generate,
+    # we always re-generate if a filter is specified
+    if should_regenerate_export(xform, export_type, request):
+        export = _generate_new_export(request, xform, query, export_type)
+    else:
+        export = newset_export_for(xform, export_type)
+        if not export.filename:
+            # tends to happen when using newset_export_for.
+            export = _generate_new_export(request, xform, query, export_type)
+
+    log_export(request, xform, export_type)
 
     # get extension from file_path, exporter could modify to
     # xlsx if it exceeds limits
@@ -718,7 +721,7 @@ You can clone a form to a specific user account using `GET` with
             # perform default viewset retrieve, no data export
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
-        return export_handler(request, xform, query, export_type)
+        return custom_response_handler(request, xform, query, export_type)
 
     @action(methods=['POST'])
     def share(self, request, *args, **kwargs):
