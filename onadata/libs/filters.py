@@ -1,8 +1,11 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.core.exceptions import ObjectDoesNotExist
+from django.http import Http404
 from django.utils import six
 from rest_framework import filters
 from rest_framework.exceptions import ParseError
+
 
 from onadata.apps.logger.models import XForm, Instance
 
@@ -67,8 +70,17 @@ class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
             return queryset.filter(Q(shared=True))
 
         if project_id:
+            try:
+                int(project_id)
+            except ValueError:
+                raise ParseError(
+                    u"Invalid value for project_id %s." % project_id)
+
             # check if project is public and return it
-            project = queryset.get(id=project_id)
+            try:
+                project = queryset.get(id=project_id)
+            except ObjectDoesNotExist:
+                raise Http404
 
             if project.shared:
                 return queryset.filter(Q(id=project_id))

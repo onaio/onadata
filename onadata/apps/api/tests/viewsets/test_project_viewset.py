@@ -512,3 +512,20 @@ class TestProjectViewSet(TestAbstractViewSet):
         for project in projects:
             self.assertEqual(self.user, project.created_by)
             self.assertEqual(self.user, project.organization)
+
+    def test_projects_get_exception(self):
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+
+        # does not exists
+        response = view(request, pk=11111)
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data, {u'detail': u'Not found'})
+
+        # invalid id
+        response = view(request, pk='1w')
+        self.assertEqual(response.status_code, 400)
+        error_data = {u'detail': u'Invalid value for project_id 1w.'}
+        self.assertEqual(response.data, error_data)
