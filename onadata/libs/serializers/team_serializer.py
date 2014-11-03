@@ -19,7 +19,7 @@ class TeamSerializer(serializers.Serializer):
         queryset=User.objects.filter(
             pk__in=OrganizationProfile.objects.values('user')))
     projects = serializers.SerializerMethodField(
-        'get_default_project_permissions')
+        'get_organization_projects_with_default_role')
     users = serializers.SerializerMethodField('get_team_users')
 
     def get_team_users(self, obj):
