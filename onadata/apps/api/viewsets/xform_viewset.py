@@ -301,9 +301,9 @@ https://ona.io/api/v1/forms
 ## Set Form Information
 
 You can use `PUT` or `PATCH` http methods to update or set form data elements.
-If you are using `PUT`, you have to provide the `uuid, description, owner,
-public, public_data` fields. With `PATCH` you only need provide atleast one
-of the fields.
+If you are using `PUT`, you have to provide the `uuid, description,
+downloadable, owner, public, public_data, title` fields. With `PATCH` you only
+need provide at least one of the fields.
 
 <pre class="prettyprint">
 <b>PATCH</b> /api/v1/forms/<code>{pk}</code></pre>
@@ -600,7 +600,7 @@ You can clone a form to a specific user account using `GET` with
     lookup_field = 'pk'
     extra_lookup_fields = None
     permission_classes = [XFormPermissions, ]
-    updatable_fields = set(('description', 'require_auth',
+    updatable_fields = set(('description', 'downloadable', 'require_auth',
                             'shared', 'shared_data', 'title'))
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
                        filters.TagFilter,

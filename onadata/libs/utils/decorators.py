@@ -10,6 +10,15 @@ from pymongo.cursor import Cursor
 from onadata.apps.logger.models import XForm
 
 
+def check_obj(f):
+    @wraps(f)
+    def with_check_obj(*args, **kwargs):
+        if args[0]:
+            return f(*args, **kwargs)
+
+    return with_check_obj
+
+
 def is_owner(view_func):
     @wraps(view_func, assigned=available_attrs(view_func))
     def _wrapped_view(request, *args, **kwargs):

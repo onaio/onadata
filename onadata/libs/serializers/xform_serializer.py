@@ -7,27 +7,26 @@ from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
+from onadata.libs.utils.decorators import check_obj
 
 
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
-    url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
-                                               lookup_field='pk')
     formid = serializers.Field(source='id')
+    metadata = serializers.SerializerMethodField('get_xform_metadata')
+    owner = serializers.HyperlinkedRelatedField(view_name='user-detail',
+                                                source='user',
+                                                lookup_field='username')
+    public = BooleanField(source='shared', widget=widgets.CheckboxInput())
+    public_data = BooleanField(source='shared_data')
+    require_auth = BooleanField(source='require_auth',
+                                widget=widgets.CheckboxInput())
     submission_count_for_today = serializers.Field(
         source='submission_count_for_today')
-    title = serializers.CharField(max_length=255, source='title')
-    owner = serializers.HyperlinkedRelatedField(
-        view_name='user-detail',
-        source='user', lookup_field='username')
-    public = BooleanField(
-        source='shared', widget=widgets.CheckboxInput())
-    public_data = BooleanField(
-        source='shared_data')
-    require_auth = BooleanField(
-        source='require_auth', widget=widgets.CheckboxInput())
     tags = TagListSerializer(read_only=True)
+    title = serializers.CharField(max_length=255, source='title')
+    url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
+                                               lookup_field='pk')
     users = serializers.SerializerMethodField('get_xform_permissions')
-    metadata = serializers.SerializerMethodField('get_xform_metadata')
 
     class Meta:
         model = XForm
@@ -61,25 +60,23 @@ class XFormListSerializer(serializers.Serializer):
     def get_version(self, obj):
         return None
 
+    @check_obj
     def get_hash(self, obj):
-        if obj:
-            return u"md5:%s" % obj.hash
+        return u"md5:%s" % obj.hash
 
+    @check_obj
     def get_url(self, obj):
-        if obj:
-            kwargs = {'pk': obj.pk, 'username': obj.user.username}
-            request = self.context.get('request')
+        kwargs = {'pk': obj.pk, 'username': obj.user.username}
+        request = self.context.get('request')
 
-            return reverse('download_xform', kwargs=kwargs,
-                           request=request)
+        return reverse('download_xform', kwargs=kwargs, request=request)
 
+    @check_obj
     def get_manifest_url(self, obj):
-        if obj:
-            kwargs = {'pk': obj.pk, 'username': obj.user.username}
-            request = self.context.get('request')
+        kwargs = {'pk': obj.pk, 'username': obj.user.username}
+        request = self.context.get('request')
 
-            return reverse('manifest-url', kwargs=kwargs,
-                           request=request)
+        return reverse('manifest-url', kwargs=kwargs, request=request)
 
 
 class XFormManifestSerializer(serializers.Serializer):
@@ -87,16 +84,17 @@ class XFormManifestSerializer(serializers.Serializer):
     hash = serializers.SerializerMethodField('get_hash')
     downloadUrl = serializers.SerializerMethodField('get_url')
 
+    @check_obj
     def get_url(self, obj):
-        if obj:
-            kwargs = {'pk': obj.xform.pk, 'username': obj.xform.user.username,
-                      'metadata': obj.pk}
-            request = self.context.get('request')
-            format = obj.data_value[obj.data_value.rindex('.') + 1:]
+        kwargs = {'pk': obj.xform.pk,
+                  'username': obj.xform.user.username,
+                  'metadata': obj.pk}
+        request = self.context.get('request')
+        format = obj.data_value[obj.data_value.rindex('.') + 1:]
 
-            return reverse('xform-media', kwargs=kwargs,
-                           request=request, format=format.lower())
+        return reverse('xform-media', kwargs=kwargs,
+                       request=request, format=format.lower())
 
+    @check_obj
     def get_hash(self, obj):
-        if obj:
-            return u"%s" % (obj.file_hash or 'md5:')
+        return u"%s" % (obj.file_hash or 'md5:')
