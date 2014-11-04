@@ -32,7 +32,7 @@ class XFormPermissions(DjangoObjectPermissions):
         owner = view.kwargs.get('owner')
         is_authenticated = request and request.user.is_authenticated()
 
-        if 'pk' in view.kwargs:
+        if 'pk' in view.kwargs and view.kwargs.get('pk') != 'public':
             check_inherit_permission_from_project(view.kwargs.get('pk'),
                                                   request.user)
 

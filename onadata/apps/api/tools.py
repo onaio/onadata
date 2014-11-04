@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from django.shortcuts import get_object_or_404
 from taggit.forms import TagField
 from rest_framework import exceptions
+from rest_framework.exceptions import ParseError
 from registration.models import RegistrationProfile
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -415,7 +416,12 @@ def get_media_file_response(metadata):
 
 def check_inherit_permission_from_project(xform_id, user):
     # get the project
-    xform = XForm.objects.get(id=xform_id)
+    try:
+        int(xform_id)
+    except ValueError:
+            raise ParseError(_(u"Invalid pk {}".format(xform_id)))
+
+    xform = get_object_or_404(XForm, pk=xform_id)
     projects = ProjectXForm.objects.filter(xform=xform)
 
     if not projects:
