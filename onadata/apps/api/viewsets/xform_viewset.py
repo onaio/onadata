@@ -210,9 +210,6 @@ def log_export(request, xform, export_type):
 
 def custom_response_handler(request, xform, query, export_type,
                             token=None, meta=None):
-    if export_type in ['xml']:
-        return Response(xform.xml)
-
     export_type = _get_export_type(export_type)
 
     if export_type in external_export_types and \
