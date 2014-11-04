@@ -310,3 +310,43 @@ class TestUserPermissions(TestAbstractViewSet):
         self._org_create()
         self.assertTrue(role.OwnerRole.user_has_role(
             self.user, self.organization))
+
+    def test_form_inherits_permision_from_project(self):
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+        from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+
+        project_view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        xform_view = XFormViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        data_view = DataViewSet.as_view({'get': 'list'})
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+
+        formid = self.xform.pk
+        project_id = self.project.pk
+
+        request = self.factory.get('/', **self.extra)
+        response = xform_view(request, pk=formid)
+        self.assertEqual(response.status_code, 404)
+
+        response = data_view(request, pk=formid)
+        self.assertEqual(response.status_code, 404)
+
+        # Give owner role to the project
+        role.OwnerRole.add(self.user, self.project)
+
+        response = project_view(request, pk=project_id)
+        self.assertEqual(response.status_code, 200)
+
+        response = xform_view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+
+        response = data_view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)

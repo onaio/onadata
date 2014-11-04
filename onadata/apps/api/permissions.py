@@ -3,7 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 
 from onadata.libs.permissions import CAN_ADD_XFORM_TO_PROFILE
 from onadata.libs.permissions import CAN_CHANGE_XFORM
-from onadata.apps.api.tools import get_user_profile_or_none
+from onadata.apps.api.tools import get_user_profile_or_none, \
+    check_inherit_permission_from_project
 from onadata.apps.logger.models import XForm
 
 
@@ -30,6 +31,10 @@ class XFormPermissions(DjangoObjectPermissions):
     def has_permission(self, request, view):
         owner = view.kwargs.get('owner')
         is_authenticated = request and request.user.is_authenticated()
+
+        if 'pk' in view.kwargs:
+            check_inherit_permission_from_project(view.kwargs.get('pk'),
+                                                  request.user)
 
         if is_authenticated and view.action == 'create':
             owner = owner or request.user.username

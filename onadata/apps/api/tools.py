@@ -33,9 +33,10 @@ from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.user_auth import check_and_set_form_by_id
 from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
 from onadata.libs.data.statistics import _chk_asarray
-from onadata.libs.permissions import get_object_users_with_permissions
-from onadata.libs.permissions import OwnerRole
-from onadata.libs.permissions import ReadOnlyRole
+from onadata.libs.permissions import get_object_users_with_permissions,\
+    get_role_in_org
+from onadata.libs.permissions import OwnerRole, DataEntryRole, EditorRole,\
+    ManagerRole, ReadOnlyRole
 
 DECIMAL_PRECISION = 2
 
@@ -410,3 +411,29 @@ def get_media_file_response(metadata):
             return HttpResponseNotFound()
     else:
         return HttpResponseRedirect(metadata.data_value)
+
+
+def check_inherit_permission_from_project(xform_id, user):
+    # get the project
+    xform = XForm.objects.get(id=xform_id)
+    projects = ProjectXForm.objects.filter(xform=xform)
+
+    if not projects:
+        return
+
+    # get the project role
+    project_role = get_role_in_org(user, projects[0].project)
+    xform_role = get_role_in_org(user, xform)
+
+    if xform_role != project_role:
+
+        if project_role == 'owner':
+            OwnerRole.add(user, xform)
+        if project_role == 'manager':
+            ManagerRole.add(user, xform)
+        if project_role == 'editor':
+            EditorRole.add(user, xform)
+        if project_role == 'dataentry':
+            DataEntryRole.add(user, xform)
+        if project_role == 'readonly':
+            ReadOnlyRole.add(user, xform)
