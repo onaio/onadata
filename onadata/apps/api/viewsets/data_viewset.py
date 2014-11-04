@@ -502,6 +502,21 @@ Delete a specific submission in a form
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def retrieve(self, request, *args, **kwargs):
+        data_id = kwargs.get('dataid')
+        _format = kwargs.get('format')
+        instance = Instance.objects.get(pk=data_id)
+        if _format == 'json':
+            return Response(instance.json)
+        elif _format == 'xml':
+            return Response(instance.xml)
+        else:
+            raise ParseError(
+                _(u"'%(_format)s' format not known or not implemented!" %
+                  {'export_type': _format})
+            )
+        return Response("yes")
+
     def list(self, request, *args, **kwargs):
         lookup_field = self.lookup_field
         lookup = self.kwargs.get(lookup_field)
