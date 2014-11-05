@@ -1,6 +1,7 @@
 image: onaio/python:2.7
 services:
     - onaio/postgis
+    - onaio/mongodb
 script:
     - psql -c "CREATE USER onadata WITH PASSWORD 'onadata';" -h 127.0.0.1 -U postgres postgres
     - psql -c "CREATE DATABASE onadata_test OWNER onadata;" -h 127.0.0.1 -U postgres postgres
