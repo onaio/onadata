@@ -503,19 +503,28 @@ Delete a specific submission in a form
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def retrieve(self, request, *args, **kwargs):
-        data_id = kwargs.get('dataid')
+        data_id = str(kwargs.get('dataid'))
         _format = kwargs.get('format')
-        instance = Instance.objects.get(pk=data_id)
-        if _format == 'json':
-            return Response(instance.json)
-        elif _format == 'xml':
-            return Response(instance.xml)
-        else:
+
+        if not data_id.isdigit():
+            raise ParseError(_(u"Data ID should be an integer"))
+
+        try:
+            instance = Instance.objects.get(pk=data_id)
+            if _format == 'json' or _format is None:
+                return Response(instance.json)
+            elif _format == 'xml':
+                return Response(instance.xml)
+            else:
+                raise ParseError(
+                    _(u"'%(_format)s' format unknown or not implemented!" %
+                      {'_format': _format})
+                )
+        except Instance.DoesNotExist:
             raise ParseError(
-                _(u"'%(_format)s' format not known or not implemented!" %
-                  {'export_type': _format})
+                _(u"data with id '%(data_id)s' not found!" %
+                  {'data_id': data_id})
             )
-        return Response("yes")
 
     def list(self, request, *args, **kwargs):
         lookup_field = self.lookup_field
