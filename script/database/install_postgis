@@ -1,4 +1,4 @@
 #!/bin/bash
-createdb $1 -O $2 -h $3
+createdb $1 -O $2 -U $2 -h $3
 psql -c "CREATE EXTENSION IF NOT EXISTS postgis;" -d $1 -U $2 -h $3
 psql -c "CREATE EXTENSION IF NOT EXISTS postgis_topology;" -d $1 -U $2 -h $3
