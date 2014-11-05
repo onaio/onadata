@@ -13,14 +13,17 @@ from django.contrib.auth import authenticate
 
 from rest_framework.test import APIRequestFactory
 
-from onadata.apps.api.models import OrganizationProfile, Project
+from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.main import tests as main_tests
-from onadata.apps.logger.models import Instance, XForm, Attachment
+from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import Project
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.apps.logger.views import submission
 

@@ -1,8 +1,8 @@
 from django.db import IntegrityError
 
 from onadata.apps.api import tools
-from onadata.apps.api.models.project import Project
-from onadata.apps.api.models.project_xform import ProjectXForm
+from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.project_xform import ProjectXForm
 from onadata.apps.api.tests.models.test_abstract_models import\
     TestAbstractModels
 

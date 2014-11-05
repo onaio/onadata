@@ -2,8 +2,8 @@ from django.utils.translation import gettext as _
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 
-from onadata.apps.api.models.project import Project
-from onadata.apps.api.models.project_xform import ProjectXForm
+from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.project_xform import ProjectXForm
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.model_tools import queryset_iterator
 

@@ -9,7 +9,9 @@ from django.contrib.sites.models import Site
 from django.shortcuts import get_object_or_404
 from guardian.shortcuts import get_perms_for_model, assign_perm
 
-from onadata.apps.api.models import Project, Team, OrganizationProfile
+from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.api.models import Team
+from onadata.apps.logger.models import Project
 from onadata.apps.main.models import UserProfile
 from onadata.apps.logger.models import XForm, Note
 

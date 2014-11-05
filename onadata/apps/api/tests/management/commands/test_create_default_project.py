@@ -1,7 +1,7 @@
 from django.core.management import call_command
 
-from onadata.apps.api.models.project import Project
-from onadata.apps.api.models.project_xform import ProjectXForm
+from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.project_xform import ProjectXForm
 from onadata.apps.main.tests.test_base import TestBase
 
 

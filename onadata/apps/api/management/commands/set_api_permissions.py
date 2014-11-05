@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils.translation import gettext as _
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
-from onadata.apps.api.models.project import Project
+from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import OwnerRole
