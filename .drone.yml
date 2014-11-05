@@ -3,8 +3,7 @@ services:
     - onaio/postgis
     - onaio/mongodb
 script:
-    - psql -c "CREATE USER onadata WITH PASSWORD 'onadata';" -h 127.0.0.1 -U postgres postgres
-    - psql -c "CREATE DATABASE onadata_test OWNER onadata;" -h 127.0.0.1 -U postgres postgres
+    - ./script/database/install_postgis onadata_test postgres 127.0.0.1
     - ./script/install/ubuntu
     - pip install -qr requirements/base.pip --allow-all-external
     - pip install -q flake8
