@@ -31,7 +31,7 @@ from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.exceptions import NoRecordsFoundError
+from onadata.libs.exceptions import NoRecordsFoundError, J2XException
 from onadata.libs.utils.export_tools import generate_export,\
     should_create_new_export, generate_external_export
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
@@ -135,6 +135,9 @@ def _generate_new_export(request, xform, query, export_type):
             }, audit, request)
     except NoRecordsFoundError:
         raise Http404(_("No records found to export"))
+    except J2XException as e:
+        # j2x exception
+        return {'error': str(e)}
     else:
         return export
 
@@ -184,13 +187,13 @@ def value_for_type(form, field, value):
 
 
 def external_export_response(export):
-    if export.internal_status == Export.SUCCESSFUL:
+    if isinstance(export, Export) \
+            and export.internal_status == Export.SUCCESSFUL:
         return HttpResponseRedirect(export.export_url)
     else:
-        http_status = status.HTTP_500_INTERNAL_SERVER_ERROR
-        data = {"message": export.export_url}
+        http_status = status.HTTP_400_BAD_REQUEST
 
-    return Response(data, http_status)
+    return Response(export, http_status)
 
 
 class XFormViewSet(AnonymousUserPublicFormsMixin, LabelsMixin, ModelViewSet):
