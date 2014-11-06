@@ -30,6 +30,7 @@ librabbitmq==1.6.1
 python-digest==1.7
 django-digest==1.13
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
+python-dateutil==2.2
 
 requests==2.4.1
 elaphe==0.5.6
