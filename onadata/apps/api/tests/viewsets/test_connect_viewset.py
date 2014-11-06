@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+from django.utils.timezone import now
 from django_digest.test import DigestAuth, BasicAuth
 from mock import patch
 from rest_framework import authentication
@@ -139,6 +140,10 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
 
     def test_reset_user_password(self):
+        # set user.last_login, ensures we get same/valid token
+        # https://code.djangoproject.com/ticket/10265
+        self.user.last_login = now()
+        self.user.save()
         token = default_token_generator.make_token(self.user)
         new_password = "bobbob1"
         data = {'token': token, 'new_password': new_password}
