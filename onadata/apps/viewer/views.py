@@ -319,7 +319,7 @@ def create_export(request, username, id_string, export_type):
         'group_delimiter': group_delimiter,
         'split_select_multiples': split_select_multiples,
         'binary_select_multiples': binary_select_multiples,
-        'meta': meta
+        'meta': meta.replace(",", "") if meta else None
     }
 
     try:

@@ -33,6 +33,7 @@ from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
     DELETEDAT, USERFORM_ID, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
     SUBMISSION_TIME, UUID, TAGS, NOTES)
+from onadata.libs.exceptions import J2XException
 
 
 # this is Mongo Collection where we will store the parsed submissions
@@ -957,6 +958,11 @@ def _get_server_from_metadata(xform, meta, token):
     report_templates = MetaData.external_export(xform)
 
     if meta:
+        try:
+            int(meta)
+        except ValueError:
+            raise Exception(u"Invalid metadata pk {0}".format(meta))
+
         # Get the external server from the metadata
         result = report_templates.get(pk=meta)
         server = result.external_export_url
@@ -968,7 +974,7 @@ def _get_server_from_metadata(xform, meta, token):
         # Take the latest value in the metadata
         if not report_templates:
             raise Exception(
-                "Could not find the template token: Please upload template.")
+                u"Could not find the template token: Please upload template.")
 
         server = report_templates[0].external_export_url
         name = report_templates[0].external_export_name
@@ -1007,13 +1013,17 @@ def generate_external_export(
             if hasattr(client.xls.conn, 'last_response'):
                 status_code = client.xls.conn.last_response.status_code
         except Exception as e:
-            response = str(e)
+            raise J2XException(
+                u"J2X client could not generate report. Server -> {0},"
+                u" Error-> {1}".format(server, e)
+            )
     else:
         if not server:
-            response = "Server not set"
+            raise J2XException(u"External server not set")
         elif not records:
-            response = "No record to export"
-        status_code = 500
+            raise J2XException(
+                u"No record to export. Form -> {0}".format(id_string)
+            )
 
     # get or create export object
     if export_id:

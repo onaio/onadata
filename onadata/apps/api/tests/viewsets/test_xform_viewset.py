@@ -623,9 +623,4 @@ class TestXFormViewSet(TestAbstractViewSet):
             pk=formid,
             format='xls')
 
-        error = \
-            "('Connection aborted.', " \
-            "gaierror(-2, 'Name or service not known'))"
-        self.assertEqual(response.status_code, 500)
-        self.assertEquals(response.data,
-                          {'message': error})
+        self.assertEqual(response.status_code, 400)
