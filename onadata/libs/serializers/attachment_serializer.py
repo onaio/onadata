@@ -2,11 +2,13 @@ from rest_framework import serializers
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.image_tools import image_url
+import json
 
 
 class AttachmentSerializer(serializers.ModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name='attachment-detail',
                                                lookup_field='pk')
+    field_xpath = serializers.SerializerMethodField('get_field_xpath')
     download_url = serializers.SerializerMethodField('get_download_url')
     small_download_url = serializers.SerializerMethodField(
         'get_small_download_url')
@@ -17,8 +19,9 @@ class AttachmentSerializer(serializers.ModelSerializer):
     filename = serializers.Field(source='media_file.name')
 
     class Meta:
-        fields = ('url', 'filename', 'mimetype', 'id', 'xform', 'instance',
-                  'download_url', 'small_download_url', 'medium_download_url')
+        fields = ('url', 'filename', 'mimetype', 'field_xpath', 'id', 'xform',
+                  'instance', 'download_url', 'small_download_url',
+                  'medium_download_url')
         lookup_field = 'pk'
         model = Attachment
 
@@ -33,3 +36,10 @@ class AttachmentSerializer(serializers.ModelSerializer):
     def get_medium_download_url(self, obj):
         if obj.mimetype.startswith('image'):
             return image_url(obj, 'medium')
+
+    def get_field_xpath(self, obj):
+        qa_dict = obj.instance.get_dict()
+        question_name = qa_dict.keys()[qa_dict.values().index(obj.filename)]
+        for a in json.loads(obj.instance.xform.json)['children']:
+            if a.get('name') == question_name:
+                return a.get('label')
