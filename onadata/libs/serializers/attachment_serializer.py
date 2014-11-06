@@ -39,6 +39,9 @@ class AttachmentSerializer(serializers.ModelSerializer):
 
     def get_field_xpath(self, obj):
         qa_dict = obj.instance.get_dict()
+        if obj.filename not in qa_dict.values():
+            return None
+
         question_name = qa_dict.keys()[qa_dict.values().index(obj.filename)]
         for a in json.loads(obj.instance.xform.json)['children']:
             if a.get('name') == question_name:
