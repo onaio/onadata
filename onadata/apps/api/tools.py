@@ -415,31 +415,37 @@ def get_media_file_response(metadata):
 
 
 def check_inherit_permission_from_project(xform_id, user):
-    # get the project
+    if xform_id == 'public':
+        return
+
     try:
         int(xform_id)
     except ValueError:
             raise ParseError(_(u"Invalid pk {}".format(xform_id)))
 
-    xform = get_object_or_404(XForm, pk=xform_id)
-    projects = ProjectXForm.objects.filter(xform=xform)
+    # get the project_xform
+    projects_xform = ProjectXForm.objects.filter(xform=xform_id)
 
-    if not projects:
+    if not projects_xform:
         return
 
-    # get the project role
-    project_role = get_role_in_org(user, projects[0].project)
-    xform_role = get_role_in_org(user, xform)
+    # get and compare the project role to the xform role
+    project_role = get_role_in_org(user, projects_xform[0].project)
+    xform_role = get_role_in_org(user, projects_xform[0].xform)
 
+    # if diff set the project role to the xform
     if xform_role != project_role:
+        _set_xform_permission(project_role, user, projects_xform[0].xform)
 
-        if project_role == 'owner':
-            OwnerRole.add(user, xform)
-        if project_role == 'manager':
-            ManagerRole.add(user, xform)
-        if project_role == 'editor':
-            EditorRole.add(user, xform)
-        if project_role == 'dataentry':
-            DataEntryRole.add(user, xform)
-        if project_role == 'readonly':
-            ReadOnlyRole.add(user, xform)
+
+def _set_xform_permission(role, user, xform):
+    if role == 'owner':
+        OwnerRole.add(user, xform)
+    if role == 'manager':
+        ManagerRole.add(user, xform)
+    if role == 'editor':
+        EditorRole.add(user, xform)
+    if role == 'dataentry':
+        DataEntryRole.add(user, xform)
+    if role == 'readonly':
+        ReadOnlyRole.add(user, xform)
