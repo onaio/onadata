@@ -85,6 +85,7 @@ class XForm(BaseModel):
     instances_with_geopoints = models.BooleanField(default=False)
     num_of_submissions = models.IntegerField(default=0)
     version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True)
+    project = models.ForeignKey('Project')
 
     tags = TaggableManager()
 
