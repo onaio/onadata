@@ -4,7 +4,7 @@ from django.contrib.auth.models import User, Group
 
 from guardian.shortcuts import assign_perm, get_perms_for_model
 
-from onadata.apps.api.models.project import Project
+from onadata.apps.logger.models.project import Project
 
 
 class Team(Group):
