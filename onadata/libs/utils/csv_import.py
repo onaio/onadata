@@ -2,6 +2,11 @@ import unicodecsv as ucsv
 from cStringIO import StringIO
 from ondata.apps.api.viewsets.xform_submission_api import dict_lists2strings
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
+from django.db import transaction
+
+
+class CSVImportException(Exception):
+    pass
 
 
 def submit_csv(username, request, csv_data):
@@ -14,7 +19,16 @@ def submit_csv(username, request, csv_data):
                         'got {} instead.'.format(type(csv_data).__name__))
 
     csv_reader = ucsv.DictReader(csv_data)
-    for row in csv_reader:
-        xml_file = StringIO(dict2xform(dict_lists2strings(row),
-                                       row.get('_uuid')))
-        safe_create_instance(username, xml_file, [], None, None)
+    with transaction.atomic():
+        for row in csv_reader:
+            # fetch submission uuid before nuking row metadata
+            _uuid = row.get('_uuid')
+            # nuke metadata (keys starting with '_')
+            for key in row.keys():
+                if key.startswith('_'):
+                    del row[key]
+            xml_file = StringIO(dict2xform(dict_lists2strings(row), _uuid))
+            error, instance = safe_create_instance(
+                username, xml_file, [], None, None)
+            if error is None:
+                raise CSVImportException(error)
