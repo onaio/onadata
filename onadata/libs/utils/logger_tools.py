@@ -85,12 +85,9 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
     return instance
 
 
-def dict2xform(jsform, form_id):
-    dd = {'form_id': form_id}
-    xml_head = u"<?xml version='1.0' ?>\n<%(form_id)s id='%(form_id)s'>\n" % dd
-    xml_tail = u"\n</%(form_id)s>" % dd
-
-    return xml_head + dict2xml(jsform) + xml_tail
+def dict2xform(xform_dict, uuid, root_name=None):
+    return u'<?xml version="1.0" ?><{2} id="{0}">{1}</{2}>'.format(
+        uuid, dict2xml(xform_dict), (root_name or u'A_{}'.format(uuid)))
 
 
 def get_uuid_from_submission(xml):
