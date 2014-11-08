@@ -15,6 +15,7 @@ from registration.forms import RegistrationFormUniqueEmail
 from registration.models import RegistrationProfile
 
 from onadata.apps.main.models import UserProfile
+from onadata.apps.logger.models import Project
 from onadata.apps.viewer.models.data_dictionary import upload_to
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.logger_tools import publish_xls_form
@@ -262,7 +263,19 @@ class QuickConverterTextXlsForm(forms.Form):
 
 class QuickConverter(QuickConverterFile, QuickConverterURL,
                      QuickConverterDropboxURL, QuickConverterTextXlsForm):
+    project = forms.IntegerField(required=False)
     validate = URLValidator()
+
+    def clean_project(self):
+        project = self.cleaned_data['project']
+        if project is not None:
+            try:
+                self._project = Project.objects.get(pk=int(project))
+            except (Project.DoesNotExist, ValueError):
+                raise forms.ValidationError(
+                    _(u"Unknown project id: %s" % project))
+
+        return project
 
     def publish(self, user, id_string=None):
         if self.is_valid():
@@ -300,8 +313,26 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 xls_data = ContentFile(urllib2.urlopen(cleaned_url).read())
                 cleaned_xls_file = \
                     default_storage.save(cleaned_xls_file, xls_data)
+
+            project = self.cleaned_data['project']
+
+            if project is None:
+                name = u"{}'s Project"
+                user_projects = user.project_owner.filter(
+                    name=name, organization=user)
+                if user_projects:
+                    project = user_projects[0]
+                else:
+                    metadata = {'description': 'Default Project'}
+                    project = Project.objects.create(name=name,
+                                                     organization=user,
+                                                     created_by=user,
+                                                     metadata=metadata)
+            else:
+                project = self._project
+
             # publish the xls
-            return publish_xls_form(cleaned_xls_file, user, id_string)
+            return publish_xls_form(cleaned_xls_file, user, project, id_string)
 
 
 class ActivateSMSSupportFom(forms.Form):
