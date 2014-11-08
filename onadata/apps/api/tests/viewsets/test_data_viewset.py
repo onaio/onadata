@@ -70,6 +70,12 @@ class TestDataViewSet(TestBase):
         data = _data_instance(dataid)
         self.assertDictContainsSubset(data, sorted(response.data)[0])
 
+        data = {
+            u'_xform_id_string': u'transportation_2011_07_25',
+            u'transport/available_transportation_types_to_referral_facility':
+            u'none',
+            u'_submitted_by': u'bob',
+        }
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
@@ -96,6 +102,12 @@ class TestDataViewSet(TestBase):
 
         self.assertDictContainsSubset(data, sorted(response.data)[0])
 
+        data = {
+            u'_xform_id_string': u'transportation_2011_07_25',
+            u'transport/available_transportation_types_to_referral_facility':
+            u'none',
+            u'_submitted_by': u'bob',
+        }
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
@@ -383,6 +395,12 @@ class TestDataViewSet(TestBase):
         }
         self.assertDictContainsSubset(data, sorted(response.data)[0])
 
+        data = {
+            u'_xform_id_string': u'transportation_2011_07_25',
+            u'transport/available_transportation_types_to_referral_facility':
+            u'none',
+            u'_submitted_by': u'bob',
+        }
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
@@ -401,7 +419,7 @@ class TestDataViewSet(TestBase):
 
         self.assertEqual(response.status_code, 204)
         count = self.xform.instances.all().count()
-        self.assertEquals(before_count-1, count)
+        self.assertEquals(before_count - 1, count)
 
         self._create_user_and_login(username='alice', password='alice')
         # Only owners can delete
@@ -415,4 +433,4 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 403)
         # Nothing deleted
         count = self.xform.instances.all().count()
-        self.assertEquals(before_count-1, count)
+        self.assertEquals(before_count - 1, count)

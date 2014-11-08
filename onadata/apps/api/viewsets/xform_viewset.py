@@ -196,6 +196,56 @@ def external_export_response(export):
     return Response(export, http_status)
 
 
+def log_export(request, xform, export_type):
+    # log download as well
+    audit = {
+        "xform": xform.id_string,
+        "export_type": export_type
+    }
+    log.audit_log(
+        log.Actions.EXPORT_DOWNLOADED, request.user, xform.user,
+        _("Downloaded %(export_type)s export on '%(id_string)s'.") %
+        {
+            'id_string': xform.id_string,
+            'export_type': export_type.upper()
+        }, audit, request)
+
+
+def custom_response_handler(request, xform, query, export_type,
+                            token=None, meta=None):
+    export_type = _get_export_type(export_type)
+
+    if export_type in external_export_types and \
+            (token is not None) or (meta is not None):
+        export_type = Export.EXTERNAL_EXPORT
+
+    # check if we need to re-generate,
+    # we always re-generate if a filter is specified
+    if should_regenerate_export(xform, export_type, request):
+        export = _generate_new_export(request, xform, query, export_type)
+    else:
+        export = newset_export_for(xform, export_type)
+        if not export.filename:
+            # tends to happen when using newset_export_for.
+            export = _generate_new_export(request, xform, query, export_type)
+
+    log_export(request, xform, export_type)
+
+    if export_type == Export.EXTERNAL_EXPORT:
+        return external_export_response(export)
+
+    # get extension from file_path, exporter could modify to
+    # xlsx if it exceeds limits
+    path, ext = os.path.splitext(export.filename)
+    ext = ext[1:]
+    id_string = None if request.GET.get('raw') else xform.id_string
+    response = response_with_mimetype_and_name(
+        Export.EXPORT_MIMES[ext], id_string, extension=ext,
+        file_path=export.filepath)
+
+    return response
+
+
 class XFormViewSet(AnonymousUserPublicFormsMixin, LabelsMixin, ModelViewSet):
 
     """
@@ -679,50 +729,12 @@ You can clone a form to a specific user account using `GET` with
             # perform default viewset retrieve, no data export
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
 
-        export_type = _get_export_type(export_type)
-
-        if export_type in external_export_types and \
-                (token is not None) or (meta is not None):
-            export_type = Export.EXTERNAL_EXPORT
-
-        # check if we need to re-generate,
-        # we always re-generate if a filter is specified
-        if should_regenerate_export(xform, export_type, request):
-            export = _generate_new_export(
-                request, xform, query, export_type)
-        else:
-            export = newset_export_for(xform, export_type)
-
-        # log download as well
-        audit = {
-            "xform": xform.id_string,
-            "export_type": export_type
-        }
-        log.audit_log(
-            log.Actions.EXPORT_DOWNLOADED, request.user, xform.user,
-            _("Downloaded %(export_type)s export on '%(id_string)s'.") %
-            {
-                'id_string': xform.id_string,
-                'export_type': export_type.upper()
-            }, audit, request)
-
-        if export_type == Export.EXTERNAL_EXPORT:
-            return external_export_response(export)
-
-        if not export.filename:
-            # tends to happen when using newset_export_for.
-            raise Http404("File does not exist!")
-
-        # get extension from file_path, exporter could modify to
-        # xlsx if it exceeds limits
-        path, ext = os.path.splitext(export.filename)
-        ext = ext[1:]
-        id_string = None if request.GET.get('raw') else xform.id_string
-        response = response_with_mimetype_and_name(
-            Export.EXPORT_MIMES[ext], id_string, extension=ext,
-            file_path=export.filepath)
-
-        return response
+        return custom_response_handler(request,
+                                       xform,
+                                       query,
+                                       export_type,
+                                       token,
+                                       meta)
 
     @action(methods=['POST'])
     def share(self, request, *args, **kwargs):

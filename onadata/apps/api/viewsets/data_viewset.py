@@ -10,11 +10,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
+from rest_framework.settings import api_settings
 
+from onadata.apps.api.viewsets.xform_viewset import custom_response_handler
 from onadata.apps.api.tools import add_tags_to_instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.apps.api.permissions import XFormPermissions
@@ -337,6 +340,15 @@ Delete a specific submission in a form
 >
 >
 """
+    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
+        renderers.XLSRenderer,
+        renderers.XLSXRenderer,
+        renderers.CSVRenderer,
+        renderers.CSVZIPRenderer,
+        renderers.SAVZIPRenderer,
+        renderers.SurveyRenderer
+    ]
+
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
                        filters.XFormOwnerFilter)
     serializer_class = DataSerializer
@@ -489,3 +501,57 @@ Delete a specific submission in a form
                                          u"permissions."))
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def retrieve(self, request, *args, **kwargs):
+        data_id = str(kwargs.get('dataid'))
+        _format = kwargs.get('format')
+
+        if not data_id.isdigit():
+            raise ParseError(_(u"Data ID should be an integer"))
+
+        try:
+            instance = Instance.objects.get(pk=data_id)
+            if _format == 'json' or _format is None:
+                return Response(instance.json)
+            elif _format == 'xml':
+                return Response(instance.xml)
+            else:
+                raise ParseError(
+                    _(u"'%(_format)s' format unknown or not implemented!" %
+                      {'_format': _format})
+                )
+        except Instance.DoesNotExist:
+            raise ParseError(
+                _(u"data with id '%(data_id)s' not found!" %
+                  {'data_id': data_id})
+            )
+
+    def list(self, request, *args, **kwargs):
+        lookup_field = self.lookup_field
+        lookup = self.kwargs.get(lookup_field)
+
+        if lookup_field not in kwargs.keys():
+            self.object_list = self.filter_queryset(self.get_queryset())
+            serializer = self.get_serializer(self.object_list, many=True)
+
+            return Response(serializer.data)
+
+        if lookup == self.public_data_endpoint:
+            self.object_list = self._get_public_forms_queryset()
+
+            page = self.paginate_queryset(self.object_list)
+            if page is not None:
+                serializer = self.get_pagination_serializer(page)
+            else:
+                serializer = self.get_serializer(self.object_list, many=True)
+
+            return Response(serializer.data)
+
+        xform = self.get_object()
+        query = request.GET.get("query", {})
+        export_type = kwargs.get('format')
+        if export_type is None or export_type in ['json']:
+            # perform default viewset retrieve, no data export
+            return super(DataViewSet, self).list(request, *args, **kwargs)
+
+        return custom_response_handler(request, xform, query, export_type)
