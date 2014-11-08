@@ -14,7 +14,7 @@ def csv_submit_rollback(uuids):
     Instance.objects.filter(uuid__in=uuids).delete()
 
 
-def dict2instancexml(jsform, form_id):
+def dict2xmlsubmission(jsform, form_id):
     dd = {'form_id': form_id}
     xml_head = u"<?xml version='1.0' ?><root id='%(form_id)s'>" % dd
     xml_tail = u"</root>" % dd
@@ -48,7 +48,8 @@ def submit_csv(username, csv_data):
                 row[p] = { c : row[key] }
                 del row[key]
 
-        xml_file = StringIO(dict2instancexml(dict_lists2strings(row), row_uuid))
+        xml_file = StringIO(dict2xmlsubmission(dict_lists2strings(row),
+                                               row_uuid))
         error, instance = safe_create_instance(
             username, xml_file, [], row_uuid, None)
         if error is not None:
