@@ -19,6 +19,7 @@ from onadata.apps.logger.models import Project
 from onadata.apps.viewer.models.data_dictionary import upload_to
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.logger_tools import publish_xls_form
+from onadata.libs.utils.user_auth import get_user_default_project
 
 FORM_LICENSES_CHOICES = (
     ('No License', ugettext_lazy('No License')),
@@ -317,17 +318,7 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
             project = self.cleaned_data['project']
 
             if project is None:
-                name = u"{}'s Project"
-                user_projects = user.project_owner.filter(
-                    name=name, organization=user)
-                if user_projects:
-                    project = user_projects[0]
-                else:
-                    metadata = {'description': 'Default Project'}
-                    project = Project.objects.create(name=name,
-                                                     organization=user,
-                                                     created_by=user,
-                                                     metadata=metadata)
+                project = get_user_default_project(user)
             else:
                 project = self._project
 

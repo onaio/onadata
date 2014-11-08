@@ -156,3 +156,21 @@ def set_api_permissions_for_user(user):
         for perm in get_perms_for_model(model):
             assign_perm(
                 '%s.%s' % (perm.content_type.app_label, perm.codename), user)
+
+
+def get_user_default_project(user):
+    name = u"{}'s Project"
+    user_projects = user.project_owner.filter(
+        name=name, organization=user)
+
+    if user_projects:
+        project = user_projects[0]
+    else:
+        metadata = {'description': 'Default Project'}
+        project = Project.objects.create(
+            name=name,
+            organization=user,
+            created_by=user,
+            metadata=metadata)
+
+    return project
