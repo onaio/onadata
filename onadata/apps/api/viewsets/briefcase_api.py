@@ -29,7 +29,7 @@ from onadata.libs.renderers.renderers import TemplateXMLRenderer
 from onadata.libs.serializers.xform_serializer import XFormListSerializer
 from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
 from onadata.libs.utils.logger_tools import publish_form
-from onadata.libs.utils.logger_tools import publish_xml_form
+from onadata.libs.utils.logger_tools import PublishXForm
 
 
 def _extract_uuid(text):
@@ -60,16 +60,6 @@ def _parse_int(num):
         return num and int(num)
     except ValueError:
         pass
-
-
-class DoXmlFormUpload():
-
-    def __init__(self, xml_file, user):
-        self.xml_file = xml_file
-        self.user = user
-
-    def publish(self):
-        return publish_xml_form(self.xml_file, self.user)
 
 
 class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
@@ -170,8 +160,8 @@ class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
         data = {}
 
         if isinstance(xform_def, File):
-            do_form_upload = DoXmlFormUpload(xform_def, form_user)
-            dd = publish_form(do_form_upload.publish)
+            do_form_upload = PublishXForm(xform_def, form_user)
+            dd = publish_form(do_form_upload.publish_xform)
 
             if isinstance(dd, XForm):
                 data['message'] = _(

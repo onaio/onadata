@@ -49,6 +49,7 @@ from onadata.apps.viewer.models.parsed_instance import _remove_from_mongo,\
     xform_instances, ParsedInstance
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 OPEN_ROSA_VERSION_HEADER = 'X-OpenRosa-Version'
@@ -421,6 +422,7 @@ def publish_xls_form(xls_file, user, project, id_string=None):
             user=user, id_string=id_string, project=project)
         dd.xls = xls_file
         dd.save()
+
         return dd
     else:
         return DataDictionary.objects.create(
@@ -430,25 +432,29 @@ def publish_xls_form(xls_file, user, project, id_string=None):
         )
 
 
-def publish_xml_form(xml_file, user, id_string=None):
+def publish_xml_form(xml_file, user, project, id_string=None):
     xml = xml_file.read()
     survey = create_survey_element_from_xml(xml)
     form_json = survey.to_json()
     if id_string:
-        dd = DataDictionary.objects.get(user=user, id_string=id_string)
+        dd = DataDictionary.objects.get(
+            user=user, id_string=id_string, project=project)
         dd.xml = xml
         dd.json = form_json
         dd._mark_start_time_boolean()
         set_uuid(dd)
         dd._set_uuid_in_xml()
         dd.save()
+
         return dd
     else:
-        dd = DataDictionary(user=user, xml=xml, json=form_json)
+        dd = DataDictionary(
+            user=user, xml=xml, json=form_json, project=project)
         dd._mark_start_time_boolean()
         set_uuid(dd)
         dd._set_uuid_in_xml(file_name=xml_file.name)
         dd.save()
+
         return dd
 
 
@@ -662,3 +668,13 @@ def remove_xform(xform):
 
     # reconnect parsed instance pre delete signal?
     pre_delete.connect(_remove_from_mongo, sender=ParsedInstance)
+
+
+class PublishXForm(object):
+    def __init__(self, xml_file, user):
+        self.xml_file = xml_file
+        self.user = user
+        self.project = get_user_default_project(user)
+
+    def publish_xform(self):
+        return publish_xml_form(self.xml_file, self.user, self.project)

@@ -16,8 +16,9 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
-from onadata.libs.utils.logger_tools import publish_xml_form, publish_form, \
-    create_instance
+from onadata.libs.utils.logger_tools import create_instance
+from onadata.libs.utils.logger_tools import publish_form
+from onadata.libs.utils.logger_tools import PublishXForm
 
 NUM_RETRIES = 3
 
@@ -278,16 +279,10 @@ class BriefcaseClient(object):
 
     @transaction.autocommit
     def _upload_xform(self, path, file_name):
-        class PublishXForm(object):
-            def __init__(self, xml_file, user):
-                self.xml_file = xml_file
-                self.user = user
-
-            def publish_xform(self):
-                return publish_xml_form(self.xml_file, self.user)
         xml_file = default_storage.open(path)
         xml_file.name = file_name
         k = PublishXForm(xml_file, self.user)
+
         return publish_form(k.publish_xform)
 
     def _upload_instance(self, xml_file, instance_dir_path, files):
