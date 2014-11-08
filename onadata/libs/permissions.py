@@ -109,7 +109,6 @@ class DataEntryRole(Role):
         (CAN_ADD_SUBMISSIONS, XForm),
         (CAN_VIEW_XFORM, XForm),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_ADD_XFORM, Project),
         (CAN_VIEW_PROJECT, Project),
     )
 

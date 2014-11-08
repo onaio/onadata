@@ -154,7 +154,7 @@ using the `window.atob();` function.
             self.headers,
             last_modified_header(get_date(user_profile, 'joined')))
         user = user_profile.user
-        projects = user.project_set.all()
+        projects = user.project_stars.all()
         serializer = ProjectSerializer(projects,
                                        context={'request': request},
                                        many=True)
