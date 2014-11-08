@@ -411,21 +411,22 @@ def publish_form(callback):
         }
 
 
-def publish_xls_form(xls_file, user, id_string=None):
+def publish_xls_form(xls_file, user, project, id_string=None):
     """ Creates or updates a DataDictionary with supplied xls_file,
         user and optional id_string - if updating
     """
     # get or create DataDictionary based on user and id string
     if id_string:
         dd = DataDictionary.objects.get(
-            user=user, id_string=id_string)
+            user=user, id_string=id_string, project=project)
         dd.xls = xls_file
         dd.save()
         return dd
     else:
         return DataDictionary.objects.create(
             user=user,
-            xls=xls_file
+            xls=xls_file,
+            project=project
         )
 
 
