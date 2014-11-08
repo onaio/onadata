@@ -102,6 +102,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['gravatar'] = profile.gravatar
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
+        data['metadata'] = {}
         self.assertEqual(response.data, data)
 
         user = User.objects.get(username='deno')
@@ -120,6 +121,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['gravatar'] = profile.gravatar
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
+        data['metadata'] = {}
         self.assertEqual(response.data, data)
         self.assertNotIn('email', response.data)
 
@@ -173,6 +175,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['username'] = u'deno'
+        data['metadata'] = {}
         self.assertEqual(response.data, data)
 
         data['username'] = u'deno'

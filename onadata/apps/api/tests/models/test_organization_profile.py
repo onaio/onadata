@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 
 
 class TestOrganizationProfile(TestBase):
+
     def test_create_organization_creates_team_and_perms(self):
         # create a user - bob
         profile = tools.create_organization("modilabs", self.user)
@@ -15,6 +16,8 @@ class TestOrganizationProfile(TestBase):
 
         # check organization was created
         self.assertTrue(organization_profile.is_organization)
+
+        self.assertTrue(hasattr(profile, 'metadata'))
 
         # check that the default team was created
         team_name = "modilabs#%s" % Team.OWNER_TEAM_NAME

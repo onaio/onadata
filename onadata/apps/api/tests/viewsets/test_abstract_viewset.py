@@ -66,6 +66,7 @@ class TestAbstractViewSet(TestCase):
             'require_auth': False,
             'user': 'http://testserver/api/v1/users/bob',
             'is_org': False,
+            'metadata': {},
         }
 
     def _set_api_permissions(self, user):

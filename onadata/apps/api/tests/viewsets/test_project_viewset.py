@@ -426,7 +426,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         # ensure email not shared
         user_profile_data = self.user_profile_data()
         del user_profile_data['email']
-        user_profile_data = set(user_profile_data.items())
 
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(alice_data)
@@ -444,9 +443,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         alice_profile, bob_profile = sorted(response.data,
                                             key=itemgetter('username'))
-
-        self.assertEqual(set(bob_profile.items()),
-                         user_profile_data)
+        self.assertEquals(sorted(bob_profile.items()),
+                          sorted(user_profile_data.items()))
         self.assertEqual(alice_profile['username'], 'alice')
 
     def test_user_can_view_public_projects(self):

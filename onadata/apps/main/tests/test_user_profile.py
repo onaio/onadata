@@ -43,6 +43,7 @@ class TestUserProfile(TestCase):
         self.assertEqual(self.response.status_code, 302)
         user_profile = self.user.profile
         self.assertEqual(user_profile.city, 'Bobville')
+        self.assertTrue(hasattr(user_profile, 'metadata'))
 
     def test_disallow_non_alpha_numeric(self):
         invalid_usernames = [
@@ -72,7 +73,7 @@ class TestUserProfile(TestCase):
 
     def test_404_if_user_does_not_exist(self):
         response = self.client.get(reverse(profile,
-                                   kwargs={'username': 'nonuser'}))
+                                           kwargs={'username': 'nonuser'}))
         self.assertEqual(response.status_code, 404)
 
     def test_show_single_at_sign_in_twitter_link(self):
