@@ -41,6 +41,7 @@ CAN_VIEW_PROJECT = 'view_project'
 CAN_CHANGE_PROJECT = 'change_project'
 CAN_TRANSFER_PROJECT_OWNERSHIP = 'transfer_project'
 CAN_DELETE_PROJECT = 'delete_project'
+CAN_ADD_PROJECT_XFORM = 'add_project_xform'
 
 CAN_ADD_DATADICTIONARY = 'add_datadictionary'
 CAN_CHANGE_DATADICTIONARY = 'change_datadictionary'
@@ -106,10 +107,10 @@ class DataEntryRole(Role):
     name = 'dataentry'
     permissions = (
         (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_ADD_XFORM, Project),
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_VIEW_PROJECT, Project),
         (CAN_VIEW_XFORM, XForm),
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_ADD_XFORM, Project),
+        (CAN_VIEW_PROJECT, Project),
     )
 
 
@@ -117,12 +118,11 @@ class EditorRole(Role):
     name = 'editor'
     permissions = (
         (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_ADD_XFORM, Project),
-        (CAN_CHANGE_PROJECT, Project),
         (CAN_CHANGE_XFORM, XForm),
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_VIEW_PROJECT, Project),
         (CAN_VIEW_XFORM, XForm),
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_CHANGE_PROJECT, Project),
+        (CAN_VIEW_PROJECT, Project),
     )
 
 
@@ -131,15 +131,16 @@ class ManagerRole(Role):
     permissions = (
         (CAN_ADD_SUBMISSIONS, XForm),
         (CAN_ADD_XFORM, XForm),
-        (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
-        (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
-        (CAN_CHANGE_PROJECT, Project),
         (CAN_CHANGE_XFORM, XForm),
-        (CAN_DELETE_PROJECT, Project),
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_VIEW_PROFILE, UserProfile),
-        (CAN_VIEW_PROJECT, Project),
         (CAN_VIEW_XFORM, XForm),
+        (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
+        (CAN_VIEW_PROFILE, UserProfile),
+        (CAN_ADD_PROJECT_XFORM, Project),
+        (CAN_CHANGE_PROJECT, Project),
+        (CAN_DELETE_PROJECT, Project),
+        (CAN_VIEW_PROJECT, Project),
     )
 
 
@@ -155,7 +156,6 @@ class OwnerRole(Role):
     name = 'owner'
     permissions = (
         (CAN_ADD_SUBMISSIONS, XForm),
-        (CAN_ADD_XFORM, Project),
         (CAN_ADD_XFORM, XForm),
         (CAN_VIEW_XFORM, XForm),
         (CAN_ADD_DATADICTIONARY, XForm),
@@ -180,21 +180,11 @@ class OwnerRole(Role):
         (IS_ORGANIZATION_OWNER, OrganizationProfile),
         (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_ADD_PROJECT_XFORM, Project),
         (CAN_CHANGE_PROJECT, Project),
-        (CAN_CHANGE_XFORM, XForm),
         (CAN_DELETE_PROJECT, Project),
-        (CAN_DELETE_XFORM, XForm),
-        (CAN_MOVE_TO_FOLDER, XForm),
-        (CAN_TRANSFER_OWNERSHIP, XForm),
         (CAN_TRANSFER_PROJECT_OWNERSHIP, Project),
-        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
-        (CAN_VIEW_PROFILE, UserProfile),
         (CAN_VIEW_PROJECT, Project),
-        (CAN_VIEW_XFORM, XForm),
-        (CAN_ADD_DATADICTIONARY, XForm),
-        (CAN_CHANGE_DATADICTIONARY, XForm),
-        (CAN_DELETE_DATADICTIONARY, XForm),
-        (CAN_ADD_SUBMISSIONS, XForm),
     )
 
 ROLES_ORDERED = [ReadOnlyRole,
