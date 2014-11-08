@@ -206,7 +206,7 @@ def add_team_to_project(team, project):
 def add_xform_to_project(xform, project, creator):
     """Adds an xform to a project"""
     # remove xform from any previous relation to a project
-    xform.projectxform_set.all().delete()
+    xform.px_xforms.all().delete()
 
     # make new connection
     instance = ProjectXForm.objects.create(

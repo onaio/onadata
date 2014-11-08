@@ -180,8 +180,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=project_id)
         self.assertEqual(response.status_code, 201)
-        self.assertTrue(self.project.projectxform_set.filter(xform=self.xform))
-        self.assertFalse(old_project.projectxform_set.filter(xform=self.xform))
+        self.assertTrue(self.project.px_xforms.filter(xform=self.xform))
+        self.assertFalse(old_project.px_xforms.filter(xform=self.xform))
 
         # check if form added appears in the project details
         request = self.factory.get('/', **self.extra)
@@ -379,7 +379,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.patch('/', data=data, **self.extra)
         response = view(request, pk=projectid)
         project = Project.objects.get(pk=projectid)
-        project_xforms = project.projectxform_set.all()
+        project_xforms = project.px_xforms.all()
         xforms_status = {p.xform.shared for p in project_xforms}
         xforms_status = list(xforms_status)
         self.assertTrue(xforms_status[0])

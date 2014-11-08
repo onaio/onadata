@@ -30,7 +30,7 @@ class CommandCreateDefaultProjectTests(TestBase):
         self.assertEquals(project.name, name)
         self.assertEquals(project.metadata['description'], 'Default Project')
 
-        # Confirm projectxform created
+        # Confirm px_xforms created
         proj_xform = ProjectXForm.objects.get(xform=self.xform)
 
         self.assertEquals(project, proj_xform.project)
