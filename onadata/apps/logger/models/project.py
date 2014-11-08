@@ -57,7 +57,7 @@ def update_xform_share_settings(sender,
                                 created=False,
                                 **kwargs):
     if not created:
-        project_xforms = instance.px_xforms.exclude(
+        project_xforms = instance.px_projects.exclude(
             xform__shared=instance.shared).values_list('xform', flat=True)
         XForm.objects.filter(pk__in=project_xforms).update(
             shared=instance.shared)
