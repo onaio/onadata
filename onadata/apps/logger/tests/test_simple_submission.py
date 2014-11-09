@@ -7,6 +7,7 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.logger_tools import (
     create_instance, safe_create_instance
 )
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class TempFileProxy(object):
@@ -50,14 +51,17 @@ class TestSimpleSubmission(TestCase):
         self.user = User.objects.create(
             username="admin", email="sample@example.com")
         self.user.set_password("pass")
+        self.project = get_user_default_project(self.user)
         self.xform1 = DataDictionary()
         self.xform1.user = self.user
+        self.xform1.project = self.project
         self.xform1.json = '{"id_string": "yes_or_no", "children": [{"name": '\
                            '"yesno", "label": "Yes or no?", "type": "text"}],'\
                            ' "name": "yes_or_no", "title": "yes_or_no", "type'\
                            '": "survey"}'.strip()
         self.xform2 = DataDictionary()
         self.xform2.user = self.user
+        self.xform2.project = self.project
         self.xform2.json = '{"id_string": "start_time", "children": [{"name":'\
                            '"start_time", "type": "start"}], "name": "start_t'\
                            'ime", "title": "start_time", "type": "survey"}'\

@@ -10,6 +10,7 @@ from onadata.apps.api.viewsets.submissionstats_viewset import\
     SubmissionStatsViewSet
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.logger_tools import publish_xml_form, create_instance
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class TestStatsViewSet(TestBase):
@@ -115,7 +116,8 @@ class TestStatsViewSet(TestBase):
         xml_file = ContentFile(f.read())
         f.close()
         xml_file.name = 'contributions.xml'
-        self.xform = publish_xml_form(xml_file, self.user)
+        project = get_user_default_project(self.user)
+        self.xform = publish_xml_form(xml_file, self.user, project)
         self.assertTrue(XForm.objects.count() > count)
         instances_path = os.path.join(path, 'instances')
         for uuid in os.listdir(instances_path):

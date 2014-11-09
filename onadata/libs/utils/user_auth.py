@@ -159,7 +159,7 @@ def set_api_permissions_for_user(user):
 
 
 def get_user_default_project(user):
-    name = u"{}'s Project"
+    name = u"{}'s Project".format(user.username)
     user_projects = user.project_owner.filter(
         name=name, organization=user)
 

@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.main.models import UserProfile
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 def open_all_files(path):
@@ -47,6 +48,7 @@ class TestInstanceCreation(TestCase):
         profile, c = UserProfile.objects.get_or_create(user=self.user)
         profile.require_auth = False
         profile.save()
+        self.project = get_user_default_project(self.user)
 
         absolute_path = get_absolute_path("forms")
         open_forms = open_all_files(absolute_path)
@@ -57,7 +59,7 @@ class TestInstanceCreation(TestCase):
         for path, open_file in open_forms.items():
             XForm.objects.create(
                 xml=open_file.read(), user=self.user, json=self.json,
-                require_auth=False)
+                require_auth=False, project=self.project)
             open_file.close()
 
         self._create_water_translated_form()
@@ -70,7 +72,7 @@ class TestInstanceCreation(TestCase):
         xml = f.read()
         f.close()
         self.xform = XForm.objects.create(
-            xml=xml, user=self.user, json=self.json)
+            xml=xml, user=self.user, json=self.json, project=self.project)
 
     def test_form_submission(self):
         # no more submission to non-existent form,

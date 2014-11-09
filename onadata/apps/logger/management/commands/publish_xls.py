@@ -9,6 +9,7 @@ from pyxform.builder import create_survey_from_xls
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.utils.logger_tools import publish_xls_form
 from onadata.libs.utils.viewer_tools import django_file
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class Command(BaseCommand):
@@ -64,8 +65,10 @@ class Command(BaseCommand):
         else:
             self.stdout.write(_("Form does NOT exist, publishing ..\n"))
 
+        project = get_user_default_project(user)
+
         # publish
         xls_file = django_file(
             xls_filepath, 'xls_file', 'application/vnd.ms-excel')
-        publish_xls_form(xls_file, user, id_string)
+        publish_xls_form(xls_file, user, project, id_string)
         self.stdout.write(_("Done..\n"))

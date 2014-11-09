@@ -13,6 +13,7 @@ from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.views import export_list, map_view
 from onadata.libs.utils.logger_tools import publish_xml_form
 from onadata.libs.utils.user_auth import http_auth_string
+from onadata.libs.utils.user_auth import get_user_default_project
 from test_base import TestBase
 
 
@@ -456,7 +457,8 @@ class TestFormShow(TestBase):
         xml_file = ContentFile(f.read())
         f.close()
         xml_file.name = 'contributions.xml'
-        self.xform = publish_xml_form(xml_file, self.user)
+        project = get_user_default_project(self.user)
+        self.xform = publish_xml_form(xml_file, self.user, project)
         self.assertTrue(XForm.objects.count() > count)
         response = self.client.get(reverse(download_xlsform, kwargs={
             'username': self.user.username,

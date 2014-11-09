@@ -419,7 +419,7 @@ def publish_xls_form(xls_file, user, project, id_string=None):
     # get or create DataDictionary based on user and id string
     if id_string:
         dd = DataDictionary.objects.get(
-            user=user, id_string=id_string, project=project)
+            user=user, id_string=id_string)
         dd.xls = xls_file
         dd.save()
 

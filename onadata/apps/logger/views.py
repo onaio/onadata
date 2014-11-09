@@ -39,9 +39,9 @@ from onadata.libs.utils.logger_tools import (
     OpenRosaResponseBadRequest,
     OpenRosaResponse,
     BaseOpenRosaResponse,
+    PublishXForm,
     inject_instanceid,
     remove_xform,
-    publish_xml_form,
     publish_form)
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.decorators import is_owner
@@ -624,15 +624,6 @@ def view_download_submission(request, username):
 @require_http_methods(["HEAD", "POST"])
 @csrf_exempt
 def form_upload(request, username):
-    class DoXmlFormUpload():
-
-        def __init__(self, xml_file, user):
-            self.xml_file = xml_file
-            self.user = user
-
-        def publish(self):
-            return publish_xml_form(self.xml_file, self.user)
-
     form_user = get_object_or_404(User, username__iexact=username)
     profile, created = \
         UserProfile.objects.get_or_create(user=form_user)
@@ -651,8 +642,8 @@ def form_upload(request, username):
     xform_def = request.FILES.get('form_def_file', None)
     content = u""
     if isinstance(xform_def, File):
-        do_form_upload = DoXmlFormUpload(xform_def, form_user)
-        dd = publish_form(do_form_upload.publish)
+        do_form_upload = PublishXForm(xform_def, form_user)
+        dd = publish_form(do_form_upload.publish_xform)
         status = 201
         if isinstance(dd, XForm):
             content = _(u"%s successfully published." % dd.id_string)

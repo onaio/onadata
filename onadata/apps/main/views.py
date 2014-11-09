@@ -60,6 +60,7 @@ from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.qrcode import generate_qrcode
 from onadata.libs.utils.viewer_tools import enketo_url
 from onadata.libs.utils.export_tools import upload_template_for_external_export
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 def home(request):
@@ -96,13 +97,15 @@ def clone_xlsform(request, username):
             id_string = '_' + id_string
         path = xform.xls.name
         if default_storage.exists(path):
+            project = get_user_default_project(request.user)
             xls_file = upload_to(None, '%s%s.xls' % (
                                  id_string, XForm.CLONED_SUFFIX), to_username)
             xls_data = default_storage.open(path)
             xls_file = default_storage.save(xls_file, xls_data)
             survey = DataDictionary.objects.create(
                 user=request.user,
-                xls=xls_file
+                xls=xls_file,
+                project=project
             ).survey
             # log to cloner's account
             audit = {}
