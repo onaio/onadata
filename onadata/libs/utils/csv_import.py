@@ -1,7 +1,7 @@
 import unicodecsv as ucsv
 import uuid
 from cStringIO import StringIO
-from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
+from onadata.libs.utils.logger_tools import dict2xform, create_instance
 from onadata.apps.logger.models import Instance
 
 
@@ -44,10 +44,11 @@ def submit_csv(username, csv_data):
                 del row[key]
 
         xml_file = StringIO(dict2xmlsubmission(row, row_uuid))
-        error, instance = safe_create_instance(
-            username, xml_file, [], None, None)
-        if error is not None:
+
+        try:
+            create_instance(username, xml_file, [], None, None)
+        except:
             # there has to be a more elegant way to roll back
             # the following is a stop-gap
             csv_submit_rollback(rollback_uuids)
-            raise CSVImportException(error)
+            raise
