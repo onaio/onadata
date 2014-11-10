@@ -17,7 +17,6 @@ from django.utils.translation import ugettext as _
 from django.shortcuts import get_object_or_404
 from taggit.forms import TagField
 from rest_framework import exceptions
-from rest_framework.exceptions import ParseError
 from registration.models import RegistrationProfile
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
