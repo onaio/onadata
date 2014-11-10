@@ -214,6 +214,12 @@ def add_xform_to_project(xform, project, creator):
         xform=xform, project=project, created_by=creator)
     instance.save()
 
+    # check if the project is a public and make the form public
+    if project.shared != xform.shared:
+        xform.shared = project.shared
+        xform.shared_data = project.shared
+        xform.save()
+
     for perm in get_object_users_with_permissions(project):
         user = perm['user']
 

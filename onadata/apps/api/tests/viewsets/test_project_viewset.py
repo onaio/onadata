@@ -528,3 +528,31 @@ class TestProjectViewSet(TestAbstractViewSet):
         error_data = {u'detail': u"Invalid value for project_id '1w' must be a"
                                  " positive integer."}
         self.assertEqual(response.data, error_data)
+
+    def test_publish_to_public_project(self):
+        public_project = Project(name='demo',
+                                 shared=True,
+                                 metadata=json.dumps({'description': ''}),
+                                 created_by=self.user,
+                                 organization=self.user)
+        public_project.save()
+
+        self.project = public_project
+        data = {
+            'owner': 'http://testserver/api/v1/users/%s'
+            % self.project.organization.username,
+            'public': True,
+            'public_data': True,
+            'description': u'transportation_2011_07_25',
+            'downloadable': True,
+            'allows_sms': False,
+            'encrypted': False,
+            'sms_id_string': u'transportation_2011_07_25',
+            'id_string': u'transportation_2011_07_25',
+            'title': u'transportation_2011_07_25',
+            'bamboo_dataset': u''
+        }
+        self._publish_xls_form_to_project(publish_data=data)
+
+        self.assertEquals(self.xform.shared, True)
+        self.assertEquals(self.xform.shared_data, True)

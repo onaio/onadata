@@ -173,7 +173,7 @@ class TestAbstractViewSet(TestCase):
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
 
-    def _publish_xls_form_to_project(self):
+    def _publish_xls_form_to_project(self, publish_data={}, merge=True):
         if not hasattr(self, 'project'):
             self._project_create()
         elif self.project.created_by != self.user:
@@ -182,21 +182,27 @@ class TestAbstractViewSet(TestCase):
         view = ProjectViewSet.as_view({
             'post': 'forms'
         })
+
         project_id = self.project.pk
-        data = {
-            'owner': 'http://testserver/api/v1/users/%s'
-            % self.project.organization.username,
-            'public': False,
-            'public_data': False,
-            'description': u'transportation_2011_07_25',
-            'downloadable': True,
-            'allows_sms': False,
-            'encrypted': False,
-            'sms_id_string': u'transportation_2011_07_25',
-            'id_string': u'transportation_2011_07_25',
-            'title': u'transportation_2011_07_25',
-            'bamboo_dataset': u''
-        }
+        if merge:
+            data = {
+                'owner': 'http://testserver/api/v1/users/%s'
+                % self.project.organization.username,
+                'public': False,
+                'public_data': False,
+                'description': u'transportation_2011_07_25',
+                'downloadable': True,
+                'allows_sms': False,
+                'encrypted': False,
+                'sms_id_string': u'transportation_2011_07_25',
+                'id_string': u'transportation_2011_07_25',
+                'title': u'transportation_2011_07_25',
+                'bamboo_dataset': u''
+            }
+            data.update(publish_data)
+        else:
+            data = publish_data
+
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
