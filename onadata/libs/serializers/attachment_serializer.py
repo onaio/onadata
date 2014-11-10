@@ -45,12 +45,11 @@ class AttachmentSerializer(serializers.ModelSerializer):
         question_name = qa_dict.keys()[qa_dict.values().index(obj.filename)]
         json_for_xform = json.loads(obj.instance.xform.json)['children']
         for a in json_for_xform:
-            # if node has no 'children' field, it isn't a group
             if a.get('children') is None and a.get('name') == question_name:
                 return a.get('name')
-            elif a.get('children') is not None:
+            elif a.get('children') is not None and a.get('type') == 'group':
                 for b in a.get('children'):
-                    if b.get('name') == 'shape':
+                    if b.get('name') == question_name:
                         return "%s/%s" % (a.get('name'), b.get('name'))
 
         return None
