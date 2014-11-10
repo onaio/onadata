@@ -427,7 +427,7 @@ def check_inherit_permission_from_project(xform_id, user):
     try:
         int(xform_id)
     except ValueError:
-            raise ParseError(_(u"Invalid pk {}".format(xform_id)))
+        return
 
     # get the project_xform
     projects_xform = ProjectXForm.objects.filter(xform=xform_id)
