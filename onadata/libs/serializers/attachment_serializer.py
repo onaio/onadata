@@ -46,7 +46,8 @@ class AttachmentSerializer(serializers.ModelSerializer):
         json_for_xform = json.loads(obj.instance.xform.json)['children']
 
         def get_path(data, num, question):
-            if (num + 1) >= len(data):
+            index = num + 1
+            if index >= len(data):
                 return None
             val = data[num]
             if val.get('name') == question:
@@ -56,7 +57,7 @@ class AttachmentSerializer(serializers.ModelSerializer):
                 for a in val.get('children'):
                     if a.get('name') == question:
                         return "%s/%s" % (val.get('name'), a.get('name'))
-                return get_path(data, num + 1, question)
+                return get_path(data, index, question)
             else:
-                return get_path(data, num + 1, question)
+                return get_path(data, index, question)
         return get_path(json_for_xform, 0, question_name)
