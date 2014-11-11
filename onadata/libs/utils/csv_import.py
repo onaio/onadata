@@ -17,12 +17,24 @@ def csv_submit_rollback(uuids):
 
 
 def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
+    uuid_arg = 'uuid:{}'.format(instance_id)
+    meta = {'instanceID': uuid_arg}
+
+    if len(xform.instances.filter(uuid=instance_id)) > 0:
+        uuid_arg = 'uuid:{}'.format(uuid.uuid4())
+        meta.update({'instanceID': uuid_arg,
+                     'deprecatedID': 'uuid:{}'.format(instance_id)})
+
+    old_meta = submission_dict.get('meta', {})
+    old_meta.update(meta)
+    submission_dict.update({'meta': old_meta})
+
     return (u'<?xml version="1.0" ?>'
-            '<{0} id="{1}" instanceID="uuid:{2}" submissionDate="{3}" '
+            '<{0} id="{1}" instanceID="{2}" submissionDate="{3}" '
             'xmlns="http://opendatakit.org/submissions">{4}'
             '</{0}>'.format(
                 json.loads(xform.json).get('name', xform.id_string),
-                xform.id_string, instance_id, submission_date,
+                xform.id_string, uuid_arg, submission_date,
                 dict2xml(submission_dict).replace('\n', '')))
 
 

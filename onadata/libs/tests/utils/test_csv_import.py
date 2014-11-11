@@ -67,3 +67,17 @@ class CSVImportTransactionTestCase(TestBase):
         self.assertEqual(
             len(Instance.objects.filter(uuid__in=self.submit_uuids)),
             9, u'submit_csv test Failed!')
+
+    def test_submit_csv_edits(self):
+        csv_import.submit_csv(u'TestUser', self.xform, self.good_csv)
+        self.assertEqual(
+            len(Instance.objects.filter(uuid__in=self.submit_uuids)),
+            9, u'submit_csv test Failed!')
+
+        self.good_csv.seek(0)
+
+        count = Instance.objects.count()
+        csv_import.submit_csv(u'TestUser', self.xform, self.good_csv)
+        self.assertEqual(
+            Instance.objects.count(),
+            count, u'submit_csv test Failed!')
