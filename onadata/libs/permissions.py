@@ -8,6 +8,7 @@ from guardian.shortcuts import (
     get_users_with_perms)
 
 from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.api.models.team import Team
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models import XForm
 from onadata.apps.api.models import Project
@@ -40,13 +41,17 @@ class Role(object):
     name = None
 
     @classmethod
-    def _remove_obj_permissions(self, user, obj):
+    def _remove_obj_permissions(cls, user, obj):
         content_type = ContentType.objects.get(
             model=obj.__class__.__name__.lower(),
             app_label=obj.__class__._meta.app_label
         )
-        object_permissions = user.userobjectpermission_set.filter(
-            object_pk=obj.pk, content_type=content_type)
+        if isinstance(user, Team):
+            object_permissions = user.groupobjectpermission_set.filter(
+                object_pk=obj.pk, content_type=content_type)
+        else:
+            object_permissions = user.userobjectpermission_set.filter(
+                object_pk=obj.pk, content_type=content_type)
 
         for perm in object_permissions:
             remove_perm(perm.permission.codename, user, obj)
@@ -216,3 +221,8 @@ def get_object_users_with_permissions(obj, exclude=None):
             users_with_perms if not is_organization(user.profile)]
 
     return result
+
+
+def get_team_project_default_permissions(team, project):
+    perms = get_perms(team, project)
+    return get_role(perms, project) or ""

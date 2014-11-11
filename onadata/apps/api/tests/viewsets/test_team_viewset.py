@@ -3,7 +3,11 @@ import json
 from onadata.apps.api.models import Team
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
+
+from onadata.apps.api import tools
+from onadata.apps.api.models.project import Project
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
+from onadata.libs.permissions import ReadOnlyRole, DataEntryRole
 
 
 class TestTeamViewSet(TestAbstractViewSet):
@@ -27,6 +31,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         owner_team = {
+            'teamid': self.owner_team.pk,
             'url':
             'http://testserver/api/v1/teams/%s' % self.owner_team.pk,
             'name': u'Owners',
@@ -68,6 +73,7 @@ class TestTeamViewSet(TestAbstractViewSet):
             organization=self.organization.user,
             name='%s#%s' % (self.organization.user.username, data['name']))
         data['url'] = 'http://testserver/api/v1/teams/%s' % team.pk
+        data['teamid'] = team.id
         self.assertDictContainsSubset(data, response.data)
         self.team_data = response.data
         self.team = team
@@ -161,3 +167,33 @@ class TestTeamViewSet(TestAbstractViewSet):
         self.assertEqual(response.data,
                          [])
         self.assertNotIn(self.team.group_ptr, self.user.groups.all())
+
+    def test_set_default_project_permissions(self):
+        self._team_create()
+        project = Project.objects.create(name="Test Project",
+                                         organization=self.team.organization,
+                                         created_by=self.user,
+                                         metadata='{}')
+        chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
+        chuck_profile = self._create_user_profile(chuck_data)
+        user_chuck = chuck_profile.user
+
+        tools.add_user_to_team(self.team, user_chuck)
+        view = TeamViewSet.as_view({
+            'post': 'default_permissions'})
+
+        ROLES = [ReadOnlyRole,
+                 DataEntryRole]
+
+        for role_class in ROLES:
+            self.assertFalse(role_class.user_has_role(user_chuck,
+                                                      project))
+            data = {'role': role_class.name,
+                    'project': project.pk}
+            request = self.factory.post(
+                '/', data=json.dumps(data),
+                content_type="application/json", **self.extra)
+            response = view(request, pk=self.team.pk)
+
+            self.assertEqual(response.status_code, 204)
+            self.assertTrue(role_class.user_has_role(user_chuck, project))
