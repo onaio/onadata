@@ -40,6 +40,7 @@ from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.string import str2bool
 
+from onadata.libs.utils.csv_import import submit_csv
 from onadata.libs.utils.viewer_tools import _get_form_url
 
 EXPORT_EXT = {
@@ -778,3 +779,17 @@ You can clone a form to a specific user account using `GET` with
 
         return Response(data=serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['POST'])
+    def csv_import(self, request, *args, **kwargs):
+        resp = submit_csv(request.user.username,
+                          self.get_object(),
+                          request.FILES.get('csv_file'))
+        if isinstance(resp, int):
+            status = 200
+            data = {'inserts': resp}
+        else:
+            status = 400
+            data = {'error': resp}
+
+        return Response(data=data, status=status)

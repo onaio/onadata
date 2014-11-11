@@ -1,72 +1,57 @@
 import mock
-import unittest
 import os
+from cStringIO import StringIO
 from django.conf import settings
-from django.test import TransactionTestCase
 from onadata.libs.utils import csv_import
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Instance
-from onadata.apps.logger.xform_instance_parser import DuplicateInstance
-from django.contrib.auth.models import AnonymousUser, User
 from onadata.apps.main.tests.test_base import TestBase
 
 
-class CSVImportTestCase(unittest.TestCase):
+class CSVImportTestCase(TestBase):
 
     def setUp(self):
         super(CSVImportTestCase, self).setUp()
+        self.fixtures_dir = os.path.join(settings.PROJECT_ROOT,
+                                         'libs', 'tests', 'fixtures')
+        self.good_csv = open(os.path.join(self.fixtures_dir, 'good.csv'))
+        self.bad_csv = open(os.path.join(self.fixtures_dir, 'bad.csv'))
+        xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xls')
+        self._publish_xls_file(xls_file_path)
+        self.xform = XForm.objects.get()
 
-    @mock.patch('onadata.libs.utils.csv_import.get_submission_meta_dict',
-                mock.Mock(return_value={'instanceID': '1234567'}))
     def test_submit_csv_param_sanity_check(self):
         with self.assertRaises(Exception):
             # pass an int to check failure
             csv_import.submit_csv(u'userX', XForm(), 123456)
 
+    @mock.patch('onadata.libs.utils.csv_import.create_instance')
+    def test_submit_csv_xml_(self, create_instance):
+        csv_import.submit_csv(u'userX', self.xform, self.good_csv)
+#        create_instance.assert_called_with()
 
-
-class CSVImportTransactionTestCase(TestBase):
-
-    def setUp(self):
-        super(CSVImportTransactionTestCase, self).setUp()
-        fixtures_dir = os.path.join(settings.PROJECT_ROOT,
-                                    'libs', 'tests', 'fixtures')
-        self.good_csv = open(os.path.join(fixtures_dir, 'good.csv'))
-        self.bad_csv = open(os.path.join(fixtures_dir, 'bad.csv'))
-        # xls_file_path = open(os.path.join(fixtures_dir, 'tutorial.xls'))
-        xls_file_path = os.path.join(fixtures_dir, 'tutorial.xls')
-
-        self.user = User.objects.create_user(username='TestUser',
-                                             email='T@X',
-                                             password='secret')
-        self._publish_xls_file(xls_file_path)
-        self.xform = XForm.objects.get()
-
-    def test_submit_csv_rollback(self):
+    def test_submit_csv_and_rollback(self):
         count = Instance.objects.count()
-        with self.assertRaises(ValueError):
-            csv_import.submit_csv(u'TestUser', self.xform, self.bad_csv)
+        csv_import.submit_csv(self.user.username, self.xform, self.good_csv)
+        self.assertEqual(Instance.objects.count(),
+                         count + 9, u'submit_csv test Failed!')
+        # Check that correct # of submissions belong to our user
         self.assertEqual(
-            Instance.objects.count(),
-            count, u'submit_csv rollback failed!')
-
-    def test_submit_csv(self):
-        count = Instance.objects.count()
-        csv_import.submit_csv(u'TestUser', self.xform, self.good_csv)
-        self.assertEqual(
-            Instance.objects.count(),
-            count + 9, u'submit_csv test Failed!')
+            Instance.objects.filter(user=self.user).count(),
+            count + 8, u'submit_csv username check failed!')
 
     def test_submit_csv_edits(self):
-        csv_import.submit_csv(u'TestUser', self.xform, self.good_csv)
-        self.assertEqual(
-            len(Instance.objects.filter(uuid__in=self.submit_uuids)),
-            9, u'submit_csv test Failed!')
+        csv_import.submit_csv(self.user.username, self.xform, self.good_csv)
+        self.assertEqual(Instance.objects.count(),
+                         9, u'submit_csv edits #1 test Failed!')
 
-        self.good_csv.seek(0)
+        edit_csv = open(os.path.join(self.fixtures_dir, 'edit.csv'))
+        edit_csv_str = edit_csv.read()
+
+        edit_csv = StringIO(edit_csv_str.format(
+            *[x.get('uuid') for x in Instance.objects.values('uuid')]))
 
         count = Instance.objects.count()
-        csv_import.submit_csv(u'TestUser', self.xform, self.good_csv)
-        self.assertEqual(
-            Instance.objects.count(),
-            count, u'submit_csv test Failed!')
+        csv_import.submit_csv(self.user.username, self.xform, edit_csv)
+        self.assertEqual(Instance.objects.count(),
+                         count, u'submit_csv edits #2 test Failed!')
