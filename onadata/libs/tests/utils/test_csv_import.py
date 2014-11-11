@@ -16,15 +16,13 @@ class CSVImportTestCase(unittest.TestCase):
     def setUp(self):
         super(CSVImportTestCase, self).setUp()
 
+    @mock.patch('onadata.libs.utils.csv_import.get_submission_meta_dict',
+                mock.Mock(return_value={'instanceID': '1234567'}))
     def test_submit_csv_param_sanity_check(self):
-        with self.assertRaises(TypeError):
+        with self.assertRaises(Exception):
             # pass an int to check failure
-            csv_import.submit_csv(u'userX', 123456)
+            csv_import.submit_csv(u'userX', XForm(), 123456)
 
-        try:
-            csv_import.submit_csv(u'userX', u'<Fake>XML</Fake>')
-        except csv_import.CSVImportException:
-            self.fail(u'submit_csv failed param sanity check')
 
 
 class CSVImportTransactionTestCase(TestBase):
@@ -43,30 +41,21 @@ class CSVImportTransactionTestCase(TestBase):
                                              password='secret')
         self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.get()
-        self.submit_uuids = [
-            u'685dd371-4831-4fdc-a205-f285337dd98d',
-            u'e92dad0d-ee3f-41eb-82d0-4cc0e7f12cb9',
-            u'0b6d4344-6f64-41bc-8bab-a46a5493f9ad',
-            u'15148861-93bc-45b8-ab56-6a9242c5a79d',
-            u'137e1fb7-81a3-43ae-9039-6f6f599d55a6',
-            u'fb0af0bf-d476-4136-a51f-13d84f6f9d62',
-            u'f70bce6b-1785-43fd-8904-e8bb0975838a',
-            u'db78c788-2ea3-4250-ab32-866e946811b6',
-            u'0e1accb5-1c43-4789-ad2f-b9c663bbbc5d']
 
-    def test_submit_csv_fail(self):
-        with self.assertRaises(DuplicateInstance):
+    def test_submit_csv_rollback(self):
+        count = Instance.objects.count()
+        with self.assertRaises(ValueError):
             csv_import.submit_csv(u'TestUser', self.xform, self.bad_csv)
-
         self.assertEqual(
-            len(Instance.objects.filter(uuid__in=self.submit_uuids)),
-            0, u'submit_csv atomicity test Failed!')
+            Instance.objects.count(),
+            count, u'submit_csv rollback failed!')
 
     def test_submit_csv(self):
+        count = Instance.objects.count()
         csv_import.submit_csv(u'TestUser', self.xform, self.good_csv)
         self.assertEqual(
-            len(Instance.objects.filter(uuid__in=self.submit_uuids)),
-            9, u'submit_csv test Failed!')
+            Instance.objects.count(),
+            count + 9, u'submit_csv test Failed!')
 
     def test_submit_csv_edits(self):
         csv_import.submit_csv(u'TestUser', self.xform, self.good_csv)
