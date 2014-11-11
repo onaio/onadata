@@ -255,6 +255,19 @@ class TestDataViewSet(TestBase):
         for i in self.xform.instances.all():
             self.assertNotIn(u'hello', i.tags.names())
 
+    def test_labels_action_with_params(self):
+        self._make_submissions()
+        xform = XForm.objects.all()[0]
+        pk = xform.id
+        dataid = xform.instances.all()[0].id
+        view = DataViewSet.as_view({
+            'get': 'labels'
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=pk, dataid=dataid, label='hello')
+        self.assertEqual(response.status_code, 200)
+
     def test_data_list_filter_by_user(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})

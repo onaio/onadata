@@ -16,7 +16,6 @@ from onadata.apps.api.viewsets.xform_viewset import custom_response_handler
 from onadata.apps.api.tools import add_tags_to_instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -431,11 +430,9 @@ Delete a specific submission in a form
         return qs
 
     @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
-    def labels(self, request, formid, dataid, **kwargs):
-        self.object = self.get_object()
+    def labels(self, request, *args, **kwargs):
         http_status = status.HTTP_400_BAD_REQUEST
-        instance = get_object_or_404(ParsedInstance,
-                                     instance__pk=int(dataid)).instance
+        instance = self.get_object()
 
         if request.method == 'POST':
             if add_tags_to_instance(request, instance):
