@@ -63,7 +63,6 @@ class CSVImportTransactionTestCase(TestBase):
             0, u'submit_csv atomicity test Failed!')
 
     def test_submit_csv(self):
-        import ipdb; ipdb.set_trace()
         csv_import.submit_csv(u'TestUser', self.xform, self.good_csv)
         self.assertEqual(
             len(Instance.objects.filter(uuid__in=self.submit_uuids)),

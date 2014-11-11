@@ -1,5 +1,6 @@
 import unicodecsv as ucsv
 import uuid
+import json
 
 from cStringIO import StringIO
 from datetime import datetime
@@ -15,12 +16,14 @@ def csv_submit_rollback(uuids):
     Instance.objects.filter(uuid__in=uuids).delete()
 
 
-def dict2xmlsubmission(submission_dict, form_id, instance_id, submission_date):
+def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
     return (u'<?xml version="1.0" ?>'
-            '<{0} id="{0}" instanceID="uuid:{1}" submissionDate="{2}" '
-            'xmlns="http://opendatakit.org/submissions">{3}'
-            '</{0}>'.format(form_id, instance_id, submission_date,
-                            dict2xml(submission_dict).replace('\n', '')))
+            '<{0} id="{1}" instanceID="uuid:{2}" submissionDate="{3}" '
+            'xmlns="http://opendatakit.org/submissions">{4}'
+            '</{0}>'.format(
+                json.loads(xform.json).get('name', xform.id_string),
+                xform.id_string, instance_id, submission_date,
+                dict2xml(submission_dict).replace('\n', '')))
 
 
 def submit_csv(username, xform, csv_data):
@@ -55,7 +58,7 @@ def submit_csv(username, xform, csv_data):
         # inject our form's uuid into the submission
         row.update(ona_uuid)
 
-        xml_file = StringIO(dict2xmlsubmission(row, xform.id_string, row_uuid,
+        xml_file = StringIO(dict2xmlsubmission(row, xform, row_uuid,
                                                submission_date))
 
         try:
