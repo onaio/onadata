@@ -87,7 +87,7 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
 
 def dict2xform(xform_dict, uuid, root_name=None):
     return u'<?xml version="1.0" ?><{2} id="{0}">{1}</{2}>'.format(
-        uuid, dict2xml(xform_dict), (root_name or u'A_{}'.format(uuid)))
+        uuid, dict2xml(xform_dict), (root_name or u'root_{}'.format(uuid)))
 
 
 def get_uuid_from_submission(xml):
