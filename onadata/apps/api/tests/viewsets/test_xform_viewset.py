@@ -4,6 +4,7 @@ import os
 import re
 import requests
 import pytz
+import time
 
 from datetime import datetime
 from django.utils import timezone
@@ -248,6 +249,11 @@ class TestXFormViewSet(TestAbstractViewSet):
             response_doc.getElementsByTagName("h:head")[0].childNodes
             if n.nodeType == Node.ELEMENT_NODE and
             n.tagName == "model"][0]
+
+        # remove the version attribute
+        transportation_node = \
+            model_node.getElementsByTagName("transportation")[0]
+        transportation_node.removeAttribute("version")
 
         # check for UUID and remove
         uuid_nodes = [
@@ -556,7 +562,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             'allows_sms': False,
             'uuid': u'',
             'instances_with_geopoints': False,
-            'num_of_submissions': 0
+            'num_of_submissions': 0,
+            'version': u''
         }
         self.assertEqual(data, XFormSerializer(None).data)
 
@@ -663,3 +670,31 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 400)
         self.assertIsNotNone(response.data.get('error'))
+
+    def test_update_xform(self):
+        self._publish_xls_form_to_project()
+        version = self.xform.version
+        form_id = self.xform.pk
+
+        # sleep for 3 sec to ensure the versions are diff
+        time.sleep(3)
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update',
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation_updated.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+
+            self.assertEqual(response.status_code, 200)
+
+        self.xform.reload()
+        new_version = self.xform.version
+
+        self.assertNotEquals(version, new_version)
+        self.assertEquals(form_id, self.xform.pk)

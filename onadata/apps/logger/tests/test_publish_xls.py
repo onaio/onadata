@@ -91,3 +91,13 @@ class TestPublishXLS(TestBase):
             report_exception(subject="Test report exception", info=e)
         except Exception as e:
             raise AssertionError("%s" % e)
+
+    def test_publish_xls_version(self):
+        xls_file_path = os.path.join(
+            self.this_directory, "fixtures",
+            "transportation", "transportation.xls")
+        count = XForm.objects.count()
+        call_command('publish_xls', xls_file_path, self.user.username)
+        self.assertEqual(XForm.objects.count(), count + 1)
+        form = XForm.objects.get()
+        self.assertIsNotNone(form.version)
