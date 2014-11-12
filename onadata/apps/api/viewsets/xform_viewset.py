@@ -11,7 +11,7 @@ from django.utils import six
 
 from rest_framework import exceptions
 from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, detail_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
@@ -780,7 +780,7 @@ You can clone a form to a specific user account using `GET` with
         return Response(data=serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['POST'])
+    @detail_route(methods=['POST'])
     def csv_import(self, request, *args, **kwargs):
         resp = submit_csv(request.user.username,
                           self.get_object(),

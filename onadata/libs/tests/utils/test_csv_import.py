@@ -25,6 +25,18 @@ class CSVImportTestCase(TestBase):
             # pass an int to check failure
             csv_import.submit_csv(u'userX', XForm(), 123456)
 
+    @mock.patch('onadata.libs.utils.csv_import.safe_create_instance')
+    def test_submit_csv_xml_params(self, safe_create_instance):
+        import ipdb; ipdb.set_trace()
+        safe_create_instance.return_value = [None, {}]
+        single_csv = open(os.path.join(self.fixtures_dir, 'single.csv'))
+        csv_import.submit_csv(self.user.username, self.xform, single_csv)
+        xml_file_param = StringIO(open(os.path.join(self.fixtures_dir,
+                                                    'single.csv')).read())
+        safe_create_instance.assert_called_with(self.user.username,
+                                                xml_file_param, [],
+                                                self.xform.uuid, None)
+
     def test_submit_csv_and_rollback(self):
         count = Instance.objects.count()
         csv_import.submit_csv(self.user.username, self.xform, self.good_csv)

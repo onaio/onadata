@@ -14,6 +14,7 @@ class CSVImportException(Exception):
 
 
 def get_submission_meta_dict(xform, instance_id):
+    """ generate metadata for our submission """
     uuid_arg = 'uuid:{}'.format(uuid.uuid4())
     meta = {'instanceID': uuid_arg}
 
