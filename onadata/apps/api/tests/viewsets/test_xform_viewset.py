@@ -250,11 +250,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             if n.nodeType == Node.ELEMENT_NODE and
             n.tagName == "model"][0]
 
-        # remove the version attribute
-        transportation_node = \
-            model_node.getElementsByTagName("transportation")[0]
-        transportation_node.removeAttribute("version")
-
         # check for UUID and remove
         uuid_nodes = [
             node for node in model_node.childNodes
@@ -265,7 +260,9 @@ class TestXFormViewSet(TestAbstractViewSet):
         uuid_node.setAttribute("calculate", "''")
 
         # check content without UUID
-        self.assertEqual(response_doc.toxml(), expected_doc.toxml())
+        response_xml = response_doc.toxml().replace(
+            self.xform.version, u"20141112071722")
+        self.assertEqual(response_xml, expected_doc.toxml())
 
     def test_form_tags(self):
         self._publish_xls_form_to_project()

@@ -12,7 +12,7 @@
         </translation>
       </itext>
       <instance>
-        <exp_line_break id="exp_line_break">
+        <exp_line_break id="exp_line_break" version="20141112071722">
           <formhub>
             <uuid/>
           </formhub>

@@ -222,8 +222,10 @@ class TestProcess(TestBase):
         uuid_node = uuid_nodes[0]
         uuid_node.setAttribute("calculate", "''")
 
+        response_xml = response_doc.toxml().replace(
+            self.xform.version, u"20141112071722")
         # check content without UUID
-        self.assertEqual(response_doc.toxml(), expected_doc.toxml())
+        self.assertEqual(response_xml, expected_doc.toxml())
 
     def _check_csv_export(self):
         self._check_data_dictionary()

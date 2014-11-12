@@ -202,6 +202,8 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             form_xml = f.read().strip()
             data = {"form_uuid": self.xform.uuid}
             content = response.render().content.strip()
+            content = content.replace(
+                self.xform.version, u"20141112071722")
             self.assertEqual(content, form_xml % data)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(

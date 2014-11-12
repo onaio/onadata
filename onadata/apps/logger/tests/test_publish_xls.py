@@ -61,6 +61,7 @@ class TestPublishXLS(TestBase):
         xform = xforms[0]
         xform.xml = xform.xml.replace(
             xform.uuid, '663123a849e54bffa8f9832ef016bfac')
+        xform.xml = xform.xml.replace(xform.version, u'20141112071722')
         xform.save()
         f = codecs.open(test_xml_file_path, 'w', encoding="utf-8")
         f.write(xform.xml)
