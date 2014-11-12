@@ -782,9 +782,13 @@ You can clone a form to a specific user account using `GET` with
 
     @detail_route(methods=['POST'])
     def csv_import(self, request, *args, **kwargs):
-        resp = submit_csv(request.user.username,
-                          self.get_object(),
-                          request.FILES.get('csv_file'))
+        try:
+            resp = submit_csv(request.user.username,
+                              self.get_object(),
+                              request.FILES.get('csv_file'))
+        except ValueError as e:
+            resp = e.message
+
         if isinstance(resp, int):
             status = 200
             data = {'inserts': resp}
