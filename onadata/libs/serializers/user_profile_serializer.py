@@ -48,13 +48,13 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     user = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     metadata = JsonField(source='metadata', required=False)
+    id = serializers.Field(source='user.id')
 
     class Meta:
         model = UserProfile
-        fields = ('is_org', 'url', 'username', 'name', 'password', 'email',
-                  'city',
-                  'country', 'organization', 'website', 'twitter', 'gravatar',
-                  'require_auth', 'user', 'metadata')
+        fields = ('id', 'is_org', 'url', 'username', 'name', 'password',
+                  'email', 'city', 'country', 'organization', 'website',
+                  'twitter', 'gravatar', 'require_auth', 'user', 'metadata')
         lookup_field = 'user'
 
     def is_organization(self, obj):

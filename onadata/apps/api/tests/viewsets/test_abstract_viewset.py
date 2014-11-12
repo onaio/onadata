@@ -53,6 +53,7 @@ class TestAbstractViewSet(TestCase):
 
     def user_profile_data(self):
         return {
+            'id': self.user.pk,
             'url': 'http://testserver/api/v1/profiles/bob',
             'username': u'bob',
             'name': u'Bob',

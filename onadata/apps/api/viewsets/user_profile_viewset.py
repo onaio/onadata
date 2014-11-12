@@ -62,6 +62,7 @@ List, Retrieve, Update, Create/Register users.
 ## Retrieve User Profile Information
 
 <pre class="prettyprint"><b>GET</b> /api/v1/profiles/{username}</pre>
+<pre class="prettyprint"><b>GET</b> /api/v1/profiles/{pk}</pre>
 > Example
 >
 >       curl -X GET https://ona.io/api/v1/profiles/demo

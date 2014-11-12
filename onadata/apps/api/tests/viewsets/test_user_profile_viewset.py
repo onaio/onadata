@@ -106,6 +106,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         del data['password']
         profile = UserProfile.objects.get(user__username=data['username'])
+        data['id'] = profile.user.pk
         data['gravatar'] = profile.gravatar
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
@@ -125,6 +126,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         del data['password']
         del data['email']
         profile = UserProfile.objects.get(user__username=data['username'])
+        data['id'] = profile.user.pk
         data['gravatar'] = profile.gravatar
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
@@ -178,6 +180,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         del data['password']
         profile = UserProfile.objects.get(
             user__username=data['username'].lower())
+        data['id'] = profile.user.pk
         data['gravatar'] = unicode(profile.gravatar)
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'

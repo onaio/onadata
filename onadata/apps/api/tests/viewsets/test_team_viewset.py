@@ -34,7 +34,8 @@ class TestTeamViewSet(TestAbstractViewSet):
             'projects': [],
             'users': [{'username': u'bob',
                        'first_name': u'Bob',
-                       'last_name': u''}
+                       'last_name': u'',
+                       'id': self.user.pk}
                       ]
         }
         self.assertEqual(response.status_code, 200)
