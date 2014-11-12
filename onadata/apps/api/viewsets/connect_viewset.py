@@ -57,6 +57,11 @@ redirects to a reset password form on the API consumer's website.
 - Expected reset_url format is `reset_url=https:/domain/path/to/reset/form`.
 - Example of reset url sent to user's email is\
 `http://mydomain.com/reset_form?uid=Mg&token=2f3f334g3r3434`.
+- `uid` is the users `unique key` which is a base64 encoded integer value that\
+ can be used to access the users info at `/api/v1/users/<pk>` or \
+`/api/v1/profiles/<pk>`. You can retrieve the integer value in `javascript` \
+using the `window.atob();` function.
+- `token` is a onetime use token that allows password reset
 
 >
 > Example
