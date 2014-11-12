@@ -640,6 +640,26 @@ You can clone a form to a specific user account using `GET` with
 >           ...
 >       }
 
+## Import CSV data to existing form
+
+- `username` of the user you want to clone the form to
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/<code>{pk}</code>/csv_import
+</pre>
+
+> Example
+>
+>       curl -X POST https://ona.io/api/v1/forms/123/csv_import \
+        -F csv_file=@/path/to/csv_import.csv
+>
+> Response
+>
+>        HTTP 200 OK
+>       {
+>           "additions": 9,
+>           "updates": 0
+>       }
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
@@ -782,18 +802,11 @@ You can clone a form to a specific user account using `GET` with
 
     @detail_route(methods=['POST'])
     def csv_import(self, request, *args, **kwargs):
-        try:
-            resp = submit_csv(request.user.username,
-                              self.get_object(),
-                              request.FILES.get('csv_file'))
-        except ValueError as e:
-            resp = e.message
+        resp = submit_csv(request.user.username,
+                          self.get_object(),
+                          request.FILES.get('csv_file'))
 
-        if isinstance(resp, int):
-            status = 200
-            data = {'inserts': resp}
-        else:
-            status = 400
-            data = {'error': resp}
-
-        return Response(data=data, status=status)
+        return Response(
+            data=resp,
+            status=status.HTTP_200_OK if resp.get('error') is None else
+            status.HTTP_400_BAD_REQUEST)

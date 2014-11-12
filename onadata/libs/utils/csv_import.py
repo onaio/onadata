@@ -18,11 +18,14 @@ def get_submission_meta_dict(xform, instance_id):
     uuid_arg = 'uuid:{}'.format(uuid.uuid4())
     meta = {'instanceID': uuid_arg}
 
+    update = 0
+
     if xform.instances.filter(uuid=instance_id).count() > 0:
         uuid_arg = 'uuid:{}'.format(uuid.uuid4())
         meta.update({'instanceID': uuid_arg,
                      'deprecatedID': 'uuid:{}'.format(instance_id)})
-    return meta
+        update += 1
+    return [meta, update]
 
 
 def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
@@ -50,7 +53,7 @@ def submit_csv(username, xform, csv_data):
     submission_time = datetime.utcnow().isoformat()
     ona_uuid = {'formhub': {'uuid': xform.uuid}}
     error = None
-    count = 0
+    additions = inserts = 0
     for row in csv_reader:
         # fetch submission uuid before purging row metadata
         row_uuid = row.get('_uuid')
@@ -71,7 +74,9 @@ def submit_csv(username, xform, csv_data):
         row.update(ona_uuid)
 
         old_meta = row.get('meta', {})
-        old_meta.update(get_submission_meta_dict(xform, row_uuid))
+        new_meta, update = get_submission_meta_dict(xform, row_uuid)
+        inserts += update
+        old_meta.update(new_meta)
         row.update({'meta': old_meta})
 
         row_uuid = row.get('meta').get('instanceID')
@@ -80,19 +85,22 @@ def submit_csv(username, xform, csv_data):
         xml_file = cStringIO.StringIO(dict2xmlsubmission(row, xform, row_uuid,
                                       submission_date))
 
-        error, instance = safe_create_instance(username, xml_file, [],
-                                               xform.uuid, None)
+        try:
+            error, instance = safe_create_instance(username, xml_file, [],
+                                                   xform.uuid, None)
+        except ValueError as e:
+            error = e.message
 
         if error:
             Instance.objects.filter(uuid__in=rollback_uuids,
                                     xform=xform).delete()
-            return error
+            return {'error': str(error)}
         else:
-            count += 1
+            additions += 1
             users = User.objects.filter(
                 username=submitted_by) if submitted_by else []
             if users:
                 instance.user = users[0]
                 instance.save()
 
-    return count
+    return {'additions': additions - inserts, 'updates': inserts}

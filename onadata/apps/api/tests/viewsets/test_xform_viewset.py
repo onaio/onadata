@@ -634,7 +634,8 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data.get('inserts'), 9)
+        self.assertEqual(response.data.get('additions'), 9)
+        self.assertEqual(response.data.get('updates'), 0)
 
     def test_csv_import_fail(self):
         self._publish_xls_form_to_project()
