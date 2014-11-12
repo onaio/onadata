@@ -1,6 +1,6 @@
-from django.shortcuts import get_object_or_404
 from rest_framework import serializers, mixins
 from rest_framework.exceptions import ParseError
+from rest_framework.generics import get_object_or_404
 
 
 class ObjectLookupMixin(object):
@@ -27,7 +27,7 @@ class ObjectLookupMixin(object):
 
         filter_kwargs[lookup_field] = self.kwargs[self.lookup_field]
 
-        obj = get_object_or_404(queryset,  **filter_kwargs)
+        obj = get_object_or_404(queryset, **filter_kwargs)
 
         # May raise a permission denied
         self.check_object_permissions(self.request, obj)

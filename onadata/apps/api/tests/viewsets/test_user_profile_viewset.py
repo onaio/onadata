@@ -43,6 +43,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.data, [self.user_profile_data()])
 
     def test_profiles_get(self):
+        """Test get user profile"""
         view = UserProfileViewSet.as_view({
             'get': 'retrieve'
         })
@@ -51,8 +52,14 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
             response.data, {'detail': 'Expected URL keyword argument `user`.'})
-        request = self.factory.get('/', **self.extra)
+
+        # by username
         response = view(request, user='bob')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.user_profile_data())
+
+        # by pk
+        response = view(request, user=self.user.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.user_profile_data())
 
