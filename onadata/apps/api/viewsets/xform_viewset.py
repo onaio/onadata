@@ -357,8 +357,10 @@ https://ona.io/api/v1/forms
 
 You can use `PUT` or `PATCH` http methods to update or set form data elements.
 If you are using `PUT`, you have to provide the `uuid, description,
-downloadable, owner, public, public_data, title` fields. With `PATCH` you only
-need provide at least one of the fields.
+downloadable, owner, public, public_data, title, xls_file` fields.
+ With `PATCH` you only need provide at least one of the fields.
+
+- `xls_file`: Can only be updated when there are no submissions.
 
 <pre class="prettyprint">
 <b>PATCH</b> /api/v1/forms/<code>{pk}</code></pre>
@@ -842,18 +844,32 @@ data (instance/submission per row)
 
         # updating the file
         if request.FILES:
+            if self.object.instances.count() > 0:
+                data = _(u"Cannot update the xls file in a form that has"
+                         u" submissions")
+                return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
             survey = \
                 utils.publish_xlsform(request, owner, self.object.id_string)
 
             if isinstance(survey, XForm):
-                xform = XForm.objects.get(pk=survey.pk)
                 serializer = XFormSerializer(
-                    xform, context={'request': request})
+                    self.object, context={'request': request})
                 headers = self.get_success_headers(serializer.data)
 
+<<<<<<< HEAD
             return Response(serializer.data, status=status.HTTP_200_OK,
                             headers=headers)
         else:
             return super(XFormViewSet, self).partial_update(request, *args,
                                                             **kwargs)
 >>>>>>> DW: Added version to xform and instance. Overide the default partial update to replace a form
+=======
+                return Response(serializer.data, status=status.HTTP_200_OK,
+                                headers=headers)
+
+            return Response(survey, status=status.HTTP_400_BAD_REQUEST)
+
+        return super(XFormViewSet, self).partial_update(request, *args,
+                                                        **kwargs)
+>>>>>>> DW: Added test for a bad xls file update. added version param in data export and code refactor

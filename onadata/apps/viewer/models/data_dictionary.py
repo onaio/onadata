@@ -418,9 +418,15 @@ class DataDictionary(XForm):
                 if e.type == element_type]
 
     def _check_version_set(self, survey):
+        """
+        Checks if the version has been set in the xls file and if not adds
+        the default version in this datetime (yyyymmddhhmmss) format.
+        """
+
         # get the json and check for the version key
         survey_json = json.loads(survey.to_json())
         if 'version' not in survey_json.keys() or not survey_json['version']:
+
             # set utc time as the default version
             self.version = \
                 survey_json['version'] = \
