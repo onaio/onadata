@@ -8,31 +8,37 @@ from onadata.apps.api.viewsets.user_viewset import UserViewSet
 class TestUserViewSet(TestAbstractViewSet):
     def setUp(self):
         super(self.__class__, self).setUp()
-
-    def test_user_list(self):
-        view = UserViewSet.as_view({'get': 'list'})
-        request = self.factory.get('/', **self.extra)
-        response = view(request)
-        data = [{'username': u'bob', 'first_name': u'Bob', 'last_name': u''}]
-        self.assertContains(response, json.dumps(data))
-
-    def test_user_list_anon(self):
-        view = UserViewSet.as_view({'get': 'list'})
-        request = self.factory.get('/')
-        response = view(request)
-        data = [{'username': u'bob', 'first_name': u'Bob', 'last_name': u''}]
-        self.assertContains(response, json.dumps(data))
+        self.data = {'id': self.user.pk, 'username': u'bob',
+                     'first_name': u'Bob', 'last_name': u''}
 
     def test_user_get(self):
+        """Test authenticated user can access user info"""
+        # users list
+        view = UserViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.data])
+
+        # user with username bob
         view = UserViewSet.as_view({'get': 'retrieve'})
         request = self.factory.get('/', **self.extra)
         response = view(request, username='bob')
-        data = {'username': u'bob', 'first_name': u'Bob', 'last_name': u''}
-        self.assertContains(response, json.dumps(data))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.data)
 
-    def test_user_anon_get(self):
+    def test_user_anon(self):
+        """Test anonymous user can access user info"""
+        # users list endpoint
+        view = UserViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/')
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [self.data])
+
+        # user with username bob
         view = UserViewSet.as_view({'get': 'retrieve'})
         request = self.factory.get('/')
         response = view(request, username='bob')
-        data = {'username': u'bob', 'first_name': u'Bob', 'last_name': u''}
-        self.assertContains(response, json.dumps(data))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.data)
