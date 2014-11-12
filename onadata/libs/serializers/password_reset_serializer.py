@@ -12,6 +12,32 @@ from rest_framework import serializers
 from urlparse import urlparse
 
 
+def get_password_reset_email(user, reset_url,
+                             subject_template_name='registration/password_reset_subject.txt',  # noqa
+                             email_template_name='api_password_reset_email.html',  # noqa
+                             token_generator=default_token_generator):
+    """Creates the subject and email body for password reset email."""
+    result = urlparse(reset_url)
+    site_name = domain = result.hostname
+    c = {
+        'email': user.email,
+        'domain': domain,
+        'path': result.path,
+        'site_name': site_name,
+        'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+        'username': user.username,
+        'encoded_username': urlsafe_base64_encode(user.username),
+        'token': token_generator.make_token(user),
+        'protocol': result.scheme if result.scheme != '' else 'http',
+    }
+    subject = loader.render_to_string(subject_template_name, c)
+    # Email subject *must not* contain newlines
+    subject = ''.join(subject.splitlines())
+    email = loader.render_to_string(email_template_name, c)
+
+    return subject, email
+
+
 def get_user_from_uid(uid):
     if uid is None:
         raise ValidationError(_("uid is required!"))
@@ -60,22 +86,8 @@ class PasswordReset(object):
             # a password marked as unusable
             if not user.has_usable_password():
                 continue
-            result = urlparse(reset_url)
-            site_name = domain = result.hostname
-            c = {
-                'email': user.email,
-                'domain': domain,
-                'path': result.path,
-                'site_name': site_name,
-                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                'username': user.username,
-                'token': token_generator.make_token(user),
-                'protocol': result.scheme if result.scheme != '' else 'http',
-            }
-            subject = loader.render_to_string(subject_template_name, c)
-            # Email subject *must not* contain newlines
-            subject = ''.join(subject.splitlines())
-            email = loader.render_to_string(email_template_name, c)
+            subject, email = get_password_reset_email(
+                user, reset_url, subject_template_name, email_template_name)
             send_mail(subject, email, from_email, [user.email])
 
 
