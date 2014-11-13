@@ -4,7 +4,13 @@ import time
 
 from django.conf import settings
 from pandas.core.frame import DataFrame
-from pandas.io.parsers import ExcelWriter
+
+# an immediate fix to an error with the installation of pandas v0.15
+try:
+    from pandas.io.parsers import ExcelWriter
+except ImportError, e:
+    from pandas import ExcelWriter
+
 from pyxform.survey_element import SurveyElement
 from pyxform.section import Section, RepeatingSection
 from pyxform.question import Question
