@@ -13,7 +13,11 @@ class Migration(DataMigration):
             queries = [
                 'INSERT INTO logger_project(id, name, metadata, organization_id, created_by_id, shared, date_created, date_modified) SELECT id, name, metadata, organization_id, created_by_id, shared, date_created, date_modified FROM api_project;',
                 'INSERT INTO logger_project_user_stars(id, project_id, user_id) SELECT id, project_id, user_id FROM api_project_user_stars;',
-                'INSERT INTO logger_projectxform(id, xform_id, project_id, created_by_id) SELECT id, xform_id, project_id, created_by_id FROM api_projectxform;'
+                'INSERT INTO logger_projectxform(id, xform_id, project_id, created_by_id) SELECT id, xform_id, project_id, created_by_id FROM api_projectxform;',
+                # update id_seq since we are inserting id's from api_logger*
+                "SELECT setval('logger_project_id_seq', (SELECT MAX(id) FROM logger_project));",
+                "SELECT setval('logger_project_user_stars_id_seq', (SELECT MAX(id) FROM logger_project_user_stars));",
+                "SELECT setval('logger_projectxform_id_seq', (SELECT MAX(id) FROM logger_projectxform));"
             ]
         for query in queries:
             db.execute(query);
