@@ -122,7 +122,7 @@ class Instance(models.Model):
     status = models.CharField(max_length=20,
                               default=u'submitted_via_web')
     uuid = models.CharField(max_length=249, default=u'')
-    version = models.CharField(max_length=14, null=True)
+    version = models.CharField(max_length=12, null=True)
 
     # store an geographic objects associated with this instance
     geom = models.GeometryCollectionField(null=True)

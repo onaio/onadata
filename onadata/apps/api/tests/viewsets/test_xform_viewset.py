@@ -4,7 +4,6 @@ import os
 import re
 import requests
 import pytz
-import time
 
 from datetime import datetime
 from django.utils import timezone
@@ -261,7 +260,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         # check content without UUID
         response_xml = response_doc.toxml().replace(
-            self.xform.version, u"20141112071722")
+            self.xform.version, u"201411120717")
         self.assertEqual(response_xml, expected_doc.toxml())
 
     def test_form_tags(self):
@@ -670,11 +669,10 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     def test_update_xform_xls_file(self):
         self._publish_xls_form_to_project()
+
+        self.assertIsNotNone(self.xform.version)
         version = self.xform.version
         form_id = self.xform.pk
-
-        # sleep for 3 sec to ensure the versions are diff
-        time.sleep(3)
 
         view = XFormViewSet.as_view({
             'patch': 'partial_update',
@@ -682,7 +680,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", "transportation_updated.xls")
+            "transportation", "transportation_version.xls")
         with open(path) as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.patch('/', data=post_data, **self.extra)
@@ -699,11 +697,10 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     def test_update_xform_xls_bad_file(self):
         self._publish_xls_form_to_project()
+
+        self.assertIsNotNone(self.xform.version)
         version = self.xform.version
         form_id = self.xform.pk
-
-        # sleep for 3 sec to ensure the versions are diff
-        time.sleep(3)
 
         view = XFormViewSet.as_view({
             'patch': 'partial_update',
@@ -730,11 +727,9 @@ class TestXFormViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
         self._make_submissions()
 
+        self.assertIsNotNone(self.xform.version)
         version = self.xform.version
         form_id = self.xform.pk
-
-        # sleep for 3 sec to ensure the versions are diff
-        time.sleep(3)
 
         view = XFormViewSet.as_view({
             'patch': 'partial_update',
@@ -757,4 +752,30 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         # diff versions
         self.assertEquals(version, new_version)
+        self.assertEquals(form_id, self.xform.pk)
+
+    def test_update_xform_xls_file_with_version_set(self):
+        self._publish_xls_form_to_project()
+        form_id = self.xform.pk
+
+        self.assertIsNotNone(self.xform.version)
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update',
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation_version.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+
+            self.assertEqual(response.status_code, 200)
+
+        self.xform.reload()
+
+        # diff versions
+        self.assertEquals(self.xform.version, u"212121211")
         self.assertEquals(form_id, self.xform.pk)
