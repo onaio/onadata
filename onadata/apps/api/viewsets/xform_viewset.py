@@ -865,4 +865,3 @@ data (instance/submission per row)
 
         return super(XFormViewSet, self).partial_update(request, *args,
                                                         **kwargs)
-
