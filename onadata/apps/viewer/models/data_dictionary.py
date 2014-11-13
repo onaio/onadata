@@ -153,6 +153,7 @@ class DataDictionary(XForm):
             survey = self._check_version_set(create_survey_from_xls(self.xls))
             self.json = survey.to_json()
             self.xml = survey.to_xml()
+            self.version = survey.get('version')
             self._mark_start_time_boolean()
             set_uuid(self)
             self._set_uuid_in_xml()
@@ -425,17 +426,13 @@ class DataDictionary(XForm):
 
         # get the json and check for the version key
         survey_json = json.loads(survey.to_json())
-        if 'version' not in survey_json.keys() or not survey_json['version']:
-
+        if not survey_json.get("version"):
             # set utc time as the default version
-            self.version = \
-                survey_json['version'] = \
+            survey_json['version'] = \
                 datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
             builder = SurveyElementBuilder()
-            survey = \
-                builder.create_survey_element_from_json(
-                    json.dumps(survey_json)
-                )
+            survey = builder.create_survey_element_from_json(
+                json.dumps(survey_json))
         return survey
 
 

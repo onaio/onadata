@@ -248,6 +248,24 @@ def custom_response_handler(request, xform, query, export_type,
     return response
 
 
+def _try_update_xlsform(request, xform, owner):
+    if xform.instances.count() > 0:
+        data = _(u"Cannot update the xls file in a form that has"
+                 u" submissions")
+        return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+    survey = \
+        utils.publish_xlsform(request, owner, xform.id_string)
+
+    if isinstance(survey, XForm):
+        serializer = XFormSerializer(
+            xform, context={'request': request})
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    return Response(survey, status=status.HTTP_400_BAD_REQUEST)
+
+
 class XFormViewSet(AnonymousUserPublicFormsMixin, LabelsMixin, ModelViewSet):
 
     """
@@ -821,7 +839,6 @@ data (instance/submission per row)
         return Response(data=serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST)
 
-<<<<<<< HEAD
     @detail_route(methods=['POST'])
     def csv_import(self, request, *args, **kwargs):
         """ Endpoint for CSV data imports
@@ -837,39 +854,15 @@ data (instance/submission per row)
             data=resp,
             status=status.HTTP_200_OK if resp.get('error') is None else
             status.HTTP_400_BAD_REQUEST)
-=======
+
     def partial_update(self, request, *args, **kwargs):
         owner = _get_owner(request)
         self.object = self.get_object()
 
         # updating the file
         if request.FILES:
-            if self.object.instances.count() > 0:
-                data = _(u"Cannot update the xls file in a form that has"
-                         u" submissions")
-                return Response(data, status=status.HTTP_400_BAD_REQUEST)
-
-            survey = \
-                utils.publish_xlsform(request, owner, self.object.id_string)
-
-            if isinstance(survey, XForm):
-                serializer = XFormSerializer(
-                    self.object, context={'request': request})
-                headers = self.get_success_headers(serializer.data)
-
-<<<<<<< HEAD
-            return Response(serializer.data, status=status.HTTP_200_OK,
-                            headers=headers)
-        else:
-            return super(XFormViewSet, self).partial_update(request, *args,
-                                                            **kwargs)
->>>>>>> DW: Added version to xform and instance. Overide the default partial update to replace a form
-=======
-                return Response(serializer.data, status=status.HTTP_200_OK,
-                                headers=headers)
-
-            return Response(survey, status=status.HTTP_400_BAD_REQUEST)
+            return _try_update_xlsform(request, self.object, owner)
 
         return super(XFormViewSet, self).partial_update(request, *args,
                                                         **kwargs)
->>>>>>> DW: Added test for a bad xls file update. added version param in data export and code refactor
+
