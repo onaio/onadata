@@ -12,6 +12,21 @@ def dict_key_for_value(_dict, value):
     return _dict.keys()[_dict.values().index(value)]
 
 
+def get_path(data, question_name, path_list=[]):
+    name = data.get('name')
+    if name == question_name:
+        return '/'.join(path_list)
+    elif data.get('children') is not None:
+        for node in data.get('children'):
+            path_list.append(node.get('name'))
+            path = get_path(node, question_name, path_list)
+            if path is not None:
+                return path
+            else:
+                del path_list[len(path_list) - 1]
+    return None
+
+
 class AttachmentSerializer(serializers.ModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name='attachment-detail',
                                                lookup_field='pk')
@@ -51,19 +66,5 @@ class AttachmentSerializer(serializers.ModelSerializer):
 
         question_name = dict_key_for_value(qa_dict, obj.filename)
         data = json.loads(obj.instance.xform.json)
-
-        def get_path(data, question_name, path_list=[]):
-            name = data.get('name')
-            if name == question_name:
-                return '/'.join(path_list)
-            elif data.get('children') is not None:
-                for node in data.get('children'):
-                    path_list.append(node.get('name'))
-                    path = get_path(node, question_name, path_list)
-                    if path is not None:
-                        return path
-                    else:
-                        del path_list[len(path_list) - 1]
-            return None
 
         return get_path(data, question_name)
