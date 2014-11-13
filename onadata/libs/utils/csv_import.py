@@ -9,10 +9,6 @@ from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
 from onadata.apps.logger.models import Instance
 
 
-class CSVImportException(Exception):
-    pass
-
-
 def get_submission_meta_dict(xform, instance_id):
     """ generate metadata for our submission """
     uuid_arg = 'uuid:{}'.format(uuid.uuid4())
@@ -43,10 +39,10 @@ def submit_csv(username, xform, csv_data):
 
     if isinstance(csv_data, (str, unicode)):
         csv_data = cStringIO.StringIO(csv_data)
-    elif csv_data.read is None:
-        raise TypeError(u'Invalid param type for `csv_data`. '
-                        'Expected file or String '
-                        'got {} instead.'.format(type(csv_data).__name__))
+    elif csv_data is None or not hasattr(csv_data, 'read'):
+        return {'error': (u'Invalid param type for `csv_data`. '
+                          'Expected file or String '
+                          'got {} instead.'.format(type(csv_data).__name__))}
 
     csv_reader = ucsv.DictReader(csv_data)
     rollback_uuids = []
@@ -89,7 +85,7 @@ def submit_csv(username, xform, csv_data):
             error, instance = safe_create_instance(username, xml_file, [],
                                                    xform.uuid, None)
         except ValueError as e:
-            error = e.message
+            error = e
 
         if error:
             Instance.objects.filter(uuid__in=rollback_uuids,

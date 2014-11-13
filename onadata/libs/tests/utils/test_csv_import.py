@@ -21,9 +21,8 @@ class CSVImportTestCase(TestBase):
         self.xform = XForm.objects.get()
 
     def test_submit_csv_param_sanity_check(self):
-        with self.assertRaises(Exception):
-            # pass an int to check failure
-            csv_import.submit_csv(u'userX', XForm(), 123456)
+        resp = csv_import.submit_csv(u'userX', XForm(), 123456)
+        self.assertIsNotNone(resp.get('error'))
 
     # @mock.patch('onadata.libs.utils.csv_import.safe_create_instance')
     # def test_submit_csv_xml_params(self, safe_create_instance):

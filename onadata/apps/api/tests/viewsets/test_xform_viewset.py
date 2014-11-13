@@ -648,7 +648,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertIsNotNone(response.data.get('error'))
 
-    def test_csv_import_fail_invalid_post(self):
+    def test_csv_import_fail_invalid_field_post(self):
         """Test that invalid post returns 400 with the error in json respone"""
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({'post': 'csv_import'})
