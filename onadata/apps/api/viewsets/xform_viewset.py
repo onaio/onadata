@@ -11,7 +11,7 @@ from django.utils import six
 
 from rest_framework import exceptions
 from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, detail_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
@@ -40,6 +40,7 @@ from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.string import str2bool
 
+from onadata.libs.utils.csv_import import submit_csv
 from onadata.libs.utils.viewer_tools import _get_form_url
 
 EXPORT_EXT = {
@@ -639,6 +640,26 @@ You can clone a form to a specific user account using `GET` with
 >           ...
 >       }
 
+## Import CSV data to existing form
+
+- `username` of the user you want to clone the form to
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/<code>{pk}</code>/csv_import
+</pre>
+
+> Example
+>
+>       curl -X POST https://ona.io/api/v1/forms/123/csv_import \
+        -F csv_file=@/path/to/csv_import.csv
+>
+> Response
+>
+>        HTTP 200 OK
+>       {
+>           "additions": 9,
+>           "updates": 0
+>       }
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
@@ -778,3 +799,14 @@ You can clone a form to a specific user account using `GET` with
 
         return Response(data=serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST)
+
+    @detail_route(methods=['POST'])
+    def csv_import(self, request, *args, **kwargs):
+        resp = submit_csv(request.user.username,
+                          self.get_object(),
+                          request.FILES.get('csv_file'))
+
+        return Response(
+            data=resp,
+            status=status.HTTP_200_OK if resp.get('error') is None else
+            status.HTTP_400_BAD_REQUEST)

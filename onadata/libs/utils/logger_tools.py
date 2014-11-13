@@ -57,7 +57,7 @@ OPEN_ROSA_VERSION = '1.0'
 DEFAULT_CONTENT_TYPE = 'text/xml; charset=utf-8'
 DEFAULT_CONTENT_LENGTH = settings.DEFAULT_CONTENT_LENGTH
 
-uuid_regex = re.compile(r'<formhub><uuid>([^<]+)</uuid></formhub>',
+uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
                         re.DOTALL)
 
 mongo_instances = settings.MONGO_DB.instances

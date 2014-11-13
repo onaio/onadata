@@ -624,3 +624,38 @@ class TestXFormViewSet(TestAbstractViewSet):
             format='xls')
 
         self.assertEqual(response.status_code, 400)
+
+    def test_csv_import(self):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({'post': 'csv_import'})
+        csv_import = open(os.path.join(settings.PROJECT_ROOT, 'libs',
+                                       'tests', 'fixtures', 'good.csv'))
+        post_data = {'csv_file': csv_import}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get('additions'), 9)
+        self.assertEqual(response.data.get('updates'), 0)
+
+    def test_csv_import_fail(self):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({'post': 'csv_import'})
+        csv_import = open(os.path.join(settings.PROJECT_ROOT, 'libs',
+                                       'tests', 'fixtures', 'bad.csv'))
+        post_data = {'csv_file': csv_import}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertIsNotNone(response.data.get('error'))
+
+    def test_csv_import_fail_invalid_field_post(self):
+        """Test that invalid post returns 400 with the error in json respone"""
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({'post': 'csv_import'})
+        csv_import = open(os.path.join(settings.PROJECT_ROOT, 'libs',
+                                       'tests', 'fixtures', 'bad.csv'))
+        post_data = {'wrong_file_field': csv_import}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertIsNotNone(response.data.get('error'))
