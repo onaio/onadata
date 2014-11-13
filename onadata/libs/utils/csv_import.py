@@ -10,7 +10,18 @@ from onadata.apps.logger.models import Instance
 
 
 def get_submission_meta_dict(xform, instance_id):
-    """ generate metadata for our submission """
+    """Generates metadata for our submission
+
+    Checks if `instance_id` belongs to an existing submission.
+    If it does, it's considered an edit and its uuid gets deprecated.
+    In either case, a new one is generated and assigned.
+
+    :param onadata.apps.logger.models.XForm xform: The submission's XForm.
+    :param string instance_id: The submission/instance `uuid`.
+
+    :return: The metadata dict
+    :rtype:  dict
+    """
     uuid_arg = 'uuid:{}'.format(uuid.uuid4())
     meta = {'instanceID': uuid_arg}
 
@@ -25,7 +36,16 @@ def get_submission_meta_dict(xform, instance_id):
 
 
 def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
+    """Creates and xml submission from an appropriate dict (& other data)
 
+    :param dict submission_dict: A dict containing form submission data.
+    :param onadata.apps.logger.models.XForm xfrom: The submission's XForm.
+    :param string instance_id: The submission/instance `uuid`.
+    :param string submission_date: An isoformatted datetime string.
+
+    :return: An xml submission string
+    :rtype: string
+    """
     return (u'<?xml version="1.0" ?>'
             '<{0} id="{1}" instanceID="uuid:{2}" submissionDate="{3}" '
             'xmlns="http://opendatakit.org/submissions">{4}'
@@ -36,7 +56,18 @@ def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
 
 
 def submit_csv(username, xform, csv_data):
+    """ Imports CSV data to an existing form
 
+    Takes a csv formatted file or string containing rows of submission/instance
+    and converts those to xml submissions and finally submits them by calling
+    :py:func:`onadata.libs.utils.logger_tools.safe_create_instance`
+
+    :param str username: the subission user
+    :param onadata.apps.logger.models.XForm xfrom: The submission's XForm.
+    :param (str or file): A CSV formatted file with submission rows.
+    :return: If sucessful, a dict with import summary else dict with error str.
+    :rtype: Dict
+    """
     if isinstance(csv_data, (str, unicode)):
         csv_data = cStringIO.StringIO(csv_data)
     elif csv_data is None or not hasattr(csv_data, 'read'):
