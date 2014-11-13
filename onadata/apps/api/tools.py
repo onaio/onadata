@@ -35,8 +35,8 @@ from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
 from onadata.libs.data.statistics import _chk_asarray
 from onadata.libs.permissions import get_object_users_with_permissions,\
     get_role_in_org
-from onadata.libs.permissions import OwnerRole, DataEntryRole, EditorRole,\
-    ManagerRole, ReadOnlyRole
+from onadata.libs.permissions import OwnerRole, ReadOnlyRole
+from onadata.libs.permissions import ROLES
 
 DECIMAL_PRECISION = 2
 
@@ -444,13 +444,7 @@ def check_inherit_permission_from_project(xform_id, user):
 
 
 def _set_xform_permission(role, user, xform):
-    if role == 'owner':
-        OwnerRole.add(user, xform)
-    if role == 'manager':
-        ManagerRole.add(user, xform)
-    if role == 'editor':
-        EditorRole.add(user, xform)
-    if role == 'dataentry':
-        DataEntryRole.add(user, xform)
-    if role == 'readonly':
-        ReadOnlyRole.add(user, xform)
+    role_class = ROLES.get(role)
+
+    if role_class:
+        role_class.add(user, xform)

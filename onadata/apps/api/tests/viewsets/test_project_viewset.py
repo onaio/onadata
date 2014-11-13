@@ -567,8 +567,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             'title': u'transportation_2011_07_25',
             'bamboo_dataset': u''
         }
-        self._publish_xls_form_to_project(publish_data=data, merge=False,
-                                          public=True)
+        self._publish_xls_form_to_project(publish_data=data, merge=False)
 
         self.assertEquals(self.xform.shared, True)
         self.assertEquals(self.xform.shared_data, True)

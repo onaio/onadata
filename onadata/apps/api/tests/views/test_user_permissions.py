@@ -9,6 +9,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs import permissions as role
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 
@@ -314,7 +315,6 @@ class TestUserPermissions(TestAbstractViewSet):
     def test_form_inherits_permision_from_project(self):
         self._publish_xls_form_to_project()
         self._make_submissions()
-        from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 
         project_view = ProjectViewSet.as_view({
             'get': 'retrieve'
