@@ -173,7 +173,8 @@ class TestAbstractViewSet(TestCase):
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
 
-    def _publish_xls_form_to_project(self, publish_data={}, merge=True):
+    def _publish_xls_form_to_project(self, publish_data={}, merge=True,
+                                     public=False):
         if not hasattr(self, 'project'):
             self._project_create()
         elif self.project.created_by != self.user:
@@ -216,7 +217,12 @@ class TestAbstractViewSet(TestCase):
                 'url':
                 'http://testserver/api/v1/forms/%s' % (self.xform.pk)
             })
-            self.assertDictContainsSubset(data, response.data)
+
+            if public:
+                data['public_data'] = data['public'] = True
+                self.assertDictContainsSubset(data, response.data)
+            else:
+                self.assertDictContainsSubset(data, response.data)
             self.form_data = response.data
 
     def _add_uuid_to_submission_xml(self, path, xform):

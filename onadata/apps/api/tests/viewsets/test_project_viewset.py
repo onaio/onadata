@@ -538,6 +538,21 @@ class TestProjectViewSet(TestAbstractViewSet):
         public_project.save()
 
         self.project = public_project
+        self._publish_xls_form_to_project(public=True)
+
+        self.assertEquals(self.xform.shared, True)
+        self.assertEquals(self.xform.shared_data, True)
+
+    def test_publish_to_public_project_public_form(self):
+        public_project = Project(name='demo',
+                                 shared=True,
+                                 metadata=json.dumps({'description': ''}),
+                                 created_by=self.user,
+                                 organization=self.user)
+        public_project.save()
+
+        self.project = public_project
+
         data = {
             'owner': 'http://testserver/api/v1/users/%s'
             % self.project.organization.username,
@@ -552,7 +567,8 @@ class TestProjectViewSet(TestAbstractViewSet):
             'title': u'transportation_2011_07_25',
             'bamboo_dataset': u''
         }
-        self._publish_xls_form_to_project(publish_data=data)
+        self._publish_xls_form_to_project(publish_data=data, merge=False,
+                                          public=True)
 
         self.assertEquals(self.xform.shared, True)
         self.assertEquals(self.xform.shared_data, True)
