@@ -43,21 +43,20 @@ class AttachmentSerializer(serializers.ModelSerializer):
             return None
 
         question_name = qa_dict.keys()[qa_dict.values().index(obj.filename)]
-        json_for_xform = json.loads(obj.instance.xform.json)['children']
+        data = json.loads(obj.instance.xform.json)
 
-        def get_path(data, num, question):
-            index = num + 1
-            if index >= len(data):
-                return None
-            val = data[num]
-            if val.get('name') == question:
-                return "%s" % val.get('name')
-            elif val.get('type') == 'group' and \
-                    val.get('children') is not None:
-                for a in val.get('children'):
-                    if a.get('name') == question:
-                        return "%s/%s" % (val.get('name'), a.get('name'))
-                return get_path(data, index, question)
-            else:
-                return get_path(data, index, question)
-        return get_path(json_for_xform, 0, question_name)
+        def get_path(data, question_name, path_list=[]):
+            name = data.get('name')
+            if name == question_name:
+                return '/'.join(path_list)
+            elif data.get('children') is not None:
+                for node in data.get('children'):
+                    path_list.append(node.get('name'))
+                    path = get_path(node, question_name, path_list)
+                    if path is not None:
+                        return path
+                    else:
+                        del path_list[len(path_list) - 1]
+            return None
+
+        return get_path(data, question_name)
