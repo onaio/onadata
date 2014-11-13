@@ -5,6 +5,13 @@ from onadata.libs.utils.image_tools import image_url
 import json
 
 
+def dict_key_for_value(_dict, value):
+    """
+    This function is used to get key by value in a dictionary
+    """
+    return _dict.keys()[_dict.values().index(value)]
+
+
 class AttachmentSerializer(serializers.ModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name='attachment-detail',
                                                lookup_field='pk')
@@ -42,7 +49,7 @@ class AttachmentSerializer(serializers.ModelSerializer):
         if obj.filename not in qa_dict.values():
             return None
 
-        question_name = qa_dict.keys()[qa_dict.values().index(obj.filename)]
+        question_name = dict_key_for_value(qa_dict, obj.filename)
         data = json.loads(obj.instance.xform.json)
 
         def get_path(data, question_name, path_list=[]):
