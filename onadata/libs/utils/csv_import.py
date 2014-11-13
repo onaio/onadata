@@ -55,7 +55,7 @@ def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
                 dict2xml(submission_dict).replace('\n', '')))
 
 
-def submit_csv(username, xform, csv_data):
+def submit_csv(username, xform, csv_file):
     """ Imports CSV data to an existing form
 
     Takes a csv formatted file or string containing rows of submission/instance
@@ -68,14 +68,14 @@ def submit_csv(username, xform, csv_data):
     :return: If sucessful, a dict with import summary else dict with error str.
     :rtype: Dict
     """
-    if isinstance(csv_data, (str, unicode)):
-        csv_data = cStringIO.StringIO(csv_data)
-    elif csv_data is None or not hasattr(csv_data, 'read'):
-        return {'error': (u'Invalid param type for `csv_data`. '
+    if isinstance(csv_file, (str, unicode)):
+        csv_file = cStringIO.StringIO(csv_file)
+    elif csv_file is None or not hasattr(csv_file, 'read'):
+        return {'error': (u'Invalid param type for `csv_file`. '
                           'Expected file or String '
-                          'got {} instead.'.format(type(csv_data).__name__))}
+                          'got {} instead.'.format(type(csv_file).__name__))}
 
-    csv_reader = ucsv.DictReader(csv_data)
+    csv_reader = ucsv.DictReader(csv_file)
     rollback_uuids = []
     submission_time = datetime.utcnow().isoformat()
     ona_uuid = {'formhub': {'uuid': xform.uuid}}

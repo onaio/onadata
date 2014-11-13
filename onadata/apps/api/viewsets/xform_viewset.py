@@ -642,7 +642,8 @@ You can clone a form to a specific user account using `GET` with
 
 ## Import CSV data to existing form
 
-- `username` of the user you want to clone the form to
+- `csv_file` a valid csv file with exported \
+data (instance/submission per row)
 
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms/<code>{pk}</code>/csv_import
@@ -651,7 +652,7 @@ You can clone a form to a specific user account using `GET` with
 > Example
 >
 >       curl -X POST https://ona.io/api/v1/forms/123/csv_import \
-        -F csv_file=@/path/to/csv_import.csv
+-F csv_file=@/path/to/csv_import.csv
 >
 > Response
 >
@@ -802,6 +803,11 @@ You can clone a form to a specific user account using `GET` with
 
     @detail_route(methods=['POST'])
     def csv_import(self, request, *args, **kwargs):
+        """ Endpoint for CSV data imports
+
+        Calls :py:func:`onadata.libs.utils.csv_import.submit_csv`
+        passing with the `request.FILES.get('csv_file')` upload for import.
+        """
         resp = submit_csv(request.user.username,
                           self.get_object(),
                           request.FILES.get('csv_file'))
