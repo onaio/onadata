@@ -25,6 +25,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         pk = self.attachment.pk
         data = {
             'url': 'http://testserver/api/v1/media/%s' % pk,
+            'field_xpath': None,
             'download_url': self.attachment.media_file.url,
             'small_download_url': image_url(self.attachment, 'small'),
             'medium_download_url': image_url(self.attachment, 'medium'),
