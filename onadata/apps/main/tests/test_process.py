@@ -223,7 +223,7 @@ class TestProcess(TestBase):
         uuid_node.setAttribute("calculate", "''")
 
         response_xml = response_doc.toxml().replace(
-            self.xform.version, u"20141112071722")
+            self.xform.version, u"201411120717")
         # check content without UUID
         self.assertEqual(response_xml, expected_doc.toxml())
 
