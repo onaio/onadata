@@ -87,6 +87,9 @@ def submit_csv(username, xform, csv_file):
         submitted_by = row.get('_submitted_by')
         submission_date = row.get('_submission_time', submission_time)
 
+        row.update({'gps': row.format(
+            row.get('_location_latitude'), row.get('_location_longitude'))})
+
         for key in row.keys():  # seems faster than a comprehension
             # remove metadata (keys starting with '_')
             if key.startswith('_'):
