@@ -17,8 +17,6 @@ class TestSavExport(TestBase):
         export = generate_export(Export.SAV_ZIP_EXPORT, 'zip',
                                  self.user.username,
                                  self.xform.id_string)
-        import ipdb
-        ipdb.set_trace()
 
         storage = get_storage_class()()
         self.assertTrue(storage.exists(export.filepath))
