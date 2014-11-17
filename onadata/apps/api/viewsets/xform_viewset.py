@@ -194,7 +194,8 @@ def external_export_response(export):
     else:
         http_status = status.HTTP_400_BAD_REQUEST
 
-    return Response(export, http_status)
+    return Response(json.dumps(export), http_status,
+                    content_type="application/json")
 
 
 def log_export(request, xform, export_type):

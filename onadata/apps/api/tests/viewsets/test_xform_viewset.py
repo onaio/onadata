@@ -1,4 +1,5 @@
 # coding=utf-8
+import json
 import os
 import re
 import requests
@@ -624,6 +625,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             format='xls')
 
         self.assertEqual(response.status_code, 400)
+        data = json.loads(response.data)
+        self.assertTrue(data.get('error')
+                        .startswith("J2X client could not generate report."))
 
     def test_csv_import(self):
         self._publish_xls_form_to_project()
