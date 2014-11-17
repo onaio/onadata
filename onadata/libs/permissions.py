@@ -12,9 +12,22 @@ from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models import XForm
 from onadata.apps.api.models import Project
 
+# Userprofile Permissions
+CAN_ADD_USERPROFILE = 'add_userprofile'
+CAN_CHANGE_USERPROFILE = 'change_userprofile'
+CAN_DELETE_USERPROFILE = 'delete_userprofile'
 CAN_ADD_XFORM_TO_PROFILE = 'can_add_xform'
-CAN_VIEW_ORGANIZATION_PROFILE = 'view_organizationprofile'
 CAN_VIEW_PROFILE = 'view_profile'
+
+# Organization Permissions
+CAN_VIEW_ORGANIZATION_PROFILE = 'view_organizationprofile'
+CAN_ADD_ORGANIZATION_PROFILE = 'add_organizationprofile'
+CAN_ADD_ORGANIZATION_XFORM = 'can_add_xform'
+CAN_CHANGE_ORGANIZATION_PROFILE = 'change_organizationprofile'
+CAN_DELETE_ORGANIZATION_PROFILE = 'delete_organizationprofile'
+IS_ORGANIZATION_OWNER = 'is_org_owner'
+
+# Xform Permissions
 CAN_CHANGE_XFORM = 'change_xform'
 CAN_ADD_XFORM = 'add_xform'
 CAN_DELETE_XFORM = 'delete_xform'
@@ -144,8 +157,29 @@ class OwnerRole(Role):
         (CAN_ADD_SUBMISSIONS, XForm),
         (CAN_ADD_XFORM, Project),
         (CAN_ADD_XFORM, XForm),
-        (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
+        (CAN_VIEW_XFORM, XForm),
+        (CAN_ADD_DATADICTIONARY, XForm),
+        (CAN_CHANGE_DATADICTIONARY, XForm),
+        (CAN_DELETE_DATADICTIONARY, XForm),
+        (CAN_ADD_SUBMISSIONS, XForm),
+        (CAN_DELETE_XFORM, XForm),
+        (CAN_MOVE_TO_FOLDER, XForm),
+        (CAN_TRANSFER_OWNERSHIP, XForm),
+        (CAN_CHANGE_XFORM, XForm),
         (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
+        (CAN_ADD_USERPROFILE, UserProfile),
+        (CAN_CHANGE_USERPROFILE, UserProfile),
+        (CAN_DELETE_USERPROFILE, UserProfile),
+        (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
+        (CAN_VIEW_PROFILE, UserProfile),
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_ADD_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_ADD_ORGANIZATION_XFORM, OrganizationProfile),
+        (CAN_CHANGE_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_DELETE_ORGANIZATION_PROFILE, OrganizationProfile),
+        (IS_ORGANIZATION_OWNER, OrganizationProfile),
+        (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_CHANGE_PROJECT, Project),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_DELETE_PROJECT, Project),
