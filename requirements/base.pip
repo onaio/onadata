@@ -17,7 +17,9 @@ poster==0.8.1
 psycopg2==2.5.4
 pymongo==2.7.2
 lxml==3.4.0
--e git+https://github.com/onaio/pyxform.git@onaio#egg=pyxform
+#-e git+https://github.com/onaio/pyxform.git@onaio#egg=pyxform
+# kobo fork supports csvs with utf, character escaping, etc.
+-e git+https://github.com/kobotoolbox/pyxform.git@b347b09c75a3b385004935a702d707964079e288#egg=pyxform-dev
 South==1.0
 django-reversion==1.8.4
 xlrd==0.9.3
@@ -31,6 +33,8 @@ python-digest==1.7
 django-digest==1.13
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
 
+# new export code relies on
+pandas>=0.12.0
 requests==2.4.1
 elaphe==0.5.6
 
@@ -58,7 +62,7 @@ django-taggit==0.12.1
 django-oauth-toolkit==0.7.2
 
 # spss
-savReaderWriter
+https://bitbucket.org/fomcl/savreaderwriter/downloads/savReaderWriter-3.3.0.zip#egg=savreaderwriter
 
 # JSON data type support
 jsonfield<1.0
