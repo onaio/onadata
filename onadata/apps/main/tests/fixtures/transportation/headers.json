@@ -23,5 +23,6 @@
     "_uuid",
     "_submission_time",
     "_tags",
-    "_notes"
+    "_notes",
+    "_version"
 ]
