@@ -673,7 +673,8 @@ class TestPandasMongoBridge(TestBase):
                     u'_parent_table_name': None,
                     u'_parent_index': -1,
                     u'_tags': [],
-                    u'_notes': []
+                    u'_notes': [],
+                    u'_version': self.xform.version
                 }
             ],
             u"children": [
