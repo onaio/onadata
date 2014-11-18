@@ -435,7 +435,6 @@ BINARY_SELECT_MULTIPLES = False
 # Use 'n/a' for empty values by default on csv exports
 NA_REP = 'n/a'
 
-
 # MongoDB
 if MONGO_DATABASE.get('USER') and MONGO_DATABASE.get('PASSWORD'):
     MONGO_CONNECTION_URL = (

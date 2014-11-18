@@ -129,7 +129,6 @@ def deploy(deployment_name, branch='master'):
     run("sudo %s restart" % env.celeryd)
     run("sudo /usr/local/bin/uwsgi --reload %s" % env.pid)
 
-
 def update_xforms(deployment_name, username, path):
     setup_env(deployment_name)
 
