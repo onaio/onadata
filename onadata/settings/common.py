@@ -278,9 +278,10 @@ COMPRESS = True
 # extra data stored with users
 AUTH_PROFILE_MODULE = 'onadata.apps.main.UserProfile'
 
-# case insensitive usernames
+# case insensitive usernames -- DISABLED for KoBoForm compatibility
 AUTHENTICATION_BACKENDS = (
-    'onadata.apps.main.backends.ModelBackend',
+    #'onadata.apps.main.backends.ModelBackend',
+    'django.contrib.auth.backends.ModelBackend',
     'guardian.backends.ObjectPermissionBackend',
 )
 
