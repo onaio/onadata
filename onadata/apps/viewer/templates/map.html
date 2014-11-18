@@ -66,6 +66,7 @@
     var language_code = "{{LANGUAGE_CODE}}";
     var attachmentsBaseUrl = "{% url "onadata.apps.viewer.views.attachment_url" %}";
     var userName = "{{ content_user }}";
+    var is_authenticated = "{{ user.is_authenticated }}"
     var modalVisible = null;
     var idToDelete = null;
 
@@ -200,7 +201,7 @@
     	var closeButton = $("<button />");
     	closeButton.addClass('close').attr('data-dismiss', 'modal').html('&times;');
     	closeButton.click(function () {
-    		exitModal($(this).parent(), addedPoint);
+    		exitModal(modalElem, addedPoint);
     	});
         modalHeader.append(closeButton);
     	modalElem.append(modalHeader);
