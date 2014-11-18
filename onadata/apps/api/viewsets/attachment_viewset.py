@@ -11,9 +11,16 @@ from onadata.libs import filters
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
     MediaFileRenderer
+from onadata.libs.utils.timing import get_header_date_format, get_date
+
+
+def get_instance_date(_attachment):
+    return get_date() if _attachment is None else get_date(
+        _attachment.instance, 'modified')
 
 
 class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
+
     """
 
     ## Lists attachments of all xforms
@@ -143,6 +150,9 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (filters.AttachmentFilter,)
     lookup_field = 'pk'
     queryset = Attachment.objects.all()
+    default_response_headers = {
+        'Last-Modified': get_header_date_format(
+            get_instance_date(Attachment.objects.last()))}
     permission_classes = (AttachmentObjectPermissions,)
     serializer_class = AttachmentSerializer
     renderer_classes = (
@@ -152,6 +162,8 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         self.object = self.get_object()
+        self.headers['Last-Modified'] = get_header_date_format(
+            get_instance_date(self.object))
 
         if isinstance(request.accepted_renderer, MediaFileRenderer) \
                 and self.object.media_file is not None:

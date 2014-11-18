@@ -9,9 +9,17 @@ from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs import filters
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
     MediaFileRenderer
+from onadata.libs.utils.timing import get_header_date_format, get_date
+
+
+def get_xform_date():
+    _metadata = MetaData.objects.last()
+    return get_date() if _metadata is None else get_date(
+        _metadata.xform, 'modified')
 
 
 class MetaDataViewSet(viewsets.ModelViewSet):
+
     """
     This endpoint provides access to form metadata, for example, supporting
     documents, media files to be used in the form, source documents and map
@@ -176,6 +184,8 @@ Accept: image/png </pre>
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.MetaDataFilter,)
     queryset = MetaData.objects.all()
+    default_response_headers = {
+        'Last-Modified': get_header_date_format(get_xform_date())}
     permission_classes = (MetaDataObjectPermissions,)
     renderer_classes = (
         renderers.JSONRenderer,

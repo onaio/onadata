@@ -11,6 +11,7 @@ from rest_framework.permissions import DjangoObjectPermissions
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.apps.api.models import Team
 from onadata.apps.api.tools import add_user_to_team, remove_user_from_team
+from onadata.libs.utils.timing import get_header_date_format, get_date
 
 
 class TeamViewSet(ModelViewSet):
@@ -103,6 +104,9 @@ A list of usernames is the response for members of the team.
 
 """
     queryset = Team.objects.all()
+    default_response_headers = {
+        'Last-Modified': get_header_date_format(
+            get_date(Team.objects.last(), 'modified'))}
     serializer_class = TeamSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None

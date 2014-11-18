@@ -14,6 +14,7 @@ from onadata.libs.serializers.user_profile_serializer import (
     UserProfileWithTokenSerializer)
 
 from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
+from onadata.libs.utils.timing import get_header_date_format
 
 
 class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
@@ -98,6 +99,9 @@ using the `window.atob();` function.
 """
     lookup_field = 'user'
     queryset = UserProfile.objects.all()
+    default_response_headers = {
+        'Last-Modified': get_header_date_format(
+            UserProfile.objects.last().user.date_joined)}
     permission_classes = (ConnectViewsetPermissions,)
     serializer_class = UserProfileWithTokenSerializer
 
@@ -123,6 +127,8 @@ using the `window.atob();` function.
     def starred(self, request, *args, **kwargs):
         """Return projects starred for this user."""
         user_profile = self.get_object()
+        self.headers['Last-Modified'] = get_header_date_format(
+            user_profile.user.date_joined)
         user = user_profile.user
         projects = user.project_set.all()
         serializer = ProjectSerializer(projects,
