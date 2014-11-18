@@ -18,6 +18,7 @@ from onadata.apps.viewer.views import delete_export, export_list,\
     create_export, export_progress, export_download
 from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.apps.viewer.models.export import Export
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.logger.models import Instance
 from onadata.apps.viewer.tasks import create_xls_export
@@ -1121,9 +1122,9 @@ class TestExports(TestBase):
         self._publish_transportation_form()
         self._submit_transport_instance()
         num_exports = Export.objects.count()
-        from onadata.apps.main.models.meta_data import MetaData
+
         server = 'http://localhost:8080/xls/23fa4c38c0054748a984ffd89021a295'
-        data_value = 'template 1 |' + server
+        data_value = 'template 1 |{0}'.format(server)
         meta = MetaData.external_export(self.xform, data_value)
 
         custom_params = {
@@ -1139,3 +1140,20 @@ class TestExports(TestBase):
         response = self.client.post(create_export_url, custom_params)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Export.objects.count(), num_exports + 1)
+
+    def test_create_external_export_without_template(self):
+        self._publish_transportation_form()
+        self._submit_transport_instance()
+        num_exports = Export.objects.count()
+
+        # create export
+        create_export_url = reverse(create_export, kwargs={
+            'username': self.user.username,
+            'id_string': self.xform.id_string,
+            'export_type': Export.EXTERNAL_EXPORT
+        })
+
+        response = self.client.post(create_export_url)
+        self.assertEqual(response.status_code, 403)
+        self.assertEquals(response.content, u'No XLS Template set.')
+        self.assertEqual(Export.objects.count(), num_exports)

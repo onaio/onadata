@@ -194,7 +194,8 @@ def external_export_response(export):
     else:
         http_status = status.HTTP_400_BAD_REQUEST
 
-    return Response(export, http_status)
+    return Response(json.dumps(export), http_status,
+                    content_type="application/json")
 
 
 def log_export(request, xform, export_type):
@@ -571,15 +572,32 @@ Where:
 - `pk` - is the form unique identifier
 - `format` - is the data export format i.e csv, xls, csvzip, savzip
 
+Params for the custom xls report
+
+- `meta`  - the metadata id containing the template url
+-  `token`  - the template url
+
 <pre class="prettyprint">
-<b>GET</b> /api/v1/exports/{pk}.{format}</code>
+<b>GET</b> /api/v1/forms/{pk}.{format}</code>
 </pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/exports/28058.xls
+>       curl -X GET https://ona.io/api/v1/forms/28058.xls
 
-> binary file export of the format specied is returned as the response for the
-> download.
+> Binary file export of the format specified is returned as the response for
+>the download.
+>
+> Response
+>
+>        HTTP 200 OK
+
+> Example 2 Custom XLS reports (beta)
+>
+>       curl -X GET https://ona.io/api/v1/forms/28058.xls?meta=12121
+>                   or
+>       curl -X GET https://ona.io/api/v1/forms/28058.xls?token={url}
+>
+> XLS file is downloaded
 >
 > Response
 >
