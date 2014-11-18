@@ -58,5 +58,10 @@ class TestAttachmentSerializer(TransactionTestCase):
         self.question = "photograph"
 
     def test_get_field_xpath_of_an_object(self):
-        path = get_path(self.data, self.question)
+        path = get_path(self.data, self.question, [])
+        self.assertEquals(path, "group1/group2/photograph")
+        # call 'get_path' twice to ensure the incorrect path bug has been
+        # sorted; calling it the second time initially would return the
+        # following path: "group1/group2/photograph/group1/group2/photograph"
+        path = get_path(self.data, self.question, [])
         self.assertEquals(path, "group1/group2/photograph")
