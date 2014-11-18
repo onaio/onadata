@@ -246,7 +246,7 @@ def publish_xlsform(request, user, id_string=None):
 
 def publish_project_xform(request, project):
     def set_form():
-        form = QuickConverter(request.POST, request.FILES)
+        form = QuickConverter({'project': project.pk}, request.FILES)
 
         return form.publish(project.organization)
 
@@ -256,9 +256,6 @@ def publish_project_xform(request, project):
         xform = get_object_or_404(XForm, pk=request.DATA.get('formid'))
     else:
         xform = publish_form(set_form)
-
-    if isinstance(xform, XForm):
-        add_xform_to_project(xform, project, request.user)
 
     return xform
 
