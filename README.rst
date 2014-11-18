@@ -1,24 +1,9 @@
-Ona Platform
-=================
-Collect, Analyze and Share Data!
-
-.. image:: https://secure.travis-ci.org/onaio/onadata.png?branch=master
-  :target: http://travis-ci.org/onaio/onadata
-
 About
 -----
 
-Ona is derived from the excellent `formhub <http://github.com/SEL-Columbia/formhub>`_ platform developed by the Sustainable Engineering Lab at Columbia University.
+kobocat is the data collection platform used in KoBoToolbox. It is based on the excellent `onadata <http://github.com/onaio/onadata>`_ platform developed by Ona LLC, which in itself is a redevelopment of the `formhub <http://github.com/SEL-Columbia/formhub>`_ platform developed by the Sustainable Engineering Lab at Columbia University.
 
-Installation
-------------
-Please read the `Installation and Deployment Guide <https://github.com/SEL-Columbia/formhub/wiki/Installation-and-Deployment>`_.
-
-Contributing
-------------
-
-If you would like to contribute code please read
-`Contributing Code to Ona Data <https://github.com/onaio/onadata/wiki/Contributing-Code-to-OnaData>`_.
+Please refer to `dist-kobo-devel <https://github.com/kobotoolbox/dist-kobo-devel>`_ for  instructions on how to install KoBoToolbox.
 
 Code Structure
 --------------
@@ -41,19 +26,19 @@ To generate a locale from scratch (ex. Spanish)
 .. code-block:: sh
 
     $ django-admin.py makemessages -l es -e py,html,email,txt ;
-    $ for app in {main,viewer} ; do cd onadata/apps/${app} && django-admin.py makemessages -d djangojs -l es && cd - ; done
+    $ for app in {main,viewer} ; do cd kobocat/apps/${app} && django-admin.py makemessages -d djangojs -l es && cd - ; done
 
 To update PO files
 
 .. code-block:: sh
 
     $ django-admin.py makemessages -a ;
-    $ for app in {main,viewer} ; do cd onadata/apps/${app} && django-admin.py makemessages -d djangojs -a && cd - ; done
+    $ for app in {main,viewer} ; do cd kobocat/apps/${app} && django-admin.py makemessages -d djangojs -a && cd - ; done
 
 To compile MO files and update live translations
 
 .. code-block:: sh
 
     $ django-admin.py compilemessages ;
-    $ for app in {main,viewer} ; do cd onadata/apps/${app} && django-admin.py compilemessages && cd - ; done
+    $ for app in {main,viewer} ; do cd kobocat/apps/${app} && django-admin.py compilemessages && cd - ; done
     

@@ -26,7 +26,6 @@ before_install:
   - sudo ln -s /run/shm /dev/shm
 env:
   - TESTFOLDER=onadata/apps/main
-  - TESTFOLDER="onadata/apps/api onadata/apps/logger onadata/apps/viewer onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats onadata/libs"
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy pandas=0.12.0
   - pip install -r requirements/base.pip --allow-all-external
@@ -34,10 +33,9 @@ install:
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
   # make ~/tmp dir writable for npm downloads
-  - mkdir -p "$HOME/tmp"
-  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then sudo chmod a+w $HOME/tmp ; fi
-  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then sudo npm install ; fi
-  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then bower install --force-latest ; fi
+  # - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then sudo chmod a+w $HOME/tmp ; fi
+  # - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then npm install ; fi
+  # - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then bower install --force-latest ; fi
 script:
   - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test
   - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then karma start onadata/libs/javascript/tests/karma.conf.js ; fi
