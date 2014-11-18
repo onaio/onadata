@@ -39,6 +39,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
     def test_profiles_list(self):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.user_profile_data()])
 
@@ -55,11 +56,13 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         # by username
         response = view(request, user='bob')
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.user_profile_data())
 
         # by pk
         response = view(request, user=self.user.pk)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.user_profile_data())
 

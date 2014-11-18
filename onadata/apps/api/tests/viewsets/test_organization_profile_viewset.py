@@ -22,6 +22,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self._org_create()
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.company_data])
 
@@ -38,6 +39,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self._org_create()
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.company_data])
 
@@ -54,6 +56,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request)
 
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -69,6 +72,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             response.data, {'detail': 'Expected URL keyword argument `user`.'})
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', response.data.keys())
@@ -126,6 +130,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [u'denoinc'])
 

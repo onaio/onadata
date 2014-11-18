@@ -38,6 +38,7 @@ class TestTeamViewSet(TestAbstractViewSet):
                        'id': self.user.pk}
                       ]
         }
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(sorted(response.data), [owner_team, self.team_data])
 
@@ -48,6 +49,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.team.pk)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.team_data)
 

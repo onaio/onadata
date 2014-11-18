@@ -37,6 +37,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get('/', **self.extra)
         response = self.retrieve_view(request, pk=pk)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, dict))
         self.assertEqual(response.data, data)
@@ -46,6 +47,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         ext = filename[filename.rindex('.') + 1:]
         request = self.factory.get('/', **self.extra)
         response = self.retrieve_view(request, pk=pk, format=ext)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'image/jpeg')
 
@@ -54,6 +56,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
         request = self.factory.get('/', **self.extra)
         response = self.list_view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
 
@@ -65,6 +68,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
 
@@ -86,6 +90,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
 
@@ -107,6 +112,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get('/', data, **self.extra)
         response = self.retrieve_view(request, pk=self.attachment.pk)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, basestring))
         self.assertEqual(response.data, self.attachment.media_file.url)
@@ -132,6 +138,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get('/', data, **self.extra)
         response = self.retrieve_view(request, pk=self.attachment.pk)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, basestring))
         self.assertEqual(response.data, self.attachment.media_file.url)

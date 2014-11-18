@@ -13,6 +13,7 @@ from onadata.libs.serializers.xform_serializer import XFormSerializer
 
 
 class TestMetaDataViewSet(TestAbstractViewSet):
+
     def setUp(self):
         super(TestMetaDataViewSet, self).setUp()
         self.view = MetaDataViewSet.as_view({
@@ -63,11 +64,13 @@ class TestMetaDataViewSet(TestAbstractViewSet):
                                     self.data_value, self.path)
             request = self.factory.get('/', **self.extra)
             response = self.view(request, pk=self.metadata.pk)
+            self.assertNotEqual(response.get('Last-Modified'), None)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.data, self.metadata_data)
             ext = self.data_value[self.data_value.rindex('.') + 1:]
             request = self.factory.get('/', **self.extra)
             response = self.view(request, pk=self.metadata.pk, format=ext)
+            self.assertNotEqual(response.get('Last-Modified'), None)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'image/png')
 
@@ -148,6 +151,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
 
     def test_list_metadata_for_specific_form(self):
@@ -160,6 +164,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         request = self.factory.get('/', data, **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
 
         data['xform'] = 1234509909
