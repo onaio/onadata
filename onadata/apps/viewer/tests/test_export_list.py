@@ -97,7 +97,7 @@ class TestExportList(TestBase):
                   'id_string': self.xform.id_string,
                   'export_type': Export.EXTERNAL_EXPORT}
         server = 'http://localhost:8080/xls/23fa4c38c0054748a984ffd89021a295'
-        data_value = 'template 1 |' + server
+        data_value = 'template 1 |{0}'.format(server)
         meta = MetaData.external_export(self.xform, data_value)
 
         custom_params = {
