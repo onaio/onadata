@@ -23,7 +23,7 @@ class UserProfile(models.Model):
     twitter = models.CharField(max_length=255, blank=True)
     description = models.CharField(max_length=255, blank=True)
     require_auth = models.BooleanField(
-        default=True,
+        default=False,
         verbose_name=ugettext_lazy("Require Phone Authentication"))
     address = models.CharField(max_length=255, blank=True)
     phonenumber = models.CharField(max_length=30, blank=True)

@@ -20,7 +20,7 @@ def _profile_data():
         'organization': u'Dono Inc.',
         'website': u'deno.com',
         'twitter': u'denoerama',
-        'require_auth': True,
+        'require_auth': False,
         'password': 'denodeno',
         'is_org': False,
     }

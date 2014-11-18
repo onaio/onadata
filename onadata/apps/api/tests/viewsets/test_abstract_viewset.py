@@ -124,7 +124,7 @@ class TestAbstractViewSet(TestCase):
             'description': u'',
             'address': u'',
             'phonenumber': u'',
-            'require_auth': True,
+            'require_auth': False,
         }
         request = self.factory.post(
             '/', data=json.dumps(data),
