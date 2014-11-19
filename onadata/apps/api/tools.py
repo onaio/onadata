@@ -426,18 +426,18 @@ def check_inherit_permission_from_project(xform_id, user):
         return
 
     # get the project_xform
-    projects_xform = ProjectXForm.objects.filter(xform=xform_id)
+    xforms = XForm.objects.filter(pk=xform_id)
 
-    if not projects_xform:
+    if not xforms:
         return
 
     # get and compare the project role to the xform role
-    project_role = get_role_in_org(user, projects_xform[0].project)
-    xform_role = get_role_in_org(user, projects_xform[0].xform)
+    project_role = get_role_in_org(user, xforms[0].project)
+    xform_role = get_role_in_org(user, xforms[0])
 
     # if diff set the project role to the xform
     if xform_role != project_role:
-        _set_xform_permission(project_role, user, projects_xform[0].xform)
+        _set_xform_permission(project_role, user, xforms[0])
 
 
 def _set_xform_permission(role, user, xform):
