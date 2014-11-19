@@ -276,7 +276,9 @@ class TestXFormViewSet(TestAbstractViewSet):
         uuid_node.setAttribute("calculate", "''")
 
         # check content without UUID
-        self.assertEqual(response_doc.toxml(), expected_doc.toxml())
+        response_xml = response_doc.toxml().replace(
+            self.xform.version, u"201411120717")
+        self.assertEqual(response_xml, expected_doc.toxml())
 
     def test_form_tags(self):
         self._publish_xls_form_to_project()
@@ -576,7 +578,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             'allows_sms': False,
             'uuid': u'',
             'instances_with_geopoints': False,
-            'num_of_submissions': 0
+            'num_of_submissions': 0,
+            'version': u''
         }
         self.assertEqual(data, XFormSerializer(None).data)
 
@@ -684,3 +687,169 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 400)
         self.assertIsNotNone(response.data.get('error'))
+
+    def test_update_xform_xls_file(self):
+        self._publish_xls_form_to_project()
+
+        self.assertIsNotNone(self.xform.version)
+        version = self.xform.version
+        form_id = self.xform.pk
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update',
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation_version.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+
+            self.assertEqual(response.status_code, 200)
+
+        self.xform.reload()
+        new_version = self.xform.version
+
+        # diff versions
+        self.assertNotEquals(version, new_version)
+        self.assertEquals(form_id, self.xform.pk)
+
+    def test_update_xform_xls_bad_file(self):
+        self._publish_xls_form_to_project()
+
+        self.assertIsNotNone(self.xform.version)
+        version = self.xform.version
+        form_id = self.xform.pk
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update',
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation.bad_id.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+
+            self.assertEqual(response.status_code, 400)
+
+        self.xform.reload()
+        new_version = self.xform.version
+
+        # fails to update the form
+        self.assertEquals(version, new_version)
+        self.assertEquals(form_id, self.xform.pk)
+
+    def test_update_xform_xls_file_with_submissions(self):
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+
+        self.assertIsNotNone(self.xform.version)
+        version = self.xform.version
+        form_id = self.xform.pk
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update',
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation_updated.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+
+            self.assertEqual(response.status_code, 400)
+            self.assertEquals(response.data, u"Cannot update the xls file in "
+                                             u"a form that has submissions")
+
+        self.xform.reload()
+        new_version = self.xform.version
+
+        # diff versions
+        self.assertEquals(version, new_version)
+        self.assertEquals(form_id, self.xform.pk)
+
+    def test_update_xform_xls_file_with_version_set(self):
+        self._publish_xls_form_to_project()
+        form_id = self.xform.pk
+
+        self.assertIsNotNone(self.xform.version)
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update',
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation_version.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+
+            self.assertEqual(response.status_code, 200)
+
+        self.xform.reload()
+
+        # diff versions
+        self.assertEquals(self.xform.version, u"212121211")
+        self.assertEquals(form_id, self.xform.pk)
+
+    def test_update_xform_using_put(self):
+        self._publish_xls_form_to_project()
+        form_id = self.xform.pk
+
+        version = self.xform.version
+        view = XFormViewSet.as_view({
+            'put': 'update',
+        })
+
+        post_data = {
+            'uuid': 'ae631e898bd34ced91d2a309d8b72das',
+            'description': 'Transport form',
+            'downloadable': False,
+            'owner': 'http://testserver/api/v1/users/{0}'.format(self.user),
+            'public': False,
+            'public_data': False,
+            'title': 'Transport Form'
+        }
+        request = self.factory.put('/', data=post_data, **self.extra)
+        response = view(request, pk=form_id)
+
+        self.assertEqual(response.status_code, 200)
+
+        self.xform.reload()
+
+        self.assertEquals(version, self.xform.version)
+        self.assertEquals(self.xform.description, u'Transport form')
+        self.assertEquals(self.xform.title, u'Transport Form')
+        self.assertEquals(form_id, self.xform.pk)
+
+    def test_update_xform_using_put_without_required_field(self):
+        self._publish_xls_form_to_project()
+        form_id = self.xform.pk
+
+        view = XFormViewSet.as_view({
+            'put': 'update',
+        })
+
+        post_data = {
+            'uuid': 'ae631e898bd34ced91d2a309d8b72das',
+            'description': 'Transport form',
+            'downloadable': False,
+            'owner': 'http://testserver/api/v1/users/{0}'.format(self.user),
+            'public': False,
+            'public_data': False,
+        }
+        request = self.factory.put('/', data=post_data, **self.extra)
+        response = view(request, pk=form_id)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(response.data,
+                          {'title': [u'This field is required.']})

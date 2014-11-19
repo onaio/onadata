@@ -1,5 +1,7 @@
 import os
 import re
+import json
+import datetime
 
 from django.db import models
 from django.db.models.signals import post_save
@@ -14,7 +16,8 @@ from xml.dom import Node
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
-from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES
+from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES,\
+    VERSION
 from onadata.libs.utils.export_tools import question_types_to_exclude,\
     DictOrganizer
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
@@ -147,9 +150,11 @@ class DataDictionary(XForm):
 
     def save(self, *args, **kwargs):
         if self.xls:
-            survey = create_survey_from_xls(self.xls)
+            # check if version is set
+            survey = self._check_version_set(create_survey_from_xls(self.xls))
             self.json = survey.to_json()
             self.xml = survey.to_xml()
+            self.version = survey.get('version')
             self._mark_start_time_boolean()
             set_uuid(self)
             self._set_uuid_in_xml()
@@ -293,7 +298,7 @@ class DataDictionary(XForm):
             return '/'.join(l[2:])
 
         header_list = [shorten(xpath) for xpath in self.xpaths()]
-        header_list += [UUID, SUBMISSION_TIME, TAGS, NOTES]
+        header_list += [UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION]
         if include_additional_headers:
             header_list += self._additional_headers()
         return header_list
@@ -413,6 +418,23 @@ class DataDictionary(XForm):
     def get_survey_elements_of_type(self, element_type):
         return [e for e in self.get_survey_elements()
                 if e.type == element_type]
+
+    def _check_version_set(self, survey):
+        """
+        Checks if the version has been set in the xls file and if not adds
+        the default version in this datetime (yyyymmddhhmm) format.
+        """
+
+        # get the json and check for the version key
+        survey_json = json.loads(survey.to_json())
+        if not survey_json.get("version"):
+            # set utc time as the default version
+            survey_json['version'] = \
+                datetime.datetime.utcnow().strftime("%Y%m%d%H%M")
+            builder = SurveyElementBuilder()
+            survey = builder.create_survey_element_from_json(
+                json.dumps(survey_json))
+        return survey
 
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):

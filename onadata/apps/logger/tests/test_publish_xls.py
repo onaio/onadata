@@ -61,6 +61,7 @@ class TestPublishXLS(TestBase):
         xform = xforms[0]
         xform.xml = xform.xml.replace(
             xform.uuid, '663123a849e54bffa8f9832ef016bfac')
+        xform.xml = xform.xml.replace(xform.version, u'201411120717')
         xform.save()
         f = codecs.open(test_xml_file_path, 'w', encoding="utf-8")
         f.write(xform.xml)
@@ -91,3 +92,13 @@ class TestPublishXLS(TestBase):
             report_exception(subject="Test report exception", info=e)
         except Exception as e:
             raise AssertionError("%s" % e)
+
+    def test_publish_xls_version(self):
+        xls_file_path = os.path.join(
+            self.this_directory, "fixtures",
+            "transportation", "transportation.xls")
+        count = XForm.objects.count()
+        call_command('publish_xls', xls_file_path, self.user.username)
+        self.assertEqual(XForm.objects.count(), count + 1)
+        form = XForm.objects.get()
+        self.assertIsNotNone(form.version)

@@ -18,7 +18,7 @@ from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
-    UUID, XFORM_ID_STRING, SUBMITTED_BY
+    UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION
 from onadata.libs.utils.model_tools import set_uuid
 
 
@@ -122,6 +122,7 @@ class Instance(models.Model):
     status = models.CharField(max_length=20,
                               default=u'submitted_via_web')
     uuid = models.CharField(max_length=249, default=u'')
+    version = models.CharField(max_length=12, null=True)
 
     # store an geographic objects associated with this instance
     geom = models.GeometryCollectionField(null=True)
@@ -228,7 +229,8 @@ class Instance(models.Model):
                           self.attachments.all()],
             self.STATUS: self.status,
             TAGS: list(self.tags.names()),
-            NOTES: self.get_notes()
+            NOTES: self.get_notes(),
+            VERSION: self.version
         }
 
         if isinstance(self.instance.deleted_at, datetime):
@@ -268,6 +270,7 @@ class Instance(models.Model):
         self._set_json()
         self._set_survey_type()
         self._set_uuid()
+        self.version = self.xform.version
         super(Instance, self).save(*args, **kwargs)
 
     def set_deleted(self, deleted_at=timezone.now()):

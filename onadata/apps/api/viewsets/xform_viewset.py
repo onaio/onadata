@@ -249,6 +249,24 @@ def custom_response_handler(request, xform, query, export_type,
     return response
 
 
+def _try_update_xlsform(request, xform, owner):
+    if xform.instances.count() > 0:
+        data = _(u"Cannot update the xls file in a form that has"
+                 u" submissions")
+        return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+    survey = \
+        utils.publish_xlsform(request, owner, xform.id_string)
+
+    if isinstance(survey, XForm):
+        serializer = XFormSerializer(
+            xform, context={'request': request})
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    return Response(survey, status=status.HTTP_400_BAD_REQUEST)
+
+
 class XFormViewSet(AnonymousUserPublicFormsMixin, LabelsMixin, ModelViewSet):
 
     """
@@ -358,8 +376,10 @@ https://ona.io/api/v1/forms
 
 You can use `PUT` or `PATCH` http methods to update or set form data elements.
 If you are using `PUT`, you have to provide the `uuid, description,
-downloadable, owner, public, public_data, title` fields. With `PATCH` you only
-need provide at least one of the fields.
+downloadable, owner, public, public_data, title, xls_file` fields.
+ With `PATCH` you only need provide at least one of the fields.
+
+- `xls_file`: Can only be updated when there are no submissions.
 
 <pre class="prettyprint">
 <b>PATCH</b> /api/v1/forms/<code>{pk}</code></pre>
@@ -837,3 +857,14 @@ data (instance/submission per row)
             data=resp,
             status=status.HTTP_200_OK if resp.get('error') is None else
             status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, *args, **kwargs):
+        owner = _get_owner(request)
+        self.object = self.get_object()
+
+        # updating the file
+        if request.FILES:
+            return _try_update_xlsform(request, self.object, owner)
+
+        return super(XFormViewSet, self).partial_update(request, *args,
+                                                        **kwargs)

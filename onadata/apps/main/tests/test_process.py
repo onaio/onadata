@@ -222,8 +222,10 @@ class TestProcess(TestBase):
         uuid_node = uuid_nodes[0]
         uuid_node.setAttribute("calculate", "''")
 
+        response_xml = response_doc.toxml().replace(
+            self.xform.version, u"201411120717")
         # check content without UUID
-        self.assertEqual(response_doc.toxml(), expected_doc.toxml())
+        self.assertEqual(response_xml, expected_doc.toxml())
 
     def _check_csv_export(self):
         self._check_data_dictionary()
@@ -352,7 +354,7 @@ class TestProcess(TestBase):
             {'meta/instanceID': 'uuid:5b2cc313-fc09-437e-8149-fcd32f695d41',
              '_uuid': '5b2cc313-fc09-437e-8149-fcd32f695d41',
              '_submission_time': '2013-02-14T15:37:21',
-             '_tags': '', '_notes': ''
+             '_tags': '', '_notes': '', '_version': '2014111'
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
@@ -363,7 +365,7 @@ class TestProcess(TestBase):
              "meta/instanceID": "uuid:f3d8dc65-91a6-4d0f-9e97-802128083390",
              '_uuid': 'f3d8dc65-91a6-4d0f-9e97-802128083390',
              '_submission_time': '2013-02-14T15:37:22',
-             '_tags': '', '_notes': ''
+             '_tags': '', '_notes': '', '_version': '2014111'
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
@@ -371,7 +373,7 @@ class TestProcess(TestBase):
              "meta/instanceID": "uuid:9c6f3468-cfda-46e8-84c1-75458e72805d",
              '_uuid': '9c6f3468-cfda-46e8-84c1-75458e72805d',
              '_submission_time': '2013-02-14T15:37:23',
-             '_tags': '', '_notes': ''
+             '_tags': '', '_notes': '', '_version': '2014111'
              },
             {"available_transportation_types_to_referral_facility/taxi":
              "True",
@@ -383,7 +385,7 @@ class TestProcess(TestBase):
              "meta/instanceID": "uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf",
              '_uuid': '9f0a1508-c3b7-4c99-be00-9b237c26bcbf',
              '_submission_time': '2013-02-14T15:37:24',
-             '_tags': '', '_notes': ''
+             '_tags': '', '_notes': '', '_version': '2014111'
              }
         ]
 

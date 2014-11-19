@@ -603,6 +603,7 @@ class TestPandasMongoBridge(TestBase):
             u'_status': u'submitted_via_web',
             u'_tags': u'',
             u'_notes': u'',
+            u'_version': self.xform.version,
             u"_submitted_by": u'bob',
             u'name': u'Abe',
             u'age': u'88',
@@ -672,7 +673,8 @@ class TestPandasMongoBridge(TestBase):
                     u'_parent_table_name': None,
                     u'_parent_index': -1,
                     u'_tags': [],
-                    u'_notes': []
+                    u'_notes': [],
+                    u'_version': self.xform.version
                 }
             ],
             u"children": [
