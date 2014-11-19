@@ -278,7 +278,7 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
 
         return project
 
-    def publish(self, user, id_string=None):
+    def publish(self, user, id_string=None, created_by=None):
         if self.is_valid():
             # If a text (csv) representation of the xlsform is present,
             # this will save the file and pass it instead of the 'xls_file'
@@ -323,7 +323,8 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 project = self._project
 
             # publish the xls
-            return publish_xls_form(cleaned_xls_file, user, project, id_string)
+            return publish_xls_form(cleaned_xls_file, user, project,
+                                    id_string, created_by or user)
 
 
 class ActivateSMSSupportFom(forms.Form):

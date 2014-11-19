@@ -412,7 +412,7 @@ def publish_form(callback):
         }
 
 
-def publish_xls_form(xls_file, user, project, id_string=None):
+def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
     """ Creates or updates a DataDictionary with supplied xls_file,
         user and optional id_string - if updating
     """
@@ -426,13 +426,14 @@ def publish_xls_form(xls_file, user, project, id_string=None):
         return dd
     else:
         return DataDictionary.objects.create(
+            created_by=created_by or user,
             user=user,
             xls=xls_file,
             project=project
         )
 
 
-def publish_xml_form(xml_file, user, project, id_string=None):
+def publish_xml_form(xml_file, user, project, id_string=None, created_by=None):
     xml = xml_file.read()
     survey = create_survey_element_from_xml(xml)
     form_json = survey.to_json()
@@ -448,8 +449,9 @@ def publish_xml_form(xml_file, user, project, id_string=None):
 
         return dd
     else:
-        dd = DataDictionary(
-            user=user, xml=xml, json=form_json, project=project)
+        created_by = created_by or user
+        dd = DataDictionary(created_by=created_by, user=user, xml=xml,
+                            json=form_json, project=project)
         dd._mark_start_time_boolean()
         set_uuid(dd)
         dd._set_uuid_in_xml(file_name=xml_file.name)

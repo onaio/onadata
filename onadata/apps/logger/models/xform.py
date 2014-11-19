@@ -14,9 +14,6 @@ from django.core.urlresolvers import reverse
 from django.db.models.signals import post_save, post_delete
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy, ugettext as _
-from guardian.shortcuts import \
-    assign_perm, \
-    get_perms_for_model
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
@@ -86,6 +83,7 @@ class XForm(BaseModel):
     num_of_submissions = models.IntegerField(default=0)
     version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True)
     project = models.ForeignKey('Project')
+    created_by = models.ForeignKey(User, null=True, blank=True)
 
     tags = TaggableManager()
 
@@ -278,7 +276,24 @@ post_delete.connect(update_profile_num_submissions, sender=XForm,
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
     if created:
-        for perm in get_perms_for_model(XForm):
-            assign_perm(perm.codename, instance.user, instance)
+        from onadata.libs.permissions import get_object_users_with_permissions
+        from onadata.libs.permissions import OwnerRole, ReadOnlyRole
+
+        xform = instance
+        project = instance.project
+
+        if project.shared != xform.shared:
+            xform.shared = project.shared
+            xform.shared_data = project.shared
+            xform.save()
+
+        for perm in get_object_users_with_permissions(project):
+            user = perm['user']
+
+            if user != xform.created_by:
+                ReadOnlyRole.add(user, xform)
+            else:
+                OwnerRole.add(user, xform)
+
 post_save.connect(set_object_permissions, sender=XForm,
                   dispatch_uid='xform_object_permissions')

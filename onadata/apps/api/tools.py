@@ -239,7 +239,8 @@ def publish_xlsform(request, user, id_string=None):
 
     def set_form():
         form = QuickConverter(request.POST, request.FILES)
-        return form.publish(user, id_string)
+
+        return form.publish(user, created_by=request.user)
 
     return publish_form(set_form)
 
@@ -248,7 +249,7 @@ def publish_project_xform(request, project):
     def set_form():
         form = QuickConverter({'project': project.pk}, request.FILES)
 
-        return form.publish(project.organization)
+        return form.publish(project.organization, created_by=request.user)
 
     xform = None
 
