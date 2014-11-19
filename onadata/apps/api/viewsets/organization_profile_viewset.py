@@ -16,12 +16,8 @@ from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.permissions import ROLES
 from onadata.libs.serializers.organization_serializer import(
     OrganizationSerializer)
-from onadata.libs.utils.timing import get_header_date_format, get_date
-
-
-def get_user_date(_org_profile):
-    return get_date() if _org_profile is None else get_date(
-        _org_profile.user, 'joined')
+from onadata.libs.utils.timing import (
+    last_modified_header, get_date, merge_dicts)
 
 
 def _try_function_org_username(f, organization, username, args=None):
@@ -192,9 +188,8 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 >       []
 """
     queryset = OrganizationProfile.objects.all()
-    default_response_headers = {
-        'Last-Modified': get_header_date_format(
-            get_user_date(OrganizationProfile.objects.last()))}
+    default_response_headers = last_modified_header(
+        get_date(OrganizationProfile.objects.last(), 'joined'))
     serializer_class = OrganizationSerializer
     lookup_field = 'user'
     permission_classes = [permissions.DjangoObjectPermissions]
@@ -203,8 +198,9 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
     @action(methods=['DELETE', 'GET', 'POST', 'PUT'])
     def members(self, request, *args, **kwargs):
         organization = self.get_object()
-        self.headers['Last-Modified'] = get_header_date_format(
-            get_user_date(organization))
+        self.headers = merge_dicts(
+            self.headers,
+            last_modified_header(get_date(organization, 'joined')))
         status_code = status.HTTP_200_OK
         data = []
         username = request.DATA.get('username') or request.QUERY_PARAMS.get(

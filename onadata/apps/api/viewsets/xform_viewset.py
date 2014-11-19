@@ -42,7 +42,7 @@ from onadata.libs.utils.string import str2bool
 
 from onadata.libs.utils.csv_import import submit_csv
 from onadata.libs.utils.viewer_tools import _get_form_url
-from onadata.libs.utils.timing import get_header_date_format, get_date
+from onadata.libs.utils.timing import last_modified_header, get_date
 
 EXPORT_EXT = {
     'xls': Export.XLS_EXPORT,
@@ -690,9 +690,8 @@ data (instance/submission per row)
         renderers.SurveyRenderer
     ]
     queryset = XForm.objects.all()
-    default_response_headers = {
-        'Last-Modified': get_header_date_format(
-            get_date(XForm.objects.last(), 'modified'))}
+    default_response_headers = last_modified_header(
+        get_date(XForm.objects.last(), 'modified'))
     serializer_class = XFormSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None

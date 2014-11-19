@@ -5,7 +5,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from onadata.libs.serializers.user_serializer import UserSerializer
 from onadata.apps.api import permissions
-from onadata.libs.utils.timing import get_header_date_format
+from onadata.libs.utils.timing import last_modified_header, get_date
 
 
 class UserViewSet(ReadOnlyModelViewSet):
@@ -53,9 +53,8 @@ This endpoint allows you to list and retrieve user's first and last names.
 
 """
     queryset = User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
-    default_response_headers = {
-        'Last-Modified': get_header_date_format(
-            User.objects.last().date_joined)}
+    default_response_headers = last_modified_header(
+        get_date(User.objects.last(), 'joined'))
     serializer_class = UserSerializer
     lookup_field = 'username'
     permission_classes = [permissions.DjangoObjectPermissionsAllowAnon]
