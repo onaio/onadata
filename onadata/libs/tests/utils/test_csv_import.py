@@ -108,9 +108,9 @@ class CSVImportTestCase(TestBase):
                          u'Non unicode csv import rollback failed!')
 
     def test_reject_spaces_in_headers(self):
-        non_utf8_csv = open(os.path.join(self.fixtures_dir, 'header_space.csv'))
+        non_utf8csv = open(os.path.join(self.fixtures_dir, 'header_space.csv'))
         result = csv_import.submit_csv(self.user.username,
-                                       self.xform, non_utf8_csv)
+                                       self.xform, non_utf8csv)
         self.assertEqual(result.get('error'),
                          u'CSV file fieldnames should not contain spaces',
                          u'Incorrect error message returned.')
