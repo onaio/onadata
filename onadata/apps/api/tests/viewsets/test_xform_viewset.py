@@ -779,3 +779,56 @@ class TestXFormViewSet(TestAbstractViewSet):
         # diff versions
         self.assertEquals(self.xform.version, u"212121211")
         self.assertEquals(form_id, self.xform.pk)
+
+    def test_update_xform_using_put(self):
+        self._publish_xls_form_to_project()
+        form_id = self.xform.pk
+
+        version = self.xform.version
+        view = XFormViewSet.as_view({
+            'put': 'update',
+        })
+
+        post_data = {
+            'uuid': 'ae631e898bd34ced91d2a309d8b72das',
+            'description': 'Transport form',
+            'downloadable': False,
+            'owner': 'http://testserver/api/v1/users/{0}'.format(self.user),
+            'public': False,
+            'public_data': False,
+            'title': 'Transport Form'
+        }
+        request = self.factory.put('/', data=post_data, **self.extra)
+        response = view(request, pk=form_id)
+
+        self.assertEqual(response.status_code, 200)
+
+        self.xform.reload()
+
+        self.assertEquals(version, self.xform.version)
+        self.assertEquals(self.xform.description, u'Transport form')
+        self.assertEquals(self.xform.title, u'Transport Form')
+        self.assertEquals(form_id, self.xform.pk)
+
+    def test_update_xform_using_put_without_required_field(self):
+        self._publish_xls_form_to_project()
+        form_id = self.xform.pk
+
+        view = XFormViewSet.as_view({
+            'put': 'update',
+        })
+
+        post_data = {
+            'uuid': 'ae631e898bd34ced91d2a309d8b72das',
+            'description': 'Transport form',
+            'downloadable': False,
+            'owner': 'http://testserver/api/v1/users/{0}'.format(self.user),
+            'public': False,
+            'public_data': False,
+        }
+        request = self.factory.put('/', data=post_data, **self.extra)
+        response = view(request, pk=form_id)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(response.data,
+                          {'title': [u'This field is required.']})
