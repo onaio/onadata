@@ -610,8 +610,11 @@ function toggleHexOverLay()
 function JSONSurveyToHTML(data)
 {
     var idx, dummyContainer, questionName, span;
-    var htmlContent = '<div class="inner-modal"><ul><li><button class="edit-submission btn" data-id="' + data._id + '">Edit Submission Data</button></li>';
-    htmlContent += '<li><button class="del-submission btn btn-danger" data-id="' + data._id + '">Delete Submission</button></li></ul>';
+    var htmlContent = '<div class="inner-modal">';
+    if (is_authenticated === 'True') {
+        htmlContent += '<ul><li><button class="edit-submission btn" data-id="' + data._id + '">Edit Submission Data</button></li>';
+        htmlContent += '<li><button class="del-submission btn btn-danger" data-id="' + data._id + '">Delete Submission</button></li></ul>';
+    }
     htmlContent += '<table class="table table-bordered table-striped"> <thead>\n<tr>\n<th>' + JSONSurveyToHTML__q_str + '</th>\n<th>' + JSONSurveyToHTML__r_str + '</th>\n</tr>\n</thead>\n<tbody>\n';
 
     // add images if any
