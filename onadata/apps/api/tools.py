@@ -23,19 +23,16 @@ from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.logger.models.project import Project
-from onadata.apps.logger.models.project_xform import ProjectXForm
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.data.query import get_field_records
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
+from onadata.libs.utils.project_utils import set_project_perms_to_xform
 from onadata.libs.utils.user_auth import check_and_set_form_by_id
 from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
 from onadata.libs.data.statistics import _chk_asarray
-from onadata.libs.permissions import get_object_users_with_permissions,\
-    get_role_in_org
-from onadata.libs.permissions import OwnerRole, ReadOnlyRole
 from onadata.libs.permissions import ROLES
 
 DECIMAL_PRECISION = 2
@@ -203,33 +200,6 @@ def add_team_to_project(team, project):
     return False
 
 
-def add_xform_to_project(xform, project, creator):
-    """Adds an xform to a project"""
-    # remove xform from any previous relation to a project
-    xform.px_xforms.all().delete()
-
-    # make new connection
-    instance = ProjectXForm.objects.create(
-        xform=xform, project=project, created_by=creator)
-    instance.save()
-
-    # check if the project is a public and make the form public
-    if project.shared != xform.shared:
-        xform.shared = project.shared
-        xform.shared_data = project.shared
-        xform.save()
-
-    for perm in get_object_users_with_permissions(project):
-        user = perm['user']
-
-        if user != creator:
-            ReadOnlyRole.add(user, xform)
-        else:
-            OwnerRole.add(user, xform)
-
-    return instance
-
-
 def publish_xlsform(request, user, id_string=None):
     if not request.user.has_perm('can_add_xform', user.profile):
         raise exceptions.PermissionDenied(
@@ -255,6 +225,9 @@ def publish_project_xform(request, project):
 
     if 'formid' in request.DATA:
         xform = get_object_or_404(XForm, pk=request.DATA.get('formid'))
+        xform.project = project
+        xform.save()
+        set_project_perms_to_xform(xform, project)
     else:
         xform = publish_form(set_form)
 

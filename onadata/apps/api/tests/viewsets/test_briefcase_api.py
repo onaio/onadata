@@ -287,6 +287,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             self.assertEqual(response.status_code, 401)
             request.META.update(auth(request.META, response))
             response = view(request, username=self.user.username)
+
             self.assertEqual(XForm.objects.count(), count + 1)
             self.assertContains(
                 response, "successfully published.", status_code=201)

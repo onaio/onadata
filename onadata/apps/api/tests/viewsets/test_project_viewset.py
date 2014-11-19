@@ -183,8 +183,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=project_id)
         self.assertEqual(response.status_code, 201)
-        self.assertTrue(self.project.px_projects.filter(xform=self.xform))
-        self.assertFalse(old_project.px_projects.filter(xform=self.xform))
+        self.assertTrue(self.project.xform_set.filter(pk=self.xform.pk))
+        self.assertFalse(old_project.xform_set.filter(pk=self.xform.pk))
 
         # check if form added appears in the project details
         request = self.factory.get('/', **self.extra)
