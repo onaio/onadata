@@ -11,6 +11,7 @@ from onadata.libs.serializers.stats_serializer import (
 
 class SubmissionStatsViewSet(AnonymousUserPublicFormsMixin,
                              viewsets.ReadOnlyModelViewSet):
+
     """
 Provides submissions counts grouped by a specified field.
 It accepts query parameters `group` and `name`. Default result

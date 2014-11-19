@@ -25,9 +25,12 @@ from onadata.apps.main.models import UserProfile
 from onadata.settings.common import (
     DEFAULT_FROM_EMAIL,
     SHARE_PROJECT_SUBJECT)
+from onadata.libs.utils.timing import (
+    last_modified_header, get_date, merge_dicts)
 
 
 class ProjectViewSet(LabelsMixin, ModelViewSet):
+
     """
 List, Retrieve, Update, Create Project and Project Forms
 
@@ -366,7 +369,7 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 >        HTTP 200 OK
 
 ## Add a star to a project
-<pre class="prettyprint">
+<pre class="prettypriProjectnt">
 <b>POST</b> /api/v1/projects/<code>{pk}</code>/star</pre>
 
 ## Remove a star to a project
@@ -378,6 +381,8 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 <b>GET</b> /api/v1/projects/<code>{pk}</code>/star</pre>
     """
     queryset = Project.objects.all()
+    default_response_headers = last_modified_header(
+        get_date(Project.objects.last(), 'modified'))
     serializer_class = ProjectSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
@@ -393,7 +398,8 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
         The request key `xls_file` holds the XLSForm file object.
         """
         project = get_object_or_404(Project, pk=kwargs.get('pk'))
-
+        self.headers = merge_dicts(
+            self.headers, last_modified_header(get_date(project, 'modified')))
         if request.method.upper() == 'POST':
             survey = utils.publish_project_xform(request, project)
 
@@ -445,6 +451,8 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
     def star(self, request, *args, **kwargs):
         user = request.user
         project = get_object_or_404(Project, pk=kwargs.get('pk'))
+        self.headers = merge_dicts(
+            self.headers, last_modified_header(get_date(project, 'modified')))
 
         if request.method == 'DELETE':
             project.user_stars.remove(user)

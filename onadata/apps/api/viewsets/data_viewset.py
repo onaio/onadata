@@ -26,6 +26,8 @@ from onadata.libs import filters
 from onadata.libs.utils.viewer_tools import (
     EnketoError,
     get_enketo_edit_url)
+from onadata.libs.utils.timing import (
+    last_modified_header, get_date, merge_dicts)
 
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
@@ -358,6 +360,8 @@ Delete a specific submission in a form
     public_data_endpoint = 'public'
 
     queryset = XForm.objects.all()
+    default_response_headers = last_modified_header(
+        get_date(XForm.objects.last(), 'modified'))
 
     def get_serializer_class(self):
         pk_lookup, dataid_lookup = self.lookup_fields
@@ -433,6 +437,8 @@ Delete a specific submission in a form
     def labels(self, request, *args, **kwargs):
         http_status = status.HTTP_400_BAD_REQUEST
         instance = self.get_object()
+        self.headers = merge_dicts(
+            self.headers, last_modified_header(get_date(instance, 'modified')))
 
         if request.method == 'POST':
             if add_tags_to_instance(request, instance):
@@ -469,6 +475,9 @@ Delete a specific submission in a form
         if isinstance(self.object, XForm):
             raise ParseError(_(u"Data id not provided."))
         elif(isinstance(self.object, Instance)):
+            self.headers = merge_dicts(
+                self.headers,
+                last_modified_header(get_date(self.object, 'modified')))
             if request.user.has_perm("change_xform", self.object.xform):
                 return_url = request.QUERY_PARAMS.get('return_url')
                 if not return_url:
@@ -508,6 +517,10 @@ Delete a specific submission in a form
 
         try:
             instance = Instance.objects.get(pk=data_id)
+            self.headers = merge_dicts(
+                self.headers,
+                last_modified_header(get_date(instance, 'modified')))
+
             if _format == 'json' or _format is None:
                 return Response(instance.json)
             elif _format == 'xml':

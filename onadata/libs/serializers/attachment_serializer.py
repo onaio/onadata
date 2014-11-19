@@ -12,7 +12,15 @@ def dict_key_for_value(_dict, value):
     return _dict.keys()[_dict.values().index(value)]
 
 
-def get_path(data, question_name, path_list=[]):
+def get_path(data, question_name, path_list):
+    """
+    A recursive function that returns the xpath of a media file
+    :param json data: JSON representation of xform
+    :param string question_name: Name of media file being searched for
+    :param list path_list: Contains the names that make up the xpath
+    :return: an xpath which is a string or None if name cannot be found
+    :rtype: string or None
+    """
     name = data.get('name')
     if name == question_name:
         return '/'.join(path_list)
@@ -67,4 +75,4 @@ class AttachmentSerializer(serializers.ModelSerializer):
         question_name = dict_key_for_value(qa_dict, obj.filename)
         data = json.loads(obj.instance.xform.json)
 
-        return get_path(data, question_name)
+        return get_path(data, question_name, [])

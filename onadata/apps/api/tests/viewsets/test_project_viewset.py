@@ -24,6 +24,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._project_create()
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.project_data])
         self.assertIn('created_by', response.data[0].keys())
@@ -35,6 +36,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.project_data)
 
@@ -52,6 +54,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # no tags
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=project_id)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.data, [])
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
@@ -66,17 +69,20 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
         response = list_view(request, pk=project_id)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.project_data])
 
         request = self.factory.get('/', data={"tags": "goodbye"}, **self.extra)
         response = list_view(request, pk=project_id)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
         # remove tag "hello"
         request = self.factory.delete('/', **self.extra)
         response = view(request, pk=project_id, label='hello')
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -152,6 +158,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.form_data])
 
@@ -388,6 +395,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.project.reload()
 
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(len(self.project.user_stars.all()), 1)
         self.assertEqual(self.project.user_stars.all()[0], self.user)

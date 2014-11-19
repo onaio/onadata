@@ -8,10 +8,12 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.serializers.stats_serializer import (
     StatsSerializer, StatsInstanceSerializer)
+from onadata.libs.utils.timing import last_modified_header, get_date
 
 
 class StatsViewSet(AnonymousUserPublicFormsMixin,
                    viewsets.ReadOnlyModelViewSet):
+
     """
 Stats summary for median, mean, mode, range, max, min.
 A query parameter `method` can be used to limit the results to either
@@ -54,6 +56,8 @@ Response:
 """
     lookup_field = 'pk'
     queryset = XForm.objects.all()
+    default_response_headers = last_modified_header(
+        get_date(XForm.objects.last(), 'modified'))
     filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
     permission_classes = [XFormPermissions, ]
     serializer_class = StatsSerializer

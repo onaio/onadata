@@ -63,6 +63,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
 
     def test_submission_count_for_today_in_form_list(self):
@@ -70,6 +71,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertIn('submission_count_for_today', response.data[0].keys())
         self.assertEqual(response.data[0]['submission_count_for_today'], 0)
@@ -93,6 +95,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data[0]['submission_count_for_today'], 1)
         self.assertEqual(response.data[0]['num_of_submissions'], 1)
@@ -101,6 +104,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
         request = self.factory.get('/')
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -111,6 +115,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = self.view(request, pk='public')
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -118,6 +123,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.xform.shared = True
         self.xform.save()
         response = self.view(request, pk='public')
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.form_data['public'] = True
         del self.form_data['date_modified']
@@ -129,6 +135,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.xform.shared = False
         self.xform.save()
         response = self.view(request, pk='public')
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -137,6 +144,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.form_data])
 
@@ -148,6 +156,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertNotEqual(previous_user,  self.user)
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         # should be empty
         self.assertEqual(response.data, [])
@@ -175,6 +184,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         # should be both bob's and alice's form
         self.assertEqual(sorted(response.data),
@@ -183,18 +193,21 @@ class TestXFormViewSet(TestAbstractViewSet):
         # apply filter, see only bob's forms
         request = self.factory.get('/', data={'owner': 'bob'}, **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [bobs_form_data])
 
         # apply filter, see only alice's forms
         request = self.factory.get('/', data={'owner': 'alice'}, **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.form_data])
 
         # apply filter, see a non existent user
         request = self.factory.get('/', data={'owner': 'noone'}, **self.extra)
         response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -206,6 +219,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         formid = self.xform.pk
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=formid)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.form_data)
 
@@ -229,12 +243,15 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         # test for supported formats
         response = view(request, pk=formid, format='json')
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertDictContainsSubset(data, response.data)
         response = view(request, pk=formid, format='xml')
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         response_doc = minidom.parseString(response.data)
         response = view(request, pk=formid, format='xls')
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
 
         xml_path = os.path.join(
@@ -289,11 +306,13 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.form_data = XFormSerializer(
             self.xform, context={'request': request}).data
         response = list_view(request, pk=formid)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.form_data])
 
         request = self.factory.get('/', data={"tags": "goodbye"}, **self.extra)
         response = list_view(request, pk=formid)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -301,6 +320,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.delete('/', data={"tags": "hello"},
                                       **self.extra)
         response = view(request, pk=formid, label='hello')
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -637,6 +657,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         post_data = {'csv_file': csv_import}
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=self.xform.id)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get('additions'), 9)
         self.assertEqual(response.data.get('updates'), 0)

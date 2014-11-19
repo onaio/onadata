@@ -16,6 +16,8 @@ from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.permissions import ROLES
 from onadata.libs.serializers.organization_serializer import(
     OrganizationSerializer)
+from onadata.libs.utils.timing import (
+    last_modified_header, get_date, merge_dicts)
 
 
 def _try_function_org_username(f, organization, username, args=None):
@@ -59,6 +61,7 @@ def _remove_username_to_organization(organization, username):
 
 
 class OrganizationProfileViewSet(ObjectLookupMixin, ModelViewSet):
+
     """
 List, Retrieve, Update, Create/Register Organizations
 
@@ -185,6 +188,8 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 >       []
 """
     queryset = OrganizationProfile.objects.all()
+    default_response_headers = last_modified_header(
+        get_date(OrganizationProfile.objects.last(), 'joined'))
     serializer_class = OrganizationSerializer
     lookup_field = 'user'
     permission_classes = [permissions.DjangoObjectPermissions]
@@ -193,6 +198,9 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
     @action(methods=['DELETE', 'GET', 'POST', 'PUT'])
     def members(self, request, *args, **kwargs):
         organization = self.get_object()
+        self.headers = merge_dicts(
+            self.headers,
+            last_modified_header(get_date(organization, 'joined')))
         status_code = status.HTTP_200_OK
         data = []
         username = request.DATA.get('username') or request.QUERY_PARAMS.get(
