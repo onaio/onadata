@@ -34,6 +34,7 @@ from onadata.libs.utils.user_auth import check_and_set_form_by_id
 from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
 from onadata.libs.data.statistics import _chk_asarray
 from onadata.libs.permissions import ROLES
+from onadata.libs.permissions import get_role_in_org
 
 DECIMAL_PRECISION = 2
 

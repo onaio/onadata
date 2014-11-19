@@ -68,9 +68,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     @check_obj
     def get_project_forms(self, obj):
-        xforms_details = obj.px_projects.values(
-            'xform__pk', 'xform__title')
-        return [{'name': form['xform__title'], 'id':form['xform__pk']}
+        xforms_details = obj.xform_set.values('pk', 'title')
+        return [{'name': form['title'], 'id':form['pk']}
                 for form in xforms_details]
 
     @check_obj
@@ -79,7 +78,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         :param obj: The project to find datasets for.
         """
-        return obj.px_projects.count()
+        return obj.xform_set.count()
 
     @check_obj
     def get_last_submission_date(self, obj):
@@ -88,7 +87,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         :param obj: The project to find the last submission date for.
         """
-        xform_ids = obj.px_projects.values_list('xform', flat=True)
+        xform_ids = obj.xform_set.values_list('pk', flat=True)
         last_submission = Instance.objects.\
             order_by('-date_created').\
             filter(xform_id__in=xform_ids).values_list('date_created',

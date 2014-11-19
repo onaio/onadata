@@ -3,6 +3,7 @@ from mock import patch
 from operator import itemgetter
 
 from onadata.apps.logger.models import Project
+from onadata.apps.logger.models import XForm
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
@@ -384,10 +385,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         data = {'public': 'true'}
         request = self.factory.patch('/', data=data, **self.extra)
         response = view(request, pk=projectid)
-        project = Project.objects.get(pk=projectid)
-        project_xforms = project.px_projects.all()
-        xforms_status = {p.xform.shared for p in project_xforms}
-        xforms_status = list(xforms_status)
+        xforms_status = XForm.objects.filter(project__pk=projectid)\
+            .values_list('shared', flat=True)
         self.assertTrue(xforms_status[0])
         self.assertEqual(response.status_code, 200)
 

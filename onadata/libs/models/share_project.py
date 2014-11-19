@@ -19,8 +19,8 @@ class ShareProject(object):
             role.add(self.user, self.project)
 
             # add readonly role to forms under the project
-            for px in self.project.px_projects.all():
-                ReadOnlyRole.add(self.user, px.xform)
+            for xform in self.project.xform_set.all():
+                ReadOnlyRole.add(self.user, xform)
 
     def remove_user(self):
         role = ROLES.get(self.role)

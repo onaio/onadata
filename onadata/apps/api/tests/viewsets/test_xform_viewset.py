@@ -650,8 +650,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             'uuid': u'',
             'instances_with_geopoints': False,
             'num_of_submissions': 0,
-            'version': u''
-            'project': None
+            'version': u'',
+            'project': None,
+            'created_by': None
         }
         self.assertEqual(data, XFormSerializer(None).data)
 
