@@ -1,11 +1,8 @@
 import os
 from django.shortcuts import get_object_or_404
-<<<<<<< HEAD
 from django.core.mail import send_mail
-=======
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
->>>>>>> ME|DW: same form can now be uploaded to different projects
 
 from rest_framework import status
 from rest_framework.decorators import action
