@@ -114,3 +114,9 @@ class CSVImportTestCase(TestBase):
         self.assertEqual(result.get('error'),
                          u'CSV file fieldnames should not contain spaces',
                          u'Incorrect error message returned.')
+
+    def test_nested_geo_paths_csv(self):
+        good_csv = open(os.path.join(self.fixtures_dir, 'another_good.csv'))
+        csv_import.submit_csv(self.user.username, self.xform, good_csv)
+        self.assertEqual(Instance.objects.count(),
+                         9, u'submit_csv edits #1 test Failed!')
