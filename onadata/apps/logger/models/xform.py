@@ -84,7 +84,7 @@ class XForm(BaseModel):
     bamboo_dataset = models.CharField(max_length=60, default=u'')
     instances_with_geopoints = models.BooleanField(default=False)
     num_of_submissions = models.IntegerField(default=0)
-    version = models.CharField(max_length=12, null=True)
+    version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True)
 
     tags = TaggableManager()
 

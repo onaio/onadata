@@ -14,6 +14,7 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.survey_type import SurveyType
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
@@ -122,7 +123,7 @@ class Instance(models.Model):
     status = models.CharField(max_length=20,
                               default=u'submitted_via_web')
     uuid = models.CharField(max_length=249, default=u'')
-    version = models.CharField(max_length=12, null=True)
+    version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True)
 
     # store an geographic objects associated with this instance
     geom = models.GeometryCollectionField(null=True)

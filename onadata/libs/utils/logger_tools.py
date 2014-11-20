@@ -403,6 +403,7 @@ def publish_form(callback):
             'text': _(u'Form validation timeout, please try again.'),
         }
     except Exception as e:
+        transaction.rollback()
         # error in the XLS file; show an error to the user
         return {
             'type': 'alert-error',
