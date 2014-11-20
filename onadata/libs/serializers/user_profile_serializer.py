@@ -8,6 +8,7 @@ from django.contrib.sites.models import Site
 from django.core.validators import ValidationError
 from registration.models import RegistrationProfile
 from rest_framework import serializers
+from onadata.apps.api.models.temp_token import TempToken
 
 from onadata.apps.main.forms import UserProfileForm
 from onadata.apps.main.forms import RegistrationFormUserProfile
@@ -201,10 +202,5 @@ class UserProfileWithTokenSerializer(UserProfileSerializer):
         return object.user.auth_token.key
 
     def get_temp_token(self, object):
-        request = self.context['request']
-        session_key = None
-        if request:
-            session = request.session
-            session_key = session.session_key
-
-        return session_key
+        token, created = TempToken.objects.get_or_create(user=object.user)
+        return token.key
