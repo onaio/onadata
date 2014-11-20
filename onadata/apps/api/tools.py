@@ -24,6 +24,7 @@ from onadata.apps.api.models.project import Project
 from onadata.apps.api.models.project_xform import ProjectXForm
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
+from onadata.apps.main.models import UserProfile
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.data.query import get_field_records
@@ -379,7 +380,7 @@ def get_user_profile_or_none(username):
     except User.DoesNotExist:
         pass
     else:
-        profile = user.profile
+        profile, created = UserProfile.objects.get_or_create(user=user)
 
     return profile
 
