@@ -99,17 +99,16 @@ def submit_csv(username, xform, csv_file):
                 if key.startswith('_'):
                     del row[key]
 
-                # process nested data e.g x[formhub/uuid] => x[formhub][uuid]
-                if r'/' in key:
-                    p, c = key.split('/')
-                    row[p] = {c: row[key]}
-                    del row[key]
-
                 if key.endswith(('.latitude', '.longitude',
                                 '.altitude', '.precision')):
-                    location_data.setdefault(
-                        key.split('.')[0], {}).update(
-                            {key.split('.')[-1]: row.get(key, '0')})
+                    location_key, location_prop = key.rsplit(u'.', 1)
+                    location_data.setdefault(location_key, {}).update(
+                        {location_prop: row.get(key, '0')})
+
+                # process nested data e.g x[formhub/uuid] => x[formhub][uuid]
+                if r'/' in key:
+                    row.update(reduce(lambda v, k: {k: v},
+                                      (key.split('/')+[row.pop(key)])[::-1]))
 
             for key in location_data.keys():
                 row.update({key: (u'{latitude} {longitude} '
