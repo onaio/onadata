@@ -83,7 +83,7 @@ class TestUserViewSet(TestAbstractViewSet):
         response = view(request)
 
         self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.data, {'details': 'Invalid email'})
+        self.assertEquals(response.data, {'detail': 'Invalid email'})
 
         get_params = {
             'email': 'doesnotexist@email.com',
