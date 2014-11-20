@@ -446,16 +446,6 @@ MONGO_CONNECTION = MongoClient(
     MONGO_CONNECTION_URL, safe=True, j=True, tz_aware=True)
 MONGO_DB = MONGO_CONNECTION[MONGO_DATABASE['NAME']]
 
-if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
-    # site templates overrides
-    TEMPLATE_DIRS = (
-        os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'templates'),
-    ) + TEMPLATE_DIRS
-    # site static files path
-    STATICFILES_DIRS += (
-        os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'static'),
-    )
-
 # Set wsgi url scheme to HTTPS
 os.environ['wsgi.url_scheme'] = 'https'
 
@@ -477,3 +467,14 @@ try:
     from local_settings import *  # nopep8
 except ImportError:
     pass
+
+if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
+    # site templates overrides
+    TEMPLATE_DIRS = (
+        os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'templates'),
+    ) + TEMPLATE_DIRS
+    # site static files path
+    STATICFILES_DIRS += (
+        os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'static'),
+    )
+
