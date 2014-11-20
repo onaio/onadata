@@ -27,19 +27,19 @@ Provides a json list of teams and the projects the team is assigned to.
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/teams
+>       curl -X GET https://example.com/api/v1/teams
 
 > Response
 >
 >        [
 >            {
->                "url": "https://ona.io/api/v1/teams/1",
+>                "url": "https://example.com/api/v1/teams/1",
 >                "name": "Owners",
 >                "organization": "bruize",
 >                "projects": []
 >            },
 >            {
->                "url": "https://ona.io/api/v1/teams/2",
+>                "url": "https://example.com/api/v1/teams/2",
 >                "name": "demo team",
 >                "organization": "bruize",
 >                "projects": []
@@ -58,12 +58,12 @@ Shows teams details and the projects the team is assigned to, where:
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/teams/1
+>       curl -X GET https://example.com/api/v1/teams/1
 
 > Response
 >
 >        {
->            "url": "https://ona.io/api/v1/teams/1",
+>            "url": "https://example.com/api/v1/teams/1",
 >            "name": "Owners",
 >            "organization": "bruize",
 >            "projects": []
@@ -79,7 +79,7 @@ A list of usernames is the response for members of the team.
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/teams/1/members
+>       curl -X GET https://example.com/api/v1/teams/1/members
 
 > Response
 >

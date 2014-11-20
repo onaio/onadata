@@ -59,7 +59,7 @@ View chart for specific fields in a form or dataset.
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/charts
+>       curl -X GET https://example.com/api/v1/charts
 
 > Response
 >
@@ -67,7 +67,7 @@ View chart for specific fields in a form or dataset.
 >
 >            "id": 4240,
 >            "id_string": "dhis2form"
->            "url": "https://ona.io/api/v1/charts/4240",
+>            "url": "https://example.com/api/v1/charts/4240",
 >        }
 >        ...
 
@@ -78,7 +78,7 @@ View chart for specific fields in a form or dataset.
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/charts/4240
+>       curl -X GET https://example.com/api/v1/charts/4240
 
 > Response
 >
@@ -86,10 +86,10 @@ View chart for specific fields in a form or dataset.
 >
 >            "id": 4240,
 >            "id_string": "dhis2form"
->            "url": "https://ona.io/api/v1/charts/4240",
+>            "url": "https://example.com/api/v1/charts/4240",
 >            "fields": {
->                "uuid": "https://ona.io/api/v1/charts/4240?field_name=uuid",
->                "num": "https://ona.io/api/v1/charts/4240?field_name=num",
+>                "uuid": "https://example.com/api/v1/charts/4240?field_name=uuid",
+>                "num": "https://example.com/api/v1/charts/4240?field_name=num",
 >                ...
 >            }
 >        }
@@ -105,7 +105,7 @@ field_name=<code>field_name</code></pre>
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/charts/4240.html?field_name=age
+>       curl -X GET https://example.com/api/v1/charts/4240.html?field_name=age
 
 > Response
 >
@@ -126,7 +126,7 @@ response. If `fields=all` then all the fields of the form will be returned.
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/charts/4240?fields=all
+>       curl -X GET https://example.com/api/v1/charts/4240?fields=all
 
 > Response
 >

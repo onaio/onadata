@@ -36,13 +36,13 @@ List, Retrieve, Update, Create/Register users.
 <pre class="prettyprint"><b>GET</b> /api/v1/profiles</pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/profiles
+>       curl -X GET https://example.com/api/v1/profiles
 
 > Response
 >
 >       [
 >        {
->            "url": "https://ona.io/api/v1/profiles/demo",
+>            "url": "https://example.com/api/v1/profiles/demo",
 >            "username": "demo",
 >            "name": "Demo User",
 >            "email": "demo@localhost.com",
@@ -53,7 +53,7 @@ List, Retrieve, Update, Create/Register users.
 >            "twitter": "",
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
->            "user": "https://ona.io/api/v1/users/demo"
+>            "user": "https://example.com/api/v1/users/demo"
 >        },
 >        {
 >           ...}, ...
@@ -65,12 +65,12 @@ List, Retrieve, Update, Create/Register users.
 <pre class="prettyprint"><b>GET</b> /api/v1/profiles/{pk}</pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/profiles/demo
+>       curl -X GET https://example.com/api/v1/profiles/demo
 
 > Response
 >
 >        {
->            "url": "https://ona.io/api/v1/profiles/demo",
+>            "url": "https://example.com/api/v1/profiles/demo",
 >            "username": "demo",
 >            "name": "Demo User",
 >            "email": "demo@localhost.com",
@@ -81,7 +81,7 @@ List, Retrieve, Update, Create/Register users.
 >            "twitter": "",
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
->            "user": "https://ona.io/api/v1/users/demo"
+>            "user": "https://example.com/api/v1/users/demo"
 
 ## Partial updates of User Profile Information
 
@@ -93,13 +93,13 @@ for example, `{"country": "KE"}` will set the country to `KE`.
 > Example
 >
 >     \
-curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
+curl -X PATCH -d '{"country": "KE"}' https://example.com/api/v1/profiles/demo \
 -H "Content-Type: application/json"
 
 > Response
 >
 >        {
->            "url": "https://ona.io/api/v1/profiles/demo",
+>            "url": "https://example.com/api/v1/profiles/demo",
 >            "username": "demo",
 >            "name": "Demo User",
 >            "email": "demo@localhost.com",
@@ -110,14 +110,14 @@ curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
 >            "twitter": "",
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
->            "user": "https://ona.io/api/v1/users/demo"
+>            "user": "https://example.com/api/v1/users/demo"
 >        }
 
 ## Change authenticated user's password
 > Example
 >
 >       curl -X POST -d current_password=password1 -d new_password=password2\
- https://ona.io/api/v1/profile/demouser/change_password
+ https://example.com/api/v1/profile/demouser/change_password
 > Response:
 >
 >        HTTP 200 OK

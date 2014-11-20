@@ -79,13 +79,13 @@ List, Retrieve, Update, Create/Register Organizations
 <pre class="prettyprint"><b>GET</b> /api/v1/orgs</pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/orgs
+>       curl -X GET https://example.com/api/v1/orgs
 
 > Response
 >
 >       [
 >        {
->            "url": "https://ona.io/api/v1/orgs/modilabs",
+>            "url": "https://example.com/api/v1/orgs/modilabs",
 >            "org": "modilabs",
 >            "name": "Modi Labs Research",
 >            "email": "modilabs@localhost.com",
@@ -95,8 +95,8 @@ List, Retrieve, Update, Create/Register Organizations
 >            "twitter": "",
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
->            "user": "https://ona.io/api/v1/users/modilabs"
->            "creator": "https://ona.io/api/v1/users/demo"
+>            "user": "https://example.com/api/v1/users/modilabs"
+>            "creator": "https://example.com/api/v1/users/demo"
 >        },
 >        {
 >           ...}, ...
@@ -107,12 +107,12 @@ List, Retrieve, Update, Create/Register Organizations
 <pre class="prettyprint"><b>GET</b> /api/v1/orgs/{username}</pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/orgs/modilabs
+>       curl -X GET https://example.com/api/v1/orgs/modilabs
 
 > Response
 >
 >        {
->            "url": "https://ona.io/api/v1/orgs/modilabs",
+>            "url": "https://example.com/api/v1/orgs/modilabs",
 >            "org": "modilabs",
 >            "name": "Modi Labs Research",
 >            "email": "modilabs@localhost.com",
@@ -122,8 +122,8 @@ List, Retrieve, Update, Create/Register Organizations
 >            "twitter": "",
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
->            "user": "https://ona.io/api/v1/users/modilabs"
->            "creator": "https://ona.io/api/v1/users/demo"
+>            "user": "https://example.com/api/v1/users/modilabs"
+>            "creator": "https://example.com/api/v1/users/demo"
 >        }
 
 ## List Organization members
@@ -133,7 +133,7 @@ Get a list of organization members.
 <pre class="prettyprint"><b>GET</b> /api/v1/orgs/{username}/members</pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/orgs/modilabs/members
+>       curl -X GET https://example.com/api/v1/orgs/modilabs/members
 
 > Response
 >
@@ -148,7 +148,7 @@ To add a user to an organization requires a JSON payload of
 > Example
 >
 >       curl -X POST -d '{"username": "member1"}' \
-https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
+https://example.com/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
 > Response
 >
@@ -163,7 +163,7 @@ To change the role of a user in an organization pass the username and role
 > Example
 >
 >       curl -X PUT -d '{"username": "member1", "role": "editor"}' \
-https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
+https://example.com/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
 > Response
 >
@@ -178,7 +178,7 @@ To remove a user from an organization requires a JSON payload of
 > Example
 >
 >       curl -X DELETE -d '{"username": "member1"}' \
-https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
+https://example.com/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
 > Response
 >

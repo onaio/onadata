@@ -251,6 +251,8 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.XMLRenderer',
         'rest_framework_csv.renderers.CSVRenderer',
     ),
+    'VIEW_NAME_FUNCTION': 'onadata.apps.api.tools.get_view_name',
+    'VIEW_DESCRIPTION_FUNCTION': 'onadata.apps.api.tools.get_view_description',
 }
 
 SWAGGER_SETTINGS = {

@@ -40,7 +40,7 @@ class MetaDataViewSet(viewsets.ModelViewSet):
                 "data_type": "public_link",
                 "data_value": "http://mylink",
                 "id": 406,
-                "url": "https://ona.io/api/v1/metadata/406",
+                "url": "https://example.com/api/v1/metadata/406",
                 "xform": 328
             },
             {
@@ -49,7 +49,7 @@ class MetaDataViewSet(viewsets.ModelViewSet):
                 "data_type": "media",
                 "data_value": "a.png",
                 "id": 7100,
-                "url": "https://ona.io/api/v1/metadata/7100",
+                "url": "https://example.com/api/v1/metadata/7100",
                 "xform": 320
             },
             ....
@@ -73,7 +73,7 @@ class MetaDataViewSet(viewsets.ModelViewSet):
                 "data_type": "media",
                 "data_value": "a.png",
                 "id": 7100,
-                "url": "https://ona.io/api/v1/metadata/7100",
+                "url": "https://example.com/api/v1/metadata/7100",
                 "xform": 320
             },
             ....
@@ -84,7 +84,7 @@ class MetaDataViewSet(viewsets.ModelViewSet):
     <pre class="prettyprint">
     GET /api/v1/metadata/<code>{pk}</code></pre>
 
-        curl -X GET https://ona.io/api/v1/metadata/7100
+        curl -X GET https://example.com/api/v1/metadata/7100
 
         HTTP 200 OK
 
@@ -94,7 +94,7 @@ class MetaDataViewSet(viewsets.ModelViewSet):
             "data_type": "media",
             "data_value": "a.png",
             "id": 7100,
-            "url": "https://ona.io/api/v1/metadata/7100",
+            "url": "https://example.com/api/v1/metadata/7100",
             "xform": 320
         }
 
@@ -104,7 +104,7 @@ class MetaDataViewSet(viewsets.ModelViewSet):
     <pre class="prettyprint">
     GET /api/v1/metadata/<code>{pk}.{format}</code></pre>
 
-        curl -X GET https://ona.io/api/v1/metadata/7100.png -o a.png
+        curl -X GET https://example.com/api/v1/metadata/7100.png -o a.png
 
     Alternatively, if the request is made with an `Accept` header of the
     content type of the file the file would be returned e.g
@@ -112,7 +112,7 @@ class MetaDataViewSet(viewsets.ModelViewSet):
     <pre class="prettyprint">GET /api/v1/metadata/<code>{pk}</code> \
 Accept: image/png </pre>
 
-         curl -X GET https://ona.io/api/v1/metadata/7100 \
+         curl -X GET https://example.com/api/v1/metadata/7100 \
 -H "Accept: image/png" -o a.png
 
     ## Add metadata or media file to a form
@@ -134,7 +134,7 @@ Accept: image/png </pre>
 
             curl -X POST -d "{"data_type": "mapbox_layer", "data_value": \
 "example||https://api.tiles.mapbox.com/v3/examples.map-0l53fhk2.json||example\
- attribution", "xform": 320}" https://ona.io/api/v1/metadata \
+ attribution", "xform": 320}" https://example.com/api/v1/metadata \
 -H "Content-Type: appliction/json"
 
             HTTP 201 CREATED
@@ -147,13 +147,13 @@ Accept: image/png </pre>
             "data_type": "mapbox_layer",
             "data_file": null,
             "data_file_type": null,
-            "url": "https://ona.io/api/v1/metadata/7119.json"
+            "url": "https://example.com/api/v1/metadata/7119.json"
             }
 
     Media upload example:
 
             curl -X POST -F 'data_type=media' -F 'data_value=demo.jpg' \
--F 'xform=320' -F "data_file=@folder.jpg" https://ona.io/api/v1/metadata.json
+-F 'xform=320' -F "data_file=@folder.jpg" https://example.com/api/v1/metadata.json
 
             HTTP 201 CREATED
 
@@ -164,7 +164,7 @@ Accept: image/png </pre>
             "data_type": "media",
             "data_file": "ukanga/formid-media/folder.jpg",
             "data_file_type": "image/jpeg",
-            "url": "https://ona.io/api/v1/metadata/7121.json"
+            "url": "https://example.com/api/v1/metadata/7121.json"
             }
 
 

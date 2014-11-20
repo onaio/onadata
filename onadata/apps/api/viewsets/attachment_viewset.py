@@ -20,20 +20,20 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >       GET /api/v1/media/
     > Example
     >
-    >       curl -X GET https://ona.io/api/v1/media
+    >       curl -X GET https://example.com/api/v1/media
 
     > Response
     >
     >        [{
-    >           "download_url": "http://ona.io/api/v1/media/1.jpg",
-    >           "small_download_url": "http://ona.io/api/v1/media/1-small.jpg",
-    >           "medium_download_url": "http://ona.io/api/v1/media/\
+    >           "download_url": "http://example.com/api/v1/media/1.jpg",
+    >           "small_download_url": "http://example.com/api/v1/media/1-small.jpg",
+    >           "medium_download_url": "http://example.com/api/v1/media/\
 1-medium.jpg",
     >           "filename": "doe/attachments/1408520136827.jpg",
     >           "id": 1,
     >           "instance": 1,
     >           "mimetype": "image/jpeg",
-    >           "url": "http://ona.io/api/v1/media/1",
+    >           "url": "http://example.com/api/v1/media/1",
     >           "xform": 1,
     >        }
     >        ...
@@ -43,20 +43,20 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >
     > Example
     >
-    >       curl -X GET https://ona.io/api/v1/media/1
+    >       curl -X GET https://example.com/api/v1/media/1
 
     > Response
     >
     >        {
-    >           "download_url": "http://ona.io/api/v1/media/1.jpg",
-    >           "small_download_url": "http://ona.io/api/v1/media/1-small.jpg",
-    >           "medium_download_url": "http://ona.io/api/v1/media/\
+    >           "download_url": "http://example.com/api/v1/media/1.jpg",
+    >           "small_download_url": "http://example.com/api/v1/media/1-small.jpg",
+    >           "medium_download_url": "http://example.com/api/v1/media/\
 1-medium.jpg",
     >           "filename": "doe/attachments/1408520136827.jpg",
     >           "id": 1,
     >           "instance": 1,
     >           "mimetype": "image/jpeg",
-    >           "url": "http://ona.io/api/v1/media/1",
+    >           "url": "http://example.com/api/v1/media/1",
     >           "xform": 1,
     >        }
 
@@ -65,7 +65,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     ><pre class="prettyprint">
     >     GET /api/v1/media/<code>{pk}.{format}</code></pre>
     >
-    >         curl -X GET https://ona.io/api/v1/media/1.png -o a.png
+    >         curl -X GET https://example.com/api/v1/media/1.png -o a.png
 
     Alternatively, if the request is made with an `Accept` header of the
     content type of the file the file would be returned e.g
@@ -75,7 +75,7 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >
     > Example
     >
-    >     curl -X GET https://ona.io/api/v1/media/1 -H "Accept: image/png" -o
+    >     curl -X GET https://example.com/api/v1/media/1 -H "Accept: image/png" -o
     >     a.png
 
     ## Lists attachments of a specific xform
@@ -84,20 +84,20 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >
     > Example
     >
-    >     curl -X GET https://ona.io/api/v1/media?xform=1
+    >     curl -X GET https://example.com/api/v1/media?xform=1
 
     > Response
     >
     >        [{
-    >           "download_url": "http://ona.io/api/v1/media/1.jpg",
-    >           "small_download_url": "http://ona.io/api/v1/media/1-small.jpg",
-    >           "medium_download_url": "http://ona.io/api/v1/media/\
+    >           "download_url": "http://example.com/api/v1/media/1.jpg",
+    >           "small_download_url": "http://example.com/api/v1/media/1-small.jpg",
+    >           "medium_download_url": "http://example.com/api/v1/media/\
 1-medium.jpg",
     >           "filename": "doe/attachments/1408520136827.jpg",
     >           "id": 1,
     >           "instance": 1,
     >           "mimetype": "image/jpeg",
-    >           "url": "http://ona.io/api/v1/media/1",
+    >           "url": "http://example.com/api/v1/media/1",
     >           "xform": 1,
     >        }
     >        ...
@@ -108,20 +108,20 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >
     > Example
     >
-    >     curl -X GET https://ona.io/api/v1/media?instance=1
+    >     curl -X GET https://example.com/api/v1/media?instance=1
 
     > Response
     >
     >        [{
-    >           "download_url": "http://ona.io/api/v1/media/1.jpg",
-    >           "small_download_url": "http://ona.io/api/v1/media/1-small.jpg",
-    >           "medium_download_url": "http://ona.io/api/v1/media/\
+    >           "download_url": "http://example.com/api/v1/media/1.jpg",
+    >           "small_download_url": "http://example.com/api/v1/media/1-small.jpg",
+    >           "medium_download_url": "http://example.com/api/v1/media/\
 1-medium.jpg",
     >           "filename": "doe/attachments/1408520136827.jpg",
     >           "id": 1,
     >           "instance": 1,
     >           "mimetype": "image/jpeg",
-    >           "url": "http://ona.io/api/v1/media/1",
+    >           "url": "http://example.com/api/v1/media/1",
     >           "xform": 1,
     >        }
     >        ...
@@ -131,12 +131,12 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     >
     > Example
     >
-    >       curl -X GET https://ona.io/api/v1/media/1\
+    >       curl -X GET https://example.com/api/v1/media/1\
 ?filename=doe/attachments/1408520136827.jpg
 
     > Response
     >
-    >        http://ona.io/api/v1/media/1.jpg
+    >        http://example.com/api/v1/media/1.jpg
 
     """
     content_negotiation_class = MediaFileContentNegotiation

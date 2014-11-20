@@ -51,7 +51,7 @@ a list of public data endpoints is returned.
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/data
+>       curl -X GET https://example.com/api/v1/data
 
 > Response
 >
@@ -60,7 +60,7 @@ a list of public data endpoints is returned.
 >            "id_string": "dhis2form"
 >            "title": "dhis2form"
 >            "description": "dhis2form"
->            "url": "https://ona.io/api/v1/data/4240"
+>            "url": "https://example.com/api/v1/data/4240"
 >         },
 >            ...
 >        ]
@@ -69,7 +69,7 @@ a list of public data endpoints is returned.
 <pre class="prettyprint">
 <b>GET</b> /api/v1/data.csv</pre>
 >
->       curl -O https://ona.io/api/v1/data.csv
+>       curl -O https://example.com/api/v1/data.csv
 
 ## GET JSON List of data end points filter by owner
 
@@ -82,7 +82,7 @@ Lists the data endpoints accessible to requesting user, for the specified
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/data?owner=ona
+>       curl -X GET https://example.com/api/v1/data?owner=ona
 
 ## Get Submitted data for a specific form
 Provides a list of json submitted data for a specific form.
@@ -90,7 +90,7 @@ Provides a list of json submitted data for a specific form.
 <b>GET</b> /api/v1/data/<code>{pk}</code></pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/data/22845
+>       curl -X GET https://example.com/api/v1/data/22845
 
 > Response
 >
@@ -140,7 +140,7 @@ Get a single specific submission json data providing `pk`
 <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code></pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/data/22845/4503
+>       curl -X GET https://example.com/api/v1/data/22845/4503
 
 > Response
 >
@@ -193,9 +193,9 @@ API Parameters</a>.
 </pre>
 > Example
 >
->       curl -X GET 'https://ona.io/api/v1/data/22845?query={"kind": \
+>       curl -X GET 'https://example.com/api/v1/data/22845?query={"kind": \
 "monthly"}'
->       curl -X GET 'https://ona.io/api/v1/data/22845?query={"date": \
+>       curl -X GET 'https://example.com/api/v1/data/22845?query={"date": \
 {"gt$": "2014-09-29T01:02:03+0000"}}'
 
 > Response
@@ -247,7 +247,7 @@ should be a comma separated list of tags.
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/data/22845?tags=monthly
+>       curl -X GET https://example.com/api/v1/data/22845?tags=monthly
 
 ## Tag a submission data point
 
@@ -274,11 +274,11 @@ Payload
 > Request
 >
 >       curl -X DELETE \
-https://ona.io/api/v1/data/28058/20/labels/tag1
+https://example.com/api/v1/data/28058/20/labels/tag1
 or to delete the tag "hello world"
 >
 >       curl -X DELETE \
-https://ona.io/api/v1/data/28058/20/labels/hello%20world
+https://example.com/api/v1/data/28058/20/labels/hello%20world
 >
 > Response
 >
@@ -292,7 +292,7 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/data/public
+>       curl -X GET https://example.com/api/v1/data/public
 
 > Response
 >
@@ -301,7 +301,7 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 >            "id_string": "dhis2form"
 >            "title": "dhis2form"
 >            "description": "dhis2form"
->            "url": "https://ona.io/api/v1/data/4240"
+>            "url": "https://example.com/api/v1/data/4240"
 >         },
 >            ...
 >        ]
@@ -314,7 +314,7 @@ https://ona.io/api/v1/data/28058/20/labels/hello%20world
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/data/28058/20/enketo?return_url=url
+>       curl -X GET https://example.com/api/v1/data/28058/20/enketo?return_url=url
 
 > Response
 >       {"url": "https://hmh2a.enketo.formhub.org"}
@@ -331,7 +331,7 @@ Delete a specific submission in a form
 
 > Example
 >
->       curl -X DELETE https://ona.io/api/v1/data/28058/20
+>       curl -X DELETE https://example.com/api/v1/data/28058/20
 
 > Response
 >

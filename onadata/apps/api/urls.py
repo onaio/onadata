@@ -147,7 +147,7 @@ class MultiLookupRouter(routers.DefaultRouter):
 
         class OnaApi(APIView):
             """
-## Ona JSON Rest API endpoints:
+## KoBo JSON Rest API endpoints:
 
 ### Data
 * [/api/v1/charts](/api/v1/charts) - List, Retrieve Charts of collected data
@@ -180,22 +180,22 @@ Update organization and organization info
 
 ## Authentication
 
-Ona JSON API enpoints support both Basic authentication
+KoBo JSON API enpoints support both Basic authentication
 and API Token Authentication through the `Authorization` header.
 
 ### Basic Authentication
 
 Example using curl:
 
-    curl -X GET https://ona.io/api/v1/ -u username:password
+    curl -X GET https://example.com/api/v1/ -u username:password
 
 ### Token Authentication
 
 Example using curl:
 
-    curl -X GET https://ona.io/api/v1/ -H "Authorization: Token TOKEN_KEY"
+    curl -X GET https://example.com/api/v1/ -H "Authorization: Token TOKEN_KEY"
 
-### Ona Tagging API
+### KoBo Tagging API
 
 * [Filter form list by tags.](
 /api/v1/forms#get-list-of-forms-with-specific-tags)
@@ -207,12 +207,12 @@ Example using curl:
 /api/v1/data#query-submitted-data-of-a-specific-form-using-tags)
 * [Tag a specific submission](/api/v1/data#tag-a-submission-data-point)
 
-## Using Oauth2 with the Ona API
+## Using Oauth2 with the KoBo API
 
 You can learn more about oauth2 [here](
 http://tools.ietf.org/html/rfc6749).
 
-### 1. Register your client application with Ona - [register](\
+### 1. Register your client application with KoBo - [register](\
 /o/applications/register/)
 
 - `name` - name of your application
@@ -304,11 +304,11 @@ Where:
 
 Now that you have an `access_token` you can make API calls.
 
-### 4. Accessing the Ona API using the `access_token`.
+### 4. Accessing the KoBo API using the `access_token`.
 
 Example using curl:
 
-    curl -X GET https://ona.io/api/v1
+    curl -X GET https://example.com/api/v1
     -H "Authorization: Bearer ACCESS_TOKEN"
 """
             _ignore_model_permissions = True

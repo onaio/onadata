@@ -14,7 +14,7 @@ This endpoint allows you to list and retrieve user's first and last names.
 ## List Users
 > Example
 >
->       curl -X GET https://ona.io/api/v1/users
+>       curl -X GET https://example.com/api/v1/users
 
 > Response:
 
@@ -39,7 +39,7 @@ This endpoint allows you to list and retrieve user's first and last names.
 
 > Example:
 >
->        curl -X GET https://ona.io/api/v1/users/demo
+>        curl -X GET https://example.com/api/v1/users/demo
 
 > Response:
 >

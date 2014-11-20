@@ -43,8 +43,8 @@ Where:
 > Example
 >
 >       {
->           "url": "https://ona.io/api/v1/projects/1",
->           "owner": "https://ona.io/api/v1/users/ona",
+>           "url": "https://example.com/api/v1/projects/1",
+>           "owner": "https://example.com/api/v1/users/ona",
 >           "name": "project 1",
 >           "date_created": "2013-07-24T13:37:39Z",
 >           "date_modified": "2013-07-24T13:37:39Z"
@@ -55,21 +55,21 @@ Where:
 <pre class="prettyprint"><b>GET</b> /api/v1/projects</pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/projects
+>       curl -X GET https://example.com/api/v1/projects
 
 > Response
 >
 >       [
 >           {
->               "url": "https://ona.io/api/v1/projects/1",
->               "owner": "https://ona.io/api/v1/users/ona",
+>               "url": "https://example.com/api/v1/projects/1",
+>               "owner": "https://example.com/api/v1/users/ona",
 >               "name": "project 1",
 >               "date_created": "2013-07-24T13:37:39Z",
 >               "date_modified": "2013-07-24T13:37:39Z"
 >           },
 >           {
->               "url": "https://ona.io/api/v1/projects/4",
->               "owner": "https://ona.io/api/v1/users/ona",
+>               "url": "https://example.com/api/v1/projects/4",
+>               "owner": "https://example.com/api/v1/users/ona",
 >               "name": "project 2",
 >               "date_created": "2013-07-24T13:59:10Z",
 >               "date_modified": "2013-07-24T13:59:10Z"
@@ -83,7 +83,7 @@ Where:
 </pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/projects?owner=ona
+>       curl -X GET https://example.com/api/v1/projects?owner=ona
 
 ## Retrieve Project Information
 
@@ -91,13 +91,13 @@ Where:
 <b>GET</b> /api/v1/projects/<code>{pk}</code></pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/projects/1
+>       curl -X GET https://example.com/api/v1/projects/1
 
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/projects/1",
->           "owner": "https://ona.io/api/v1/users/ona",
+>           "url": "https://example.com/api/v1/projects/1",
+>           "owner": "https://example.com/api/v1/users/ona",
 >           "name": "project 1",
 >           "date_created": "2013-07-24T13:37:39Z",
 >           "date_modified": "2013-07-24T13:37:39Z"
@@ -113,13 +113,13 @@ Where:
 >        curl -X PATCH -d 'metadata={"description": "Lorem ipsum",\
 "location": "Nakuru, Kenya",\
 "category": "water"}' \
-https://ona.io/api/v1/projects/1
+https://example.com/api/v1/projects/1
 
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/projects/1",
->           "owner": "https://ona.io/api/v1/users/ona",
+>           "url": "https://example.com/api/v1/projects/1",
+>           "owner": "https://example.com/api/v1/users/ona",
 >           "name": "project 1",
 >           "metadata": {
 >                        "description": "Lorem ipsum",
@@ -146,7 +146,7 @@ Available roles are `readonly`,
 > Example
 >
 >       curl -X POST -d username=alice -d role=readonly\
- https://ona.io/api/v1/projects/1/share
+ https://example.com/api/v1/projects/1/share
 
 > Response
 >
@@ -162,7 +162,7 @@ An email is only sent when the `email_msg` request variable is present.
 >
 >       curl -X POST -d username=alice -d role=readonly -d email_msg=I have\
  shared the project with you\
- https://ona.io/api/v1/projects/1/share
+ https://example.com/api/v1/projects/1/share
 
 > Response
 >
@@ -193,12 +193,12 @@ To [re]assign an existing form to a project you need to `POST` a payload of
 > Example
 >
 >       curl -X POST -d '{"formid": 28058}' \
-https://ona.io/api/v1/projects/1/forms -H "Content-Type: application/json"
+https://example.com/api/v1/projects/1/forms -H "Content-Type: application/json"
 
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/forms/28058",
+>           "url": "https://example.com/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -223,12 +223,12 @@ https://ona.io/api/v1/projects/1/forms -H "Content-Type: application/json"
 > Example
 >
 >       curl -X POST -F xls_file=@/path/to/form.xls\
- https://ona.io/api/v1/projects/1/forms
+ https://example.com/api/v1/projects/1/forms
 
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/forms/28058",
+>           "url": "https://example.com/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -253,13 +253,13 @@ https://ona.io/api/v1/projects/1/forms -H "Content-Type: application/json"
 </pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/projects/1/forms
+>       curl -X GET https://example.com/api/v1/projects/1/forms
 
 > Response
 >
 >       [
 >           {
->              "url": "https://ona.io/api/v1/forms/28058",
+>              "url": "https://example.com/api/v1/forms/28058",
 >               "formid": 28058,
 >               "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >               "id_string": "Birds",
@@ -299,15 +299,15 @@ a comma separated list of tags.
 List projects tagged `smart` or `brand new` or both.
 > Request
 >
->       curl -X GET https://ona.io/api/v1/projects?tag=smart,brand+new
+>       curl -X GET https://example.com/api/v1/projects?tag=smart,brand+new
 
 > Response
 >        HTTP 200 OK
 >
 >       [
 >           {
->               "url": "https://ona.io/api/v1/projects/1",
->               "owner": "https://ona.io/api/v1/users/ona",
+>               "url": "https://example.com/api/v1/projects/1",
+>               "owner": "https://example.com/api/v1/users/ona",
 >               "name": "project 1",
 >               "date_created": "2013-07-24T13:37:39Z",
 >               "date_modified": "2013-07-24T13:37:39Z"
@@ -322,7 +322,7 @@ List projects tagged `smart` or `brand new` or both.
 </pre>
 > Request
 >
->       curl -X GET https://ona.io/api/v1/projects/28058/labels
+>       curl -X GET https://example.com/api/v1/projects/28058/labels
 
 > Response
 >
@@ -354,12 +354,12 @@ Payload
 > Request
 >
 >       curl -X DELETE \
-https://ona.io/api/v1/projects/28058/labels/tag1
+https://example.com/api/v1/projects/28058/labels/tag1
 >
 > or to delete the tag "hello world"
 >
 >       curl -X DELETE \
-https://ona.io/api/v1/projects/28058/labels/hello%20world
+https://example.com/api/v1/projects/28058/labels/hello%20world
 >
 > Response
 >

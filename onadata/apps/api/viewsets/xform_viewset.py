@@ -274,18 +274,18 @@ account.
 > Example
 >
 >       curl -X POST -F xls_file=@/path/to/form.xls \
-https://ona.io/api/v1/forms
+https://example.com/api/v1/forms
 >
 > OR post an xlsform url
 >
 >       curl -X POST -d \
-"xls_url=https://ona.io/ukanga/forms/tutorial/form.xls" \
-https://ona.io/api/v1/forms
+"xls_url=https://example.com/ukanga/forms/tutorial/form.xls" \
+https://example.com/api/v1/forms
 
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/forms/28058",
+>           "url": "https://example.com/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -310,7 +310,7 @@ https://ona.io/api/v1/forms
 
 > Request
 >
->       curl -X GET https://ona.io/api/v1/forms
+>       curl -X GET https://example.com/api/v1/forms
 
 
 ## Get list of forms filter by owner
@@ -320,7 +320,7 @@ https://ona.io/api/v1/forms
 
 > Request
 >
->       curl -X GET https://ona.io/api/v1/forms?owner=ona
+>       curl -X GET https://example.com/api/v1/forms?owner=ona
 
 ## Get Form Information
 
@@ -329,12 +329,12 @@ https://ona.io/api/v1/forms
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/forms/28058
+>       curl -X GET https://example.com/api/v1/forms/28058
 
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/forms/28058",
+>           "url": "https://example.com/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -345,7 +345,7 @@ https://ona.io/api/v1/forms
 >           "description": "",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "https://ona.io/api/v1/users/ona",
+>           "owner": "https://example.com/api/v1/users/ona",
 >           "public": false,
 >           "public_data": false,
 >           "require_auth": false,
@@ -366,12 +366,12 @@ need provide at least one of the fields.
 > Example
 >
 >       curl -X PATCH -d "public=True" -d "description=Le description"\
-https://ona.io/api/v1/forms/28058
+https://example.com/api/v1/forms/28058
 
 > Response
 >
 >       {
->           "url": "https://ona.io/api/v1/forms/28058",
+>           "url": "https://example.com/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -382,7 +382,7 @@ https://ona.io/api/v1/forms/28058
 >           "description": "Le description",
 >           "downloadable": true,
 >           "encrypted": false,
->           "owner": "https://ona.io/api/v1/users/ona",
+>           "owner": "https://example.com/api/v1/users/ona",
 >           "public": true,
 >           "public_data": false,
 >           "date_created": "2013-07-25T14:14:22.892Z",
@@ -395,7 +395,7 @@ https://ona.io/api/v1/forms/28058
 <b>DELETE</b> /api/v1/forms/<code>{pk}</code></pre>
 > Example
 >
->       curl -X DELETE https://ona.io/api/v1/forms/28058
+>       curl -X DELETE https://example.com/api/v1/forms/28058
 >
 > Response
 >
@@ -407,12 +407,12 @@ https://ona.io/api/v1/forms/28058
 </pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/forms
+>       curl -X GET https://example.com/api/v1/forms
 
 > Response
 >
 >       [{
->           "url": "https://ona.io/api/v1/forms/28058",
+>           "url": "https://example.com/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -427,7 +427,7 @@ https://ona.io/api/v1/forms/28058
 <code>{format}</code></pre>
 > JSON Example
 >
->       curl -X GET https://ona.io/api/v1/forms/28058/form.json
+>       curl -X GET https://example.com/api/v1/forms/28058/form.json
 
 > Response
 >
@@ -449,7 +449,7 @@ https://ona.io/api/v1/forms/28058
 
 > XML Example
 >
->       curl -X GET https://ona.io/api/v1/forms/28058/form.xml
+>       curl -X GET https://example.com/api/v1/forms/28058/form.xml
 
 > Response
 >
@@ -465,7 +465,7 @@ https://ona.io/api/v1/forms/28058
 
 > XLS Example
 >
->       curl -X GET https://ona.io/api/v1/forms/28058/form.xls
+>       curl -X GET https://example.com/api/v1/forms/28058/form.xls
 
 > Response
 >
@@ -482,13 +482,13 @@ comma separated list of tags.
 List forms tagged `smart` or `brand new` or both.
 > Request
 >
->       curl -X GET https://ona.io/api/v1/forms?tag=smart,brand+new
+>       curl -X GET https://example.com/api/v1/forms?tag=smart,brand+new
 
 > Response
 >        HTTP 200 OK
 >
 >       [{
->           "url": "https://ona.io/api/v1/forms/28058",
+>           "url": "https://example.com/api/v1/forms/28058",
 >           "formid": 28058,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
 >           "id_string": "Birds",
@@ -504,7 +504,7 @@ List forms tagged `smart` or `brand new` or both.
 </pre>
 > Request
 >
->       curl -X GET https://ona.io/api/v1/forms/28058/labels
+>       curl -X GET https://example.com/api/v1/forms/28058/labels
 
 > Response
 >
@@ -536,12 +536,12 @@ Payload
 > Request
 >
 >       curl -X DELETE \
-https://ona.io/api/v1/forms/28058/labels/tag1
+https://example.com/api/v1/forms/28058/labels/tag1
 >
 > or to delete the tag "hello world"
 >
 >       curl -X DELETE \
-https://ona.io/api/v1/forms/28058/labels/hello%20world
+https://example.com/api/v1/forms/28058/labels/hello%20world
 >
 > Response
 >
@@ -555,7 +555,7 @@ https://ona.io/api/v1/forms/28058/labels/hello%20world
 > Request
 >
 >       curl -X GET \
-https://ona.io/api/v1/forms/28058/enketo
+https://example.com/api/v1/forms/28058/enketo
 >
 > Response
 >
@@ -582,7 +582,7 @@ Params for the custom xls report
 </pre>
 > Example
 >
->       curl -X GET https://ona.io/api/v1/forms/28058.xls
+>       curl -X GET https://example.com/api/v1/forms/28058.xls
 
 > Binary file export of the format specified is returned as the response for
 >the download.
@@ -593,9 +593,9 @@ Params for the custom xls report
 
 > Example 2 Custom XLS reports (beta)
 >
->       curl -X GET https://ona.io/api/v1/forms/28058.xls?meta=12121
+>       curl -X GET https://example.com/api/v1/forms/28058.xls?meta=12121
 >                   or
->       curl -X GET https://ona.io/api/v1/forms/28058.xls?token={url}
+>       curl -X GET https://example.com/api/v1/forms/28058.xls?token={url}
 >
 > XLS file is downloaded
 >
@@ -624,7 +624,7 @@ You can share a form with a  specific user by `POST` a payload with
 > Example
 >
 >       curl -X POST -d '{"username": "alice", "role": "readonly"}' \
-https://ona.io/api/v1/forms/123.json
+https://example.com/api/v1/forms/123.json
 
 > Response
 >
@@ -642,14 +642,14 @@ You can clone a form to a specific user account using `GET` with
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/forms/123/clone \
+>       curl -X GET https://example.com/api/v1/forms/123/clone \
 -d username=alice
 
 > Response
 >
 >        HTTP 201 CREATED
 >       {
->           "url": "https://ona.io/api/v1/forms/124",
+>           "url": "https://example.com/api/v1/forms/124",
 >           "formid": 124,
 >           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1e",
 >           "id_string": "Birds_cloned_1",
@@ -669,7 +669,7 @@ data (instance/submission per row)
 
 > Example
 >
->       curl -X POST https://ona.io/api/v1/forms/123/csv_import \
+>       curl -X POST https://example.com/api/v1/forms/123/csv_import \
 -F csv_file=@/path/to/csv_import.csv
 >
 > Response

@@ -89,7 +89,7 @@ Implements OpenRosa Api [FormSubmissionAPI](\
 > Example
 >
 >       curl -X POST -F xml_submission_file=@/path/to/submission.xml \
-https://ona.io/api/v1/submissions
+https://example.com/api/v1/submissions
 
 ## Submit an JSON XForm submission
 

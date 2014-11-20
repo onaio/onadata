@@ -2,6 +2,8 @@ import os
 
 from datetime import datetime
 import numpy as np
+import inspect
+import re
 
 from django import forms
 from django.conf import settings
@@ -17,6 +19,7 @@ from django.utils.translation import ugettext as _
 from django.shortcuts import get_object_or_404
 from taggit.forms import TagField
 from rest_framework import exceptions
+import rest_framework.views as rest_framework_views
 from registration.models import RegistrationProfile
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -449,3 +452,30 @@ def _set_xform_permission(role, user, xform):
 
     if role_class:
         role_class.add(user, xform)
+
+def get_view_name(view_cls, suffix=None):
+    ''' Override Django REST framework's name for the base API class '''
+    # The base API class should inherit directly from APIView. We can't use
+    # issubclass() because ViewSets also inherit (indirectly) from APIView.
+    try:
+        if inspect.getmro(view_cls)[1] is rest_framework_views.APIView:
+            return 'KoBo Api' # awkward capitalization for consistency
+    except KeyError:
+        pass
+    return rest_framework_views.get_view_name(view_cls, suffix)
+
+def get_view_description(view_cls, html=False):
+    ''' Replace example.com in Django REST framework's default API description
+    with the domain name of the current site '''
+    domain = Site.objects.get_current().domain
+    description = rest_framework_views.get_view_description(view_cls,
+        html)
+    # description might not be a plain string: e.g. it could be a SafeText
+    # to prevent further HTML escaping
+    original_type = type(description)
+    description = original_type(re.sub(
+        '(https*)://example.com',
+        '\\1://{}'.format(domain),
+        description
+    ))
+    return description

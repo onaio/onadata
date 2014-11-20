@@ -23,7 +23,7 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
 ## Retrieve profile
 > Example
 >
->       curl -X GET https://ona.io/api/v1/user
+>       curl -X GET https://example.com/api/v1/user
 
 > Response:
 
@@ -68,7 +68,7 @@ using the `window.atob();` function.
 > Example
 >
 >       curl -X POST -d email=demouser@mail.com\
- url=http://example-url.com/reset https://ona.io/api/v1/user/reset
+ url=http://example-url.com/reset https://example.com/api/v1/user/reset
 >
 > Response:
 >
@@ -89,7 +89,7 @@ using the `window.atob();` function.
 > Example
 >
 >       curl -X POST -d uid=Mg -d token=qndoi209jf02n4 \
--d new_password=usernewpass https://ona.io/api/v1/user/reset
+-d new_password=usernewpass https://example.com/api/v1/user/reset
 >
 > Response:
 >
