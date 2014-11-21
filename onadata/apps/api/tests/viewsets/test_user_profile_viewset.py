@@ -33,7 +33,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.view = UserProfileViewSet.as_view({
             'get': 'list',
             'post': 'create',
-            'patch': 'partial_update'
+            'patch': 'partial_update',
+            'put': 'update'
         })
 
     def test_profiles_list(self):
@@ -169,6 +170,34 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.country, country)
+
+    def test_put_update(self):
+
+        data = _profile_data()
+        # create profile
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
+        # edit username with existing different user's username
+        data['username'] = 'bob'
+        request = self.factory.put(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request, user='deno')
+        self.assertEqual(response.status_code, 400)
+
+        # update
+        data['username'] = 'roger'
+        data['city'] = 'Nairobi'
+        request = self.factory.put(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request, user='deno')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['city'], data['city'])
 
     def test_profile_create_mixed_case(self):
         request = self.factory.get('/', **self.extra)

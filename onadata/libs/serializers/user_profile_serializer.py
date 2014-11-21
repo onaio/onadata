@@ -150,13 +150,17 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return attrs
 
     def validate_username(self, attrs, source):
-        if self.context['request'].method == 'PATCH':
+        request_method = self.context['request'].method
 
+        if request_method == 'PATCH' and source not in attrs:
             return attrs
 
+        current_username = self.object.user.username if self.object else None
         username = attrs[source].lower()
+        is_edit = current_username is not None and current_username != username
         form = RegistrationFormUserProfile
-        if username in form._reserved_usernames:
+
+        if username in form._reserved_usernames and is_edit:
             raise ValidationError(
                 u"%s is a reserved name, please choose another" % username)
         elif not form.legal_usernames_re.search(username):
@@ -167,9 +171,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             User.objects.get(username=username)
         except User.DoesNotExist:
             attrs[source] = username
+        else:
+            if not current_username or is_edit:
+                raise ValidationError(u'%s already exists' % username)
 
-            return attrs
-        raise ValidationError(u'%s already exists' % username)
+        return attrs
 
 
 class UserProfileWithTokenSerializer(UserProfileSerializer):
