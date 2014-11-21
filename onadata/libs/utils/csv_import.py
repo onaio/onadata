@@ -1,8 +1,9 @@
+import cStringIO
+import json
 import unicodecsv as ucsv
 import uuid
-import json
 
-import cStringIO
+from collections import defaultdict
 from datetime import datetime
 from django.contrib.auth.models import User
 from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
@@ -55,6 +56,25 @@ def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
                 dict2xml(submission_dict).replace('\n', ''))).encode('utf-8')
 
 
+def dict_pathkeys_to_nested_dicts(dictionary):
+    """ Turns a flat dict to a nested dict
+
+    Takes a dict with pathkeys or "slash-namespaced" keys and inflates
+    them into nested dictionaries i.e:-
+    `d['/path/key/123']` -> `d['path']['key']['123']`
+
+    :param dict: A dictionary with one or more "slash-namespaced" keys
+    :return: A nested dict
+    :rtype: dict
+    """
+    d = dict(dictionary)
+    for key in d.keys():
+        if r'/' in key:
+            d.update(reduce(lambda v, k: {k: v},
+                     (key.split('/')+[d.pop(key)])[::-1]))
+    return d
+
+
 def submit_csv(username, xform, csv_file):
     """ Imports CSV data to an existing form
 
@@ -105,15 +125,16 @@ def submit_csv(username, xform, csv_file):
                     location_data.setdefault(location_key, {}).update(
                         {location_prop: row.get(key, '0')})
 
-                # process nested data e.g x[formhub/uuid] => x[formhub][uuid]
-                if r'/' in key:
-                    row.update(reduce(lambda v, k: {k: v},
-                                      (key.split('/')+[row.pop(key)])[::-1]))
+            row = dict_pathkeys_to_nested_dicts(row)
 
-            for key in location_data.keys():
-                row.update({key: (u'{latitude} {longitude} '
-                                  '{altitude} {precision}'
-                                  '').format(**location_data.get(key))})
+            for root_key in location_data.keys():
+                location_keypath, location_key = root_key.rsplit('/', 1)
+                nested = reduce(lambda d, k: d.get(k), [row, location_keypath])
+                nested.update({location_key:
+                               (u'%(latitude)s %(longitude)s '
+                                '%(altitude)s %(precision)s')
+                               % defaultdict(lambda: '',
+                                             location_data.get(root_key))})
 
             # inject our form's uuid into the submission
             row.update(ona_uuid)
