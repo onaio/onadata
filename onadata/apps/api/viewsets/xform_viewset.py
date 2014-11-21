@@ -159,8 +159,10 @@ def _get_owner(request):
         if owner_obj is None:
             raise ValidationError(
                 u"User with username %s does not exist." % owner)
+        else:
+            owner = owner_obj
 
-    return owner or owner_obj
+    return owner
 
 
 def response_for_format(data, format=None):
