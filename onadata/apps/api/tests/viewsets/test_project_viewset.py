@@ -9,6 +9,7 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
 from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs import permissions as role
 
 
 class TestProjectViewSet(TestAbstractViewSet):
@@ -579,3 +580,26 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEquals(self.xform.shared, True)
         self.assertEquals(self.xform.shared_data, True)
+
+    def test_project_all_users_can_share_remove_themselves(self):
+        self._project_create()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(alice_data)
+
+        view = ProjectViewSet.as_view({
+            'put': 'share'
+        })
+
+        data = {'username': 'alice', 'remove': True}
+        for role_name, role_class in role.ROLES.iteritems():
+
+            role_class.add(self.user, self.project)
+            data['role'] = role_name
+
+            request = self.factory.put('/', data=data, **self.extra)
+            response = view(request, pk=self.project.pk)
+
+            self.assertEqual(response.status_code, 204)
+
+            self.assertFalse(role_class.user_has_role(self.user,
+                                                      self.project))
