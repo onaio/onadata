@@ -584,32 +584,22 @@ class TestProjectViewSet(TestAbstractViewSet):
     def test_project_all_users_can_share_remove_themselves(self):
         self._project_create()
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
-        alice_profile = self._create_user_profile(alice_data)
+        self._login_user_and_profile(alice_data)
 
         view = ProjectViewSet.as_view({
-            'post': 'share'
+            'put': 'share'
         })
 
-        self.user = alice_profile.user
-        self.assertTrue(
-            self.client.login(username=self.user.username,
-                              password=self.profile_data['password1']))
-        self.extra = {
-            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
-
         data = {'username': 'alice', 'remove': True}
-        projectid = self.project.pk
         for role_name, role_class in role.ROLES.iteritems():
 
-            role_class.add(alice_profile.user, self.project)
+            role_class.add(self.user, self.project)
             data['role'] = role_name
 
-            request = self.factory.post('/', data=data, **self.extra)
-            response = view(request, pk=projectid)
+            request = self.factory.put('/', data=data, **self.extra)
+            response = view(request, pk=self.project.pk)
 
-            self.assertEqual(response.status_code, 204,
-                             msg="Role {} failed to remove".format(role_name))
-            self.assertFalse(role_class.user_has_role(alice_profile.user,
+            self.assertEqual(response.status_code, 204)
+
+            self.assertFalse(role_class.user_has_role(self.user,
                                                       self.project))
-
-
