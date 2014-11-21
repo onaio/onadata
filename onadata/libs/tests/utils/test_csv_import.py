@@ -54,7 +54,7 @@ class CSVImportTestCase(TestBase):
     @mock.patch('onadata.libs.utils.csv_import.dict2xmlsubmission')
     def test_submit_csv_xml_location_property_test(
             self, d2x, safe_create_instance):
-        safe_create_instance.return_value = {}
+        safe_create_instance.return_value = [None, ]
         single_csv = open(os.path.join(self.fixtures_dir, 'single.csv'))
         csv_import.submit_csv(self.user.username, self.xform, single_csv)
 

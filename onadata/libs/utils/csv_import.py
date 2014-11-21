@@ -4,6 +4,7 @@ import unicodecsv as ucsv
 import uuid
 
 from collections import defaultdict
+from copy import deepcopy
 from datetime import datetime
 from django.contrib.auth.models import User
 from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
@@ -56,6 +57,27 @@ def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
                 dict2xml(submission_dict).replace('\n', ''))).encode('utf-8')
 
 
+def dict_merge(a, b):
+    """ Returns a merger of two dicts a and b
+
+    credits: https://www.xormedia.com/recursively-merge-dictionaries-in-python
+
+    :param dict a: The "Part A" dict
+    :param dict b: The "Part B" dict
+    :return: The merger
+    :rtype: dict
+    """
+    if not isinstance(b, dict):
+        return b
+    result = deepcopy(a)
+    for k, v in b.iteritems():
+        if k in result and isinstance(result[k], dict):
+                result[k] = dict_merge(result[k], v)
+        else:
+            result[k] = deepcopy(v)
+    return result
+
+
 def dict_pathkeys_to_nested_dicts(dictionary):
     """ Turns a flat dict to a nested dict
 
@@ -63,15 +85,15 @@ def dict_pathkeys_to_nested_dicts(dictionary):
     them into nested dictionaries i.e:-
     `d['/path/key/123']` -> `d['path']['key']['123']`
 
-    :param dict: A dictionary with one or more "slash-namespaced" keys
+    :param dict dictionary: A dict with one or more "slash-namespaced" keys
     :return: A nested dict
     :rtype: dict
     """
-    d = dict(dictionary)
+    d = dictionary.copy()
     for key in d.keys():
         if r'/' in key:
-            d.update(reduce(lambda v, k: {k: v},
-                     (key.split('/')+[d.pop(key)])[::-1]))
+            d = dict_merge(reduce(lambda v, k: {k: v},
+                           (key.split('/')+[d.pop(key)])[::-1]), d)
     return d
 
 
@@ -135,11 +157,12 @@ def submit_csv(username, xform, csv_file):
                     location_keypath, location_key = root_key.rsplit('/', 1)
                     location_dict = reduce(lambda d, k: d.get(k),
                                            location_keypath.split('/'), row)
-                location_dict.update({location_key:
-                               (u'%(latitude)s %(longitude)s '
-                                '%(altitude)s %(precision)s')
-                               % defaultdict(lambda: '',
-                                             location_data.get(root_key))})
+                location_dict.update(
+                    {location_key:
+                     (u'%(latitude)s %(longitude)s '
+                      '%(altitude)s %(precision)s')
+                     % defaultdict(lambda: '',
+                                   location_data.get(root_key))})
 
             # inject our form's uuid into the submission
             row.update(ona_uuid)
