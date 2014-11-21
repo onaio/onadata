@@ -1,5 +1,3 @@
-from django.db import IntegrityError
-
 from onadata.apps.api import tools
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.project_xform import ProjectXForm
@@ -31,6 +29,3 @@ class TestProject(TestAbstractModels):
             self.xform, project, self.user)
         self.assertEqual(ProjectXForm.objects.count(), count + 1)
         self.assertIsInstance(project_xform, ProjectXForm)
-        with self.assertRaises(IntegrityError):
-            tools.add_xform_to_project(
-                self.xform, project, self.user)
