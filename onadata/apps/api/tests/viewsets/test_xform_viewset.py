@@ -388,6 +388,22 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertTrue(OwnerRole.user_has_role(self.user, xform))
             self.assertEquals("owner", response.data['users'][0]['role'])
 
+    def test_publish_xlsform_anon(self):
+        view = XFormViewSet.as_view({
+            'post': 'create'
+        })
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation.xls")
+        username = 'Anon'
+        error_msg = 'User with username %s does not exist.' % username
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file, 'owner': username}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.data.get('message'), error_msg)
+
     def test_publish_invalid_xls_form(self):
         view = XFormViewSet.as_view({
             'post': 'create'
@@ -445,6 +461,25 @@ class TestXFormViewSet(TestAbstractViewSet):
         matches = re.findall(r"<h:title>([^<]+)</h:title>", self.xform.xml)
         self.assertTrue(len(matches) > 0)
         self.assertEqual(matches[0], title)
+
+    def test_partial_update_anon(self):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        title = u'مرحب'
+        description = 'DESCRIPTION'
+        username = 'Anon'
+        error_msg = 'User with username %s does not exist.' % username
+        data = {'public': True, 'description': description, 'title': title,
+                'downloadable': True, 'owner': username}
+
+        self.assertFalse(self.xform.shared)
+
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data.get('message'), error_msg)
 
     def test_set_form_private(self):
         key = 'shared'

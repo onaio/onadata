@@ -154,14 +154,13 @@ def _get_owner(request):
     owner = request.DATA.get('owner') or request.user
 
     if isinstance(owner, six.string_types):
-        owner = _get_user(owner)
+        owner_obj = _get_user(owner)
 
-        if owner is None:
+        if owner_obj is None:
             raise ValidationError(
-                u"User with username %(owner)s does not exist."
-            )
+                u"User with username %s does not exist." % owner)
 
-    return owner
+    return owner or owner_obj
 
 
 def response_for_format(data, format=None):
@@ -725,9 +724,13 @@ data (instance/submission per row)
     public_forms_endpoint = 'public'
 
     def create(self, request, *args, **kwargs):
-        owner = _get_owner(request)
-        survey = utils.publish_xlsform(request, owner)
+        try:
+            owner = _get_owner(request)
+        except ValidationError as e:
+            return Response({'message': e.messages[0]},
+                            status=status.HTTP_400_BAD_REQUEST)
 
+        survey = utils.publish_xlsform(request, owner)
         if isinstance(survey, XForm):
             xform = XForm.objects.get(pk=survey.pk)
             serializer = XFormSerializer(
@@ -859,7 +862,12 @@ data (instance/submission per row)
             status.HTTP_400_BAD_REQUEST)
 
     def partial_update(self, request, *args, **kwargs):
-        owner = _get_owner(request)
+        try:
+            owner = _get_owner(request)
+        except ValidationError as e:
+            return Response({'message': e.messages[0]},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         self.object = self.get_object()
 
         # updating the file
