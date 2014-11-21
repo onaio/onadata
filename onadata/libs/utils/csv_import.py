@@ -128,9 +128,14 @@ def submit_csv(username, xform, csv_file):
             row = dict_pathkeys_to_nested_dicts(row)
 
             for root_key in location_data.keys():
-                location_keypath, location_key = root_key.rsplit('/', 1)
-                nested = reduce(lambda d, k: d.get(k), [row, location_keypath])
-                nested.update({location_key:
+                location_key = root_key
+                location_dict = row
+
+                if '/' in root_key:
+                    location_keypath, location_key = root_key.rsplit('/', 1)
+                    location_dict = reduce(lambda d, k: d.get(k),
+                                           location_keypath.split('/'), row)
+                location_dict.update({location_key:
                                (u'%(latitude)s %(longitude)s '
                                 '%(altitude)s %(precision)s')
                                % defaultdict(lambda: '',
