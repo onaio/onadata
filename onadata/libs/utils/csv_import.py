@@ -141,28 +141,26 @@ def submit_csv(username, xform, csv_file):
                 if key.startswith('_'):
                     del row[key]
 
+                # Collect row location data into separate location_data dict
                 if key.endswith(('.latitude', '.longitude',
                                 '.altitude', '.precision')):
                     location_key, location_prop = key.rsplit(u'.', 1)
                     location_data.setdefault(location_key, {}).update(
                         {location_prop: row.get(key, '0')})
 
-            row = dict_pathkeys_to_nested_dicts(row)
-
-            for root_key in location_data.keys():
-                location_key = root_key
-                location_dict = row
-
-                if '/' in root_key:
-                    location_keypath, location_key = root_key.rsplit('/', 1)
-                    location_dict = reduce(lambda d, k: d.get(k),
-                                           location_keypath.split('/'), row)
-                location_dict.update(
+            # collect all location K-V pairs into single geopoint field(s)
+            # in location_data dict
+            for location_key in location_data.keys():
+                location_data.update(
                     {location_key:
                      (u'%(latitude)s %(longitude)s '
-                      '%(altitude)s %(precision)s')
-                     % defaultdict(lambda: '',
-                                   location_data.get(root_key))})
+                      '%(altitude)s %(precision)s') % defaultdict(
+                          lambda: '', location_data.get(location_key))})
+
+            row = dict_pathkeys_to_nested_dicts(row)
+            location_data = dict_pathkeys_to_nested_dicts(location_data)
+
+            row = dict_merge(row, location_data)
 
             # inject our form's uuid into the submission
             row.update(ona_uuid)
