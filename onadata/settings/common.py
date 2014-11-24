@@ -143,6 +143,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'onadata.libs.profiling.sql.SqlTimingMiddleware',
     'reversion.middleware.RevisionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -310,6 +311,14 @@ LOGGING = {
         'simple': {
             'format': '%(levelname)s %(message)s'
         },
+        'sql': {
+            'format': '%(levelname)s %(process)d %(thread)d' +
+                      ' %(time)s seconds %(message)s %(sql)s'
+        },
+        'sql_totals': {
+            'format': '%(levelname)s %(process)d %(thread)d %(time)s seconds' +
+                      ' %(message)s %(num_queries)s sql queries'
+        }
     },
     'filters': {
         'require_debug_false': {
@@ -339,6 +348,18 @@ LOGGING = {
             'formatter': 'verbose',
             'model': 'onadata.apps.main.models.audit.AuditLog'
         },
+        # 'sql_handler': {
+        #     'level': 'DEBUG',
+        #     'class': 'logging.StreamHandler',
+        #     'formatter': 'sql',
+        #     'stream': sys.stdout
+        # },
+        # 'sql_totals_handler': {
+        #     'level': 'DEBUG',
+        #     'class': 'logging.StreamHandler',
+        #     'formatter': 'sql_totals',
+        #     'stream': sys.stdout
+        # }
     },
     'loggers': {
         'django.request': {
@@ -355,7 +376,17 @@ LOGGING = {
             'handlers': ['audit'],
             'level': 'DEBUG',
             'propagate': True
-        }
+        },
+        # 'sql_logger': {
+        #     'handlers': ['sql_handler'],
+        #     'level': 'DEBUG',
+        #     'propagate': True
+        # },
+        # 'sql_totals_logger': {
+        #     'handlers': ['sql_totals_handler'],
+        #     'level': 'DEBUG',
+        #     'propagate': True
+        # }
     }
 }
 
