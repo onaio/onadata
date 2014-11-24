@@ -7,6 +7,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import exceptions
 from onadata.apps.api.models.temp_token import TempToken
 from django.utils import timezone
+from django.conf import settings
 
 
 class DigestAuthentication(BaseAuthentication):
@@ -60,8 +61,9 @@ class TempTokenAuthentication(TokenAuthentication):
             raise exceptions.AuthenticationFailed('User inactive or deleted')
 
         def expired(time_now, time_token_created):
-            time_diff = time_now - time_token_created
-            return True if time_diff.seconds > 0 else False
+            time_diff = (time_now - time_token_created).total_seconds()
+            token_expiry_time = settings.DEFAULT_TEMP_TOKEN_EXPIRY_TIME
+            return True if time_diff > token_expiry_time else False
 
         if expired(timezone.now(), token.created):
             raise exceptions.AuthenticationFailed('Token expired')
