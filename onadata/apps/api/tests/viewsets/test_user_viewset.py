@@ -74,3 +74,25 @@ class TestUserViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
         self.assertEqual(response.data, data)
+
+        get_params = {
+            'search': 'doesnotexist@email.com',
+        }
+
+        request = self.factory.get('/', data=get_params, **self.extra)
+        response = view(request)
+
+        self.assertEquals(response.status_code, 200)
+        # empty results
+        self.assertEqual(response.data, [])
+
+        get_params = {
+            'search': 'invalid@email.com',
+        }
+
+        request = self.factory.get('/', data=get_params, **self.extra)
+        response = view(request)
+
+        self.assertEquals(response.status_code, 200)
+        # empty results
+        self.assertEqual(response.data, [])
