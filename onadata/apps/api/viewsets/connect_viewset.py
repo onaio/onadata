@@ -3,6 +3,8 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.decorators import list_route
 from rest_framework.response import Response
+from rest_framework.exceptions import ParseError
+from django.utils.translation import ugettext as _
 
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.main.models.user_profile import UserProfile
@@ -16,13 +18,14 @@ from onadata.libs.serializers.user_profile_serializer import (
 from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
 from onadata.libs.utils.timing import (
     last_modified_header, get_date, merge_dicts)
+from onadata.apps.api.models.temp_token import TempToken
 
 
 class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
 
     """This endpoint allows you retrieve the authenticated user's profile info.
 
-## Retrieve profile
+# Retrieve profile
 > Example
 >
 >       curl -X GET https://ona.io/api/v1/user
@@ -44,11 +47,11 @@ class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
             "website": ""
 }
 
-## Get projects that the authenticating user has starred
+# Get projects that the authenticating user has starred
 <pre class="prettyprint">
 <b>GET</b> /api/v1/user/<code>{username}</code>/starred</pre>
 
-## Request password reset
+# Request password reset
 <pre class="prettyprint">
 <b>POST</b> /api/v1/user/reset
 </pre>
@@ -78,7 +81,7 @@ using the `window.atob();` function.
 
 
 >
-## Reset user password
+# Reset user password
 <pre class="prettyprint">
 <b>POST</b> /api/v1/user/reset
 </pre>
@@ -154,3 +157,12 @@ using the `window.atob();` function.
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @list_route(methods=['DELETE'])
+    def expire(self, request, *args, **kwargs):
+        try:
+            TempToken.objects.get(user=request.user).delete()
+        except TempToken.DoesNotExist:
+            raise ParseError(_(u"Temporary token not found!"))
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
