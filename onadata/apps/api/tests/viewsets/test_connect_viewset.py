@@ -5,6 +5,7 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.timezone import now
 from django_digest.test import DigestAuth, BasicAuth
 from mock import patch
+from datetime import timedelta
 from rest_framework import authentication
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
@@ -14,14 +15,17 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.apps.api.models.temp_token import TempToken
 
 
 class TestConnectViewSet(TestAbstractViewSet):
+
     def setUp(self):
         super(self.__class__, self).setUp()
         self.view = ConnectViewSet.as_view({
             "get": "list",
-            "post": "reset"
+            "post": "reset",
+            "delete": "expire"
         })
         self.data = {
             'url': 'http://testserver/api/v1/profiles/bob',
@@ -37,16 +41,62 @@ class TestConnectViewSet(TestAbstractViewSet):
             'require_auth': False,
             'user': 'http://testserver/api/v1/users/bob',
             'api_token': self.user.auth_token.key,
-            'temp_token': self.client.session.session_key
         }
 
     def test_get_profile(self):
         request = self.factory.get('/', **self.extra)
         request.session = self.client.session
-
         response = self.view(request)
+        temp_token = TempToken.objects.get(user__username='bob')
+        self.data['temp_token'] = temp_token.key
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.data)
+
+    def test_using_valid_temp_token(self):
+        request = self.factory.get('/', **self.extra)
+        request.session = self.client.session
+        response = self.view(request)
+        temp_token = response.data['temp_token']
+
+        self.extra = {'HTTP_AUTHORIZATION': 'TempToken %s' % temp_token}
+        request = self.factory.get('/', **self.extra)
+        request.session = self.client.session
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(temp_token, response.data['temp_token'])
+
+    def test_using_invalid_temp_token(self):
+        request = self.factory.get('/', **self.extra)
+        request.session = self.client.session
+        response = self.view(request)
+        temp_token = 'abcdefghijklmopqrstuvwxyz'
+
+        self.extra = {'HTTP_AUTHORIZATION': 'TempToken %s' % temp_token}
+        request = self.factory.get('/', **self.extra)
+        request.session = self.client.session
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data['detail'], 'Invalid token')
+
+    def test_using_expired_temp_token(self):
+        request = self.factory.get('/', **self.extra)
+        request.session = self.client.session
+        response = self.view(request)
+        temp_token = response.data['temp_token']
+        temp_token_obj = TempToken.objects.get(key=temp_token)
+
+        day = timedelta(days=1)
+        today = now()
+        yesterday = today - day
+        temp_token_obj.created = yesterday
+        temp_token_obj.save()
+
+        self.extra = {'HTTP_AUTHORIZATION': 'TempToken %s' %
+                      temp_token_obj.key}
+        request = self.factory.get('/', **self.extra)
+        request.session = self.client.session
+        response = self.view(request)
+        self.assertEqual(response.data['detail'], 'Token expired')
 
     def test_get_starred_projects(self):
         self._project_create()
@@ -97,6 +147,8 @@ class TestConnectViewSet(TestAbstractViewSet):
         request.session = self.client.session
 
         response = view(request)
+        temp_token = TempToken.objects.get(user__username='bob')
+        self.data['temp_token'] = temp_token.key
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.data)
 
@@ -121,6 +173,8 @@ class TestConnectViewSet(TestAbstractViewSet):
         request.session = self.client.session
 
         response = view(request)
+        temp_token = TempToken.objects.get(user__username='bob')
+        self.data['temp_token'] = temp_token.key
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.data)
 
