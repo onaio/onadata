@@ -74,4 +74,3 @@ class TestUserViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
         self.assertEqual(response.data, data)
-
