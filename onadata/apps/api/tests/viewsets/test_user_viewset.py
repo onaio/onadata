@@ -53,10 +53,10 @@ class TestUserViewSet(TestAbstractViewSet):
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com',
                       'name': u'Alice'}
         alice_profile = self._create_user_profile(alice_data)
-        data = {'id': alice_profile.user.pk, 'username': u'alice',
-                'first_name': u'Alice', 'last_name': u''}
+        data = [{'id': alice_profile.user.pk, 'username': u'alice',
+                'first_name': u'Alice', 'last_name': u''}]
         get_params = {
-            'email': alice_profile.user.email,
+            'search': alice_profile.user.email,
         }
         view = UserViewSet.as_view(
             {'get': 'list'}
@@ -75,21 +75,3 @@ class TestUserViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         self.assertEqual(response.data, data)
 
-        get_params = {
-            'email': 'invalidemail',
-        }
-
-        request = self.factory.get('/', data=get_params, **self.extra)
-        response = view(request)
-
-        self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.data, {'detail': 'Invalid email'})
-
-        get_params = {
-            'email': 'doesnotexist@email.com',
-        }
-
-        request = self.factory.get('/', data=get_params, **self.extra)
-        response = view(request)
-        self.assertEquals(response.status_code, 404)
-        self.assertEquals(response.data, {'detail': 'User not found'})

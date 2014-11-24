@@ -1,5 +1,7 @@
-from rest_framework.permissions import DjangoObjectPermissions
+from rest_framework.permissions import DjangoObjectPermissions,\
+    DjangoModelPermissionsOrAnonReadOnly
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import exceptions
 
 from onadata.libs.permissions import CAN_ADD_XFORM_TO_PROFILE
 from onadata.libs.permissions import CAN_CHANGE_XFORM
@@ -142,5 +144,17 @@ class ConnectViewsetPermissions(IsAuthenticated):
 
         return super(ConnectViewsetPermissions, self)\
             .has_permission(request, view)
+
+
+class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
+
+    def has_permission(self, request, view):
+
+        if request.user.is_anonymous() and view.action == 'list':
+            if request.GET.get('search'):
+                raise exceptions.NotAuthenticated()
+
+        return \
+            super(UserViewSetPermissions, self).has_permission(request, view)
 
 __permissions__ = [DjangoObjectPermissions, IsAuthenticated]
