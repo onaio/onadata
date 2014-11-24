@@ -44,6 +44,42 @@ def enketo_error_mock(url, request):
 
 @urlmatch(netloc=r'(.*\.)?xls_server$')
 def external_mock(url, request):
+    json_str = '[{"transport_loop_over_transport_types_frequency_ambulance' \
+               '_frequency_to_referral_facility": "daily",' \
+               ' "transport_available_transportation_types_to_referral' \
+               '_facility": "ambulance bicycle",' \
+               ' "meta_instanceID": "uuid:7a9ba167019a4152a31e46049587d672",' \
+               ' "transport_loop_over_transport_types_frequency_bicycle' \
+               '_frequency_to_referral_facility": "weekly",' \
+               ' "_xform_id_string": "transportation_2011_07_25"},' \
+               ' {"transport_available_transportation_types_to_referral' \
+               '_facility_other": "camel", "transport_available' \
+               '_transportation_types_to_referral_facility": "taxi other",' \
+               ' "transport_loop_over_transport_types_frequency_taxi' \
+               '_frequency_to_referral_facility": "daily",' \
+               ' "meta_instanceID": "uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf",' \
+               ' "transport_loop_over_transport_types_frequency_other' \
+               '_frequency_to_referral_facility": "other",' \
+               ' "_xform_id_string": "transportation_2011_07_25"},' \
+               ' {"transport_loop_over_transport_types_frequency_ambulance' \
+               '_frequency_to_referral_facility": "weekly",' \
+               ' "transport_available_transportation_types_to_referral' \
+               '_facility": "ambulance", "meta_instanceID": "uuid:9c6f3468-' \
+               'cfda-46e8-84c1-75458e72805d", "_xform_id_string":' \
+               ' "transportation_2011_07_25"}, {"transport_loop_over_' \
+               'transport_types_frequency_ambulance_frequency_to_referral_' \
+               'facility": "daily", "transport_available_transportation_types' \
+               '_to_referral_facility": "ambulance bicycle", ' \
+               '"meta_instanceID": "uuid:f3d8dc65-91a6-4d0f-9e97-802128083390",' \
+               ' "transport_loop_over_transport_types_frequency_bicycle' \
+               '_frequency_to_referral_facility": "weekly",' \
+               ' "_xform_id_string": "transportation_2011_07_25"}, ' \
+               '{"transport_available_transportation_types_to_referral' \
+               '_facility": "none", "meta_instanceID": "uuid:5b2cc313-fc09-' \
+               '437e-8149-fcd32f695d41", ' \
+               '"_xform_id_string": "transportation_2011_07_25"}]'
+
+    assert request.body == json_str, "json payload not as expected"
     response = requests.Response()
     response.status_code = 201
     response._content = \
@@ -620,6 +656,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     def test_external_export(self):
         self._publish_xls_form_to_project()
+        self._make_submissions()
 
         data_value = 'template 1|http://xls_server'
         self._add_form_metadata(self.xform, 'external_export',

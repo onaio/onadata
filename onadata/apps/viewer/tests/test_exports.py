@@ -23,7 +23,7 @@ from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.logger.models import Instance
 from onadata.apps.viewer.tasks import create_xls_export
 from onadata.libs.utils.export_tools import generate_export,\
-    increment_index_in_filename, dict_to_joined_export
+    increment_index_in_filename, dict_to_joined_export, clean_keys_of_slashes
 
 AMBULANCE_KEY = 'transport/available_transportation_types_to_referral_fac'\
                 'ility/ambulance'
@@ -1157,3 +1157,132 @@ class TestExports(TestBase):
         self.assertEqual(response.status_code, 403)
         self.assertEquals(response.content, u'No XLS Template set.')
         self.assertEqual(Export.objects.count(), num_exports)
+
+    def test_all_keys_cleaned_of_slashes(self):
+        data =\
+            {
+                'name': 'Abe',
+                'age': '35',
+                '_geolocation': [None, None],
+                'attachments': ['abcd.jpg', 'efgh.jpg'],
+                'section1/location': True,
+                'children':
+                [
+                    {
+                        'children/name': 'Mike',
+                        'children/age': '5',
+                        'children/cartoons':
+                        [
+                            {
+                                'children/cartoons/name': 'Tom & Jerry',
+                                'children/cartoons/why': 'Tom is silly',
+                            },
+                            {
+                                'children/cartoons/name': 'Flinstones',
+                                'children/cartoons/why':
+                                u"I like bamb bam\u0107",
+                            }
+                        ]
+                    },
+                    {
+                        'children/name': 'John',
+                        'children/age': '2',
+                        'children/cartoons': []
+                    },
+                    {
+                        'children/name': 'Imora',
+                        'children/age': '3',
+                        'children/cartoons':
+                        [
+                            {
+                                'children/cartoons/name': 'Shrek',
+                                'children/cartoons/why': 'He\'s so funny'
+                            },
+                            {
+                                'children/cartoons/name': 'Dexter\'s Lab',
+                                'children/cartoons/why': 'He thinks hes smart',
+                                'children/cartoons/characters':
+                                [
+                                    {
+                                        'children/cartoons/characters/name':
+                                        'Dee Dee',
+                                        'children/cartoons/characters/good_or_'
+                                        'evil': 'good'
+                                    },
+                                    {
+                                        'children/cartoons/characters/name':
+                                        'Dexter',
+                                        'children/cartoons/characters/good_or_'
+                                        'evil': 'evil'
+                                    },
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+
+        expected_data = {
+            'name': 'Abe',
+            'age': '35',
+            '_geolocation': [None, None],
+            'attachments': ['abcd.jpg', 'efgh.jpg'],
+            'section1_location': True,
+            'children':
+            [
+                {
+                    'children_name': 'Mike',
+                    'children_age': '5',
+                    'children_cartoons':
+                    [
+                        {
+                            'children_cartoons_name': 'Tom & Jerry',
+                            'children_cartoons_why': 'Tom is silly',
+                        },
+                        {
+                            'children_cartoons_name': 'Flinstones',
+                            'children_cartoons_why':
+                            u"I like bamb bam\u0107",
+                        }
+                    ]
+                },
+                {
+                    'children_name': 'John',
+                    'children_age': '2',
+                    'children_cartoons': []
+                },
+                {
+                    'children_name': 'Imora',
+                    'children_age': '3',
+                    'children_cartoons':
+                    [
+                        {
+                            'children_cartoons_name': 'Shrek',
+                            'children_cartoons_why': 'He\'s so funny'
+                        },
+                        {
+                            'children_cartoons_name': 'Dexter\'s Lab',
+                            'children_cartoons_why': 'He thinks hes smart',
+                            'children_cartoons_characters':
+                            [
+                                {
+                                    'children_cartoons_characters_name':
+                                    'Dee Dee',
+                                    'children_cartoons_characters_good_or_'
+                                    'evil': 'good'
+                                },
+                                {
+                                    'children_cartoons_characters_name':
+                                    'Dexter',
+                                    'children_cartoons_characters_good_or_'
+                                    'evil': 'evil'
+                                },
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+
+        result_data = clean_keys_of_slashes(data)
+        self.assertEquals(expected_data, result_data)

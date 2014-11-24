@@ -940,18 +940,25 @@ def kml_export_data(id_string, user):
 
 
 def _get_records(instances):
-    records = []
-    for instance in instances:
-        record = instance.get_dict()
-        # Get the keys
-        for key in record:
-            if '/' in key:
-                # replace with _
-                record[key.replace('/', '_')]\
-                    = record.pop(key)
-        records.append(record)
+    return [clean_keys_of_slashes(instance.get_dict())
+            for instance in instances]
 
-    return records
+
+def clean_keys_of_slashes(record):
+
+    for key in record:
+        value = record[key]
+        if '/' in key:
+            # replace with _
+            record[key.replace('/', '_')]\
+                = record.pop(key)
+        # Check if the value is a list containing nested dict and apply same
+        if value:
+            if isinstance(value, list) and isinstance(value[0], dict):
+                for v in value:
+                    clean_keys_of_slashes(v)
+
+    return record
 
 
 def _get_server_from_metadata(xform, meta, token):
