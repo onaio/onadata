@@ -945,7 +945,11 @@ def _get_records(instances):
 
 
 def clean_keys_of_slashes(record):
-
+    """
+    Replaces the slashes found in a dataset keys with underscores
+    :param record: list containing a couple of dictionaries
+    :return: record with keys without slashes
+    """
     for key in record:
         value = record[key]
         if '/' in key:
