@@ -79,6 +79,12 @@ class Migration(SchemaMigration):
             'organization': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"}),
             'projects': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['logger.Project']", 'symmetrical': 'False'})
         },
+        'api.temptoken': {
+            'Meta': {'object_name': 'TempToken'},
+            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'key': ('django.db.models.fields.CharField', [], {'max_length': '40', 'primary_key': 'True'}),
+            'user': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'_user'", 'unique': 'True', 'to': u"orm['auth.User']"})
+        },
         u'auth.group': {
             'Meta': {'object_name': 'Group'},
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
