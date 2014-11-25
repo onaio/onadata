@@ -16,7 +16,7 @@ from onadata.apps.logger.models import Note
 from onadata.apps.restservice.utils import call_service
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
-    NOTES, SUBMITTED_BY, VERSION
+    NOTES, SUBMITTED_BY, VERSION, DURATION
 
 from onadata.libs.utils.decorators import apply_form_field_names
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -254,7 +254,8 @@ class ParsedInstance(models.Model):
             NOTES: self.get_notes(),
             SUBMITTED_BY: self.instance.user.username
             if self.instance.user else None,
-            VERSION: self.instance.version
+            VERSION: self.instance.version,
+            DURATION: self.get_duration()
         }
 
         if isinstance(self.instance.deleted_at, datetime.datetime):
@@ -263,6 +264,21 @@ class ParsedInstance(models.Model):
         d.update(data)
 
         return dict_for_mongo(d)
+
+    def get_duration(self):
+        instance = self.instance.get_dict()
+        xform = self.instance.xform.json
+        format = "%Y-%m-%dT%H:%M:%S.%f+03"
+
+        def get_time(value):
+            return datetime.datetime.strptime(instance.get(value), format)
+
+        if 'start_time' in xform and 'end_time' in xform:
+            start_time = get_time('start_time')
+            end_time = get_time('end_time')
+            duration = (end_time - start_time).total_seconds()
+            return duration
+        return None
 
     def update_mongo(self, async=True):
         d = self.to_dict_for_mongo()
