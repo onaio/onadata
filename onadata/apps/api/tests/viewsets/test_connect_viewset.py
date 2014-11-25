@@ -98,6 +98,34 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.data['detail'], 'Token expired')
 
+    def test_expire_temp_token_using_expire_endpoint(self):
+        request = self.factory.get('/', **self.extra)
+        request.session = self.client.session
+        response = self.view(request)
+        temp_token = response.data['temp_token']
+
+        # expire temporary token
+        request = self.factory.delete('/', **self.extra)
+        request.session = self.client.session
+        response = self.view(request)
+        self.assertEqual(response.status_code, 204)
+
+        # try to expire temporary token for the second time
+        request = self.factory.delete('/', **self.extra)
+        request.session = self.client.session
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['detail'], 'Temporary token not found!')
+
+        # try to login with deleted temporary token
+        self.extra = {'HTTP_AUTHORIZATION': 'TempToken %s' % temp_token}
+        request = self.factory.get('/', **self.extra)
+        request.session = self.client.session
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data['detail'],
+                         'Invalid token')
+
     def test_get_starred_projects(self):
         self._project_create()
 
