@@ -50,12 +50,14 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         view_name='user-detail', lookup_field='username', read_only=True)
     metadata = JsonField(source='metadata', required=False)
     id = serializers.Field(source='user.id')
+    joined_on = serializers.Field(source='user.date_joined')
 
     class Meta:
         model = UserProfile
         fields = ('id', 'is_org', 'url', 'username', 'name', 'password',
                   'email', 'city', 'country', 'organization', 'website',
-                  'twitter', 'gravatar', 'require_auth', 'user', 'metadata')
+                  'twitter', 'gravatar', 'require_auth', 'user', 'metadata',
+                  'joined_on')
         lookup_field = 'user'
 
     def is_organization(self, obj):

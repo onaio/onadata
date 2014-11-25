@@ -56,6 +56,8 @@ List, Retrieve, Update, Create/Register users.
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
 >            "user": "https://ona.io/api/v1/users/demo"
+>            "metadata": {},
+>            "joined_on": "2014-11-10T14:22:20.394Z"
 >        },
 >        {
 >           ...}, ...
@@ -84,6 +86,8 @@ List, Retrieve, Update, Create/Register users.
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
 >            "user": "https://ona.io/api/v1/users/demo"
+>            "metadata": {},
+>            "joined_on": "2014-11-10T14:22:20.394Z"
 
 ## Partial updates of User Profile Information
 
@@ -113,6 +117,8 @@ curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
 >            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
 >            "require_auth": false,
 >            "user": "https://ona.io/api/v1/users/demo"
+>            "metadata": {},
+>            "joined_on": "2014-11-10T14:22:20.394Z"
 >        }
 
 ## Change authenticated user's password
