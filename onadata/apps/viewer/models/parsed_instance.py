@@ -278,7 +278,7 @@ class ParsedInstance(models.Model):
             end_time = get_time('end_time')
             duration = (end_time - start_time).total_seconds()
             return duration
-        return None
+        return ''
 
     def update_mongo(self, async=True):
         d = self.to_dict_for_mongo()
