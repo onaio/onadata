@@ -115,6 +115,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['metadata'] = {}
+        data['joined_on'] = profile.user.date_joined
         self.assertEqual(response.data, data)
 
         user = User.objects.get(username='deno')
@@ -135,6 +136,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['url'] = 'http://testserver/api/v1/profiles/deno'
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['metadata'] = {}
+        data['joined_on'] = profile.user.date_joined
         self.assertEqual(response.data, data)
         self.assertNotIn('email', response.data)
 
@@ -218,9 +220,11 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['username'] = u'deno'
         data['metadata'] = {}
+        data['joined_on'] = profile.user.date_joined
         self.assertEqual(response.data, data)
 
         data['username'] = u'deno'
+        data['joined_on'] = str(profile.user.date_joined)
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)

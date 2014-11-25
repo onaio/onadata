@@ -68,6 +68,7 @@ class TestAbstractViewSet(TestCase):
             'user': 'http://testserver/api/v1/users/bob',
             'is_org': False,
             'metadata': {},
+            'joined_on': self.user.date_joined
         }
 
     def _set_api_permissions(self, user):
