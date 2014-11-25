@@ -3,6 +3,7 @@ from django.test import TestCase, RequestFactory
 from pyxform import SurveyElementBuilder
 
 from onadata.apps.logger.xform_instance_parser import DuplicateInstance
+from onadata.apps.main.models import UserProfile
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.libs.utils.logger_tools import (
     create_instance, safe_create_instance
@@ -50,6 +51,7 @@ class TestSimpleSubmission(TestCase):
     def setUp(self):
         self.user = User.objects.create(
             username="admin", email="sample@example.com")
+        self.project = UserProfile.objects.create(user=self.user)
         self.user.set_password("pass")
         self.project = get_user_default_project(self.user)
         self.xform1 = DataDictionary()
