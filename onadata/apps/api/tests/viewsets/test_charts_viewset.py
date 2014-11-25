@@ -5,6 +5,7 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.logger.models.instance import Instance
 
 
 class TestChartsViewSet(TestBase):
@@ -35,6 +36,12 @@ class TestChartsViewSet(TestBase):
             os.path.join(
                 os.path.dirname(__file__), '..', 'fixtures', 'forms',
                 'tutorial', 'instances', '3.xml'))
+
+    def test_duration_field_on_metadata(self):
+        instance = Instance.objects.all()[1]
+        _dict = instance.parsed_instance.to_dict_for_mongo()
+        self.assertIn('_duration', _dict.keys())
+        self.assertNotEqual(_dict.get('_duration'), None)
 
     def test_get_on_categorized_field(self):
         data = {'field_name': 'gender'}
