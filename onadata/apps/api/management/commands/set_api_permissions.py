@@ -7,6 +7,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.permissions import OwnerRole
 from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.libs.utils.user_auth import set_api_permissions_for_user
 
 
 class Command(BaseCommand):
@@ -19,6 +20,7 @@ class Command(BaseCommand):
 
         # UserProfile
         for profile in queryset_iterator(UserProfile.objects.all()):
+            set_api_permissions_for_user(profile.user)
             OwnerRole.add(profile.user, profile)
 
             if profile.created_by is not None:
