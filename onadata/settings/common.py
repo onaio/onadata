@@ -39,6 +39,7 @@ MANAGERS = ADMINS
 DEFAULT_FROM_EMAIL = 'noreply@ona.io'
 SHARE_PROJECT_SUBJECT = '{} Ona Project has been shared with you.'
 DEFAULT_SESSION_EXPIRY_TIME = 21600  # 6 hours
+DEFAULT_TEMP_TOKEN_EXPIRY_TIME = 21600  # 6 hours
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -230,6 +231,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'onadata.libs.authentication.DigestAuthentication',
+        'onadata.libs.authentication.TempTokenAuthentication',
         'oauth2_provider.ext.rest_framework.OAuth2Authentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',

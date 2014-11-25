@@ -195,6 +195,12 @@ Example using curl:
 
     curl -X GET https://ona.io/api/v1/ -H "Authorization: Token TOKEN_KEY"
 
+### Temporary Token Authentication
+
+Example using curl:
+
+    curl -X GET https://ona.io/api/v1/ -H "Authorization: TempToken TOKEN_KEY"
+
 ### Ona Tagging API
 
 * [Filter form list by tags.](
