@@ -36,6 +36,7 @@ def xml_inst_filepath_from_fixture_name(fixture_name, instance_name):
 
 
 class TestPandasMongoBridge(TestBase):
+
     def setUp(self):
         self._create_user_and_login()
         self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
@@ -310,7 +311,7 @@ class TestPandasMongoBridge(TestBase):
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
         result = dict([(key, result[key]) for key in result.keys() if key in
-                      expected_result.keys()])
+                       expected_result.keys()])
         self.assertEqual(expected_result, result)
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
                                              self.xform.id_string,
@@ -326,7 +327,7 @@ class TestPandasMongoBridge(TestBase):
         # build a new dictionary only composed of the keys we want to use in
         # the comparison
         result = dict([(key, result[key]) for key in result.keys() if key in
-                      expected_result.keys()])
+                       expected_result.keys()])
         self.assertEqual(expected_result, result)
 
     def test_split_select_multiples_within_repeats(self):
@@ -623,6 +624,7 @@ class TestPandasMongoBridge(TestBase):
             u'web_browsers/safari': False,
             u'gps': u'-1.2626156 36.7923571 0.0 30.0',
             u'_geolocation': [-1.2626156, 36.7923571],
+            u'_duration': None,
             u'_gps_latitude': u'-1.2626156',
             u'_gps_longitude': u'36.7923571',
             u'_gps_altitude': u'0.0',
@@ -665,6 +667,7 @@ class TestPandasMongoBridge(TestBase):
                     u'web_browsers/ie': False,
                     u'web_browsers/firefox': False,
                     u'gps': u'-1.2626156 36.7923571 0.0 30.0',
+                    u'_duration': None,
                     u'_gps_latitude': u'-1.2626156',
                     u'_gps_longitude': u'36.7923571',
                     u'_gps_altitude': u'0.0',

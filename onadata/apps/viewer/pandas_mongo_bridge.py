@@ -14,7 +14,8 @@ from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP,\
-    BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION
+    BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
+    DURATION
 from onadata.libs.utils.export_tools import question_types_to_exclude
 
 
@@ -72,11 +73,13 @@ class AbstractDataFrameBuilder(object):
     IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ID, ATTACHMENTS, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT, SUBMITTED_BY]
     # fields NOT within the form def that we want to include
-    ADDITIONAL_COLUMNS = [UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION]
+    ADDITIONAL_COLUMNS = [
+        UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION]
     BINARY_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
     """
+
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False):
@@ -102,9 +105,9 @@ class AbstractDataFrameBuilder(object):
     @classmethod
     def _collect_select_multiples(cls, dd):
         return dict([(e.get_abbreviated_xpath(), [c.get_abbreviated_xpath()
-                    for c in e.children])
-                    for e in dd.get_survey_elements()
-                    if e.bind.get("type") == "select"])
+                                                  for c in e.children])
+                     for e in dd.get_survey_elements()
+                     if e.bind.get("type") == "select"])
 
     @classmethod
     def _split_select_multiples(cls, record, select_multiples,
@@ -225,6 +228,7 @@ class AbstractDataFrameBuilder(object):
 
 
 class XLSDataFrameBuilder(AbstractDataFrameBuilder):
+
     """
     Generate structures from mongo and DataDictionary for a DataFrameXLSWriter
 
@@ -656,6 +660,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
 
 class XLSDataFrameWriter(object):
+
     def __init__(self, records, columns):
         self.dataframe = DataFrame(records, columns=columns)
 
@@ -666,6 +671,7 @@ class XLSDataFrameWriter(object):
 
 
 class CSVDataFrameWriter(object):
+
     def __init__(self, records, columns):
         # TODO: if records is empty, raise a known exception
         # catch it in the view and handle
