@@ -75,6 +75,7 @@ class Migration(SchemaMigration):
             'survey_type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['logger.SurveyType']"}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'instances'", 'null': 'True', 'to': u"orm['auth.User']"}),
             'uuid': ('django.db.models.fields.CharField', [], {'default': "u''", 'max_length': '249'}),
+            'version': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True'}),
             'xform': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'instances'", 'null': 'True', 'to': "orm['logger.XForm']"}),
             'xml': ('django.db.models.fields.TextField', [], {})
         },
@@ -144,6 +145,7 @@ class Migration(SchemaMigration):
             'title': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'xforms'", 'null': 'True', 'to': u"orm['auth.User']"}),
             'uuid': ('django.db.models.fields.CharField', [], {'default': "u''", 'max_length': '32'}),
+            'version': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True'}),
             'xls': ('django.db.models.fields.files.FileField', [], {'max_length': '100', 'null': 'True'}),
             'xml': ('django.db.models.fields.TextField', [], {})
         },

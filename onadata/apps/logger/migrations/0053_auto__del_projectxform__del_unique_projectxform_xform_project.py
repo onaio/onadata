@@ -8,59 +8,25 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding model 'Project'
-        db.create_table(u'logger_project', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=255)),
-            ('metadata', self.gf('jsonfield.fields.JSONField')(blank=True)),
-            ('organization', self.gf('django.db.models.fields.related.ForeignKey')(related_name='project_org', to=orm['auth.User'])),
-            ('created_by', self.gf('django.db.models.fields.related.ForeignKey')(related_name='project_owner', to=orm['auth.User'])),
-            ('shared', self.gf('django.db.models.fields.BooleanField')(default=False)),
-            ('date_created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
-            ('date_modified', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
-        ))
-        db.send_create_signal('logger', ['Project'])
+        # Removing unique constraint on 'ProjectXForm', fields ['xform', 'project']
+        db.delete_unique(u'logger_projectxform', ['xform_id', 'project_id'])
 
-        # Adding M2M table for field user_stars on 'Project'
-        m2m_table_name = db.shorten_name(u'logger_project_user_stars')
-        db.create_table(m2m_table_name, (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('project', models.ForeignKey(orm['logger.project'], null=False)),
-            ('user', models.ForeignKey(orm[u'auth.user'], null=False))
-        ))
-        db.create_unique(m2m_table_name, ['project_id', 'user_id'])
+        # Deleting model 'ProjectXForm'
+        db.delete_table(u'logger_projectxform')
 
-        # Adding unique constraint on 'Project', fields ['name', 'organization']
-        db.create_unique(u'logger_project', ['name', 'organization_id'])
 
+    def backwards(self, orm):
         # Adding model 'ProjectXForm'
         db.create_table(u'logger_projectxform', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('xform', self.gf('django.db.models.fields.related.ForeignKey')(related_name='px_xforms', to=orm['logger.XForm'])),
             ('project', self.gf('django.db.models.fields.related.ForeignKey')(related_name='px_projects', to=orm['logger.Project'])),
+            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('created_by', self.gf('django.db.models.fields.related.ForeignKey')(related_name='px_creator', to=orm['auth.User'])),
+            ('xform', self.gf('django.db.models.fields.related.ForeignKey')(related_name='px_xforms', to=orm['logger.XForm'])),
         ))
         db.send_create_signal('logger', ['ProjectXForm'])
 
         # Adding unique constraint on 'ProjectXForm', fields ['xform', 'project']
         db.create_unique(u'logger_projectxform', ['xform_id', 'project_id'])
-
-
-    def backwards(self, orm):
-        # Removing unique constraint on 'ProjectXForm', fields ['xform', 'project']
-        db.delete_unique(u'logger_projectxform', ['xform_id', 'project_id'])
-
-        # Removing unique constraint on 'Project', fields ['name', 'organization']
-        db.delete_unique(u'logger_project', ['name', 'organization_id'])
-
-        # Deleting model 'Project'
-        db.delete_table(u'logger_project')
-
-        # Removing M2M table for field user_stars on 'Project'
-        db.delete_table(db.shorten_name(u'logger_project_user_stars'))
-
-        # Deleting model 'ProjectXForm'
-        db.delete_table(u'logger_projectxform')
 
 
     models = {
@@ -152,22 +118,16 @@ class Migration(SchemaMigration):
             'shared': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user_stars': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'project_stars'", 'symmetrical': 'False', 'to': u"orm['auth.User']"})
         },
-        'logger.projectxform': {
-            'Meta': {'unique_together': "(('xform', 'project'),)", 'object_name': 'ProjectXForm'},
-            'created_by': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'px_creator'", 'to': u"orm['auth.User']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'px_projects'", 'to': "orm['logger.Project']"}),
-            'xform': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'px_xforms'", 'to': "orm['logger.XForm']"})
-        },
         'logger.surveytype': {
             'Meta': {'object_name': 'SurveyType'},
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'slug': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '100'})
         },
         'logger.xform': {
-            'Meta': {'ordering': "('id_string',)", 'unique_together': "(('user', 'id_string'), ('user', 'sms_id_string'))", 'object_name': 'XForm'},
+            'Meta': {'ordering': "('id_string',)", 'unique_together': "(('user', 'id_string', 'project'), ('user', 'sms_id_string', 'project'))", 'object_name': 'XForm'},
             'allows_sms': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'bamboo_dataset': ('django.db.models.fields.CharField', [], {'default': "u''", 'max_length': '60'}),
+            'created_by': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']", 'null': 'True', 'blank': 'True'}),
             'date_created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'date_modified': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
             'description': ('django.db.models.fields.TextField', [], {'default': "u''", 'null': 'True'}),
@@ -180,6 +140,7 @@ class Migration(SchemaMigration):
             'json': ('django.db.models.fields.TextField', [], {'default': "u''"}),
             'last_submission_time': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'num_of_submissions': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['logger.Project']"}),
             'require_auth': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'shared': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'shared_data': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
