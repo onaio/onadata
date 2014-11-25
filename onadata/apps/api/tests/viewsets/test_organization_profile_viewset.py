@@ -80,6 +80,41 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             self.assertEqual(user['role'], 'owner')
             self.assertEqual(type(user['user']), unicode)
 
+    def test_orgs_get_not_creator(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'get': 'retrieve'
+        })
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        previous_user = self.user
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self.assertEqual(self.user.username, 'alice')
+        self.assertNotEqual(previous_user,  self.user)
+        request = self.factory.get('/', **self.extra)
+        response = view(request, user='denoinc')
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.company_data)
+        self.assertIn('users', response.data.keys())
+        for user in response.data['users']:
+            self.assertEqual(user['role'], 'owner')
+            self.assertEqual(type(user['user']), unicode)
+
+    def test_orgs_get_anon(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/')
+        response = view(request, user='denoinc')
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.company_data)
+        self.assertIn('users', response.data.keys())
+        for user in response.data['users']:
+            self.assertEqual(user['role'], 'owner')
+            self.assertEqual(type(user['user']), unicode)
+
     def test_orgs_create(self):
         self._org_create()
         self.assertTrue(self.organization.user.is_active)

@@ -192,7 +192,7 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
         get_date(OrganizationProfile.objects.last(), 'joined'))
     serializer_class = OrganizationSerializer
     lookup_field = 'user'
-    permission_classes = [permissions.DjangoObjectPermissions]
+    permission_classes = [permissions.DjangoObjectPermissionsAllowAnon]
     filter_backends = (OrganizationPermissionFilter,)
 
     @action(methods=['DELETE', 'GET', 'POST', 'PUT'])

@@ -28,6 +28,11 @@ class XFormListObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
 
 class OrganizationPermissionFilter(filters.DjangoObjectPermissionsFilter):
     def filter_queryset(self, request, queryset, view):
+        """Return a filtered queryset or all profiles if a getting a specific
+           profile."""
+        if view.action == 'retrieve' and request.method == 'GET':
+            return queryset.model.objects.all()
+
         filtered_queryset = super(self.__class__, self).filter_queryset(
             request, queryset, view)
         org_users = set([group.team.organization
