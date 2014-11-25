@@ -889,14 +889,17 @@ class TestXFormViewSet(TestAbstractViewSet):
             'description': 'Transport form',
             'downloadable': False,
             'owner': 'http://testserver/api/v1/users/{0}'.format(self.user),
+            'created_by':
+            'http://testserver/api/v1/users/{0}'.format(self.user),
             'public': False,
             'public_data': False,
+            'project': 'http://testserver/api/v1/projects/{0}'.format(
+                self.xform.project.pk),
             'title': 'Transport Form'
         }
         request = self.factory.put('/', data=post_data, **self.extra)
         response = view(request, pk=form_id)
-
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, response.data)
 
         self.xform.reload()
 
@@ -918,8 +921,12 @@ class TestXFormViewSet(TestAbstractViewSet):
             'description': 'Transport form',
             'downloadable': False,
             'owner': 'http://testserver/api/v1/users/{0}'.format(self.user),
+            'created_by':
+            'http://testserver/api/v1/users/{0}'.format(self.user),
             'public': False,
             'public_data': False,
+            'project': 'http://testserver/api/v1/projects/{0}'.format(
+                self.xform.project.pk),
         }
         request = self.factory.put('/', data=post_data, **self.extra)
         response = view(request, pk=form_id)

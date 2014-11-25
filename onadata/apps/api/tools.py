@@ -211,7 +211,7 @@ def publish_xlsform(request, user, id_string=None):
     def set_form():
         form = QuickConverter(request.POST, request.FILES)
 
-        return form.publish(user, created_by=request.user)
+        return form.publish(user, id_string=id_string, created_by=request.user)
 
     return publish_form(set_form)
 
