@@ -78,7 +78,7 @@ def dict_merge(a, b):
     return result
 
 
-def dict_pathkeys_to_nested_dicts(dictionary):
+def dict_pathkeys_to_nested_dicts(d):
     """ Turns a flat dict to a nested dict
 
     Takes a dict with pathkeys or "slash-namespaced" keys and inflates
@@ -89,7 +89,6 @@ def dict_pathkeys_to_nested_dicts(dictionary):
     :return: A nested dict
     :rtype: dict
     """
-    d = dictionary.copy()
     for key in d.keys():
         if r'/' in key:
             d = dict_merge(reduce(lambda v, k: {k: v},
