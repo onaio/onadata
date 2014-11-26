@@ -16,7 +16,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
 from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES,\
-    VERSION
+    VERSION, DURATION
 from onadata.libs.utils.export_tools import question_types_to_exclude,\
     DictOrganizer
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
@@ -297,7 +297,7 @@ class DataDictionary(XForm):
             return '/'.join(l[2:])
 
         header_list = [shorten(xpath) for xpath in self.xpaths()]
-        header_list += [UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION]
+        header_list += [UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION]
         if include_additional_headers:
             header_list += self._additional_headers()
         return header_list
