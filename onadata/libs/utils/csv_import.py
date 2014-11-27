@@ -3,9 +3,13 @@ import json
 import unicodecsv as ucsv
 import uuid
 
+from celery import task
+from celery import current_task
+from celery.result import AsyncResult
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
+from django.conf import settings
 from django.contrib.auth.models import User
 from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
 from onadata.apps.logger.models import Instance
@@ -72,7 +76,7 @@ def dict_merge(a, b):
     result = deepcopy(a)
     for k, v in b.iteritems():
         if k in result and isinstance(result[k], dict):
-                result[k] = dict_merge(result[k], v)
+            result[k] = dict_merge(result[k], v)
         else:
             result[k] = deepcopy(v)
     return result
@@ -117,6 +121,16 @@ def submit_csv(username, xform, csv_file):
                           'got {} instead.'.format(type(csv_file).__name__))}
 
     csv_file.seek(0)
+    num_rows = sum(1 for row in csv_file)
+    submition_task = _submit_csv.delay(username, xform, csv_file, num_rows)
+    if num_rows < settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD:
+        return submition_task.wait(timeout=None, interval=0.5)
+
+    return {'task_uuid': submition_task.id}
+
+
+@task
+def _submit_csv(username, xform, csv_file, max_progress=0):
     csv_reader = ucsv.DictReader(csv_file)
     # check for spaces in headers
     if any(' ' in header for header in csv_reader.fieldnames):
@@ -126,7 +140,7 @@ def submit_csv(username, xform, csv_file):
     submission_time = datetime.utcnow().isoformat()
     ona_uuid = {'formhub': {'uuid': xform.uuid}}
     error = None
-    additions = inserts = 0
+    additions = inserts = progress = 0
     try:
         for row in csv_reader:
             # fetch submission uuid before purging row metadata
@@ -187,6 +201,10 @@ def submit_csv(username, xform, csv_file):
                                         xform=xform).delete()
                 return {'error': str(error)}
             else:
+                progress += 1
+                current_task.update_state(state='PROGRESS',
+                                          meta={'progress': progress,
+                                                'total': max_progress})
                 additions += 1
                 users = User.objects.filter(
                     username=submitted_by) if submitted_by else []
@@ -204,3 +222,8 @@ def submit_csv(username, xform, csv_file):
         return {'error': str(e)}
 
     return {'additions': additions - inserts, 'updates': inserts}
+
+
+def get_async_csv_submission_status(job_uuid):
+    job = AsyncResult(job_uuid)
+    return (job.result or job.state)
