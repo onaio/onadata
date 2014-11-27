@@ -121,7 +121,7 @@ def submit_csv(username, xform, csv_file):
                           'got {} instead.'.format(type(csv_file).__name__))}
 
     csv_file.seek(0)
-    num_rows = sum(1 for row in csv_file)
+    num_rows = sum(1 for row in csv_file) - 1
     submition_task = _submit_csv.delay(username, xform, csv_file, num_rows)
     if num_rows < settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD:
         return submition_task.wait(timeout=None, interval=0.5)
@@ -130,7 +130,9 @@ def submit_csv(username, xform, csv_file):
 
 
 @task
-def _submit_csv(username, xform, csv_file, max_progress=0):
+def _submit_csv(username, xform, csv_file, num_rows=0):
+    """ Does the actuall CSV submission task """
+
     csv_reader = ucsv.DictReader(csv_file)
     # check for spaces in headers
     if any(' ' in header for header in csv_reader.fieldnames):
@@ -140,7 +142,7 @@ def _submit_csv(username, xform, csv_file, max_progress=0):
     submission_time = datetime.utcnow().isoformat()
     ona_uuid = {'formhub': {'uuid': xform.uuid}}
     error = None
-    additions = inserts = progress = 0
+    additions = inserts = 0
     try:
         for row in csv_reader:
             # fetch submission uuid before purging row metadata
@@ -201,11 +203,10 @@ def _submit_csv(username, xform, csv_file, max_progress=0):
                                         xform=xform).delete()
                 return {'error': str(error)}
             else:
-                progress += 1
-                current_task.update_state(state='PROGRESS',
-                                          meta={'progress': progress,
-                                                'total': max_progress})
                 additions += 1
+                current_task.update_state(state='PROGRESS',
+                                          meta={'progress': additions,
+                                                'total': num_rows})
                 users = User.objects.filter(
                     username=submitted_by) if submitted_by else []
                 if users:
@@ -225,5 +226,12 @@ def _submit_csv(username, xform, csv_file, max_progress=0):
 
 
 def get_async_csv_submission_status(job_uuid):
+    """ Gets CSV Submision progress
+
+    Can be used to pol long running submissions
+    :param str job_uuid: The submission job uuid returned by _submit_csv.delay()
+    :return: Dict with import progress info (insertions & total)
+    :rtype: Dict
+    """
     job = AsyncResult(job_uuid)
     return (job.result or job.state)
