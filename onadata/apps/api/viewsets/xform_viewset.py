@@ -950,7 +950,7 @@ previous call
                 # check if wants to make form private
                 if request.DATA.get('public') in ['False', 'false']:
                     data = {
-                        'detail': u'Cannot publish a private form to'
+                        'detail': u'Cannot publish a private form in'
                                   u' a public project'
                     }
                     return Response(data, status=status.HTTP_400_BAD_REQUEST)
@@ -958,7 +958,7 @@ previous call
                 # check if wants to make form public
                 if request.DATA.get('public') in ['True', 'true']:
                     data = {
-                        'detail': u'Cannot publish a public form to'
+                        'detail': u'Cannot publish a public form in'
                                   u' a private project'
                     }
                     return Response(data, status=status.HTTP_400_BAD_REQUEST)

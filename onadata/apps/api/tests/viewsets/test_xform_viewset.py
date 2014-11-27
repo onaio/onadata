@@ -942,14 +942,14 @@ class TestXFormViewSet(TestAbstractViewSet):
         view = XFormViewSet.as_view({
             'patch': 'partial_update'
         })
-        data = {'public': 'Str'}
+        data = {'public': 'True'}
 
         request = self.factory.patch('/', data=data, **self.extra)
         response = view(request, pk=self.xform.id)
 
         self.assertEqual(response.status_code, 400)
         error = {
-            'detail': u'Cannot publish a public form to a private project'
+            'detail': u'Cannot publish a public form in a private project'
         }
         self.assertDictContainsSubset(response.data, error)
 
