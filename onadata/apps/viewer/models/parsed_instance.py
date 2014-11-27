@@ -16,7 +16,7 @@ from onadata.apps.logger.models import Note
 from onadata.apps.restservice.utils import call_service
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
-    NOTES, SUBMITTED_BY, VERSION, DURATION
+    NOTES, SUBMITTED_BY, VERSION, DURATION, START_TIME, END_TIME
 
 from onadata.libs.utils.decorators import apply_form_field_names
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -266,18 +266,26 @@ class ParsedInstance(models.Model):
         return dict_for_mongo(d)
 
     def get_duration(self):
-        instance = self.instance.get_dict()
-        xform = self.instance.xform.json
-        format = "%Y-%m-%dT%H:%M:%S.%f+03"
+        data = self.instance.get_dict()
+        _format = "%Y-%m-%dT%H:%M:%S.%f+03:00"
 
         def get_time(value):
-            return datetime.datetime.strptime(instance.get(value), format)
+            try:
+                return datetime.datetime.strptime(value, _format)
+            except ValueError:
+                return ''
 
-        if 'start_time' in xform and 'end_time' in xform:
-            start_time = get_time('start_time')
-            end_time = get_time('end_time')
-            duration = (end_time - start_time).total_seconds()
-            return duration
+        start_time = data.get(START_TIME)
+        end_time = data.get(END_TIME)
+
+        if start_time and end_time:
+            start_time = get_time(start_time)
+            end_time = get_time(end_time)
+            if end_time != '' and start_time != '':
+                duration = (end_time - start_time).total_seconds()
+
+                return duration
+
         return ''
 
     def update_mongo(self, async=True):
