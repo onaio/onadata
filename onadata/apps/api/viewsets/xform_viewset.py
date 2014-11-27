@@ -944,17 +944,22 @@ previous call
         if request.FILES:
             return _try_update_xlsform(request, self.object, owner)
 
-        if request.DATA.get('public') in ['True', 'False']:
+        if request.DATA.get('public') in ['True', 'False', 'true', 'false']:
+            # If public
             if self.object.projectxform_set.get().project.shared:
-                if request.DATA.get('public') == 'False':
+                # check if wants to make form private
+                if request.DATA.get('public') in ['False', 'false']:
                     data = {
-                        'detail': u'Cannot publish a private form to a public project'
+                        'detail': u'Cannot publish a private form to'
+                                  u' a public project'
                     }
                     return Response(data, status=status.HTTP_400_BAD_REQUEST)
             else:
-                if request.DATA.get('public') == 'True':
+                # check if wants to make form public
+                if request.DATA.get('public') in ['True', 'true']:
                     data = {
-                        'detail': u'Cannot publish a public form to a private project'
+                        'detail': u'Cannot publish a public form to'
+                                  u' a private project'
                     }
                     return Response(data, status=status.HTTP_400_BAD_REQUEST)
 

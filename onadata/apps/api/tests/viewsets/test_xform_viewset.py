@@ -942,7 +942,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         view = XFormViewSet.as_view({
             'patch': 'partial_update'
         })
-        data = {'public': True}
+        data = {'public': 'Str'}
 
         request = self.factory.patch('/', data=data, **self.extra)
         response = view(request, pk=self.xform.id)
