@@ -271,6 +271,22 @@ def _try_update_xlsform(request, xform, owner):
     return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
 
+def _check_project_share_setting(request, xform):
+
+    if xform.projectxform_set.get().project.shared:
+        if request.DATA.get('public') == 'False':
+            data = {
+                'detail': u'Cannot publish a private form to a public project'
+            }
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        if request.DATA.get('public') == 'True':
+            data = {
+                'detail': u'Cannot publish a public form to a private project'
+            }
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+
+
 class XFormViewSet(AnonymousUserPublicFormsMixin, LabelsMixin, ModelViewSet):
 
     """
@@ -927,6 +943,20 @@ previous call
         # updating the file
         if request.FILES:
             return _try_update_xlsform(request, self.object, owner)
+
+        if request.DATA.get('public') in ['True', 'False']:
+            if self.object.projectxform_set.get().project.shared:
+                if request.DATA.get('public') == 'False':
+                    data = {
+                        'detail': u'Cannot publish a private form to a public project'
+                    }
+                    return Response(data, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                if request.DATA.get('public') == 'True':
+                    data = {
+                        'detail': u'Cannot publish a public form to a private project'
+                    }
+                    return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
         return super(XFormViewSet, self).partial_update(request, *args,
                                                         **kwargs)

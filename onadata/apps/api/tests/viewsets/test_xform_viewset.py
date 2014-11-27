@@ -479,7 +479,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         title = u'مرحب'
         description = 'DESCRIPTION'
-        data = {'public': True, 'description': description, 'title': title,
+        data = {'description': description, 'title': title,
                 'downloadable': True}
 
         self.assertFalse(self.xform.shared)
@@ -489,9 +489,9 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         self.xform.reload()
         self.assertTrue(self.xform.downloadable)
-        self.assertTrue(self.xform.shared)
+        self.assertFalse(self.xform.shared)
         self.assertEqual(self.xform.description, description)
-        self.assertEqual(response.data['public'], True)
+        self.assertEqual(response.data['public'], False)
         self.assertEqual(response.data['description'], description)
         self.assertEqual(response.data['title'], title)
         matches = re.findall(r"<h:title>([^<]+)</h:title>", self.xform.xml)
@@ -934,3 +934,24 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertEquals(response.data,
                           {'title': [u'This field is required.']})
+
+    def test_user_cannot_add_public_form(self):
+        self._project_create()
+        self._publish_xls_form_to_project()
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        data = {'public': True}
+
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = view(request, pk=self.xform.id)
+
+        self.assertEqual(response.status_code, 400)
+        error = {
+            'detail': u'Cannot publish a public form to a private project'
+        }
+        self.assertDictContainsSubset(response.data, error)
+
+        self.xform.reload()
+        self.assertEquals(self.xform.shared, False)
