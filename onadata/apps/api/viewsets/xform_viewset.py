@@ -271,20 +271,8 @@ def _try_update_xlsform(request, xform, owner):
     return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
 
-def _check_project_share_setting(request, xform):
-
-    if xform.projectxform_set.get().project.shared:
-        if request.DATA.get('public') == 'False':
-            data = {
-                'detail': u'Cannot publish a private form to a public project'
-            }
-            return Response(data, status=status.HTTP_400_BAD_REQUEST)
-    else:
-        if request.DATA.get('public') == 'True':
-            data = {
-                'detail': u'Cannot publish a public form to a private project'
-            }
-            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+def string_to_bool(value):
+    return value.lower() in ['true', 'false'] if value else False
 
 
 class XFormViewSet(AnonymousUserPublicFormsMixin, LabelsMixin, ModelViewSet):
@@ -944,24 +932,16 @@ previous call
         if request.FILES:
             return _try_update_xlsform(request, self.object, owner)
 
-        if request.DATA.get('public').lower() in ['true', 'false']:
-            # If public
-            if self.object.projectxform_set.get().project.shared:
-                # check if wants to make form private
-                if request.DATA.get('public').lower() == 'false':
-                    data = {
-                        'detail': u'Cannot publish a private form in'
-                                  u' a public project'
-                    }
-                    return Response(data, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                # check if wants to make form public
-                if request.DATA.get('public').lower() == 'true':
-                    data = {
-                        'detail': u'Cannot publish a public form in'
-                                  u' a private project'
-                    }
-                    return Response(data, status=status.HTTP_400_BAD_REQUEST)
+        # check for project
+        projectxform = self.object.projectxform_set.filter()
+        if projectxform and \
+            string_to_bool(request.DATA.get('public'))and \
+                projectxform[0].project.shared != \
+                string_to_bool(request.DATA.get('public')):
+            data = {
+                'detail': u'Check project share setting'
+            }
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
         return super(XFormViewSet, self).partial_update(request, *args,
                                                         **kwargs)

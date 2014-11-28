@@ -519,7 +519,20 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     def test_set_form_private(self):
         key = 'shared'
-        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({
+            'post': 'create'
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+            self.assertEqual(response.status_code, 201)
+
+        self.xform = XForm.objects.all().order_by('pk').reverse()[0]
         self.xform.__setattr__(key, True)
         self.xform.save()
         view = XFormViewSet.as_view({
@@ -949,9 +962,35 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
         error = {
-            'detail': u'Cannot publish a public form in a private project'
+            'detail': u'Check project share setting'
         }
         self.assertDictContainsSubset(response.data, error)
 
         self.xform.reload()
         self.assertEquals(self.xform.shared, False)
+
+    def test_sharing_project_less_form(self):
+        view = XFormViewSet.as_view({
+            'post': 'create'
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+            self.assertEqual(response.status_code, 201)
+
+        self.xform = XForm.objects.all().order_by('pk').reverse()[0]
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update'
+        })
+        data = {'public': 'True'}
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = view(request, pk=self.xform.id)
+
+        self.assertEqual(response.status_code, 200)
