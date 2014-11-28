@@ -18,7 +18,7 @@ class CSVImportTestCase(TestBase):
     def setUp(self):
         super(CSVImportTestCase, self).setUp()
         self.fixtures_dir = os.path.join(settings.PROJECT_ROOT,
-                                         'libs', 'tests', 'fixtures')
+                                         'libs', 'utils', 'tests', 'fixtures')
         self.good_csv = open(os.path.join(self.fixtures_dir, 'good.csv'))
         self.bad_csv = open(os.path.join(self.fixtures_dir, 'bad.csv'))
         xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xls')
@@ -120,3 +120,15 @@ class CSVImportTestCase(TestBase):
         csv_import.submit_csv(self.user.username, self.xform, good_csv)
         self.assertEqual(Instance.objects.count(),
                          9, u'submit_csv edits #1 test Failed!')
+
+
+    @mock.patch('onadata.libs.utils.csv_import._submit_csv')
+    def test_submit_csv_long_running(self, _submit_csv):
+
+        class mock_task:
+            id = 'Mock_ID'
+
+        _submit_csv.delay = mock.Mock(return_value=mock_task())
+        huge_csv = open(os.path.join(self.fixtures_dir, 'huge.csv'))
+        result = csv_import.submit_csv(self.user.username, self.xform, huge_csv)
+        self.assertEqual(result.get('task_uuid'), 'Mock_ID')
