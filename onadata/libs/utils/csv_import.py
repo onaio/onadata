@@ -124,7 +124,7 @@ def submit_csv(username, xform, csv_file):
     num_rows = sum(1 for row in csv_file) - 1
     submition_task = _submit_csv.delay(username, xform, csv_file, num_rows)
     if num_rows < settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD:
-        return submition_task.wait(timeout=None, interval=0.5)
+        return submition_task.wait()
 
     return {'task_uuid': submition_task.id}
 
@@ -132,6 +132,7 @@ def submit_csv(username, xform, csv_file):
 @task
 def _submit_csv(username, xform, csv_file, num_rows=0):
     """ Does the actuall CSV submission task """
+    csv_file.seek(0)
 
     csv_reader = ucsv.DictReader(csv_file)
     # check for spaces in headers
