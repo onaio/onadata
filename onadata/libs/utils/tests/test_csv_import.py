@@ -102,8 +102,8 @@ class CSVImportTestCase(TestBase):
         result = csv_import.submit_csv(self.user.username,
                                        self.xform, non_utf8_csv)
         self.assertEqual(result.get('error'),
-                         u'CSV file must be utf-8 encoded',
-                         u'Incorrect error message returned.')
+                         u'CSV file must be utf-8 encoded')
+#                         u'Incorrect error message returned.')
         self.assertEqual(Instance.objects.count(), count,
                          u'Non unicode csv import rollback failed!')
 
