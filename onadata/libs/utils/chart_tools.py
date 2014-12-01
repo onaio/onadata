@@ -54,7 +54,7 @@ def utc_time_string_for_javascript(date_string):
 def get_choice_label(choices, string):
     labels = []
 
-    if string:
+    if string and choices:
         for name in string.split(' '):
             for choice in choices:
                 if choice['name'] == name:
@@ -97,9 +97,17 @@ def build_chart_data_for_field(xform, field, language_index=0):
 
     if data_type == 'categorized':
         if result:
+            choices = []
+            if field.children:
+                choices = field.children
+            else:
+                if field.get('parent') and field.get('parent').get('choices'):
+                    choices = field.get('parent').get('choices')\
+                        .get(truncated_name.lower(), [])
+
             for item in result:
                 item[truncated_name] = get_choice_label(
-                    field.children, item[truncated_name])
+                    choices, item[truncated_name])
 
     # replace truncated field names in the result set with the field name key
     field_name = field_name.encode('utf-8')
