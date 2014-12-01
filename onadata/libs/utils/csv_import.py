@@ -230,7 +230,7 @@ def get_async_csv_submission_status(job_uuid):
     """ Gets CSV Submision progress
 
     Can be used to pol long running submissions
-    :param str job_uuid: The submission job uuid returned by _submit_csv.delay()
+    :param str job_uuid: The submission job uuid returned by _submit_csv.delay
     :return: Dict with import progress info (insertions & total)
     :rtype: Dict
     """
