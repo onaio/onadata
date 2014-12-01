@@ -71,7 +71,7 @@ class Role(object):
         cls._remove_obj_permissions(user, obj)
 
         for codename, klass in cls.permissions:
-            if isinstance(obj, klass):
+            if type(obj) == klass:
                 assign_perm(codename, user, obj)
 
     @classmethod
