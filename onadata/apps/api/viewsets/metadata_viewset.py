@@ -177,7 +177,7 @@ Accept: image/png </pre>
     """
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.MetaDataFilter,)
-    queryset = MetaData.objects.all()
+    queryset = MetaData.objects.select_related('xform')
     default_response_headers = last_modified_header(
         get_date(MetaData.objects.last(), 'modified'))
     permission_classes = (MetaDataObjectPermissions,)
