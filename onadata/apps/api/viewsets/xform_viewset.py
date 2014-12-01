@@ -893,8 +893,9 @@ previous call
         Calls :py:func:`onadata.libs.utils.csv_import.submit_csv` for POST
         requests passing the `request.FILES.get('csv_file')` upload
         for import and
-        :py:func:`onadata.libs.utils.csv_import.get_async_csv_submission_status`
-        for GET requests passing `job_uuid` query param for job progress polling
+        :py:func:onadata.libs.utils.csv_import.get_async_csv_submission_status
+        for GET requests passing `job_uuid` query param for job progress
+        polling
         """
         resp = {}
         if request.method == 'GET':
