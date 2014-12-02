@@ -495,6 +495,9 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
     'application/zip'
 ]
 
+CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
+CSV_ROW_IMPORT_ASYNC_THRESHOLD = 100
+
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:
