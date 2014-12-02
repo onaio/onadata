@@ -37,6 +37,7 @@ CAN_TRANSFER_OWNERSHIP = 'transfer_xform'
 CAN_MOVE_TO_FOLDER = 'move_xform'
 
 # Project Permissions
+CAN_ADD_PROJECT = 'add_project'
 CAN_VIEW_PROJECT = 'view_project'
 CAN_CHANGE_PROJECT = 'change_project'
 CAN_TRANSFER_PROJECT_OWNERSHIP = 'transfer_project'
@@ -69,7 +70,7 @@ class Role(object):
         cls._remove_obj_permissions(user, obj)
 
         for codename, klass in cls.permissions:
-            if isinstance(obj, klass):
+            if type(obj) == klass:
                 assign_perm(codename, user, obj)
 
     @classmethod
@@ -180,6 +181,7 @@ class OwnerRole(Role):
         (IS_ORGANIZATION_OWNER, OrganizationProfile),
         (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_ADD_PROJECT, Project),
         (CAN_CHANGE_PROJECT, Project),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_DELETE_PROJECT, Project),
