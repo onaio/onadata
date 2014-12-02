@@ -708,7 +708,7 @@ data (instance/submission per row)
 >       HTTP 200 OK
 >       {"job_uuid": "04874cee-5fea-4552-a6c1-3c182b8b511f"}
 >
-> You can use the `job_uuid value to chech on the import progress (see below)
+> You can use the `job_uuid value to check on the import progress (see below)
 ## Check on CSV data import progress
 - `job_uuid` a valid csv import job_uuid returned by a long running import \
 previous call
