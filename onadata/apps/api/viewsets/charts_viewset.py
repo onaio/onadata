@@ -141,8 +141,8 @@ response. If `fields=all` then all the fields of the form will be returned.
         get_date(XForm.objects.last(), 'modified'))
     serializer_class = ChartSerializer
     lookup_field = 'pk'
-    renderer_classes = (ChartBrowsableAPIRenderer,
-                        JSONRenderer,
+    renderer_classes = (JSONRenderer,
+                        ChartBrowsableAPIRenderer,
                         TemplateHTMLRenderer,
                         )
     permission_classes = [XFormPermissions, ]
