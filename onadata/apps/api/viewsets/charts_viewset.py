@@ -184,8 +184,13 @@ response. If `fields=all` then all the fields of the form will be returned.
                         "Field %s does not not exist on the form" % field_name)
 
                 field = fields[0]
-            choices = dd.survey.get('choices').get(
-                field_name, None) if dd.survey.get('choices') else None
+            choices = dd.survey.get('choices') if dd.survey.get('choices') \
+                else None
+            if choices:
+                choices = choices.get(field_name.lower()) \
+                    if choices.get(field_name.lower()) \
+                    else choices.get(field_name.upper())
+
             data = build_chart_data_for_field(
                 xform, field, choices=choices)
 
