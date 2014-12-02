@@ -424,6 +424,8 @@ BROKER_BACKEND = "librabbitmq"
 BROKER_URL = 'amqp://guest:guest@localhost:5672/'
 CELERY_RESULT_BACKEND = "amqp"  # telling Celery to report results to RabbitMQ
 CELERY_ALWAYS_EAGER = False
+CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
+CSV_ROW_IMPORT_ASYNC_THRESHOLD = 100
 
 # duration to keep zip exports before deletion (in seconds)
 ZIP_EXPORT_COUNTDOWN = 3600  # 1 hour
