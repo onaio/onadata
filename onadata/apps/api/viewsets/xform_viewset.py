@@ -893,19 +893,22 @@ previous call
         """
         resp = {}
         if request.method == 'GET':
-            resp = get_async_csv_submission_status(
-                request.QUERY_PARAMS.get('job_uuid'))
-
-        csv_file = request.FILES.get('csv_file', None)
-        if csv_file is None:
-            resp.update({u'error': u'csv_file field empty'})
+            resp.update(get_async_csv_submission_status(
+                request.QUERY_PARAMS.get('job_uuid')))
         else:
-            num_rows = sum(1 for row in csv_file) - 1
-            if num_rows < settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD:
-                call = submit_csv
+            csv_file = request.FILES.get('csv_file', None)
+            if csv_file is None:
+                resp.update({u'error': u'csv_file field empty'})
             else:
-                call = submit_csv_async
-            resp = call(request.user.username, self.get_object(), csv_file)
+                num_rows = sum(1 for row in csv_file) - 1
+                if num_rows < settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD:
+                    resp.update(submit_csv(request.user.username,
+                                           self.get_object(), csv_file))
+                else:
+                    resp.update(
+                        {u'task_id': submit_csv_async.delay(
+                            request.user.username, self.get_object(),
+                            csv_file).task_id})
 
         return Response(
             data=resp,

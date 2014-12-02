@@ -3,6 +3,9 @@ import json
 import unicodecsv as ucsv
 import uuid
 
+
+from celery import task
+from celery import current_task
 from celery.result import AsyncResult
 from collections import defaultdict
 from copy import deepcopy
@@ -98,9 +101,9 @@ def dict_pathkeys_to_nested_dicts(dictionary):
     return d
 
 
+@task()
 def submit_csv_async(username, xform, csv_file):
-    return {'task_uuid':
-            submit_csv.delay(username, xform, csv_file).id}
+    return submit_csv(username, xform, csv_file)
 
 
 def submit_csv(username, xform, csv_file):
@@ -123,7 +126,9 @@ def submit_csv(username, xform, csv_file):
                           'Expected utf-8 encoded file or unicode string '
                           'got {} instead.'.format(type(csv_file).__name__))}
 
+    num_rows = sum(1 for row in csv_file) - 1
     csv_file.seek(0)
+
     csv_reader = ucsv.DictReader(csv_file)
     # check for spaces in headers
     if any(' ' in header for header in csv_reader.fieldnames):
@@ -195,6 +200,13 @@ def submit_csv(username, xform, csv_file):
                 return {'error': str(error)}
             else:
                 additions += 1
+                try:
+                    current_task.update_state(state='PROGRESS',
+                                              meta={'progress': additions,
+                                                    'total': num_rows})
+                except:
+                    pass
+
                 users = User.objects.filter(
                     username=submitted_by) if submitted_by else []
                 if users:
@@ -214,11 +226,18 @@ def submit_csv(username, xform, csv_file):
 
 
 def get_async_csv_submission_status(job_uuid):
-    """ Gets CSV Submision progress
+    """ Gets CSV Submision progress or result
     Can be used to pol long running submissions
     :param str job_uuid: The submission job uuid returned by _submit_csv.delay
     :return: Dict with import progress info (insertions & total)
     :rtype: Dict
     """
+    if not job_uuid:
+        return {u'error': u'Empty job uuid'}
+
     job = AsyncResult(job_uuid)
-    return (job.result or job.state)
+    result = (job.result or job.state)
+    if isinstance(result, (str, unicode)):
+        return {'JOB_STATUS': result}
+
+    return result
