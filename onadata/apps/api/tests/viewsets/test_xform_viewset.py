@@ -729,7 +729,7 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_csv_import(self):
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({'post': 'csv_import'})
-        csv_import = open(os.path.join(settings.PROJECT_ROOT, 'libs',
+        csv_import = open(os.path.join(settings.PROJECT_ROOT, 'libs', 'utils',
                                        'tests', 'fixtures', 'good.csv'))
         post_data = {'csv_file': csv_import}
         request = self.factory.post('/', data=post_data, **self.extra)
@@ -742,7 +742,7 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_csv_import_fail(self):
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({'post': 'csv_import'})
-        csv_import = open(os.path.join(settings.PROJECT_ROOT, 'libs',
+        csv_import = open(os.path.join(settings.PROJECT_ROOT, 'libs', 'utils',
                                        'tests', 'fixtures', 'bad.csv'))
         post_data = {'csv_file': csv_import}
         request = self.factory.post('/', data=post_data, **self.extra)
@@ -754,7 +754,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         """Test that invalid post returns 400 with the error in json respone"""
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({'post': 'csv_import'})
-        csv_import = open(os.path.join(settings.PROJECT_ROOT, 'libs',
+        csv_import = open(os.path.join(settings.PROJECT_ROOT, 'libs', 'utils',
                                        'tests', 'fixtures', 'bad.csv'))
         post_data = {'wrong_file_field': csv_import}
         request = self.factory.post('/', data=post_data, **self.extra)

@@ -5,6 +5,7 @@ from datetime import datetime
 
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
+from django.conf import settings
 from django.http import Http404, HttpResponseBadRequest, HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.utils import six
@@ -40,7 +41,9 @@ from onadata.libs.utils.export_tools import newset_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.string import str2bool
 
+from onadata.libs.utils.csv_import import get_async_csv_submission_status
 from onadata.libs.utils.csv_import import submit_csv
+from onadata.libs.utils.csv_import import submit_csv_async
 from onadata.libs.utils.viewer_tools import _get_form_url
 from onadata.libs.utils.timing import last_modified_header, get_date
 
@@ -681,25 +684,56 @@ You can clone a form to a specific user account using `GET` with
 >       }
 
 ## Import CSV data to existing form
-
 - `csv_file` a valid csv file with exported \
 data (instance/submission per row)
-
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{pk}</code>/csv_import
+<b>POST</b> /api/v1/forms/<code>{pk}</code>/csv_import
 </pre>
-
 > Example
 >
 >       curl -X POST https://ona.io/api/v1/forms/123/csv_import \
 -F csv_file=@/path/to/csv_import.csv
 >
 > Response
+> If the job was executed immediately:-
 >
->        HTTP 200 OK
+>       HTTP 200 OK
 >       {
 >           "additions": 9,
 >           "updates": 0
+>       }
+>
+> If the import is a long running task:-
+>
+>       HTTP 200 OK
+>       {"job_uuid": "04874cee-5fea-4552-a6c1-3c182b8b511f"}
+>
+> You can use the `job_uuid value to chech on the import progress (see below)
+## Check on CSV data import progress
+- `job_uuid` a valid csv import job_uuid returned by a long running import \
+previous call
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/<code>{pk}</code>/csv_import?job_uuid=UUID
+</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/forms/123/csv_import?job_uuid=UUID
+>
+> Response
+> If the job is done:-
+>
+>       HTTP 200 OK
+>       {
+>           "additions": 90000,
+>           "updates": 10000
+>       }
+>
+> If the import is still running:-
+>
+>       HTTP 200 OK
+>       {
+>           "current": 100,
+>           "total": 100000
 >       }
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
@@ -847,16 +881,31 @@ data (instance/submission per row)
         return Response(data=serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST)
 
-    @detail_route(methods=['POST'])
+    @detail_route(methods=['POST', 'GET'])
     def csv_import(self, request, *args, **kwargs):
         """ Endpoint for CSV data imports
-
-        Calls :py:func:`onadata.libs.utils.csv_import.submit_csv`
-        passing with the `request.FILES.get('csv_file')` upload for import.
+        Calls :py:func:`onadata.libs.utils.csv_import.submit_csv` for POST
+        requests passing the `request.FILES.get('csv_file')` upload
+        for import and
+        :py:func:onadata.libs.utils.csv_import.get_async_csv_submission_status
+        for GET requests passing `job_uuid` query param for job progress
+        polling
         """
-        resp = submit_csv(request.user.username,
-                          self.get_object(),
-                          request.FILES.get('csv_file'))
+        resp = {}
+        if request.method == 'GET':
+            resp = get_async_csv_submission_status(
+                request.QUERY_PARAMS.get('job_uuid'))
+
+        csv_file = request.FILES.get('csv_file', None)
+        if csv_file is None:
+            resp.update({u'error': u'csv_file field empty'})
+        else:
+            num_rows = sum(1 for row in csv_file) - 1
+            if num_rows < settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD:
+                call = submit_csv
+            else:
+                call = submit_csv_async
+            resp = call(request.user.username, self.get_object(), csv_file)
 
         return Response(
             data=resp,
