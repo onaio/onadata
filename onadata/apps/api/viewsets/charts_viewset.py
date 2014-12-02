@@ -200,9 +200,6 @@ response. If `fields=all` then all the fields of the form will be returned.
 
             return Response(data, template_name='chart_detail.html')
 
-        if fmt != 'json' and field_name is None:
-            raise ParseError("Not supported")
-
         data = serializer.data
         data["fields"] = {}
         for field in dd.survey_elements:
