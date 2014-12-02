@@ -1,5 +1,4 @@
 import os
-import reversion
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
@@ -43,9 +42,6 @@ class TestXForm(TestBase):
         # set title in xform xml
         self.xform._set_title()
         self.assertIn(self.xform.title, self.xform.xml)
-
-    def test_reversion(self):
-        self.assertTrue(reversion.is_registered(XForm))
 
     def test_version_length(self):
         """Test Xform.version can store more than 12 chars"""

@@ -2,7 +2,6 @@ import json
 import os
 import pytz
 import re
-import reversion
 
 from hashlib import md5
 from django.utils import timezone
@@ -35,7 +34,6 @@ class DuplicateUUIDError(Exception):
     pass
 
 
-@reversion.register
 class XForm(BaseModel):
     CLONED_SUFFIX = '_cloned'
     MAX_ID_LENGTH = 100

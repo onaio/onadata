@@ -145,7 +145,6 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 
 MIDDLEWARE_CLASSES = (
     'onadata.libs.profiling.sql.SqlTimingMiddleware',
-    'reversion.middleware.RevisionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     # 'django.middleware.locale.LocaleMiddleware',
@@ -189,7 +188,6 @@ INSTALLED_APPS = (
     'django.contrib.gis',
     'registration',
     'south',
-    'reversion',
     'django_nose',
     'django_digest',
     'corsheaders',
