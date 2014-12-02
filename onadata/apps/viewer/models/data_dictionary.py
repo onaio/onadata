@@ -438,8 +438,18 @@ class DataDictionary(XForm):
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
     if created:
+        from onadata.libs.permissions import OwnerRole
+
+        # seems the super is not called, have to get xform from here
+        xform = XForm.objects.get(pk=instance.pk)
+
+        OwnerRole.add(instance.user, xform)
+
+        if instance.created_by and instance.user != instance.created_by:
+            OwnerRole.add(instance.created_by, xform)
+
         from onadata.libs.utils.project_utils import set_project_perms_to_xform
-        set_project_perms_to_xform(instance, instance.project)
+        set_project_perms_to_xform(xform, instance.project)
 
 post_save.connect(set_object_permissions, sender=DataDictionary,
                   dispatch_uid='xform_object_permissions')
