@@ -64,7 +64,7 @@ def get_choice_label(choices, string):
     return labels
 
 
-def build_chart_data_for_field(xform, field, language_index=0):
+def build_chart_data_for_field(xform, field, language_index=0, choices=None):
     # check if its the special _submission_time META
     if isinstance(field, basestring) and field == common_tags.SUBMISSION_TIME:
         field_label = 'Submission Time'
@@ -97,13 +97,8 @@ def build_chart_data_for_field(xform, field, language_index=0):
 
     if data_type == 'categorized':
         if result:
-            choices = []
             if field.children:
                 choices = field.children
-            else:
-                if field.get('parent') and field.get('parent').get('choices'):
-                    choices = field.get('parent').get('choices')\
-                        .get(truncated_name.lower(), [])
 
             for item in result:
                 item[truncated_name] = get_choice_label(
