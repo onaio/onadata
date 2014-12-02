@@ -3,6 +3,7 @@ import json
 import unicodecsv as ucsv
 import uuid
 
+from celery.result import AsyncResult
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
