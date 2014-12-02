@@ -3,9 +3,13 @@ import json
 import unicodecsv as ucsv
 import uuid
 
+from celery import task
+from celery import current_task
+from celery.result import AsyncResult
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
+from django.conf import settings
 from django.contrib.auth.models import User
 from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
 from onadata.apps.logger.models import Instance
@@ -72,13 +76,13 @@ def dict_merge(a, b):
     result = deepcopy(a)
     for k, v in b.iteritems():
         if k in result and isinstance(result[k], dict):
-                result[k] = dict_merge(result[k], v)
+            result[k] = dict_merge(result[k], v)
         else:
             result[k] = deepcopy(v)
     return result
 
 
-def dict_pathkeys_to_nested_dicts(dictionary):
+def dict_pathkeys_to_nested_dicts(d):
     """ Turns a flat dict to a nested dict
 
     Takes a dict with pathkeys or "slash-namespaced" keys and inflates
@@ -89,7 +93,6 @@ def dict_pathkeys_to_nested_dicts(dictionary):
     :return: A nested dict
     :rtype: dict
     """
-    d = dictionary.copy()
     for key in d.keys():
         if r'/' in key:
             d = dict_merge(reduce(lambda v, k: {k: v},
@@ -118,6 +121,19 @@ def submit_csv(username, xform, csv_file):
                           'got {} instead.'.format(type(csv_file).__name__))}
 
     csv_file.seek(0)
+    num_rows = sum(1 for row in csv_file) - 1
+    submition_task = _submit_csv.delay(username, xform, csv_file, num_rows)
+    if num_rows < settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD:
+        return submition_task.wait()
+
+    return {'task_uuid': submition_task.id}
+
+
+@task
+def _submit_csv(username, xform, csv_file, num_rows=0):
+    """ Does the actuall CSV submission task """
+    csv_file.seek(0)
+
     csv_reader = ucsv.DictReader(csv_file)
     # check for spaces in headers
     if any(' ' in header for header in csv_reader.fieldnames):
@@ -189,6 +205,9 @@ def submit_csv(username, xform, csv_file):
                 return {'error': str(error)}
             else:
                 additions += 1
+                current_task.update_state(state='PROGRESS',
+                                          meta={'progress': additions,
+                                                'total': num_rows})
                 users = User.objects.filter(
                     username=submitted_by) if submitted_by else []
                 if users:
@@ -205,3 +224,15 @@ def submit_csv(username, xform, csv_file):
         return {'error': str(e)}
 
     return {'additions': additions - inserts, 'updates': inserts}
+
+
+def get_async_csv_submission_status(job_uuid):
+    """ Gets CSV Submision progress
+
+    Can be used to pol long running submissions
+    :param str job_uuid: The submission job uuid returned by _submit_csv.delay
+    :return: Dict with import progress info (insertions & total)
+    :rtype: Dict
+    """
+    job = AsyncResult(job_uuid)
+    return (job.result or job.state)
