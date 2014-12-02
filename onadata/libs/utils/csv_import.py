@@ -97,6 +97,11 @@ def dict_pathkeys_to_nested_dicts(dictionary):
     return d
 
 
+def submit_csv_async(username, xform, csv_file):
+    return {'task_uuid':
+            submit_csv.delay(username, xform, csv_file).id}
+
+
 def submit_csv(username, xform, csv_file):
     """ Imports CSV data to an existing form
 
@@ -205,3 +210,14 @@ def submit_csv(username, xform, csv_file):
         return {'error': str(e)}
 
     return {'additions': additions - inserts, 'updates': inserts}
+
+
+def get_async_csv_submission_status(job_uuid):
+    """ Gets CSV Submision progress
+    Can be used to pol long running submissions
+    :param str job_uuid: The submission job uuid returned by _submit_csv.delay
+    :return: Dict with import progress info (insertions & total)
+    :rtype: Dict
+    """
+    job = AsyncResult(job_uuid)
+    return (job.result or job.state)
