@@ -57,7 +57,7 @@ class ShareProjectSerializer(serializers.Serializer):
                 if r.get('role') == OwnerRole.name:
                     count += 1
             status = u"Project cannot be without an owner"\
-                if count == 1 else u"Ok"
+                if count <= 1 else u"Ok"
 
             return {"status": status}
         else:
