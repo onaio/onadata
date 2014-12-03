@@ -61,7 +61,7 @@ def get_choice_label(choices, string):
                     labels.append(choice['label'])
                     break
             else:
-                labels.append({"Label": name})
+                labels.append(name)
     return labels
 
 
