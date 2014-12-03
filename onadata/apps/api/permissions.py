@@ -130,7 +130,8 @@ class MetaDataObjectPermissions(HasXFormObjectPermissionMixin,
             request, view, obj.xform)
 
 
-class AttachmentObjectPermissions(DjangoModelPermissionsOrAnonReadOnly):
+class AttachmentObjectPermissions(DjangoObjectPermissions):
+    authenticated_users_only = False
 
     def has_object_permission(self, request, view, obj):
         view.model = XForm
