@@ -4,7 +4,8 @@ from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
 from onadata.libs.models.share_project import ShareProject
-from onadata.libs.permissions import ROLES
+from onadata.libs.permissions import ROLES, get_object_users_with_permissions,\
+    OwnerRole
 from onadata.libs.serializers.fields.project_field import ProjectField
 
 
@@ -43,6 +44,24 @@ class ShareProjectSerializer(serializers.Serializer):
                                     % {"role": value}))
 
         return attrs
+
+    def remove_user_validation(self):
+        # Check and confirm that the project will be left with at least one
+        # owner.
+        if self.object.role == OwnerRole.name:
+            results = get_object_users_with_permissions(self.object.project)
+
+            # count all the owners
+            count = 0
+            for r in results:
+                if r.get('role') == OwnerRole.name:
+                    count += 1
+            status = u"Project cannot be without an owner"\
+                if count == 1 else u"Ok"
+
+            return {"status": status}
+        else:
+            return {"status": u"Ok"}
 
     def remove_user(self):
         self.object.remove_user()

@@ -610,3 +610,40 @@ class TestProjectViewSet(TestAbstractViewSet):
 
             self.assertFalse(role_class.user_has_role(self.user,
                                                       self.project))
+
+    def test_owner_cannot_remove_self(self):
+        self._project_create()
+
+        view = ProjectViewSet.as_view({
+            'put': 'share'
+        })
+
+        data = {'username': 'bob', 'remove': True, 'role': 'owner'}
+
+        request = self.factory.put('/', data=data, **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(response.data, u"Project cannot be without an owner")
+
+        self.assertTrue(OwnerRole.user_has_role(self.user,
+                                                self.project))
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        profile = self._create_user_profile(alice_data)
+
+        OwnerRole.add(profile.user, self.project)
+
+        view = ProjectViewSet.as_view({
+            'put': 'share'
+        })
+
+        data = {'username': 'bob', 'remove': True, 'role': 'owner'}
+
+        request = self.factory.put('/', data=data, **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 204)
+
+        self.assertFalse(OwnerRole.user_has_role(self.user,
+                                                 self.project))

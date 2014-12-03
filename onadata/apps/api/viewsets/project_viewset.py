@@ -422,7 +422,12 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 
         if serializer.is_valid():
             if data.get("remove"):
-                serializer.remove_user()
+                validation = serializer.remove_user_validation()
+                if validation.get('status') == 'Ok':
+                    serializer.remove_user()
+                else:
+                    return Response(data=validation.get('status'),
+                                    status=status.HTTP_400_BAD_REQUEST)
             else:
                 serializer.save()
                 email_msg = data.get('email_msg')
