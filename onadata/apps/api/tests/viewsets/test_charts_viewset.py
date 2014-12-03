@@ -38,9 +38,18 @@ class TestChartsViewSet(TestBase):
                 'tutorial', 'instances', '3.xml'))
 
     def test_duration_field_on_metadata(self):
+        # the instance below has valid start and end times
+        instance = Instance.objects.all()[0]
+        _dict = instance.parsed_instance.to_dict_for_mongo()
+        self.assertIn('_duration', _dict.keys())
+        self.assertEqual(_dict.get('_duration'), 24.898)
+        self.assertNotEqual(_dict.get('_duration'), None)
+
+        # the instance below has a valid start time and an invalid end time
         instance = Instance.objects.all()[1]
         _dict = instance.parsed_instance.to_dict_for_mongo()
         self.assertIn('_duration', _dict.keys())
+        self.assertEqual(_dict.get('_duration'), '')
         self.assertNotEqual(_dict.get('_duration'), None)
 
     def test_get_on_categorized_field(self):
