@@ -60,7 +60,8 @@ def get_choice_label(choices, string):
                 if choice['name'].lower() == name.lower():
                     labels.append(choice['label'])
                     break
-
+            else:
+                labels.append({"Label": name})
     return labels
 
 
