@@ -51,6 +51,21 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'image/jpeg')
 
+    def test_retrieve_and_list_views_with_anonymous_user(self):
+        self._submit_transport_instance_w_attachment()
+        pk = self.attachment.pk
+        xform = self.attachment.instance.xform
+        xform.shared_data = True
+        xform.save()
+
+        request = self.factory.get('/')
+        response = self.retrieve_view(request, pk=pk)
+        self.assertEqual(response.status_code, 200)
+
+        request = self.factory.get('/')
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 200)
+
     def test_list_view(self):
         self._submit_transport_instance_w_attachment()
 
