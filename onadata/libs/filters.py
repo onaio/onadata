@@ -11,6 +11,7 @@ from onadata.apps.logger.models import XForm, Instance
 
 
 class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
+
     def filter_queryset(self, request, queryset, view):
         """
         Anonymous user has no object permissions, return queryset as it is.
@@ -27,6 +28,7 @@ class XFormListObjectPermissionFilter(AnonDjangoObjectPermissionFilter):
 
 
 class OrganizationPermissionFilter(filters.DjangoObjectPermissionsFilter):
+
     def filter_queryset(self, request, queryset, view):
         """Return a filtered queryset or all profiles if a getting a specific
            profile."""
@@ -64,6 +66,7 @@ class ProjectOwnerFilter(XFormOwnerFilter):
 
 
 class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
+
     def filter_queryset(self, request, queryset, view):
         """
         Anonymous user has no object permissions, return queryset as it is.
@@ -96,6 +99,7 @@ class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
 
 
 class TagFilter(filters.BaseFilterBackend):
+
     def filter_queryset(self, request, queryset, view):
         # filter by tags if available.
         tags = request.QUERY_PARAMS.get('tags', None)
@@ -108,6 +112,7 @@ class TagFilter(filters.BaseFilterBackend):
 
 
 class XFormPermissionFilterMixin(object):
+
     def _xform_filter_queryset(self, request, queryset, view, keyword):
         """Use XForm permissions"""
         xform = request.QUERY_PARAMS.get('xform')
@@ -130,13 +135,20 @@ class XFormPermissionFilterMixin(object):
 
 class MetaDataFilter(XFormPermissionFilterMixin,
                      filters.DjangoObjectPermissionsFilter):
+
     def filter_queryset(self, request, queryset, view):
         return self._xform_filter_queryset(request, queryset, view, 'xform')
 
 
 class AttachmentFilter(XFormPermissionFilterMixin,
                        filters.DjangoObjectPermissionsFilter):
+
     def filter_queryset(self, request, queryset, view):
+
+        if request.user.is_anonymous():
+
+            return queryset.filter(instance__xform__shared_data=True)
+
         queryset = self._xform_filter_queryset(request, queryset, view,
                                                'instance__xform')
         instance_id = request.QUERY_PARAMS.get('instance')
