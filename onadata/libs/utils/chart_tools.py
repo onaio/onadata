@@ -57,7 +57,7 @@ def get_choice_label(choices, string):
     if string and choices:
         for name in string.split(' '):
             for choice in choices:
-                if choice['name'] == name:
+                if choice['name'].lower() == name.lower():
                     labels.append(choice['label'])
                     break
 
