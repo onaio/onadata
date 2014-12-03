@@ -14,6 +14,7 @@ from django.utils.translation import ugettext as _
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import Note
 from onadata.apps.restservice.utils import call_service
+from onadata.libs.utils.timing import calculate_duration
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
     NOTES, SUBMITTED_BY, VERSION, DURATION, START_TIME, END_TIME
@@ -267,26 +268,9 @@ class ParsedInstance(models.Model):
 
     def get_duration(self):
         data = self.instance.get_dict()
-        _format = "%Y-%m-%dT%H:%M:%S.%f+03:00"
+        _start, _end = data.get(START_TIME), data.get(END_TIME)
 
-        def get_time(value):
-            try:
-                return datetime.datetime.strptime(value, _format)
-            except ValueError:
-                return ''
-
-        start_time = data.get(START_TIME)
-        end_time = data.get(END_TIME)
-
-        if start_time and end_time:
-            start_time = get_time(start_time)
-            end_time = get_time(end_time)
-            if end_time != '' and start_time != '':
-                duration = (end_time - start_time).total_seconds()
-
-                return duration
-
-        return ''
+        return calculate_duration(_start, _end) if _start and _end else ''
 
     def update_mongo(self, async=True):
         d = self.to_dict_for_mongo()
