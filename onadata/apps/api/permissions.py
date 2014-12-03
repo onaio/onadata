@@ -95,7 +95,9 @@ class ProjectPermissions(DjangoObjectPermissions):
 
 
 class HasXFormObjectPermissionMixin(object):
+
     """Use XForm permissions for Attachment objects"""
+
     def has_permission(self, request, view):
         model_cls = None
 
@@ -128,7 +130,8 @@ class MetaDataObjectPermissions(HasXFormObjectPermissionMixin,
             request, view, obj.xform)
 
 
-class AttachmentObjectPermissions(DjangoObjectPermissions):
+class AttachmentObjectPermissions(DjangoModelPermissionsOrAnonReadOnly):
+
     def has_object_permission(self, request, view, obj):
         view.model = XForm
 
