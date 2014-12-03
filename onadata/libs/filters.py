@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.utils import six
+
 from rest_framework import filters
 from rest_framework.exceptions import ParseError
 
@@ -125,9 +126,17 @@ class XFormPermissionFilterMixin(object):
             xform = get_object_or_404(XForm, pk=xform)
             xform_qs = XForm.objects.filter(pk=xform.pk)
         else:
+            # if view.action == 'list':
+            #     raise ParseError(_(u"`xform` GET parameter required'"))
+
             xform_qs = XForm.objects.all()
-        xforms = super(XFormPermissionFilterMixin, self).filter_queryset(
-            request, xform_qs, view)
+
+        if request.user.is_anonymous():
+            xforms = xform_qs.filter(shared_data=True)
+        else:
+            xforms = super(XFormPermissionFilterMixin, self).filter_queryset(
+                request, xform_qs, view)
+
         kwarg = {"%s__in" % keyword: xforms}
 
         return queryset.filter(**kwarg)
@@ -144,10 +153,6 @@ class AttachmentFilter(XFormPermissionFilterMixin,
                        filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
-
-        if request.user.is_anonymous():
-
-            return queryset.filter(instance__xform__shared_data=True)
 
         queryset = self._xform_filter_queryset(request, queryset, view,
                                                'instance__xform')
