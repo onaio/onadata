@@ -15,6 +15,7 @@ from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
+from onadata.libs.authentication import expired
 
 
 def _get_first_last_names(name, limit=30):
@@ -204,5 +205,11 @@ class UserProfileWithTokenSerializer(UserProfileSerializer):
         return object.user.auth_token.key
 
     def get_temp_token(self, object):
+        """This should return a valid temp token for this user profile."""
         token, created = TempToken.objects.get_or_create(user=object.user)
+
+        if not created and expired(token.created):
+            token.delete()
+            token = TempToken.objects.create(user=object.user)
+
         return token.key
