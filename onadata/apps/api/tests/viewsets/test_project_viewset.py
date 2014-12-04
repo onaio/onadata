@@ -624,7 +624,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEquals(response.data, u"Project cannot be without an owner")
+        error = {'remove': [u"Project require at least one owner"]}
+        self.assertEquals(response.data, error)
 
         self.assertTrue(OwnerRole.user_has_role(self.user,
                                                 self.project))

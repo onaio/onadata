@@ -16,7 +16,7 @@ from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs.serializers.share_project_serializer import\
-    ShareProjectSerializer
+    ShareProjectSerializer, RemoveUserFromProjectSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
@@ -418,18 +418,14 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = dict(request.DATA.items() + [('project', self.object.pk)])
-        serializer = ShareProjectSerializer(data=data)
+        if data.get("remove"):
+            serializer = RemoveUserFromProjectSerializer(data=data)
+        else:
+            serializer = ShareProjectSerializer(data=data)
 
         if serializer.is_valid():
-            if data.get("remove"):
-                validation = serializer.remove_user_validation()
-                if validation.get('status') == 'Ok':
-                    serializer.remove_user()
-                else:
-                    return Response(data=validation.get('status'),
-                                    status=status.HTTP_400_BAD_REQUEST)
-            else:
-                serializer.save()
+            serializer.save()
+            if data.get('email_msg'):
                 email_msg = data.get('email_msg')
 
                 if email_msg:

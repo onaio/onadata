@@ -4,6 +4,7 @@ from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
 from onadata.libs.models.share_project import ShareProject
+from onadata.apps.logger.models import Project
 from onadata.libs.permissions import ROLES, get_object_users_with_permissions,\
     OwnerRole
 from onadata.libs.serializers.fields.project_field import ProjectField
@@ -19,7 +20,6 @@ class ShareProjectSerializer(serializers.Serializer):
             instance.project = attrs.get('project', instance.project)
             instance.username = attrs.get('username', instance.username)
             instance.role = attrs.get('role', instance.role)
-
             return instance
 
         return ShareProject(**attrs)
@@ -45,23 +45,35 @@ class ShareProjectSerializer(serializers.Serializer):
 
         return attrs
 
-    def remove_user_validation(self):
-        # Check and confirm that the project will be left with at least one
-        # owner.
-        if self.object.role == OwnerRole.name:
-            results = get_object_users_with_permissions(self.object.project)
-
-            # count all the owners
-            count = 0
-            for r in results:
-                if r.get('role') == OwnerRole.name:
-                    count += 1
-            status = u"Project cannot be without an owner"\
-                if count <= 1 else u"Ok"
-
-            return {"status": status}
-        else:
-            return {"status": u"Ok"}
-
     def remove_user(self):
         self.object.remove_user()
+
+
+class RemoveUserFromProjectSerializer(ShareProjectSerializer):
+    remove = serializers.BooleanField()
+
+    def restore_object(self, attrs, instance=None):
+        if instance is not None:
+            instance.project = attrs.get('project', instance.project)
+            instance.username = attrs.get('username', instance.username)
+            instance.role = attrs.get('role', instance.role)
+            instance.remove = attrs.get('remove', instance.remove)
+            return instance
+
+        project = Project.objects.get(pk=self.init_data.get('project'))
+        self.init_data['project'] = project
+        return ShareProject(**self.init_data)
+
+    def validate_remove(self, attrs, source):
+        # Check and confirm that the project will be left with at least one
+        # owner.
+
+        if attrs.get('role') == OwnerRole.name:
+            results = get_object_users_with_permissions(attrs.get('project'))
+
+            # count all the owners
+            count = len([res for res in results
+                         if res.get('role') == OwnerRole.name])
+
+            if count <= 1:
+                raise ValidationError(_(u"Project require at least one owner"))
