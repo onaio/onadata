@@ -16,6 +16,7 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.apps.api.models.temp_token import TempToken
+from django.conf import settings
 
 
 class TestConnectViewSet(TestAbstractViewSet):
@@ -85,7 +86,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         temp_token = response.data['temp_token']
         temp_token_obj = TempToken.objects.get(key=temp_token)
 
-        day = timedelta(days=1)
+        day = timedelta(seconds=settings.DEFAULT_TEMP_TOKEN_EXPIRY_TIME)
         today = now()
         yesterday = today - day
         temp_token_obj.created = yesterday
