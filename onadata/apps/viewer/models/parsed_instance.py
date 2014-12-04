@@ -268,7 +268,7 @@ class ParsedInstance(models.Model):
 
     def get_duration(self):
         data = self.instance.get_dict()
-        _start, _end = data.get(START_TIME), data.get(END_TIME)
+        _start, _end = data.get(START_TIME, ''), data.get(END_TIME, '')
 
         return calculate_duration(_start, _end)
 
