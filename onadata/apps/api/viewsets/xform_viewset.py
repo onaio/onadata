@@ -271,6 +271,10 @@ def _try_update_xlsform(request, xform, owner):
     return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
 
+def string_to_bool(value):
+    return value.lower() in ['true', 'false'] if value else False
+
+
 class XFormViewSet(AnonymousUserPublicFormsMixin, LabelsMixin, ModelViewSet):
 
     """
@@ -927,6 +931,17 @@ previous call
         # updating the file
         if request.FILES:
             return _try_update_xlsform(request, self.object, owner)
+
+        # check for project
+        projectxform = self.object.projectxform_set.filter()
+        if projectxform and \
+            string_to_bool(request.DATA.get('public'))and \
+                projectxform[0].project.shared != \
+                string_to_bool(request.DATA.get('public')):
+            data = {
+                'detail': u'Check project share setting'
+            }
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
         return super(XFormViewSet, self).partial_update(request, *args,
                                                         **kwargs)
