@@ -270,7 +270,7 @@ class ParsedInstance(models.Model):
         data = self.instance.get_dict()
         _start, _end = data.get(START_TIME), data.get(END_TIME)
 
-        return calculate_duration(_start, _end) if _start and _end else ''
+        return calculate_duration(_start, _end)
 
     def update_mongo(self, async=True):
         d = self.to_dict_for_mongo()
