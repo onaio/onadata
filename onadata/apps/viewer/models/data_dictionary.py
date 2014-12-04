@@ -1,15 +1,21 @@
+import csv
 import os
 import re
 import json
 import datetime
+import xlrd
 
+from cStringIO import StringIO
 from django.db import models
 from django.db.models.signals import post_save
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from pyxform import SurveyElementBuilder
-from pyxform.builder import create_survey_from_xls
+from pyxform.builder import create_survey_element_from_dict
 from pyxform.question import Question
 from pyxform.section import RepeatingSection
+from pyxform.utils import has_external_choices
 from pyxform.xform2json import create_survey_element_from_xml
+from pyxform.xls2json import SurveyReader
 from xml.dom import Node
 
 from onadata.apps.logger.models.xform import XForm
@@ -20,6 +26,25 @@ from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES,\
 from onadata.libs.utils.export_tools import question_types_to_exclude,\
     DictOrganizer
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
+
+
+# picked from pyxform.utils.sheet_to_csv
+def sheet_to_csv(xls_content, csv_file, sheet_name):
+    wb = xlrd.open_workbook(file_contents=xls_content)
+    try:
+        sheet = wb.sheet_by_name(sheet_name)
+    except xlrd.biffh.XLRDError:
+        return False
+
+    if not sheet or sheet.nrows < 2:
+        return False
+
+    writer = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
+    mask = [v and len(v.strip()) > 0 for v in sheet.row_values(0)]
+    for r in range(sheet.nrows):
+        writer.writerow([v for v, m in zip(sheet.row_values(r), mask) if m])
+
+    return True
 
 
 class ColumnRename(models.Model):
@@ -150,7 +175,13 @@ class DataDictionary(XForm):
     def save(self, *args, **kwargs):
         if self.xls:
             # check if version is set
-            survey = self._check_version_set(create_survey_from_xls(self.xls))
+            excel_reader = SurveyReader(self.xls)
+            survey_dict = excel_reader.to_json_dict()
+            if has_external_choices(survey_dict):
+                self.survey_dict = survey_dict
+                self.has_external_choices = True
+            survey = create_survey_element_from_dict(survey_dict)
+            survey = self._check_version_set(survey)
             self.json = survey.to_json()
             self.xml = survey.to_xml()
             self.version = survey.get('version')
@@ -437,11 +468,11 @@ class DataDictionary(XForm):
 
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
+    # seems the super is not called, have to get xform from here
+    xform = XForm.objects.get(pk=instance.pk)
+
     if created:
         from onadata.libs.permissions import OwnerRole
-
-        # seems the super is not called, have to get xform from here
-        xform = XForm.objects.get(pk=instance.pk)
 
         OwnerRole.add(instance.user, xform)
 
@@ -450,6 +481,27 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
         from onadata.libs.utils.project_utils import set_project_perms_to_xform
         set_project_perms_to_xform(xform, instance.project)
+
+    if hasattr(instance, 'has_external_choices') \
+            and instance.has_external_choices:
+        f = StringIO()
+        instance.xls.seek(0)
+        sheet_to_csv(instance.xls.read(), f, 'external_choices')
+        f.seek(0, os.SEEK_END)
+        size = f.tell()
+        f.seek(0)
+
+        from onadata.apps.main.models.meta_data import MetaData
+        data_file = InMemoryUploadedFile(
+            file=f,
+            field_name='data_file',
+            name='itemsets.csv',
+            content_type='text/csv',
+            size=size,
+            charset=None
+        )
+
+        MetaData.media_upload(xform, data_file)
 
 post_save.connect(set_object_permissions, sender=DataDictionary,
                   dispatch_uid='xform_object_permissions')

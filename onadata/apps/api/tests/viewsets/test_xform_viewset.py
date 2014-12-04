@@ -425,6 +425,27 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertTrue(OwnerRole.user_has_role(self.user, xform))
             self.assertEquals("owner", response.data['users'][0]['role'])
 
+    def test_publish_select_external_xlsform(self):
+        view = XFormViewSet.as_view({
+            'post': 'create'
+        })
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
+            "select_one_external.xlsx")
+        with open(path) as xls_file:
+            meta_count = MetaData.objects.count()
+            post_data = {'xls_file': xls_file}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(meta_count + 1, MetaData.objects.count())
+            xform = self.user.xforms.all()[0]
+            metadata = xform.metadata_set.all()[0]
+            self.assertEqual('itemsets.csv', metadata.data_value)
+            self.assertTrue(OwnerRole.user_has_role(self.user, xform))
+            self.assertTrue(OwnerRole.user_has_role(self.user, metadata))
+            self.assertEquals("owner", response.data['users'][0]['role'])
+
     def test_publish_xlsform_anon(self):
         view = XFormViewSet.as_view({
             'post': 'create'
