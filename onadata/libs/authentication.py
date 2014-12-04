@@ -10,6 +10,19 @@ from django.utils import timezone
 from django.conf import settings
 
 
+def expired(time_token_created):
+    """Checks if the time between when time_token_created and current time
+    is greater than the token expiry time.
+
+    :params time_token_created: The time the token we are checking was created.
+    :returns: Boolean True if not passed expired time, otherwise False.
+    """
+    time_diff = (timezone.now() - time_token_created).total_seconds()
+    token_expiry_time = settings.DEFAULT_TEMP_TOKEN_EXPIRY_TIME
+
+    return True if time_diff > token_expiry_time else False
+
+
 class DigestAuthentication(BaseAuthentication):
 
     def __init__(self):
@@ -60,12 +73,7 @@ class TempTokenAuthentication(TokenAuthentication):
         if not token.user.is_active:
             raise exceptions.AuthenticationFailed('User inactive or deleted')
 
-        def expired(time_now, time_token_created):
-            time_diff = (time_now - time_token_created).total_seconds()
-            token_expiry_time = settings.DEFAULT_TEMP_TOKEN_EXPIRY_TIME
-            return True if time_diff > token_expiry_time else False
-
-        if expired(timezone.now(), token.created):
+        if expired(token.created):
             raise exceptions.AuthenticationFailed('Token expired')
 
         return (token.user, token)
