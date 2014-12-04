@@ -611,7 +611,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertFalse(role_class.user_has_role(self.user,
                                                       self.project))
 
-    def test_owner_cannot_remove_self(self):
+    def test_owner_cannot_remove_self_if_no_other_owner(self):
         self._project_create()
 
         view = ProjectViewSet.as_view({
@@ -624,7 +624,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
 
         self.assertEqual(response.status_code, 400)
-        error = {'remove': [u"Project require at least one owner"]}
+        error = {'remove': [u"Project requires at least one owner"]}
         self.assertEquals(response.data, error)
 
         self.assertTrue(OwnerRole.user_has_role(self.user,

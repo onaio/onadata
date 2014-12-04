@@ -425,16 +425,16 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 
         if serializer.is_valid():
             serializer.save()
-            if data.get('email_msg'):
-                email_msg = data.get('email_msg')
 
-                if email_msg:
-                    # send out email message.
-                    user = serializer.object.user
-                    send_mail(SHARE_PROJECT_SUBJECT.format(self.object.name),
-                              email_msg,
-                              DEFAULT_FROM_EMAIL,
-                              (user.email, ))
+            email_msg = data.get('email_msg')
+
+            if email_msg:
+                # send out email message.
+                user = serializer.object.user
+                send_mail(SHARE_PROJECT_SUBJECT.format(self.object.name),
+                          email_msg,
+                          DEFAULT_FROM_EMAIL,
+                          (user.email, ))
 
         else:
             return Response(data=serializer.errors,

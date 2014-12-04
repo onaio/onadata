@@ -76,4 +76,5 @@ class RemoveUserFromProjectSerializer(ShareProjectSerializer):
                          if res.get('role') == OwnerRole.name])
 
             if count <= 1:
-                raise ValidationError(_(u"Project require at least one owner"))
+                raise ValidationError(
+                    _(u"Project requires at least one owner"))
