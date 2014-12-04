@@ -10,17 +10,23 @@ from onadata.libs.permissions import ROLES, get_object_users_with_permissions,\
 from onadata.libs.serializers.fields.project_field import ProjectField
 
 
+def attrs_to_instance(attrs, instance):
+    instance.project = attrs.get('project', instance.project)
+    instance.username = attrs.get('username', instance.username)
+    instance.role = attrs.get('role', instance.role)
+    instance.remove = attrs.get('remove', instance.remove)
+
+    return instance
+
+
 class ShareProjectSerializer(serializers.Serializer):
     project = ProjectField()
     username = serializers.CharField(max_length=255)
     role = serializers.CharField(max_length=50)
 
     def restore_object(self, attrs, instance=None):
-        if instance is not None:
-            instance.project = attrs.get('project', instance.project)
-            instance.username = attrs.get('username', instance.username)
-            instance.role = attrs.get('role', instance.role)
-            return instance
+        if instance:
+            return attrs_to_instance(attrs, instance)
 
         return ShareProject(**attrs)
 
@@ -45,20 +51,13 @@ class ShareProjectSerializer(serializers.Serializer):
 
         return attrs
 
-    def remove_user(self):
-        self.object.remove_user()
-
 
 class RemoveUserFromProjectSerializer(ShareProjectSerializer):
     remove = serializers.BooleanField()
 
     def restore_object(self, attrs, instance=None):
-        if instance is not None:
-            instance.project = attrs.get('project', instance.project)
-            instance.username = attrs.get('username', instance.username)
-            instance.role = attrs.get('role', instance.role)
-            instance.remove = attrs.get('remove', instance.remove)
-            return instance
+        if instance:
+            return attrs_to_instance(attrs, instance)
 
         project = Project.objects.get(pk=self.init_data.get('project'))
         self.init_data['project'] = project
