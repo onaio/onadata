@@ -335,7 +335,7 @@ class TestExports(TestBase):
         export.time_of_last_submission = None
         export.save()
         self.assertTrue(Export.exports_outdated(xform=self.xform,
-                        export_type=Export.XLS_EXPORT))
+                                                export_type=Export.XLS_EXPORT))
 
     def test_invalid_export_type(self):
         self._publish_transportation_form()

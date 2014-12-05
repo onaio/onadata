@@ -24,5 +24,6 @@
     "_submission_time",
     "_tags",
     "_notes",
-    "_version"
+    "_version",
+    "_duration"
 ]

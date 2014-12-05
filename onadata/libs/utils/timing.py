@@ -1,4 +1,5 @@
 import time
+import datetime
 from itertools import chain
 from django.utils import timezone
 from onadata.apps.logger.models.attachment import Attachment
@@ -52,3 +53,21 @@ def last_modified_header(last_modified_date):
 
 def merge_dicts(*args):
     return dict(chain(*[d.items() for d in args]))
+
+
+def calculate_duration(start_time, end_time):
+    """
+    This function calculates duration when given start and end times.
+    An empty string is returned if either of the time formats does
+    not match '_format' format else, the duration is returned
+    """
+    _format = "%Y-%m-%dT%H:%M:%S.%f+03:00"
+    try:
+        _start = datetime.datetime.strptime(start_time, _format)
+        _end = datetime.datetime.strptime(end_time, _format)
+    except ValueError:
+        return ''
+
+    duration = (_end - _start).total_seconds()
+
+    return duration
