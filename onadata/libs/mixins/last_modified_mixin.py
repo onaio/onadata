@@ -16,9 +16,9 @@ class LastModifiedMixin(object):
 
             if not obj:
                 obj = self.queryset.last()
-            self.headers.update(
-                last_modified_header(
-                    get_date(obj, self.last_modified_field)))
+
+            if response.status_code < 400:
+                self.headers.update(last_modified_header(get_date(obj)))
 
         return super(LastModifiedMixin, self).finalize_response(
             request, response, *args, **kwargs)
