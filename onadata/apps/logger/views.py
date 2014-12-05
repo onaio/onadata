@@ -43,6 +43,8 @@ from onadata.libs.utils.logger_tools import (
     inject_instanceid,
     remove_xform,
     publish_form)
+from onadata.libs.permissions import DataEntryRole, EditorRole, ManagerRole,\
+    OwnerRole
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.user_auth import helper_auth_helper, has_permission,\
@@ -195,6 +197,18 @@ def formList(request, username):
         xforms = XForm.objects.filter(downloadable=True,
                                       user__username__iexact=username,
                                       require_auth=False)
+
+    # Get all the xforms shared to the user
+    xform_list = XForm.objects.filter(downloadable=True)\
+        .exclude(user__username__iexact=username)
+
+    ROLES = [DataEntryRole,
+             EditorRole,
+             ManagerRole,
+             OwnerRole]
+
+    xforms = list(xforms) + [xform for xform in xform_list for role in ROLES
+                             if role.user_has_role(request.user, xform)]
 
     audit = {}
     audit_log(Actions.USER_FORMLIST_REQUESTED, request.user, formlist_user,
