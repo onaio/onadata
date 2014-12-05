@@ -194,8 +194,6 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
     permission_classes = [permissions.DjangoObjectPermissionsAllowAnon]
     filter_backends = (OrganizationPermissionFilter,)
 
-    last_modified_field = 'joined'
-
     @action(methods=['DELETE', 'GET', 'POST', 'PUT'])
     def members(self, request, *args, **kwargs):
         organization = self.get_object()
