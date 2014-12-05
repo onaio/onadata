@@ -782,6 +782,35 @@ previous call
 
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
+    def creatre_async(self, request, *args, **kwargs):
+        """ Temporary Endpoint for Async form creation """
+        resp = headers = {}
+        resp_code = status.HTTP_400_BAD_REQUEST
+
+        if request.method == 'GET':
+            survey = utils.get_async_creation_status(
+                request.QUERY_PARAMS.get('job_uuid'))
+
+            if isinstance(survey, XForm):
+                xform = XForm.objects.get(pk=survey.pk)
+                serializer = XFormSerializer(
+                    xform, context={'request': request})
+                headers = self.get_success_headers(serializer.data)
+                resp = serializer.data
+                resp_code = status.HTTP_201_CREATED
+        else:
+            try:
+                owner = _get_owner(request)
+            except ValidationError as e:
+                return Response({'message': e.messages[0]},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            resp.update({u'task_id': utils.publish_xlsform_async.delay(
+                request, owner).task_id})
+            resp_code = status.HTTP_202_ACCEPTED
+
+        return Response(data=resp, status=resp_code, headers=headers)
+
     @action(methods=['GET'])
     def form(self, request, format='json', **kwargs):
         form = self.get_object()
