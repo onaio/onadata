@@ -66,7 +66,6 @@ def calculate_duration(start_time, end_time):
         _start = datetime.datetime.strptime(start_time, _format)
         _end = datetime.datetime.strptime(end_time, _format)
     except ValueError:
-
         return ''
 
     duration = (_end - _start).total_seconds()
