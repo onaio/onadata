@@ -141,6 +141,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.get('/')
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.data, [])
 
     def test_public_form_list(self):
@@ -151,6 +152,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request, pk='public')
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.data, [])
 
         # public shared form
@@ -170,6 +172,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.xform.save()
         response = self.view(request, pk='public')
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.data, [])
 
     def test_form_list_other_user_access(self):
@@ -190,6 +193,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         # should be empty
         self.assertEqual(response.data, [])
 
@@ -240,6 +244,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data={'owner': 'noone'}, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.data, [])
 
     def test_form_get(self):
@@ -271,16 +276,20 @@ class TestXFormViewSet(TestAbstractViewSet):
         # test for unsupported format
         response = view(request, pk=formid, format='csvzip')
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Last-Modified'), None)
 
         # test for supported formats
         response = view(request, pk=formid, format='json')
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertDictContainsSubset(data, response.data)
         response = view(request, pk=formid, format='xml')
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         response_doc = minidom.parseString(response.data)
         response = view(request, pk=formid, format='xls')
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Last-Modified'), None)
 
         xml_path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
@@ -343,6 +352,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data={"tags": "goodbye"}, **self.extra)
         response = list_view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.data, [])
 
         # remove tag "hello"
@@ -350,6 +360,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                                       **self.extra)
         response = view(request, pk=formid, label='hello')
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.data, [])
 
     def test_enketo_url_no_account(self):
@@ -428,6 +439,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
             self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get('Last-Modified'), None)
             self.assertEqual(response.data.get('message'), error_msg)
 
     def test_publish_invalid_xls_form(self):
@@ -442,6 +454,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
             self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get('Last-Modified'), None)
             error_msg = '[row : 5] Question or group with no name.'
             self.assertEqual(response.data.get('text'), error_msg)
 
@@ -457,6 +470,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
             self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get('Last-Modified'), None)
             error_msg = (
                 'There should be a choices sheet in this xlsform. Please '
                 'ensure that the choices sheet name is all in small caps.')
@@ -505,6 +519,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.patch('/', data=data, **self.extra)
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.data.get('message'), error_msg)
 
     def test_set_form_private(self):
@@ -613,6 +628,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Last-Modified'), None)
 
         data = {'username': 'alice'}
         request = self.factory.post('/', data=data, **self.extra)
@@ -712,6 +728,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             format='xls')
 
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Last-Modified'), None)
         data = json.loads(response.data)
         self.assertTrue(data.get('error')
                         .startswith("J2X client could not generate report."))
@@ -725,6 +742,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.data.get('additions'), 9)
         self.assertEqual(response.data.get('updates'), 0)
 
@@ -737,6 +755,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Last-Modified'), None)
         self.assertIsNotNone(response.data.get('error'))
 
     def test_csv_import_fail_invalid_field_post(self):
@@ -749,6 +768,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Last-Modified'), None)
         self.assertIsNotNone(response.data.get('error'))
 
     def test_update_xform_xls_file(self):
@@ -799,6 +819,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=form_id)
 
             self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get('Last-Modified'), None)
 
         self.xform.reload()
         new_version = self.xform.version
@@ -828,6 +849,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=form_id)
 
             self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get('Last-Modified'), None)
             self.assertEquals(response.data, u"Cannot update the xls file in "
                                              u"a form that has submissions")
 
@@ -921,5 +943,6 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=form_id)
 
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Last-Modified'), None)
         self.assertEquals(response.data,
                           {'title': [u'This field is required.']})
