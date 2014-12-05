@@ -188,9 +188,7 @@ response. If `fields=all` then all the fields of the form will be returned.
                 else None
 
             if choices:
-                choices = choices.get(field_name) \
-                    if choices.get(field_name.lower()) \
-                    else choices.get(field_name.upper())
+                choices = choices.get(field_name)
 
             data = build_chart_data_for_field(
                 xform, field, choices=choices)
