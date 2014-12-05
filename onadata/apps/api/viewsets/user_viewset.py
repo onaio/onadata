@@ -4,12 +4,12 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework import filters
 
+from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.user_serializer import UserSerializer
 from onadata.apps.api import permissions
-from onadata.libs.utils.timing import last_modified_header, get_date
 
 
-class UserViewSet(ReadOnlyModelViewSet):
+class UserViewSet(LastModifiedMixin, ReadOnlyModelViewSet):
 
     """
 This endpoint allows you to list and retrieve user's first and last names.
@@ -76,13 +76,12 @@ This endpoint allows you to list and retrieve user's first and last names.
 
 """
     queryset = User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
-    default_response_headers = last_modified_header(
-        get_date(User.objects.last(), 'joined'))
     serializer_class = UserSerializer
     lookup_field = 'username'
     permission_classes = [permissions.UserViewSetPermissions]
     filter_backends = (filters.SearchFilter,)
     search_fields = ('=email',)
+    last_modified_field = 'joined'
 
     def get_object(self, queryset=None):
         """Lookup a  username by pk else use lookup_field"""

@@ -6,12 +6,13 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
+from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.stats_serializer import (
     StatsSerializer, StatsInstanceSerializer)
-from onadata.libs.utils.timing import last_modified_header, get_date
 
 
-class StatsViewSet(AnonymousUserPublicFormsMixin,
+class StatsViewSet(LastModifiedMixin,
+                   AnonymousUserPublicFormsMixin,
                    viewsets.ReadOnlyModelViewSet):
 
     """
@@ -56,8 +57,6 @@ Response:
 """
     lookup_field = 'pk'
     queryset = XForm.objects.all()
-    default_response_headers = last_modified_header(
-        get_date(XForm.objects.last(), 'modified'))
     filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
     permission_classes = [XFormPermissions, ]
     serializer_class = StatsSerializer

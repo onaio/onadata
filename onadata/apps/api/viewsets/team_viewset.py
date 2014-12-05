@@ -8,13 +8,13 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import DjangoObjectPermissions
 
+from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.apps.api.models import Team
 from onadata.apps.api.tools import add_user_to_team, remove_user_from_team
-from onadata.libs.utils.timing import last_modified_header, get_date
 
 
-class TeamViewSet(ModelViewSet):
+class TeamViewSet(LastModifiedMixin, ModelViewSet):
 
     """
 This endpoint allows you to create, update and view team information.
@@ -104,8 +104,6 @@ A list of usernames is the response for members of the team.
 
 """
     queryset = Team.objects.all()
-    default_response_headers = last_modified_header(
-        get_date(Team.objects.last(), 'modified'))
     serializer_class = TeamSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None

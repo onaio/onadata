@@ -11,12 +11,11 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
+from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.chart_serializer import (
     ChartSerializer, FieldsChartSerializer)
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.chart_tools import build_chart_data_for_field
-from onadata.libs.utils.timing import (
-    last_modified_header, get_date, merge_dicts)
 
 
 def get_form_field_chart_url(url, field):
@@ -50,6 +49,7 @@ class ChartBrowsableAPIRenderer(BrowsableAPIRenderer):
 
 
 class ChartsViewSet(AnonymousUserPublicFormsMixin,
+                    LastModifiedMixin,
                     viewsets.ReadOnlyModelViewSet):
 
     """
@@ -137,8 +137,6 @@ response. If `fields=all` then all the fields of the form will be returned.
     """
     filter_backends = (filters.AnonDjangoObjectPermissionFilter, )
     queryset = XForm.objects.all()
-    default_response_headers = last_modified_header(
-        get_date(XForm.objects.last(), 'modified'))
     serializer_class = ChartSerializer
     lookup_field = 'pk'
     renderer_classes = (JSONRenderer,
@@ -156,14 +154,11 @@ response. If `fields=all` then all the fields of the form will be returned.
         fields = request.QUERY_PARAMS.get('fields')
         fmt = kwargs.get('format')
 
-        self.headers = merge_dicts(
-            self.headers, last_modified_header(get_date(xform, 'modified')))
         if fields:
             if fmt is not None and fmt != 'json':
                 raise ParseError("Error: only JSON format supported.")
 
             xform = self.get_object()
-            self.headers['Last-Modified'] = get_date(xform, 'modified')
             context = self.get_serializer_context()
             serializer = FieldsChartSerializer(instance=xform, context=context)
 

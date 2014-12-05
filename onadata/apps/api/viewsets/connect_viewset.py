@@ -9,6 +9,7 @@ from django.utils.translation import ugettext as _
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
+from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.password_reset_serializer import \
     PasswordResetSerializer, PasswordResetChangeSerializer
 from onadata.libs.serializers.project_serializer import ProjectSerializer
@@ -16,12 +17,12 @@ from onadata.libs.serializers.user_profile_serializer import (
     UserProfileWithTokenSerializer)
 
 from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
-from onadata.libs.utils.timing import (
-    last_modified_header, get_date, merge_dicts)
 from onadata.apps.api.models.temp_token import TempToken
 
 
-class ConnectViewSet(ObjectLookupMixin, viewsets.GenericViewSet):
+class ConnectViewSet(LastModifiedMixin,
+                     ObjectLookupMixin,
+                     viewsets.GenericViewSet):
 
     """This endpoint allows you retrieve the authenticated user's profile info.
 
@@ -123,10 +124,10 @@ using the `window.atob();` function.
 """
     lookup_field = 'user'
     queryset = UserProfile.objects.all()
-    default_response_headers = last_modified_header(
-        get_date(UserProfile.objects.last(), 'joined'))
     permission_classes = (ConnectViewsetPermissions,)
     serializer_class = UserProfileWithTokenSerializer
+
+    last_modified_field = 'joined'
 
     def list(self, request, *args, **kwargs):
         """ Returns authenticated user profile"""
@@ -150,9 +151,6 @@ using the `window.atob();` function.
     def starred(self, request, *args, **kwargs):
         """Return projects starred for this user."""
         user_profile = self.get_object()
-        self.headers = merge_dicts(
-            self.headers,
-            last_modified_header(get_date(user_profile, 'joined')))
         user = user_profile.user
         projects = user.project_stars.all()
         serializer = ProjectSerializer(projects,
