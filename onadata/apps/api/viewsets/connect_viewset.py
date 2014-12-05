@@ -127,8 +127,6 @@ using the `window.atob();` function.
     permission_classes = (ConnectViewsetPermissions,)
     serializer_class = UserProfileWithTokenSerializer
 
-    last_modified_field = 'joined'
-
     def list(self, request, *args, **kwargs):
         """ Returns authenticated user profile"""
 
