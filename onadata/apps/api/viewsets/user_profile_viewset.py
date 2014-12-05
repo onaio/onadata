@@ -135,7 +135,6 @@ curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
     lookup_field = 'user'
     permission_classes = [UserProfilePermissions]
     ordering = ('user__username', )
-    last_modified_field = 'joined'
 
     def get_object(self, queryset=None):
         """Lookup user profile by pk or username"""
