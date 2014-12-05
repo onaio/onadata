@@ -8,17 +8,17 @@ class LastModifiedMixin(object):
     def finalize_response(self, request, response, *args, **kwargs):
         if request.method == 'GET':
             obj = None
-
             if hasattr(self, 'object_list'):
                 obj = self.object_list.last()
 
             if hasattr(self, 'object'):
                 obj = self.object
 
-            if obj:
-                self.headers.update(
-                    last_modified_header(
-                        get_date(obj, self.last_modified_field)))
+            if not obj:
+                obj = self.queryset.last()
+            self.headers.update(
+                last_modified_header(
+                    get_date(obj, self.last_modified_field)))
 
         return super(LastModifiedMixin, self).finalize_response(
             request, response, *args, **kwargs)
