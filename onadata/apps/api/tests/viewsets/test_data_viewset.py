@@ -79,7 +79,6 @@ class TestDataViewSet(TestBase):
         }
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)

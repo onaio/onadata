@@ -54,7 +54,6 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request)
 
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -163,7 +162,6 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [u'denoinc'])
 

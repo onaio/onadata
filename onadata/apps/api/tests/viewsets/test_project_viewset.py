@@ -84,7 +84,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         # remove tag "hello"
         request = self.factory.delete('/', **self.extra)
         response = view(request, pk=project_id, label='hello')
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -401,7 +400,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.project.reload()
 
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 204)
         self.assertEqual(len(self.project.user_stars.all()), 1)
         self.assertEqual(self.project.user_stars.all()[0], self.user)

@@ -61,7 +61,6 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id,
             format='html'
         )
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['field_type'], 'select one')
         self.assertEqual(response.data['field_name'], 'gender')
@@ -86,7 +85,6 @@ class TestChartsViewSet(TestBase):
         response = self.view(
             request,
             pk=self.xform.id)
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['field_type'], 'date')
         self.assertEqual(response.data['field_name'], 'date')
@@ -100,7 +98,6 @@ class TestChartsViewSet(TestBase):
             request,
             pk=self.xform.id
         )
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['field_type'], 'integer')
         self.assertEqual(response.data['field_name'], 'age')
@@ -114,7 +111,6 @@ class TestChartsViewSet(TestBase):
             request,
             pk=self.xform.id
         )
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['field_type'], 'select one')
         self.assertEqual(response.data['field_name'], 'gender')
@@ -129,7 +125,6 @@ class TestChartsViewSet(TestBase):
             request,
             pk=self.xform.id
         )
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['field_type'], 'select all that apply')
         self.assertEqual(response.data['field_name'], field_name)
@@ -148,7 +143,6 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id,
             format='html'
         )
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['field_type'], 'select all that apply')
         self.assertEqual(response.data['field_name'], field_name)
@@ -165,7 +159,6 @@ class TestChartsViewSet(TestBase):
             request,
             pk=self.xform.id
         )
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertIn('age', response.data)
         self.assertIn('date', response.data)
@@ -182,7 +175,6 @@ class TestChartsViewSet(TestBase):
             request,
             pk=self.xform.id
         )
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
 
         self.assertNotIn('gender', response.data)
@@ -224,6 +216,5 @@ class TestChartsViewSet(TestBase):
 
         request = self.factory.get('/charts')
         response = self.view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
