@@ -4,6 +4,7 @@ from itertools import chain
 from django.utils import timezone
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.main.models.meta_data import MetaData
+from django.contrib.auth.models import User
 
 
 def print_time(func):
@@ -35,6 +36,8 @@ def get_date(_object=None):
         _object = _object.instance
     elif isinstance(_object, MetaData):
         _object = _object.xform
+    elif isinstance(_object, User):
+        _object = _object.profile
 
     _date = _object.date_modified
 
