@@ -28,9 +28,17 @@ from onadata.libs.utils.export_tools import question_types_to_exclude,\
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
 
 
-# picked from pyxform.utils.sheet_to_csv
-def sheet_to_csv(xls_content, csv_file, sheet_name):
+# adopted from pyxform.utils.sheet_to_csv
+def sheet_to_csv(xls_content, sheet_name):
+    """Writes a csv file of a specified sheet from a an excel file
+
+    :param xls_content: Excel file contents
+    :param sheet_name: the name of the excel sheet to generate the csv file
+
+    :returns: a (StrionIO) csv file object
+    """
     wb = xlrd.open_workbook(file_contents=xls_content)
+
     try:
         sheet = wb.sheet_by_name(sheet_name)
     except xlrd.biffh.XLRDError:
@@ -39,12 +47,15 @@ def sheet_to_csv(xls_content, csv_file, sheet_name):
     if not sheet or sheet.nrows < 2:
         return False
 
+    csv_file = StringIO()
+
     writer = csv.writer(csv_file, quoting=csv.QUOTE_ALL)
     mask = [v and len(v.strip()) > 0 for v in sheet.row_values(0)]
+
     for r in range(sheet.nrows):
         writer.writerow([v for v, m in zip(sheet.row_values(r), mask) if m])
 
-    return True
+    return csv_file
 
 
 class ColumnRename(models.Model):
@@ -484,9 +495,8 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
     if hasattr(instance, 'has_external_choices') \
             and instance.has_external_choices:
-        f = StringIO()
         instance.xls.seek(0)
-        sheet_to_csv(instance.xls.read(), f, 'external_choices')
+        f = sheet_to_csv(instance.xls.read(), 'external_choices')
         f.seek(0, os.SEEK_END)
         size = f.tell()
         f.seek(0)
