@@ -81,7 +81,6 @@ This endpoint allows you to list and retrieve user's first and last names.
     permission_classes = [permissions.UserViewSetPermissions]
     filter_backends = (filters.SearchFilter,)
     search_fields = ('=email',)
-    last_modified_field = 'joined'
 
     def get_object(self, queryset=None):
         """Lookup a  username by pk else use lookup_field"""
