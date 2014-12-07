@@ -19,6 +19,7 @@ from onadata.apps.logger.models.instance import Instance
 from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
+from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import (
     DataSerializer, DataListSerializer, DataInstanceSerializer)
@@ -26,14 +27,14 @@ from onadata.libs import filters
 from onadata.libs.utils.viewer_tools import (
     EnketoError,
     get_enketo_edit_url)
-from onadata.libs.utils.timing import (
-    last_modified_header, get_date, merge_dicts)
 
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
 
-class DataViewSet(AnonymousUserPublicFormsMixin, ModelViewSet):
+class DataViewSet(AnonymousUserPublicFormsMixin,
+                  LastModifiedMixin,
+                  ModelViewSet):
 
     """
 This endpoint provides access to submitted data in JSON format. Where:
@@ -360,8 +361,6 @@ Delete a specific submission in a form
     public_data_endpoint = 'public'
 
     queryset = XForm.objects.all()
-    default_response_headers = last_modified_header(
-        get_date(XForm.objects.last(), 'modified'))
 
     def get_serializer_class(self):
         pk_lookup, dataid_lookup = self.lookup_fields
@@ -437,8 +436,6 @@ Delete a specific submission in a form
     def labels(self, request, *args, **kwargs):
         http_status = status.HTTP_400_BAD_REQUEST
         instance = self.get_object()
-        self.headers = merge_dicts(
-            self.headers, last_modified_header(get_date(instance, 'modified')))
 
         if request.method == 'POST':
             if add_tags_to_instance(request, instance):
@@ -475,9 +472,6 @@ Delete a specific submission in a form
         if isinstance(self.object, XForm):
             raise ParseError(_(u"Data id not provided."))
         elif(isinstance(self.object, Instance)):
-            self.headers = merge_dicts(
-                self.headers,
-                last_modified_header(get_date(self.object, 'modified')))
             if request.user.has_perm("change_xform", self.object.xform):
                 return_url = request.QUERY_PARAMS.get('return_url')
                 if not return_url:
@@ -517,9 +511,6 @@ Delete a specific submission in a form
 
         try:
             instance = Instance.objects.get(pk=data_id)
-            self.headers = merge_dicts(
-                self.headers,
-                last_modified_header(get_date(instance, 'modified')))
 
             if _format == 'json' or _format is None:
                 return Response(instance.json)

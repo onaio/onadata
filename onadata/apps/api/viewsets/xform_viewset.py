@@ -21,6 +21,7 @@ from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.labels_mixin import LabelsMixin
+from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.clone_xform_serializer import \
@@ -45,7 +46,7 @@ from onadata.libs.utils.csv_import import get_async_csv_submission_status
 from onadata.libs.utils.csv_import import submit_csv
 from onadata.libs.utils.csv_import import submit_csv_async
 from onadata.libs.utils.viewer_tools import _get_form_url
-from onadata.libs.utils.timing import last_modified_header, get_date
+
 
 EXPORT_EXT = {
     'xls': Export.XLS_EXPORT,
@@ -271,7 +272,10 @@ def _try_update_xlsform(request, xform, owner):
     return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
 
-class XFormViewSet(AnonymousUserPublicFormsMixin, LabelsMixin, ModelViewSet):
+class XFormViewSet(AnonymousUserPublicFormsMixin,
+                   LabelsMixin,
+                   LastModifiedMixin,
+                   ModelViewSet):
 
     """
 Publish XLSForms, List, Retrieve Published Forms.
@@ -745,8 +749,6 @@ previous call
         renderers.SurveyRenderer
     ]
     queryset = XForm.objects.all()
-    default_response_headers = last_modified_header(
-        get_date(XForm.objects.last(), 'modified'))
     serializer_class = XFormSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None

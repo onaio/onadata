@@ -79,8 +79,8 @@ class TestDataViewSet(TestBase):
         }
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
-        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
 
@@ -181,6 +181,7 @@ class TestDataViewSet(TestBase):
         formid = "INVALID"
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Last-Modified'), None)
         data = {u'detail': u'Invalid pk INVALID'}
         self.assertEqual(response.data, data)
 
@@ -202,6 +203,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Last-Modified'), None)
 
     def test_data_with_query_parameter(self):
         self._make_submissions()
@@ -325,6 +327,7 @@ class TestDataViewSet(TestBase):
 
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Last-Modified'), None)
         # add data check
         self.assertEqual(
             response.data,

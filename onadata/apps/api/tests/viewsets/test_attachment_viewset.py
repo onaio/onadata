@@ -108,6 +108,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Last-Modified'), None)
 
     def test_list_view_filter_by_instance(self):
         self._submit_transport_instance_w_attachment()
@@ -130,6 +131,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get('Last-Modified'), None)
 
     def test_direct_image_link(self):
         self._submit_transport_instance_w_attachment()

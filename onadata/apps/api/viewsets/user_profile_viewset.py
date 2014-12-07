@@ -8,15 +8,15 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 
+from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.permissions import UserProfilePermissions
-from onadata.libs.utils.timing import last_modified_header, get_date
 
 
-class UserProfileViewSet(ObjectLookupMixin, ModelViewSet):
+class UserProfileViewSet(LastModifiedMixin, ObjectLookupMixin, ModelViewSet):
 
     """
 List, Retrieve, Update, Create/Register users.
@@ -131,8 +131,6 @@ curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
 >        HTTP 200 OK
 """
     queryset = UserProfile.objects.exclude(user__pk=settings.ANONYMOUS_USER_ID)
-    default_response_headers = last_modified_header(
-        get_date(UserProfile.objects.last(), 'joined'))
     serializer_class = UserProfileSerializer
     lookup_field = 'user'
     permission_classes = [UserProfilePermissions]

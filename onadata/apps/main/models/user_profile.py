@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import post_save
@@ -30,6 +31,7 @@ class UserProfile(models.Model):
     created_by = models.ForeignKey(User, null=True, blank=True)
     num_of_submissions = models.IntegerField(default=0)
     metadata = JSONField(default={}, blank=True)
+    date_modified = models.DateTimeField(auto_now=True, default=timezone.now)
 
     def __unicode__(self):
         return u'%s[%s]' % (self.name, self.user.username)

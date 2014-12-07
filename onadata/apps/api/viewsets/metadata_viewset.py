@@ -7,12 +7,12 @@ from onadata.apps.api.tools import get_media_file_response
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs import filters
+from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
     MediaFileRenderer
-from onadata.libs.utils.timing import last_modified_header, get_date
 
 
-class MetaDataViewSet(viewsets.ModelViewSet):
+class MetaDataViewSet(LastModifiedMixin, viewsets.ModelViewSet):
 
     """
     This endpoint provides access to form metadata, for example, supporting
@@ -178,8 +178,6 @@ Accept: image/png </pre>
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.MetaDataFilter,)
     queryset = MetaData.objects.select_related('xform')
-    default_response_headers = last_modified_header(
-        get_date(MetaData.objects.last(), 'modified'))
     permission_classes = (MetaDataObjectPermissions,)
     renderer_classes = (
         renderers.JSONRenderer,

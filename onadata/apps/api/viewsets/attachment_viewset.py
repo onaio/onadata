@@ -8,14 +8,13 @@ from rest_framework.response import Response
 from onadata.apps.api.permissions import AttachmentObjectPermissions
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.libs import filters
+from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
     MediaFileRenderer
-from onadata.libs.utils.timing import (
-    get_date, last_modified_header, merge_dicts)
 
 
-class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
+class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
 
     """
 
@@ -146,8 +145,6 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (filters.AttachmentFilter,)
     lookup_field = 'pk'
     queryset = Attachment.objects.all()
-    default_response_headers = last_modified_header(
-        get_date(Attachment.objects.last(), 'modified'))
     permission_classes = (AttachmentObjectPermissions,)
     serializer_class = AttachmentSerializer
     renderer_classes = (
@@ -157,9 +154,6 @@ class AttachmentViewSet(viewsets.ReadOnlyModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         self.object = self.get_object()
-        self.headers = merge_dicts(
-            self.headers,
-            last_modified_header(get_date(self.object, 'modified')))
 
         if isinstance(request.accepted_renderer, MediaFileRenderer) \
                 and self.object.media_file is not None:
