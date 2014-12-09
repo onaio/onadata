@@ -9,8 +9,18 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Adding unique constraint on 'MetaData', fields ['xform', 'data_type', 'data_value']
-        db.create_unique(u'main_metadata', ['xform_id', 'data_type', 'data_value'])
+        M = orm['main.metadata']
+        for x in M.objects.all():
+            dupes = M.objects.filter(xform_id=x.xform_id, data_type=x.data_type, data_value=x.data_value)
+            if dupes.count() > 1:
+                for dupe in dupes[1:]:
+                    print 'Deleting duplicate MetaData', dupe.xform_id, dupe.data_type, dupe.data_value
+                    dupe.delete()
+            partial_dupes = M.objects.filter(xform_id=x.xform_id, data_type=x.data_type)
+            if partial_dupes.count() > 1:
+                print 'Partially duplicate MetaData{}'.format('\n\t'.join(map(str, partial_dupes.values_list('xform_id', 'data_type', 'data_value'))))
 
+        db.create_unique(u'main_metadata', ['xform_id', 'data_type', 'data_value'])
 
     def backwards(self, orm):
         # Removing unique constraint on 'MetaData', fields ['xform', 'data_type', 'data_value']
