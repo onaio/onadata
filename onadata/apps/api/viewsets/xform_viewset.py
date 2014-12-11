@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.http import Http404, HttpResponseBadRequest, HttpResponseRedirect
@@ -13,12 +14,13 @@ from django.utils import timezone
 
 from rest_framework import exceptions
 from rest_framework import status
-from rest_framework.decorators import action, detail_route
+from rest_framework.decorators import action, detail_route, list_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.main.views import get_enketo_preview_url
+from onadata.apps.api import tasks
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -782,13 +784,14 @@ previous call
 
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
-    def creatre_async(self, request, *args, **kwargs):
+    @list_route(methods=['POST', 'GET'])
+    def create_async(self, request, *args, **kwargs):
         """ Temporary Endpoint for Async form creation """
         resp = headers = {}
         resp_code = status.HTTP_400_BAD_REQUEST
 
         if request.method == 'GET':
-            survey = utils.get_async_creation_status(
+            survey = tasks.get_async_creation_status(
                 request.QUERY_PARAMS.get('job_uuid'))
 
             if isinstance(survey, XForm):
@@ -798,6 +801,9 @@ previous call
                 headers = self.get_success_headers(serializer.data)
                 resp = serializer.data
                 resp_code = status.HTTP_201_CREATED
+            else:
+                resp_code = status.HTTP_202_ACCEPTED
+                resp.update(survey)
         else:
             try:
                 owner = _get_owner(request)
@@ -805,8 +811,18 @@ previous call
                 return Response({'message': e.messages[0]},
                                 status=status.HTTP_400_BAD_REQUEST)
 
-            resp.update({u'task_id': utils.publish_xlsform_async.delay(
-                request, owner).task_id})
+            fname = request.FILES.get('xls_file').name
+            resp.update(
+                {u'task_id':
+                 tasks.publish_xlsform_async.delay(
+                     request.user, request.POST, owner,
+                     ({'name': fname,
+                       'data': request.FILES.get('xls_file').read()}
+                      if isinstance(request.FILES.get('xls_file'),
+                                    InMemoryUploadedFile) else
+                      {'name': fname,
+                       'path': request.FILES.get(
+                           'xls_file').temporary_file_path()})).task_id})
             resp_code = status.HTTP_202_ACCEPTED
 
         return Response(data=resp, status=resp_code, headers=headers)
