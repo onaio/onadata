@@ -226,3 +226,45 @@ class TestChartsViewSet(TestBase):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
+
+    def test_cascading_select(self):
+        # publish tutorial form as it has all the different field types
+        self._publish_xls_file_and_set_xform(
+            os.path.join(
+                os.path.dirname(__file__),
+                '..', 'fixtures', 'forms', 'cascading', 'cascading.xlsx'))
+
+        self._make_submission(
+            os.path.join(
+                os.path.dirname(__file__), '..', 'fixtures', 'forms',
+                'cascading', 'instances', '1.xml'))
+        self._make_submission(
+            os.path.join(
+                os.path.dirname(__file__), '..', 'fixtures', 'forms',
+                'cascading', 'instances', '2.xml'))
+        self._make_submission(
+            os.path.join(
+                os.path.dirname(__file__), '..', 'fixtures', 'forms',
+                'cascading', 'instances', '3.xml'))
+        self._make_submission(
+            os.path.join(
+                os.path.dirname(__file__), '..', 'fixtures', 'forms',
+                'cascading', 'instances', '4.xml'))
+
+        data = {'field_name': 'cities'}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='json'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data)
+        expected = [
+            {'cities': [u'Nice'], 'count': 1},
+            {'cities': [u'Seoul'], 'count': 1},
+            {'cities': [u'Cape Town'], 'count': 2}
+        ]
+        self.assertEqual(expected, response.data['data'])

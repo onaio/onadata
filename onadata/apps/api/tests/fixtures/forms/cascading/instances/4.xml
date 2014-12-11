@@ -1,0 +1,11 @@
+<?xml version='1.0' ?>
+<cascading id="cascading" version="201412010714">
+    <formhub>
+        <uuid>9d87942f2c97418d91e2d3fa629cad56</uuid>
+    </formhub>
+    <country>southafrica</country>
+    <cities>capetown</cities>
+    <meta>
+        <instanceID>uuid:8d7d9140-6c3c-4647-8613-d3d1dfd5a47f</instanceID>
+    </meta>
+</cascading>

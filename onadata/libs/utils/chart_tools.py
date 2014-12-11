@@ -54,17 +54,16 @@ def utc_time_string_for_javascript(date_string):
 def get_choice_label(choices, string):
     labels = []
 
-    if string:
+    if string and choices:
         for name in string.split(' '):
             for choice in choices:
                 if choice['name'] == name:
                     labels.append(choice['label'])
                     break
-
     return labels
 
 
-def build_chart_data_for_field(xform, field, language_index=0):
+def build_chart_data_for_field(xform, field, language_index=0, choices=None):
     # check if its the special _submission_time META
     if isinstance(field, basestring) and field == common_tags.SUBMISSION_TIME:
         field_label = 'Submission Time'
@@ -97,9 +96,12 @@ def build_chart_data_for_field(xform, field, language_index=0):
 
     if data_type == 'categorized':
         if result:
+            if field.children:
+                choices = field.children
+
             for item in result:
                 item[truncated_name] = get_choice_label(
-                    field.children, item[truncated_name])
+                    choices, item[truncated_name])
 
     # replace truncated field names in the result set with the field name key
     field_name = field_name.encode('utf-8')
