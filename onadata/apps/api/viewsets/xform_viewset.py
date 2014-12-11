@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
+from onadata.apps.main.views import get_enketo_preview_url
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -799,12 +800,15 @@ previous call
 
         try:
             url = enketo_url(form_url, self.object.id_string)
+            preview_url = get_enketo_preview_url(request,
+                                                 request.user.username,
+                                                 self.object.id_string)
         except EnketoError:
             pass
         else:
-            if url:
+            if url and preview_url:
                 http_status = status.HTTP_200_OK
-                data = {"enketo_url": url}
+                data = {"enketo_url": url, "enketo_preview_url": preview_url}
 
         return Response(data, http_status)
 
