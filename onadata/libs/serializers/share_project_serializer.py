@@ -64,8 +64,8 @@ class RemoveUserFromProjectSerializer(ShareProjectSerializer):
         return ShareProject(**self.init_data)
 
     def validate_remove(self, attrs, source):
-        # Check and confirm that the project will be left with at least one
-        # owner.
+        """ Check and confirm that the project will be left with at least one
+         owner. Raises a validation error if only one owner found"""
 
         if attrs.get('role') == OwnerRole.name:
             results = get_object_users_with_permissions(attrs.get('project'))
