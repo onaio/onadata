@@ -384,8 +384,8 @@ https://ona.io/api/v1/forms
 
 You can use `PUT` or `PATCH` http methods to update or set form data elements.
 If you are using `PUT`, you have to provide the `uuid, description,
-downloadable, owner, public, public_data, title, xls_file` fields.
- With `PATCH` you only need provide at least one of the fields.
+downloadable, owner, public, public_data, title` fields. \n
+ With `PATCH` you only need to provide at least one of the fields.
 
 - `xls_file`: Can only be updated when there are no submissions.
 
