@@ -1,23 +1,11 @@
-image: onaio/python:2.7
+image: bradrydzewski/python:onadata
 services:
     - onaio/postgis
     - onaio/mongodb
 script:
-    # faster pandas install
-    # https://gist.github.com/dan-blanchard/7045057
-    - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-    - chmod +x miniconda.sh
-    - ./miniconda.sh -b
-    - export PATH=/root/miniconda/bin:$PATH
-    - conda update --yes conda
-    - conda create --yes -n condaenv python=2.7
-    - conda install --yes -n condaenv pip
-    - source activate condaenv
-    - conda install --yes python=2.7 numpy pandas=0.12.0 setuptools numpy scipy gdal pillow
+    - source /home/ubuntu/virtualenv/python2.7/bin/activate
     - ./script/database/install_postgis onadata_test postgres 127.0.0.1
-    - ./script/install/ubuntu
-    - pip install -r requirements/base.pip --allow-all-external
-    - pip install -q flake8
+    - pip install -r requirements/base.pip --allow-all-external  --upgrade flake8
     - python manage.py syncdb --noinput --settings=onadata.settings.drone_test
     - python manage.py migrate --noinput --settings=onadata.settings.drone_test
     - python manage.py test --noinput --settings=onadata.settings.drone_test
