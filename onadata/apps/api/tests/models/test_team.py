@@ -1,8 +1,16 @@
 from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.api import tools
+from onadata.apps.api.models.project import Project
 from onadata.apps.api.models.team import Team
-from onadata.apps.api.tests.test_abstract_models import TestAbstractModels
+from onadata.apps.api.tests.models.test_abstract_models import (
+    TestAbstractModels)
+from onadata.libs.permissions import (
+    DataEntryRole,
+    CAN_VIEW_PROJECT,
+    CAN_ADD_XFORM,
+    get_team_project_default_permissions)
 
 
 class TestTeam(TestAbstractModels):
@@ -42,3 +50,54 @@ class TestTeam(TestAbstractModels):
 
         self.assertTrue(result)
         self.assertIn(project, team.projects.all())
+
+    def test_add_project_perms_to_team(self):
+        # create an org, user, team
+        organization = self._create_organization("test org", self.user)
+        user_deno = self._create_user('deno', 'deno')
+
+        # add a member to the team
+        team = tools.create_organization_team(organization, "test team")
+        tools.add_user_to_team(team, user_deno)
+
+        project = Project.objects.create(name="Test Project",
+                                         organization=organization,
+                                         created_by=user_deno,
+                                         metadata='{}')
+
+        # confirm that the team has no permissions
+        self.assertFalse(team.groupobjectpermission_set.all())
+        # set DataEntryRole role of project on team
+        DataEntryRole.add(team, project)
+
+        content_type = ContentType.objects.get(
+            model=project.__class__.__name__.lower(),
+            app_label=project.__class__._meta.app_label)
+
+        object_permissions = team.groupobjectpermission_set.filter(
+            object_pk=project.pk, content_type=content_type)
+
+        permission_names = sorted(
+            [p.permission.codename for p in object_permissions])
+        self.assertEqual([CAN_ADD_XFORM, CAN_VIEW_PROJECT], permission_names)
+
+        self.assertEqual(get_team_project_default_permissions(team, project),
+                         DataEntryRole.name)
+
+        # Add a new user
+        user_sam = self._create_user('Sam', 'sammy_')
+
+        self.assertFalse(user_sam.has_perm(CAN_VIEW_PROJECT, project))
+        self.assertFalse(user_sam.has_perm(CAN_ADD_XFORM, project))
+
+        # Add the user to the group
+        tools.add_user_to_team(team, user_sam)
+
+        # assert that team member has default perm set on team
+        self.assertTrue(user_sam.has_perm(CAN_VIEW_PROJECT, project))
+        self.assertTrue(user_sam.has_perm(CAN_ADD_XFORM, project))
+
+        # assert that removing team member revokes perms
+        tools.remove_user_from_team(team, user_sam)
+        self.assertFalse(user_sam.has_perm(CAN_VIEW_PROJECT, project))
+        self.assertFalse(user_sam.has_perm(CAN_ADD_XFORM, project))
