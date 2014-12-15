@@ -58,9 +58,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = UserProfile
         fields = ('id', 'is_org', 'url', 'username', 'password', 'first_name',
-                  'last_name', 'email', 'city', 'country', 'organization', 'website',
-                  'twitter', 'gravatar', 'require_auth', 'user', 'metadata',
-                  'joined_on')
+                  'last_name', 'email', 'city', 'country', 'organization',
+                  'website', 'twitter', 'gravatar', 'require_auth', 'user',
+                  'metadata', 'joined_on')
         lookup_field = 'user'
 
     def is_organization(self, obj):
@@ -89,7 +89,6 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         password = attrs.get('user.password', None)
         first_name = attrs.get('user.first_name', None)
         last_name = attrs.get('user.last_name', None)
-        name = attrs.get('name', None)
         email = attrs.get('user.email', None)
 
         if username:

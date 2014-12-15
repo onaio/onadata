@@ -95,7 +95,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/')
         response = view(request, user=self.company_data['org'])
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['first_name'], self.company_data['name'])
+        self.assertEqual(response.data['first_name'],
+                         self.company_data['name'])
         self.assertIn('is_org', response.data)
         self.assertEqual(response.data['is_org'], True)
 

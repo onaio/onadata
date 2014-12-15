@@ -93,9 +93,9 @@ class UserProfileFormRegister(forms.Form):
                                          use_ssl=settings.RECAPTCHA_USE_SSL)
 
     first_name = forms.CharField(widget=forms.TextInput(), required=True,
-                           max_length=255)
+                                 max_length=255)
     last_name = forms.CharField(widget=forms.TextInput(), required=False,
-                           max_length=255)
+                                max_length=255)
     city = forms.CharField(widget=forms.TextInput(), required=False,
                            max_length=255)
     country = forms.ChoiceField(widget=forms.Select(), required=False,
