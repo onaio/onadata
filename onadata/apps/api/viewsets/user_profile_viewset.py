@@ -27,7 +27,8 @@ List, Retrieve, Update, Create/Register users.
 >
 >        {
 >            "username": "demo",
->            "name": "Demo User",
+>            "first_name": "Demo",
+>            "last_name": "User",
 >            "email": "demo@localhost.com",
 >            "city": "Kisumu",
 >            "country": "KE",
@@ -46,7 +47,8 @@ List, Retrieve, Update, Create/Register users.
 >        {
 >            "url": "https://ona.io/api/v1/profiles/demo",
 >            "username": "demo",
->            "name": "Demo User",
+>            "first_name": "Demo",
+>            "last_name": "User",
 >            "email": "demo@localhost.com",
 >            "city": "",
 >            "country": "",
@@ -76,7 +78,8 @@ List, Retrieve, Update, Create/Register users.
 >        {
 >            "url": "https://ona.io/api/v1/profiles/demo",
 >            "username": "demo",
->            "name": "Demo User",
+>            "first_name": "Demo",
+>            "last_name": "User",
 >            "email": "demo@localhost.com",
 >            "city": "",
 >            "country": "",
@@ -107,7 +110,8 @@ curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
 >        {
 >            "url": "https://ona.io/api/v1/profiles/demo",
 >            "username": "demo",
->            "name": "Demo User",
+>            "first_name": "Demo",
+>            "last_name": "User",
 >            "email": "demo@localhost.com",
 >            "city": "",
 >            "country": "KE",

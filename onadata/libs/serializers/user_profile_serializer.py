@@ -42,6 +42,8 @@ def _get_first_last_names(name, limit=30):
 class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     is_org = serializers.SerializerMethodField('is_organization')
     username = serializers.WritableField(source='user.username')
+    first_name = serializers.WritableField(source='user.first_name')
+    last_name = serializers.WritableField(source='user.last_name')
     email = serializers.WritableField(source='user.email')
     website = serializers.WritableField(source='home_page', required=False)
     gravatar = serializers.Field(source='gravatar')
@@ -55,8 +57,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ('id', 'is_org', 'url', 'username', 'name', 'password',
-                  'email', 'city', 'country', 'organization', 'website',
+        fields = ('id', 'is_org', 'url', 'username', 'password', 'first_name',
+                  'last_name', 'email', 'city', 'country', 'organization', 'website',
                   'twitter', 'gravatar', 'require_auth', 'user', 'metadata',
                   'joined_on')
         lookup_field = 'user'
@@ -85,6 +87,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         params = copy.deepcopy(attrs)
         username = attrs.get('user.username', None)
         password = attrs.get('user.password', None)
+        first_name = attrs.get('user.first_name', None)
+        last_name = attrs.get('user.last_name', None)
         name = attrs.get('name', None)
         email = attrs.get('user.email', None)
 
@@ -96,6 +100,12 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         if password:
             params.update({'password1': password, 'password2': password})
+
+        if first_name:
+            params['first_name'] = first_name
+
+        if last_name:
+            params['last_name'] = last_name
 
         if instance:
             form = UserProfileForm(params, instance=instance)
@@ -109,12 +119,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             if email:
                 instance.user.email = form.cleaned_data['email']
 
-            if name:
-                first_name, last_name = _get_first_last_names(name)
-                instance.user.first_name = first_name
-                instance.user.last_name = last_name
-
-            if email or name:
+            if email or first_name:
                 instance.user.save()
 
             return super(
@@ -125,6 +130,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         form.REGISTRATION_REQUIRE_CAPTCHA = False
 
         if form.is_valid():
+
             site = Site.objects.get(pk=settings.SITE_ID)
             new_user = RegistrationProfile.objects.create_inactive_user(
                 username=username,
@@ -133,12 +139,14 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 site=site,
                 send_email=True)
             new_user.is_active = True
+            new_user.first_name = first_name
+            new_user.last_name = last_name
             new_user.save()
 
             created_by = self.context['request'].user
             created_by = None if created_by.is_anonymous() else created_by
             profile = UserProfile(
-                user=new_user, name=attrs.get('name', u''),
+                user=new_user, name=first_name,
                 created_by=created_by,
                 city=attrs.get('city', u''),
                 country=attrs.get('country', u''),
