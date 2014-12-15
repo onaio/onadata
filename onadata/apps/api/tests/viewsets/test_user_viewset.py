@@ -8,7 +8,7 @@ class TestUserViewSet(TestAbstractViewSet):
     def setUp(self):
         super(self.__class__, self).setUp()
         self.data = {'id': self.user.pk, 'username': u'bob',
-                     'first_name': u'Bob', 'last_name': u''}
+                     'first_name': u'Bob', 'last_name': u'erama'}
 
     def test_user_get(self):
         """Test authenticated user can access user info"""
@@ -51,10 +51,10 @@ class TestUserViewSet(TestAbstractViewSet):
 
     def test_get_user_using_email(self):
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com',
-                      'name': u'Alice'}
+                      'first_name': u'Alice', 'last_name': u'Kamande'}
         alice_profile = self._create_user_profile(alice_data)
         data = [{'id': alice_profile.user.pk, 'username': u'alice',
-                'first_name': u'Alice', 'last_name': u''}]
+                'first_name': u'Alice', 'last_name': u'Kamande'}]
         get_params = {
             'search': alice_profile.user.email,
         }

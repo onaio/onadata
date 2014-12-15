@@ -8,7 +8,7 @@ class FHRegistrationView(RegistrationView):
         new_user = \
             super(FHRegistrationView, self).register(request, **cleaned_data)
         new_profile = \
-            UserProfile(user=new_user, name=cleaned_data['name'],
+            UserProfile(user=new_user, name=cleaned_data['first_name'],
                         city=cleaned_data['city'],
                         country=cleaned_data['country'],
                         organization=cleaned_data['organization'],

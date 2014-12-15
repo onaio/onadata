@@ -34,7 +34,7 @@ class TestTeamViewSet(TestAbstractViewSet):
             'projects': [],
             'users': [{'username': u'bob',
                        'first_name': u'Bob',
-                       'last_name': u'',
+                       'last_name': u'erama',
                        'id': self.user.pk}
                       ]
         }
