@@ -390,7 +390,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             url = "https://dmfrm.enketo.org/webform"
             preview_url = "%(uri)s?server=%(server)s&id=%(id_string)s" % {
-                'uri': "https://enketo.formhub.org/webform/preview",
+                'uri': settings.ENKETO_PREVIEW_URL,
                 'server': "http://testserver/bob/",
                 'id_string': 'transportation_2011_07_25'}
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
