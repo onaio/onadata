@@ -36,6 +36,11 @@ class DataListSerializer(serializers.Serializer):
 
     def to_native(self, obj):
         request = self.context.get('request')
+        view = self.context.get('view')
+
+        if view:
+            start = view.kwargs.get('start')
+            limit = view.kwargs.get('limit')
 
         if obj is None:
             return super(DataListSerializer, self).to_native(obj)
@@ -57,6 +62,18 @@ class DataListSerializer(serializers.Serializer):
             'fields': query_params.get('fields'),
             'sort': query_params.get('sort')
         }
+
+        if start and not limit:
+            start = int(start)
+            query_kwargs['start'] = start
+        elif limit and not start:
+            limit = int(limit)
+            query_kwargs['limit'] = limit
+        elif limit and start:
+            start, limit = int(start), int(limit)
+            query_kwargs['start'] = start
+            query_kwargs['limit'] = limit
+
         cursor = ParsedInstance.query_mongo_minimal(**query_kwargs)
         records = list(record for record in cursor)
 
