@@ -13,7 +13,8 @@ from onadata.libs.serializers.user_profile_serializer import (
 def _profile_data():
     return {
         'username': u'deno',
-        'name': u'Dennis',
+        'first_name': u'Dennis',
+        'last_name': u'erama',
         'email': u'deno@columbia.edu',
         'city': u'Denoville',
         'country': u'US',
@@ -94,7 +95,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/')
         response = view(request, user=self.company_data['org'])
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['name'], self.company_data['name'])
+        self.assertEqual(response.data['first_name'],
+                         self.company_data['name'])
         self.assertIn('is_org', response.data)
         self.assertEqual(response.data['is_org'], True)
 
@@ -145,13 +147,14 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         data = _profile_data()
-        del data['name']
+        del data['first_name']
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
         response = self.view(request)
         response.render()
-        self.assertContains(response, '{"name": ["This field is required."]}',
+        self.assertContains(response,
+                            '{"first_name": ["This field is required."]}',
                             status_code=400)
 
     def test_split_long_name_to_first_name_and_last_name(self):

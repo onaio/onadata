@@ -92,8 +92,10 @@ class UserProfileFormRegister(forms.Form):
     RECAPTCHA_HTML = captcha.displayhtml(settings.RECAPTCHA_PUBLIC_KEY,
                                          use_ssl=settings.RECAPTCHA_USE_SSL)
 
-    name = forms.CharField(widget=forms.TextInput(), required=True,
-                           max_length=255)
+    first_name = forms.CharField(widget=forms.TextInput(), required=True,
+                                 max_length=255)
+    last_name = forms.CharField(widget=forms.TextInput(), required=False,
+                                max_length=255)
     city = forms.CharField(widget=forms.TextInput(), required=False,
                            max_length=255)
     country = forms.ChoiceField(widget=forms.Select(), required=False,
@@ -111,7 +113,7 @@ class UserProfileFormRegister(forms.Form):
 
     def save(self, new_user):
         new_profile = \
-            UserProfile(user=new_user, name=self.cleaned_data['name'],
+            UserProfile(user=new_user, name=self.cleaned_data['first_name'],
                         city=self.cleaned_data['city'],
                         country=self.cleaned_data['country'],
                         organization=self.cleaned_data['organization'],

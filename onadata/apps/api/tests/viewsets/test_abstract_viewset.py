@@ -40,7 +40,8 @@ class TestAbstractViewSet(TestCase):
         'email': 'bob@columbia.edu',
         'password1': 'bobbob',
         'password2': 'bobbob',
-        'name': 'Bob',
+        'first_name': 'Bob',
+        'last_name': 'erama',
         'city': 'Bobville',
         'country': 'US',
         'organization': 'Bob Inc.',
@@ -59,7 +60,8 @@ class TestAbstractViewSet(TestCase):
             'id': self.user.pk,
             'url': 'http://testserver/api/v1/profiles/bob',
             'username': u'bob',
-            'name': u'Bob',
+            'first_name': u'Bob',
+            'last_name': 'erama',
             'email': u'bob@columbia.edu',
             'city': u'Bobville',
             'country': u'US',
@@ -85,12 +87,13 @@ class TestAbstractViewSet(TestCase):
             self.profile_data.items() + extra_post_data.items())
         user, created = User.objects.get_or_create(
             username=self.profile_data['username'],
-            first_name=self.profile_data['name'],
+            first_name=self.profile_data['first_name'],
+            last_name=self.profile_data['last_name'],
             email=self.profile_data['email'])
         user.set_password(self.profile_data['password1'])
         user.save()
         new_profile, created = UserProfile.objects.get_or_create(
-            user=user, name=self.profile_data['name'],
+            user=user, name=self.profile_data['first_name'],
             city=self.profile_data['city'],
             country=self.profile_data['country'],
             organization=self.profile_data['organization'],
