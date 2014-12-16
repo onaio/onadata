@@ -2,6 +2,7 @@ import csv
 import fnmatch
 from hashlib import md5
 import json
+from mock import patch
 import os
 import re
 
@@ -79,23 +80,49 @@ class TestProcess(TestBase):
     def test_publish_xlsx_file(self):
         self._publish_xlsx_file()
 
-    def test_google_url_upload(self):
+    @patch('urllib2.urlopen')
+    def test_google_url_upload(self, mock_urlopen):
         if self._internet_on(url="http://google.com"):
             xls_url = "https://docs.google.com/spreadsheet/pub?"\
                 "key=0AvhZpT7ZLAWmdDhISGhqSjBOSl9XdXd5SHZHUUE2RFE&output=xls"
             pre_count = XForm.objects.count()
+
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation.xls")
+
+            xls_file = open(path)
+            mock_urlopen.return_value = xls_file
+
             response = self.client.post('/%s/' % self.user.username,
                                         {'xls_url': xls_url})
+            mock_urlopen.assert_called_with(xls_url)
+            # cleanup the resources
+            xls_file.close()
             # make sure publishing the survey worked
             self.assertEqual(response.status_code, 200)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    def test_url_upload(self):
+    @patch('urllib2.urlopen')
+    def test_url_upload(self,  mock_urlopen):
         if self._internet_on(url="http://google.com"):
             xls_url = 'https://ona.io/examples/forms/tutorial/form.xls'
             pre_count = XForm.objects.count()
+
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation.xls")
+
+            xls_file = open(path)
+            mock_urlopen.return_value = xls_file
+
             response = self.client.post('/%s/' % self.user.username,
                                         {'xls_url': xls_url})
+
+            mock_urlopen.assert_called_with(xls_url)
+            # cleanup the resources
+            xls_file.close()
+
             # make sure publishing the survey worked
             self.assertEqual(response.status_code, 200)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
