@@ -186,7 +186,6 @@ class XForm(BaseModel):
                                                                self.id_string)
             except:
                 self.sms_id_string = self.id_string
-        self.project.save()
         super(XForm, self).save(*args, **kwargs)
 
     def __unicode__(self):
@@ -283,5 +282,11 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         from onadata.libs.utils.project_utils import set_project_perms_to_xform
         set_project_perms_to_xform(instance, instance.project)
 
+
+def save_project(sender, instance=None, **kwargs):
+    instance.project.save()
+
+
 post_save.connect(set_object_permissions, sender=XForm,
                   dispatch_uid='xform_object_permissions')
+post_save.connect(save_project, sender=XForm)
