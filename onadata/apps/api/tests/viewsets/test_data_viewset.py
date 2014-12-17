@@ -101,6 +101,18 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
+        response = view(request, pk=formid, start="start")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        response = view(request, pk=formid, limit="limit")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        response = view(request, pk=formid, start="start", limit="limit")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
     def test_data_anon(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
