@@ -1362,20 +1362,26 @@ def qrcode(request, username, id_string):
     return HttpResponse(results, content_type='text/html', status=status)
 
 
+def get_enketo_preview_url(request, username, id_string):
+        return "%(enketo_url)s?server=%(profile_url)s&id=%(id_string)s" % {
+            'enketo_url': settings.ENKETO_PREVIEW_URL,
+            'profile_url': request.build_absolute_uri(
+                reverse(profile, kwargs={'username': username})),
+            'id_string': id_string
+        }
+
+
 def enketo_preview(request, username, id_string):
     xform = get_object_or_404(
         XForm, user__username__iexact=username, id_string__iexact=id_string)
     owner = xform.user
     if not has_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
-    enekto_preview_url = \
-        "%(enketo_url)s?server=%(profile_url)s&id=%(id_string)s" % {
-            'enketo_url': settings.ENKETO_PREVIEW_URL,
-            'profile_url': request.build_absolute_uri(
-                reverse(profile, kwargs={'username': owner.username})),
-            'id_string': xform.id_string
-        }
-    return HttpResponseRedirect(enekto_preview_url)
+    enketo_preview_url = get_enketo_preview_url(request,
+                                                owner.username,
+                                                xform.id_string)
+
+    return HttpResponseRedirect(enketo_preview_url)
 
 
 @require_GET

@@ -388,7 +388,12 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         with HTTMock(enketo_mock):
             response = view(request, pk=formid)
-            data = {"enketo_url": "https://dmfrm.enketo.org/webform"}
+            url = "https://dmfrm.enketo.org/webform"
+            preview_url = "%(uri)s?server=%(server)s&id=%(id_string)s" % {
+                'uri': settings.ENKETO_PREVIEW_URL,
+                'server': "http://testserver/bob/",
+                'id_string': 'transportation_2011_07_25'}
+            data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
     def test_publish_xlsform(self):
