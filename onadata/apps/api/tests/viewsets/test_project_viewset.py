@@ -648,3 +648,18 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertFalse(OwnerRole.user_has_role(self.user,
                                                  self.project))
+
+    def test_last_date_modified_changes_when_adding_new_form(self):
+        self._project_create()
+        last_date = self.project.date_modified
+        self._publish_xls_form_to_project()
+
+        self.project.reload()
+        current_last_date = self.project.date_modified
+
+        self.assertNotEquals(last_date, current_last_date)
+
+        self._make_submissions()
+
+        self.project.reload()
+        self.assertNotEquals(current_last_date, self.project.date_modified)

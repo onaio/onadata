@@ -186,7 +186,7 @@ class XForm(BaseModel):
                                                                self.id_string)
             except:
                 self.sms_id_string = self.id_string
-
+        self.project.save()
         super(XForm, self).save(*args, **kwargs)
 
     def __unicode__(self):
