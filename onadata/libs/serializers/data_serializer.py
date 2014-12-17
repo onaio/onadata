@@ -64,15 +64,24 @@ class DataListSerializer(serializers.Serializer):
         }
 
         if start and not limit:
-            start = int(start)
-            query_kwargs['start'] = start
+            try:
+                start = int(start)
+                query_kwargs['start'] = start
+            except ValueError:
+                pass
         elif limit and not start:
-            limit = int(limit)
-            query_kwargs['limit'] = limit
+            try:
+                limit = int(limit)
+                query_kwargs['limit'] = limit
+            except ValueError:
+                pass
         elif limit and start:
-            start, limit = int(start), int(limit)
-            query_kwargs['start'] = start
-            query_kwargs['limit'] = limit
+            try:
+                start, limit = int(start), int(limit)
+                query_kwargs['start'] = start
+                query_kwargs['limit'] = limit
+            except ValueError:
+                pass
 
         cursor = ParsedInstance.query_mongo_minimal(**query_kwargs)
         records = list(record for record in cursor)
