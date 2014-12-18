@@ -10,7 +10,7 @@ from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy, ugettext as _
 from taggit.managers import TaggableManager
@@ -287,7 +287,7 @@ post_save.connect(set_object_permissions, sender=XForm,
 
 
 def save_project(sender, instance=None, created=False, **kwargs):
-    created and instance.project.save()
+    instance.project.save()
 
-post_save.connect(save_project, sender=XForm,
-                  dispatch_uid='save_project')
+pre_save.connect(save_project, sender=XForm,
+                 dispatch_uid='save_project_xform')

@@ -7,7 +7,7 @@ import xlrd
 
 from cStringIO import StringIO
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from pyxform import SurveyElementBuilder
 from pyxform.builder import create_survey_element_from_dict
@@ -518,7 +518,7 @@ post_save.connect(set_object_permissions, sender=DataDictionary,
 
 
 def save_project(sender, instance=None, created=False, **kwargs):
-    created and instance.project.save()
+    instance.project.save()
 
-post_save.connect(save_project, sender=DataDictionary,
-                  dispatch_uid='save_project')
+pre_save.connect(save_project, sender=DataDictionary,
+                 dispatch_uid='save_project_datadictionary')
