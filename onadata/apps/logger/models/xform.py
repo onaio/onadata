@@ -286,8 +286,8 @@ post_save.connect(set_object_permissions, sender=XForm,
                   dispatch_uid='xform_object_permissions')
 
 
-def save_project(sender, instance=None, **kwargs):
-    instance.project.save()
+def save_project(sender, instance=None, created=False, **kwargs):
+    created and instance.project.save()
 
 post_save.connect(save_project, sender=XForm,
                   dispatch_uid='save_project')

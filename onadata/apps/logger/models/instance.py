@@ -286,6 +286,13 @@ post_delete.connect(update_xform_submission_count_delete, sender=Instance,
                     dispatch_uid='update_xform_submission_count_delete')
 
 
+def save_project(sender, instance=None, created=False, **kwargs):
+    created and instance.xform.project.save()
+
+post_save.connect(save_project, sender=Instance,
+                  dispatch_uid='save_project')
+
+
 class InstanceHistory(models.Model):
     class Meta:
         app_label = 'logger'
