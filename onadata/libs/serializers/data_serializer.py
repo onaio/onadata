@@ -66,10 +66,12 @@ class DataListSerializer(serializers.Serializer):
 
         if start:
             start = _parse_int(start)
-            start and query_kwargs.update({'start': start})
+            if start:
+                query_kwargs.update({'start': start})
         if limit:
             limit = _parse_int(limit)
-            limit and query_kwargs.update({'limit': limit})
+            if limit:
+                query_kwargs.update({'limit': limit})
 
         cursor = ParsedInstance.query_mongo_minimal(**query_kwargs)
         records = list(record for record in cursor)
