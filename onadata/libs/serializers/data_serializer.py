@@ -39,10 +39,6 @@ class DataListSerializer(serializers.Serializer):
         request = self.context.get('request')
         view = self.context.get('view')
 
-        if view:
-            start = view.kwargs.get('start')
-            limit = view.kwargs.get('limit')
-
         if obj is None:
             return super(DataListSerializer, self).to_native(obj)
 
@@ -64,11 +60,14 @@ class DataListSerializer(serializers.Serializer):
             'sort': query_params.get('sort')
         }
 
-        if start:
+        if view:
+            start = view.kwargs.get('start')
+            limit = view.kwargs.get('limit')
+
             start = _parse_int(start)
             if start:
                 query_kwargs.update({'start': start})
-        if limit:
+
             limit = _parse_int(limit)
             if limit:
                 query_kwargs.update({'limit': limit})
