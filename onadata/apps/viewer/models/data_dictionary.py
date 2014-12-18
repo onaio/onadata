@@ -515,3 +515,10 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
 post_save.connect(set_object_permissions, sender=DataDictionary,
                   dispatch_uid='xform_object_permissions')
+
+
+def save_project(sender, instance=None, **kwargs):
+        instance.project.save()
+
+post_save.connect(save_project, sender=DataDictionary,
+                  dispatch_uid='save_project')

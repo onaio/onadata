@@ -282,11 +282,12 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         from onadata.libs.utils.project_utils import set_project_perms_to_xform
         set_project_perms_to_xform(instance, instance.project)
 
+post_save.connect(set_object_permissions, sender=XForm,
+                  dispatch_uid='xform_object_permissions')
+
 
 def save_project(sender, instance=None, **kwargs):
     instance.project.save()
 
-
-post_save.connect(set_object_permissions, sender=XForm,
-                  dispatch_uid='xform_object_permissions')
-post_save.connect(save_project, sender=XForm)
+post_save.connect(save_project, sender=XForm,
+                  dispatch_uid='save_project')
