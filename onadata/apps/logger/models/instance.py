@@ -1,8 +1,7 @@
 from datetime import datetime
 
 from django.contrib.gis.db import models
-from django.db.models.signals import post_save
-from django.db.models.signals import post_delete
+from django.db.models.signals import post_save, pre_save, post_delete
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.utils import timezone
@@ -284,6 +283,13 @@ post_save.connect(update_xform_submission_count, sender=Instance,
 
 post_delete.connect(update_xform_submission_count_delete, sender=Instance,
                     dispatch_uid='update_xform_submission_count_delete')
+
+
+def save_project(sender, instance=None, created=False, **kwargs):
+    instance.xform.project.save()
+
+pre_save.connect(save_project, sender=Instance,
+                 dispatch_uid='save_project_instance')
 
 
 class InstanceHistory(models.Model):

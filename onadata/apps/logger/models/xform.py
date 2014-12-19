@@ -10,7 +10,7 @@ from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy, ugettext as _
 from taggit.managers import TaggableManager
@@ -186,7 +186,6 @@ class XForm(BaseModel):
                                                                self.id_string)
             except:
                 self.sms_id_string = self.id_string
-
         super(XForm, self).save(*args, **kwargs)
 
     def __unicode__(self):
@@ -285,3 +284,10 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
 post_save.connect(set_object_permissions, sender=XForm,
                   dispatch_uid='xform_object_permissions')
+
+
+def save_project(sender, instance=None, created=False, **kwargs):
+    instance.project.save()
+
+pre_save.connect(save_project, sender=XForm,
+                 dispatch_uid='save_project_xform')

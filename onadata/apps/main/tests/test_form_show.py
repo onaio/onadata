@@ -159,6 +159,8 @@ class TestFormShow(TestBase):
         self.assertContains(response, 'PRIVATE')
 
     def test_show_link_if_shared_and_data(self):
+        self.xform.project.shared = True
+        self.xform.project.save()
         self.xform.shared = True
         self.xform.shared_data = True
         self.xform.save()

@@ -2,9 +2,6 @@ import time
 import datetime
 from itertools import chain
 from django.utils import timezone
-from onadata.apps.logger.models.attachment import Attachment
-from onadata.apps.main.models.meta_data import MetaData
-from django.contrib.auth.models import User
 
 
 def print_time(func):
@@ -32,14 +29,15 @@ def get_header_date_format(date_modified):
 def get_date(_object=None):
     if _object is None:
         return get_header_date_format(timezone.now())
-    if isinstance(_object, Attachment):
-        _object = _object.instance
-    elif isinstance(_object, MetaData):
-        _object = _object.xform
-    elif isinstance(_object, User):
-        _object = _object.profile
 
-    _date = _object.date_modified
+    if hasattr(_object, "date_modified"):
+        _date = _object.date_modified
+    elif hasattr(_object, "instance"):
+        _date = _object.instance.date_modified
+    elif hasattr(_object, "xform"):
+        _date = _object.xform.date_modified
+    elif hasattr(_object, "profile"):
+        _date = _object.profile.date_modified
 
     return get_header_date_format(_date)
 
