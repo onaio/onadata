@@ -87,29 +87,37 @@ class TestDataViewSet(TestBase):
     def test_data_with_limit_operator(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
-        request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
-        response = view(request, pk=formid, start=2)
+
+        request = self.factory.get('/', data={"start": "2"}, **self.extra)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
-        response = view(request, pk=formid, limit=3)
+        request = self.factory.get('/', data={"limit": "3"}, **self.extra)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
 
-        response = view(request, pk=formid, start=1, limit=2)
+        request = self.factory.get(
+            '/', data={"start": "1", "limit": "2"}, **self.extra)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
-        response = view(request, pk=formid, start="start")
+        request = self.factory.get('/', data={"start": "start"}, **self.extra)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
-        response = view(request, pk=formid, limit="limit")
+        request = self.factory.get('/', data={"limit": "limit"}, **self.extra)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
-        response = view(request, pk=formid, start="start", limit="limit")
+        request = self.factory.get(
+            '/', data={"start": "start", "limit": "start"}, **self.extra)
+        response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
