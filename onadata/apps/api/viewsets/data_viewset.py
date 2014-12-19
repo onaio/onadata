@@ -68,6 +68,29 @@ a list of public data endpoints is returned.
 >            ...
 >        ]
 
+## GET JSON List of data end points using limit operators
+
+Lists the data endpoints accesible to the requesting user based on 'start'
+and/or 'limit' query parameters. Use the start parameter to skip a number
+of records and the limit parameter to limit the number of records returned.
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{pk}</code>?<code>start</code>=<code>start_value</code>
+</pre>
+>
+>       curl -X GET 'https://ona.io/api/v1/data/2?start=5'
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{pk}</code>?<code>limit</code>=<code>limit_value</code>
+</pre>
+>
+>       curl -X GET 'https://ona.io/api/v1/data/2?limit=2'
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{pk}</code>?<code>start</code>=<code>start_value</code>&</code><code>limit</code>=<code>limit_value</code>
+</pre>
+>
+>       curl -X GET 'https://ona.io/api/v1/data/2?start=3&limit=4'
+
 ## Download data in `csv` format
 <pre class="prettyprint">
 <b>GET</b> /api/v1/data.csv</pre>
