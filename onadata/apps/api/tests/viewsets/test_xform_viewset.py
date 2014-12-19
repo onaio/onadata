@@ -800,6 +800,7 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_update_xform_xls_file(self):
         self._publish_xls_form_to_project()
 
+        title_old = self.xform.title
         self.assertIsNotNone(self.xform.version)
         version = self.xform.version
         form_id = self.xform.pk
@@ -823,6 +824,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         # diff versions
         self.assertNotEquals(version, new_version)
+        self.assertNotEquals(title_old, self.xform.title)
         self.assertEquals(form_id, self.xform.pk)
 
     def test_update_xform_xls_bad_file(self):

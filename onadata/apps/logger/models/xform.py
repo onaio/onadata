@@ -134,13 +134,6 @@ class XForm(BaseModel):
         if len(matches) != 1:
             raise XLSFormError(_("There should be a single title."), matches)
 
-        if self.title and title_xml != self.title:
-            title_xml = self.title[:XFORM_TITLE_LENGTH]
-            if isinstance(self.xml, str):
-                self.xml = self.xml.decode('utf-8')
-            self.xml = title_pattern.sub(
-                u"<h:title>%s</h:title>" % title_xml, self.xml)
-
         self.title = title_xml
 
     def _set_description(self):
