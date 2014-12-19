@@ -663,3 +663,17 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.project.reload()
         self.assertNotEquals(current_last_date, self.project.date_modified)
+
+    def test_anon_project_form_endpoint(self):
+        self._project_create()
+        self._publish_xls_form_to_project()
+
+        view = ProjectViewSet.as_view({
+            'get': 'forms'
+        })
+
+        request = self.factory.get('/')
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 404)
+
