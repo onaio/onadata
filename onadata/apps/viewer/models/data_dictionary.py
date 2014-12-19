@@ -196,6 +196,7 @@ class DataDictionary(XForm):
             self.json = survey.to_json()
             self.xml = survey.to_xml()
             self.version = survey.get('version')
+            self.title = survey.get('title')
             self._mark_start_time_boolean()
             set_uuid(self)
             self._set_uuid_in_xml()
