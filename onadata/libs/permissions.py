@@ -133,13 +133,13 @@ class ManagerRole(Role):
         (CAN_ADD_XFORM, XForm),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_VIEW_XFORM, XForm),
+        (CAN_DELETE_XFORM, XForm),
         (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
         (CAN_VIEW_PROFILE, UserProfile),
         (CAN_ADD_PROJECT_XFORM, Project),
         (CAN_CHANGE_PROJECT, Project),
-        (CAN_DELETE_PROJECT, Project),
         (CAN_VIEW_PROJECT, Project),
     )
 
