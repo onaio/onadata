@@ -440,7 +440,7 @@ class TestDataViewSet(TestBase):
         self.assertEquals(before_count - 1, count)
 
         self._create_user_and_login(username='alice', password='alice')
-        # Only owners can delete
+        # Managers can delete
         role.ManagerRole.add(self.user, self.xform)
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
@@ -448,7 +448,6 @@ class TestDataViewSet(TestBase):
         dataid = self.xform.instances.all().order_by('id')[0].pk
         response = view(request, pk=formid, dataid=dataid)
 
-        self.assertEqual(response.status_code, 403)
-        # Nothing deleted
+        self.assertEqual(response.status_code, 204)
         count = self.xform.instances.all().count()
-        self.assertEquals(before_count - 1, count)
+        self.assertEquals(before_count - 2, count)

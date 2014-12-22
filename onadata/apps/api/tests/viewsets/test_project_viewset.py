@@ -676,3 +676,26 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
 
         self.assertEqual(response.status_code, 404)
+
+    def test_project_manager_can_delete_xform(self):
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        alice = alice_profile.user
+        projectid = self.project.pk
+
+        self.assertFalse(ManagerRole.user_has_role(alice, self.project))
+
+        data = {'username': 'alice', 'role': ManagerRole.name,
+                'email_msg': 'I have shared the project with you'}
+        request = self.factory.post('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(ManagerRole.user_has_role(alice, self.project))
+        self.assertTrue(alice.has_perm('delete_xform', self.xform))
