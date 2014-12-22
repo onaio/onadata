@@ -7,9 +7,9 @@ from django.utils.translation import ugettext_lazy, ugettext as _
 from pyxform.builder import create_survey_from_xls
 
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.project import Project
 from onadata.libs.utils.logger_tools import publish_xls_form
 from onadata.libs.utils.viewer_tools import django_file
-from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class Command(BaseCommand):
@@ -65,7 +65,10 @@ class Command(BaseCommand):
         else:
             self.stdout.write(_("Form does NOT exist, publishing ..\n"))
 
-        project = get_user_default_project(user)
+        try:
+            project = Project.objects.get(name=args[2])
+        except IndexError:
+            raise CommandError(_("You must provide a valid project name"))
 
         # publish
         xls_file = django_file(
