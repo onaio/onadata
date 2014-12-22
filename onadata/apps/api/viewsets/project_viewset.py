@@ -394,7 +394,7 @@ https://ona.io/api/v1/projects/28058/labels/hello%20world
 
         The request key `xls_file` holds the XLSForm file object.
         """
-        project = self.get_object()
+        project = self.object = self.get_object()
         if request.method.upper() == 'POST':
             survey = utils.publish_project_xform(request, project)
 
