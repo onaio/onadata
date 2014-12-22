@@ -1007,12 +1007,11 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertNotEqual(previous_user,  self.user)
 
     def test_public_project_forms_are_shared(self):
-        self._project_create()
-        self.project.shared = True
-        self.project.save()
+        self._publish_xls_form_to_project()
         formid = self.xform.pk
 
-        self._publish_xls_form_to_project(public=True)
+        self.project.shared = True
+        self.project.save()
 
         view = XFormViewSet.as_view({
             'get': 'retrieve'
