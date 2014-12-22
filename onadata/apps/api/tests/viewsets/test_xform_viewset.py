@@ -9,6 +9,7 @@ from datetime import datetime
 from django.utils import timezone
 from django.conf import settings
 from httmock import urlmatch, HTTMock
+from mock import patch
 from rest_framework import status
 from xml.dom import minidom, Node
 
@@ -189,7 +190,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(extra_post_data=alice_data)
         self.assertEqual(self.user.username, 'alice')
-        self.assertNotEqual(previous_user,  self.user)
+        self.assertNotEqual(previous_user, self.user)
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
@@ -205,7 +206,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(extra_post_data=alice_data)
         self.assertEqual(self.user.username, 'alice')
-        self.assertNotEqual(previous_user,  self.user)
+        self.assertNotEqual(previous_user, self.user)
 
         ReadOnlyRole.add(self.user, self.xform)
         view = XFormViewSet.as_view({
@@ -796,6 +797,24 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get('Last-Modified'), None)
         self.assertIsNotNone(response.data.get('error'))
+
+    def test_csv_import_status_check(self):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({'get': 'csv_import'})
+        data = {'job_uuid': "12345678"}
+        request = self.factory.get('/', data=data,
+                                   **self.extra)
+
+        with patch('onadata.apps.api.viewsets.xform_viewset.'
+                   'get_async_csv_submission_status') as mock_async_response:
+            mock_async_response.return_value = {'progress': 10,
+                                                'total': 100}
+            response = view(request, pk=self.xform.id)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNotNone(response.get('Last-Modified'))
+            self.assertEqual(response.data.get('progress'), 10)
+            self.assertEqual(response.data.get('total'), 100)
 
     def test_update_xform_xls_file(self):
         self._publish_xls_form_to_project()

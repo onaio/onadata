@@ -9,6 +9,7 @@ from django.conf import settings
 from django.http import Http404, HttpResponseBadRequest, HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.utils import six
+from django.utils import timezone
 
 from rest_framework import exceptions
 from rest_framework import status
@@ -897,10 +898,12 @@ previous call
         for GET requests passing `job_uuid` query param for job progress
         polling
         """
+        self.object = self.get_object()
         resp = {}
         if request.method == 'GET':
             resp.update(get_async_csv_submission_status(
                 request.QUERY_PARAMS.get('job_uuid')))
+            self.last_modified_date = timezone.now()
         else:
             csv_file = request.FILES.get('csv_file', None)
             if csv_file is None:
@@ -909,11 +912,11 @@ previous call
                 num_rows = sum(1 for row in csv_file) - 1
                 if num_rows < settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD:
                     resp.update(submit_csv(request.user.username,
-                                           self.get_object(), csv_file))
+                                           self.object, csv_file))
                 else:
                     resp.update(
                         {u'task_id': submit_csv_async.delay(
-                            request.user.username, self.get_object(),
+                            request.user.username, self.object,
                             csv_file).task_id})
 
         return Response(
