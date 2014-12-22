@@ -101,22 +101,22 @@ def get_uuid_from_submission(xml):
 
 def get_xform_from_submission(xml, username, uuid=None):
         # check alternative form submission ids
-        uuid = uuid or get_uuid_from_submission(xml)
+    uuid = uuid or get_uuid_from_submission(xml)
 
-        if not username and not uuid:
-            raise InstanceInvalidUserError()
+    if not username and not uuid:
+        raise InstanceInvalidUserError()
 
-        if uuid:
-            # try find the form by its uuid which is the ideal condition
-            if XForm.objects.filter(uuid=uuid).count() > 0:
-                xform = XForm.objects.get(uuid=uuid)
+    if uuid:
+        # try find the form by its uuid which is the ideal condition
+        if XForm.objects.filter(uuid=uuid).count() > 0:
+            xform = XForm.objects.get(uuid=uuid)
 
-                return xform
+            return xform
 
-        id_string = get_id_string_from_xml_str(xml)
+    id_string = get_id_string_from_xml_str(xml)
 
-        return get_object_or_404(XForm, id_string__iexact=id_string,
-                                 user__username=username)
+    return get_object_or_404(XForm, id_string__iexact=id_string,
+                             user__username=username)
 
 
 def _has_edit_xform_permission(xform, user):
@@ -229,10 +229,10 @@ def create_instance(username, xml_file, media_files,
                 xml=xml, xform__user=xform.user)[0]
             if not existing_instance.xform or\
                     existing_instance.xform.has_start_time:
-                # Ignore submission as a duplicate IFF
-                #  * a submission's XForm collects start time
-                #  * the submitted XML is an exact match with one that
-                #    has already been submitted for that user.
+            # Ignore submission as a duplicate IFF
+            #  * a submission's XForm collects start time
+            #  * the submitted XML is an exact match with one that
+            #    has already been submitted for that user.
                 raise DuplicateInstance()
 
         # get new and depracated uuid's
@@ -416,7 +416,7 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
     # get or create DataDictionary based on user and id string
     if id_string:
         dd = DataDictionary.objects.get(
-            user=user, id_string=id_string)
+            user=user, id_string=id_string, project=project)
         dd.xls = xls_file
         dd.save()
 
@@ -670,6 +670,7 @@ def remove_xform(xform):
 
 
 class PublishXForm(object):
+
     def __init__(self, xml_file, user):
         self.xml_file = xml_file
         self.user = user
