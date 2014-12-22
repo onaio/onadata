@@ -14,7 +14,7 @@ from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class Command(BaseCommand):
-    args = 'xls_file username'
+    args = 'xls_file username project'
     help = ugettext_lazy("Publish an XLS file with the option of replacing an"
                          "existing one")
 
@@ -67,8 +67,9 @@ class Command(BaseCommand):
             self.stdout.write(_("Form does NOT exist, publishing ..\n"))
 
         try:
-            project = Project.objects.get(name=args[2])
-        except Project.DoesNotExist:
+            project_name = args[2]
+            project = Project.objects.get(name=project_name)
+        except (IndexError, Project.DoesNotExist):
             project = get_user_default_project(user)
 
         # publish
