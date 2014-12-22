@@ -16,6 +16,7 @@ from django.core.servers.basehttp import FileWrapper
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 from django.db.models.signals import pre_delete
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseNotFound, \
     StreamingHttpResponse
 from django.shortcuts import get_object_or_404
@@ -229,10 +230,10 @@ def create_instance(username, xml_file, media_files,
                 xml=xml, xform__user=xform.user)[0]
             if not existing_instance.xform or\
                     existing_instance.xform.has_start_time:
-            # Ignore submission as a duplicate IFF
-            #  * a submission's XForm collects start time
-            #  * the submitted XML is an exact match with one that
-            #    has already been submitted for that user.
+                # Ignore submission as a duplicate IFF
+                #  * a submission's XForm collects start time
+                #  * the submitted XML is an exact match with one that
+                #    has already been submitted for that user.
                 raise DuplicateInstance()
 
         # get new and depracated uuid's
@@ -416,7 +417,8 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
     # get or create DataDictionary based on user and id string
     if id_string:
         dd = DataDictionary.objects.get(
-            user=user, id_string=id_string, project=project)
+            Q(user=user, id_string=id_string, project=project) |
+            Q(user=user, id_string=id_string))
         dd.xls = xls_file
         dd.save()
 
