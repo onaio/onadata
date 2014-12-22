@@ -58,8 +58,7 @@ def external_mock(url, request):
                '_transportation_types_to_referral_facility": "taxi other",' \
                ' "transport_loop_over_transport_types_frequency_taxi' \
                '_frequency_to_referral_facility": "daily",' \
-               ' "meta_instanceID": \
-                    "uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf",' \
+               ' "meta_instanceID": "uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf",' \
                ' "transport_loop_over_transport_types_frequency_other' \
                '_frequency_to_referral_facility": "other",' \
                ' "_xform_id_string": "transportation_2011_07_25"},' \
@@ -70,11 +69,9 @@ def external_mock(url, request):
                'cfda-46e8-84c1-75458e72805d", "_xform_id_string":' \
                ' "transportation_2011_07_25"}, {"transport_loop_over_' \
                'transport_types_frequency_ambulance_frequency_to_referral_' \
-               'facility": \
-                    "daily", "transport_available_transportation_types' \
+               'facility": "daily", "transport_available_transportation_types' \
                '_to_referral_facility": "ambulance bicycle", ' \
-               '"meta_instanceID": \
-                    "uuid:f3d8dc65-91a6-4d0f-9e97-802128083390",' \
+               '"meta_instanceID": "uuid:f3d8dc65-91a6-4d0f-9e97-802128083390",' \
                ' "transport_loop_over_transport_types_frequency_bicycle' \
                '_frequency_to_referral_facility": "weekly",' \
                ' "_xform_id_string": "transportation_2011_07_25"}, ' \
