@@ -84,6 +84,43 @@ class TestDataViewSet(TestBase):
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
 
+    def test_data_with_limit_operator(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+
+        request = self.factory.get('/', data={"start": "2"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        request = self.factory.get('/', data={"limit": "3"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)
+
+        request = self.factory.get(
+            '/', data={"start": "1", "limit": "2"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        request = self.factory.get('/', data={"start": "start"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        request = self.factory.get('/', data={"limit": "limit"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        request = self.factory.get(
+            '/', data={"start": "start", "limit": "start"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
     def test_data_anon(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})

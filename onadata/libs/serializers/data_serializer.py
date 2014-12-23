@@ -6,6 +6,7 @@ from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.logger.views import _parse_int
 
 
 class DataSerializer(serializers.HyperlinkedModelSerializer):
@@ -50,13 +51,26 @@ class DataListSerializer(serializers.Serializer):
             query.update(json.loads(query_params.get('query', '{}')))
         except ValueError:
             raise ParseError(_("Invalid query: %(query)s"
-                             % {'query': query_params.get('query')}))
+                               % {'query': query_params.get('query')}))
 
         query_kwargs = {
             'query': json.dumps(query),
             'fields': query_params.get('fields'),
             'sort': query_params.get('sort')
         }
+
+        if request:
+            start = request.QUERY_PARAMS.get('start')
+            limit = request.QUERY_PARAMS.get('limit')
+
+            start = _parse_int(start)
+            if start:
+                query_kwargs.update({'start': start})
+
+            limit = _parse_int(limit)
+            if limit:
+                query_kwargs.update({'limit': limit})
+
         cursor = ParsedInstance.query_mongo_minimal(**query_kwargs)
         records = list(record for record in cursor)
 
@@ -64,6 +78,7 @@ class DataListSerializer(serializers.Serializer):
 
 
 class DataInstanceSerializer(serializers.Serializer):
+
     def to_native(self, obj):
         if obj is None:
             return super(DataInstanceSerializer, self).to_native(obj)
@@ -87,6 +102,7 @@ class DataInstanceSerializer(serializers.Serializer):
 
 
 class SubmissionSerializer(serializers.Serializer):
+
     def to_native(self, obj):
         if obj is None:
             return super(SubmissionSerializer, self).to_native(obj)
