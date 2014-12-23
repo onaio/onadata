@@ -972,3 +972,25 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.get('Last-Modified'), None)
         self.assertEquals(response.data,
                           {'title': [u'This field is required.']})
+
+    def test_public_xform_accessible_by_authenticated_users(self):
+        self._publish_xls_form_to_project()
+        self.xform.shared = True
+        self.xform.save()
+
+        #log in as other user other than form owner
+        previous_user = self.user
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        self.assertEqual(self.user.username, 'alice')
+        self.assertNotEqual(previous_user,  self.user)
+
+        view = XFormViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['formid'], 1)
+        self.assertEqual(response.data['public'], True)
