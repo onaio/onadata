@@ -26,8 +26,7 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
             try:
                 int(form_id)
             except ValueError:
-                raise ParseError(
-                    u'Invalid pk INVALID')
+                raise ParseError(u'Invalid form ID: %s' % form_id)
 
             # check if form is public and return it
             try:
