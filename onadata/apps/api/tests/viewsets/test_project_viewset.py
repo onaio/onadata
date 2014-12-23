@@ -140,17 +140,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._project_create({'name': project_name})
         self._publish_xls_form_to_project()
 
-    def test_replace_xform_that_shares_id_string_in_different_projects(self):
-        self.test_publish_xls_form_to_project()
-        count = XForm.objects.count()
-        xls_file_path = os.path.join(
-            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", "transportation_updated.xls")
-        call_command(
-            'publish_xls', xls_file_path, self.user.username,
-            u'another project', replace=True)
-        self.assertEqual(XForm.objects.count(), count)
-
     def test_num_datasets(self):
         self._publish_xls_form_to_project()
         request = self.factory.post('/', data={}, **self.extra)
