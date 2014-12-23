@@ -16,7 +16,6 @@ from django.core.servers.basehttp import FileWrapper
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 from django.db.models.signals import pre_delete
-from django.db.models import Q
 from django.http import HttpResponse, HttpResponseNotFound, \
     StreamingHttpResponse
 from django.shortcuts import get_object_or_404
@@ -417,8 +416,7 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
     # get or create DataDictionary based on user and id string
     if id_string:
         dd = DataDictionary.objects.get(
-            Q(user=user, id_string=id_string, project=project) |
-            Q(user=user, id_string=id_string))
+            user=user, id_string=id_string, project=project)
         dd.xls = xls_file
         dd.save()
 
