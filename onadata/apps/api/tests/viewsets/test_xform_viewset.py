@@ -977,6 +977,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
         self.xform.shared = True
         self.xform.save()
+        formid =self.xform.pk
 
         # log in as other user other than form owner
         previous_user = self.user
@@ -989,8 +990,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             'get': 'retrieve'
         })
         request = self.factory.get('/', **self.extra)
-        response = view(request, pk=self.xform.pk)
+        response = view(request, pk=formid)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['formid'], 1)
+        self.assertEqual(response.data['formid'], formid)
         self.assertEqual(response.data['public'], True)
