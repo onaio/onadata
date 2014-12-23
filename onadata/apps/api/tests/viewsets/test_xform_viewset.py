@@ -978,7 +978,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.xform.shared = True
         self.xform.save()
 
-        #log in as other user other than form owner
+        # log in as other user other than form owner
         previous_user = self.user
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(extra_post_data=alice_data)
