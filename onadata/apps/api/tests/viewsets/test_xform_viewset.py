@@ -977,7 +977,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
         self.xform.shared = True
         self.xform.save()
-        formid =self.xform.pk
+        formid = self.xform.pk
 
         # log in as other user other than form owner
         previous_user = self.user
