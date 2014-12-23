@@ -182,7 +182,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get('Last-Modified'), None)
-        data = {u'detail': u'Invalid pk INVALID'}
+        data = {u'detail': u'Invalid form ID: INVALID'}
         self.assertEqual(response.data, data)
 
     def test_data_bad_dataid(self):

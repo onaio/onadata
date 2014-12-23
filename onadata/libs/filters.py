@@ -17,8 +17,25 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
         """
         Anonymous user has no object permissions, return queryset as it is.
         """
+        form_id = view.kwargs.get(view.lookup_field)
+
         if request.user.is_anonymous():
             return queryset
+
+        if form_id:
+            try:
+                int(form_id)
+            except ValueError:
+                raise ParseError(u'Invalid form ID: %s' % form_id)
+
+            # check if form is public and return it
+            try:
+                form = queryset.get(id=form_id)
+            except ObjectDoesNotExist:
+                raise Http404
+
+            if form.shared:
+                return queryset.filter(Q(id=form_id))
 
         return super(AnonDjangoObjectPermissionFilter, self)\
             .filter_queryset(request, queryset, view)
