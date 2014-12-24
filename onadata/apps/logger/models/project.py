@@ -57,7 +57,7 @@ def update_xform_share_settings(sender,
                                 **kwargs):
     if not created:
         instance.xform_set.exclude(shared=instance.shared)\
-            .update(shared=instance.shared)
+            .update(shared=instance.shared, shared_data=instance.shared)
 
 post_save.connect(set_object_permissions, sender=Project,
                   dispatch_uid='set_project_object_permissions')

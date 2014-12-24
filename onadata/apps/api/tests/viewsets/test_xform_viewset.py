@@ -998,7 +998,6 @@ class TestXFormViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
         self.xform.shared = True
         self.xform.save()
-        formid = self.xform.pk
 
         # log in as other user other than form owner
         previous_user = self.user
@@ -1006,6 +1005,13 @@ class TestXFormViewSet(TestAbstractViewSet):
         self._login_user_and_profile(extra_post_data=alice_data)
         self.assertEqual(self.user.username, 'alice')
         self.assertNotEqual(previous_user,  self.user)
+
+    def test_public_project_forms_are_shared(self):
+        self._publish_xls_form_to_project()
+        formid = self.xform.pk
+
+        self.project.shared = True
+        self.project.save()
 
         view = XFormViewSet.as_view({
             'get': 'retrieve'
@@ -1016,3 +1022,4 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['formid'], formid)
         self.assertEqual(response.data['public'], True)
+        self.assertTrue(response.data['public_data'], True)
