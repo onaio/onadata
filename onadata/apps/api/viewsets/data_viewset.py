@@ -22,10 +22,11 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.apps.api.permissions import XFormPermissions
-from onadata.libs.serializers.data_serializer import (
-    DataSerializer, DataListSerializer, DataInstanceSerializer, OSMSerializer)
-from onadata.libs.serializers.geojson_serializer import (GeoJsonSerializer,
-                                                         GeoJsonListSerializer)
+from onadata.libs.serializers.data_serializer import DataSerializer
+from onadata.libs.serializers.data_serializer import DataListSerializer
+from onadata.libs.serializers.data_serializer import OSMSerializer
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
+from onadata.libs.serializers.geojson_serializer import GeoJsonListSerializer
 from onadata.libs import filters
 from onadata.libs.utils.viewer_tools import (
     EnketoError,
@@ -532,8 +533,6 @@ The `.osm` file format concatenates all the files for a form or individual
         elif pk is not None and dataid is None \
                 and pk != self.public_data_endpoint:
             serializer_class = DataListSerializer
-        elif pk is not None and dataid is not None:
-            serializer_class = DataInstanceSerializer
         else:
             serializer_class = \
                 super(DataViewSet, self).get_serializer_class()
