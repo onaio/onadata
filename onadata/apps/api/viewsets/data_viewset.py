@@ -7,6 +7,7 @@ from django.core.exceptions import PermissionDenied
 
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.pagination import BasePaginationSerializer
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
@@ -34,6 +35,18 @@ from onadata.libs.utils.viewer_tools import (
 
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
+
+
+class CustomPaginationSerializer(BasePaginationSerializer):
+    def to_native(self, obj):
+        ret = self._dict_class()
+        ret.fields = self._dict_class()
+        results = super(CustomPaginationSerializer, self).to_native(obj)
+
+        if results:
+            ret = results[self.results_field]
+
+        return ret
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin,
@@ -72,17 +85,19 @@ a list of public data endpoints is returned.
 >            ...
 >        ]
 
-## GET JSON List of data end points using limit operators
+## Pagination
 
-Lists the data endpoints accesible to the requesting user based on 'start'
-and/or 'limit' query parameters. Use the start parameter to skip a number
-of records and the limit parameter to limit the number of records returned.
+Use the following query paramaters:
+
+    - `page` - Page number, only if present pagination is done.
+    - `page_size` - Number of record returned, default size is 100 records.
+
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{pk}</code>?<code>start</code>=<code>start_value\
+<b>GET</b> /api/v1/data/<code>{pk}</code>?<code>page</code>=<cod>page_number\
 </code>
 </pre>
 >
->       curl -X GET 'https://ona.io/api/v1/data/2?start=5'
+>       curl -X GET 'https://ona.io/api/v1/data/2?page=1'
 
 <pre class="prettyprint">
 <b>GET</b> /api/v1/data/<code>{pk}</code>?<code>limit</code>=<code>limit_value\
@@ -520,6 +535,10 @@ The `.osm` file format concatenates all the files for a form or individual
     lookup_fields = ('pk', 'dataid')
     extra_lookup_fields = None
     public_data_endpoint = 'public'
+    pagination_serializer_class = CustomPaginationSerializer
+    paginate_by = 100
+    paginate_by_param = 'page_size'
+    page_kwarg = 'page'
 
     queryset = XForm.objects.all()
 

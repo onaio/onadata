@@ -135,37 +135,45 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         formid = self.xform.pk
 
-        request = self.factory.get('/', data={"start": "2"}, **self.extra)
+        # no page param no pagination
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        request = self.factory.get('/', data={"page": "1", "page_size": 2},
+                                   **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
-        request = self.factory.get('/', data={"limit": "3"}, **self.extra)
+        request = self.factory.get('/', data={"page_size": "3"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
 
         request = self.factory.get(
-            '/', data={"start": "1", "limit": "2"}, **self.extra)
+            '/', data={"page": "1", "page_size": "2"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
-        request = self.factory.get('/', data={"start": "start"}, **self.extra)
+        # invalid page returns a 404
+        request = self.factory.get('/', data={"page": "invalid"}, **self.extra)
         response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 4)
+        self.assertEqual(response.status_code, 404)
 
-        request = self.factory.get('/', data={"limit": "limit"}, **self.extra)
+        # invalid page size is ignores
+        request = self.factory.get('/', data={"page_size": "invalid"},
+                                   **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
         request = self.factory.get(
-            '/', data={"start": "start", "limit": "start"}, **self.extra)
+            '/', data={"page": "invalid", "page-size": "invalid"}, **self.extra)
         response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 4)
+        self.assertEqual(response.status_code, 404)
 
     def test_data_anon(self):
         self._make_submissions()
