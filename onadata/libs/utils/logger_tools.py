@@ -194,6 +194,7 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
         instance.save()
 
     if instance.xform is not None:
+        instance.save()
         pi, created = ParsedInstance.objects.get_or_create(
             instance=instance)
 

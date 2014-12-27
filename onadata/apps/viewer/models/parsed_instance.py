@@ -11,8 +11,9 @@ from django.db import models
 from django.db.models.signals import post_save, pre_delete
 from django.utils.translation import ugettext as _
 
-from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models import Note
+from onadata.apps.logger.models.note import Note
+from onadata.apps.logger.models.instance import _get_attachments_from_instance
+from onadata.apps.logger.models.instance import Instance
 from onadata.apps.restservice.utils import call_service
 from onadata.libs.utils.timing import calculate_duration
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
@@ -351,21 +352,6 @@ class ParsedInstance(models.Model):
                 note['date_modified'].strftime(MONGO_STRFTIME)
             notes.append(note)
         return notes
-
-
-def _get_attachments_from_instance(instance):
-    attachments = []
-    for a in instance.attachments.all():
-        attachment = dict()
-        attachment['download_url'] = a.media_file.url
-        attachment['mimetype'] = a.mimetype
-        attachment['filename'] = a.media_file.name
-        attachment['instance'] = a.instance.pk
-        attachment['xform'] = instance.xform.id
-        attachment['id'] = a.id
-        attachments.append(attachment)
-
-    return attachments
 
 
 def _remove_from_mongo(sender, **kwargs):
