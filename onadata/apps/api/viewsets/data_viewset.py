@@ -704,6 +704,8 @@ The `.osm` file format concatenates all the files for a form or individual
             )
 
     def list(self, request, *args, **kwargs):
+        query = request.GET.get("query", {})
+        export_type = kwargs.get('format')
         lookup_field = self.lookup_field
         lookup = self.kwargs.get(lookup_field)
 
@@ -715,7 +717,12 @@ The `.osm` file format concatenates all the files for a form or individual
 
         if lookup == self.public_data_endpoint:
             self.object_list = self._get_public_forms_queryset()
+        elif lookup:
+            qs = self.filter_queryset(self.get_queryset())
+            self.object_list = Instance.objects.filter(xform__in=qs)
 
+        if (export_type is None or export_type in ['json']) \
+                and hasattr(self, 'object_list'):
             page = self.paginate_queryset(self.object_list)
             if page is not None:
                 serializer = self.get_pagination_serializer(page)
