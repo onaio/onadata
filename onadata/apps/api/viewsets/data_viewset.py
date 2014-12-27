@@ -1,3 +1,4 @@
+import json
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -226,61 +227,10 @@ Get a single specific submission json data providing `pk`
 >        ]
 
 ## Query submitted data of a specific form
-Provides a list of json submitted data for a specific form. Use `query`
-parameter to apply form data specific, see
-<a href="http://docs.mongodb.org/manual/reference/operator/query/">
-http://docs.mongodb.org/manual/reference/operator/query/</a>.
 
-For more details see
-<a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)#
-api-parameters">
-API Parameters</a>.
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":"value"}</b>
-<b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":{"op": "value"}}"</b>
-</pre>
-> Example
->
->       curl -X GET 'https://ona.io/api/v1/data/22845?query={"kind": \
-"monthly"}'
->       curl -X GET 'https://ona.io/api/v1/data/22845?query={"date": \
-{"$gt": "2014-09-29T01:02:03+0000"}}'
-
-> Response
->
->        [
->            {
->                "_id": 4503,
->                "_bamboo_dataset_id": "",
->                "_deleted_at": null,
->                "expense_type": "service",
->                "_xform_id_string": "exp",
->                "_geolocation": [
->                    null,
->                    null
->                ],
->                "end": "2013-01-03T10:26:25.674+03",
->                "start": "2013-01-03T10:25:17.409+03",
->                "expense_date": "2011-12-23",
->                "_status": "submitted_via_web",
->                "today": "2013-01-03",
->                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
->                "imei": "351746052013466",
->                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
->                "kind": "monthly",
->                "_submission_time": "2013-01-03T02:27:19",
->                "required": "yes",
->                "_attachments": [],
->                "item": "Rent",
->                "amount": "35000.0",
->                "deviceid": "351746052013466",
->                "subscriberid": "639027...60317"
->            },
->            {
->                ....
->                "subscriberid": "639027...60317"
->            }
->        ]
+Using `query` parameter, you can pass in a json key/value query.
+MongoDB like query is no longer available, mongodb is no longer part of the
+ setup.
 
 ## Query submitted data of a specific form using Tags
 Provides a list of json submitted data for a specific form matching specific
@@ -742,6 +692,17 @@ The `.osm` file format concatenates all the files for a form or individual
 
         if (export_type is None or export_type in ['json']) \
                 and hasattr(self, 'object_list'):
+
+            if isinstance(query, six.string_types):
+                query = json.loads(query)
+
+            where = []
+            for k, v in query.items():
+                where.append("json->>'{}' = '{}'".format(k, v))
+
+            if where:
+                self.object_list = self.object_list.extra(where=where)
+
             page = self.paginate_queryset(self.object_list)
             if page is not None:
                 serializer = self.get_pagination_serializer(page)

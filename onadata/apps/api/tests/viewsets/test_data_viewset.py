@@ -130,7 +130,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data[0].get('net_worth'), 100000.00)
         self.assertEqual(response.data[0].get('imei'), u'351746052009472')
 
-    def test_data_with_limit_operator(self):
+    def test_data_pagination(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         formid = self.xform.pk
