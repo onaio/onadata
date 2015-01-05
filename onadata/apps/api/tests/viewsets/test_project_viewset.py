@@ -1,10 +1,6 @@
-import os
 import json
 from mock import patch
 from operator import itemgetter
-
-from django.conf import settings
-from django.core.management import call_command
 
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
