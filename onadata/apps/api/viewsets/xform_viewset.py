@@ -263,7 +263,7 @@ def _try_update_xlsform(request, xform, owner):
         return Response(data, status=status.HTTP_400_BAD_REQUEST)
 
     survey = \
-        utils.publish_xlsform(request, owner, xform.id_string)
+        utils.publish_xlsform(request, owner, xform.id_string, xform.project)
 
     if isinstance(survey, XForm):
         serializer = XFormSerializer(
