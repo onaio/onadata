@@ -212,8 +212,7 @@ def publish_xlsform(request, user, id_string=None, project=None):
         if project:
             args = dict({'project': project.pk}.items() + request.POST.items())
         else:
-            args = request.POST.items()
-
+            args = request.POST
         form = QuickConverter(args,  request.FILES)
 
         return form.publish(user, id_string=id_string, created_by=request.user)
