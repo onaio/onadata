@@ -13,6 +13,7 @@ from mock import patch
 from rest_framework import status
 from xml.dom import minidom, Node
 
+from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
@@ -818,6 +819,50 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     def test_update_xform_xls_file(self):
         self._publish_xls_form_to_project()
+
+        title_old = self.xform.title
+        self.assertIsNotNone(self.xform.version)
+        version = self.xform.version
+        form_id = self.xform.pk
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update',
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation_version.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+
+            self.assertEqual(response.status_code, 200)
+
+        self.xform.reload()
+        new_version = self.xform.version
+
+        # diff versions
+        self.assertNotEquals(version, new_version)
+        self.assertNotEquals(title_old, self.xform.title)
+        self.assertEquals(form_id, self.xform.pk)
+
+    def test_update_xform_with_same_id_string_in_different_projects(self):
+        project_count = Project.objects.count()
+
+        self._project_create()
+        self._publish_xls_form_to_project()
+        data = {
+            'name': u'demo2',
+            'owner': 'http://testserver/api/v1/users/%s' % self.user.username,
+            'metadata': {'description': 'Demo2 Description',
+                         'location': 'Nakuru, Kenya',
+                         'category': 'education'},
+            'public': False
+        }
+        self._project_create(data, False)
+        self._publish_xls_form_to_project()
+        self.assertEqual(project_count + 2, Project.objects.count())
 
         title_old = self.xform.title
         self.assertIsNotNone(self.xform.version)
