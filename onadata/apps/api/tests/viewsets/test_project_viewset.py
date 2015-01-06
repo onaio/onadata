@@ -230,6 +230,34 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertIn('forms', response.data.keys())
         self.assertEqual(len(response.data['forms']), 1)
 
+    def test_project_manager_can_assign_form_to_project_no_perm(self):
+        # user must have owner/manager permissions
+        view = ProjectViewSet.as_view({
+            'post': 'forms',
+            'get': 'retrieve'
+        })
+        self._publish_xls_form_to_project()
+        # alice user is not manager to both projects
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        self.assertFalse(ManagerRole.user_has_role(alice_profile.user,
+                                                   self.project))
+
+        formid = self.xform.pk
+        project_name = u'another project'
+        self._project_create({'name': project_name})
+        self.assertTrue(self.project.name == project_name)
+        ManagerRole.add(alice_profile.user, self.project)
+        self.assertTrue(ManagerRole.user_has_role(alice_profile.user,
+                                                  self.project))
+        self._login_user_and_profile(alice_data)
+
+        project_id = self.project.pk
+        post_data = {'formid': formid}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=project_id)
+        self.assertEqual(response.status_code, 403)
+
     def test_project_users_get_readonly_role_on_add_form(self):
         self._project_create()
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}

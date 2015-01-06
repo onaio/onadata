@@ -34,6 +34,7 @@ from onadata.libs.utils.user_auth import check_and_set_form_by_id
 from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
 from onadata.libs.data.statistics import _chk_asarray
 from onadata.libs.permissions import ROLES
+from onadata.libs.permissions import ManagerRole
 from onadata.libs.permissions import get_role_in_org
 
 DECIMAL_PRECISION = 2
@@ -230,6 +231,10 @@ def publish_project_xform(request, project):
 
     if 'formid' in request.DATA:
         xform = get_object_or_404(XForm, pk=request.DATA.get('formid'))
+        if not ManagerRole.user_has_role(request.user, xform):
+            raise exceptions.PermissionDenied(_(
+                "{} has no manager/owner role to the form {}". format(
+                    request.user, xform)))
         xform.project = project
         xform.save()
         set_project_perms_to_xform(xform, project)
