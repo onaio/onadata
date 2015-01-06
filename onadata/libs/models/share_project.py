@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from onadata.libs.permissions import ROLES, ManagerRole
+from onadata.libs.permissions import ROLES
 
 
 class ShareProject(object):
@@ -25,7 +25,7 @@ class ShareProject(object):
 
                 # apply same role to forms under the project
                 for xform in self.project.xform_set.all():
-                    ManagerRole.add(self.user, xform)
+                    role.add(self.user, xform)
 
     def remove_user(self):
         role = ROLES.get(self.role)
