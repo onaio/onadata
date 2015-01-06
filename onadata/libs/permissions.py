@@ -138,6 +138,7 @@ class ManagerRole(Role):
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
         (CAN_VIEW_PROFILE, UserProfile),
+        (CAN_ADD_PROJECT, Project),
         (CAN_ADD_PROJECT_XFORM, Project),
         (CAN_CHANGE_PROJECT, Project),
         (CAN_VIEW_PROJECT, Project),
