@@ -864,6 +864,14 @@ class TestXFormViewSet(TestAbstractViewSet):
         self._publish_xls_form_to_project()
         self.assertEqual(project_count + 2, Project.objects.count())
 
+        # check that forms' projects are not equal and the forms have the same
+        # id_string and title
+        xform_1 = XForm.objects.get(project__name='demo')
+        xform_2 = XForm.objects.get(project__name='demo2')
+        self.assertNotEqual(xform_1.project, xform_2.project)
+        self.assertEqual(xform_1.id_string, xform_2.id_string)
+        self.assertEqual(xform_1.title, xform_2.title)
+
         title_old = self.xform.title
         self.assertIsNotNone(self.xform.version)
         version = self.xform.version
@@ -885,6 +893,13 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         self.xform.reload()
         new_version = self.xform.version
+
+        # check that the id_string of both forms remain the same but the
+        # title changed
+        xform_1 = XForm.objects.get(project__name='demo')
+        xform_2 = XForm.objects.get(project__name='demo2')
+        self.assertEqual(xform_1.id_string, xform_2.id_string)
+        self.assertNotEqual(xform_1.title, xform_2.title)
 
         # diff versions
         self.assertNotEquals(version, new_version)
