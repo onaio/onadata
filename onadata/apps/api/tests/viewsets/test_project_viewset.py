@@ -11,6 +11,7 @@ from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs import permissions as role
+from onadata.libs.models.share_project import ShareProject
 
 
 class TestProjectViewSet(TestAbstractViewSet):
@@ -202,7 +203,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # alice user as manager to both projects
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         alice_profile = self._create_user_profile(alice_data)
-        ManagerRole.add(alice_profile.user, self.project)
+        ShareProject(self.project, 'alice', 'manager').save()
         self.assertTrue(ManagerRole.user_has_role(alice_profile.user,
                                                   self.project))
 
@@ -211,7 +212,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         project_name = u'another project'
         self._project_create({'name': project_name})
         self.assertTrue(self.project.name == project_name)
-        ManagerRole.add(alice_profile.user, self.project)
+        ShareProject(self.project, 'alice', 'manager').save()
         self.assertTrue(ManagerRole.user_has_role(alice_profile.user,
                                                   self.project))
         self._login_user_and_profile(alice_data)
