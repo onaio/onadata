@@ -1126,6 +1126,6 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertEqual(response.status_code, 202)
 
-        self.assertTrue('task_id' in response.data)
+        self.assertTrue('job_uuid' in response.data)
 
         self.assertEquals(count+1, XForm.objects.count())

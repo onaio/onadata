@@ -7,6 +7,7 @@ from django.core.files.uploadedfile import (InMemoryUploadedFile,
 from django.utils.datastructures import MultiValueDict
 from io import BytesIO
 from onadata.apps.api import tools
+from onadata.apps.logger.models.xform import XForm
 
 
 def recreate_tmp_file(name, path, mime_type):
@@ -30,7 +31,12 @@ def publish_xlsform_async(user, post_data, owner, file_data):
                 file_data.get('name'), file_data.get('path'),
                 u'application/octet-stream'))
 
-        return tools.do_publish_xlsform(user, post_data, files, owner)
+        survey = tools.do_publish_xlsform(user, post_data, files, owner)
+
+        if isinstance(survey, XForm):
+            return {"pk": survey.pk}
+
+        return survey
     except:
         e = sys.exc_info()[0]
         return {u'error': str(e)}

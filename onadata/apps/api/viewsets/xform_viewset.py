@@ -743,6 +743,60 @@ previous call
 >           "current": 100,
 >           "total": 100000
 >       }
+## Upload a XLS form async
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/forms/create_async
+</pre>
+> Example
+>
+>       curl -X POST https://ona.io/api/v1/forms/create_async \
+-F xls_file=@/path/to/xls_file
+>
+> Response
+>
+>       HTTP 202 Accepted
+>       {"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
+>
+> You can use the `job_uuid value to check on the upload progress (see below)
+## Check on XLS form upload progress
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/create_async/?job_uuid=UUID
+</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/forms/create_async?job_uuid=UUID
+>
+> Response
+> If the job is done:-
+>
+>       HTTP 201 Created
+>      {
+>           "url": "https://ona.io/api/v1/forms/28058",
+>           "formid": 28058,
+>           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
+>           "id_string": "Birds",
+>           "sms_id_string": "Birds",
+>           "title": "Birds",
+>           "allows_sms": false,
+>           "bamboo_dataset": "",
+>           "description": "",
+>           "downloadable": true,
+>           "encrypted": false,
+>           "owner": "ona",
+>           "public": false,
+>           "public_data": false,
+>           "date_created": "2013-07-25T14:14:22.892Z",
+>           "date_modified": "2013-07-25T14:14:22.892Z"
+>       }
+>
+> If the upload is still running:-
+>
+>       HTTP 202 Accepted
+>       {
+>           "JOB_STATUS": "PENDING"
+>       }
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
@@ -794,8 +848,8 @@ previous call
             survey = tasks.get_async_creation_status(
                 request.QUERY_PARAMS.get('job_uuid'))
 
-            if isinstance(survey, XForm):
-                xform = XForm.objects.get(pk=survey.pk)
+            if 'pk' in survey:
+                xform = XForm.objects.get(pk=survey.get('pk'))
                 serializer = XFormSerializer(
                     xform, context={'request': request})
                 headers = self.get_success_headers(serializer.data)
@@ -813,7 +867,7 @@ previous call
 
             fname = request.FILES.get('xls_file').name
             resp.update(
-                {u'task_id':
+                {u'job_uuid':
                  tasks.publish_xlsform_async.delay(
                      request.user, request.POST, owner,
                      ({'name': fname,
