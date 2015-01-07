@@ -223,7 +223,7 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
             args = post
         form = QuickConverter(args,  files)
 
-        return form.publish(user, id_string=id_string, created_by=user)
+        return form.publish(owner, id_string=id_string, created_by=user)
 
     return publish_form(set_form)
 
