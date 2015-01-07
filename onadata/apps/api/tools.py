@@ -202,7 +202,6 @@ def add_team_to_project(team, project):
     return False
 
 
-
 def publish_xlsform(request, owner, id_string=None, project=None):
     return do_publish_xlsform(
         request.user, request.POST, request.FILES, owner, id_string,

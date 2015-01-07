@@ -8,6 +8,7 @@ import pytz
 from datetime import datetime
 from django.utils import timezone
 from django.conf import settings
+from django.test.utils import override_settings
 from httmock import urlmatch, HTTMock
 from mock import patch
 from rest_framework import status
@@ -1106,3 +1107,25 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['formid'], formid)
         self.assertEqual(response.data['public'], True)
         self.assertTrue(response.data['public_data'], True)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    def test_publish_form_async(self):
+        count = XForm.objects.count()
+        view = XFormViewSet.as_view({
+            'post': 'create_async'
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation.xls")
+
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+
+            self.assertEqual(response.status_code, 202)
+
+        self.assertTrue('task_id' in response.data)
+
+        self.assertEquals(count+1, XForm.objects.count())
