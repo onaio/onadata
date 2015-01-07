@@ -166,15 +166,16 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     def test_partial_updates(self):
         self.assertEqual(self.user.profile.country, u'US')
-
         country = u'KE'
-        data = {'country': country}
+        metadata = {u'computer': u'mac'}
+        json_metadata = json.dumps(metadata)
+        data = {'country': country, 'metadata': json_metadata}
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, user=self.user.username)
         profile = UserProfile.objects.get(user=self.user)
-
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.country, country)
+        self.assertEqual(profile.metadata, metadata)
 
     def test_put_update(self):
 
