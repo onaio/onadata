@@ -7,6 +7,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.libs.permissions import OwnerRole
+from onadata.apps.api.models.organization_profile import OrganizationProfile
 
 
 class TestOrganizationProfileViewSet(TestAbstractViewSet):
@@ -15,8 +16,20 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         super(self.__class__, self).setUp()
         self.view = OrganizationProfileViewSet.as_view({
             'get': 'list',
-            'post': 'create'
+            'post': 'create',
+            'patch': 'partial_update',
         })
+
+    def test_partial_updates(self):
+        self._org_create()
+        metadata = {u'computer': u'mac'}
+        json_metadata = json.dumps(metadata)
+        data = {'metadata': json_metadata}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user='denoinc')
+        profile = OrganizationProfile.objects.get(name='Dennis')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(profile.metadata, metadata)
 
     def test_orgs_list(self):
         self._org_create()
