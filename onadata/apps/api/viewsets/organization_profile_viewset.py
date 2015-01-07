@@ -130,6 +130,40 @@ List, Retrieve, Update, Create/Register Organizations
 >            "creator": "https://ona.io/api/v1/users/demo"
 >        }
 
+## Partial updates of Organization Profile Information
+
+Organization profile properties can be updated using `PATCH` http method.
+Payload required is for properties that are to be changed in JSON, for example
+, `{"metadata": {"computer": "mac"}}` will set the metadata to
+`{"computer": "mac"}`.
+
+<pre class="prettyprint"><b>PATCH</b> /api/v1/orgs/{username}</pre>
+> Example
+>
+>     \
+curl -X PATCH -d '{"metadata": {"computer": "mac"}}' https://ona.io/api/v1/\
+profiles/modilabs -H "Content-Type: application/json"
+
+> Response
+>
+>        {
+>            "url": "https://ona.io/api/v1/orgs/modilabs",
+>            "org": "modilabs",
+>            "name": "Modi Labs Research",
+>            "email": "modilabs@localhost.com",
+>            "city": "New York",
+>            "country": "US",
+>            "website": "",
+>            "twitter": "",
+>            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
+>            "require_auth": false,
+>            "metadata": {
+>                "computer": "mac"
+>             },
+>            "user": "https://ona.io/api/v1/users/modilabs"
+>            "creator": "https://ona.io/api/v1/users/demo"
+>        }
+
 ## List Organization members
 
 Get a list of organization members.
