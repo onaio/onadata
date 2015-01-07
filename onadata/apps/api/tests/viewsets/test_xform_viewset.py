@@ -836,7 +836,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             post_data = {'xls_file': xls_file}
             request = self.factory.patch('/', data=post_data, **self.extra)
             response = view(request, pk=form_id)
-
             self.assertEqual(response.status_code, 200)
 
         self.xform.reload()
@@ -846,6 +845,30 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertNotEquals(version, new_version)
         self.assertNotEquals(title_old, self.xform.title)
         self.assertEquals(form_id, self.xform.pk)
+
+    def test_update_xform_xls_file_with_different_id_string(self):
+        self._publish_xls_form_to_project()
+
+        self.assertIsNotNone(self.xform.version)
+        form_id = self.xform.pk
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update',
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation_different_id_string.xlsx")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+            self.assertEqual(response.status_code, 400)
+            expected_response = u"Your updated form's id_string " \
+                "'transportation_2015_01_07' must match the existing forms' " \
+                "id_string 'transportation_2011_07_25'."
+            self.assertEqual(response.data.get(
+                'text'), expected_response)
 
     def test_update_xform_with_same_id_string_in_different_projects(self):
         project_count = Project.objects.count()
