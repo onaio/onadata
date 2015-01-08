@@ -1109,7 +1109,10 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertTrue(response.data['public_data'], True)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    def test_publish_form_async(self):
+    @patch('onadata.apps.api.tasks.get_async_creation_status')
+    def test_publish_form_async(self, mock_get_status):
+        mock_get_status.return_value = {'JOB_STATUS': 'PENDING'}
+
         count = XForm.objects.count()
         view = XFormViewSet.as_view({
             'post': 'create_async',
@@ -1136,8 +1139,15 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data=get_data, **self.extra)
         response = view(request)
 
+        self.assertTrue(mock_get_status.called)
+
         self.assertEqual(response.status_code, 202)
         self.assertEquals(response.data, {'JOB_STATUS': 'PENDING'})
+
+    def test_check_async_publish_empty_uuid(self):
+        view = XFormViewSet.as_view({
+            'get': 'create_async'
+        })
 
         # set an empty uuid
         get_data = {'job_uuid': ""}
