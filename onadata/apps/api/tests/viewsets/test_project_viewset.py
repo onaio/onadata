@@ -319,6 +319,57 @@ class TestProjectViewSet(TestAbstractViewSet):
             role_class._remove_obj_permissions(alice_profile.user,
                                                self.project)
 
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_project_share_endpoint_form_published_later(self, mock_send_mail):
+        # create project
+        self._project_create()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        projectid = self.project.pk
+
+        ROLES = [ReadOnlyRole,
+                 DataEntryRole,
+                 EditorRole,
+                 ManagerRole,
+                 OwnerRole]
+        for role_class in ROLES:
+            self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                      self.project))
+
+            data = {'username': 'alice', 'role': role_class.name,
+                    'email_msg': 'I have shared the project with you'}
+            request = self.factory.post('/', data=data, **self.extra)
+
+            view = ProjectViewSet.as_view({
+                'post': 'share'
+            })
+            response = view(request, pk=projectid)
+
+            self.assertEqual(response.status_code, 204)
+            self.assertTrue(mock_send_mail.called)
+
+            self.assertTrue(role_class.user_has_role(alice_profile.user,
+                                                     self.project))
+
+            # publish form after project sharing
+            self._publish_xls_form_to_project()
+            self.assertTrue(role_class.user_has_role(alice_profile.user,
+                                                     self.xform))
+            # Reset the mock called value to False
+            mock_send_mail.called = False
+
+            data = {'username': 'alice', 'role': ''}
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=projectid)
+
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertFalse(mock_send_mail.called)
+
+            role_class._remove_obj_permissions(alice_profile.user,
+                                               self.project)
+            self.xform.delete()
+
     def test_project_share_remove_user(self):
         self._project_create()
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
