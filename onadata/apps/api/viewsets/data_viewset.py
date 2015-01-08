@@ -378,7 +378,8 @@ Delete a specific submission in a form
     ]
 
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
-                       filters.XFormOwnerFilter)
+                       filters.XFormOwnerFilter,
+                       filters.DataFilter)
     serializer_class = DataSerializer
     permission_classes = (XFormPermissions,)
     lookup_field = 'pk'
