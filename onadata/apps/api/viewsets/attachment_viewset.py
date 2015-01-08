@@ -171,3 +171,15 @@ class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
                 raise Http404(_("Filename '%s' not found." % filename))
 
         return Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        if request.user.is_anonymous():
+            xform = request.QUERY_PARAMS.get('xform')
+            if xform:
+                attachments = self.queryset.filter(
+                    instance__xform__id=xform,
+                    instance__xform__shared_data=True)
+                if not attachments:
+                    raise Http404(_("Not Found"))
+
+        return super(AttachmentViewSet, self).list(request, *args, **kwargs)
