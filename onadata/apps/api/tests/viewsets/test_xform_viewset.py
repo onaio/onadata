@@ -1112,7 +1112,8 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_publish_form_async(self):
         count = XForm.objects.count()
         view = XFormViewSet.as_view({
-            'post': 'create_async'
+            'post': 'create_async',
+            'get': 'create_async'
         })
 
         path = os.path.join(
@@ -1129,3 +1130,19 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertTrue('job_uuid' in response.data)
 
         self.assertEquals(count+1, XForm.objects.count())
+
+        # get the result
+        get_data = {'job_uuid': response.data.get('job_uuid')}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEquals(response.data, {'JOB_STATUS': 'PENDING'})
+
+        # set an empty uuid
+        get_data = {'job_uuid': ""}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEquals(response.data, {u'error': u'Empty job uuid'})
