@@ -747,7 +747,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEquals(self.xform.shared_data, True)
 
     def test_project_all_users_can_share_remove_themselves(self):
-        self._project_create()
+        self._publish_xls_form_to_project()
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(alice_data)
 
@@ -758,7 +758,12 @@ class TestProjectViewSet(TestAbstractViewSet):
         data = {'username': 'alice', 'remove': True}
         for role_name, role_class in role.ROLES.iteritems():
 
-            role_class.add(self.user, self.project)
+            ShareProject(self.project, 'alice', role_name).save()
+
+            self.assertTrue(role_class.user_has_role(self.user,
+                                                     self.project))
+            self.assertTrue(role_class.user_has_role(self.user,
+                                                     self.xform))
             data['role'] = role_name
 
             request = self.factory.put('/', data=data, **self.extra)
@@ -768,6 +773,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
             self.assertFalse(role_class.user_has_role(self.user,
                                                       self.project))
+            self.assertFalse(role_class.user_has_role(self.user,
+                                                      self.xform))
 
     def test_owner_cannot_remove_self_if_no_other_owner(self):
         self._project_create()
