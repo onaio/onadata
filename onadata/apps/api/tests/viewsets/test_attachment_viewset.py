@@ -56,6 +56,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         # anon user private form access not allowed
         self._submit_transport_instance_w_attachment()
         pk = self.attachment.pk
+        xform_id = self.attachment.instance.xform.id
 
         request = self.factory.get('/')
         response = self.retrieve_view(request, pk=pk)
@@ -66,6 +67,10 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
+        request = self.factory.get('/', data={"xform": xform_id})
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 404)
+
         xform = self.attachment.instance.xform
         xform.shared_data = True
         xform.save()
@@ -75,6 +80,10 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
 
         request = self.factory.get('/')
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 200)
+
+        request = self.factory.get('/', data={"xform": xform_id})
         response = self.list_view(request)
         self.assertEqual(response.status_code, 200)
 
