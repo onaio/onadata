@@ -691,6 +691,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.xform.shared = True
         self.xform.save()
         self.project.save()
+        self.xform.reload()
+        self.project.reload()
         self.assertTrue(self.xform.shared)
         self.assertFalse(self.xform.shared_data)
         self.assertFalse(self.project.shared)
@@ -700,6 +702,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.xform.shared_data = True
         self.xform.save()
         self.project.save()
+        self.xform.reload()
+        self.project.reload()
         self.assertFalse(self.xform.shared)
         self.assertTrue(self.xform.shared_data)
         self.assertFalse(self.project.shared)

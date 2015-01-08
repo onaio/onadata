@@ -51,15 +51,5 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
                 assign_perm(perm.codename, instance.created_by, instance)
 
 
-def update_xform_share_settings(sender,
-                                instance=None,
-                                created=False,
-                                **kwargs):
-    if not created:
-        instance.xform_set.exclude(shared=instance.shared)\
-            .update(shared=instance.shared, shared_data=instance.shared)
-
 post_save.connect(set_object_permissions, sender=Project,
                   dispatch_uid='set_project_object_permissions')
-post_save.connect(update_xform_share_settings, sender=Project,
-                  dispatch_uid='update_xform_share_settings')
