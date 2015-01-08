@@ -676,6 +676,47 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEquals(self.xform.shared, True)
         self.assertEquals(self.xform.shared_data, True)
 
+    def test_public_form_private_project(self):
+        self.project = Project(name='demo', shared=False,
+                               metadata=json.dumps({'description': ''}),
+                               created_by=self.user, organization=self.user)
+        self.project.save()
+        self._publish_xls_form_to_project()
+
+        self.assertFalse(self.xform.shared)
+        self.assertFalse(self.xform.shared_data)
+        self.assertFalse(self.project.shared)
+
+        # when xform.shared is true, project settings does not override
+        self.xform.shared = True
+        self.xform.save()
+        self.project.save()
+        self.assertTrue(self.xform.shared)
+        self.assertFalse(self.xform.shared_data)
+        self.assertFalse(self.project.shared)
+
+        # when xform.shared_data is true, project settings does not override
+        self.xform.shared = False
+        self.xform.shared_data = True
+        self.xform.save()
+        self.project.save()
+        self.assertFalse(self.xform.shared)
+        self.assertTrue(self.xform.shared_data)
+        self.assertFalse(self.project.shared)
+
+        # when xform.shared is true, submissions are made,
+        # project settings does not override
+        self.xform.shared = True
+        self.xform.shared_data = False
+        self.xform.save()
+        self.project.save()
+        self._make_submissions()
+        self.xform.reload()
+        self.project.reload()
+        self.assertTrue(self.xform.shared)
+        self.assertFalse(self.xform.shared_data)
+        self.assertFalse(self.project.shared)
+
     def test_publish_to_public_project_public_form(self):
         public_project = Project(name='demo',
                                  shared=True,
