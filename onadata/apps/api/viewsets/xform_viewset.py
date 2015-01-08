@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.http import Http404, HttpResponseBadRequest, HttpResponseRedirect
@@ -13,12 +14,13 @@ from django.utils import timezone
 
 from rest_framework import exceptions
 from rest_framework import status
-from rest_framework.decorators import action, detail_route
+from rest_framework.decorators import action, detail_route, list_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.main.views import get_enketo_preview_url
+from onadata.apps.api import tasks
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -741,6 +743,60 @@ previous call
 >           "current": 100,
 >           "total": 100000
 >       }
+## Upload a XLS form async
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/forms/create_async
+</pre>
+> Example
+>
+>       curl -X POST https://ona.io/api/v1/forms/create_async \
+-F xls_file=@/path/to/xls_file
+>
+> Response
+>
+>       HTTP 202 Accepted
+>       {"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
+>
+> You can use the `job_uuid value to check on the upload progress (see below)
+## Check on XLS form upload progress
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/create_async/?job_uuid=UUID
+</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/forms/create_async?job_uuid=UUID
+>
+> Response
+> If the job is done:-
+>
+>       HTTP 201 Created
+>      {
+>           "url": "https://ona.io/api/v1/forms/28058",
+>           "formid": 28058,
+>           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
+>           "id_string": "Birds",
+>           "sms_id_string": "Birds",
+>           "title": "Birds",
+>           "allows_sms": false,
+>           "bamboo_dataset": "",
+>           "description": "",
+>           "downloadable": true,
+>           "encrypted": false,
+>           "owner": "ona",
+>           "public": false,
+>           "public_data": false,
+>           "date_created": "2013-07-25T14:14:22.892Z",
+>           "date_modified": "2013-07-25T14:14:22.892Z"
+>       }
+>
+> If the upload is still running:-
+>
+>       HTTP 202 Accepted
+>       {
+>           "JOB_STATUS": "PENDING"
+>       }
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
@@ -781,6 +837,49 @@ previous call
                             headers=headers)
 
         return Response(survey, status=status.HTTP_400_BAD_REQUEST)
+
+    @list_route(methods=['POST', 'GET'])
+    def create_async(self, request, *args, **kwargs):
+        """ Temporary Endpoint for Async form creation """
+        resp = headers = {}
+        resp_code = status.HTTP_400_BAD_REQUEST
+
+        if request.method == 'GET':
+            survey = tasks.get_async_creation_status(
+                request.QUERY_PARAMS.get('job_uuid'))
+
+            if 'pk' in survey:
+                xform = XForm.objects.get(pk=survey.get('pk'))
+                serializer = XFormSerializer(
+                    xform, context={'request': request})
+                headers = self.get_success_headers(serializer.data)
+                resp = serializer.data
+                resp_code = status.HTTP_201_CREATED
+            else:
+                resp_code = status.HTTP_202_ACCEPTED
+                resp.update(survey)
+        else:
+            try:
+                owner = _get_owner(request)
+            except ValidationError as e:
+                return Response({'message': e.messages[0]},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            fname = request.FILES.get('xls_file').name
+            resp.update(
+                {u'job_uuid':
+                 tasks.publish_xlsform_async.delay(
+                     request.user, request.POST, owner,
+                     ({'name': fname,
+                       'data': request.FILES.get('xls_file').read()}
+                      if isinstance(request.FILES.get('xls_file'),
+                                    InMemoryUploadedFile) else
+                      {'name': fname,
+                       'path': request.FILES.get(
+                           'xls_file').temporary_file_path()})).task_id})
+            resp_code = status.HTTP_202_ACCEPTED
+
+        return Response(data=resp, status=resp_code, headers=headers)
 
     @action(methods=['GET'])
     def form(self, request, format='json', **kwargs):

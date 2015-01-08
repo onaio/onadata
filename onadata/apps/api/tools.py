@@ -202,21 +202,28 @@ def add_team_to_project(team, project):
     return False
 
 
-def publish_xlsform(request, user, id_string=None, project=None):
-    if not request.user.has_perm('can_add_xform', user.profile):
+def publish_xlsform(request, owner, id_string=None, project=None):
+    return do_publish_xlsform(
+        request.user, request.POST, request.FILES, owner, id_string,
+        project)
+
+
+def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
+    if not user.has_perm('can_add_xform', owner.profile):
         raise exceptions.PermissionDenied(
             detail=_(u"User %(user)s has no permission to add xforms to "
-                     "account %(account)s" % {'user': request.user.username,
-                                              'account': user.username}))
+                     "account %(account)s" % {'user': user.username,
+                                              'account': owner.username}))
 
     def set_form():
-        if project:
-            args = dict({'project': project.pk}.items() + request.POST.items())
-        else:
-            args = request.POST
-        form = QuickConverter(args,  request.FILES)
 
-        return form.publish(user, id_string=id_string, created_by=request.user)
+        if project:
+            args = dict({'project': project.pk}.items() + post.items())
+        else:
+            args = post
+        form = QuickConverter(args,  files)
+
+        return form.publish(owner, id_string=id_string, created_by=user)
 
     return publish_form(set_form)
 
