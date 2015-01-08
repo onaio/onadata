@@ -303,8 +303,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
             self.assertTrue(role_class.user_has_role(alice_profile.user,
                                                      self.project))
-            self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
-                                                       self.xform))
+            self.assertTrue(role_class.user_has_role(alice_profile.user,
+                                                     self.xform))
             # Reset the mock called value to False
             mock_send_mail.called = False
 
