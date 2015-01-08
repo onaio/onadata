@@ -303,8 +303,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
             self.assertTrue(role_class.user_has_role(alice_profile.user,
                                                      self.project))
-            self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
-                                                       self.xform))
+            self.assertTrue(role_class.user_has_role(alice_profile.user,
+                                                     self.xform))
             # Reset the mock called value to False
             mock_send_mail.called = False
 
@@ -318,6 +318,57 @@ class TestProjectViewSet(TestAbstractViewSet):
 
             role_class._remove_obj_permissions(alice_profile.user,
                                                self.project)
+
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_project_share_endpoint_form_published_later(self, mock_send_mail):
+        # create project
+        self._project_create()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        projectid = self.project.pk
+
+        ROLES = [ReadOnlyRole,
+                 DataEntryRole,
+                 EditorRole,
+                 ManagerRole,
+                 OwnerRole]
+        for role_class in ROLES:
+            self.assertFalse(role_class.user_has_role(alice_profile.user,
+                                                      self.project))
+
+            data = {'username': 'alice', 'role': role_class.name,
+                    'email_msg': 'I have shared the project with you'}
+            request = self.factory.post('/', data=data, **self.extra)
+
+            view = ProjectViewSet.as_view({
+                'post': 'share'
+            })
+            response = view(request, pk=projectid)
+
+            self.assertEqual(response.status_code, 204)
+            self.assertTrue(mock_send_mail.called)
+
+            self.assertTrue(role_class.user_has_role(alice_profile.user,
+                                                     self.project))
+
+            # publish form after project sharing
+            self._publish_xls_form_to_project()
+            self.assertTrue(role_class.user_has_role(alice_profile.user,
+                                                     self.xform))
+            # Reset the mock called value to False
+            mock_send_mail.called = False
+
+            data = {'username': 'alice', 'role': ''}
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=projectid)
+
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertFalse(mock_send_mail.called)
+
+            role_class._remove_obj_permissions(alice_profile.user,
+                                               self.project)
+            self.xform.delete()
 
     def test_project_share_remove_user(self):
         self._project_create()
@@ -625,6 +676,51 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEquals(self.xform.shared, True)
         self.assertEquals(self.xform.shared_data, True)
 
+    def test_public_form_private_project(self):
+        self.project = Project(name='demo', shared=False,
+                               metadata=json.dumps({'description': ''}),
+                               created_by=self.user, organization=self.user)
+        self.project.save()
+        self._publish_xls_form_to_project()
+
+        self.assertFalse(self.xform.shared)
+        self.assertFalse(self.xform.shared_data)
+        self.assertFalse(self.project.shared)
+
+        # when xform.shared is true, project settings does not override
+        self.xform.shared = True
+        self.xform.save()
+        self.project.save()
+        self.xform.reload()
+        self.project.reload()
+        self.assertTrue(self.xform.shared)
+        self.assertFalse(self.xform.shared_data)
+        self.assertFalse(self.project.shared)
+
+        # when xform.shared_data is true, project settings does not override
+        self.xform.shared = False
+        self.xform.shared_data = True
+        self.xform.save()
+        self.project.save()
+        self.xform.reload()
+        self.project.reload()
+        self.assertFalse(self.xform.shared)
+        self.assertTrue(self.xform.shared_data)
+        self.assertFalse(self.project.shared)
+
+        # when xform.shared is true, submissions are made,
+        # project settings does not override
+        self.xform.shared = True
+        self.xform.shared_data = False
+        self.xform.save()
+        self.project.save()
+        self._make_submissions()
+        self.xform.reload()
+        self.project.reload()
+        self.assertTrue(self.xform.shared)
+        self.assertFalse(self.xform.shared_data)
+        self.assertFalse(self.project.shared)
+
     def test_publish_to_public_project_public_form(self):
         public_project = Project(name='demo',
                                  shared=True,
@@ -655,7 +751,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEquals(self.xform.shared_data, True)
 
     def test_project_all_users_can_share_remove_themselves(self):
-        self._project_create()
+        self._publish_xls_form_to_project()
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(alice_data)
 
@@ -666,7 +762,12 @@ class TestProjectViewSet(TestAbstractViewSet):
         data = {'username': 'alice', 'remove': True}
         for role_name, role_class in role.ROLES.iteritems():
 
-            role_class.add(self.user, self.project)
+            ShareProject(self.project, 'alice', role_name).save()
+
+            self.assertTrue(role_class.user_has_role(self.user,
+                                                     self.project))
+            self.assertTrue(role_class.user_has_role(self.user,
+                                                     self.xform))
             data['role'] = role_name
 
             request = self.factory.put('/', data=data, **self.extra)
@@ -676,6 +777,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
             self.assertFalse(role_class.user_has_role(self.user,
                                                       self.project))
+            self.assertFalse(role_class.user_has_role(self.user,
+                                                      self.xform))
 
     def test_owner_cannot_remove_self_if_no_other_owner(self):
         self._project_create()

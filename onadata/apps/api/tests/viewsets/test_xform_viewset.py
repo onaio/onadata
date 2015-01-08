@@ -1090,24 +1090,6 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(self.user.username, 'alice')
         self.assertNotEqual(previous_user,  self.user)
 
-    def test_public_project_forms_are_shared(self):
-        self._publish_xls_form_to_project()
-        formid = self.xform.pk
-
-        self.project.shared = True
-        self.project.save()
-
-        view = XFormViewSet.as_view({
-            'get': 'retrieve'
-        })
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=formid)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['formid'], formid)
-        self.assertEqual(response.data['public'], True)
-        self.assertTrue(response.data['public_data'], True)
-
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.tasks.get_async_creation_status')
     def test_publish_form_async(self, mock_get_status):

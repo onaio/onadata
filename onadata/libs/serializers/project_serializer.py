@@ -63,6 +63,13 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         return attrs
 
+    def save_object(self, obj, **kwargs):
+        super(ProjectSerializer, self).save_object(obj, **kwargs)
+        # only update xforms when the serializer is used, i.e via api
+        if self.partial:
+            obj.xform_set.exclude(shared=obj.shared)\
+                .update(shared=obj.shared, shared_data=obj.shared)
+
     def get_project_permissions(self, obj):
         return get_object_users_with_permissions(obj)
 
