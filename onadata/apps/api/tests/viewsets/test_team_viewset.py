@@ -5,9 +5,9 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 
 from onadata.apps.api import tools
-from onadata.apps.api.models.project import Project
+from onadata.apps.logger.models import Project
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
-from onadata.libs.permissions import ReadOnlyRole, DataEntryRole
+from onadata.libs.permissions import ReadOnlyRole, EditorRole
 
 
 class TestTeamViewSet(TestAbstractViewSet):
@@ -186,7 +186,7 @@ class TestTeamViewSet(TestAbstractViewSet):
             'post': 'default_permissions'})
 
         ROLES = [ReadOnlyRole,
-                 DataEntryRole]
+                 EditorRole]
 
         for role_class in ROLES:
             self.assertFalse(role_class.user_has_role(user_chuck,

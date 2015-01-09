@@ -35,7 +35,7 @@ class TeamSerializer(serializers.Serializer):
         projects = []
 
         if obj:
-            for project in obj.organization.project_organization.all():
+            for project in obj.projects.all():
                 project_map = {}
                 project_map['name'] = project.name
                 project_map['projectid'] = project.pk
