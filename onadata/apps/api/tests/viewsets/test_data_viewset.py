@@ -129,6 +129,13 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         # data not found for anonymous access to private data
         self.assertEqual(response.status_code, 404)
+
+        self.xform.shared = True
+        self.xform.save()
+        response = view(request, pk=formid)
+        # access to a shared form but private data
+        self.assertEqual(response.status_code, 404)
+
         self.xform.shared_data = True
         self.xform.save()
         response = view(request, pk=formid)

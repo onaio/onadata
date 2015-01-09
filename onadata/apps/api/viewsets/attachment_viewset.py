@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from onadata.apps.api.permissions import AttachmentObjectPermissions
 from onadata.apps.logger.models.attachment import Attachment
+from onadata.apps.logger.models.xform import XForm
 from onadata.libs import filters
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
@@ -171,3 +172,13 @@ class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
                 raise Http404(_("Filename '%s' not found." % filename))
 
         return Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        if request.user.is_anonymous():
+            xform = request.QUERY_PARAMS.get('xform')
+            if xform:
+                xform = XForm.objects.get(id=xform)
+                if not xform.shared_data:
+                    raise Http404(_("Not Found"))
+
+        return super(AttachmentViewSet, self).list(request, *args, **kwargs)

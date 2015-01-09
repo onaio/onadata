@@ -79,6 +79,14 @@ class XFormOwnerFilter(filters.BaseFilterBackend):
         return queryset
 
 
+class DataFilter(filters.DjangoObjectPermissionsFilter):
+
+    def filter_queryset(self, request, queryset, view):
+        if request.user.is_anonymous():
+            return queryset.filter(Q(shared_data=True))
+        return queryset
+
+
 class ProjectOwnerFilter(XFormOwnerFilter):
     owner_prefix = 'organization'
 
