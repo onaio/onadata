@@ -688,6 +688,7 @@ def generate_export(export_type, extension, username, id_string,
 
     # query mongo for the cursor
     records = xform.instances.filter(deleted_at=None)\
+        .order_by('pk')\
         .values_list('json', flat=True)
 
     export_builder = ExportBuilder()
