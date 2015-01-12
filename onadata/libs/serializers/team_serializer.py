@@ -5,6 +5,7 @@ from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import\
     HyperlinkedMultiIdentityField
 from onadata.libs.serializers.user_serializer import UserSerializer
 from onadata.apps.api.models import OrganizationProfile, Team
+from onadata.apps.logger.models import Project
 from onadata.libs.permissions import get_team_project_default_permissions
 
 
@@ -35,7 +36,8 @@ class TeamSerializer(serializers.Serializer):
         projects = []
 
         if obj:
-            for project in obj.projects.all():
+            for project in Project.objects.filter(
+                    organization__id=obj.organization.id):
                 project_map = {}
                 project_map['name'] = project.name
                 project_map['projectid'] = project.pk
