@@ -81,7 +81,7 @@ def create_organization(name, creator):
         - Team(name='Owners', organization=organization).save()
 
     """
-    organization = User.objects.create(username=name)
+    organization, created = User.objects.get_or_create(username__iexact=name)
     organization_profile = OrganizationProfile.objects.create(
         user=organization, creator=creator)
     return organization_profile
@@ -182,7 +182,8 @@ def create_organization_project(organization, project_name, created_by):
 
     project = Project.objects.create(name=project_name,
                                      organization=organization,
-                                     created_by=created_by)
+                                     created_by=created_by,
+                                     metadata='{}')
 
     return project
 
