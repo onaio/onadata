@@ -51,7 +51,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class XFormListSerializer(serializers.Serializer):
-    formID = serializers.Field(source='id')
+    formID = serializers.Field(source='id_string')
     name = serializers.Field(source='title')
     majorMinorVersion = serializers.SerializerMethodField('get_version')
     version = serializers.SerializerMethodField('get_version')
