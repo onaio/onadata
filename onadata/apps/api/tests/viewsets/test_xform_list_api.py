@@ -33,7 +33,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             '..', 'fixtures', 'formList.xml')
 
         with open(path) as f:
-            form_list_xml = f.read().strip().format(self.xform.pk)
+            form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
             content = response.render().content
             self.assertEqual(content, form_list_xml % data)
@@ -78,7 +78,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             '..', 'fixtures', 'formList.xml')
 
         with open(path) as f:
-            form_list_xml = f.read().strip().format(self.xform.pk)
+            form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
             content = response.render().content
             self.assertEqual(content, form_list_xml % data)
@@ -171,7 +171,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
             '..', 'fixtures', 'formList.xml')
 
         with open(path) as f:
-            form_list_xml = f.read().strip().format(self.xform.pk)
+            form_list_xml = f.read().strip()
             data = {"hash": self.xform.hash, "pk": self.xform.pk}
             content = response.render().content
             self.assertEqual(content, form_list_xml % data)
