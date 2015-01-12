@@ -5,6 +5,9 @@ import json
 from mock import patch
 import os
 import re
+import pytz
+
+from datetime import datetime
 
 from django.core.urlresolvers import reverse
 from django.conf import settings
@@ -18,7 +21,7 @@ from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME
+from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from test_base import TestBase
 
 
@@ -63,8 +66,10 @@ class TestProcess(TestBase):
         Update stuff like submission time so we can compare within out fixtures
         """
         for uuid, submission_time in self.uuid_to_submission_times.iteritems():
-            xform_instances.update(
-                {UUID: uuid}, {'$set': {SUBMISSION_TIME: submission_time}})
+            i = self.xform.instances.get(uuid=uuid)
+            i.date_created = pytz.timezone('UTC').localize(
+                datetime.strptime(submission_time, MONGO_STRFTIME))
+            i.save()
 
     def test_uuid_submit(self):
         self._publish_xls_file()
