@@ -283,7 +283,7 @@ class Instance(models.Model):
             ID: self.id,
             BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
             USERFORM_ID: u'%s_%s' % (
-                self.user.username,
+                self.xform.user.username,
                 self.xform.id_string),
             ATTACHMENTS: _get_attachments_from_instance(self),
             STATUS: self.status,
