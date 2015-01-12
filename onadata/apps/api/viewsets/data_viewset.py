@@ -225,7 +225,7 @@ API Parameters</a>.
 >       curl -X GET 'https://ona.io/api/v1/data/22845?query={"kind": \
 "monthly"}'
 >       curl -X GET 'https://ona.io/api/v1/data/22845?query={"date": \
-{"gt$": "2014-09-29T01:02:03+0000"}}'
+{"$gt": "2014-09-29T01:02:03+0000"}}'
 
 > Response
 >
