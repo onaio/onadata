@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import connection
+from django.db.utils import DataError
 
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
 
@@ -25,7 +26,10 @@ def _dictfetchall(cursor):
 
 def _execute_query(query, to_dict=True):
     cursor = connection.cursor()
-    cursor.execute(query)
+    try:
+        cursor.execute(query)
+    except DataError as e:
+        raise e
 
     return _dictfetchall(cursor) if to_dict else cursor
 
