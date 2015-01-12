@@ -159,7 +159,7 @@ def get_client_ip(request):
     return ip
 
 
-def enketo_url(form_url, id_string, instance_xml=None,
+def enketo_url(form_url, form_pk, instance_xml=None,
                instance_id=None, return_url=None):
     if not hasattr(settings, 'ENKETO_URL')\
             and not hasattr(settings, 'ENKETO_API_SURVEY_PATH'):
@@ -168,7 +168,7 @@ def enketo_url(form_url, id_string, instance_xml=None,
     url = urljoin(settings.ENKETO_URL, settings.ENKETO_API_SURVEY_PATH)
 
     values = {
-        'form_id': id_string,
+        'form_id': form_pk,
         'server_url': form_url
     }
     if instance_id is not None and instance_xml is not None:
@@ -238,6 +238,6 @@ def get_enketo_edit_url(request, instance, return_url):
                              None,
                              settings.ENKETO_PROTOCOL)
     url = enketo_url(
-        form_url, instance.xform.id_string, instance_xml=instance.xml,
+        form_url, instance.xform.pk, instance_xml=instance.xml,
         instance_id=instance.uuid, return_url=return_url)
     return url

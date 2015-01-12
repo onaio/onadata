@@ -899,7 +899,7 @@ previous call
         http_status = status.HTTP_400_BAD_REQUEST
 
         try:
-            url = enketo_url(form_url, self.object.id_string)
+            url = enketo_url(form_url, self.object.pk)
             preview_url = get_enketo_preview_url(request,
                                                  request.user.username,
                                                  self.object.id_string)
