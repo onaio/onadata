@@ -235,7 +235,7 @@ def _get_form_url(request, username=None, protocol='https'):
 
 def get_enketo_edit_url(request, instance, return_url):
     form_url = _get_form_url(request,
-                             None,
+                             instance.xform.user.username,
                              settings.ENKETO_PROTOCOL)
     url = enketo_url(
         form_url, instance.xform.id_string, instance_xml=instance.xml,
