@@ -9,7 +9,8 @@ class TestOrganizationProfile(TestBase):
 
     def test_create_organization_creates_team_and_perms(self):
         # create a user - bob
-        profile = tools.create_organization("modilabs", self.user)
+        profile = tools.create_organization_object("modilabs", self.user)
+        profile.save()
         self.assertIsInstance(profile, OrganizationProfile)
         organization_profile = OrganizationProfile.objects.get(
             user__username="modilabs")

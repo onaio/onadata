@@ -2,7 +2,7 @@ from django.contrib.auth.models import Permission
 from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.api import tools
-from onadata.apps.api.models.project import Project
+from onadata.apps.logger.models.project import Project
 from onadata.apps.api.models.team import Team
 from onadata.apps.api.tests.models.test_abstract_models import (
     TestAbstractModels)
@@ -16,7 +16,8 @@ from onadata.libs.permissions import (
 class TestTeam(TestAbstractModels):
 
     def test_create_organization_team(self):
-        profile = tools.create_organization("modilabs", self.user)
+        profile = tools.create_organization_object("modilabs", self.user)
+        profile.save()
         organization = profile.user
         team_name = 'dev'
         perms = ['is_org_owner', ]
@@ -79,7 +80,7 @@ class TestTeam(TestAbstractModels):
 
         permission_names = sorted(
             [p.permission.codename for p in object_permissions])
-        self.assertEqual([CAN_ADD_XFORM, CAN_VIEW_PROJECT], permission_names)
+        self.assertEqual([CAN_VIEW_PROJECT], permission_names)
 
         self.assertEqual(get_team_project_default_permissions(team, project),
                          DataEntryRole.name)
@@ -95,7 +96,6 @@ class TestTeam(TestAbstractModels):
 
         # assert that team member has default perm set on team
         self.assertTrue(user_sam.has_perm(CAN_VIEW_PROJECT, project))
-        self.assertTrue(user_sam.has_perm(CAN_ADD_XFORM, project))
 
         # assert that removing team member revokes perms
         tools.remove_user_from_team(team, user_sam)
