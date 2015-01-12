@@ -7,8 +7,6 @@ import six
 from urlparse import urlparse
 from zipfile import ZipFile
 
-from bson import json_util
-from django.conf import settings
 from django.core.files.base import File
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files.storage import get_storage_class
@@ -25,20 +23,17 @@ from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import\
-    _is_invalid_for_mongo, _encode_for_mongo, dict_for_mongo,\
-    _decode_from_mongo
+    _is_invalid_for_mongo, _encode_for_mongo, _decode_from_mongo
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     image_urls
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
-    DELETEDAT, USERFORM_ID, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
+    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION)
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 
 
 # this is Mongo Collection where we will store the parsed submissions
-xform_instances = settings.MONGO_DB.instances
-
 QUESTION_TYPES_TO_EXCLUDE = [
     u'note',
 ]
@@ -692,7 +687,8 @@ def generate_export(export_type, extension, username, id_string,
         user__username__iexact=username, id_string__iexact=id_string)
 
     # query mongo for the cursor
-    records = query_mongo(username, id_string, filter_query)
+    records = xform.instances.filter(deleted_at=None)\
+        .values_list('json', flat=True)
 
     export_builder = ExportBuilder()
     export_builder.GROUP_DELIMITER = group_delimiter
@@ -747,18 +743,6 @@ def generate_export(export_type, extension, username, id_string,
     if filter_query is None:
         export.save()
     return export
-
-
-def query_mongo(username, id_string, query=None, hide_deleted=True):
-    query = json.loads(query, object_hook=json_util.object_hook)\
-        if query else {}
-    query = dict_for_mongo(query)
-    query[USERFORM_ID] = u'{0}_{1}'.format(username, id_string)
-    if hide_deleted:
-        # display only active elements
-        # join existing query with deleted_at_query on an $and
-        query = {"$and": [query, {"_deleted_at": None}]}
-    return xform_instances.find(query)
 
 
 def should_create_new_export(xform, export_type):
