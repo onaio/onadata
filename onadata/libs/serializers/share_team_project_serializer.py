@@ -32,3 +32,15 @@ class ShareTeamProjectSerializer(serializers.Serializer):
                                     % {"role": value}))
 
         return attrs
+
+
+class RemoveTeamFromProjectSerializer(ShareTeamProjectSerializer):
+    remove = serializers.BooleanField()
+
+    def restore_object(self, attrs, instance=None):
+        if instance is not None:
+            instance.remove = attrs.get('remove', instance.remove)
+
+            return instance
+
+        return ShareTeamProject(**attrs)

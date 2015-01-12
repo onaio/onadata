@@ -251,4 +251,5 @@ def get_object_users_with_permissions(obj, exclude=None):
 
 def get_team_project_default_permissions(team, project):
     perms = get_perms(team, project)
+
     return get_role(perms, project) or ""

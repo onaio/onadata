@@ -171,7 +171,7 @@ class TestTeamViewSet(TestAbstractViewSet):
                          [])
         self.assertNotIn(self.team.group_ptr, self.user.groups.all())
 
-    def test_set_default_project_permissions(self):
+    def test_team_share(self):
         self._team_create()
         project = Project.objects.create(name="Test Project",
                                          organization=self.team.organization,
@@ -183,7 +183,7 @@ class TestTeamViewSet(TestAbstractViewSet):
 
         tools.add_user_to_team(self.team, user_chuck)
         view = TeamViewSet.as_view({
-            'post': 'default_permissions'})
+            'post': 'share'})
 
         ROLES = [ReadOnlyRole,
                  EditorRole]
@@ -200,3 +200,41 @@ class TestTeamViewSet(TestAbstractViewSet):
 
             self.assertEqual(response.status_code, 204)
             self.assertTrue(role_class.user_has_role(user_chuck, project))
+
+    def test_remove_team_from_project(self):
+        self._team_create()
+        project = Project.objects.create(name="Test Project",
+                                         organization=self.team.organization,
+                                         created_by=self.user,
+                                         metadata='{}')
+        chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
+        chuck_profile = self._create_user_profile(chuck_data)
+        user_chuck = chuck_profile.user
+
+        tools.add_user_to_team(self.team, user_chuck)
+        view = TeamViewSet.as_view({
+            'post': 'share'})
+
+        self.assertFalse(EditorRole.user_has_role(user_chuck,
+                                                  project))
+        data = {'role': EditorRole.name,
+                'project': project.pk}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(EditorRole.user_has_role(user_chuck, project))
+
+        data = {'role': EditorRole.name,
+                'project': project.pk,
+                'remove': True}
+
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(EditorRole.user_has_role(user_chuck, project))
