@@ -84,7 +84,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 and not request.user.has_perm(CAN_VIEW_PROFILE, obj):
             del ret['email']
 
-        ret['name'] = "%s %s" % (ret['first_name'], ret['last_name'])
+        ret['name'] = u' '.join([ret['first_name'], ret['last_name']])
 
         return ret
 
