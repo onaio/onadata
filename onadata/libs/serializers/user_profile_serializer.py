@@ -112,7 +112,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         if last_name:
             params['last_name'] = last_name
 
-        # For backward compatibility, Users how still use only name
+        # For backward compatibility, Users who still use only name
         if name:
             first_name, last_name = \
                 _get_first_last_names(name)
