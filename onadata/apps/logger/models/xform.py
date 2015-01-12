@@ -40,7 +40,7 @@ class XForm(BaseModel):
 
     xls = models.FileField(upload_to=upload_to, null=True)
     json = models.TextField(default=u'')
-    description = models.TextField(default=u'', null=True)
+    description = models.TextField(default=u'', null=True, blank=True)
     xml = models.TextField()
 
     user = models.ForeignKey(User, related_name='xforms', null=True)
@@ -79,7 +79,8 @@ class XForm(BaseModel):
     bamboo_dataset = models.CharField(max_length=60, default=u'')
     instances_with_geopoints = models.BooleanField(default=False)
     num_of_submissions = models.IntegerField(default=0)
-    version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True)
+    version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True,
+                               blank=True)
     project = models.ForeignKey('Project')
     created_by = models.ForeignKey(User, null=True, blank=True)
 
