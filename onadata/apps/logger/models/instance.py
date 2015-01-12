@@ -300,6 +300,7 @@ class Instance(models.Model):
         if isinstance(self.deleted_at, datetime):
             doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
 
+        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
         d.update(doc)
 
         return d
