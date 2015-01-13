@@ -535,3 +535,12 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 204)
         count = self.xform.instances.all().count()
         self.assertEquals(before_count - 2, count)
+
+    def test_geojson_format(self):
+        self._make_submissions()
+
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=1, dataid=1, format='geojson')
+
+        self.assertEqual(response.status_code, 200)

@@ -23,6 +23,7 @@ from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import (
     DataSerializer, DataListSerializer, DataInstanceSerializer)
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs import filters
 from onadata.libs.utils.viewer_tools import (
     EnketoError,
@@ -374,7 +375,8 @@ Delete a specific submission in a form
         renderers.CSVRenderer,
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
-        renderers.SurveyRenderer
+        renderers.SurveyRenderer,
+        renderers.GeoJsonRenderer
     ]
 
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
@@ -543,6 +545,10 @@ Delete a specific submission in a form
                 return Response(instance.json)
             elif _format == 'xml':
                 return Response(instance.xml)
+            elif _format == 'geojson':
+                serializer = GeoJsonSerializer()
+
+                return Response(serializer.data)
             else:
                 raise ParseError(
                     _(u"'%(_format)s' format unknown or not implemented!" %

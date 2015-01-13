@@ -158,3 +158,9 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):
 class StaticXMLRenderer(StaticHTMLRenderer):
     format = 'xml'
     media_type = 'text/xml'
+
+
+class GeoJsonRenderer(BaseRenderer):
+    media_type = 'application/json'
+    format = 'geojson'
+    charset = 'utf-8'
