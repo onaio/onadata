@@ -42,8 +42,11 @@ def _get_first_last_names(name, limit=30):
 class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     is_org = serializers.SerializerMethodField('is_organization')
     username = serializers.WritableField(source='user.username')
-    first_name = serializers.WritableField(source='user.first_name')
-    last_name = serializers.WritableField(source='user.last_name')
+    name = serializers.CharField(required=False)
+    first_name = serializers.WritableField(source='user.first_name',
+                                           required=False)
+    last_name = serializers.WritableField(source='user.last_name',
+                                          required=False)
     email = serializers.WritableField(source='user.email')
     website = serializers.WritableField(source='home_page', required=False)
     gravatar = serializers.Field(source='gravatar')
@@ -60,7 +63,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('id', 'is_org', 'url', 'username', 'password', 'first_name',
                   'last_name', 'email', 'city', 'country', 'organization',
                   'website', 'twitter', 'gravatar', 'require_auth', 'user',
-                  'metadata', 'joined_on')
+                  'metadata', 'joined_on', 'name')
         lookup_field = 'user'
 
     def is_organization(self, obj):
@@ -81,6 +84,10 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 and not request.user.has_perm(CAN_VIEW_PROFILE, obj):
             del ret['email']
 
+        if 'first_name' in ret:
+            ret['name'] = u' '.join([ret.get('first_name'),
+                                    ret.get('last_name', "")])
+
         return ret
 
     def restore_object(self, attrs, instance=None):
@@ -90,6 +97,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         first_name = attrs.get('user.first_name', None)
         last_name = attrs.get('user.last_name', None)
         email = attrs.get('user.email', None)
+        name = attrs.get('name', None)
 
         if username:
             params['username'] = username
@@ -106,6 +114,13 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         if last_name:
             params['last_name'] = last_name
 
+        # For backward compatibility, Users who still use only name
+        if name:
+            first_name, last_name = \
+                _get_first_last_names(name)
+            params['first_name'] = first_name
+            params['last_name'] = last_name
+
         if instance:
             form = UserProfileForm(params, instance=instance)
 
@@ -118,8 +133,13 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             if email:
                 instance.user.email = form.cleaned_data['email']
 
-            if email or first_name:
-                instance.user.save()
+            if first_name:
+                instance.user.first_name = first_name
+
+            if last_name:
+                instance.user.last_name = last_name
+
+            (email or first_name or last_name) and instance.user.save()
 
             return super(
                 UserProfileSerializer, self).restore_object(attrs, instance)
@@ -185,6 +205,14 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         else:
             if not current_username or is_edit:
                 raise ValidationError(u'%s already exists' % username)
+
+        return attrs
+
+    def validate_name(self, attrs, source):
+        if (attrs.get('name') is None) and\
+                (attrs.get('user.first_name') is None):
+            raise ValidationError(
+                u"Either name or first_name should be provided")
 
         return attrs
 

@@ -24,6 +24,7 @@ def _profile_data():
         'require_auth': False,
         'password': 'denodeno',
         'is_org': False,
+        'name': u'Dennis erama'
     }
 
 
@@ -105,6 +106,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         data = _profile_data()
+        del data['name']
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
@@ -118,6 +120,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['user'] = 'http://testserver/api/v1/users/deno'
         data['metadata'] = {}
         data['joined_on'] = profile.user.date_joined
+        data['name'] = "%s %s" % ('Dennis', 'erama')
         self.assertEqual(response.data, data)
 
         user = User.objects.get(username='deno')
@@ -148,13 +151,14 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         data = _profile_data()
         del data['first_name']
+        del data['name']
         request = self.factory.post(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
         response = self.view(request)
         response.render()
         self.assertContains(response,
-                            '{"first_name": ["This field is required."]}',
+                            'Either name or first_name should be provided',
                             status_code=400)
 
     def test_split_long_name_to_first_name_and_last_name(self):
@@ -264,3 +268,71 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         user = User.objects.get(username__iexact=self.user.username)
         self.assertEqual(response.status_code, 400)
         self.assertFalse(user.check_password(new_password))
+
+    def test_profile_create_with_name(self):
+        data = {
+            'username': u'deno',
+            'name': u'Dennis deno',
+            'email': u'deno@columbia.edu',
+            'city': u'Denoville',
+            'country': u'US',
+            'organization': u'Dono Inc.',
+            'website': u'deno.com',
+            'twitter': u'denoerama',
+            'require_auth': False,
+            'password': 'denodeno',
+            'is_org': False,
+        }
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 201)
+        del data['password']
+        profile = UserProfile.objects.get(user__username=data['username'])
+        data['id'] = profile.user.pk
+        data['first_name'] = 'Dennis'
+        data['last_name'] = 'deno'
+        data['gravatar'] = profile.gravatar
+        data['url'] = 'http://testserver/api/v1/profiles/deno'
+        data['user'] = 'http://testserver/api/v1/users/deno'
+        data['metadata'] = {}
+        data['joined_on'] = profile.user.date_joined
+
+        self.assertEqual(response.data, data)
+
+        user = User.objects.get(username='deno')
+        self.assertTrue(user.is_active)
+
+    def test_put_patch_method_on_names(self):
+        data = _profile_data()
+        # create profile
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
+        # update
+        data['first_name'] = 'Tom'
+        del data['name']
+        request = self.factory.put(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request, user='deno')
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(response.data['first_name'], data['first_name'])
+
+        first_name = u'Henry'
+        last_name = u'Thierry'
+
+        data = {'first_name': first_name, 'last_name': last_name}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(response.data['first_name'], data['first_name'])
+        self.assertEqual(response.data['last_name'], data['last_name'])

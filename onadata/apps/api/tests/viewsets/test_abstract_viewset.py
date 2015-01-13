@@ -46,7 +46,8 @@ class TestAbstractViewSet(TestCase):
         'country': 'US',
         'organization': 'Bob Inc.',
         'home_page': 'bob.com',
-        'twitter': 'boberama'
+        'twitter': 'boberama',
+        'name': u'Bob erama'
     }
 
     def setUp(self):
@@ -73,7 +74,8 @@ class TestAbstractViewSet(TestCase):
             'user': 'http://testserver/api/v1/users/bob',
             'is_org': False,
             'metadata': {},
-            'joined_on': self.user.date_joined
+            'joined_on': self.user.date_joined,
+            'name': u'Bob erama'
         }
 
     def _set_api_permissions(self, user):
