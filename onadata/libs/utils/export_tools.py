@@ -670,7 +670,7 @@ def dict_to_flat_export(d, parent_index=0):
 def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
                     split_select_multiples=True,
-                    binary_select_multiples=False):
+                    binary_select_multiples=False, start=None, end=None):
     """
     Create appropriate export object given the export type
     """
@@ -686,10 +686,12 @@ def generate_export(export_type, extension, username, id_string,
     xform = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
 
-    # query mongo for the cursor
-    records = xform.instances.filter(deleted_at=None)\
-        .order_by('pk')\
-        .values_list('json', flat=True)
+    instances = xform.instances.filter(deleted_at=None)
+    if isinstance(start, datetime):
+        instances = instances.filter(date_created__gte=start)
+    if isinstance(end, datetime):
+        instances = instances.filter(date_created__lte=end)
+    records = instances.order_by('pk').values_list('json', flat=True)
 
     export_builder = ExportBuilder()
     export_builder.GROUP_DELIMITER = group_delimiter
@@ -741,7 +743,7 @@ def generate_export(export_type, extension, username, id_string,
     export.filename = basename
     export.internal_status = Export.SUCCESSFUL
     # dont persist exports that have a filter
-    if filter_query is None:
+    if filter_query is None and start is None and end is None:
         export.save()
     return export
 

@@ -1,5 +1,7 @@
 import json
 import os
+import pytz
+
 from datetime import datetime
 from tempfile import NamedTemporaryFile
 from time import strftime, strptime
@@ -27,7 +29,6 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.tasks import create_async_export
 from onadata.libs.exceptions import NoRecordsFoundError
-from onadata.libs.utils.common_tags import SUBMISSION_TIME
 from onadata.libs.utils.export_tools import (
     generate_export,
     should_create_new_export,
@@ -46,20 +47,21 @@ from xls_writer import XlsWriter
 from onadata.libs.utils.chart_tools import build_chart_data
 
 
-def _set_submission_time_to_query(query, request):
-    query[SUBMISSION_TIME] = {}
+def _get_start_end_submission_time(request):
+    start = None
+    end = None
     try:
         if request.GET.get('start'):
-            query[SUBMISSION_TIME]['$gte'] = format_date_for_mongo(
-                request.GET['start'])
+            start = pytz.timezone('UTC').localize(datetime.strptime(
+                request.GET['start'], '%y_%m_%d_%H_%M_%S'))
         if request.GET.get('end'):
-            query[SUBMISSION_TIME]['$lte'] = format_date_for_mongo(
-                request.GET['end'])
+            end = pytz.timezone('UTC').localize(datetime.strptime(
+                request.GET['end'], '%y_%m_%d_%H_%M_%S'))
     except ValueError:
         return HttpResponseBadRequest(
             _("Dates must be in the format YY_MM_DD_hh_mm_ss"))
 
-    return query
+    return start, end
 
 
 def encode(time_str):
@@ -242,14 +244,12 @@ def data_export(request, username, id_string, export_type):
     if should_create_new_export(xform, export_type) or query or\
             'start' in request.GET or 'end' in request.GET:
         # check for start and end params
-        if 'start' in request.GET or 'end' in request.GET:
-            if not query:
-                query = '{}'
-            query = json.dumps(
-                _set_submission_time_to_query(json.loads(query), request))
+        start, end = _get_start_end_submission_time(request)
         try:
             export = generate_export(
-                export_type, extension, username, id_string, None, query)
+                export_type, extension, username, id_string, None, query,
+                start=start, end=end
+            )
             audit_log(
                 Actions.EXPORT_CREATED, request.user, owner,
                 _("Created %(export_type)s export on '%(id_string)s'.") %
