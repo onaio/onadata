@@ -1,4 +1,5 @@
 import os
+import mock
 
 from rest_framework.test import APIClient
 from rest_framework.test import APIRequestFactory
@@ -6,6 +7,11 @@ from rest_framework.test import force_authenticate
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.instance import Instance
+from django.db.utils import DataError
+
+
+def raise_data_error(a):
+    raise DataError
 
 
 class TestChartsViewSet(TestBase):
@@ -91,6 +97,17 @@ class TestChartsViewSet(TestBase):
         self.assertEqual(response.data['field_type'], 'date')
         self.assertEqual(response.data['field_name'], 'date')
         self.assertEqual(response.data['data_type'], 'time_based')
+
+    @mock.patch('onadata.libs.data.query._execute_query',
+                side_effect=raise_data_error)
+    def test_get_on_date_field_with_invalid_data(self, mock_execute_query):
+        data = {'field_name': 'date'}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id)
+        self.assertEqual(response.status_code, 400)
 
     def test_get_on_numeric_field(self):
         data = {'field_name': 'age'}
