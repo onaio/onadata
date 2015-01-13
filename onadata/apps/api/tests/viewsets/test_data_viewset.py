@@ -171,7 +171,8 @@ class TestDataViewSet(TestBase):
         self.assertEqual(len(response.data), 4)
 
         request = self.factory.get(
-            '/', data={"page": "invalid", "page-size": "invalid"}, **self.extra)
+            '/', data={"page": "invalid", "page-size": "invalid"},
+            **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
