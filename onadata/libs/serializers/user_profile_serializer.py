@@ -84,7 +84,9 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 and not request.user.has_perm(CAN_VIEW_PROFILE, obj):
             del ret['email']
 
-        ret['name'] = u' '.join([ret['first_name'], ret['last_name']])
+        if 'first_name' in ret:
+            ret['name'] = u' '.join([ret.get('first_name'),
+                                    ret.get('last_name', "")])
 
         return ret
 
@@ -130,15 +132,14 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             # get user
             if email:
                 instance.user.email = form.cleaned_data['email']
-                instance.user.save()
 
             if first_name:
                 instance.user.first_name = first_name
-                instance.user.save()
 
             if last_name:
                 instance.user.last_name = last_name
-                instance.user.save()
+
+            (email or first_name or last_name) and instance.user.save()
 
             return super(
                 UserProfileSerializer, self).restore_object(attrs, instance)
