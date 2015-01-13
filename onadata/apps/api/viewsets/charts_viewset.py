@@ -1,5 +1,7 @@
 from django.http import Http404
+from django.db.utils import DataError
 from django.core.exceptions import ImproperlyConfigured
+from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
@@ -184,7 +186,11 @@ response. If `fields=all` then all the fields of the form will be returned.
             if choices:
                 choices = choices.get(field_name)
 
-            data = build_chart_data_for_field(xform, field, choices=choices)
+            try:
+                data = build_chart_data_for_field(
+                    xform, field, choices=choices)
+            except DataError as e:
+                raise ParseError(unicode(e))
 
             if request.accepted_renderer.format == 'json':
                 xform = xform.pk
