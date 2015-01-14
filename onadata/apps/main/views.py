@@ -268,6 +268,8 @@ def members_list(request):
 
 @login_required
 def profile_settings(request, username):
+    if request.user.username != username:
+        return HttpResponseNotFound("Page not found")
     content_user = check_and_set_user(request, username)
     profile, created = UserProfile.objects.get_or_create(user=content_user)
     if request.method == 'POST':
