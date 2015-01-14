@@ -18,9 +18,11 @@ from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
     UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION
 from onadata.libs.utils.model_tools import set_uuid
+from onadata.libs.data.query import get_numeric_fields
 
 
 class FormInactiveError(Exception):
+
     def __unicode__(self):
         return _("Form is inactive")
 
@@ -28,8 +30,20 @@ class FormInactiveError(Exception):
         return unicode(self).encode('utf-8')
 
 
+def numeric_checker(string_value):
+    if string_value.isdigit():
+        return int(string_value)
+    else:
+        try:
+            return float(string_value)
+        except ValueError:
+            pass
+
+
 # need to establish id_string of the xform before we run get_dict since
 # we now rely on data dictionary to parse the xml
+
+
 def get_id_string_from_xml_str(xml_str):
     xml_obj = clean_and_parse_xml(xml_str)
     root_node = xml_obj.documentElement
@@ -139,6 +153,30 @@ class Instance(models.Model):
         else:
             instance.set_deleted(deleted_at)
 
+    def numeric_converter(self, json_dict, numeric_fields=None):
+        if numeric_fields is None:
+            numeric_fields = get_numeric_fields(self.xform)
+        copy_of_json_dict = json_dict
+        for key, value in json_dict.items():
+            if isinstance(value, basestring) and key in numeric_fields:
+                converted_value = numeric_checker(value)
+                if converted_value:
+                    copy_of_json_dict[key] = converted_value
+            elif isinstance(value, dict):
+                copy_of_json_dict[key] = self.numeric_converter(
+                    value, numeric_fields)
+            elif isinstance(value, list):
+                copy_of_list = value
+                for k, v in enumerate(value):
+                    if isinstance(v, basestring) and key in numeric_fields:
+                        converted_value = numeric_checker(v)
+                        if converted_value:
+                            copy_of_json_dict[key] = converted_value
+                    elif isinstance(v, dict):
+                        copy_of_list[k] = self.numeric_converter(
+                            v, numeric_fields)
+        return copy_of_json_dict
+
     def _check_active(self, force):
         """Check that form is active and raise exception if not.
 
@@ -209,8 +247,9 @@ class Instance(models.Model):
         """Return a python object representation of this instance's XML."""
         self._set_parser()
 
-        return self._parser.get_flat_dict_with_attributes() if flat else\
-            self._parser.to_dict()
+        instance_dict = self._parser.get_flat_dict_with_attributes() if flat \
+            else self._parser.to_dict()
+        return self.numeric_converter(instance_dict)
 
     def get_full_dict(self):
         # TODO should we store all of these in the JSON no matter what?
@@ -293,6 +332,7 @@ pre_save.connect(save_project, sender=Instance,
 
 
 class InstanceHistory(models.Model):
+
     class Meta:
         app_label = 'logger'
 
