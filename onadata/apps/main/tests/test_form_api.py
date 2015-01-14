@@ -2,6 +2,7 @@ import base64
 import json
 
 from django.core.urlresolvers import reverse
+from django.test import RequestFactory
 
 from onadata.apps.main.views import api
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance, \
@@ -20,7 +21,8 @@ class TestFormAPI(TestBase):
 
     def setUp(self):
         TestBase.setUp(self)
-        self._create_user_and_login()
+        self.factory = RequestFactory()
+        self._create_user_and_login(factory=self.factory)
         self._publish_transportation_form_and_submit_instance()
         self.api_url = reverse(api, kwargs={
             'username': self.user.username,
@@ -28,8 +30,9 @@ class TestFormAPI(TestBase):
         })
 
     def test_api(self):
-        # query string
-        response = self.client.get(self.api_url, {})
+        request = self.factory.get(self.api_url, {})
+        request.user = self.user
+        response = api(request, self.user.username, self.xform.id_string)
         self.assertEqual(response.status_code, 200)
         d = dict_for_mongo_without_userform_id(
             self.xform.instances.all()[0].parsed_instance)
