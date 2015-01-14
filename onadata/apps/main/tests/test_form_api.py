@@ -53,9 +53,15 @@ class TestFormAPI(TestBase):
 
     def test_api_query_no_records(self):
         # query string
-        query = '{"available_transporation_types_to_referral_facility": "bicy'\
-                'cle"}'
-        data = {'query': query}
+        query = {
+            "transport/available_transporation_types_to_referral_facility":
+            "bicycle"
+        }
+        data = {'query': json.dumps(query)}
+        response = self.client.get(self.api_url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, '[]')
+        data['fields'] = '["_id"]'
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, '[]')

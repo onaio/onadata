@@ -130,16 +130,32 @@ class ParsedInstance(models.Model):
         if isinstance(end, datetime.datetime):
             instances = instances.filter(date_created__lte=end)
         sort = 'pk' if sort is None else sort
+
+        where_params = []
+        sql_where = u""
+        if query and isinstance(query, six.string_types):
+            query = json.loads(query)
+            where = [u"json->>%s = %s" for i in query.items()]
+            [where_params.extend(i) for i in query.items()]
+
         if fields and isinstance(fields, six.string_types):
             fields = json.loads(fields)
             field_list = [u"json->%s" for i in fields]
             sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
-            sql += " WHERE xform_id = %s AND deleted_at IS NULL ORDER BY id"
-            params = [xform.pk]
+
+            if query:
+                sql_where = u" AND " + u" AND ".join(where)
+
+            sql += " WHERE xform_id = %s " + sql_where \
+                + " AND deleted_at IS NULL ORDER BY id"
+            params = [xform.pk] + where_params
             records = ParsedInstance.query_iterator(sql, fields, params)
         else:
             if count:
                 return [{"count": instances.count()}]
+
+            if query:
+                instances = instances.extra(where=where, params=where_params)
 
             records = instances.order_by(sort).values_list('json', flat=True)
 
