@@ -156,26 +156,24 @@ class Instance(models.Model):
     def numeric_converter(self, json_dict, numeric_fields=None):
         if numeric_fields is None:
             numeric_fields = get_numeric_fields(self.xform)
-        copy_of_json_dict = json_dict
         for key, value in json_dict.items():
             if isinstance(value, basestring) and key in numeric_fields:
                 converted_value = numeric_checker(value)
                 if converted_value:
-                    copy_of_json_dict[key] = converted_value
+                    json_dict[key] = converted_value
             elif isinstance(value, dict):
-                copy_of_json_dict[key] = self.numeric_converter(
+                json_dict[key] = self.numeric_converter(
                     value, numeric_fields)
             elif isinstance(value, list):
-                copy_of_list = value
                 for k, v in enumerate(value):
                     if isinstance(v, basestring) and key in numeric_fields:
                         converted_value = numeric_checker(v)
                         if converted_value:
-                            copy_of_json_dict[key] = converted_value
+                            json_dict[key] = converted_value
                     elif isinstance(v, dict):
-                        copy_of_list[k] = self.numeric_converter(
+                        value[k] = self.numeric_converter(
                             v, numeric_fields)
-        return copy_of_json_dict
+        return json_dict
 
     def _check_active(self, force):
         """Check that form is active and raise exception if not.

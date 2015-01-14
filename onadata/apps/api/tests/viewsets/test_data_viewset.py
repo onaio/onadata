@@ -99,7 +99,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(self.xform.instances.count(), 1)
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
-        response = view(request, pk=2)
+        response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 200)
         # check that ONLY values with numeric and decimal types are converted
         self.assertEqual(response.data[0].get('age'), 35)
