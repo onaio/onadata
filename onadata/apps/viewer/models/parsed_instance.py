@@ -15,10 +15,9 @@ from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.instance import _get_attachments_from_instance
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.restservice.utils import call_service
-from onadata.libs.utils.timing import calculate_duration
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
-    NOTES, SUBMITTED_BY, VERSION, DURATION, START_TIME, END_TIME
+    NOTES, SUBMITTED_BY, VERSION, DURATION
 
 from onadata.libs.utils.decorators import apply_form_field_names
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -111,6 +110,19 @@ class ParsedInstance(models.Model):
 
     class Meta:
         app_label = "viewer"
+
+    @classmethod
+    def query_data(cls, xform, query=None, fields=None, sort=None, start=None,
+                   end=None, start_index=None, limit=None):
+        instances = xform.instances.filter(deleted_at=None)
+        if isinstance(start, datetime.datetime):
+            instances = instances.filter(date_created__gte=start)
+        if isinstance(end, datetime.datetime):
+            instances = instances.filter(date_created__lte=end)
+        sort = 'pk' if sort is None else sort
+        records = instances.order_by(sort).values_list('json', flat=True)
+
+        return records
 
     @classmethod
     @apply_form_field_names
@@ -257,7 +269,7 @@ class ParsedInstance(models.Model):
             SUBMITTED_BY: self.instance.user.username
             if self.instance.user else None,
             VERSION: self.instance.version,
-            DURATION: self.get_duration()
+            DURATION: self.instance.get_duration()
         }
 
         if isinstance(self.instance.deleted_at, datetime.datetime):
@@ -266,12 +278,6 @@ class ParsedInstance(models.Model):
         d.update(data)
 
         return dict_for_mongo(d)
-
-    def get_duration(self):
-        data = self.instance.get_dict()
-        _start, _end = data.get(START_TIME, ''), data.get(END_TIME, '')
-
-        return calculate_duration(_start, _end)
 
     def update_mongo(self, async=True):
         d = self.to_dict_for_mongo()
