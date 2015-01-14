@@ -114,9 +114,9 @@ class ParsedInstance(models.Model):
         app_label = "viewer"
 
     @classmethod
-    def query_iterator(cls, sql, fields):
+    def query_iterator(cls, sql, fields, params=[]):
         cursor = connection.cursor()
-        cursor.execute(sql, fields)
+        cursor.execute(sql, fields + params)
 
         for row in cursor.fetchall():
             yield dict(zip(fields, row))
@@ -133,9 +133,10 @@ class ParsedInstance(models.Model):
         if fields and isinstance(fields, six.string_types):
             fields = json.loads(fields)
             field_list = [u"json->%s" for i in fields]
-            sql = u"select %s from logger_instance order by id" \
-                % u",".join(field_list)
-            records = ParsedInstance.query_iterator(sql, fields)
+            sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
+            sql += " WHERE xform_id = %s AND deleted_at IS NULL ORDER BY id"
+            params = [xform.pk]
+            records = ParsedInstance.query_iterator(sql, fields, params)
         else:
             if count:
                 return [{"count": instances.count()}]
