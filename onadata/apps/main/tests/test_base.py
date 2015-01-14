@@ -10,6 +10,7 @@ from cStringIO import StringIO
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import TransactionTestCase
+from django.test import RequestFactory
 from django.test.client import Client
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
@@ -22,6 +23,7 @@ from onadata.apps.logger.models import XForm, Instance, Attachment
 from onadata.apps.logger.views import submission
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.main import views as main_views
 
 
 class TestBase(TransactionTestCase):
@@ -36,7 +38,7 @@ class TestBase(TransactionTestCase):
         self.maxDiff = None
         self._create_user_and_login()
         self.base_url = 'http://testserver'
-        self.factory = APIRequestFactory()
+        self.factory = RequestFactory()
 
     def tearDown(self):
         # clear mongo db after each test
@@ -62,7 +64,8 @@ class TestBase(TransactionTestCase):
             client = self.client
         client.logout()
 
-    def _create_user_and_login(self, username="bob", password="bob"):
+    def _create_user_and_login(self, username="bob", password="bob",
+                               factory=None):
         self.login_username = username
         self.login_password = password
         self.user = self._create_user(username, password)
@@ -72,15 +75,22 @@ class TestBase(TransactionTestCase):
         profile.require_auth = False
         profile.save()
 
-        self.client = self._login(username, password)
-        self.anon = Client()
+        if factory is None:
+            self.client = self._login(username, password)
+            self.anon = Client()
+        else:
+            self.user = authenticate(username=username,
+                                     password=password)
 
     def _publish_xls_file(self, path):
         if not path.startswith('/%s/' % self.user.username):
             path = os.path.join(self.this_directory, path)
         with open(path) as xls_file:
             post_data = {'xls_file': xls_file}
-            return self.client.post('/%s/' % self.user.username, post_data)
+            request = self.factory.post('/%s/' % self.user.username, post_data)
+            request.user = self.user
+
+            return main_views.profile(request, self.user.username)
 
     def _publish_xlsx_file(self):
         path = os.path.join(self.this_directory, 'fixtures', 'exp.xlsx')
