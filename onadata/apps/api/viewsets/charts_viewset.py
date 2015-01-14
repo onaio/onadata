@@ -1,7 +1,6 @@
 from django.http import Http404
 from django.db.utils import DataError
 from django.core.exceptions import ImproperlyConfigured
-from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
