@@ -278,11 +278,11 @@ class TestPandasMongoBridge(TestBase):
             u'_gps_altitude': u'0.0',
             u'_gps_precision': u'30.0',
             u'kids/has_kids': u'1',
-            u'info/age': u'80',
+            u'info/age': 80,
             u'kids/kids_details[1]/kids_name': u'Abel',
-            u'kids/kids_details[1]/kids_age': u'50',
+            u'kids/kids_details[1]/kids_age': 50,
             u'kids/kids_details[2]/kids_name': u'Cain',
-            u'kids/kids_details[2]/kids_age': u'76',
+            u'kids/kids_details[2]/kids_age': 76,
             u'web_browsers/chrome': True,
             u'web_browsers/ie': True,
             u'web_browsers/safari': False,
@@ -607,13 +607,13 @@ class TestPandasMongoBridge(TestBase):
             u'_version': self.xform.version,
             u"_submitted_by": u'bob',
             u'name': u'Abe',
-            u'age': u'88',
+            u'age': 88,
             u'has_children': u'1',
             u'_attachments': [],
             u'children[1]/childs_info/name': u'Cain',
             u'children[2]/childs_info/name': u'Abel',
-            u'children[1]/childs_info/age': u'56',
-            u'children[2]/childs_info/age': u'48',
+            u'children[1]/childs_info/age': 56,
+            u'children[2]/childs_info/age': 48,
             u'children[1]/immunization/immunization_received/polio_1': True,
             u'children[1]/immunization/immunization_received/polio_2': False,
             u'children[2]/immunization/immunization_received/polio_1': True,
@@ -661,7 +661,7 @@ class TestPandasMongoBridge(TestBase):
                     u'picture': None,
                     u'has_children': u'1',
                     u'name': u'Abe',
-                    u'age': u'88',
+                    u'age': 88,
                     u'web_browsers/chrome': True,
                     u'web_browsers/safari': False,
                     u'web_browsers/ie': False,
@@ -683,7 +683,7 @@ class TestPandasMongoBridge(TestBase):
             u"children": [
                 {
                     u'children/childs_info/name': u'Cain',
-                    u'children/childs_info/age': u'56',
+                    u'children/childs_info/age': 56,
                     u'children/immunization/immunization_received/polio_1':
                     True,
                     u'children/immunization/immunization_received/polio_2':
@@ -694,7 +694,7 @@ class TestPandasMongoBridge(TestBase):
                 },
                 {
                     u'children/childs_info/name': u'Able',
-                    u'children/childs_info/age': u'48',
+                    u'children/childs_info/age': 48,
                     u'children/immunization/immunization_received/polio_1':
                     True,
                     u'children/immunization/immunization_received/polio_2':

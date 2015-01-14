@@ -1,3 +1,4 @@
+import os
 import requests
 
 from django.test import RequestFactory
@@ -5,6 +6,7 @@ from django.test import RequestFactory
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.libs.utils.logger_tools import create_instance
 from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs import permissions as role
@@ -83,6 +85,26 @@ class TestDataViewSet(TestBase):
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
+
+    def test_numeric_types_are_rendered_as_required(self):
+        tutorial_folder = os.path.join(
+            os.path.dirname(__file__),
+            '..', 'fixtures', 'forms', 'tutorial')
+        self._publish_xls_file_and_set_xform(os.path.join(tutorial_folder,
+                                                          'tutorial.xls'))
+
+        instance_path = os.path.join(tutorial_folder, 'instances', '1.xml')
+        create_instance(self.user.username, open(instance_path), [])
+
+        self.assertEqual(self.xform.instances.count(), 1)
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+        # check that ONLY values with numeric and decimal types are converted
+        self.assertEqual(response.data[0].get('age'), 35)
+        self.assertEqual(response.data[0].get('net_worth'), 100000.00)
+        self.assertEqual(response.data[0].get('imei'), u'351746052009472')
 
     def test_data_with_limit_operator(self):
         self._make_submissions()
