@@ -16,11 +16,15 @@ from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
-    UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, USERFORM_ID, STATUS
+    UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, STATUS, DURATION, \
+    START_TIME, END_TIME
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.data.query import get_numeric_fields
-from onadata.libs.utils.cache_tools import (
-    safe_delete, PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE, IS_ORG)
+from onadata.libs.utils.cache_tools import safe_delete
+from onadata.libs.utils.cache_tools import IS_ORG
+from onadata.libs.utils.cache_tools import PROJ_SUB_DATE_CACHE
+from onadata.libs.utils.cache_tools import PROJ_NUM_DATASET_CACHE
+from onadata.libs.utils.timing import calculate_duration
 
 
 def _get_attachments_from_instance(instance):
@@ -282,14 +286,12 @@ class Instance(models.Model):
             UUID: self.uuid,
             ID: self.id,
             BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
-            USERFORM_ID: u'%s_%s' % (
-                self.xform.user.username,
-                self.xform.id_string),
             ATTACHMENTS: _get_attachments_from_instance(self),
             STATUS: self.status,
             TAGS: list(self.tags.names()),
             NOTES: self.get_notes(),
-            VERSION: self.version
+            VERSION: self.version,
+            DURATION: self.get_duration()
         }
         point = self.point
         if point:
@@ -344,6 +346,12 @@ class Instance(models.Model):
         # force submission count re-calculation
         self.xform.submission_count(force_update=True)
         self.parsed_instance.save()
+
+    def get_duration(self):
+        data = self.get_dict()
+        _start, _end = data.get(START_TIME, ''), data.get(END_TIME, '')
+
+        return calculate_duration(_start, _end)
 
 
 post_save.connect(update_xform_submission_count, sender=Instance,
