@@ -1,3 +1,5 @@
+import json
+
 from rest_framework import negotiation
 from django.utils.xmlutils import SimplerXMLGenerator
 
@@ -164,3 +166,6 @@ class GeoJsonRenderer(BaseRenderer):
     media_type = 'application/json'
     format = 'geojson'
     charset = 'utf-8'
+
+    def render(self, data, media_type=None, renderer_context=None):
+        return json.dumps(data)

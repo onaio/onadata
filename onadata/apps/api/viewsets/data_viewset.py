@@ -23,7 +23,8 @@ from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import (
     DataSerializer, DataListSerializer, DataInstanceSerializer)
-from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
+from onadata.libs.serializers.geojson_serializer import (GeoJsonSerializer,
+                                                         GeoJsonListSerializer)
 from onadata.libs import filters
 from onadata.libs.utils.viewer_tools import (
     EnketoError,
@@ -546,7 +547,7 @@ Delete a specific submission in a form
             elif _format == 'xml':
                 return Response(instance.xml)
             elif _format == 'geojson':
-                serializer = GeoJsonSerializer()
+                serializer = GeoJsonSerializer(instance)
 
                 return Response(serializer.data)
             else:
@@ -584,8 +585,15 @@ Delete a specific submission in a form
         xform = self.get_object()
         query = request.GET.get("query", {})
         export_type = kwargs.get('format')
+
         if export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
             return super(DataViewSet, self).list(request, *args, **kwargs)
+        elif export_type == 'geojson':
+            self.object_list = self.filter_queryset(self.get_queryset())
+
+            serializer = GeoJsonListSerializer(self.object_list)
+
+            return Response(serializer.data)
 
         return custom_response_handler(request, xform, query, export_type)
