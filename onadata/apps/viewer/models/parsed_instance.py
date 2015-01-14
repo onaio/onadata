@@ -114,9 +114,23 @@ class ParsedInstance(models.Model):
         app_label = "viewer"
 
     @classmethod
-    def query_iterator(cls, sql, fields, params=[]):
+    def query_iterator(cls, sql, fields, params=[], count=False):
         cursor = connection.cursor()
-        cursor.execute(sql, fields + params)
+        sql_params = fields + params
+
+        if count:
+            from_pos = sql.upper().find(' FROM')
+            if from_pos != -1:
+                sql = u"SELECT COUNT(*) " + sql[from_pos:]
+
+            order_pos = sql.upper().find('ORDER BY')
+            if order_pos != -1:
+                sql = sql[:order_pos]
+
+            sql_params = params
+            fields = [u'count']
+
+        cursor.execute(sql, sql_params)
 
         for row in cursor.fetchall():
             yield dict(zip(fields, row))
@@ -149,7 +163,7 @@ class ParsedInstance(models.Model):
             sql += " WHERE xform_id = %s " + sql_where \
                 + " AND deleted_at IS NULL ORDER BY id"
             params = [xform.pk] + where_params
-            records = ParsedInstance.query_iterator(sql, fields, params)
+            records = ParsedInstance.query_iterator(sql, fields, params, count)
         else:
             if count:
                 return [{"count": instances.count()}]

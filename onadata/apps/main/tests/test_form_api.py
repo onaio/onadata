@@ -115,6 +115,12 @@ class TestFormAPI(TestBase):
         self.assertEqual(response.status_code, 200)
         find_d = json.loads(response.content)[0]
         self.assertTrue('count' in find_d)
+
+        data['fields'] = '["_id"]'
+        response = self.client.get(self.api_url, data)
+        self.assertEqual(response.status_code, 200)
+        find_d = json.loads(response.content)[0]
+        self.assertTrue('count' in find_d)
         self.assertEqual(find_d.get('count'), 1)
 
     def test_api_column_select(self):
