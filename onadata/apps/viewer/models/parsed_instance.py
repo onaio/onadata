@@ -2,11 +2,13 @@ import base64
 import datetime
 import json
 import re
+import six
 
 from bson import json_util, ObjectId
 from celery import task
 from dateutil import parser
 from django.conf import settings
+from django.db import connection
 from django.db import models
 from django.db.models.signals import post_save, pre_delete
 from django.utils.translation import ugettext as _
@@ -112,6 +114,14 @@ class ParsedInstance(models.Model):
         app_label = "viewer"
 
     @classmethod
+    def query_iterator(cls, sql, fields):
+        cursor = connection.cursor()
+        cursor.execute(sql, fields)
+
+        for row in cursor.fetchall():
+            yield dict(zip(fields, row))
+
+    @classmethod
     def query_data(cls, xform, query=None, fields=None, sort=None, start=None,
                    end=None, start_index=None, limit=None):
         instances = xform.instances.filter(deleted_at=None)
@@ -120,7 +130,14 @@ class ParsedInstance(models.Model):
         if isinstance(end, datetime.datetime):
             instances = instances.filter(date_created__lte=end)
         sort = 'pk' if sort is None else sort
-        records = instances.order_by(sort).values_list('json', flat=True)
+        if fields and isinstance(fields, six.string_types):
+            fields = json.loads(fields)
+            field_list = [u"json->%s" for i in fields]
+            sql = u"select %s from logger_instance order by id" \
+                % u",".join(field_list)
+            records = ParsedInstance.query_iterator(sql, fields)
+        else:
+            records = instances.order_by(sort).values_list('json', flat=True)
 
         return records
 

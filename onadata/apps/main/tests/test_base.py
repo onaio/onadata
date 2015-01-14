@@ -78,9 +78,6 @@ class TestBase(TransactionTestCase):
         if factory is None:
             self.client = self._login(username, password)
             self.anon = Client()
-        else:
-            self.user = authenticate(username=username,
-                                     password=password)
 
     def _publish_xls_file(self, path):
         if not path.startswith('/%s/' % self.user.username):

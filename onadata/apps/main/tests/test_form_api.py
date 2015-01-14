@@ -118,7 +118,9 @@ class TestFormAPI(TestBase):
         columns = '["transport/available_transportation_types_to_referral_fac'\
                   'ility"]'
         data = {'query': query, 'fields': columns}
-        response = self.client.get(self.api_url, data)
+        request = self.factory.get(self.api_url, data)
+        request.user = self.user
+        response = api(request, self.user.username, self.xform.id_string)
         self.assertEqual(response.status_code, 200)
         find_d = json.loads(response.content)[0]
         self.assertTrue(
