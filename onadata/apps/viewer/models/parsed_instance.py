@@ -123,7 +123,7 @@ class ParsedInstance(models.Model):
 
     @classmethod
     def query_data(cls, xform, query=None, fields=None, sort=None, start=None,
-                   end=None, start_index=None, limit=None):
+                   end=None, start_index=None, limit=None, count=None):
         instances = xform.instances.filter(deleted_at=None)
         if isinstance(start, datetime.datetime):
             instances = instances.filter(date_created__gte=start)
@@ -137,6 +137,9 @@ class ParsedInstance(models.Model):
                 % u",".join(field_list)
             records = ParsedInstance.query_iterator(sql, fields)
         else:
+            if count:
+                return [{"count": instances.count()}]
+
             records = instances.order_by(sort).values_list('json', flat=True)
 
         return records
