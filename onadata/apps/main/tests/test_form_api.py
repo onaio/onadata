@@ -172,6 +172,13 @@ class TestFormAPI(TestBase):
         data = json.loads(response.content)
         self.assertEqual(len(data), 2)
 
+        # check with fields filter
+        params['fields'] = '["_id"]'
+        response = self.client.get(self.api_url, params)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(len(data), 2)
+
         # check that blank params give us all our records i.e. 3
         params = {}
         response = self.client.get(self.api_url, params)

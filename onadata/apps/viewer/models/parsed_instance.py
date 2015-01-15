@@ -149,15 +149,26 @@ class ParsedInstance(models.Model):
         sql_where = u""
         if query and isinstance(query, six.string_types):
             query = json.loads(query)
-            where = [u"json->>%s = %s" for i in query.items()]
+            or_where = []
+            or_params = []
+            if '$or' in query.keys():
+                or_dict = query.pop('$or')
+                for l in or_dict:
+                    or_where.extend([u"json->>%s = %s" for i in l.items()])
+                    [or_params.extend(i) for i in l.items()]
+
+                or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
+
+            where = [u"json->>%s = %s" for i in query.items()] + or_where
             [where_params.extend(i) for i in query.items()]
+            where_params.extend(or_params)
 
         if fields and isinstance(fields, six.string_types):
             fields = json.loads(fields)
             field_list = [u"json->%s" for i in fields]
             sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
 
-            if query:
+            if where_params:
                 sql_where = u" AND " + u" AND ".join(where)
 
             sql += " WHERE xform_id = %s " + sql_where \
@@ -168,7 +179,7 @@ class ParsedInstance(models.Model):
             if count:
                 return [{"count": instances.count()}]
 
-            if query:
+            if where_params:
                 instances = instances.extra(where=where, params=where_params)
 
             records = instances.order_by(sort).values_list('json', flat=True)
