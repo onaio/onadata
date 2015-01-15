@@ -1033,3 +1033,13 @@ previous call
 
         return super(XFormViewSet, self).partial_update(request, *args,
                                                         **kwargs)
+
+    @action(methods=['DELETE'])
+    def delete_async(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        resp = {
+            u'job_uuid':
+            tasks.delete_xform_async.delay(self.object).task_id}
+        resp_code = status.HTTP_202_ACCEPTED
+
+        return Response(data=resp, status=resp_code)
