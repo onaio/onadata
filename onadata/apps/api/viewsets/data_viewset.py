@@ -599,8 +599,15 @@ Delete a specific submission in a form
             return super(DataViewSet, self).list(request, *args, **kwargs)
         elif export_type == 'geojson':
             self.object_list = self.filter_queryset(self.get_queryset())
+            query_params = (request and request.QUERY_PARAMS) or {}
 
-            serializer = GeoJsonListSerializer(self.object_list)
+            fields = query_params.get('fields')
+            geo_field = query_params.get('geo_field')
+            data = {"instances": self.object_list,
+                    "geo_field": geo_field,
+                    "fields": fields}
+
+            serializer = GeoJsonListSerializer(data)
 
             return Response(serializer.data)
 
