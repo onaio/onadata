@@ -27,9 +27,9 @@ def publish_xlsform_async(user, post_data, owner, file_data):
                 file_data.get('name'), u'application/octet-stream',
                 len(file_data.get('data')), None)
              if file_data.get('data') else
-             recreate_tmp_file(
-                file_data.get('name'), file_data.get('path'),
-                u'application/octet-stream'))
+             recreate_tmp_file(file_data.get('name'),
+                               file_data.get('path'),
+                               u'application/octet-stream'))
 
         survey = tools.do_publish_xlsform(user, post_data, files, owner)
 
@@ -37,6 +37,15 @@ def publish_xlsform_async(user, post_data, owner, file_data):
             return {"pk": survey.pk}
 
         return survey
+    except:
+        e = sys.exc_info()[0]
+        return {u'error': str(e)}
+
+
+@task()
+def delete_xform_async(xform):
+    try:
+        xform.delete()
     except:
         e = sys.exc_info()[0]
         return {u'error': str(e)}
