@@ -547,7 +547,15 @@ Delete a specific submission in a form
             elif _format == 'xml':
                 return Response(instance.xml)
             elif _format == 'geojson':
-                serializer = GeoJsonSerializer(instance)
+                query_params = (request and request.QUERY_PARAMS) or {}
+
+                fields = query_params.get('fields')
+                geo_field = query_params.get('geo_field')
+                data = {"instance": instance,
+                        "geo_field": geo_field,
+                        "fields": fields}
+
+                serializer = GeoJsonSerializer(data)
 
                 return Response(serializer.data)
             else:

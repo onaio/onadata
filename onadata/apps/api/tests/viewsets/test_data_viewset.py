@@ -3,6 +3,7 @@ import requests
 
 from datetime import datetime
 from django.test import RequestFactory
+from django.conf import settings
 
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
@@ -537,10 +538,34 @@ class TestDataViewSet(TestBase):
         self.assertEquals(before_count - 2, count)
 
     def test_geojson_format(self):
-        self._make_submissions()
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "geolocation", "GeoLocationForm.xlsx")
+
+        self._publish_xls_file_and_set_xform(path)
+
+        view = XFormViewSet.as_view({'post': 'csv_import'})
+        csv_import = \
+            open(os.path.join(settings.PROJECT_ROOT, 'apps', 'main',
+                              'tests', 'fixtures', 'geolocation',
+                              'GeoLocationForm_2015_01_15_01_28_45.csv'))
+        post_data = {'csv_file': csv_import}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
 
         view = DataViewSet.as_view({'get': 'retrieve'})
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=1, dataid=1, format='geojson')
 
         self.assertEqual(response.status_code, 200)
+
+        test_geo = {'type': 'Feature',
+                    'geometry':
+                        {u'type': u'GeometryCollection',
+                         u'geometries':
+                             [{u'type': u'Point',
+                               u'coordinates': [36.787219, -1.294197]}]},
+                    'properties': {'id': 1, 'xform': 2}}
+
+        self.assertEqual(response.data, test_geo)
