@@ -87,22 +87,29 @@ class TestFormAPI(TestBase):
         self.assertEqual(find_d, d)
 
     def test_api_with_query_start_limit(self):
+        for i in range(1, 3):
+            self._submit_transport_instance(i)
         # query string
-        query = '{"transport/available_transportation_types_to_referral_facil'\
-                'ity":"none"}'
-        data = {'query': query, 'start': 0, 'limit': 10}
+        data = {'start': 0, 'limit': 2}
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
-        d = dict_for_mongo_without_userform_id(
-            self.xform.instances.all()[0].parsed_instance)
-        find_d = json.loads(response.content)[0]
-        self.assertEqual(find_d, d)
+        content = json.loads(response.content)
+        self.assertEqual(len(content), 2)
+        data['fields'] = '["_id"]'
+        response = self.client.get(self.api_url, data)
+        self.assertEqual(response.status_code, 200)
+        content = json.loads(response.content)
+        self.assertEqual(len(content), 2)
 
     def test_api_with_query_invalid_start_limit(self):
         # query string
         query = '{"transport/available_transportation_types_to_referral_facil'\
                 'ity":"none"}'
         data = {'query': query, 'start': -100, 'limit': -100}
+        response = self.client.get(self.api_url, data)
+        self.assertEqual(response.status_code, 400)
+
+        data = {'query': query, 'start': 'invalid', 'limit': 'invalid'}
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 400)
 

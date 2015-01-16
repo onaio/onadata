@@ -137,7 +137,11 @@ class ParsedInstance(models.Model):
 
     @classmethod
     def query_data(cls, xform, query=None, fields=None, sort=None, start=None,
-                   end=None, start_index=None, limit=None, count=None):
+                   end=None, start_index=None, limit=DEFAULT_LIMIT,
+                   count=None):
+        if start_index is not None and (start_index < 0 or limit < 0):
+            raise ValueError(_("Invalid start/limit params"))
+
         instances = xform.instances.filter(deleted_at=None)
         if isinstance(start, datetime.datetime):
             instances = instances.filter(date_created__gte=start)
@@ -171,9 +175,13 @@ class ParsedInstance(models.Model):
             if where_params:
                 sql_where = u" AND " + u" AND ".join(where)
 
-            sql += " WHERE xform_id = %s " + sql_where \
-                + " AND deleted_at IS NULL ORDER BY id"
+            sql += u" WHERE xform_id = %s " + sql_where \
+                + u" AND deleted_at IS NULL ORDER BY id"
             params = [xform.pk] + where_params
+
+            if start_index is not None:
+                sql += u" OFFSET %s LIMIT %s"
+                params += [start_index, limit]
             records = ParsedInstance.query_iterator(sql, fields, params, count)
         else:
             if count:
@@ -183,6 +191,9 @@ class ParsedInstance(models.Model):
                 instances = instances.extra(where=where, params=where_params)
 
             records = instances.order_by(sort).values_list('json', flat=True)
+
+            if start_index is not None:
+                records = records[start_index: limit]
 
         return records
 
