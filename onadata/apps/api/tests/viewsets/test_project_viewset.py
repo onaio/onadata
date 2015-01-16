@@ -901,4 +901,3 @@ class TestProjectViewSet(TestAbstractViewSet):
             if user == alice_profile.user:
                 r = p.get('role')
                 self.assertEquals(r, ReadOnlyRole.name)
-
