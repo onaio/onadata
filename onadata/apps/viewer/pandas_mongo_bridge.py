@@ -9,6 +9,7 @@ from pyxform.survey_element import SurveyElement
 from pyxform.section import Section, RepeatingSection
 from pyxform.question import Question
 
+from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.exceptions import NoRecordsFoundError
@@ -89,6 +90,8 @@ class AbstractDataFrameBuilder(object):
         self.group_delimiter = group_delimiter
         self.split_select_multiples = split_select_multiples
         self.BINARY_SELECT_MULTIPLES = binary_select_multiples
+        self.xform = XForm.objects.get(id_string=self.id_string,
+                                       user__username=self.username)
         self._setup()
 
     def _setup(self):
@@ -195,14 +198,13 @@ class AbstractDataFrameBuilder(object):
         # ParsedInstance.query_mongo takes params as json strings
         # so we dumps the fields dictionary
         count_args = {
-            'username': self.username,
-            'id_string': self.id_string,
+            'xform': self.xform,
             'query': query,
             'fields': '[]',
             'sort': '{}',
             'count': True
         }
-        count_object = ParsedInstance.query_mongo(**count_args)
+        count_object = list(ParsedInstance.query_data(**count_args))
         record_count = count_object[0]["count"]
         if record_count == 0:
             raise NoRecordsFoundError("No records found for your query")
@@ -211,19 +213,18 @@ class AbstractDataFrameBuilder(object):
             return record_count
         else:
             query_args = {
-                'username': self.username,
-                'id_string': self.id_string,
+                'xform': self.xform,
                 'query': query,
                 'fields': fields,
                 # TODO: we might want to add this in for the user
                 # to sepcify a sort order
                 'sort': '{}',
-                'start': start,
+                'start_index': start,
                 'limit': limit,
                 'count': False
             }
             # use ParsedInstance.query_mongo
-            cursor = ParsedInstance.query_mongo(**query_args)
+            cursor = ParsedInstance.query_data(**query_args)
             return cursor
 
 

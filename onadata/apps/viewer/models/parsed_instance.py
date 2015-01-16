@@ -147,7 +147,7 @@ class ParsedInstance(models.Model):
             instances = instances.filter(date_created__gte=start)
         if isinstance(end, datetime.datetime):
             instances = instances.filter(date_created__lte=end)
-        sort = 'pk' if sort is None else sort
+        sort = 'pk' if sort is None or sort == '{}' else sort
 
         where_params = []
         sql_where = u""
@@ -169,6 +169,8 @@ class ParsedInstance(models.Model):
 
         if fields and isinstance(fields, six.string_types):
             fields = json.loads(fields)
+
+        if fields:
             field_list = [u"json->%s" for i in fields]
             sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
 
