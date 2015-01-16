@@ -5,6 +5,43 @@ from rest_framework_gis import serializers
 from onadata.apps.logger.models.instance import Instance
 
 
+def create_feature(instance, geo_field, fields):
+    data = instance.get_dict()
+
+    if geo_field not in data:
+        return geojson.Feature()
+
+    points = data.get(geo_field).split(';')
+
+    if len(points) == 1:
+            # point
+            point = points[0].split()
+            geometry = geojson.Point((float(point[1]), float(point[0])))
+    elif len(points) > 1:
+        pnt_list = []
+        for pnt in points:
+            point = pnt.split()
+            pnt_list.append((float(point[1]), float(point[0])))
+
+        if pnt_list[0] == pnt_list[len(pnt_list)-1]:
+            geometry = geojson.Polygon([pnt_list])
+        else:
+            geometry = geojson.LineString(pnt_list)
+
+    properties = {
+        "_record_id": instance.pk,
+        "_field": geo_field
+    }
+
+    if fields:
+        for field in fields:
+            properties.update(field, data.get('field'))
+
+    return geojson.Feature(geometry=geometry,
+                           id=instance.pk,
+                           properties=properties)
+
+
 class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
 
     def __init__(self, *args, **kwargs):
@@ -26,6 +63,7 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
         if obj is None:
             return super(GeoJsonSerializer, self).to_native(obj)
         geo_field = None
+        fields = None
 
         if 'fields' in obj and obj.get('fields'):
             fields = obj.get('fields').split(',')
@@ -36,41 +74,10 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
         if 'geo_field' in obj and obj.get('geo_field'):
             geo_field = obj.get('geo_field')
 
-        if not geo_field:
-            return super(GeoJsonSerializer, self).to_native(
-                obj.get('instance'))
+        if geo_field:
+            return create_feature(instance, geo_field, fields)
 
-        if instance:
-            data = instance.get_dict()
-
-        points = data.get(geo_field).split(';')
-
-        if len(points) == 1:
-            # point
-            point = points[0].split()
-            geometry = geojson.Point((float(point[1]), float(point[0])))
-        elif len(points) > 1:
-            pnt_list = []
-            for pnt in points:
-                point = pnt.split()
-                pnt_list.append((float(point[1]), float(point[0])))
-
-            if pnt_list[0] == pnt_list[len(pnt_list)-1]:
-                geometry = geojson.Polygon([pnt_list])
-            else:
-                geometry = geojson.LineString(pnt_list)
-
-        properties = {
-            "_record_id": obj.get('instance').pk,
-            "_field": geo_field
-        }
-
-        for field in fields:
-            properties.update(field, data.get('field'))
-
-        return geojson.Feature(geometry=geometry,
-                               id=obj.get('instance').pk,
-                               properties=properties)
+        return super(GeoJsonSerializer, self).to_native(instance)
 
     class Meta:
         model = Instance
@@ -84,8 +91,28 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
 class GeoJsonListSerializer(GeoJsonSerializer):
 
     def to_native(self, obj):
-        instances = [inst for inst in obj.get('instances')[0].instances.all()]
+
+        if obj is None:
+            return super(GeoJsonSerializer, self).to_native(obj)
+
+        geo_field = None
+        fields = None
+
+        if 'fields' in obj and obj.get('fields'):
+            fields = obj.get('fields').split(',')
+
+        if 'instances' in obj and obj.get('instances'):
+            insts = obj.get('instances')
+
+        if 'geo_field' in obj and obj.get('geo_field'):
+            geo_field = obj.get('geo_field')
+
+        instances = [inst for inst in insts[0].instances.all()]
+
+        if not geo_field:
+            return geojson.FeatureCollection(
+                [super(GeoJsonListSerializer, self).to_native(
+                    {'instance': ret})for ret in instances])
 
         return geojson.FeatureCollection(
-            [super(GeoJsonListSerializer, self).to_native({'instance': ret})
-             for ret in instances])
+            [create_feature(ret, geo_field, fields)for ret in instances])
