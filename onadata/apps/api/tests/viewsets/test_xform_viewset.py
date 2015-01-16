@@ -903,7 +903,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         xform_3 = XForm.objects.get(project__name='demo3')
         self.assertEqual(xform_1.id_string, 'transportation_2011_07_25')
         self.assertEqual(xform_2.id_string, 'transportation_2011_07_25_1')
-        self.assertNotEqual(xform_3.id_string, 'transportation_2011_07_25_2')
+        self.assertEqual(xform_3.id_string, 'transportation_2011_07_25_2')
 
     def test_update_xform_with_same_id_string_in_different_projects(self):
         project_count = Project.objects.count()

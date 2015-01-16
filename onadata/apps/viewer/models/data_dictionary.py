@@ -185,21 +185,19 @@ class DataDictionary(XForm):
 
     def _id_string_already_exists_in_account(self, id_string):
         try:
-            xform = XForm.objects.get(user=self.user, id_string=id_string)
+            XForm.objects.get(user=self.user, id_string=id_string)
         except XForm.DoesNotExist:
-            xform = None
+            return False
 
-        return xform
+        return True
 
     def get_unique_id_string(self, id_string, count=0):
         if self._id_string_already_exists_in_account(id_string):
-            if count == 0:
-                count += 1
-            else:
+            if count != 0:
                 if re.match(r'\w+_\d+$', id_string):
                     a = id_string.split('_')
-                    count = int(a[len(a) - 1]) + 1
-
+                    id_string = "_".join(a[:-1])
+            count += 1
             id_string = "{}_{}".format(id_string, count)
 
             return self.get_unique_id_string(id_string, count)
