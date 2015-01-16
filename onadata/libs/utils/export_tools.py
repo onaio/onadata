@@ -564,14 +564,17 @@ class ExportBuilder(object):
         wb.save(filename=path)
 
     def to_flat_csv_export(
-            self, path, data, username, id_string, filter_query):
+            self, path, data, username, id_string, filter_query,
+            start=None, end=None):
         # TODO resolve circular import
         from onadata.apps.viewer.pandas_mongo_bridge import\
             CSVDataFrameBuilder
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
-            self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES)
+            self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
+            start, end
+        )
         csv_builder.export_to(path)
 
     def to_zipped_sav(self, path, data, *args):
@@ -705,7 +708,9 @@ def generate_export(export_type, extension, username, id_string,
     func = getattr(export_builder, export_type_func_map[export_type])
     try:
         func.__call__(
-            temp_file.name, records, username, id_string, filter_query)
+            temp_file.name, records, username, id_string, filter_query,
+            start=start, end=end
+        )
     except NoRecordsFoundError:
         pass
 

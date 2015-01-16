@@ -83,13 +83,16 @@ class AbstractDataFrameBuilder(object):
 
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
-                 split_select_multiples=True, binary_select_multiples=False):
+                 split_select_multiples=True, binary_select_multiples=False,
+                 start=None, end=None):
         self.username = username
         self.id_string = id_string
         self.filter_query = filter_query
         self.group_delimiter = group_delimiter
         self.split_select_multiples = split_select_multiples
         self.BINARY_SELECT_MULTIPLES = binary_select_multiples
+        self.start = start
+        self.end = end
         self.xform = XForm.objects.get(id_string=self.id_string,
                                        user__username=self.username)
         self._setup()
@@ -200,6 +203,8 @@ class AbstractDataFrameBuilder(object):
         count_args = {
             'xform': self.xform,
             'query': query,
+            'start': self.start,
+            'end': self.end,
             'fields': '[]',
             'sort': '{}',
             'count': True
@@ -216,9 +221,11 @@ class AbstractDataFrameBuilder(object):
                 'xform': self.xform,
                 'query': query,
                 'fields': fields,
+                'start': self.start,
+                'end': self.end,
                 # TODO: we might want to add this in for the user
                 # to sepcify a sort order
-                'sort': '{}',
+                'sort': 'pk',
                 'start_index': start,
                 'limit': limit,
                 'count': False
@@ -248,10 +255,11 @@ class XLSDataFrameBuilder(AbstractDataFrameBuilder):
 
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
-                 split_select_multiples=True, binary_select_multiples=False):
+                 split_select_multiples=True, binary_select_multiples=False,
+                 start=None, end=None):
         super(XLSDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
-            split_select_multiples, binary_select_multiples)
+            split_select_multiples, binary_select_multiples, start, end)
 
     def _setup(self):
         super(XLSDataFrameBuilder, self)._setup()
@@ -270,7 +278,7 @@ class XLSDataFrameBuilder(AbstractDataFrameBuilder):
         start = 0
         header = True
         while start < record_count:
-            cursor = self._query_mongo(self.filter_query, start=start,
+            cursor = self._query_mongo(self.filter_query, start_index=start,
                                        limit=batchsize)
 
             data = self._format_for_dataframe(cursor)
@@ -480,10 +488,11 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
-                 split_select_multiples=True, binary_select_multiples=False):
+                 split_select_multiples=True, binary_select_multiples=False,
+                 start=None, end=None):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
-            split_select_multiples, binary_select_multiples)
+            split_select_multiples, binary_select_multiples, start, end)
         self.ordered_columns = OrderedDict()
 
     def _setup(self):

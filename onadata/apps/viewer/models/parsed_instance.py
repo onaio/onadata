@@ -147,7 +147,7 @@ class ParsedInstance(models.Model):
             instances = instances.filter(date_created__gte=start)
         if isinstance(end, datetime.datetime):
             instances = instances.filter(date_created__lte=end)
-        sort = 'pk' if sort is None or sort == '{}' else sort
+        sort = 'pk' if sort is None else sort
 
         where_params = []
         sql_where = u""
