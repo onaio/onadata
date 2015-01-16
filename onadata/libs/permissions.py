@@ -44,7 +44,6 @@ CAN_CHANGE_PROJECT = 'change_project'
 CAN_TRANSFER_PROJECT_OWNERSHIP = 'transfer_project'
 CAN_DELETE_PROJECT = 'delete_project'
 CAN_ADD_PROJECT_XFORM = 'add_project_xform'
-CAN_ADD_SUBMISSIONS_PROJECT = 'report_project_xform'
 
 CAN_ADD_DATADICTIONARY = 'add_datadictionary'
 CAN_CHANGE_DATADICTIONARY = 'change_datadictionary'
@@ -117,7 +116,6 @@ class DataEntryRole(Role):
         (CAN_VIEW_XFORM, XForm),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
     )
 
 
@@ -130,7 +128,6 @@ class EditorRole(Role):
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_CHANGE_PROJECT, Project),
         (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
     )
 
 
@@ -150,7 +147,6 @@ class ManagerRole(Role):
         (CAN_ADD_PROJECT_XFORM, Project),
         (CAN_CHANGE_PROJECT, Project),
         (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
     )
 
 
@@ -196,7 +192,6 @@ class OwnerRole(Role):
         (CAN_DELETE_PROJECT, Project),
         (CAN_TRANSFER_PROJECT_OWNERSHIP, Project),
         (CAN_VIEW_PROJECT, Project),
-        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
     )
 
 ROLES_ORDERED = [ReadOnlyRole,
