@@ -84,6 +84,8 @@ class TestBase(TransactionTestCase):
             path = os.path.join(self.this_directory, path)
         with open(path) as xls_file:
             post_data = {'xls_file': xls_file}
+            if not hasattr(self, 'factory'):
+                self.factory = RequestFactory()
             request = self.factory.post('/%s/' % self.user.username, post_data)
             request.user = self.user
 
