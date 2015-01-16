@@ -868,3 +868,36 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
         self.assertTrue(ManagerRole.user_has_role(alice, self.project))
         self.assertTrue(alice.has_perm('delete_xform', self.xform))
+
+    def test_project_share_readonly(self):
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        projectid = self.project.pk
+
+        self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                    self.project))
+
+        data = {'username': 'alice', 'role': ReadOnlyRole.name}
+        request = self.factory.put('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'put': 'share'
+        })
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 204)
+
+        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                   self.project))
+        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                   self.xform))
+
+        perms = role.get_object_users_with_permissions(self.project)
+        for p in perms:
+            user = p.get('user')
+
+            if user == alice_profile.user:
+                r = p.get('role')
+                self.assertEquals(r, ReadOnlyRole.name)
