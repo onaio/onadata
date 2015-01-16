@@ -51,8 +51,8 @@ def delete_xform_async(xform):
         return {u'error': str(e)}
 
 
-def get_async_creation_status(job_uuid):
-    """ Gets form creation progress or result """
+def get_async_status(job_uuid):
+    """ Gets progress status or result """
 
     if not job_uuid:
         return {u'error': u'Empty job uuid'}
