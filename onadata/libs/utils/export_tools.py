@@ -406,7 +406,7 @@ class ExportBuilder(object):
 
         return row
 
-    def to_zipped_csv(self, path, data, *args):
+    def to_zipped_csv(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):
             csv_writer.writerow(
                 [encode_if_str(row, field) for field in fields])
@@ -496,7 +496,7 @@ class ExportBuilder(object):
             i += 1
         return generated_name
 
-    def to_xls_export(self, path, data, *args):
+    def to_xls_export(self, path, data, *args, **kwargs):
         def write_row(data, work_sheet, fields, work_sheet_titles):
             # update parent_table with the generated sheet's title
             data[PARENT_TABLE_NAME] = work_sheet_titles.get(
@@ -577,7 +577,7 @@ class ExportBuilder(object):
         )
         csv_builder.export_to(path)
 
-    def to_zipped_sav(self, path, data, *args):
+    def to_zipped_sav(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):
             sav_writer.writerow(
                 [encode_if_str(row, field, True) for field in fields])
