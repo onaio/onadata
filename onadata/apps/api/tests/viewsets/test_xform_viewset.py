@@ -871,6 +871,40 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data.get(
                 'text'), expected_response)
 
+    def test_id_strings_should_be_unique_in_each_account(self):
+        project_count = Project.objects.count()
+
+        self._project_create()
+        self._publish_xls_form_to_project()
+        data_2 = {
+            'name': u'demo2',
+            'owner': 'http://testserver/api/v1/users/%s' % self.user.username,
+            'metadata': {'description': 'Demo2 Description',
+                         'location': 'Nakuru, Kenya',
+                         'category': 'education'},
+            'public': False
+        }
+        data_3 = {
+            'name': u'demo3',
+            'owner': 'http://testserver/api/v1/users/%s' % self.user.username,
+            'metadata': {'description': 'Demo3 Description',
+                         'location': 'Kisumu, Kenya',
+                         'category': 'nursing'},
+            'public': False
+        }
+        self._project_create(data_2, False)
+        self._publish_xls_form_to_project()
+        self._project_create(data_3, False)
+        self._publish_xls_form_to_project()
+        self.assertEqual(project_count + 3, Project.objects.count())
+
+        xform_1 = XForm.objects.get(project__name='demo')
+        xform_2 = XForm.objects.get(project__name='demo2')
+        xform_3 = XForm.objects.get(project__name='demo3')
+        self.assertEqual(xform_1.id_string, 'transportation_2011_07_25')
+        self.assertEqual(xform_2.id_string, 'transportation_2011_07_25_1')
+        self.assertNotEqual(xform_3.id_string, 'transportation_2011_07_25_2')
+
     def test_update_xform_with_same_id_string_in_different_projects(self):
         project_count = Project.objects.count()
 
@@ -1114,7 +1148,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         self.assertTrue('job_uuid' in response.data)
 
-        self.assertEquals(count+1, XForm.objects.count())
+        self.assertEquals(count + 1, XForm.objects.count())
 
         # get the result
         get_data = {'job_uuid': response.data.get('job_uuid')}

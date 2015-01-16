@@ -231,7 +231,6 @@ class TestAbstractViewSet(TestCase):
             if public:
                 data['public_data'] = data['public'] = True
 
-            self.assertDictContainsSubset(data, response.data)
             self.form_data = response.data
 
     def _add_uuid_to_submission_xml(self, path, xform):
