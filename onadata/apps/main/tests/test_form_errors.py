@@ -94,4 +94,3 @@ class TestFormErrors(TestBase):
         response = self._publish_xls_file(xls_path)
         self.assertEquals(response.status_code, 200)
         self.assertEquals(XForm.objects.count(), count)
-

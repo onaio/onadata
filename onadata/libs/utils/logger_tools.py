@@ -373,7 +373,8 @@ def publish_form(callback):
         return callback()
     except (PyXFormError, XLSFormError) as e:
         msg = unicode(e)
-        if msg.find('invalid xml tag. Names'):
+
+        if 'invalid xml tag' in msg:
             msg = _(u"Invalid file name; Names must begin with a letter, "
                     u"colon, or underscore, subsequent characters can include"
                     u" numbers, dashes,periods and with no spacing.")
