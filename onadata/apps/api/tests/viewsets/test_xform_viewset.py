@@ -1072,7 +1072,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertNotEqual(previous_user,  self.user)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch('onadata.apps.api.tasks.get_async_creation_status')
+    @patch('onadata.apps.api.tasks.get_async_status')
     def test_publish_form_async(self, mock_get_status):
         mock_get_status.return_value = {'JOB_STATUS': 'PENDING'}
 
@@ -1108,7 +1108,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEquals(response.data, {'JOB_STATUS': 'PENDING'})
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch('onadata.apps.api.tasks.get_async_creation_status')
+    @patch('onadata.apps.api.tasks.get_async_status')
     def test_delete_xform_async(self, mock_get_status):
         mock_get_status.return_value = {'JOB_STATUS': 'PENDING'}
         self._publish_xls_form_to_project()
@@ -1118,7 +1118,6 @@ class TestXFormViewSet(TestAbstractViewSet):
         })
         formid = self.xform.pk
         request = self.factory.delete('/', **self.extra)
-        # request = self.factory.delete('/', data={'pk': formid}, **self.extra)
         response = view(request, pk=formid)
         self.assertIsNotNone(response.data)
         self.assertEqual(response.status_code, 202)
@@ -1126,15 +1125,14 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEquals(count - 1, XForm.objects.count())
 
         view = XFormViewSet.as_view({
-            'get': 'create_async'
+            'get': 'delete_async'
         })
-        # get the result
+
         get_data = {'job_uuid': response.data.get('job_uuid')}
         request = self.factory.get('/', data=get_data, **self.extra)
-        response = view(request)
+        response = view(request, pk=formid)
 
         self.assertTrue(mock_get_status.called)
-
         self.assertEqual(response.status_code, 202)
         self.assertEquals(response.data, {'JOB_STATUS': 'PENDING'})
 
