@@ -8,7 +8,6 @@ from guardian.shortcuts import assign_perm
 from mock import patch
 from nose import SkipTest
 
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Instance
@@ -80,14 +79,8 @@ class TestFormSubmission(TestBase):
         test submission to a private form by non-owner without perm is
         forbidden.
         """
-        view = XFormViewSet.as_view({
-            'patch': 'partial_update'
-        })
-        data = {'require_auth': True}
-        self.assertFalse(self.xform.require_auth)
-        request = self.factory.patch('/', data=data, **{
-            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
-        view(request, pk=self.xform.id)
+        self.xform.require_auth = True
+        self.xform.save()
         self.xform.reload()
         self.assertTrue(self.xform.require_auth)
 
@@ -109,14 +102,8 @@ class TestFormSubmission(TestBase):
         test submission to a private form by non-owner without perm is
         forbidden.
         """
-        view = XFormViewSet.as_view({
-            'patch': 'partial_update'
-        })
-        data = {'require_auth': True}
-        self.assertFalse(self.xform.require_auth)
-        request = self.factory.patch('/', data=data, **{
-            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
-        view(request, pk=self.xform.id)
+        self.xform.require_auth = True
+        self.xform.save()
         self.xform.reload()
         self.assertTrue(self.xform.require_auth)
 
@@ -144,14 +131,8 @@ class TestFormSubmission(TestBase):
         """
         raise SkipTest
 
-        view = XFormViewSet.as_view({
-            'patch': 'partial_update'
-        })
-        data = {'require_auth': True}
-        self.assertFalse(self.xform.require_auth)
-        request = self.factory.patch('/', data=data, **{
-            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token})
-        view(request, pk=self.xform.id)
+        self.xform.require_auth = True
+        self.xform.save()
         self.xform.reload()
         self.assertTrue(self.xform.require_auth)
 
