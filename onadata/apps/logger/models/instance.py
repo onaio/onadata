@@ -282,6 +282,7 @@ class Instance(models.Model):
     def get_full_dict(self):
         # TODO should we store all of these in the JSON no matter what?
         d = self.json
+        d.update(self.get_dict())
         doc = {
             UUID: self.uuid,
             ID: self.id,
