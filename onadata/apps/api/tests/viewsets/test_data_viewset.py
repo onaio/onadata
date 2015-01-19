@@ -1,9 +1,10 @@
 import os
 import requests
+import json
+import geojson
 
 from datetime import datetime
 from django.test import RequestFactory
-from django.conf import settings
 
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
@@ -538,21 +539,7 @@ class TestDataViewSet(TestBase):
         self.assertEquals(before_count - 2, count)
 
     def test_geojson_format(self):
-        path = os.path.join(
-            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "geolocation", "GeoLocationForm.xlsx")
-
-        self._publish_xls_file_and_set_xform(path)
-
-        view = XFormViewSet.as_view({'post': 'csv_import'})
-        csv_import = \
-            open(os.path.join(settings.PROJECT_ROOT, 'apps', 'main',
-                              'tests', 'fixtures', 'geolocation',
-                              'GeoLocationForm_2015_01_15_01_28_45.csv'))
-        post_data = {'csv_file': csv_import}
-        request = self.factory.post('/', data=post_data, **self.extra)
-        response = view(request, pk=self.xform.id)
-        self.assertEqual(response.status_code, 200)
+        self._publish_submit_geojson()
 
         dataid = self.xform.instances.all().order_by('id')[0].pk
 
@@ -578,3 +565,114 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=self.xform.pk, format='geojson')
 
         self.assertEqual(response.status_code, 200)
+
+    def test_geojson_geofield(self):
+        self._publish_submit_geojson()
+
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+
+        data_get = {
+            "geo_field": 'location',
+            "fields": 'today'
+        }
+
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        request = self.factory.get('/', data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, dataid=dataid,
+                        format='geojson')
+
+        self.assertEqual(response.status_code, 200)
+
+        test_loc = {'geometry':
+                    {
+                        'coordinates': [36.787219, -1.294197],
+                        'type': u'Point'},
+                    'id': dataid,
+                    'properties':
+                    {
+                        '_field': 'location',
+                        '_record_id': dataid,
+                        'today': '2015-01-15'
+                    },
+                    'type': 'Feature'}
+        self.assertEqual(geojson.dumps(response.data), json.dumps(test_loc))
+
+        view = DataViewSet.as_view({'get': 'list'})
+
+        request = self.factory.get('/', data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, format='geojson')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.data['type'], 'FeatureCollection')
+        self.assertEquals(len(response.data['features']), 4)
+        self.assertEquals(response.data['features'][0]['type'], 'Feature')
+        self.assertEquals(response.data['features'][0]['geometry']['type'],
+                          'Point')
+
+    def test_geojson_linestring(self):
+        self._publish_submit_geojson()
+
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+
+        data_get = {
+            "geo_field": 'path',
+            "fields": 'today'
+        }
+
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        request = self.factory.get('/', data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, dataid=dataid,
+                        format='geojson')
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEquals(response.data['type'], 'Feature')
+        self.assertEquals(len(response.data['geometry']['coordinates']), 5)
+        self.assertEquals(response.data['properties']['_field'], 'path')
+        self.assertEquals(response.data['geometry']['type'], 'LineString')
+
+        view = DataViewSet.as_view({'get': 'list'})
+
+        request = self.factory.get('/', data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, format='geojson')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.data['type'], 'FeatureCollection')
+        self.assertEquals(len(response.data['features']), 4)
+        self.assertEquals(response.data['features'][0]['type'], 'Feature')
+        self.assertEquals(response.data['features'][0]['geometry']['type'],
+                          'LineString')
+
+    def test_geojson_polygon(self):
+        self._publish_submit_geojson()
+
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+
+        data_get = {
+            "geo_field": 'shape',
+            "fields": 'today'
+        }
+
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        request = self.factory.get('/', data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, dataid=dataid,
+                        format='geojson')
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEquals(response.data['type'], 'Feature')
+        self.assertEquals(len(response.data['geometry']['coordinates'][0]), 6)
+        self.assertEquals(response.data['properties']['_field'], 'shape')
+        self.assertEquals(response.data['geometry']['type'], 'Polygon')
+
+        view = DataViewSet.as_view({'get': 'list'})
+
+        request = self.factory.get('/', data=data_get, **self.extra)
+        response = view(request, pk=self.xform.pk, format='geojson')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.data['type'], 'FeatureCollection')
+        self.assertEquals(len(response.data['features']), 4)
+        self.assertEquals(response.data['features'][0]['type'], 'Feature')
+        self.assertEquals(response.data['features'][0]['geometry']['type'],
+                          'Polygon')

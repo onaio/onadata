@@ -9,7 +9,7 @@ def create_feature(instance, geo_field, fields):
     """
     Create a geojson feature from a single instance
     """
-    data = instance.get_dict()
+    data = instance.json
 
     if geo_field not in data:
         # Return an empty feature
@@ -44,7 +44,7 @@ def create_feature(instance, geo_field, fields):
     # Add additional parameters added by the user
     if fields:
         for field in fields:
-            properties.update(field, data.get('field'))
+            properties.update({field: data.get(field)})
 
     return geojson.Feature(geometry=geometry,
                            id=instance.pk,
