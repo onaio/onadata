@@ -897,7 +897,9 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.patch('/', data=data_patch, **self.extra)
         response = view(request, pk=projectid)
 
+        self.project.reload()
         self.assertEqual(response.status_code, 200)
+        self.assertEquals(self.project.organization, alice)
         self.assertTrue(OwnerRole.user_has_role(alice, self.project))
 
     def test_cannot_share_project_to_owner(self):
