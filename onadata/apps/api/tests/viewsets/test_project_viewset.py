@@ -787,7 +787,14 @@ class TestProjectViewSet(TestAbstractViewSet):
             'put': 'share'
         })
 
-        data = {'username': 'bob', 'remove': True, 'role': 'owner'}
+        ManagerRole.add(self.user, self.project)
+
+        tom_data = {'username': 'tom', 'email': 'tom@localhost.com'}
+        bob_profile = self._create_user_profile(tom_data)
+
+        OwnerRole.add(bob_profile.user, self.project)
+
+        data = {'username': 'tom', 'remove': True, 'role': 'owner'}
 
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, pk=self.project.pk)
@@ -796,7 +803,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         error = {'remove': [u"Project requires at least one owner"]}
         self.assertEquals(response.data, error)
 
-        self.assertTrue(OwnerRole.user_has_role(self.user,
+        self.assertTrue(OwnerRole.user_has_role(bob_profile.user,
                                                 self.project))
 
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
@@ -808,14 +815,14 @@ class TestProjectViewSet(TestAbstractViewSet):
             'put': 'share'
         })
 
-        data = {'username': 'bob', 'remove': True, 'role': 'owner'}
+        data = {'username': 'tom', 'remove': True, 'role': 'owner'}
 
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, pk=self.project.pk)
 
         self.assertEqual(response.status_code, 204)
 
-        self.assertFalse(OwnerRole.user_has_role(self.user,
+        self.assertFalse(OwnerRole.user_has_role(bob_profile.user,
                                                  self.project))
 
     def test_last_date_modified_changes_when_adding_new_form(self):
