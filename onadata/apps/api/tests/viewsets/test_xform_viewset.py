@@ -943,6 +943,8 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertIsNotNone(self.xform.version)
         version = self.xform.version
         form_id = self.xform.pk
+        xform_json = self.xform.json
+        xform_xml = self.xform.xml
 
         view = XFormViewSet.as_view({
             'patch': 'partial_update',
@@ -956,17 +958,19 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.patch('/', data=post_data, **self.extra)
             response = view(request, pk=form_id)
 
-            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.status_code, 200)
             self.assertEqual(response.get('Last-Modified'), None)
-            self.assertEquals(response.data, u"Cannot update the xls file in "
-                                             u"a form that has submissions")
 
         self.xform.reload()
-        new_version = self.xform.version
 
-        # diff versions
-        self.assertEquals(version, new_version)
         self.assertEquals(form_id, self.xform.pk)
+        self.assertNotEquals(version, self.xform.version)
+        self.assertNotEquals(xform_json, self.xform.json)
+        self.assertNotEquals(xform_xml, self.xform.xml)
+        data_dictionary = self.xform.data_dictionary()
+        is_updated_form = len([e.name for e in data_dictionary.survey_elements
+                               if e.name == u'preferred_means']) > 0
+        self.assertTrue(is_updated_form)
 
     def test_update_xform_xls_file_with_version_set(self):
         self._publish_xls_form_to_project()

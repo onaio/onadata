@@ -259,11 +259,6 @@ def custom_response_handler(request, xform, query, export_type,
 
 
 def _try_update_xlsform(request, xform, owner):
-    if xform.instances.count() > 0:
-        data = _(u"Cannot update the xls file in a form that has"
-                 u" submissions")
-        return Response(data, status=status.HTTP_400_BAD_REQUEST)
-
     survey = \
         utils.publish_xlsform(request, owner, xform.id_string, xform.project)
 
