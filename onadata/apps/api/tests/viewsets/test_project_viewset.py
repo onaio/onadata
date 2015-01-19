@@ -868,3 +868,27 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
         self.assertTrue(ManagerRole.user_has_role(alice, self.project))
         self.assertTrue(alice.has_perm('delete_xform', self.xform))
+
+    def test_move_project_owner(self):
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        alice = alice_profile.user
+        projectid = self.project.pk
+
+        self.assertFalse(OwnerRole.user_has_role(alice, self.project))
+
+        view = ProjectViewSet.as_view({
+            'patch': 'partial_update'
+        })
+
+        data_patch = {
+            'owner': 'http://testserver/api/v1/users/%s' % alice.username
+        }
+        request = self.factory.patch('/', data=data_patch, **self.extra)
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(OwnerRole.user_has_role(alice, self.project))
