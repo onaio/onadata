@@ -892,3 +892,21 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(OwnerRole.user_has_role(alice, self.project))
+
+    def test_cannot_share_project_to_owner(self):
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+
+        data = {'username': self.user.username, 'role': ManagerRole.name,
+                'email_msg': 'I have shared the project with you'}
+        request = self.factory.post('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['username'], [u"Cannot share project"
+                         u" with the owner"])
+        self.assertTrue(OwnerRole.user_has_role(self.user, self.project))

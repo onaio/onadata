@@ -12,6 +12,7 @@ from onadata.libs.utils.decorators import check_obj
 
 
 def set_owners_permission(user, project):
+    """Give the user owner permission"""
     OwnerRole.add(user, project)
 
 

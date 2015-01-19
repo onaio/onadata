@@ -33,11 +33,19 @@ class ShareProjectSerializer(serializers.Serializer):
     def validate_username(self, attrs, source):
         """Check that the username exists"""
         value = attrs[source]
+
+        user = None
+        project = attrs.get('project')
         try:
-            User.objects.get(username=value)
+            user = User.objects.get(username=value)
         except User.DoesNotExist:
             raise ValidationError(_(u"User '%(value)s' does not exist."
                                     % {"value": value}))
+        # check if the user is the owner of the project
+        if user and project:
+            if user == project.organization:
+                raise ValidationError(_(u"Cannot share project with"
+                                        u" the owner"))
 
         return attrs
 
