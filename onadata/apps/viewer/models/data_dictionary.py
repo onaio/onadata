@@ -183,6 +183,29 @@ class DataDictionary(XForm):
             obs.append(_dict_organizer.get_observation_from_dict(d))
         return obs
 
+    def _id_string_already_exists_in_account(self, id_string):
+        try:
+            XForm.objects.get(user=self.user, id_string=id_string)
+        except XForm.DoesNotExist:
+            return False
+
+        return True
+
+    def get_unique_id_string(self, id_string, count=0):
+        # used to generate a new id_string for new data_dictionary object if
+        # id_string already existed
+        if self._id_string_already_exists_in_account(id_string):
+            if count != 0:
+                if re.match(r'\w+_\d+$', id_string):
+                    a = id_string.split('_')
+                    id_string = "_".join(a[:-1])
+            count += 1
+            id_string = "{}_{}".format(id_string, count)
+
+            return self.get_unique_id_string(id_string, count)
+
+        return id_string
+
     def save(self, *args, **kwargs):
         if self.xls:
             # check if version is set
@@ -193,6 +216,10 @@ class DataDictionary(XForm):
                 self.has_external_choices = True
             survey = create_survey_element_from_dict(survey_dict)
             survey = self._check_version_set(survey)
+            # if form is being replaced, don't check for id_string uniqueness
+            if self.pk is None:
+                survey['id_string'] = self.get_unique_id_string(
+                    survey.get('id_string'))
             self.json = survey.to_json()
             self.xml = survey.to_xml()
             self.version = survey.get('version')
