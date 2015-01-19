@@ -84,3 +84,13 @@ class TestFormErrors(TestBase):
             "transportation", "transportation_empty_submission.xml")
         self._make_submission(xml_path)
         self.assertTrue(self.response.status_code, 400)
+
+    def test_spaced_xlsform(self):
+        self._create_xform()
+        count = XForm.objects.count()
+        self.xform.save()
+        xls_path = os.path.join(self.this_directory, "fixtures",
+                                "transportation", "tutorial .xls")
+        response = self._publish_xls_file(xls_path)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(XForm.objects.count(), count)

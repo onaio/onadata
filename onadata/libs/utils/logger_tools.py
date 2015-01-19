@@ -372,9 +372,15 @@ def publish_form(callback):
     try:
         return callback()
     except (PyXFormError, XLSFormError) as e:
+        msg = unicode(e)
+
+        if 'invalid xml tag' in msg:
+            msg = _(u"Invalid file name; Names must begin with a letter, "
+                    u"colon, or underscore, subsequent characters can include"
+                    u" numbers, dashes,periods and with no spacing.")
         return {
             'type': 'alert-error',
-            'text': unicode(e)
+            'text': msg
         }
     except IntegrityError as e:
         transaction.rollback()
@@ -390,6 +396,7 @@ def publish_form(callback):
         }
     except AttributeError as e:
         # form.publish returned None, not sure why...
+
         return {
             'type': 'alert-error',
             'text': unicode(e)
@@ -403,6 +410,7 @@ def publish_form(callback):
     except Exception as e:
         transaction.rollback()
         # error in the XLS file; show an error to the user
+
         return {
             'type': 'alert-error',
             'text': unicode(e)
