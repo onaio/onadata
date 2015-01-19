@@ -17,6 +17,7 @@ def perms_for(user, obj):
 
 
 class TestPermissions(TestBase):
+
     def test_manager_role_add(self):
         bob, created = UserProfile.objects.get_or_create(user=self.user)
         alice = self._create_user('alice', 'alice')
@@ -87,6 +88,7 @@ class TestPermissions(TestBase):
         org_user = tools.create_organization("modilabs", alice).user
         self._publish_transportation_form()
         EditorRole.add(org_user, self.xform)
-
         users_with_perms = get_object_users_with_permissions(self.xform)
         self.assertFalse(org_user in [d['user'] for d in users_with_perms])
+        self.assertIn('first_name', users_with_perms[0].keys())
+        self.assertIn('last_name', users_with_perms[0].keys())
