@@ -825,6 +825,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertIsNotNone(self.xform.version)
         version = self.xform.version
         form_id = self.xform.pk
+        id_string = self.xform.id_string
 
         view = XFormViewSet.as_view({
             'patch': 'partial_update',
@@ -846,6 +847,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertNotEquals(version, new_version)
         self.assertNotEquals(title_old, self.xform.title)
         self.assertEquals(form_id, self.xform.pk)
+        self.assertEquals(id_string, self.xform.id_string)
 
     def test_update_xform_xls_file_with_different_id_string(self):
         self._publish_xls_form_to_project()
@@ -904,65 +906,6 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(xform_1.id_string, 'transportation_2011_07_25')
         self.assertEqual(xform_2.id_string, 'transportation_2011_07_25_1')
         self.assertEqual(xform_3.id_string, 'transportation_2011_07_25_2')
-
-    def test_update_xform_with_same_id_string_in_different_projects(self):
-        project_count = Project.objects.count()
-
-        self._project_create()
-        self._publish_xls_form_to_project()
-        data = {
-            'name': u'demo2',
-            'owner': 'http://testserver/api/v1/users/%s' % self.user.username,
-            'metadata': {'description': 'Demo2 Description',
-                         'location': 'Nakuru, Kenya',
-                         'category': 'education'},
-            'public': False
-        }
-        self._project_create(data, False)
-        self._publish_xls_form_to_project()
-        self.assertEqual(project_count + 2, Project.objects.count())
-
-        # check that forms' projects are not equal and the forms have the same
-        # id_string and title
-        xform_1 = XForm.objects.get(project__name='demo')
-        xform_2 = XForm.objects.get(project__name='demo2')
-        self.assertNotEqual(xform_1.project, xform_2.project)
-        self.assertEqual(xform_1.id_string, xform_2.id_string)
-        self.assertEqual(xform_1.title, xform_2.title)
-
-        title_old = self.xform.title
-        self.assertIsNotNone(self.xform.version)
-        version = self.xform.version
-        form_id = self.xform.pk
-
-        view = XFormViewSet.as_view({
-            'patch': 'partial_update',
-        })
-
-        path = os.path.join(
-            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-            "transportation", "transportation_version.xls")
-        with open(path) as xls_file:
-            post_data = {'xls_file': xls_file}
-            request = self.factory.patch('/', data=post_data, **self.extra)
-            response = view(request, pk=form_id)
-
-            self.assertEqual(response.status_code, 200)
-
-        self.xform.reload()
-        new_version = self.xform.version
-
-        # check that the id_string of both forms remain the same but the
-        # title changed
-        xform_1 = XForm.objects.get(project__name='demo')
-        xform_2 = XForm.objects.get(project__name='demo2')
-        self.assertEqual(xform_1.id_string, xform_2.id_string)
-        self.assertNotEqual(xform_1.title, xform_2.title)
-
-        # diff versions
-        self.assertNotEquals(version, new_version)
-        self.assertNotEquals(title_old, self.xform.title)
-        self.assertEquals(form_id, self.xform.pk)
 
     def test_update_xform_xls_bad_file(self):
         self._publish_xls_form_to_project()
