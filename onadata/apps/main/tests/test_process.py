@@ -186,9 +186,8 @@ class TestProcess(TestBase):
         Returns False if not strict and publish fails
         """
         pre_count = XForm.objects.count()
-        self.response = TestBase._publish_xls_file(self, xls_path)
+        TestBase._publish_xls_file(self, xls_path)
         # make sure publishing the survey worked
-        self.assertEqual(self.response.status_code, 200)
         if XForm.objects.count() != pre_count + 1:
             # print file location
             print '\nPublish Failure for file: %s' % xls_path
@@ -492,9 +491,9 @@ class TestProcess(TestBase):
         path = os.path.join(
             self.this_directory, 'fixtures',
             'form_with_unicode_in_relevant_column.xlsx')
-        response = TestBase._publish_xls_file(self, path)
-        # make sure we get a 200 response
-        self.assertEqual(response.status_code, 200)
+        count = XForm.objects.count()
+        TestBase._publish_xls_file(self, path)
+        self.assertEqual(XForm.objects.count(), count + 1)
 
     def test_metadata_file_hash(self):
         self._publish_transportation_form()
@@ -518,7 +517,7 @@ class TestProcess(TestBase):
             self.this_directory, "fixtures", "cascading_selects",
             "new_cascading_select.xls")
         file_name, file_ext = os.path.splitext(os.path.split(xls_path)[1])
-        self.response = TestBase._publish_xls_file(self, xls_path)
+        TestBase._publish_xls_file(self, xls_path)
         post_count = XForm.objects.count()
         self.assertEqual(post_count, pre_count + 1)
         xform = XForm.objects.latest('date_created')

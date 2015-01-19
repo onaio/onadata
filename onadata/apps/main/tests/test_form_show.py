@@ -197,10 +197,11 @@ class TestFormShow(TestBase):
         }))
 
         # check that a form with geopoints has the map url
-        response = self._publish_xls_file(
+        count = XForm.objects.count()
+        self._publish_xls_file(
             os.path.join(
                 os.path.dirname(__file__), "fixtures", "gps", "gps.xls"))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.latest('date_created')
 
         show_url = reverse(show, kwargs={

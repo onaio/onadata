@@ -16,14 +16,15 @@ from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from django.contrib.auth import authenticate
 from django.utils import timezone
-
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.logger.models import XForm, Instance, Attachment
 from onadata.apps.logger.views import submission
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.main import views as main_views
+from onadata.apps.viewer.models import DataDictionary
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class TestBase(TransactionTestCase):
@@ -82,26 +83,31 @@ class TestBase(TransactionTestCase):
     def _publish_xls_file(self, path):
         if not path.startswith('/%s/' % self.user.username):
             path = os.path.join(self.this_directory, path)
-        with open(path) as xls_file:
-            post_data = {'xls_file': xls_file}
-            if not hasattr(self, 'factory'):
-                self.factory = RequestFactory()
-            request = self.factory.post('/%s/' % self.user.username, post_data)
-            request.user = self.user
+        with open(path) as f:
+            xls_file = InMemoryUploadedFile(f, 'xls_file',
+                                            os.path.basename(path),
+                                            'application/vnd.ms-excel',
+                                            os.path.getsize(path), None)
+            if not hasattr(self, 'project'):
+                self.project = get_user_default_project(self.user)
 
-            return main_views.profile(request, self.user.username)
+            DataDictionary.objects.create(
+                created_by=self.user,
+                user=self.user,
+                xls=xls_file,
+                project=self.project
+            )
 
     def _publish_xlsx_file(self):
         path = os.path.join(self.this_directory, 'fixtures', 'exp.xlsx')
         pre_count = XForm.objects.count()
-        response = TestBase._publish_xls_file(self, path)
+        TestBase._publish_xls_file(self, path)
         # make sure publishing the survey worked
-        self.assertEqual(response.status_code, 200)
         self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     def _publish_xls_file_and_set_xform(self, path):
         count = XForm.objects.count()
-        self.response = self._publish_xls_file(path)
+        self._publish_xls_file(path)
         self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.order_by('pk').reverse()[0]
 

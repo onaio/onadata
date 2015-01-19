@@ -40,9 +40,10 @@ class TestChartTools(TestBase):
         xls_path = os.path.join(
             self.this_directory, "fixtures",
             "sample_accent.xlsx")
-        response = self._publish_xls_file(xls_path)
+        count = XForm.objects.count()
+        self._publish_xls_file(xls_path)
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEquals(XForm.objects.count(), count + 1)
 
         xform = XForm.objects.all()[0]
         self.assertEqual(xform.title, "sample_accent")

@@ -32,10 +32,11 @@ class TestUtils(TestBase):
         self._create_user_and_login()
 
     def _publish_xls_file(self):
+        count = XForm.objects.count()
         xls_path = os.path.join(self.this_directory, "fixtures",
                                 "transportation", "transportation.xls")
-        response = super(TestUtils, self)._publish_xls_file(xls_path)
-        self.assertEqual(response.status_code, 200)
+        super(TestUtils, self)._publish_xls_file(xls_path)
+        self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.latest('date_created')
         self.assertEqual(self.xform.id_string, "transportation_2011_07_25")
 
