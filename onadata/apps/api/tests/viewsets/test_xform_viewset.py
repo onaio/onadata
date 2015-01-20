@@ -1122,6 +1122,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertIsNotNone(response.data)
         self.assertEqual(response.status_code, 202)
         self.assertTrue('job_uuid' in response.data)
+        self.assertTrue('time_async_triggered' in response.data)
         self.assertEquals(count - 1, XForm.objects.count())
 
         view = XFormViewSet.as_view({
