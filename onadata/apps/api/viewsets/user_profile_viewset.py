@@ -22,6 +22,8 @@ class UserProfileViewSet(LastModifiedMixin, ObjectLookupMixin, ModelViewSet):
 List, Retrieve, Update, Create/Register users.
 
 ## Register a new User
+`username, email, firstname` Are required fields. \n
+`username` is alphanumeric
 <pre class="prettyprint"><b>POST</b> /api/v1/profiles</pre>
 > Example
 >
