@@ -114,9 +114,9 @@ class ParsedInstance(models.Model):
         app_label = "viewer"
 
     @classmethod
-    def query_iterator(cls, sql, fields, params=[], count=False):
+    def query_iterator(cls, sql, fields=None, params=[], count=False):
         cursor = connection.cursor()
-        sql_params = fields + params
+        sql_params = fields + params if fields is not None else params
 
         if count:
             from_pos = sql.upper().find(' FROM')
@@ -132,8 +132,12 @@ class ParsedInstance(models.Model):
 
         cursor.execute(sql, sql_params)
 
-        for row in cursor.fetchall():
-            yield dict(zip(fields, row))
+        if fields is None:
+            for row in cursor.fetchall():
+                yield row[0]
+        else:
+            for row in cursor.fetchall():
+                yield dict(zip(fields, row))
 
     @classmethod
     def query_data(cls, xform, query=None, fields=None, sort=None, start=None,
@@ -195,7 +199,12 @@ class ParsedInstance(models.Model):
             records = instances.order_by(sort).values_list('json', flat=True)
 
             if start_index is not None:
-                records = records[start_index: limit]
+                # some inconsistent/weird behavior I noticed with django's
+                # queryset made me have to do a raw query
+                # records = records[start_index: limit]
+                sql = u"{} OFFSET %s LIMIT %s".format(unicode(records.query))
+                params = [start_index, limit]
+                records = ParsedInstance.query_iterator(sql, None, params)
 
         return records
 
