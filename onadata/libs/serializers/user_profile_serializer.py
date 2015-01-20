@@ -156,7 +156,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 password=password,
                 email=email,
                 site=site,
-                send_email=False)
+                send_email=settings.SEND_EMAIL_ACTIVATION_API)
             new_user.is_active = True
             new_user.first_name = first_name
             new_user.last_name = last_name
