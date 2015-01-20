@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.contrib import messages
+from django.core.exceptions import MultipleObjectsReturned
 from django.core.files.storage import get_storage_class
 from django.core.files import File
 from django.core.urlresolvers import reverse
@@ -422,8 +423,11 @@ def download_jsonform(request, username, id_string):
 @is_owner
 @require_POST
 def delete_xform(request, username, id_string):
-    xform = get_object_or_404(XForm, user__username__iexact=username,
-                              id_string__iexact=id_string)
+    try:
+        xform = get_object_or_404(XForm, user__username__iexact=username,
+                                  id_string__iexact=id_string)
+    except MultipleObjectsReturned:
+        return HttpResponse("You account has multiple forms with same formid")
 
     # delete xform and submissions
     remove_xform(xform)
@@ -469,8 +473,8 @@ def enter_data(request, username, id_string):
         url = enketo_url(form_url, xform.id_string)
         if not url:
             return HttpResponseRedirect(reverse('onadata.apps.main.views.show',
-                                        kwargs={'username': username,
-                                                'id_string': id_string}))
+                                                kwargs={'username': username,
+                                                        'id_string': id_string}))
         return HttpResponseRedirect(url)
     except Exception as e:
         data = {}
@@ -489,8 +493,8 @@ def enter_data(request, username, id_string):
         return render(request, "profile.html", data)
 
     return HttpResponseRedirect(reverse('onadata.apps.main.views.show',
-                                kwargs={'username': username,
-                                        'id_string': id_string}))
+                                        kwargs={'username': username,
+                                                'id_string': id_string}))
 
 
 def edit_data(request, username, id_string, data_id):
