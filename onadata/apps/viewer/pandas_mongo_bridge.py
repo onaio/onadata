@@ -201,6 +201,43 @@ class AbstractDataFrameBuilder(object):
         # ParsedInstance.query_mongo takes params as json strings
         # so we dumps the fields dictionary
         count_args = {
+            'username': self.username,
+            'id_string': self.id_string,
+            'query': query,
+            'fields': '[]',
+            'sort': '{}',
+            'count': True
+        }
+        count_object = ParsedInstance.query_mongo(**count_args)
+        record_count = count_object[0]["count"]
+        if record_count == 0:
+            raise NoRecordsFoundError("No records found for your query")
+        # if count was requested, return the count
+        if count:
+            return record_count
+        else:
+            query_args = {
+                'username': self.username,
+                'id_string': self.id_string,
+                'query': query,
+                'fields': fields,
+                # TODO: we might want to add this in for the user
+                # to sepcify a sort order
+                'sort': '{}',
+                'start': start,
+                'limit': limit,
+                'count': False
+            }
+            # use ParsedInstance.query_mongo
+            cursor = ParsedInstance.query_mongo(**query_args)
+            return cursor
+
+    def _query_data(self, query='{}', start=0,
+                    limit=ParsedInstance.DEFAULT_LIMIT,
+                    fields='[]', count=False):
+        # ParsedInstance.query_mongo takes params as json strings
+        # so we dumps the fields dictionary
+        count_args = {
             'xform': self.xform,
             'query': query,
             'start': self.start,
@@ -271,15 +308,15 @@ class XLSDataFrameBuilder(AbstractDataFrameBuilder):
         self.xls_writer = ExcelWriter(file_path)
 
         # get record count
-        record_count = self._query_mongo(count=True)
+        record_count = self._query_data(count=True)
 
         # query in batches and for each batch create an XLSDataFrameWriter and
         # write to existing xls_writer object
         start = 0
         header = True
         while start < record_count:
-            cursor = self._query_mongo(self.filter_query, start_index=start,
-                                       limit=batchsize)
+            cursor = self._query_data(self.filter_query, start_index=start,
+                                      limit=batchsize)
 
             data = self._format_for_dataframe(cursor)
 
@@ -622,7 +659,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     def export_to(self, file_or_path, data_frame_max_size=30000):
         from math import ceil
         # get record count
-        record_count = self._query_mongo(query=self.filter_query, count=True)
+        record_count = self._query_data(query=self.filter_query, count=True)
 
         self.ordered_columns = OrderedDict()
         self._build_ordered_columns(self.dd.survey, self.ordered_columns)
@@ -635,7 +672,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         num_data_frames = \
             int(ceil(float(record_count) / float(data_frame_max_size)))
         for i in range(num_data_frames):
-            cursor = self._query_mongo(
+            cursor = self._query_data(
                 self.filter_query, start=(i * data_frame_max_size),
                 limit=data_frame_max_size)
             data = self._format_for_dataframe(cursor)

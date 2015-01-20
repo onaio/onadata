@@ -569,7 +569,7 @@ class TestPandasMongoBridge(TestBase):
             self._submit_fixture_instance("new_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
                                              self.xform.id_string)
-        record_count = csv_df_builder._query_mongo(count=True)
+        record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name, data_frame_max_size=3)
