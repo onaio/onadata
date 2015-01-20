@@ -87,7 +87,13 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
             return create_feature(instance, geo_field, fields)
 
         # Use the default serializer
-        return super(GeoJsonSerializer, self).to_native(instance)
+        res = super(GeoJsonSerializer, self).to_native(instance)
+        # Add additional parameters added by the user
+        if fields:
+            for field in fields:
+                res.get('properties').update({field: instance.json.get(field)})
+
+        return res
 
     class Meta:
         model = Instance
@@ -126,7 +132,8 @@ class GeoJsonListSerializer(GeoJsonSerializer):
         if not geo_field:
             return geojson.FeatureCollection(
                 [super(GeoJsonListSerializer, self).to_native(
-                    {'instance': ret})for ret in instances])
+                    {'instance': ret, 'fields': obj.get('fields')})
+                 for ret in instances])
 
         # Use the default serializer
         return geojson.FeatureCollection(

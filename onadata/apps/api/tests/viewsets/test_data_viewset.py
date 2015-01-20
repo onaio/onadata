@@ -544,7 +544,10 @@ class TestDataViewSet(TestBase):
         dataid = self.xform.instances.all().order_by('id')[0].pk
 
         view = DataViewSet.as_view({'get': 'retrieve'})
-        request = self.factory.get('/', **self.extra)
+        data_get = {
+            "fields": 'today'
+        }
+        request = self.factory.get('/', data=data_get, **self.extra)
         response = view(request, pk=self.xform.pk, dataid=dataid,
                         format='geojson')
 
@@ -556,7 +559,8 @@ class TestDataViewSet(TestBase):
                          u'geometries':
                              [{u'type': u'Point',
                                u'coordinates': [36.787219, -1.294197]}]},
-                    'properties': {'id': dataid, 'xform': self.xform.pk}}
+                    'properties': {'id': dataid, 'xform': self.xform.pk,
+                                   'today': '2015-01-15'}}
 
         self.assertEqual(response.data, test_geo)
 
