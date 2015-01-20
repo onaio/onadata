@@ -151,12 +151,14 @@ class ManagerRole(Role):
 
 
 class MemberRole(Role):
+
     """This is a role for a member of an organization.
     """
     name = 'member'
 
 
 class OwnerRole(Role):
+
     """This is a role for an owner of a dataset, organization, or project.
     """
     name = 'owner'
@@ -242,6 +244,8 @@ def get_object_users_with_permissions(obj, exclude=None):
 
         result = [{
             'user': user,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
             'role': get_role(permissions, obj),
             'permissions': permissions} for user, permissions in
             users_with_perms if not is_organization(user.profile)]
