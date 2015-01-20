@@ -1068,10 +1068,14 @@ previous call
     @action(methods=['DELETE', 'GET'])
     def delete_async(self, request, *args, **kwargs):
         if request.method == 'DELETE':
+            time_async_triggered = datetime.now()
             self.object = self.get_object()
+            self.object.deleted_at = time_async_triggered
+            self.object.save()
             resp = {
                 u'job_uuid':
-                tasks.delete_xform_async.delay(self.object).task_id}
+                tasks.delete_xform_async.delay(self.object).task_id,
+                u'time_async_triggered': time_async_triggered}
             resp_code = status.HTTP_202_ACCEPTED
 
         elif request.method == 'GET':
