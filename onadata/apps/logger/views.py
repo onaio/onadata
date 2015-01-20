@@ -472,9 +472,9 @@ def enter_data(request, username, id_string):
     try:
         url = enketo_url(form_url, xform.id_string)
         if not url:
-            return HttpResponseRedirect(reverse('onadata.apps.main.views.show',
-                                                kwargs={'username': username,
-                                                        'id_string': id_string}))
+            return HttpResponseRedirect(reverse(
+                'onadata.apps.main.views.show',
+                kwargs={'username': username, 'id_string': id_string}))
         return HttpResponseRedirect(url)
     except Exception as e:
         data = {}
