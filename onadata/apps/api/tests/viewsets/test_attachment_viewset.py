@@ -1,4 +1,5 @@
 from os import path
+from datetime import datetime
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
@@ -51,6 +52,12 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'image/jpeg')
 
+        self.attachment.instance.xform.deleted_at = datetime.now()
+        self.attachment.instance.xform.save()
+        request = self.factory.get('/', **self.extra)
+        response = self.retrieve_view(request, pk=pk)
+        self.assertEqual(response.status_code, 404)
+
     def test_retrieve_and_list_views_with_anonymous_user(self):
         """Retrieve metadata of a public form"""
         # anon user private form access not allowed
@@ -95,6 +102,23 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
+
+    def test_data_list_with_xform_in_delete_async(self):
+        self._submit_transport_instance_w_attachment()
+
+        request = self.factory.get('/', **self.extra)
+        response = self.list_view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+        initial_count = len(response.data)
+
+        self.xform.deleted_at = datetime.now()
+        self.xform.save()
+        request = self.factory.get('/', **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), initial_count - 1)
 
     def test_list_view_filter_by_xform(self):
         self._submit_transport_instance_w_attachment()

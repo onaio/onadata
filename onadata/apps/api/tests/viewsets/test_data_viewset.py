@@ -1,6 +1,7 @@
 import os
 import requests
 
+from datetime import datetime
 from django.test import RequestFactory
 
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
@@ -85,6 +86,23 @@ class TestDataViewSet(TestBase):
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
+
+    def test_data_list_with_xform_in_delete_async_queue(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.status_code, 200)
+        initial_count = len(response.data)
+
+        self.xform.deleted_at = datetime.now()
+        self.xform.save()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(len(response.data), initial_count - 1)
 
     def test_numeric_types_are_rendered_as_required(self):
         tutorial_folder = os.path.join(
