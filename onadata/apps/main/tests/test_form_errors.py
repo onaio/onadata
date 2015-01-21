@@ -17,7 +17,7 @@ class TestFormErrors(TestBase):
             self.this_directory, "fixtures",
             "transportation", "transportation.xls")
         count = XForm.objects.count()
-        self._publish_xls_file(self, self.xls_path)
+        self._publish_xls_file(self.xls_path)
         self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.all()[0]
 
