@@ -1072,9 +1072,9 @@ previous call
             self.object = self.get_object()
             self.object.deleted_at = time_async_triggered
             self.object.save()
+            xform = self.object
             resp = {
-                u'job_uuid':
-                tasks.delete_xform_async.delay(self.object).task_id,
+                u'job_uuid': tasks.delete_xform_async.delay(xform).task_id,
                 u'time_async_triggered': time_async_triggered}
             resp_code = status.HTTP_202_ACCEPTED
 

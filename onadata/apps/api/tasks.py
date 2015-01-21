@@ -44,11 +44,7 @@ def publish_xlsform_async(user, post_data, owner, file_data):
 
 @task()
 def delete_xform_async(xform):
-    try:
-        xform.delete()
-    except:
-        e = sys.exc_info()[0]
-        return {u'error': str(e)}
+    xform.delete()
 
 
 def get_async_status(job_uuid):
