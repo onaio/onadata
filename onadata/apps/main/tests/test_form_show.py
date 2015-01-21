@@ -406,7 +406,7 @@ class TestFormShow(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.content,
-            'You account has multiple forms with same formid')
+            'Your account has multiple forms with same formid')
 
     def test_non_owner_cant_delete_xform(self):
         id_string = self.xform.id_string

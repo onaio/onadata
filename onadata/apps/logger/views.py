@@ -427,7 +427,7 @@ def delete_xform(request, username, id_string):
         xform = get_object_or_404(XForm, user__username__iexact=username,
                                   id_string__iexact=id_string)
     except MultipleObjectsReturned:
-        return HttpResponse("You account has multiple forms with same formid")
+        return HttpResponse("Your account has multiple forms with same formid")
 
     # delete xform and submissions
     remove_xform(xform)
