@@ -36,8 +36,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         read_only_fields = (
             'json', 'xml', 'date_created', 'date_modified', 'encrypted',
             'bamboo_dataset', 'last_submission_time')
-        exclude = ('id', 'json', 'xml', 'xls', 'user',
-                   'has_start_time', 'shared', 'shared_data')
+        exclude = ('id', 'json', 'xml', 'xls', 'user', 'has_start_time',
+                   'shared', 'shared_data', 'deleted_at')
 
     def get_xform_permissions(self, obj):
         return get_object_users_with_permissions(obj)
