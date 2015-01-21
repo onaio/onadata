@@ -76,7 +76,7 @@ using the `window.atob();` function.
 > Example
 >
 >       curl -X POST -d email=demouser@mail.com\
- url=http://example-url.com/reset https://ona.io/api/v1/user/reset
+ -d reset_url=http://example-url.com/reset https://ona.io/api/v1/user/reset
 >
 > Response:
 >
