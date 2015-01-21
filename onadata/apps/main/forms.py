@@ -126,9 +126,11 @@ class UserProfileFormRegister(forms.Form):
 # order of inheritance control order of form display
 class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
                                   UserProfileFormRegister):
-
     class Meta:
         pass
+
+    _reserved_usernames = [line.rstrip() for line in open('reserved_accounts.txt')]
+
     username = forms.CharField(widget=forms.TextInput(), max_length=30)
     email = forms.EmailField(widget=forms.TextInput())
 
