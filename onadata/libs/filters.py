@@ -18,7 +18,7 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
         Anonymous user has no object permissions, return queryset as it is.
         """
         form_id = view.kwargs.get(view.lookup_field)
-
+        queryset = queryset.filter(deleted_at=None)
         if request.user.is_anonymous():
             return queryset
 
@@ -155,7 +155,7 @@ class XFormPermissionFilterMixin(object):
             #     raise ParseError(_(u"`xform` GET parameter required'"))
 
             xform_qs = XForm.objects.all()
-
+        xform_qs = xform_qs.filter(deleted_at=None)
         if request.user.is_anonymous():
             xforms = xform_qs.filter(shared_data=True)
         else:
