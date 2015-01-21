@@ -1019,13 +1019,8 @@ previous call
             status.HTTP_400_BAD_REQUEST)
 
     def partial_update(self, request, *args, **kwargs):
-        try:
-            owner = _get_owner(request)
-        except ValidationError as e:
-            return Response({'message': e.messages[0]},
-                            status=status.HTTP_400_BAD_REQUEST)
-
         self.object = self.get_object()
+        owner = self.object.user
 
         # updating the file
         if request.FILES:
