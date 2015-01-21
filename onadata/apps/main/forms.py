@@ -129,42 +129,6 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
 
     class Meta:
         pass
-
-    _reserved_usernames = [
-        'accounts',
-        'about',
-        'admin',
-        'clients',
-        'data',
-        'formhub',
-        'forms',
-        'maps',
-        'odk',
-        'ona',
-        'people',
-        'public',
-        'submit',
-        'submission',
-        'support',
-        'syntax',
-        'xls2xform',
-        'users',
-        'worldbank',
-        'unicef',
-        'who',
-        'wb',
-        'wfp',
-        'save',
-        'ei',
-        'modilabs',
-        'mvp',
-        'unido',
-        'unesco',
-        'savethechildren',
-        'worldvision',
-        'afsis'
-    ]
-
     username = forms.CharField(widget=forms.TextInput(), max_length=30)
     email = forms.EmailField(widget=forms.TextInput())
 
