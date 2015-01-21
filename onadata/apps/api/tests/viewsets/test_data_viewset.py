@@ -594,8 +594,6 @@ class TestDataViewSet(TestBase):
                     'id': dataid,
                     'properties':
                     {
-                        '_field': 'location',
-                        '_record_id': dataid,
                         'today': '2015-01-15'
                     },
                     'type': 'Feature'}
@@ -620,7 +618,7 @@ class TestDataViewSet(TestBase):
 
         data_get = {
             "geo_field": 'path',
-            "fields": 'today'
+            "fields": 'today,path'
         }
 
         view = DataViewSet.as_view({'get': 'retrieve'})
@@ -632,7 +630,7 @@ class TestDataViewSet(TestBase):
 
         self.assertEquals(response.data['type'], 'Feature')
         self.assertEquals(len(response.data['geometry']['coordinates']), 5)
-        self.assertEquals(response.data['properties']['_field'], 'path')
+        self.assertIn('path', response.data['properties'])
         self.assertEquals(response.data['geometry']['type'], 'LineString')
 
         view = DataViewSet.as_view({'get': 'list'})
@@ -654,7 +652,7 @@ class TestDataViewSet(TestBase):
 
         data_get = {
             "geo_field": 'shape',
-            "fields": 'today'
+            "fields": 'today,shape'
         }
 
         view = DataViewSet.as_view({'get': 'retrieve'})
@@ -666,7 +664,7 @@ class TestDataViewSet(TestBase):
 
         self.assertEquals(response.data['type'], 'Feature')
         self.assertEquals(len(response.data['geometry']['coordinates'][0]), 6)
-        self.assertEquals(response.data['properties']['_field'], 'shape')
+        self.assertIn('shape', response.data['properties'])
         self.assertEquals(response.data['geometry']['type'], 'Polygon')
 
         view = DataViewSet.as_view({'get': 'list'})

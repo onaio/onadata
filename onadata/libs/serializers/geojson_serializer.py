@@ -36,15 +36,14 @@ def create_feature(instance, geo_field, fields):
             geometry = geojson.LineString(pnt_list)
 
     # set the default properties
-    properties = {
-        "_record_id": instance.pk,
-        "_field": geo_field
-    }
+    properties = {}
 
     # Add additional parameters added by the user
     if fields:
         for field in fields:
             properties.update({field: data.get(field)})
+    else:
+        properties.update(data)
 
     return geojson.Feature(geometry=geometry,
                            id=instance.pk,
@@ -92,6 +91,8 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
         if fields:
             for field in fields:
                 res.get('properties').update({field: instance.json.get(field)})
+        else:
+            res.get('properties').update(instance.json)
 
         return res
 
