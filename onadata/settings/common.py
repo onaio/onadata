@@ -492,7 +492,9 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
     'audio/x-m4a',
     'audio/mp3',
     'text/csv',
-    'application/zip'
+    'application/zip',
+    'video/mp4',
+
 ]
 
 CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
