@@ -129,11 +129,15 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
     class Meta:
         pass
 
-    _reserved_usernames = [line.rstrip() for line in open('reserved_accounts.txt')]
+    try:
+        with open("reserved_accounts.txt",'r') as f:
+            _reserved_usernames = [line.rstrip() for line in f]
+
+    except EnvironmentError:
+           _reserved_usernames = []
 
     username = forms.CharField(widget=forms.TextInput(), max_length=30)
     email = forms.EmailField(widget=forms.TextInput())
-
     legal_usernames_re = re.compile("^\w+$")
 
     def clean(self):
