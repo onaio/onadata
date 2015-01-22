@@ -1,4 +1,5 @@
 import json
+from mock import patch
 
 from django.contrib.auth.models import User
 
@@ -475,3 +476,27 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 400)
+
+    @patch('onadata.apps.api.viewsets.organization_profile_viewset.send_mail')
+    def test_add_members_to_org_email(self, mock_email):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+
+        User.objects.create(username='aboy', email='aboy@org.com')
+        data = {'username': 'aboy',
+                'email_msg': 'You have been add to denoinc'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(mock_email.called)
+        mock_email.assert_called_with('aboy, You have been added to Dennis'
+                                      ' organisation.',
+                                      u'You have been add to denoinc',
+                                      'noreply@ona.io',
+                                      (u'aboy@org.com',))
+        self.assertEqual(response.data, [u'denoinc', u'aboy'])

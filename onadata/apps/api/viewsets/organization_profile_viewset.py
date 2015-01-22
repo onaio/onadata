@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
+from django.core.mail import send_mail
 
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
@@ -17,6 +18,7 @@ from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.permissions import ROLES
 from onadata.libs.serializers.organization_serializer import(
     OrganizationSerializer)
+from onadata.settings.common import (DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT)
 
 
 def _try_function_org_username(f, organization, username, args=None):
@@ -242,6 +244,17 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
         elif request.method == 'POST':
             data, status_code = _add_username_to_organization(
                 organization, username)
+            email_msg = request.DATA.get('email_msg') \
+                or request.QUERY_PARAMS.get('email_msg')
+
+            if email_msg and status_code == 201:
+                user = User.objects.get(username=username)
+                # send out email message.
+                send_mail(SHARE_ORG_SUBJECT.format(user.username,
+                                                   organization.name),
+                          email_msg,
+                          DEFAULT_FROM_EMAIL,
+                          (user.email, ))
         elif request.method == 'PUT':
             role = request.DATA.get('role')
             role_cls = ROLES.get(role)
