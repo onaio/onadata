@@ -3,11 +3,17 @@ from rest_framework import serializers
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import Project
-from onadata.libs.permissions import get_object_users_with_permissions
+from onadata.libs.permissions import get_object_users_with_permissions,\
+    OwnerRole
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.decorators import check_obj
+
+
+def set_owners_permission(user, project):
+    """Give the user owner permission"""
+    OwnerRole.add(user, project)
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
@@ -41,6 +47,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     def restore_object(self, attrs, instance=None):
         if instance:
             metadata = JsonField.to_json(attrs.get('metadata'))
+            owner = attrs.get('organization')
 
             if self.partial and metadata:
                 if not isinstance(instance.metadata, dict):
@@ -48,6 +55,10 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
                 instance.metadata.update(metadata)
                 attrs['metadata'] = instance.metadata
+
+            if self.partial and owner:
+                # give the new owner permissions
+                set_owners_permission(owner, instance)
 
             return super(ProjectSerializer, self).restore_object(
                 attrs, instance)

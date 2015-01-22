@@ -787,7 +787,14 @@ class TestProjectViewSet(TestAbstractViewSet):
             'put': 'share'
         })
 
-        data = {'username': 'bob', 'remove': True, 'role': 'owner'}
+        ManagerRole.add(self.user, self.project)
+
+        tom_data = {'username': 'tom', 'email': 'tom@localhost.com'}
+        bob_profile = self._create_user_profile(tom_data)
+
+        OwnerRole.add(bob_profile.user, self.project)
+
+        data = {'username': 'tom', 'remove': True, 'role': 'owner'}
 
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, pk=self.project.pk)
@@ -796,7 +803,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         error = {'remove': [u"Project requires at least one owner"]}
         self.assertEquals(response.data, error)
 
-        self.assertTrue(OwnerRole.user_has_role(self.user,
+        self.assertTrue(OwnerRole.user_has_role(bob_profile.user,
                                                 self.project))
 
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
@@ -808,14 +815,14 @@ class TestProjectViewSet(TestAbstractViewSet):
             'put': 'share'
         })
 
-        data = {'username': 'bob', 'remove': True, 'role': 'owner'}
+        data = {'username': 'tom', 'remove': True, 'role': 'owner'}
 
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, pk=self.project.pk)
 
         self.assertEqual(response.status_code, 204)
 
-        self.assertFalse(OwnerRole.user_has_role(self.user,
+        self.assertFalse(OwnerRole.user_has_role(bob_profile.user,
                                                  self.project))
 
     def test_last_date_modified_changes_when_adding_new_form(self):
@@ -868,3 +875,47 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 204)
         self.assertTrue(ManagerRole.user_has_role(alice, self.project))
         self.assertTrue(alice.has_perm('delete_xform', self.xform))
+
+    def test_move_project_owner(self):
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        alice = alice_profile.user
+        projectid = self.project.pk
+
+        self.assertFalse(OwnerRole.user_has_role(alice, self.project))
+
+        view = ProjectViewSet.as_view({
+            'patch': 'partial_update'
+        })
+
+        data_patch = {
+            'owner': 'http://testserver/api/v1/users/%s' % alice.username
+        }
+        request = self.factory.patch('/', data=data_patch, **self.extra)
+        response = view(request, pk=projectid)
+
+        self.project.reload()
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(self.project.organization, alice)
+        self.assertTrue(OwnerRole.user_has_role(alice, self.project))
+
+    def test_cannot_share_project_to_owner(self):
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+
+        data = {'username': self.user.username, 'role': ManagerRole.name,
+                'email_msg': 'I have shared the project with you'}
+        request = self.factory.post('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['username'], [u"Cannot share project"
+                         u" with the owner"])
+        self.assertTrue(OwnerRole.user_has_role(self.user, self.project))
