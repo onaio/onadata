@@ -32,7 +32,7 @@ class XFormListApi(viewsets.ReadOnlyModelViewSet):
     authentication_classes = (DigestAuthentication,)
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.XFormListObjectPermissionFilter,)
-    queryset = XForm.objects.filter(downloadable=True)
+    queryset = XForm.objects.filter(downloadable=True, deleted_at=None)
     permission_classes = (permissions.AllowAny,)
     renderer_classes = (XFormListRenderer,)
     serializer_class = XFormListSerializer

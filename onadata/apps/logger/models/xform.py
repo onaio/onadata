@@ -66,6 +66,7 @@ class XForm(BaseModel):
     title = models.CharField(editable=False, max_length=XFORM_TITLE_LENGTH)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(blank=True, null=True)
     last_submission_time = models.DateTimeField(blank=True, null=True)
     has_start_time = models.BooleanField(default=False)
     uuid = models.CharField(max_length=32, default=u'')

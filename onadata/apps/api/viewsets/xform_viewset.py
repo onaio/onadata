@@ -429,6 +429,37 @@ https://ona.io/api/v1/forms/28058
 >
 >       HTTP 204 NO CONTENT
 
+## Delete an XLS form asynchronously
+
+<pre class="prettyprint">
+<b>POST</b> /api/v1/forms/<code>{pk}</code>/delete_async
+</pre>
+> Example
+>
+>       curl -X DELETE https://ona.io/api/v1/forms/28058/delete_async
+>
+> Response
+>
+>       HTTP 202 Accepted
+>       {"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
+>
+> You can use the `job_uuid` value to check on the upload progress (see below)
+## Check on XLS form deletion progress
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/<code>{pk}</code>/delete_async?job_uuid=UUID
+</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/forms/28058/delete_async?job_uuid=\
+d1559e9e-5bab-480d-9804-e32111e8b2b8
+>
+> Response
+> If the job is done:-
+>
+>       HTTP 202 Accepted
+>       {"JOB_STATUS": "SUCCESS"}
+
 ## List Forms
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms
@@ -840,7 +871,7 @@ previous call
         resp_code = status.HTTP_400_BAD_REQUEST
 
         if request.method == 'GET':
-            survey = tasks.get_async_creation_status(
+            survey = tasks.get_async_status(
                 request.QUERY_PARAMS.get('job_uuid'))
 
             if 'pk' in survey:
@@ -1033,3 +1064,22 @@ previous call
 
         return super(XFormViewSet, self).partial_update(request, *args,
                                                         **kwargs)
+
+    @action(methods=['DELETE', 'GET'])
+    def delete_async(self, request, *args, **kwargs):
+        if request.method == 'DELETE':
+            time_async_triggered = datetime.now()
+            self.object = self.get_object()
+            self.object.deleted_at = time_async_triggered
+            self.object.save()
+            xform = self.object
+            resp = {
+                u'job_uuid': tasks.delete_xform_async.delay(xform).task_id,
+                u'time_async_triggered': time_async_triggered}
+            resp_code = status.HTTP_202_ACCEPTED
+
+        elif request.method == 'GET':
+            job_uuid = request.QUERY_PARAMS.get('job_uuid')
+            resp = tasks.get_async_status(job_uuid)
+            resp_code = status.HTTP_202_ACCEPTED
+        return Response(data=resp, status=resp_code)
