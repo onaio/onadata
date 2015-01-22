@@ -1,8 +1,10 @@
 import os
+import mock
 from unittest import skip
 
 from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
+from django.core.exceptions import MultipleObjectsReturned
 
 from onadata.apps.main.views import show, form_photos, update_xform, profile,\
     enketo_preview
@@ -15,6 +17,10 @@ from onadata.libs.utils.logger_tools import publish_xml_form
 from onadata.libs.utils.user_auth import http_auth_string
 from onadata.libs.utils.user_auth import get_user_default_project
 from test_base import TestBase
+
+
+def raise_multiple_objects_returned_error(*args, **kwargs):
+    raise MultipleObjectsReturned
 
 
 class TestFormShow(TestBase):
@@ -383,6 +389,24 @@ class TestFormShow(TestBase):
         form_deleted = XForm.objects.filter(
             user=self.user, id_string=id_string).count() == 0
         self.assertTrue(form_deleted)
+
+    @mock.patch('onadata.apps.logger.views.get_object_or_404',
+                side_effect=raise_multiple_objects_returned_error)
+    def test_delete_xforms_with_same_id_string_in_same_account(
+            self, mock_get_object_or_404):
+        id_string = self.xform.id_string
+        xform_delete_url = reverse(delete_xform, kwargs={
+            'username': self.user.username,
+            'id_string': id_string
+        })
+        response = self.client.post(xform_delete_url)
+        form_deleted = XForm.objects.filter(
+            user=self.user, id_string=id_string).count() == 0
+        self.assertFalse(form_deleted)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.content,
+            'Your account has multiple forms with same formid')
 
     def test_non_owner_cant_delete_xform(self):
         id_string = self.xform.id_string
