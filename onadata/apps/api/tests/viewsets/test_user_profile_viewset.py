@@ -1,5 +1,6 @@
 import json
 
+from mock import patch
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
@@ -336,3 +337,20 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.data['first_name'], data['first_name'])
         self.assertEqual(response.data['last_name'], data['last_name'])
+
+    @patch('django.core.mail.EmailMultiAlternatives.send')
+    def test_send_email_activation_api(self, mock_send_mail):
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        data = _profile_data()
+        del data['name']
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        # Activation email not sent
+        self.assertFalse(mock_send_mail.called)
+        user = User.objects.get(username='deno')
+        self.assertTrue(user.is_active)
