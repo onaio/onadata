@@ -1,3 +1,4 @@
+import os
 import re
 import urllib2
 from urlparse import urlparse
@@ -308,7 +309,8 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 cleaned_xls_file = urlparse(cleaned_url)
                 cleaned_xls_file = \
                     '_'.join(cleaned_xls_file.path.split('/')[-2:])
-                if cleaned_xls_file[-4:] != '.xls':
+                name, extension = os.path.splitext(cleaned_xls_file)
+                if extension not in ['.xls', '.xlsx']:
                     cleaned_xls_file += '.xls'
                 cleaned_xls_file = \
                     upload_to(None, cleaned_xls_file, user.username)
