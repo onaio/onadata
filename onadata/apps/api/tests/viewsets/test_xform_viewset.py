@@ -539,9 +539,10 @@ class TestXFormViewSet(TestAbstractViewSet):
         title = u'مرحب'
         description = 'DESCRIPTION'
         username = 'Anon'
-        error_msg = 'User with username %s does not exist.' % username
+        error_msg = 'Invalid hyperlink - object does not exist.'
         data = {'public': True, 'description': description, 'title': title,
-                'downloadable': True, 'owner': username}
+                'downloadable': True,
+                'owner': 'http://testserver/api/v1/users/%s' % username}
 
         self.assertFalse(self.xform.shared)
 
@@ -549,7 +550,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.get('Last-Modified'), None)
-        self.assertEqual(response.data.get('message'), error_msg)
+        self.assertEqual(response.data.get('owner')[0], error_msg)
 
     def test_set_form_private(self):
         key = 'shared'
@@ -837,6 +838,46 @@ class TestXFormViewSet(TestAbstractViewSet):
         with open(path) as xls_file:
             post_data = {'xls_file': xls_file}
             request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+            self.assertEqual(response.status_code, 200)
+
+        self.xform.reload()
+        new_version = self.xform.version
+
+        # diff versions
+        self.assertNotEquals(version, new_version)
+        self.assertNotEquals(title_old, self.xform.title)
+        self.assertEquals(form_id, self.xform.pk)
+        self.assertEquals(id_string, self.xform.id_string)
+
+    def test_manager_can_update_xform_xls_file(self):
+        """ManagerRole can replace xlsform"""
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+        ReadOnlyRole.add(self.user, self.xform.project)
+
+        title_old = self.xform.title
+        self.assertIsNotNone(self.xform.version)
+        version = self.xform.version
+        form_id = self.xform.pk
+        id_string = self.xform.id_string
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update',
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation_version.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+            self.assertEqual(response.status_code, 403)
+
+            # assign manager role
+            ManagerRole.add(self.user, self.xform.project)
             response = view(request, pk=form_id)
             self.assertEqual(response.status_code, 200)
 
