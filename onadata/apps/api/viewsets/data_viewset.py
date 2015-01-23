@@ -23,6 +23,8 @@ from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import (
     DataSerializer, DataListSerializer, DataInstanceSerializer)
+from onadata.libs.serializers.geojson_serializer import (GeoJsonSerializer,
+                                                         GeoJsonListSerializer)
 from onadata.libs import filters
 from onadata.libs.utils.viewer_tools import (
     EnketoError,
@@ -367,6 +369,107 @@ Delete a specific submission in a form
 >       HTTP 204 No Content
 >
 >
+
+
+## GEOJSON
+
+Get a valid geojson value from the submissions
+
+Options
+
+* `geo_field` - valid field that can be converted to a geojson.
+(Point, LineString, Polygon)
+* `fields` - additional comma separated values that are to be added to the
+properties section
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson
+</pre>
+
+With options
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson?\
+geo_field=<code>{field_name}</code>&fields=<code>{list,of,fields}</code>
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/28058/20.geojson
+
+> Response
+>
+>       HTTP 200 OK
+> Response
+>
+>        {
+>           "type": "Feature",
+>           "geometry":
+>               {
+>                   "type": "GeometryCollection",
+>                    "geometries":
+>                       [{
+>                           "type": "Point",
+>                           "coordinates":
+>                               [36.787219, -1.294197]
+>                       }]
+>               },
+>           "properties":
+>               {
+>                   "id": 6448,
+>                    "xform": 65
+>               }
+>       }
+>
+
+List the geojson values
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{pk}</code>.geojson
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/28058.geojson
+
+> Response
+>
+>       HTTP 200 OK
+> Response
+>
+>        {
+>           "type": "FeatureCollection",
+>            "features":
+>               [{
+>                   "type": "Feature",
+>                    "geometry":
+>                       {
+>                       "type": "GeometryCollection",
+>                        "geometries":
+>                           [{
+>                               "type": "Point",
+>                                "coordinates": [36.787219, -1.294197]
+>                           }]
+>                       },
+>                    "properties":
+>                       {"id": 6448, "xform": 65}
+>               },
+>                {
+>                    "type": "Feature",
+>                     "geometry":
+>                        {
+>                           "type": "GeometryCollection",
+>                            "geometries":
+>                               [{
+>                                   "type": "Point",
+>                                    "coordinates": [36.7872606, -1.2942131]
+>                               }]
+>                        },
+>                      "properties":
+>                           {"id": 6447, "xform": 65}
+>               }]
+>        }
+
+
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
@@ -374,7 +477,8 @@ Delete a specific submission in a form
         renderers.CSVRenderer,
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
-        renderers.SurveyRenderer
+        renderers.SurveyRenderer,
+        renderers.GeoJsonRenderer
     ]
 
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
@@ -543,6 +647,16 @@ Delete a specific submission in a form
                 return Response(instance.json)
             elif _format == 'xml':
                 return Response(instance.xml)
+            elif _format == 'geojson':
+                query_params = (request and request.QUERY_PARAMS) or {}
+
+                data = {"instance": instance,
+                        "geo_field": query_params.get('geo_field'),
+                        "fields": query_params.get('fields')}
+
+                serializer = GeoJsonSerializer(data)
+
+                return Response(serializer.data)
             else:
                 raise ParseError(
                     _(u"'%(_format)s' format unknown or not implemented!" %
@@ -578,8 +692,20 @@ Delete a specific submission in a form
         xform = self.get_object()
         query = request.GET.get("query", {})
         export_type = kwargs.get('format')
+
         if export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
             return super(DataViewSet, self).list(request, *args, **kwargs)
+        elif export_type == 'geojson':
+            self.object_list = self.filter_queryset(self.get_queryset())
+            query_params = (request and request.QUERY_PARAMS) or {}
+
+            data = {"instances": self.object_list,
+                    "geo_field": query_params.get('geo_field'),
+                    "fields": query_params.get('fields')}
+
+            serializer = GeoJsonListSerializer(data)
+
+            return Response(serializer.data)
 
         return custom_response_handler(request, xform, query, export_type)

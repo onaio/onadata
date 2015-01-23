@@ -21,6 +21,7 @@ from rest_framework.test import APIRequestFactory
 from onadata.apps.logger.models import XForm, Instance, Attachment
 from onadata.apps.logger.views import submission
 from onadata.apps.main.models import UserProfile
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 
 
 class TestBase(TransactionTestCase):
@@ -292,3 +293,20 @@ class TestBase(TransactionTestCase):
         client = DigestClient()
         client.set_authorization('bob', 'bob', 'Digest')
         return client
+
+    def _publish_submit_geojson(self):
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "geolocation", "GeoLocationForm.xlsx")
+
+        self._publish_xls_file_and_set_xform(path)
+
+        view = XFormViewSet.as_view({'post': 'csv_import'})
+        csv_import = \
+            open(os.path.join(settings.PROJECT_ROOT, 'apps', 'main',
+                              'tests', 'fixtures', 'geolocation',
+                              'GeoLocationForm_2015_01_15_01_28_45.csv'))
+        post_data = {'csv_file': csv_import}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
