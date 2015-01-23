@@ -81,5 +81,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         return [{
             'user': u.username,
-            'role': get_role_in_org(u, obj)
+            'role': get_role_in_org(u, obj),
+            'first_name': u.first_name,
+            'last_name': u.last_name,
         } for u in members]
