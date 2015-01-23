@@ -435,29 +435,28 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     @patch('urllib2.urlopen')
     def test_publish_xlsform_using_url_upload(self,  mock_urlopen):
-        if self._internet_on(url="http://google.com"):
-            view = XFormViewSet.as_view({
-                'post': 'create'
-            })
+        view = XFormViewSet.as_view({
+            'post': 'create'
+        })
 
-            xls_url = 'https://ona.io/examples/forms/tutorial/form.xlsx'
-            pre_count = XForm.objects.count()
-            path = os.path.join(
-                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "transportation_different_id_string.xlsx")
+        xls_url = 'https://ona.io/examples/forms/tutorial/form.xlsx'
+        pre_count = XForm.objects.count()
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation_different_id_string.xlsx")
 
-            xls_file = open(path)
-            mock_urlopen.return_value = xls_file
+        xls_file = open(path)
+        mock_urlopen.return_value = xls_file
 
-            post_data = {'xls_url': xls_url}
-            request = self.factory.post('/', data=post_data, **self.extra)
-            response = view(request)
+        post_data = {'xls_url': xls_url}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request)
 
-            mock_urlopen.assert_called_with(xls_url)
-            xls_file.close()
+        mock_urlopen.assert_called_with(xls_url)
+        xls_file.close()
 
-            self.assertEqual(response.status_code, 201)
-            self.assertEqual(XForm.objects.count(), pre_count + 1)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     def test_publish_select_external_xlsform(self):
         view = XFormViewSet.as_view({

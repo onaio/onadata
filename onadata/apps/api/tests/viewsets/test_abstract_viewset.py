@@ -58,18 +58,6 @@ class TestAbstractViewSet(TestCase):
         self._login_user_and_profile()
         self.maxDiff = None
 
-    def _check_url(self, url, timeout=1):
-        try:
-            urllib2.urlopen(url, timeout=timeout)
-            return True
-        except (urllib2.URLError, socket.timeout):
-            pass
-        return False
-
-    def _internet_on(self, url='http://74.125.113.99'):
-        # default value is some google IP
-        return self._check_url(url)
-
     def user_profile_data(self):
         return {
             'id': self.user.pk,
