@@ -74,7 +74,7 @@ def home(request):
 @login_required
 def login_redirect(request):
     return HttpResponseRedirect(reverse(profile,
-                                kwargs={'username': request.user.username}))
+                                        kwargs={'username': request.user.username}))
 
 
 @require_POST
@@ -415,13 +415,17 @@ def show(request, username=None, id_string=None, uuid=None):
     return render(request, "show.html", data)
 
 
+@login_required
 @require_GET
 def api_token(request, username=None):
-    user = get_object_or_404(User, username=username)
-    data = {}
-    data['token_key'], created = Token.objects.get_or_create(user=user)
+    if request.user.username == username:
+        user = get_object_or_404(User, username=username)
+        data = {}
+        data['token_key'], created = Token.objects.get_or_create(user=user)
 
-    return render(request, "api_token.html", data)
+        return render(request, "api_token.html", data)
+
+    return HttpResponseForbidden(_(u'Permission denied.'))
 
 
 @require_http_methods(["GET", "OPTIONS"])
@@ -1365,12 +1369,12 @@ def qrcode(request, username, id_string):
 
 
 def get_enketo_preview_url(request, username, id_string):
-        return "%(enketo_url)s?server=%(profile_url)s&id=%(id_string)s" % {
-            'enketo_url': settings.ENKETO_PREVIEW_URL,
-            'profile_url': request.build_absolute_uri(
-                reverse(profile, kwargs={'username': username})),
-            'id_string': id_string
-        }
+    return "%(enketo_url)s?server=%(profile_url)s&id=%(id_string)s" % {
+        'enketo_url': settings.ENKETO_PREVIEW_URL,
+        'profile_url': request.build_absolute_uri(
+            reverse(profile, kwargs={'username': username})),
+        'id_string': id_string
+    }
 
 
 def enketo_preview(request, username, id_string):
