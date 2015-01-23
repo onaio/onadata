@@ -39,7 +39,7 @@ from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.exceptions import NoRecordsFoundError, J2XException
 from onadata.libs.utils.export_tools import generate_export,\
-    should_create_new_export, generate_external_export
+    should_create_new_export, generate_external_export, generate_kml_export
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
 from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newset_export_for
@@ -59,6 +59,8 @@ EXPORT_EXT = {
     'csvzip': Export.CSV_ZIP_EXPORT,
     'savzip': Export.SAV_ZIP_EXPORT,
     'uuid': Export.EXTERNAL_EXPORT,
+    'kml': Export.KML_EXPORT,
+
 }
 
 # Supported external exports
@@ -127,6 +129,10 @@ def _generate_new_export(request, xform, query, export_type):
                 xform.id_string, None, request.GET.get('token'), query,
                 request.GET.get('meta')
             )
+        elif export_type == Export.KML_EXPORT:
+            export = generate_kml_export(
+                export_type, extension, xform.user.username,
+                xform.id_string, export_id=None, filter_query=None)
         else:
             export = generate_export(
                 export_type, extension, xform.user.username,

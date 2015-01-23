@@ -43,10 +43,15 @@ class SAVZIPRenderer(BaseRenderer):
     charset = None
 
 
+class SurveyRenderer(BaseRenderer):
+    media_type = 'application/xml'
+    format = 'kml'
+    charset = 'utf-8'
+
 # TODO add KML, ZIP(attachments) support
 
 
-class SurveyRenderer(BaseRenderer):
+class KMLRenderer(BaseRenderer):
     media_type = 'application/xml'
     format = 'xml'
     charset = 'utf-8'
