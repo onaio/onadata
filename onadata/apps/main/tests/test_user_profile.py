@@ -1,9 +1,11 @@
 from django.test import TestCase
+from django.test import RequestFactory
 from django.test.client import Client
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
+from django.contrib.auth.models import AnonymousUser
 
-from onadata.apps.main.views import profile
+from onadata.apps.main.views import profile, api_token
 
 
 class TestUserProfile(TestCase):
@@ -76,6 +78,48 @@ class TestUserProfile(TestCase):
         response = self.client.get(reverse(profile,
                                            kwargs={'username': 'nonuser'}))
         self.assertEqual(response.status_code, 404)
+
+    def test_403_if_unauthorised_user_tries_to_access_api_token_link(self):
+        # try accessing with unauthorised user
+        factory = RequestFactory()
+
+        # create user alice
+        post_data = {
+            'username': 'alice',
+            'email': 'alice@columbia.edu',
+            'password1': 'alicealice',
+            'password2': 'alicealice',
+            'first_name': 'Alice',
+            'last_name': 'Wonderland',
+            'city': 'Aliceville',
+            'country': 'KE',
+            'organization': 'Alice Inc.',
+            'home_page': 'alice.com',
+            'twitter': 'alicemsweet'
+        }
+        url = '/accounts/register/'
+        self.client.post(url, post_data)
+
+        # try accessing api-token with an anonymous user
+        request = factory.get('/api-token')
+        request.user = AnonymousUser()
+        response = api_token(request, 'alice')
+        self.assertEqual(response.status_code, 302)
+
+        # login with user bob
+        self._login_user_and_profile()
+
+        # try accessing api-token with user 'bob' but with username 'alice'
+        request = factory.get('/api-token')
+        request.user = self.user
+        response = api_token(request, 'alice')
+        self.assertEqual(response.status_code, 403)
+
+        # try accessing api-token with user 'bob' but with username 'bob'
+        request = factory.get('/api-token')
+        request.user = self.user
+        response = api_token(request, self.user.username)
+        self.assertEqual(response.status_code, 200)
 
     def test_show_single_at_sign_in_twitter_link(self):
         self._login_user_and_profile()
