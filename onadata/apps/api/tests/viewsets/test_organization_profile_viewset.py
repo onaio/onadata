@@ -232,7 +232,12 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         member = 'aboy'
         expected_data = self.company_data
-        expected_data['users'].append({'role': 'member', 'user': member})
+        expected_data['users'].append({
+            'first_name': u'Bob',
+            'last_name': u'erama',
+            'role': 'member',
+            'user': member
+        })
         cur_username = self.profile_data['username']
         self.profile_data['username'] = member
         self._login_user_and_profile()
