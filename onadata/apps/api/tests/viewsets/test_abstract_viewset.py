@@ -1,8 +1,6 @@
 import json
 import os
 import re
-import urllib2
-import socket
 
 from django.conf import settings
 from django.contrib.auth.models import Permission
