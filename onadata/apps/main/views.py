@@ -73,8 +73,8 @@ def home(request):
 
 @login_required
 def login_redirect(request):
-    return HttpResponseRedirect(reverse(profile,
-                                        kwargs={'username': request.user.username}))
+    return HttpResponseRedirect(
+        reverse(profile, kwargs={'username': request.user.username}))
 
 
 @require_POST
