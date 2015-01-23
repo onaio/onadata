@@ -1,4 +1,5 @@
 import re
+import os
 import urllib2
 from urlparse import urlparse
 
@@ -129,8 +130,11 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
     class Meta:
         pass
 
+    path = os.path.join(
+        settings.PROJECT_ROOT,"config",
+        "reserved_accounts.txt")
     try:
-        with open("reserved_accounts.txt", 'r') as f:
+        with open(path, 'r') as f:
             _reserved_usernames = [line.rstrip() for line in f]
     except EnvironmentError:
             _reserved_usernames = []
