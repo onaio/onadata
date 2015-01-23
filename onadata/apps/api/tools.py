@@ -210,7 +210,14 @@ def publish_xlsform(request, owner, id_string=None, project=None):
 
 
 def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
-    if not user.has_perm('can_add_xform', owner.profile):
+    if id_string and project:
+        xform = get_object_or_404(XForm, user=owner, id_string=id_string,
+                                  project=project)
+        if not ManagerRole.user_has_role(user, xform):
+            raise exceptions.PermissionDenied(_(
+                "{} has no manager/owner role to the form {}". format(
+                    user, xform)))
+    elif not user.has_perm('can_add_xform', owner.profile):
         raise exceptions.PermissionDenied(
             detail=_(u"User %(user)s has no permission to add xforms to "
                      "account %(account)s" % {'user': user.username,
