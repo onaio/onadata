@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
+from django.core.mail import send_mail
 
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
@@ -17,6 +18,7 @@ from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.permissions import ROLES
 from onadata.libs.serializers.organization_serializer import(
     OrganizationSerializer)
+from onadata.settings.common import (DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT)
 
 
 def _try_function_org_username(f, organization, username, args=None):
@@ -57,6 +59,26 @@ def _remove_username_to_organization(organization, username):
     return _try_function_org_username(remove_user_from_organization,
                                       organization,
                                       username)
+
+
+def _compose_send_email(request, organization, username):
+    user = User.objects.get(username=username)
+
+    email_msg = request.DATA.get('email_msg') \
+        or request.QUERY_PARAMS.get('email_msg')
+
+    email_subject = request.DATA.get('email_subject') \
+        or request.QUERY_PARAMS.get('email_subject')
+
+    if not email_subject:
+        email_subject = SHARE_ORG_SUBJECT.format(user.username,
+                                                 organization.name)
+
+    # send out email message.
+    send_mail(email_subject,
+              email_msg,
+              DEFAULT_FROM_EMAIL,
+              (user.email, ))
 
 
 class OrganizationProfileViewSet(LastModifiedMixin,
@@ -192,6 +214,25 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 >
 >       ["member1"]
 
+## Send an email to a user added to an organization
+An email is only sent when the `email_msg` request variable is present,
+`email_subject` is optional.
+<pre class="prettyprint">
+<b>POST</b> /api/v1/orgs/{username}/members
+</pre>
+
+> Example
+>
+>       curl -X POST -d '{"username": "member1",\
+"email_msg": "You have been added to modilabs",\
+"email_subject": "Your have been added "}'\
+  https://ona.io/api/v1/orgs/modilabs/members \
+  -H "Content-Type: application/json"
+
+> Response
+>
+>        ["member1"]
+
 ## Change the role of a user in an organization
 
 To change the role of a user in an organization pass the username and role
@@ -242,6 +283,12 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
         elif request.method == 'POST':
             data, status_code = _add_username_to_organization(
                 organization, username)
+
+            if ('email_msg' in request.DATA or
+                    'email_msg' in request.QUERY_PARAMS) \
+                    and status_code == 201:
+                _compose_send_email(request, organization, username)
+
         elif request.method == 'PUT':
             role = request.DATA.get('role')
             role_cls = ROLES.get(role)

@@ -38,6 +38,7 @@ MANAGERS = ADMINS
 
 DEFAULT_FROM_EMAIL = 'noreply@ona.io'
 SHARE_PROJECT_SUBJECT = '{} Ona Project has been shared with you.'
+SHARE_ORG_SUBJECT = '{}, You have been added to {} organisation.'
 DEFAULT_SESSION_EXPIRY_TIME = 21600  # 6 hours
 DEFAULT_TEMP_TOKEN_EXPIRY_TIME = 21600  # 6 hours
 
