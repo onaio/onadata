@@ -502,6 +502,13 @@ CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
 CSV_ROW_IMPORT_ASYNC_THRESHOLD = 100
 SEND_EMAIL_ACTIVATION_API = False
 
+path = os.path.join(
+    PROJECT_ROOT, "settings", "reserved_accounts.txt")
+try:
+    with open(path, 'r') as f:
+        RESERVED_USERNAMES = [line.rstrip() for line in f]
+except EnvironmentError:
+        RESERVED_USERNAMES = []
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:

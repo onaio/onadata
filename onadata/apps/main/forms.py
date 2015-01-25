@@ -126,48 +126,11 @@ class UserProfileFormRegister(forms.Form):
 # order of inheritance control order of form display
 class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
                                   UserProfileFormRegister):
-
     class Meta:
         pass
-
-    _reserved_usernames = [
-        'accounts',
-        'about',
-        'admin',
-        'clients',
-        'data',
-        'formhub',
-        'forms',
-        'maps',
-        'odk',
-        'ona',
-        'people',
-        'public',
-        'submit',
-        'submission',
-        'support',
-        'syntax',
-        'xls2xform',
-        'users',
-        'worldbank',
-        'unicef',
-        'who',
-        'wb',
-        'wfp',
-        'save',
-        'ei',
-        'modilabs',
-        'mvp',
-        'unido',
-        'unesco',
-        'savethechildren',
-        'worldvision',
-        'afsis'
-    ]
-
+    _reserved_usernames = settings.RESERVED_USERNAMES
     username = forms.CharField(widget=forms.TextInput(), max_length=30)
     email = forms.EmailField(widget=forms.TextInput())
-
     legal_usernames_re = re.compile("^\w+$")
 
     def clean(self):
