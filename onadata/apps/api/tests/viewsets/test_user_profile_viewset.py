@@ -354,3 +354,13 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertFalse(mock_send_mail.called)
         user = User.objects.get(username='deno')
         self.assertTrue(user.is_active)
+
+    def test_partial_update_email(self):
+        self.assertEqual(self.user.profile.country, u'US')
+
+        data = {'email': 'user@example.com'}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(profile.user.email, 'user@example.com')

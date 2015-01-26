@@ -130,8 +130,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 instance = form.save()
 
             # get user
-            if email:
-                instance.user.email = form.cleaned_data['email']
+            if email and form.is_valid():
+                instance.user.email = email
 
             if first_name:
                 instance.user.first_name = first_name
