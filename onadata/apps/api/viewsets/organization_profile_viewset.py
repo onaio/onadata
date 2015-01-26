@@ -81,6 +81,28 @@ def _compose_send_email(request, organization, username):
               (user.email, ))
 
 
+def _check_set_role(request, organization, username, required=False):
+    """
+    Confirms the role and assigns the role to the organization
+    """
+
+    role = request.DATA.get('role')
+    role_cls = ROLES.get(role)
+
+    if not role or not role_cls:
+        if required:
+            message = (_(u"'%s' is not a valid role." % role) if role
+                       else _(u"This field is required."))
+        else:
+            message = _(u"'%s' is not a valid role." % role)
+
+        return status.HTTP_400_BAD_REQUEST, {'role': [message]}
+    else:
+        _update_username_role(organization, username, role_cls)
+        return (status.HTTP_200_OK, []) if request.method == 'PUT' \
+            else (status.HTTP_201_CREATED, [])
+
+
 class OrganizationProfileViewSet(LastModifiedMixin,
                                  ObjectLookupMixin,
                                  ModelViewSet):
@@ -202,7 +224,8 @@ Get a list of organization members.
 ## Add a user to an organization
 
 To add a user to an organization requires a JSON payload of
-`{"username": "member1"}`.
+`{"username": "member1"}`. You can add an optional parameter to define the role
+of the user.`{"username": "member1", "role": "editor"}`
 
 <pre class="prettyprint"><b>POST</b> /api/v1/orgs/{username}/members</pre>
 > Example
@@ -289,17 +312,15 @@ https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
                     and status_code == 201:
                 _compose_send_email(request, organization, username)
 
-        elif request.method == 'PUT':
-            role = request.DATA.get('role')
-            role_cls = ROLES.get(role)
+            if 'role' in request.DATA:
+                status_code, data = _check_set_role(request,
+                                                    organization,
+                                                    username)
 
-            if not role or not role_cls:
-                status_code = status.HTTP_400_BAD_REQUEST
-                message = (_(u"'%s' is not a valid role." % role) if role
-                           else _(u"This field is required."))
-                data = {'role': [message]}
-            else:
-                _update_username_role(organization, username, role_cls)
+        elif request.method == 'PUT':
+            status_code, data = _check_set_role(request, organization,
+                                                username, required=True)
+
         elif request.method == 'DELETE':
             data, status_code = _remove_username_to_organization(
                 organization, username)
