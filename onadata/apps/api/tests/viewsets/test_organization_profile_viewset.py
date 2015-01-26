@@ -529,3 +529,29 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
                                       'noreply@ona.io',
                                       (u'aboy@org.com',))
         self.assertEqual(response.data, [u'denoinc', u'aboy'])
+
+    def test_add_members_to_org_with_role(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members',
+            'get': 'retrieve'
+        })
+
+        User.objects.create(username='aboy', email='aboy@org.com')
+        data = {'username': 'aboy',
+                'role': 'editor'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+
+        self.assertEqual(response.data, [u'denoinc', u'aboy'])
+
+        # getting profile
+        request = self.factory.get('/', **self.extra)
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['users'][1]['user'], 'aboy')
+        self.assertEqual(response.data['users'][1]['role'], 'editor')
