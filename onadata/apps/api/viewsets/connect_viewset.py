@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.decorators import list_route
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
+from rest_framework.authtoken.models import Token
 from django.utils.translation import ugettext as _
 
 from onadata.apps.api.permissions import ConnectViewsetPermissions
@@ -182,3 +183,15 @@ using the `window.atob();` function.
             raise ParseError(_(u"Temporary token not found!"))
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @list_route(methods=['GET'])
+    def regenerate_auth_token(self, request,  *args, **kwargs):
+        try:
+            Token.objects.get(user=request.user).delete()
+        except Token.DoesNotExist:
+            raise ParseError(_(u" Token not found!"))
+
+        new_token = Token.objects.create(user=request.user)
+
+        return Response(data=new_token.key, status=status.HTTP_201_CREATED)
+
