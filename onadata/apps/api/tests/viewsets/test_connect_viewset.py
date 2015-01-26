@@ -7,6 +7,7 @@ from django_digest.test import DigestAuth, BasicAuth
 from mock import patch
 from datetime import timedelta
 from rest_framework import authentication
+from rest_framework.authtoken.models import Token
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
@@ -43,6 +44,26 @@ class TestConnectViewSet(TestAbstractViewSet):
             'user': 'http://testserver/api/v1/users/bob',
             'api_token': self.user.auth_token.key,
         }
+
+    def test_regenerate_auth_token(self):
+        self.view = ConnectViewSet.as_view({
+            "get": "regenerate_auth_token",
+            })
+        prev_token = self.user.auth_token
+        request = self.factory.get("/", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        new_token = Token.objects.get(user=self.user)
+        self.assertNotEqual(prev_token, new_token)
+
+        self.view = ConnectViewSet.as_view({
+            "get": "list",
+            })
+        self.extra = {'HTTP_AUTHORIZATION': 'Token %s' % new_token}
+        request = self.factory.get('/', **self.extra)
+        request.session = self.client.session
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
 
     def test_get_profile(self):
         request = self.factory.get('/', **self.extra)
