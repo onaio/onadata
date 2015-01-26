@@ -47,7 +47,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                                            required=False)
     last_name = serializers.WritableField(source='user.last_name',
                                           required=False)
-    email = serializers.WritableField(source='user.email')
+    email = serializers.EmailField(source='user.email')
     website = serializers.WritableField(source='home_page', required=False)
     gravatar = serializers.Field(source='gravatar')
     password = serializers.WritableField(
@@ -131,7 +131,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
             # get user
             if email:
-                instance.user.email = form.cleaned_data['email']
+                instance.user.email = email
 
             if first_name:
                 instance.user.first_name = first_name
