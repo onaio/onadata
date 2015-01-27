@@ -45,15 +45,15 @@ class SAVZIPRenderer(BaseRenderer):
 
 class SurveyRenderer(BaseRenderer):
     media_type = 'application/xml'
-    format = 'kml'
+    format = 'xml'
     charset = 'utf-8'
 
-# TODO add KML, ZIP(attachments) support
+# TODO add ZIP(attachments) support
 
 
 class KMLRenderer(BaseRenderer):
     media_type = 'application/xml'
-    format = 'xml'
+    format = 'kml'
     charset = 'utf-8'
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
