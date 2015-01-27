@@ -194,4 +194,3 @@ using the `window.atob();` function.
         new_token = Token.objects.create(user=request.user)
 
         return Response(data=new_token.key, status=status.HTTP_201_CREATED)
-
