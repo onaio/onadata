@@ -216,6 +216,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         return attrs
 
+    def validate_email(self, attrs, source):
+        if User.objects.filter(email=attrs.get('user.email')).exists():
+            raise ValidationError("This email address is already in use. ")
+        return attrs
+
 
 class UserProfileWithTokenSerializer(UserProfileSerializer):
     username = serializers.WritableField(source='user.username')
