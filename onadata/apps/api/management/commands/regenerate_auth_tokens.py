@@ -35,7 +35,7 @@ class Command(BaseCommand):
                 else:
                     users = User.objects.filter(username__in=args)
                     usernames = [a.username for a in users]
-                    # check if ALL usernames provide were valid
+                    # check if ALL usernames provided were valid
                     if len(users) == 0:
                         self.stdout.write("The usernames provided were "
                                           "invalid")
