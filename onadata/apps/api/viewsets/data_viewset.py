@@ -478,7 +478,8 @@ List the geojson values
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
         renderers.SurveyRenderer,
-        renderers.GeoJsonRenderer
+        renderers.GeoJsonRenderer,
+        renderers.KMLRenderer,
     ]
 
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
