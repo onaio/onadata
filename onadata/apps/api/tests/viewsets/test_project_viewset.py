@@ -952,3 +952,25 @@ class TestProjectViewSet(TestAbstractViewSet):
             if user == alice_profile.user:
                 r = p.get('role')
                 self.assertEquals(r, ReadOnlyRole.name)
+
+    def test_move_project_owner_org(self):
+        # create project and publish form to project
+        self._org_create()
+        self._publish_xls_form_to_project()
+
+        projectid = self.project.pk
+
+        view = ProjectViewSet.as_view({
+            'patch': 'partial_update'
+        })
+
+        data_patch = {
+            'owner': 'http://testserver/api/v1/users/%s' %
+                     self.organization.user.username
+        }
+        request = self.factory.patch('/', data=data_patch, **self.extra)
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(response.data['users'][1]['user'],
+                          self.organization.user.username)

@@ -253,7 +253,7 @@ def get_object_users_with_permissions(obj, exclude=None):
             'last_name': user.last_name,
             'role': get_role(permissions, obj),
             'permissions': permissions} for user, permissions in
-            users_with_perms if not is_organization(user.profile)]
+            users_with_perms]
 
     return result
 
