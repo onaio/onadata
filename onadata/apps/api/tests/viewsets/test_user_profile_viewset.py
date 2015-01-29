@@ -207,6 +207,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
         response = self.view(request, user='deno')
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['city'], data['city'])
 
@@ -321,6 +322,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         request = self.factory.put(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
+
         response = self.view(request, user='deno')
 
         self.assertEqual(response.status_code, 200)

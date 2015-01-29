@@ -217,6 +217,10 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return attrs
 
     def validate_email(self, attrs, source):
+        request_method = self.context['request'].method
+        if request_method == 'PUT' and source in attrs:
+            return attrs
+
         if User.objects.filter(email=attrs.get('user.email')).exists():
             raise ValidationError("This email address is already in use. ")
         return attrs
