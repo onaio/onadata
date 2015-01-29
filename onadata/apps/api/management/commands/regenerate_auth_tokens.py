@@ -43,7 +43,7 @@ class Command(BaseCommand):
                         # check some of the usernames passed were invalid
                         if len(users) != len(args):
                             users_not_found = list(set(args) - set(usernames))
-                            self.stdout.write("The following usersames don't "
+                            self.stdout.write("The following usernames don't "
                                               "exist: %s" % users_not_found)
 
                         for user in users:
