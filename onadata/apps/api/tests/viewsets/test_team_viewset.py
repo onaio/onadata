@@ -3,6 +3,8 @@ import json
 from onadata.apps.api.models import Team
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
+from onadata.apps.api.viewsets.organization_profile_viewset import\
+    OrganizationProfileViewSet
 
 from onadata.apps.api import tools
 from onadata.apps.logger.models import Project
@@ -238,3 +240,30 @@ class TestTeamViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 204)
         self.assertFalse(EditorRole.user_has_role(user_chuck, project))
+
+    def test_get_all_team(self):
+        self._team_create()
+        self.assertNotIn(self.team.group_ptr, self.user.groups.all())
+
+        view = TeamViewSet.as_view({
+            'get': 'list',
+            'post': 'members'
+        })
+
+        data = {'username': self.user.username}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data,
+                         [self.user.username])
+        self.assertIn(self.team.group_ptr, self.user.groups.all())
+
+        get_data = {'org': 'denoinc'}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)

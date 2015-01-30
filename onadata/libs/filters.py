@@ -9,6 +9,7 @@ from rest_framework.exceptions import ParseError
 
 
 from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.api.models import Team
 
 
 class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
@@ -190,5 +191,21 @@ class AttachmentFilter(XFormPermissionFilterMixin,
                     u"Invalid value for instance %s." % instance_id)
             instance = get_object_or_404(Instance, pk=instance_id)
             queryset = queryset.filter(instance=instance)
+
+        return queryset
+
+
+class TeamOrgFilter(filters.BaseFilterBackend):
+
+    def filter_queryset(self, request, queryset, view):
+        org = request.QUERY_PARAMS.get('org')
+
+        # Get all the teams for the organization
+        if org:
+            kwargs = {
+                'organization__username': org
+            }
+
+            return Team.objects.filter(**kwargs)
 
         return queryset
