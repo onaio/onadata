@@ -147,7 +147,7 @@ def get_organization_owners_team(org):
     """
     return Team.objects.get(name="{}#{}".format(org.user.username,
                                                 Team.OWNER_TEAM_NAME),
-                            organization=org)
+                            organization=org.user)
 
 
 def remove_user_from_organization(organization, user):
