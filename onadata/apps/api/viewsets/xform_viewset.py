@@ -624,7 +624,8 @@ https://ona.io/api/v1/forms/28058/enketo
 >
 > Response
 >
->       {"enketo_url": "https://h6ic6.enketo.org/webform"}
+>       {"enketo_url": "https://h6ic6.enketo.org/webform",
+>        "enketo_preview_url": "https://H6Ic6.enketo.org/webform"}
 >
 >        HTTP 200 OK
 
