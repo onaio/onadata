@@ -10,12 +10,14 @@ from rest_framework.response import Response
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.tools import (get_organization_members,
                                     add_user_to_organization,
-                                    remove_user_from_organization)
+                                    remove_user_from_organization,
+                                    get_organization_owners_team,
+                                    add_user_to_team)
 from onadata.apps.api import permissions
 from onadata.libs.filters import OrganizationPermissionFilter
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
-from onadata.libs.permissions import ROLES
+from onadata.libs.permissions import ROLES, OwnerRole
 from onadata.libs.serializers.organization_serializer import(
     OrganizationSerializer)
 from onadata.settings.common import (DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT)
@@ -99,6 +101,12 @@ def _check_set_role(request, organization, username, required=False):
         return status.HTTP_400_BAD_REQUEST, {'role': [message]}
     else:
         _update_username_role(organization, username, role_cls)
+
+        # add the owner to owners team
+        if role == OwnerRole.name:
+            add_user_to_team(get_organization_owners_team(organization),
+                             User.objects.get(username=username))
+
         return (status.HTTP_200_OK, []) if request.method == 'PUT' \
             else (status.HTTP_201_CREATED, [])
 

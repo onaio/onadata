@@ -33,6 +33,14 @@ Provides a json list of teams and the projects the team is assigned to.
 >
 >       curl -X GET https://ona.io/api/v1/teams
 
+Optional params:
+
+- `org` : Filter by organization.
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/teams?org=bruize
+
 > Response
 >
 >        [

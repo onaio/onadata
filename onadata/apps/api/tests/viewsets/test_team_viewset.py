@@ -3,8 +3,6 @@ import json
 from onadata.apps.api.models import Team
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
-from onadata.apps.api.viewsets.organization_profile_viewset import\
-    OrganizationProfileViewSet
 
 from onadata.apps.api import tools
 from onadata.apps.logger.models import Project
