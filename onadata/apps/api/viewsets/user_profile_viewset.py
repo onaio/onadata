@@ -1,3 +1,5 @@
+import json
+
 from django.conf import settings
 
 from rest_framework import serializers
@@ -14,6 +16,15 @@ from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.permissions import UserProfilePermissions
+
+
+def replace_key_value(k, v, expected_dict):
+    for a, b in expected_dict.items():
+        if isinstance(b, dict):
+            expected_dict[a] = replace_key_value(k, v, b)
+        elif a == k:
+            expected_dict[a] = v
+    return expected_dict
 
 
 class UserProfileViewSet(LastModifiedMixin, ObjectLookupMixin, ModelViewSet):
@@ -190,3 +201,17 @@ curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
                 return Response(status=status.HTTP_200_OK)
 
         return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, *args, **kwargs):
+        profile = self.get_object()
+        metadata = profile.metadata
+        if request.DATA.get('overwrite') == 'false':
+            for a, b in json.loads(request.DATA.get('metadata')).items():
+                metadata = replace_key_value(a, b, metadata)
+
+            profile.metadata = metadata
+            profile.save()
+            return Response(data=profile.metadata, status=status.HTTP_200_OK)
+
+        return super(UserProfileViewSet, self).partial_update(request, *args,
+                                                              **kwargs)
