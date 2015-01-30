@@ -139,6 +139,17 @@ def get_organization_members_team(organization):
     return team
 
 
+def get_organization_owners_team(org):
+    """
+    Get the owners team of an organization
+    :param org: organization
+    :return: Owners team of the organization
+    """
+    return Team.objects.get(name="{}#{}".format(org.user.username,
+                                                Team.OWNER_TEAM_NAME),
+                            organization=org.user)
+
+
 def remove_user_from_organization(organization, user):
     """Remove a user from an organization"""
     team = get_organization_members_team(organization)

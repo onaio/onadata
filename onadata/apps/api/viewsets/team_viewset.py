@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import DjangoObjectPermissions
 
+from onadata.libs.filters import TeamOrgFilter
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.libs.serializers.share_team_project_serializer import (
@@ -31,6 +32,14 @@ Provides a json list of teams and the projects the team is assigned to.
 > Example
 >
 >       curl -X GET https://ona.io/api/v1/teams
+
+Optional params:
+
+- `org` : Filter by organization.
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/teams?org=bruize
 
 > Response
 >
@@ -148,7 +157,8 @@ project for all team members.
     lookup_field = 'pk'
     extra_lookup_fields = None
     permission_classes = [DjangoObjectPermissions]
-    filter_backends = (filters.DjangoObjectPermissionsFilter,)
+    filter_backends = (filters.DjangoObjectPermissionsFilter,
+                       TeamOrgFilter)
 
     @action(methods=['DELETE', 'GET', 'POST'])
     def members(self, request, *args, **kwargs):
