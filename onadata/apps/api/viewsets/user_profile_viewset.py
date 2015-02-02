@@ -138,6 +138,41 @@ curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
 >            "joined_on": "2014-11-10T14:22:20.394Z"
 >        }
 
+## Partial update of the metadata profile property
+
+This functionality allows for the updating of a key/value object of the
+metadata property without overwriting the whole metadata property. For example,
+if a user's metadata was `{"metadata": {"a": "Aaah", "b": "Baah"}}` and we only
+wanted to update `b` with value `Beeh`, we would use this endpoing and add an
+`overwrite` param with value `false`.
+
+<pre class="prettyprint"><b>PATCH</b> /api/v1/profiles/{username}</pre>
+> Example
+>
+>     \
+curl -X PATCH -d '{"metadata": {"b": "Beeh"}, "overwrite": "false"}' \
+https://ona.io/api/v1/profiles/demo -H "Content-Type: application/json"
+
+> Response
+>
+>        {
+>            "url": "https://ona.io/api/v1/profiles/demo",
+>            "username": "demo",
+>            "first_name": "Demo",
+>            "last_name": "User",
+>            "email": "demo@localhost.com",
+>            "city": "",
+>            "country": "KE",
+>            "organization": "",
+>            "website": "",
+>            "twitter": "",
+>            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
+>            "require_auth": false,
+>            "user": "https://ona.io/api/v1/users/demo"
+>            "metadata": {"a": "Aaah", "b": "Beeh"},
+>            "joined_on": "2014-11-10T14:22:20.394Z"
+>        }
+
 ## Change authenticated user's password
 > Example
 >
@@ -206,7 +241,13 @@ curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
         profile = self.get_object()
         metadata = profile.metadata
         if request.DATA.get('overwrite') == 'false':
-            for a, b in json.loads(request.DATA.get('metadata')).items():
+            if isinstance(request.DATA.get('metadata'), basestring):
+                metadata_items = json.loads(
+                    request.DATA.get('metadata')).items()
+            else:
+                metadata_items = request.DATA.get('metadata').items()
+
+            for a, b in metadata_items:
                 metadata = replace_key_value(a, b, metadata)
 
             profile.metadata = metadata
