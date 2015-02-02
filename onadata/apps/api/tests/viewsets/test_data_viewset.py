@@ -7,6 +7,7 @@ from datetime import datetime
 from django.test import RequestFactory
 
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.logger_tools import create_instance
@@ -678,3 +679,37 @@ class TestDataViewSet(TestBase):
         self.assertEquals(response.data['features'][0]['type'], 'Feature')
         self.assertEquals(response.data['features'][0]['geometry']['type'],
                           'Polygon')
+
+    def test_data_in_public_project(self):
+        self._make_submissions()
+
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+        self.assertEquals(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+        # get project id
+        projectid = self.xform.project.pk
+
+        view = ProjectViewSet.as_view({
+            'put': 'update'
+        })
+
+        data = {'shared': True,
+                'name': 'test project',
+                'owner': 'http://testserver/api/v1/users/%s'
+                % self.user.username}
+        request = self.factory.put('/', data=data, **self.extra)
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 200)
+
+        # anonymous user
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/')
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
