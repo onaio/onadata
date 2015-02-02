@@ -20,11 +20,27 @@ from onadata.apps.api.permissions import UserProfilePermissions
 
 def replace_key_value(k, v, expected_dict):
     for a, b in expected_dict.items():
-        if isinstance(b, dict):
+        if k == a:
+            if isinstance(b, dict) and isinstance(v, dict):
+                b.update(v)
+            else:
+                expected_dict[a] = v
+        elif isinstance(b, dict):
             expected_dict[a] = replace_key_value(k, v, b)
-        elif a == k:
-            expected_dict[a] = v
     return expected_dict
+
+
+def check_if_key_exists(k, expected_dict):
+    for a, b in expected_dict.items():
+        if a == k:
+            return True
+        elif isinstance(b, dict):
+            return check_if_key_exists(k, b)
+        elif isinstance(b, list):
+            for c in b:
+                if isinstance(c, dict):
+                    return check_if_key_exists(k, c)
+    return False
 
 
 class UserProfileViewSet(LastModifiedMixin, ObjectLookupMixin, ModelViewSet):
@@ -248,7 +264,10 @@ https://ona.io/api/v1/profiles/demo -H "Content-Type: application/json"
                 metadata_items = request.DATA.get('metadata').items()
 
             for a, b in metadata_items:
-                metadata = replace_key_value(a, b, metadata)
+                if check_if_key_exists(a, metadata):
+                    metadata = replace_key_value(a, b, metadata)
+                else:
+                    metadata[a] = b
 
             profile.metadata = metadata
             profile.save()
