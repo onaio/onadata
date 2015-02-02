@@ -194,12 +194,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.metadata, metadata)
 
-        metadata = {u'b': u'caah'}
-        json_metadata = json.dumps(metadata)
-        data = {
-            'metadata': json_metadata,
-            'overwrite': u'false'
-        }
+        data = {'metadata': '{"b": "caah"}', 'overwrite': u'false'}
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, user=self.user.username)
         profile = UserProfile.objects.get(user=self.user)
