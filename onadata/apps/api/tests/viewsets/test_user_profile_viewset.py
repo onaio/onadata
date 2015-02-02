@@ -183,7 +183,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(profile.metadata, metadata)
 
     def test_partial_update_metadata_field(self):
-        metadata = {u'a': u'Aaah', u'b': u'Baah'}
+        metadata = {u"zebra": {u"key1": "value1", u"key2": "value2"}}
         json_metadata = json.dumps(metadata)
         data = {
             'metadata': json_metadata,
@@ -194,12 +194,60 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.metadata, metadata)
 
-        data = {'metadata': '{"b": "caah"}', 'overwrite': u'false'}
+        # create a new key/value object if it doesn't exist
+        data = {
+            'metadata': '{"zebra": {"key3": "value3"}}',
+            'overwrite': u'false'
+        }
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, user=self.user.username)
         profile = UserProfile.objects.get(user=self.user)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(profile.metadata, {u'a': u'Aaah', u'b': u'caah'})
+        self.assertEqual(
+            profile.metadata, {u"zebra": {
+                u"key1": "value1", u"key2": "value2", u"key3": "value3"}})
+
+        # update an existing key/value object
+        data = {
+            'metadata': '{"zebra": {"key2": "second"}}', 'overwrite': u'false'}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            profile.metadata, {u"zebra": {
+                u"key1": "value1", u"key2": "second", u"key3": "value3"}})
+
+        # add a new key/value object if the key doesn't exist
+        data = {
+            'metadata': '{"animal": "donkey"}', 'overwrite': u'false'}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            profile.metadata, {
+                u"zebra": {
+                    u"key1": "value1", u"key2": "second", u"key3": "value3"},
+                u'animal': u'donkey'})
+
+        # don't pass overwrite param
+        data = {'metadata': '{"b": "caah"}'}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            profile.metadata, {u'b': u'caah'})
+
+        # pass 'overwrite' param whose value isn't false
+        data = {'metadata': '{"b": "caah"}', 'overwrite': u'falsey'}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            profile.metadata, {u'b': u'caah'})
 
     def test_put_update(self):
 
