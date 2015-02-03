@@ -223,13 +223,19 @@ class QuickConverterDropboxURL(forms.Form):
         label=ugettext_lazy('XLS URL'), required=False)
 
 
+class QuickConverterCsvFile(forms.Form):
+    csv_url = forms.URLField(
+        label=ugettext_lazy('CSV URL'), required=False)
+
+
 class QuickConverterTextXlsForm(forms.Form):
     text_xls_form = forms.CharField(
         label=ugettext_lazy('XLSForm Representation'), required=False)
 
 
 class QuickConverter(QuickConverterFile, QuickConverterURL,
-                     QuickConverterDropboxURL, QuickConverterTextXlsForm):
+                     QuickConverterDropboxURL, QuickConverterTextXlsForm,
+                     QuickConverterCsvFile):
     project = forms.IntegerField(required=False)
     validate = URLValidator()
 
@@ -268,12 +274,16 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
             if not cleaned_xls_file:
                 cleaned_url = self.cleaned_data['xls_url']
                 if cleaned_url.strip() == u'':
-                    cleaned_url = self.cleaned_data['dropbox_xls_url']
+                    if self.cleaned_data['dropbox_xls_url']:
+                        cleaned_url = self.cleaned_data['dropbox_xls_url']
+                    elif self.cleaned_data['csv_url']:
+                        cleaned_url = self.cleaned_data['csv_url']
+
                 cleaned_xls_file = urlparse(cleaned_url)
                 cleaned_xls_file = \
                     '_'.join(cleaned_xls_file.path.split('/')[-2:])
                 name, extension = os.path.splitext(cleaned_xls_file)
-                if extension not in ['.xls', '.xlsx']:
+                if extension not in ['.xls', '.xlsx', '.csv']:
                     cleaned_xls_file += '.xls'
                 cleaned_xls_file = \
                     upload_to(None, cleaned_xls_file, user.username)
