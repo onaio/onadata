@@ -7,7 +7,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
 from onadata.apps.api import tools
 from onadata.apps.logger.models import Project
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
-from onadata.libs.permissions import ReadOnlyRole, EditorRole
+from onadata.libs.permissions import ReadOnlyRole, EditorRole, OwnerRole
 
 
 class TestTeamViewSet(TestAbstractViewSet):
@@ -265,3 +265,41 @@ class TestTeamViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
+
+    def test_team_share_members(self):
+        self._team_create()
+        project = Project.objects.create(name="Test Project",
+                                         organization=self.team.organization,
+                                         created_by=self.user,
+                                         metadata='{}')
+
+        view = TeamViewSet.as_view({
+            'get': 'list',
+            'post': 'share'})
+
+        get_data = {'org': 'denoinc'}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = view(request)
+        # get the members team
+        self.assertEquals(response.data[1].get('name'), 'members')
+        teamid = response.data[1].get('teamid')
+
+        chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
+        chuck_profile = self._create_user_profile(chuck_data)
+        user_chuck = chuck_profile.user
+
+        self.team = Team.objects.get(pk=teamid)
+        OwnerRole.user_has_role(self.user, self.team)
+        tools.add_user_to_team(self.team, user_chuck)
+
+        self.assertFalse(EditorRole.user_has_role(user_chuck,
+                                                  project))
+        post_data = {'role': EditorRole.name,
+                     'project': project.pk,
+                     'org': 'denoinc'}
+        request = self.factory.post(
+            '/', data=post_data, **self.extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(EditorRole.user_has_role(user_chuck, project))
