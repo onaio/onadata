@@ -1,3 +1,5 @@
+import json
+
 from django.conf import settings
 
 from rest_framework import serializers
@@ -14,6 +16,31 @@ from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.permissions import UserProfilePermissions
+
+
+def replace_key_value(k, v, expected_dict):
+    for a, b in expected_dict.items():
+        if k == a:
+            if isinstance(b, dict) and isinstance(v, dict):
+                b.update(v)
+            else:
+                expected_dict[a] = v
+        elif isinstance(b, dict):
+            expected_dict[a] = replace_key_value(k, v, b)
+    return expected_dict
+
+
+def check_if_key_exists(k, expected_dict):
+    for a, b in expected_dict.items():
+        if a == k:
+            return True
+        elif isinstance(b, dict):
+            return check_if_key_exists(k, b)
+        elif isinstance(b, list):
+            for c in b:
+                if isinstance(c, dict):
+                    return check_if_key_exists(k, c)
+    return False
 
 
 class UserProfileViewSet(LastModifiedMixin, ObjectLookupMixin, ModelViewSet):
@@ -127,6 +154,41 @@ curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
 >            "joined_on": "2014-11-10T14:22:20.394Z"
 >        }
 
+## Partial update of the metadata profile property
+
+This functionality allows for the updating of a key/value object of the
+metadata property without overwriting the whole metadata property. For example,
+if a user's metadata was `{"metadata": {"a": "Aaah", "b": "Baah"}}` and we only
+wanted to update `b` with value `Beeh`, we would use this endpoing and add an
+`overwrite` param with value `false`.
+
+<pre class="prettyprint"><b>PATCH</b> /api/v1/profiles/{username}</pre>
+> Example
+>
+>     \
+curl -X PATCH -d '{"metadata": {"b": "Beeh"}, "overwrite": "false"}' \
+https://ona.io/api/v1/profiles/demo -H "Content-Type: application/json"
+
+> Response
+>
+>        {
+>            "url": "https://ona.io/api/v1/profiles/demo",
+>            "username": "demo",
+>            "first_name": "Demo",
+>            "last_name": "User",
+>            "email": "demo@localhost.com",
+>            "city": "",
+>            "country": "KE",
+>            "organization": "",
+>            "website": "",
+>            "twitter": "",
+>            "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
+>            "require_auth": false,
+>            "user": "https://ona.io/api/v1/users/demo"
+>            "metadata": {"a": "Aaah", "b": "Beeh"},
+>            "joined_on": "2014-11-10T14:22:20.394Z"
+>        }
+
 ## Change authenticated user's password
 > Example
 >
@@ -190,3 +252,26 @@ curl -X PATCH -d '{"country": "KE"}' https://ona.io/api/v1/profiles/demo \
                 return Response(status=status.HTTP_200_OK)
 
         return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    def partial_update(self, request, *args, **kwargs):
+        profile = self.get_object()
+        metadata = profile.metadata
+        if request.DATA.get('overwrite') == 'false':
+            if isinstance(request.DATA.get('metadata'), basestring):
+                metadata_items = json.loads(
+                    request.DATA.get('metadata')).items()
+            else:
+                metadata_items = request.DATA.get('metadata').items()
+
+            for a, b in metadata_items:
+                if check_if_key_exists(a, metadata):
+                    metadata = replace_key_value(a, b, metadata)
+                else:
+                    metadata[a] = b
+
+            profile.metadata = metadata
+            profile.save()
+            return Response(data=profile.metadata, status=status.HTTP_200_OK)
+
+        return super(UserProfileViewSet, self).partial_update(request, *args,
+                                                              **kwargs)
