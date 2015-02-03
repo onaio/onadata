@@ -458,6 +458,31 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(XForm.objects.count(), pre_count + 1)
 
+    @patch('urllib2.urlopen')
+    def test_publish_csvform_using_url_upload(self,  mock_urlopen):
+        view = XFormViewSet.as_view({
+            'post': 'create'
+        })
+
+        csv_url = 'https://ona.io/examples/forms/tutorial/form.csv'
+        pre_count = XForm.objects.count()
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
+            "text_and_integer.csv")
+
+        csv_file = open(path)
+        mock_urlopen.return_value = csv_file
+
+        post_data = {'csv_url': csv_url}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request)
+
+        mock_urlopen.assert_called_with(csv_url)
+        csv_file.close()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(XForm.objects.count(), pre_count + 1)
+
     def test_publish_select_external_xlsform(self):
         view = XFormViewSet.as_view({
             'post': 'create'
