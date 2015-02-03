@@ -127,7 +127,7 @@ def _generate_new_export(request, xform, query, export_type):
             export = generate_external_export(
                 export_type, xform.user.username,
                 xform.id_string, None, request.GET.get('token'), query,
-                request.GET.get('meta')
+                request.GET.get('meta'), request.GET.get('data_id')
             )
         elif export_type == Export.KML_EXPORT:
             export = generate_kml_export(
