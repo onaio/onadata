@@ -272,12 +272,10 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 cleaned_xls_file = self.cleaned_data['xls_file']
 
             if not cleaned_xls_file:
-                cleaned_url = self.cleaned_data['xls_url']
-                if cleaned_url.strip() == u'':
-                    if self.cleaned_data['dropbox_xls_url']:
-                        cleaned_url = self.cleaned_data['dropbox_xls_url']
-                    elif self.cleaned_data['csv_url']:
-                        cleaned_url = self.cleaned_data['csv_url']
+                cleaned_url = (
+                    self.cleaned_data['xls_url'].strip() or
+                    self.cleaned_data['dropbox_xls_url'] or
+                    self.cleaned_data['csv_url'])
 
                 cleaned_xls_file = urlparse(cleaned_url)
                 cleaned_xls_file = \
