@@ -940,9 +940,6 @@ def kml_export_data(id_string, user):
 
 
 def _get_records(instances):
-    # check if instances is a single value
-    if hasattr(instances, 'pk'):
-        return [clean_keys_of_slashes(instances.get_dict())]
     return [clean_keys_of_slashes(instance.get_dict())
             for instance in instances]
 
@@ -1013,11 +1010,11 @@ def generate_external_export(
 
     ser = parsed_url.scheme + '://' + parsed_url.netloc
 
+    instances = Instance.objects.filter(xform__user=user,
+                                        xform__id_string=id_string)
     if data_id:
-        records = _get_records(Instance.objects.get(id=data_id))
-    else:
-        records = _get_records(Instance.objects.filter(
-            xform__user=user, xform__id_string=id_string))
+        instances = instances.filter(pk=data_id)
+    records = _get_records(instances)
 
     status_code = 0
     if records and server:
