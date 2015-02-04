@@ -44,26 +44,26 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 
         # start async export
         if export_type in [Export.XLS_EXPORT, Export.GDOC_EXPORT]:
-            result = create_xls_export.apply_async((), arguments, countdown=10)
+            result = create_xls_export.apply_async((), arguments)
         elif export_type == Export.CSV_EXPORT:
             result = create_csv_export.apply_async(
-                (), arguments, countdown=10)
+                (), arguments)
         elif export_type == Export.CSV_ZIP_EXPORT:
             result = create_csv_zip_export.apply_async(
-                (), arguments, countdown=10)
+                (), arguments)
         elif export_type == Export.SAV_ZIP_EXPORT:
             result = create_sav_zip_export.apply_async(
-                (), arguments, countdown=10)
+                (), arguments)
         else:
             raise Export.ExportTypeError
     elif export_type == Export.ZIP_EXPORT:
         # start async export
         result = create_zip_export.apply_async(
-            (), arguments, countdown=10)
+            (), arguments)
     elif export_type == Export.KML_EXPORT:
         # start async export
         result = create_kml_export.apply_async(
-            (), arguments, countdown=10)
+            (), arguments)
     elif export_type == Export.EXTERNAL_EXPORT:
         if options and "token" in options:
             arguments["token"] = options["token"]
@@ -71,7 +71,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
             arguments["meta"] = options["meta"]
 
         result = create_external_export.apply_async(
-            (), arguments, countdown=10)
+            (), arguments)
     else:
         raise Export.ExportTypeError
     if result:
