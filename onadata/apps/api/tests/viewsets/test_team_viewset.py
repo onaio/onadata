@@ -8,7 +8,7 @@ from onadata.apps.api import tools
 from onadata.apps.logger.models import Project
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
-from onadata.libs.permissions import ReadOnlyRole, EditorRole, OwnerRole
+from onadata.libs.permissions import ReadOnlyRole, EditorRole
 
 
 class TestTeamViewSet(TestAbstractViewSet):
@@ -31,22 +31,10 @@ class TestTeamViewSet(TestAbstractViewSet):
         # access the url with an authorised user
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
-        owner_team = {
-            'teamid': self.owner_team.pk,
-            'url':
-            'http://testserver/api/v1/teams/%s' % self.owner_team.pk,
-            'name': u'Owners',
-            'organization': 'denoinc',
-            'projects': [],
-            'users': [{'username': u'bob',
-                       'first_name': u'Bob',
-                       'last_name': u'erama',
-                       'id': self.user.pk}
-                      ]
-        }
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(sorted(response.data), [owner_team, self.team_data])
+
+        self.assertEqual(len(response.data), 3)
 
     def test_teams_get(self):
         self._team_create()
@@ -290,7 +278,6 @@ class TestTeamViewSet(TestAbstractViewSet):
         user_chuck = chuck_profile.user
 
         self.team = Team.objects.get(pk=teamid)
-        OwnerRole.user_has_role(self.user, self.team)
         tools.add_user_to_team(self.team, user_chuck)
 
         self.assertFalse(EditorRole.user_has_role(user_chuck,

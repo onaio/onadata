@@ -1,5 +1,4 @@
 from django.contrib.auth.models import User
-from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 
 from rest_framework import filters
@@ -10,14 +9,12 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import DjangoObjectPermissions
 
 from onadata.libs.filters import TeamOrgFilter
-from onadata.apps.logger.models import Project
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.libs.serializers.share_team_project_serializer import (
     ShareTeamProjectSerializer, RemoveTeamFromProjectSerializer)
 from onadata.apps.api.models import Team
 from onadata.apps.api.tools import add_user_to_team, remove_user_from_team
-from onadata.libs.permissions import OwnerRole
 
 
 class TeamViewSet(LastModifiedMixin, ModelViewSet):
@@ -162,20 +159,6 @@ project for all team members.
     permission_classes = [DjangoObjectPermissions]
     filter_backends = (filters.DjangoObjectPermissionsFilter,
                        TeamOrgFilter)
-
-    def get_object(self, queryset=None):
-        # Enable to access members team, which has no permissions
-        if 'project' in self.request.DATA:
-            project_id = self.request.DATA.get('project')
-            project = get_object_or_404(Project, pk=project_id)
-            OwnerRole.user_has_role(self.request.user,
-                                    project)
-
-            obj = get_object_or_404(self.queryset, **self.kwargs)
-        else:
-            obj = super(TeamViewSet, self).get_object(queryset)
-
-        return obj
 
     @action(methods=['DELETE', 'GET', 'POST'])
     def members(self, request, *args, **kwargs):
