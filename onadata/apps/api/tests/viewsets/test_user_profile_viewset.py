@@ -374,6 +374,52 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         user = User.objects.get(username='deno')
         self.assertTrue(user.is_active)
 
+    def test_twitter_username_validation(self):
+        data = {
+            'username': u'deno',
+            'name': u'Dennis deno',
+            'email': u'deno@columbia.edu',
+            'city': u'Denoville',
+            'country': u'US',
+            'organization': u'Dono Inc.',
+            'website': u'deno.com',
+            'twitter': u'denoerama',
+            'require_auth': False,
+            'password': 'denodeno',
+            'is_org': False,
+        }
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 201)
+        data['twitter'] = 'denoerama'
+        data = {
+            'username': u'deno',
+            'name': u'Dennis deno',
+            'email': u'deno@columbia.edu',
+            'city': u'Denoville',
+            'country': u'US',
+            'organization': u'Dono Inc.',
+            'website': u'deno.com',
+            'twitter': u'denoeramaddfsdsl8729320392ujijdswkp--22kwklskdsjs',
+            'require_auth': False,
+            'password': 'denodeno',
+            'is_org': False,
+        }
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['twitter'],
+                         [u'Invalid twitter username'])
+
+        user = User.objects.get(username='deno')
+        self.assertTrue(user.is_active)
+
     def test_put_patch_method_on_names(self):
         data = _profile_data()
         # create profile
