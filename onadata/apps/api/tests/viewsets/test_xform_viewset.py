@@ -418,6 +418,49 @@ class TestXFormViewSet(TestAbstractViewSet):
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
+    def test_enketo_urls_remain_the_same_after_form_replacement(self):
+        self._publish_xls_form_to_project()
+
+        self.assertIsNotNone(self.xform.version)
+        version = self.xform.version
+        form_id = self.xform.pk
+        id_string = self.xform.id_string
+
+        self.view = XFormViewSet.as_view({
+            'get': 'retrieve',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Last-Modified'), None)
+
+        enketo_url = response.data.get('enketo_url')
+        enketo_preview_url = response.data.get('enketo_preview_url')
+
+        view = XFormViewSet.as_view({
+            'patch': 'partial_update',
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation_version.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+            self.assertEqual(
+                response.data.get('enketo_preview_url'), enketo_preview_url)
+            self.assertEqual(response.data.get('enketo_url'), enketo_url)
+            self.assertEqual(response.status_code, 200)
+
+        self.xform.reload()
+
+        # diff versions
+        self.assertNotEquals(version, self.xform.version)
+        self.assertEquals(form_id, self.xform.pk)
+        self.assertEquals(id_string, self.xform.id_string)
+
     def test_publish_xlsform(self):
         view = XFormViewSet.as_view({
             'post': 'create'

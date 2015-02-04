@@ -66,7 +66,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
         try:
             preview_url = get_enketo_preview_url(request,
-                                                 request.user.username,
+                                                 obj.user.username,
                                                  obj.id_string)
         except EnketoError:
             pass
