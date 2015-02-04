@@ -164,7 +164,7 @@ project for all team members.
                        TeamOrgFilter)
 
     def get_object(self, queryset=None):
-
+        # Enable to access members team, which has no permissions
         if 'project' in self.request.DATA:
             project_id = self.request.DATA.get('project')
             project = get_object_or_404(Project, pk=project_id)
