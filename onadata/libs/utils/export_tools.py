@@ -995,7 +995,7 @@ def _get_server_from_metadata(xform, meta, token):
 
 def generate_external_export(
     export_type, username, id_string, export_id=None,  token=None,
-        filter_query=None, meta=None):
+        filter_query=None, meta=None, data_id=None):
 
     xform = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
@@ -1010,8 +1010,11 @@ def generate_external_export(
 
     ser = parsed_url.scheme + '://' + parsed_url.netloc
 
-    records = _get_records(Instance.objects.filter(
-        xform__user=user, xform__id_string=id_string))
+    instances = Instance.objects.filter(xform__user=user,
+                                        xform__id_string=id_string)
+    if data_id:
+        instances = instances.filter(pk=data_id)
+    records = _get_records(instances)
 
     status_code = 0
     if records and server:

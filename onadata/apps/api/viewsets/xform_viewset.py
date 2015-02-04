@@ -127,7 +127,7 @@ def _generate_new_export(request, xform, query, export_type):
             export = generate_external_export(
                 export_type, xform.user.username,
                 xform.id_string, None, request.GET.get('token'), query,
-                request.GET.get('meta')
+                request.GET.get('meta'), request.GET.get('data_id')
             )
         elif export_type == Export.KML_EXPORT:
             export = generate_kml_export(
@@ -642,6 +642,7 @@ Params for the custom xls report
 
 - `meta`  - the metadata id containing the template url
 -  `token`  - the template url
+-  `data_id`  - the unique id of the submission
 
 <pre class="prettyprint">
 <b>GET</b> /api/v1/forms/{pk}.{format}</code>
@@ -662,6 +663,24 @@ Params for the custom xls report
 >       curl -X GET https://ona.io/api/v1/forms/28058.xls?meta=12121
 >                   or
 >       curl -X GET https://ona.io/api/v1/forms/28058.xls?token={url}
+>
+> XLS file is downloaded
+>
+> Response
+>
+>        HTTP 200 OK
+
+> Example 3 Custom XLS reports with meta or token and data_id(beta)
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/{pk}.{format}?{meta}&{data_id} -L -o {filename.xls}
+</code>
+</pre>
+>
+>       curl "https://ona.io/api/v1/forms/2.xls?meta=19&data_id=7" -L -o \
+data.xlsx
+>                   or
+>       curl "https://ona.io/api/v1/forms/2.xls?token={url}&data_id=7" -L \
+-o data.xlsx
 >
 > XLS file is downloaded
 >
