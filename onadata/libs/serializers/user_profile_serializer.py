@@ -1,5 +1,6 @@
 import copy
 import six
+import re
 
 from django.conf import settings
 from django.forms import widgets
@@ -49,6 +50,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                                           required=False)
     email = serializers.EmailField(source='user.email')
     website = serializers.WritableField(source='home_page', required=False)
+    twitter = serializers.WritableField(required=False)
     gravatar = serializers.Field(source='gravatar')
     password = serializers.WritableField(
         source='user.password', widget=widgets.PasswordInput(), required=False)
@@ -223,6 +225,12 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         if User.objects.filter(email=attrs.get('user.email')).exists():
             raise ValidationError("This email address is already in use. ")
+        return attrs
+
+    def validate_twitter(self, attrs, source):
+        match = re.search(r"^[A-Za-z0-9_]{1,15}$", attrs.get('twitter'))
+        if not match:
+            raise ValidationError("Invalid twitter username")
         return attrs
 
 
