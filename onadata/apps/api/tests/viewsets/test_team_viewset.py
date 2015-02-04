@@ -7,6 +7,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
 from onadata.apps.api import tools
 from onadata.apps.logger.models import Project
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import ReadOnlyRole, EditorRole, OwnerRole
 
 
@@ -303,3 +304,14 @@ class TestTeamViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 204)
         self.assertTrue(EditorRole.user_has_role(user_chuck, project))
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=project.pk)
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(len(response.data.get('users')),
+                         3)
