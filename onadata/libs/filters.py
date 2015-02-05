@@ -198,7 +198,7 @@ class AttachmentFilter(XFormPermissionFilterMixin,
 class TeamOrgFilter(filters.BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
-        org = request.QUERY_PARAMS.get('org')
+        org = request.DATA.get('org') or request.QUERY_PARAMS.get('org')
 
         # Get all the teams for the organization
         if org:

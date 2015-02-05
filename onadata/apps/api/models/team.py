@@ -51,9 +51,15 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
     if created:
         for perm in get_perms_for_model(Team):
             assign_perm(perm.codename, instance.organization, instance)
+            organization = instance.organization.profile
 
             if instance.created_by:
                 assign_perm(perm.codename, instance.created_by, instance)
+            if hasattr(organization, 'creator') and \
+                    organization.creator != instance.created_by:
+                assign_perm(perm.codename, organization.creator, instance)
+            if organization.created_by != instance.created_by:
+                assign_perm(perm.codename, organization.created_by, instance)
 
 post_save.connect(set_object_permissions, sender=Team,
                   dispatch_uid='set_team_object_permissions')
