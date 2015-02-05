@@ -31,10 +31,37 @@ class TestTeamViewSet(TestAbstractViewSet):
         # access the url with an authorised user
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
+        owner_team = {
+            'teamid': self.owner_team.pk,
+            'url':
+            'http://testserver/api/v1/teams/%s' % self.owner_team.pk,
+            'name': u'Owners',
+            'organization': 'denoinc',
+            'projects': [],
+            'users': [{'username': u'bob',
+                       'first_name': u'Bob',
+                       'last_name': u'erama',
+                       'id': self.user.pk}
+                      ]
+        }
+        memberteam = Team.objects.get(
+            organization=self.organization.user,
+            name='%s#%s' % (self.organization.user.username, "members"))
+        member_team = {
+            'teamid': memberteam.pk,
+            'url': 'http://testserver/api/v1/teams/%s' % memberteam.pk,
+            'name': u'members',
+            'organization': u'denoinc',
+            'projects': [],
+            'users': [{'id': self.organization.user.pk,
+                       'username': u'denoinc',
+                       'first_name': u'Dennis',
+                       'last_name': u''}]
+        }
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
-
-        self.assertEqual(len(response.data), 3)
+        self.assertEqual(response.data, [owner_team, member_team,
+                                         self.team_data])
 
     def test_teams_get(self):
         self._team_create()
