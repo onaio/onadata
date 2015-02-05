@@ -164,6 +164,11 @@ class MetaData(models.Model):
             return False
 
     @staticmethod
+    def enketo_urls(xform, data_value=None):
+        data_type = 'enketo_urls'
+        return unique_type_for_form(xform, data_type, data_value)
+
+    @staticmethod
     def form_license(xform, data_value=None):
         data_type = 'form_license'
         return unique_type_for_form(xform, data_type, data_value)
