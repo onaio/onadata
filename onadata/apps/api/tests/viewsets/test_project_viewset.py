@@ -12,6 +12,8 @@ from onadata.libs.permissions import (
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
+from django.db.models import Q
+from onadata.apps.main.models import MetaData
 
 
 class TestProjectViewSet(TestAbstractViewSet):
@@ -166,6 +168,35 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
+        resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
+            data_type='enketo_url') | Q(data_type='enketo_preview_url'))
+        url = resultset.get(data_type='enketo_url')
+        preview_url = resultset.get(data_type='enketo_preview_url')
+        self.form_data['metadata'] = [{
+            'id': preview_url.pk,
+            'xform': self.xform.pk,
+            'data_value': u'https://enketo.formhub.org/webform/preview?\
+server=http://testserver/%s/&id=transportation_2011_07_25' %
+            self.xform.user.username,
+            'data_type': u'enketo_preview_url',
+            'data_file': u'',
+            'data_file_type': None,
+            u'url': u'http://testserver/api/v1/metadata/%s' % preview_url.pk,
+            'file_hash': None
+        }, {
+            'id': url.pk,
+            'data_value': u'https://ymitc.enketo.formhub.org/webform',
+            'xform': self.xform.pk,
+            'data_file': u'',
+            'data_type': u'enketo_url',
+            u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
+            'data_file_type': None,
+            'file_hash': None
+        }]
+
+        self.form_data['metadata'].sort()
+        response.data[0]['metadata'].sort()
+
         self.assertEqual(response.data, [self.form_data])
 
     def test_assign_form_to_project(self):
@@ -917,7 +948,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data['username'], [u"Cannot share project"
-                         u" with the owner"])
+                                                     u" with the owner"])
         self.assertTrue(OwnerRole.user_has_role(self.user, self.project))
 
     def test_project_share_readonly(self):
