@@ -491,9 +491,16 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'url':
                 'http://testserver/api/v1/forms/%s' % xform.pk
             })
+
             self.assertDictContainsSubset(data, response.data)
             self.assertTrue(OwnerRole.user_has_role(self.user, xform))
             self.assertEquals("owner", response.data['users'][0]['role'])
+
+            self.assertIsNotNone(
+                MetaData.objects.get(xform=xform, data_type="enketo_url"))
+            self.assertIsNotNone(
+                MetaData.objects.get(
+                    xform=xform, data_type="enketo_preview_url"))
 
     @patch('urllib2.urlopen')
     def test_publish_xlsform_using_url_upload(self,  mock_urlopen):
