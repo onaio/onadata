@@ -88,7 +88,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         if 'first_name' in ret:
             ret['name'] = u' '.join([ret.get('first_name'),
-                                    ret.get('last_name', "")])
+                                     ret.get('last_name', "")])
 
         return ret
 
@@ -228,11 +228,14 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return attrs
 
     def validate_twitter(self, attrs, source):
-        if 'twitter' in attrs and attrs.get('twitter') and \
-                attrs.get('twitter') != " ":
-            match = re.search(r"^[A-Za-z0-9_]{1,15}$", attrs.get('twitter'))
-            if not match:
-                raise ValidationError("Invalid twitter username")
+        if isinstance(attrs.get('twitter'), basestring):
+            if attrs.get('twitter'):
+                match = re.search(
+                    r"^[A-Za-z0-9_]{1,15}$", attrs.get('twitter'))
+                if not match:
+                    raise ValidationError("Invalid twitter username")
+        else:
+            attrs['twitter'] = ''
         return attrs
 
 
