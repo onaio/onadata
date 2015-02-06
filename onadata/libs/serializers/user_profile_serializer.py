@@ -228,9 +228,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return attrs
 
     def validate_twitter(self, attrs, source):
-        match = re.search(r"^[A-Za-z0-9_]{1,15}$", attrs.get('twitter'))
-        if not match:
-            raise ValidationError("Invalid twitter username")
+        if 'twitter' in attrs and attrs.get('twitter') and \
+                attrs.get('twitter') != " ":
+            match = re.search(r"^[A-Za-z0-9_]{1,15}$", attrs.get('twitter'))
+            if not match:
+                raise ValidationError("Invalid twitter username")
         return attrs
 
 
