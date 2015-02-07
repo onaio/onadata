@@ -55,10 +55,6 @@ TIME_ZONE = 'America/New_York'
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
 
-
-def ugettext(s):
-    return s
-
 LANGUAGES = (
     ('fr', u'Français'),
     ('en', u'English'),
