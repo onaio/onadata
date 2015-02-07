@@ -3,6 +3,7 @@ from unittest import skip
 
 from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
+from pyxform.errors import PyXFormError
 
 from onadata.apps.main.views import show
 from onadata.apps.logger.models import XForm
@@ -92,6 +93,9 @@ class TestFormErrors(TestBase):
         self.xform.save()
         xls_path = os.path.join(self.this_directory, "fixtures",
                                 "transportation", "tutorial .xls")
-        response = self._publish_xls_file(xls_path)
-        self.assertEquals(response.status_code, 200)
+        msg = u"The name 'tutorial ' is an invalid xml tag. Names must begin"\
+            u" with a letter, colon, or underscore, subsequent characters "\
+            u"can include numbers, dashes, and periods"
+        with self.assertRaisesMessage(PyXFormError, msg):
+            self._publish_xls_file(xls_path)
         self.assertEquals(XForm.objects.count(), count)

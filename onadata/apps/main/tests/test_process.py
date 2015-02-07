@@ -491,9 +491,10 @@ class TestProcess(TestBase):
         path = os.path.join(
             self.this_directory, 'fixtures',
             'form_with_unicode_in_relevant_column.xlsx')
-        count = XForm.objects.count()
-        TestBase._publish_xls_file(self, path)
-        self.assertEqual(XForm.objects.count(), count + 1)
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            response = self.client.post('/%s/' % self.user.username, post_data)
+            self.assertEqual(response.status_code, 200)
 
     def test_metadata_file_hash(self):
         self._publish_transportation_form()

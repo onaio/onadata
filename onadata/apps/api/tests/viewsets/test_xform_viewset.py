@@ -758,7 +758,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             response = view(request)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get('Last-Modified'), None)
-            error_msg = '[row : 5] Question or group with no name.'
+            error_msg = 'In strict mode, the XForm ID must be a valid slug'\
+                ' and contain no spaces.'
             self.assertEqual(response.data.get('text'), error_msg)
 
     def test_publish_invalid_xls_form_no_choices(self):

@@ -22,13 +22,20 @@ class TestInputs(TestBase):
         self.assertEqual(XForm.objects.count(), pre_count)
 
     def test_mch(self):
-        self._publish_xls_file('fixtures/bug_fixes/MCH_v1.xls')
+        msg = u"Unknown question type 'Select one from source'"
+        with self.assertRaisesMessage(PyXFormError, msg):
+            self._publish_xls_file('fixtures/bug_fixes/MCH_v1.xls')
 
     def test_erics_files(self):
         for name in ['battery_life.xls',
                      'enumerator_weekly.xls',
                      'Enumerator_Training_Practice_Survey.xls']:
-            self._publish_xls_file(os.path.join('fixtures', 'bug_fixes', name))
+            try:
+                self._publish_xls_file(os.path.join(
+                    'fixtures', 'bug_fixes', name))
+            except Exception as e:
+                self.assertEqual(u"Duplicate column header: label",
+                                 unicode(e))
 
 
 class TestSubmissionBugs(TestBase):
