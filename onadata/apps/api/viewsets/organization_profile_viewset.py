@@ -48,7 +48,10 @@ def _add_role(org, user, role_cls):
 
 
 def _update_username_role(organization, username, role_cls):
-    return _try_function_org_username(_add_role,
+    def _set_organization_role_to_user(org, user, role_cls):
+        role_cls.add(user, organization)
+
+    return _try_function_org_username(_set_organization_role_to_user,
                                       organization,
                                       username,
                                       [role_cls])
