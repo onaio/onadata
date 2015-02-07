@@ -46,7 +46,6 @@ PASSWORD_HASHERS = (
 
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
-logging.disable(logging.CRITICAL)
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
