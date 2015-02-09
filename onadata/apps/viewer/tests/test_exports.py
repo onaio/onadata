@@ -105,8 +105,8 @@ class TestExports(TestBase):
             }
         )
         self.response = self.client.get(url)
-        self.assertEqual(self.response.status_code, 404)
-        self.assertIn('text/html', self.response['content-type'])
+        self.assertEqual(self.response.status_code, 200)
+        self.assertIn('application/csv', self.response['content-type'])
 
     def test_create_export(self):
         self._publish_transportation_form_and_submit_instance()
