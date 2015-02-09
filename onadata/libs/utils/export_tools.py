@@ -33,7 +33,7 @@ from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
     DELETEDAT, USERFORM_ID, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION)
-from onadata.libs.exceptions import J2XException
+from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 
 
 # this is Mongo Collection where we will store the parsed submissions
@@ -704,9 +704,13 @@ def generate_export(export_type, extension, username, id_string,
 
     # get the export function by export type
     func = getattr(export_builder, export_type_func_map[export_type])
-
-    func.__call__(
-        temp_file.name, records, username, id_string, filter_query)
+    no_data = ''
+    try:
+        func.__call__(
+            temp_file.name, records, username, id_string, filter_query)
+    except NoRecordsFoundError:
+        no_data = "there's no data to be exported"
+        pass
 
     # generate filename
     basename = "%s_%s" % (
@@ -728,9 +732,10 @@ def generate_export(export_type, extension, username, id_string,
     storage = get_storage_class()()
     # seek to the beginning as required by storage classes
     temp_file.seek(0)
-    export_filename = storage.save(
-        file_path,
-        File(temp_file, file_path))
+    file_obj = File(temp_file, file_path)
+    if no_data:
+        file_obj.write(no_data)
+    export_filename = storage.save(file_path, file_obj)
     temp_file.close()
 
     dir_name, basename = os.path.split(export_filename)
