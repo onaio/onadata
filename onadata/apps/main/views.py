@@ -1324,7 +1324,7 @@ def activity_api(request, username):
         if 'count' in request.GET:
             query_args["count"] = True \
                 if int(request.GET.get('count')) > 0 else False
-        cursor = AuditLog.query_mongo(**query_args)
+        cursor = AuditLog.query_data(**query_args)
     except ValueError as e:
         return HttpResponseBadRequest(e.__str__())
 

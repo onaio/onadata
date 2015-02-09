@@ -3,7 +3,6 @@ from django.test import TestCase
 from django.test.client import RequestFactory
 
 from onadata.libs.utils.log import audit_log, Actions
-from onadata.apps.main.models.audit import Audit
 from onadata.apps.main.models import AuditLog
 
 
