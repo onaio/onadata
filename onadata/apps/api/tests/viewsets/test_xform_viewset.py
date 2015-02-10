@@ -1045,21 +1045,6 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         self.assertTrue(data.get('error')
                         .startswith("J2X client could not generate report."))
 
-    def test_export_csv_with_no_submissions_on_forms_endpoint(self):
-        self._publish_xls_form_to_project()
-        view = XFormViewSet.as_view({
-            'get': 'retrieve',
-        })
-        formid = self.xform.pk
-        request = self.factory.get('/', **self.extra)
-
-        # External export
-        response = view(
-            request,
-            pk=formid,
-            format='csv')
-        self.assertEqual(response.status_code, 200)
-
     def test_csv_import(self):
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({'post': 'csv_import'})
