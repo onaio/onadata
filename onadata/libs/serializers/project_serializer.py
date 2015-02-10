@@ -1,5 +1,6 @@
 from django.forms import widgets
 from rest_framework import serializers
+from django.core.cache import cache
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import Project
@@ -85,6 +86,18 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     @check_obj
     def get_project_forms(self, obj):
+        project_serializer = cache.get('ProjectSerializer:get_project_forms')
+        if project_serializer:
+            forms = project_serializer.get(obj.pk)
+            if forms:
+                return forms
+            else:
+                xforms_details = obj.xform_set.values('pk', 'title')
+                forms = [{'name': form['title'], 'id':form['pk']}
+                         for form in xforms_details]
+                project_serializer.update({obj.pk: forms})
+                return forms
+
         xforms_details = obj.xform_set.values('pk', 'title')
         return [{'name': form['title'], 'id':form['pk']}
                 for form in xforms_details]
@@ -95,7 +108,19 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         :param obj: The project to find datasets for.
         """
-        return obj.xform_set.count()
+        project_serializer = cache.get('ProjectSerializer:get_num_datasets')
+        if project_serializer:
+            count = project_serializer.get(obj.pk)
+            if count:
+                return count
+            else:
+                count = obj.xform_set.count()
+                project_serializer.update({obj.pk: count})
+                return count
+
+        count = obj.xform_set.count()
+        cache.set('project_serializer', {obj.pk: count})
+        return count
 
     @check_obj
     def get_last_submission_date(self, obj):
