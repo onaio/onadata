@@ -346,6 +346,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         response = self.view(request)
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
+        bobs_form_data['metadata'].sort()
+        response.data[0]['metadata'].sort()
         self.assertEqual(response.data, [bobs_form_data])
 
         # apply filter, see only alice's forms
@@ -353,6 +355,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         response = self.view(request)
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
+        self.form_data['metadata'].sort()
+        response.data[0]['metadata'].sort()
         self.assertEqual(response.data, [self.form_data])
 
         # apply filter, see a non existent user
