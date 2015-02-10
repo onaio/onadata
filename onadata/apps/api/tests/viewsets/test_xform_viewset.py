@@ -5,7 +5,6 @@ import re
 import requests
 import pytz
 
-from django.db.models import Q
 from datetime import datetime
 from django.utils import timezone
 from django.conf import settings
@@ -188,35 +187,10 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.form_data['public'] = True
-        resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
-            data_type='enketo_url') | Q(data_type='enketo_preview_url'))
-        url = resultset.get(data_type='enketo_url')
-        preview_url = resultset.get(data_type='enketo_preview_url')
-        self.form_data['metadata'] = [{
-            'id': preview_url.pk,
-            'xform': self.xform.pk,
-            'data_value': u'https://enketo.formhub.org/webform/preview?\
-server=http://testserver/%s/&id=transportation_2011_07_25' %
-            self.xform.user.username,
-            'data_type': u'enketo_preview_url',
-            'data_file': u'',
-            'data_file_type': None,
-            u'url': u'http://testserver/api/v1/metadata/%s' % preview_url.pk,
-            'file_hash': None
-        }, {
-            'id': url.pk,
-            'data_value': u'https://ymitc.enketo.formhub.org/webform',
-            'xform': self.xform.pk,
-            'data_file': u'',
-            'data_type': u'enketo_url',
-            u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
-            'data_file_type': None,
-            'file_hash': None
-        }]
+
         del self.form_data['date_modified']
         del response.data[0]['date_modified']
-        self.form_data['metadata'].sort()
-        response.data[0]['metadata'].sort()
+
         self.assertEqual(response.data, [self.form_data])
 
         # public shared form data
@@ -235,34 +209,6 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         response = self.view(request)
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
-        resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
-            data_type='enketo_url') | Q(data_type='enketo_preview_url'))
-        url = resultset.get(data_type='enketo_url')
-        preview_url = resultset.get(data_type='enketo_preview_url')
-        self.form_data['metadata'] = [{
-            'id': preview_url.pk,
-            'xform': self.xform.pk,
-            'data_value': u'https://enketo.formhub.org/webform/preview?\
-server=http://testserver/%s/&id=transportation_2011_07_25' %
-            self.xform.user.username,
-            'data_type': u'enketo_preview_url',
-            'data_file': u'',
-            'data_file_type': None,
-            u'url': u'http://testserver/api/v1/metadata/%s' % preview_url.pk,
-            'file_hash': None
-        }, {
-            'id': url.pk,
-            'xform': self.xform.pk,
-            'data_value': u'https://ymitc.enketo.formhub.org/webform',
-            'data_type': u'enketo_url',
-            'data_file': u'',
-            'data_file_type': None,
-            u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
-            'file_hash': None
-        }]
-
-        self.form_data['metadata'].sort()
-        response.data[0]['metadata'].sort()
 
         self.assertEqual(response.data, [self.form_data])
 
@@ -305,31 +251,6 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         # should be both bob's and alice's form
-        resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
-            data_type='enketo_url') | Q(data_type='enketo_preview_url'))
-        url = resultset.get(data_type='enketo_url')
-        preview_url = resultset.get(data_type='enketo_preview_url')
-        self.form_data['metadata'] = [{
-            'id': preview_url.pk,
-            'xform': self.xform.pk,
-            'data_value': u'https://enketo.formhub.org/webform/preview?\
-server=http://testserver/%s/&id=transportation_2011_07_25' %
-            self.xform.user.username,
-            'data_type': u'enketo_preview_url',
-            'data_file': u'',
-            'data_file_type': None,
-            u'url': u'http://testserver/api/v1/metadata/%s' % preview_url.pk,
-            'file_hash': None
-        }, {
-            'id': url.pk,
-            'xform': self.xform.pk,
-            'data_value': u'https://ymitc.enketo.formhub.org/webform',
-            'data_type': u'enketo_url',
-            'data_file': u'',
-            'data_file_type': None,
-            u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
-            'file_hash': None
-        }]
 
         response_data = sorted(response.data)
         expected_data = sorted([bobs_form_data, self.form_data])
@@ -376,34 +297,6 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         response = view(request, pk=formid)
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
-        resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
-            data_type='enketo_url') | Q(data_type='enketo_preview_url'))
-        url = resultset.get(data_type='enketo_url')
-        preview_url = resultset.get(data_type='enketo_preview_url')
-        self.form_data['metadata'] = [{
-            'id': preview_url.pk,
-            'xform': self.xform.pk,
-            'data_value': u'https://enketo.formhub.org/webform/preview?\
-server=http://testserver/%s/&id=transportation_2011_07_25' %
-            self.xform.user.username,
-            'data_type': u'enketo_preview_url',
-            'data_file': u'',
-            'data_file_type': None,
-            u'url': u'http://testserver/api/v1/metadata/%s' % preview_url.pk,
-            'file_hash': None
-        }, {
-            'id': url.pk,
-            'xform': self.xform.pk,
-            'data_value': u'https://ymitc.enketo.formhub.org/webform',
-            'data_type': u'enketo_url',
-            'data_file': u'',
-            'data_file_type': None,
-            u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
-            'file_hash': None
-        }]
-
-        self.form_data['metadata'].sort()
-        response.data['metadata'].sort()
 
         self.assertEqual(response.data, self.form_data)
 
@@ -622,12 +515,6 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertTrue(OwnerRole.user_has_role(self.user, xform))
             self.assertEquals("owner", response.data['users'][0]['role'])
 
-            self.assertIsNotNone(
-                MetaData.objects.get(xform=xform, data_type="enketo_url"))
-            self.assertIsNotNone(
-                MetaData.objects.get(
-                    xform=xform, data_type="enketo_preview_url"))
-
     @patch('urllib2.urlopen')
     def test_publish_xlsform_using_url_upload(self,  mock_urlopen):
         view = XFormViewSet.as_view({
@@ -691,7 +578,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
             self.assertEqual(response.status_code, 201)
-            self.assertEqual(meta_count + 3, MetaData.objects.count())
+            self.assertEqual(meta_count + 1, MetaData.objects.count())
             xform = self.user.xforms.all()[0]
             metadata = MetaData.objects.get(
                 xform=xform, data_value='itemsets.csv')
