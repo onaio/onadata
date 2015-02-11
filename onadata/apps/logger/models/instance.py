@@ -6,7 +6,6 @@ from django.contrib.auth.models import User
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-from django.core.cache import cache
 from jsonfield import JSONField
 from taggit.managers import TaggableManager
 
@@ -20,8 +19,8 @@ from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.data.query import get_numeric_fields
-from onadata.libs.utils.cache_constants import PROJ_NUM_DATASET_CACHE,\
-    PROJ_SUB_DATE_CACHE
+from onadata.libs.utils.cache_tools import (
+    safe_delete, PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE)
 
 
 class FormInactiveError(Exception):
@@ -113,15 +112,8 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
                 profile.num_of_submissions = 0
             profile.save()
 
-        # clear cache
-        cache_key = '{}{}'.format(PROJ_NUM_DATASET_CACHE,
-                                  xform.project.pk)
-        if cache.get(cache_key):
-            cache.delete(cache_key)
-
-        cache_key = '{}{}'.format(PROJ_SUB_DATE_CACHE, xform.project.pk)
-        if cache.get(cache_key):
-            cache.delete(cache_key)
+        for a in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
+            safe_delete('{}{}'.format(a, xform.project.pk))
 
 
 class Instance(models.Model):

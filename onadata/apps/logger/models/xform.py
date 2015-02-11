@@ -13,12 +13,11 @@ from django.core.urlresolvers import reverse
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy, ugettext as _
-from django.core.cache import cache
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.models.base_model import BaseModel
-from onadata.libs.utils.cache_constants import PROJ_FORMS_CACHE
+from onadata.libs.utils.cache_tools import PROJ_FORMS_CACHE, safe_delete
 
 
 XFORM_TITLE_LENGTH = 255
@@ -179,7 +178,7 @@ class XForm(BaseModel):
         if getattr(settings, 'STRICT', True) and \
                 not re.search(r"^[\w-]+$", self.id_string):
             raise XLSFormError(_(u'In strict mode, the XForm ID must be a '
-                               'valid slug and contain no spaces.'))
+                                 'valid slug and contain no spaces.'))
 
         if not self.sms_id_string:
             try:
@@ -287,9 +286,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         set_project_perms_to_xform(instance, instance.project)
 
         # clear cache
-        cache_key = '{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk)
-        if cache.get(cache_key):
-            cache.delete(cache_key)
+        safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
 
 post_save.connect(set_object_permissions, sender=XForm,
                   dispatch_uid='xform_object_permissions')

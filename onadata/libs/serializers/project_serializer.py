@@ -10,9 +10,9 @@ from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.decorators import check_obj
-from onadata.libs.utils.cache_constants import (
+from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE, PROJ_PERM_CACHE,
-    PROJ_SUB_DATE_CACHE)
+    PROJ_SUB_DATE_CACHE, safe_delete)
 
 
 def set_owners_permission(user, project):
@@ -65,9 +65,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 set_owners_permission(owner, instance)
 
                 # clear cache
-                cache_key = '{}{}'.format(PROJ_PERM_CACHE, self.object.pk)
-                if cache.get(cache_key):
-                    cache.delete(cache_key)
+                safe_delete('{}{}'.format(PROJ_PERM_CACHE, self.object.pk))
 
             return super(ProjectSerializer, self).restore_object(
                 attrs, instance)

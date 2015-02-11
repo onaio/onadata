@@ -1,11 +1,11 @@
 from django.contrib.auth.models import User
-from django.core.cache import cache
 
 from onadata.libs.permissions import ROLES
-from onadata.libs.utils.cache_constants import PROJ_PERM_CACHE
+from onadata.libs.utils.cache_tools import PROJ_PERM_CACHE, safe_delete
 
 
 class ShareProject(object):
+
     def __init__(self, project, username, role, remove=False):
         self.project = project
         self.username = username
@@ -30,9 +30,7 @@ class ShareProject(object):
                 for xform in self.project.xform_set.all():
                     role.add(self.user, xform)
         # clear cache
-        cache_key = '{}{}'.format(PROJ_PERM_CACHE, self.project.pk)
-        if cache.get(cache_key):
-            cache.delete(cache_key)
+        safe_delete('{}{}'.format(PROJ_PERM_CACHE, self.project.pk))
 
     def remove_user(self):
         role = ROLES.get(self.role)
