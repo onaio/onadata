@@ -112,15 +112,16 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
             if profile.num_of_submissions < 0:
                 profile.num_of_submissions = 0
             profile.save()
-    # clear cache
-    cache_key = '{}{}'.format(PROJ_NUM_DATASET_CACHE,
-                              instance.xform.project.pk)
-    if cache.get(cache_key):
-        cache.delete(cache_key)
 
-    cache_key = '{}{}'.format(PROJ_SUB_DATE_CACHE, instance.xform.project.pk)
-    if cache.get(cache_key):
-        cache.delete(cache_key)
+        # clear cache
+        cache_key = '{}{}'.format(PROJ_NUM_DATASET_CACHE,
+                                  xform.project.pk)
+        if cache.get(cache_key):
+            cache.delete(cache_key)
+
+        cache_key = '{}{}'.format(PROJ_SUB_DATE_CACHE, xform.project.pk)
+        if cache.get(cache_key):
+            cache.delete(cache_key)
 
 
 class Instance(models.Model):
