@@ -1003,5 +1003,6 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         response = view(request, pk=projectid)
 
         self.assertEqual(response.status_code, 200)
+
         self.assertEquals(response.data['users'][1]['user'],
                           self.organization.user.username)

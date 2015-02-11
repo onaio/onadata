@@ -10,6 +10,9 @@ from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.decorators import check_obj
+from onadata.libs.utils.cache_constants import (
+    PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE, PROJ_PERM_CACHE,
+    PROJ_SUB_DATE_CACHE)
 
 
 def set_owners_permission(user, project):
@@ -61,6 +64,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 # give the new owner permissions
                 set_owners_permission(owner, instance)
 
+                # clear cache
+                cache_key = '{}{}'.format(PROJ_PERM_CACHE, self.object.pk)
+                if cache.get(cache_key):
+                    cache.delete(cache_key)
+
             return super(ProjectSerializer, self).restore_object(
                 attrs, instance)
 
@@ -82,38 +90,26 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             .update(shared=obj.shared, shared_data=obj.shared)
 
     def get_project_permissions(self, obj):
-        project_serializer = cache.get('ProjectSerializer:get_project_permissions')
-        if project_serializer:
-            users = project_serializer.get(obj.pk)
-            if users:
-                return users
-            else:
-                user = get_object_users_with_permissions(obj)
-                project_serializer.update({obj.pk: users})
-                return user
+        users = cache.get('{}{}'.format(PROJ_PERM_CACHE, obj.pk))
+        if users:
+            return users
+
         user = get_object_users_with_permissions(obj)
-        cache.set('ProjectSerializer:get_project_permissions', {obj.pk: user})
+        cache.set('{}{}'.format(PROJ_PERM_CACHE, obj.pk), user)
+
         return user
 
     @check_obj
     def get_project_forms(self, obj):
-        project_serializer = cache.get('ProjectSerializer:get_project_forms')
-        if project_serializer:
-            forms = project_serializer.get(obj.pk)
-            if forms:
-                return forms
-            else:
-                xforms_details = obj.xform_set.values('pk', 'title')
-                forms = [{'name': form['title'], 'id':form['pk']}
-                         for form in xforms_details]
-                project_serializer.update({obj.pk: forms})
-                return forms
+        forms = cache.get('{}{}'.format(PROJ_FORMS_CACHE, obj.pk))
+        if forms:
+            return forms
 
         xforms_details = obj.xform_set.values('pk', 'title')
 
         forms = [{'name': form['title'], 'id':form['pk']}
-                for form in xforms_details]
-        cache.set('ProjectSerializer:get_project_forms', {obj.pk: forms})
+                 for form in xforms_details]
+        cache.set('{}{}'.format(PROJ_FORMS_CACHE, obj.pk), forms)
         return forms
 
     @check_obj
@@ -122,18 +118,12 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         :param obj: The project to find datasets for.
         """
-        project_serializer = cache.get('ProjectSerializer:get_num_datasets')
-        if project_serializer:
-            count = project_serializer.get(obj.pk)
-            if count:
-                return count
-            else:
-                count = obj.xform_set.count()
-                project_serializer.update({obj.pk: count})
-                return count
+        count = cache.get('{}{}'.format(PROJ_NUM_DATASET_CACHE, obj.pk))
+        if count:
+            return count
 
         count = obj.xform_set.count()
-        cache.set('ProjectSerializer:get_num_datasets', {obj.pk: count})
+        cache.set('{}{}'.format(PROJ_NUM_DATASET_CACHE, obj.pk), count)
         return count
 
     @check_obj
@@ -143,28 +133,17 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         :param obj: The project to find the last submission date for.
         """
-        project_serializer = cache.get('ProjectSerializer:get_last_submission_date')
-        if project_serializer:
-            last_submission = project_serializer.get(obj.pk)
-            if last_submission:
-                return last_submission
-            else:
-                xform_ids = obj.xform_set.values_list('pk', flat=True)
-                last_submission = Instance.objects.\
-                    order_by('-date_created').\
-                    filter(xform_id__in=xform_ids).values_list('date_created',
-                                                       flat=True)
-
-                project_serializer.update({obj.pk: last_submission and last_submission[0]})
-                return last_submission and last_submission[0]
+        last_submission = cache.get('{}{}'.format(PROJ_SUB_DATE_CACHE, obj.pk))
+        if last_submission:
+            return last_submission
 
         xform_ids = obj.xform_set.values_list('pk', flat=True)
         last_submission = Instance.objects.\
             order_by('-date_created').\
             filter(xform_id__in=xform_ids).values_list('date_created',
                                                        flat=True)
-        cache.set("ProjectSerializer:get_last_submission_date",
-                  {obj.pk: last_submission and last_submission[0]})
+        cache.set('{}{}'.format(PROJ_SUB_DATE_CACHE, obj.pk),
+                  last_submission and last_submission[0])
         return last_submission and last_submission[0]
 
     def is_starred_project(self, obj):

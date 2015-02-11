@@ -1,5 +1,8 @@
 from django.contrib.auth.models import User
+from django.core.cache import cache
+
 from onadata.libs.permissions import ROLES
+from onadata.libs.utils.cache_constants import PROJ_PERM_CACHE
 
 
 class ShareProject(object):
@@ -26,6 +29,10 @@ class ShareProject(object):
                 # apply same role to forms under the project
                 for xform in self.project.xform_set.all():
                     role.add(self.user, xform)
+        # clear cache
+        cache_key = '{}{}'.format(PROJ_PERM_CACHE, self.project.pk)
+        if cache.get(cache_key):
+            cache.delete(cache_key)
 
     def remove_user(self):
         role = ROLES.get(self.role)

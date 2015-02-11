@@ -13,10 +13,12 @@ from django.core.urlresolvers import reverse
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy, ugettext as _
+from django.core.cache import cache
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.models.base_model import BaseModel
+from onadata.libs.utils.cache_constants import PROJ_FORMS_CACHE
 
 
 XFORM_TITLE_LENGTH = 255
@@ -283,6 +285,11 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
         from onadata.libs.utils.project_utils import set_project_perms_to_xform
         set_project_perms_to_xform(instance, instance.project)
+
+        # clear cache
+        cache_key = '{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk)
+        if cache.get(cache_key):
+            cache.delete(cache_key)
 
 post_save.connect(set_object_permissions, sender=XForm,
                   dispatch_uid='xform_object_permissions')
