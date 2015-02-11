@@ -55,7 +55,9 @@ TIME_ZONE = 'America/New_York'
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
 
-ugettext = lambda s: s
+
+def ugettext(s):
+    return s
 
 LANGUAGES = (
     ('fr', u'Français'),
@@ -508,7 +510,7 @@ try:
     with open(path, 'r') as f:
         RESERVED_USERNAMES = [line.rstrip() for line in f]
 except EnvironmentError:
-        RESERVED_USERNAMES = []
+    RESERVED_USERNAMES = []
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:

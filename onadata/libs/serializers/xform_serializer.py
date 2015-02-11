@@ -8,6 +8,10 @@ from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils.decorators import check_obj
+from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
+from onadata.libs.utils.viewer_tools import _get_form_url
+from onadata.apps.main.views import get_enketo_preview_url
+from onadata.apps.main.models.meta_data import MetaData
 
 
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
@@ -30,6 +34,9 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
                                                lookup_field='pk')
     users = serializers.SerializerMethodField('get_xform_permissions')
+    enketo_url = serializers.SerializerMethodField('get_enketo_url')
+    enketo_preview_url = serializers.SerializerMethodField(
+        'get_enketo_preview_url')
 
     class Meta:
         model = XForm
@@ -41,6 +48,44 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_xform_permissions(self, obj):
         return get_object_users_with_permissions(obj)
+
+    def get_enketo_url(self, obj):
+        try:
+            metadata = MetaData.objects.get(xform=obj, data_type="enketo_url")
+        except MetaData.DoesNotExist:
+            request = self.context.get('request')
+            form_url = _get_form_url(request, obj.user.username)
+            url = ""
+
+            try:
+                url = enketo_url(form_url, obj.id_string)
+                MetaData.enketo_url(obj, url)
+            except EnketoError:
+                pass
+
+            return url
+
+        return metadata.data_value
+
+    def get_enketo_preview_url(self, obj):
+        try:
+            metadata = MetaData.objects.get(
+                xform=obj, data_type="enketo_preview_url")
+        except MetaData.DoesNotExist:
+            request = self.context.get('request')
+            preview_url = ""
+
+            try:
+                preview_url = get_enketo_preview_url(request,
+                                                     obj.user.username,
+                                                     obj.id_string)
+                MetaData.enketo_preview_url(obj, preview_url)
+            except EnketoError:
+                pass
+
+            return preview_url
+
+        return metadata.data_value
 
     def get_xform_metadata(self, obj):
         if obj:

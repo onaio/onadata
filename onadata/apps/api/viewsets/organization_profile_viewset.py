@@ -43,9 +43,13 @@ def _try_function_org_username(f, organization, username, args=None):
     return [data, status_code]
 
 
+def _add_role(org, user, role_cls):
+    return role_cls.add(user, org)
+
+
 def _update_username_role(organization, username, role_cls):
-    f = lambda org, user, role_cls: role_cls.add(user, organization)
-    return _try_function_org_username(f,
+
+    return _try_function_org_username(_add_role,
                                       organization,
                                       username,
                                       [role_cls])

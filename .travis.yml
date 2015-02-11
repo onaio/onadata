@@ -30,7 +30,7 @@ env:
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy pandas=0.12.0
   - pip install -r requirements/base.pip --allow-all-external
-  - pip install flake8
+  - pip install flake8==2.2.5
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
   # make ~/tmp dir writable for npm downloads

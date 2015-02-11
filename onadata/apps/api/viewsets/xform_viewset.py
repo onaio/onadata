@@ -90,9 +90,12 @@ def _get_extension_from_export_type(export_type):
     return extension
 
 
-def _set_start_end_params(request, query):
-    format_date_for_mongo = lambda x, datetime: datetime.strptime(
+def _format_date_for_mongo(x, datetime):
+    return datetime.strptime(
         x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
+
+
+def _set_start_end_params(request, query):
 
     # check for start and end params
     if 'start' in request.GET or 'end' in request.GET:
@@ -102,11 +105,11 @@ def _set_start_end_params(request, query):
 
         try:
             if request.GET.get('start'):
-                query[SUBMISSION_TIME]['$gte'] = format_date_for_mongo(
+                query[SUBMISSION_TIME]['$gte'] = _format_date_for_mongo(
                     request.GET['start'], datetime)
 
             if request.GET.get('end'):
-                query[SUBMISSION_TIME]['$lte'] = format_date_for_mongo(
+                query[SUBMISSION_TIME]['$lte'] = _format_date_for_mongo(
                     request.GET['end'], datetime)
         except ValueError:
             raise exceptions.ParseError(
