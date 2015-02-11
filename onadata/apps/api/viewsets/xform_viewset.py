@@ -96,7 +96,6 @@ def _format_date_for_mongo(x, datetime):
 
 
 def _set_start_end_params(request, query):
-
     # check for start and end params
     if 'start' in request.GET or 'end' in request.GET:
         query = json.loads(query) \
