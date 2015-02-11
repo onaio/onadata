@@ -704,12 +704,10 @@ def generate_export(export_type, extension, username, id_string,
 
     # get the export function by export type
     func = getattr(export_builder, export_type_func_map[export_type])
-    no_data = ''
     try:
         func.__call__(
             temp_file.name, records, username, id_string, filter_query)
     except NoRecordsFoundError:
-        no_data = "there's no data to be exported"
         pass
 
     # generate filename
@@ -732,10 +730,7 @@ def generate_export(export_type, extension, username, id_string,
     storage = get_storage_class()()
     # seek to the beginning as required by storage classes
     temp_file.seek(0)
-    file_obj = File(temp_file, file_path)
-    if no_data:
-        file_obj.write(no_data)
-    export_filename = storage.save(file_path, file_obj)
+    export_filename = storage.save(file_path, File(temp_file, file_path))
     temp_file.close()
 
     dir_name, basename = os.path.split(export_filename)

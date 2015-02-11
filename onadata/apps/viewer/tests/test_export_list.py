@@ -151,7 +151,7 @@ class TestDataExportURL(TestBase):
 
     def test_csv_export_url_without_records(self):
         # this has been refactored so that if NoRecordsFound Exception is
-        # thrown, a csv with 'there's no data to be exported' data is returned
+        # thrown, it will return an empty csv
         url = reverse('csv_export', kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
