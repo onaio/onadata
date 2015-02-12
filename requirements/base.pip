@@ -72,3 +72,4 @@ billiard
 python-dateutil
 
 geojson
+python-memcached

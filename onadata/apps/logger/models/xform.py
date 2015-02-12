@@ -17,6 +17,7 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.models.base_model import BaseModel
+from onadata.libs.utils.cache_tools import PROJ_FORMS_CACHE, safe_delete
 
 
 XFORM_TITLE_LENGTH = 255
@@ -177,7 +178,7 @@ class XForm(BaseModel):
         if getattr(settings, 'STRICT', True) and \
                 not re.search(r"^[\w-]+$", self.id_string):
             raise XLSFormError(_(u'In strict mode, the XForm ID must be a '
-                               'valid slug and contain no spaces.'))
+                                 'valid slug and contain no spaces.'))
 
         if not self.sms_id_string:
             try:
@@ -283,6 +284,9 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
         from onadata.libs.utils.project_utils import set_project_perms_to_xform
         set_project_perms_to_xform(instance, instance.project)
+
+        # clear cache
+        safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
 
 post_save.connect(set_object_permissions, sender=XForm,
                   dispatch_uid='xform_object_permissions')

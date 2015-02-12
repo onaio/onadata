@@ -19,6 +19,8 @@ from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.data.query import get_numeric_fields
+from onadata.libs.utils.cache_tools import (
+    safe_delete, PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE)
 
 
 class FormInactiveError(Exception):
@@ -109,6 +111,9 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
             if profile.num_of_submissions < 0:
                 profile.num_of_submissions = 0
             profile.save()
+
+        for a in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
+            safe_delete('{}{}'.format(a, xform.project.pk))
 
 
 class Instance(models.Model):
