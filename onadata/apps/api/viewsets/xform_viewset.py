@@ -301,6 +301,7 @@ account.
 
 - `xls_file`: the xlsform file.
 - `xls_url`: the url to an xlsform
+- `drop_xls_url`: the drop box url to an xlsform
 - `owner`: username to the target account (Optional)
 
 <pre class="prettyprint">
@@ -314,6 +315,12 @@ https://ona.io/api/v1/forms
 >
 >       curl -X POST -d \
 "xls_url=https://ona.io/ukanga/forms/tutorial/form.xls" \
+https://ona.io/api/v1/forms
+>
+> OR post an xlsform via Dropbox url
+>
+>       curl -X POST -d \
+"dropbox_xls_url=https://www.dropbox.com/s/ynenld7xdf1vdlo/tutorial.xls?dl=1" \
 https://ona.io/api/v1/forms
 
 > Response
