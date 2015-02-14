@@ -9,7 +9,8 @@ from django.core.urlresolvers import reverse
 from httmock import urlmatch, HTTMock
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import ZiggyInstance
+from onadata.apps.logger.models.ziggy_instance import ZiggyEntity
+from onadata.apps.logger.models.ziggy_instance import ZiggyInstance
 from onadata.apps.logger.models.ziggy_instance import (
     ziggy_to_formhub_instance, rest_service_ziggy_submission)
 from onadata.apps.logger.views import ziggy_submissions
@@ -57,8 +58,7 @@ class TestZiggySubmissions(TestBase):
         # check instance was created in db
         self.assertEqual(ZiggyInstance.objects.count(), num_ziggys + 1)
         # check that instance was added to mongo
-        num_entities = mongo_ziggys.find(
-            {'_id': ENTITY_ID}).count()
+        num_entities = ZiggyEntity.objects.filter(entity_id=ENTITY_ID).count()
         self.assertEqual(num_entities, 1)
 
     def test_ziggy_submissions_view(self):
@@ -76,7 +76,7 @@ class TestZiggySubmissions(TestBase):
             expected_data = json.load(f)
             expected_data[0]['formInstance'] = json.loads(
                 expected_data[0]['formInstance'])
-            data[0]['formInstance'] = json.loads(data[0]['formInstance'])
+            data[0]['formInstance'] = data[0]['formInstance']
             self.assertEqual(expected_data, data)
 
     def test_ziggy_submissions_view_invalid_timestamp(self):
@@ -99,21 +99,22 @@ class TestZiggySubmissions(TestBase):
         self.assertEqual(ZiggyInstance.objects.count(), num_ziggys + 2)
 
         # check that we only end up with a single updated object within mongo
-        entities = [r for r in mongo_ziggys.find({'_id': ENTITY_ID})]
-        self.assertEqual(len(entities), 1)
+        entities = ZiggyEntity.objects.filter(entity_id=ENTITY_ID)\
+            .values_list('data', flat=True)
+        self.assertEqual(entities.count(), 1)
 
         # check that the sagContactNumber field exists and is unmodified
         entity = entities[0]
         matching_fields = filter(
             ZiggyInstance.field_by_name_exists('sagContactNumber'),
-            json.loads(entity['formInstance'])['form']['fields'])
+            entity['formInstance']['form']['fields'])
         self.assertEqual(len(matching_fields), 1)
         self.assertEqual(matching_fields[0]['value'], '020-123456')
 
         # todo: check that the new data has been added
         matching_fields = filter(
             ZiggyInstance.field_by_name_exists('reportingMonth'),
-            json.loads(entity['formInstance'])['form']['fields'])
+            entity['formInstance']['form']['fields'])
         self.assertEqual(len(matching_fields), 1)
         self.assertEqual(matching_fields[0]['value'], '10-2013')
 
