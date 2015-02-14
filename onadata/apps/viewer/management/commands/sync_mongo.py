@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext_lazy
 
 from onadata.apps.logger.models import XForm
-from onadata.libs.utils.logger_tools import mongo_sync_status
+from onadata.libs.utils.mongo_sync import mongo_sync_status
 
 
 class Command(BaseCommand):
