@@ -20,9 +20,6 @@ from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
 from onadata.libs.utils.export_tools import question_types_to_exclude
 
 
-# this is Mongo Collection where we will store the parsed submissions
-xform_instances = settings.MONGO_DB.instances
-
 # the bind type of select multiples that we use to compare
 MULTIPLE_SELECT_BIND_TYPE = u"select"
 GEOPOINT_BIND_TYPE = u"geopoint"

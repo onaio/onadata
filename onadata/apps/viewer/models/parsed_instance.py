@@ -112,7 +112,7 @@ class ParsedInstance(models.Model):
             sql_params = params
             fields = [u'count']
 
-        cursor.execute(sql, sql_params)
+        cursor.execute(sql, [unicode(i) for i in sql_params])
 
         if fields is None:
             for row in cursor.fetchall():
@@ -270,8 +270,6 @@ class ParsedInstance(models.Model):
         self.end_time = None
         self._set_geopoint()
         super(ParsedInstance, self).save(*args, **kwargs)
-        # insert into Mongo
-        self.update_mongo(async)
 
     def add_note(self, note):
         note = Note(instance=self.instance, note=note)

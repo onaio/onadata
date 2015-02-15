@@ -113,6 +113,8 @@ class ZiggyInstance(models.Model):
             reporter=reporter, client_version=client_version,
             form_instance=form_instance, form_version=form_version,
             xform=xform)
+        zi.save()
+
         return zi
 
     @classmethod
@@ -126,7 +128,6 @@ class ZiggyInstance(models.Model):
                 reporter = get_object_or_404(User, username=reporter_id)
 
             zi = cls.create_ziggy_instance(form_user, instance, reporter)
-            zi.save()
             data.append(zi.pk)
 
             # get ths formInstance within the db if it exists

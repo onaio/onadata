@@ -27,7 +27,6 @@ from test_base import TestBase
 
 uuid_regex = re.compile(
     r'(</instance>.*uuid[^//]+="\')([^\']+)(\'".*)', re.DOTALL)
-xform_instances = settings.MONGO_DB.instances
 
 
 class TestProcess(TestBase):

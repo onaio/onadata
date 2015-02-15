@@ -36,10 +36,6 @@ if TESTING_MODE:
 else:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media/')
 
-# Clear out the test database
-if TESTING_MODE:
-    MONGO_DB.instances.drop()
-
 PASSWORD_HASHERS = (
     'django.contrib.auth.hashers.MD5PasswordHasher',
 )

@@ -1,7 +1,7 @@
 import os
 import mock
-from datetime import datetime
 
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
@@ -258,7 +258,7 @@ class TestChartsViewSet(TestBase):
                 'url': 'http://testserver/api/v1/charts/%s' % self.xform.pk}
         self.assertEqual(response.data, [data])
 
-        self.xform.deleted_at = datetime.now()
+        self.xform.deleted_at = timezone.now()
         self.xform.save()
         request = self.factory.get('/charts')
         force_authenticate(request, user=self.user)

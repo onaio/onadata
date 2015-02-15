@@ -1,6 +1,6 @@
 import os
 
-from datetime import datetime
+from django.utils import timezone
 from django.core.files.base import ContentFile
 from django.test import RequestFactory
 from mock import patch
@@ -75,7 +75,7 @@ class TestStatsViewSet(TestBase):
         self.assertEqual(response.data, data)
         initial_count = len(response.data)
 
-        self.xform.deleted_at = datetime.now()
+        self.xform.deleted_at = timezone.now()
         self.xform.save()
         request = self.factory.get('/', **self.extra)
         response = view(request)

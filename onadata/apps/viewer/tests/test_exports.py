@@ -443,14 +443,13 @@ class TestExports(TestBase):
 
     def test_deleted_submission_not_in_export(self):
         self._publish_transportation_form()
-        initial_count = ParsedInstance.query_mongo(
-            self.user.username, self.xform.id_string, '{}', '[]', '{}',
+        initial_count = ParsedInstance.query_data(
+            self.xform, '{}', None, '{}',
             count=True)[0]['count']
         self._submit_transport_instance(0)
         self._submit_transport_instance(1)
-        count = ParsedInstance.query_mongo(
-            self.user.username, self.xform.id_string, '{}', '[]', '{}',
-            count=True)[0]['count']
+        count = ParsedInstance.query_data(
+            self.xform, '{}', None, '{}', count=True)[0]['count']
         self.assertEqual(count, initial_count + 2)
         # get id of second submission
         instance_id = Instance.objects.filter(
@@ -460,9 +459,8 @@ class TestExports(TestBase):
                                  "id_string": self.xform.id_string})
         params = {'id': instance_id}
         self.client.post(delete_url, params)
-        count = ParsedInstance.query_mongo(
-            self.user.username, self.xform.id_string, '{}', '[]', '{}',
-            count=True)[0]['count']
+        count = ParsedInstance.query_data(
+            self.xform, '{}', '[]', '{}', count=True)[0]['count']
         self.assertEqual(count, initial_count + 1)
         # create the export
         csv_export_url = reverse(
@@ -479,9 +477,8 @@ class TestExports(TestBase):
 
     def test_edited_submissions_in_exports(self):
         self._publish_transportation_form()
-        initial_count = ParsedInstance.query_mongo(
-            self.user.username, self.xform.id_string, '{}', '[]', '{}',
-            count=True)[0]['count']
+        initial_count = ParsedInstance.query_data(
+            self.xform, '{}', None, '{}', count=True)[0]['count']
         instance_name = 'transport_2011-07-25_19-05-36'
         path = _main_fixture_path(instance_name)
         self._make_submission(path)

@@ -3,8 +3,6 @@ import re
 import json
 import requests
 
-from bson import ObjectId
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from httmock import urlmatch, HTTMock
 
@@ -16,7 +14,6 @@ from onadata.apps.logger.models.ziggy_instance import (
 from onadata.apps.logger.views import ziggy_submissions
 from onadata.apps.restservice.models import RestService
 
-mongo_ziggys = settings.MONGO_DB.ziggys
 ziggy_submission_url = reverse(ziggy_submissions, kwargs={'username': 'bob'})
 village_profile_xls_path = os.path.join(
     os.path.dirname(__file__), 'fixtures', 'ziggy', 'village_profile.xls')
@@ -37,10 +34,6 @@ class TestZiggySubmissions(TestBase):
         # publish xforms
         self._publish_xls_file(village_profile_xls_path)
         self._publish_xls_file(cc_monthly_xls_path)
-
-    def tearDown(self):
-        # clear mongo db after each test
-        settings.MONGO_DB.ziggys.drop()
 
     def make_ziggy_submission(self, path):
         with open(path) as f:
@@ -174,12 +167,12 @@ def f2dhis_mock(url, request):
     match = re.match(r'.*f2dhis2/(.+)/post/(.+)$', request.url)
     if match is not None:
         id_string, uuid = match.groups()
-        record = settings.MONGO_DB.instances.find_one(
-            {'_uuid': ObjectId(uuid)})
+        record = ZiggyInstance.objects.filter(pk=uuid)
         if record is not None:
             res = requests.Response()
             res.status_code = 200
             res._content = "{'status': true, 'contents': 'OK'}"
+
             return res
 
 

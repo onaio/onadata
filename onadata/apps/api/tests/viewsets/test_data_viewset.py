@@ -3,7 +3,7 @@ import requests
 import json
 import geojson
 
-from datetime import datetime
+from django.utils import timezone
 from django.test import RequestFactory
 
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
@@ -102,7 +102,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         initial_count = len(response.data)
 
-        self.xform.deleted_at = datetime.now()
+        self.xform.deleted_at = timezone.now()
         self.xform.save()
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)

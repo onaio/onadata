@@ -41,10 +41,6 @@ class TestBase(TransactionTestCase):
         self.base_url = 'http://testserver'
         self.factory = RequestFactory()
 
-    def tearDown(self):
-        # clear mongo db after each test
-        settings.MONGO_DB.instances.drop()
-
     def _fixture_path(self, *args):
         return os.path.join(os.path.dirname(__file__), 'fixtures', *args)
 
