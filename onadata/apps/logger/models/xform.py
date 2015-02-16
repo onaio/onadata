@@ -17,7 +17,8 @@ from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.models.base_model import BaseModel
-from onadata.libs.utils.cache_tools import PROJ_FORMS_CACHE, safe_delete
+from onadata.libs.utils.cache_tools import (
+    IS_ORG, PROJ_FORMS_CACHE, safe_delete)
 
 
 XFORM_TITLE_LENGTH = 255
@@ -287,6 +288,7 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
         # clear cache
         safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
+        safe_delete('{}{}'.format(IS_ORG, instance.pk))
 
 post_save.connect(set_object_permissions, sender=XForm,
                   dispatch_uid='xform_object_permissions')
