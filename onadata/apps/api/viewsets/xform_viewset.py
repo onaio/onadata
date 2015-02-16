@@ -997,6 +997,8 @@ previous call
         if export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
             return super(XFormViewSet, self).retrieve(request, *args, **kwargs)
+        if not xform.xls:
+            raise Http404(_("xls file does not exist"))
 
         return custom_response_handler(request,
                                        xform,
