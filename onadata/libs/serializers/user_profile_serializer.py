@@ -4,6 +4,7 @@ import re
 
 from django.conf import settings
 from django.forms import widgets
+from django.core.cache import cache
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.core.validators import ValidationError
@@ -17,6 +18,7 @@ from onadata.apps.main.models import UserProfile
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.authentication import expired
+from onadata.libs.utils.cache_tools import IS_ORG
 
 
 def _get_first_last_names(name, limit=30):
@@ -69,7 +71,14 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         lookup_field = 'user'
 
     def is_organization(self, obj):
-        return is_organization(obj)
+        if obj:
+            is_org = cache.get('{}{}'.format(IS_ORG, obj.pk))
+            if is_org:
+                return is_org
+
+        is_org = is_organization(obj)
+        cache.set('{}{}'.format(IS_ORG, obj.pk), is_org)
+        return is_org
 
     def to_native(self, obj):
         """

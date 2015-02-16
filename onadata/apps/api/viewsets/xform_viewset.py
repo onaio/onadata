@@ -867,7 +867,7 @@ previous call
         renderers.SAVZIPRenderer,
         renderers.SurveyRenderer
     ]
-    queryset = XForm.objects.all()
+    queryset = XForm.objects.select_related()
     serializer_class = XFormSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None

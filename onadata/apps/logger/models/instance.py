@@ -20,7 +20,7 @@ from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import (
-    safe_delete, PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE)
+    safe_delete, PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE, IS_ORG)
 
 
 class FormInactiveError(Exception):
@@ -114,6 +114,8 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
 
         for a in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
             safe_delete('{}{}'.format(a, xform.project.pk))
+
+        safe_delete('{}{}'.format(IS_ORG, xform.pk))
 
 
 class Instance(models.Model):
