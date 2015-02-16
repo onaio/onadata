@@ -12,7 +12,6 @@ from onadata.apps.api.viewsets.briefcase_api import BriefcaseApi
 from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 
 NUM_INSTANCES = 4
 storage = get_storage_class()()
@@ -275,18 +274,6 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             self.assertEqual(XForm.objects.count(), count + 1)
             self.assertContains(
                 response, "successfully published.", status_code=201)
-
-    def test_form_export_with_no_xls_returns_404(self):
-        self._publish_xml_form()
-        self.view = XFormViewSet.as_view({
-           'get': 'retrieve',
-         })
-
-        xform = XForm.objects.get(id_string="transportation_2011_07_25")
-        request = self.factory.get('/', **self.extra)
-        response = self.view(request, pk=xform.pk, format='csv')
-
-        self.assertEqual(response.status_code, 404)
 
     def _publish_xml_form(self, auth=None):
         view = BriefcaseApi.as_view({'post': 'create'})
