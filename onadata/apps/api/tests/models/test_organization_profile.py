@@ -3,6 +3,8 @@ from onadata.apps.api import tools
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
 from django.db import IntegrityError
+from django.core.cache import cache
+from onadata.libs.utils.cache_tools import IS_ORG, safe_delete
 
 
 class TestOrganizationProfile(TestBase):
@@ -32,3 +34,16 @@ class TestOrganizationProfile(TestBase):
         tools.create_organization("modilabs", self.user)
         with self.assertRaises(IntegrityError):
             tools.create_organization("ModiLabs", self.user)
+
+    def test_delete_organization(self):
+        profile = tools.create_organization_object("modilabs", self.user)
+        profile.save()
+        profile_id = profile.pk
+        count = OrganizationProfile.objects.all().count()
+        cache.set('{}{}'.format(IS_ORG, profile_id), True)
+
+        profile.delete()
+        safe_delete('{}{}'.format(IS_ORG, profile_id))
+        self.assertIsNone(cache.get('{}{}'.format(IS_ORG, profile_id)))
+        self.assertEqual(count - 1,
+                         OrganizationProfile.objects.all().count())

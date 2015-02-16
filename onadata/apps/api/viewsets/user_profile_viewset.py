@@ -198,7 +198,8 @@ https://ona.io/api/v1/profiles/demo -H "Content-Type: application/json"
 >
 >        HTTP 200 OK
 """
-    queryset = UserProfile.objects.exclude(user__pk=settings.ANONYMOUS_USER_ID)
+    queryset = UserProfile.objects.select_related().exclude(
+        user__pk=settings.ANONYMOUS_USER_ID)
     serializer_class = UserProfileSerializer
     lookup_field = 'user'
     permission_classes = [UserProfilePermissions]
