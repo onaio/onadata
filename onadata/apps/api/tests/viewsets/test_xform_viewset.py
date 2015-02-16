@@ -1472,13 +1472,3 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
 
         self.assertEqual(response.status_code, 202)
         self.assertEquals(response.data, {u'error': u'Empty job uuid'})
-
-    def test_form_export_with_no_xls_returns_404(self):
-        self._publish_xml_form()
-        self.view = XFormViewSet.as_view({'get': 'retrieve'})
-
-        xform = XForm.objects.get(id_string="transportation_2011_07_25")
-        request = self.factory.get('/', **self.extra)
-        response = self.view(request, pk=xform.pk, format='csv')
-
-        self.assertEqual(response.status_code, 404)
