@@ -12,6 +12,7 @@ from onadata.apps.api.viewsets.briefcase_api import BriefcaseApi
 from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 
 NUM_INSTANCES = 4
 storage = get_storage_class()()
@@ -42,6 +43,24 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             kwargs={'username': self.user.username})
         self._form_upload_url = reverse(
             'form-upload', kwargs={'username': self.user.username})
+
+    def _publish_xml_form(self, auth=None):
+        view = BriefcaseApi.as_view({'post': 'create'})
+        count = XForm.objects.count()
+
+        with codecs.open(self.form_def_path, encoding='utf-8') as f:
+            params = {'form_def_file': f, 'dataFile': ''}
+            auth = auth or DigestAuth(self.login_username, self.login_password)
+            request = self.factory.post(self._form_upload_url, data=params)
+            response = view(request, username=self.user.username)
+            self.assertEqual(response.status_code, 401)
+            request.META.update(auth(request.META, response))
+            response = view(request, username=self.user.username)
+
+            self.assertEqual(XForm.objects.count(), count + 1)
+            self.assertContains(
+                response, "successfully published.", status_code=201)
+        self.xform = XForm.objects.order_by('pk').reverse()[0]
 
     def test_view_submission_list(self):
         view = BriefcaseApi.as_view({'get': 'list'})
@@ -275,24 +294,6 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             self.assertContains(
                 response, "successfully published.", status_code=201)
 
-    def _publish_xml_form(self, auth=None):
-        view = BriefcaseApi.as_view({'post': 'create'})
-        count = XForm.objects.count()
-
-        with codecs.open(self.form_def_path, encoding='utf-8') as f:
-            params = {'form_def_file': f, 'dataFile': ''}
-            auth = auth or DigestAuth(self.login_username, self.login_password)
-            request = self.factory.post(self._form_upload_url, data=params)
-            response = view(request, username=self.user.username)
-            self.assertEqual(response.status_code, 401)
-            request.META.update(auth(request.META, response))
-            response = view(request, username=self.user.username)
-
-            self.assertEqual(XForm.objects.count(), count + 1)
-            self.assertContains(
-                response, "successfully published.", status_code=201)
-        self.xform = XForm.objects.order_by('pk').reverse()[0]
-
     def test_form_upload(self):
         view = BriefcaseApi.as_view({'post': 'create'})
         self._publish_xml_form()
@@ -349,6 +350,16 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             self.assertContains(response, message, status_code=201)
             self.assertContains(response, instanceId, status_code=201)
             self.assertEqual(Instance.objects.count(), count + 1)
+
+    def test_form_export_with_no_xls_returns_404(self):
+        self._publish_xml_form()
+        self.view = XFormViewSet.as_view({'get': 'retrieve'})
+
+        xform = XForm.objects.get(id_string="transportation_2011_07_25")
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=xform.pk, format='csv')
+
+        self.assertEqual(response.status_code, 404)
 
     def tearDown(self):
         # remove media files
