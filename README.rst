@@ -2,8 +2,8 @@ Ona Platform
 =================
 Collect, Analyze and Share Data!
 
-.. image:: https://secure.travis-ci.org/onaio/core.png?branch=master
-  :target: http://travis-ci.org/onaio/core
+.. image:: https://magnum.travis-ci.com/onaio/core.svg?token=zuW2DmA3xKoPXEdebzpS&branch=master
+  :target: https://magnum.travis-ci.com/repositories
 
 About
 -----
