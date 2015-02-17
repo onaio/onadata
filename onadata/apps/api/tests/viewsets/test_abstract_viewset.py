@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import requests
 
 from django.conf import settings
 from django.contrib.auth.models import Permission
@@ -10,6 +11,7 @@ from tempfile import NamedTemporaryFile
 from django.contrib.auth.models import User
 from django_digest.test import DigestAuth
 from django.contrib.auth import authenticate
+from httmock import urlmatch, HTTMock
 
 from rest_framework.test import APIRequestFactory
 
@@ -26,6 +28,16 @@ from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Project
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.apps.logger.views import submission
+
+
+@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+def enketo_mock(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = \
+        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform",\n'\
+        '  "code": "200"\n}'
+    return response
 
 
 class TestAbstractViewSet(TestCase):
@@ -216,22 +228,23 @@ class TestAbstractViewSet(TestCase):
         path = os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
-        with open(path) as xls_file:
-            post_data = {'xls_file': xls_file}
-            request = self.factory.post('/', data=post_data, **self.extra)
-            response = view(request, pk=project_id)
-            self.assertEqual(response.status_code, 201)
-            self.xform = XForm.objects.all().order_by('pk').reverse()[0]
-            data.update({
-                'url':
-                'http://testserver/api/v1/forms/%s' % (self.xform.pk)
-            })
+        with HTTMock(enketo_mock):
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.post('/', data=post_data, **self.extra)
+                response = view(request, pk=project_id)
+                self.assertEqual(response.status_code, 201)
+                self.xform = XForm.objects.all().order_by('pk').reverse()[0]
+                data.update({
+                    'url':
+                    'http://testserver/api/v1/forms/%s' % (self.xform.pk)
+                })
 
-            # Input was a private so change to public if project public
-            if public:
-                data['public_data'] = data['public'] = True
+                # Input was a private so change to public if project public
+                if public:
+                    data['public_data'] = data['public'] = True
 
-            self.form_data = response.data
+                self.form_data = response.data
 
     def _add_uuid_to_submission_xml(self, path, xform):
         tmp_file = NamedTemporaryFile(delete=False)

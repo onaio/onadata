@@ -175,8 +175,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.form_data['metadata'] = [{
             'id': preview_url.pk,
             'xform': self.xform.pk,
-            'data_value': u'https://enketo.formhub.org/webform/preview?\
-server=http://testserver/%s/&id=transportation_2011_07_25' %
+            'data_value': u'https://enketo.formhub.org/webform/preview?'
+            'server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.xform.user.username,
             'data_type': u'enketo_preview_url',
             'data_file': u'',
@@ -185,7 +185,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             'file_hash': None
         }, {
             'id': url.pk,
-            'data_value': u'https://ymitc.enketo.formhub.org/webform',
+            'data_value': u'https://dmfrm.enketo.org/webform',
             'xform': self.xform.pk,
             'data_file': u'',
             'data_type': u'enketo_url',
