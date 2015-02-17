@@ -2,8 +2,8 @@ Ona Platform
 =================
 Collect, Analyze and Share Data!
 
-.. image:: https://secure.travis-ci.org/onaio/onadata.png?branch=master
-  :target: http://travis-ci.org/onaio/onadata
+.. image:: https://secure.travis-ci.org/onaio/core.png?branch=master
+  :target: http://travis-ci.org/onaio/core
 
 About
 -----
