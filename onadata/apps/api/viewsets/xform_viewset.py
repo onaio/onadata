@@ -3,6 +3,7 @@ import json
 
 from datetime import datetime
 
+from celery.result import AsyncResult
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.contrib.auth.models import User
@@ -14,6 +15,7 @@ from django.utils import timezone
 
 from rest_framework import exceptions
 from rest_framework import status
+from rest_framework.reverse import reverse
 from rest_framework.decorators import action, detail_route, list_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
@@ -21,6 +23,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
+from onadata.apps.viewer import tasks as viewer_task
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -1116,3 +1119,47 @@ previous call
             resp = tasks.get_async_status(job_uuid)
             resp_code = status.HTTP_202_ACCEPTED
         return Response(data=resp, status=resp_code)
+
+    @action(methods=['GET'])
+    def export_async(self, request, *args, **kwargs):
+        job_uuid = request.QUERY_PARAMS.get('job_uuid')
+        export_type = request.QUERY_PARAMS.get('format')
+        query = request.GET.get("query", {})
+        xform = self.get_object()
+
+        if job_uuid:
+            job = AsyncResult(job_uuid)
+
+            if job.state == 'SUCCESS':
+                export_id = job.result
+                export = Export.objects.get(id=export_id)
+                if export:
+                    export_url = reverse(
+                        'xform-detail',
+                        kwargs={'pk': xform.pk, 'format': export.export_type},
+                        request=request
+                    )
+                    resp = {
+                        u'job_status': job.state,
+                        u'export_url': export_url
+                    }
+                else:
+                    raise Http404(_("Export Fot Found"))
+
+            else:
+                resp = {
+                    'JOB_STATUS': job.state
+                }
+
+        else:
+            export, async_result = viewer_task.create_async_export(
+                xform, export_type, query, False)
+            resp = {
+                u'job_uuid': async_result.task_id
+            }
+            resp = json.dumps(resp)
+        resp_code = status.HTTP_202_ACCEPTED
+
+        return Response(data=resp,
+                        status=resp_code,
+                        content_type="application/json")
