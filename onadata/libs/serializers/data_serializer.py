@@ -131,3 +131,20 @@ class OSMSerializer(serializers.Serializer):
             attachments = attachments.filter(instance__xform=obj)
 
         return [a.media_file for a in attachments]
+
+    @property
+    def data(self):
+        """
+        Returns the serialized data on the serializer.
+        """
+        if self._data is None:
+            obj = self.object
+
+            if self.many:
+                self._data = []
+                for item in obj:
+                    self._data.extend(self.to_native(item))
+            else:
+                self._data = self.to_native(obj)
+
+        return self._data
