@@ -757,10 +757,12 @@ class TestOSM(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         with open(combined_osm_path) as f:
             osm = f.read()
-            self.assertMultiLineEqual(response.data, osm)
+            response.render()
+            self.assertMultiLineEqual(response.content, osm)
 
             # look at the data/[pk].osm endpoint
             view = DataViewSet.as_view({'get': 'list'})
             response = view(request, pk=formid, format='osm')
             self.assertEqual(response.status_code, 200)
-            self.assertMultiLineEqual(response.data, osm)
+            response.render()
+            self.assertMultiLineEqual(response.content, osm)

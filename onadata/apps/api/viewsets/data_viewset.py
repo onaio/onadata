@@ -703,7 +703,7 @@ List the geojson values
         query = request.GET.get("query", {})
         export_type = kwargs.get('format')
 
-        if export_type is None or export_type in ['json']:
+        if export_type is None or export_type in ['json', 'osm']:
             # perform default viewset retrieve, no data export
             return super(DataViewSet, self).list(request, *args, **kwargs)
         elif export_type == 'geojson':

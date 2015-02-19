@@ -11,6 +11,8 @@ from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.renderers import XMLRenderer
 
+from onadata.libs.utils.osm import get_combined_osm
+
 
 class XLSRenderer(BaseRenderer):
     media_type = 'application/vnd.openxmlformats'
@@ -182,4 +184,4 @@ class OSMRenderer(BaseRenderer):
     charset = 'utf-8'
 
     def render(self, data, media_type=None, renderer_context=None):
-        return data
+        return get_combined_osm(data)
