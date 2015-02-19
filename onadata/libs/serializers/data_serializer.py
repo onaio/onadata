@@ -5,10 +5,10 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.attachment import Attachment
+from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.logger.views import _parse_int
-from onadata.libs.utils.osm import get_combined_osm
 
 
 class DataSerializer(serializers.HyperlinkedModelSerializer):
@@ -124,8 +124,10 @@ class OSMSerializer(serializers.Serializer):
         if obj is None:
             return super(OSMSerializer, self).to_native(obj)
 
-        osm_files = [
-            a.media_file
-            for a in obj.attachments.filter(extension=Attachment.OSM)]
+        attachments = Attachment.objects.filter(extension=Attachment.OSM)
+        if isinstance(obj, Instance):
+            attachments = attachments.filter(instance=obj)
+        elif isinstance(obj, XForm):
+            attachments = attachments.filter(instance__xform=obj)
 
-        return get_combined_osm(osm_files)
+        return [a.media_file for a in attachments]
