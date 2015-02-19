@@ -726,17 +726,17 @@ https://ona.io/api/v1/forms/123.json
 
 ## Clone a form to a specific user account
 
-You can clone a form to a specific user account using `GET` with
+You can clone a form to a specific user account using `POST` with
 
 - `username` of the user you want to clone the form to
 
 <pre class="prettyprint">
-<b>GET</b> /api/v1/forms/<code>{pk}</code>/clone
+<b>POST</b> /api/v1/forms/<code>{pk}</code>/clone
 </pre>
 
 > Example
 >
->       curl -X GET https://ona.io/api/v1/forms/123/clone \
+>       curl -X POST https://ona.io/api/v1/forms/123/clone \
 -d username=alice
 
 > Response
@@ -1026,7 +1026,7 @@ previous call
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['GET'])
+    @action(methods=['POST'])
     def clone(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = {'xform': self.object.pk,
