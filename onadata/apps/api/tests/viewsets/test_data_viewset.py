@@ -9,9 +9,12 @@ from django.test import RequestFactory
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    TestAbstractViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.logger_tools import create_instance
 from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import Attachment
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs import permissions as role
 from httmock import urlmatch, HTTMock
@@ -713,3 +716,51 @@ class TestDataViewSet(TestBase):
 
         self.assertEquals(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+
+
+class TestOSM(TestAbstractViewSet):
+
+    def setUp(self):
+        super(self.__class__, self).setUp()
+        self._login_user_and_profile()
+        self.factory = RequestFactory()
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+
+    def test_data_retrieve_instance_osm_format(self):
+        filenames = [
+            'OSMWay234134797.osm',
+            'OSMWay34298972.osm',
+        ]
+        osm_fixtures_dir = os.path.realpath(os.path.join(
+            os.path.dirname(__file__), '..', 'fixtures', 'osm'))
+        paths = [
+            os.path.join(osm_fixtures_dir, filename)
+            for filename in filenames]
+        xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
+        combined_osm_path = os.path.join(osm_fixtures_dir, 'combined.osm')
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        submission_path = os.path.join(osm_fixtures_dir, 'instance_a.xml')
+        files = [open(path) for path in paths]
+        count = Attachment.objects.filter(extension='osm').count()
+        self._make_submission(submission_path, media_file=files)
+        self.assertTrue(
+            Attachment.objects.filter(extension='osm').count() > count)
+
+        formid = self.xform.pk
+        dataid = self.xform.instances.latest('date_created').pk
+        request = self.factory.get('/', **self.extra)
+
+        # look at the data/[pk]/[dataid].osm endpoint
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=formid, dataid=dataid, format='osm')
+        self.assertEqual(response.status_code, 200)
+        with open(combined_osm_path) as f:
+            osm = f.read()
+            self.assertMultiLineEqual(response.data, osm)
+
+            # look at the data/[pk].osm endpoint
+            view = DataViewSet.as_view({'get': 'list'})
+            response = view(request, pk=formid, format='osm')
+            self.assertEqual(response.status_code, 200)
+            self.assertMultiLineEqual(response.data, osm)

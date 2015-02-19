@@ -14,6 +14,7 @@ from rest_framework.settings import api_settings
 
 from onadata.apps.api.viewsets.xform_viewset import custom_response_handler
 from onadata.apps.api.tools import add_tags_to_instance
+from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
 from onadata.libs.renderers import renderers
@@ -22,7 +23,7 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import (
-    DataSerializer, DataListSerializer, DataInstanceSerializer)
+    DataSerializer, DataListSerializer, DataInstanceSerializer, OSMSerializer)
 from onadata.libs.serializers.geojson_serializer import (GeoJsonSerializer,
                                                          GeoJsonListSerializer)
 from onadata.libs import filters
@@ -480,6 +481,7 @@ List the geojson values
         renderers.SurveyRenderer,
         renderers.GeoJsonRenderer,
         renderers.KMLRenderer,
+        renderers.OSMRenderer,
     ]
 
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
@@ -498,7 +500,10 @@ List the geojson values
         pk_lookup, dataid_lookup = self.lookup_fields
         pk = self.kwargs.get(pk_lookup)
         dataid = self.kwargs.get(dataid_lookup)
-        if pk is not None and dataid is None \
+        fmt = self.kwargs.get('format')
+        if fmt == Attachment.OSM:
+            serializer_class = OSMSerializer
+        elif pk is not None and dataid is None \
                 and pk != self.public_data_endpoint:
             serializer_class = DataListSerializer
         elif pk is not None and dataid is not None:
@@ -642,7 +647,7 @@ List the geojson values
             raise ParseError(_(u"Data ID should be an integer"))
 
         try:
-            instance = Instance.objects.get(pk=data_id)
+            instance = self.get_object()
 
             if _format == 'json' or _format is None:
                 return Response(instance.json)
@@ -656,6 +661,10 @@ List the geojson values
                         "fields": query_params.get('fields')}
 
                 serializer = GeoJsonSerializer(data)
+
+                return Response(serializer.data)
+            elif _format == Attachment.OSM:
+                serializer = self.get_serializer(instance)
 
                 return Response(serializer.data)
             else:
