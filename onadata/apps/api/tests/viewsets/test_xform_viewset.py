@@ -1529,6 +1529,31 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.status_code, 202)
             self.assertEquals(response.data, {'JOB_STATUS': 'PENDING'})
 
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.xform_viewset.AsyncResult')
+    def test_export_form_data_async(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({
+                'get': 'export_async',
+            })
+            formid = self.xform.pk
+
+            request = self.factory.get(
+                '/', data={"format": "xls"}, **self.extra)
+            response = view(request, pk=formid)
+            self.assertIsNotNone(response.data)
+            self.assertEqual(response.status_code, 202)
+            self.assertTrue('job_uuid' in response.data)
+
+            data = json.loads(response.data)
+            get_data = {'job_uuid': data.get('job_uuid')}
+            request = self.factory.get('/', data=get_data, **self.extra)
+            response = view(request, pk=formid)
+
+            self.assertTrue(async_result.called)
+            self.assertEqual(response.status_code, 202)
+
     def test_check_async_publish_empty_uuid(self):
         view = XFormViewSet.as_view({
             'get': 'create_async'
