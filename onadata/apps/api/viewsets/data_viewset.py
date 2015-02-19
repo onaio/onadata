@@ -470,6 +470,32 @@ List the geojson values
 >               }]
 >        }
 
+## OSM
+
+The `.osm` file format concatenates all the files for a form or individual
+ submission. When the `.json` endpoint is accessed, the individual osm files
+ are listed on the `_attachments` key.
+
+### OSM endpoint for all osm files uploaded to a form concatenated.
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{pk}</code>.osm
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/28058.osm
+
+### OSM endpoint with all osm files for a specific submission concatenated.
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{data_id}</code>.osm
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/28058/20.osm
+
 
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [

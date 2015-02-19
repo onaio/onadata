@@ -184,4 +184,6 @@ class OSMRenderer(BaseRenderer):
     charset = 'utf-8'
 
     def render(self, data, media_type=None, renderer_context=None):
+        """Combine/concatenate the list of osm files to one file"""
+
         return get_combined_osm(data)
