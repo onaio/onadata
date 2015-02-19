@@ -4,6 +4,8 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
+from onadata.apps.logger.models.attachment import Attachment
+from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.logger.views import _parse_int
@@ -115,3 +117,37 @@ class SubmissionSerializer(serializers.Serializer):
             'submissionDate': obj.date_created.isoformat(),
             'markedAsCompleteDate': obj.date_modified.isoformat()
         }
+
+
+class OSMSerializer(serializers.Serializer):
+    def to_native(self, obj):
+        """
+        Return a list of osm file objects from attachments.
+        """
+        if obj is None:
+            return super(OSMSerializer, self).to_native(obj)
+
+        attachments = Attachment.objects.filter(extension=Attachment.OSM)
+        if isinstance(obj, Instance):
+            attachments = attachments.filter(instance=obj)
+        elif isinstance(obj, XForm):
+            attachments = attachments.filter(instance__xform=obj)
+
+        return [a.media_file for a in attachments]
+
+    @property
+    def data(self):
+        """
+        Returns the serialized data on the serializer.
+        """
+        if self._data is None:
+            obj = self.object
+
+            if self.many:
+                self._data = []
+                for item in obj:
+                    self._data.extend(self.to_native(item))
+            else:
+                self._data = self.to_native(obj)
+
+        return self._data

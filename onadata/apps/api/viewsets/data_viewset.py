@@ -14,6 +14,7 @@ from rest_framework.settings import api_settings
 
 from onadata.apps.api.viewsets.xform_viewset import custom_response_handler
 from onadata.apps.api.tools import add_tags_to_instance
+from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
 from onadata.libs.renderers import renderers
@@ -22,7 +23,7 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import (
-    DataSerializer, DataListSerializer, DataInstanceSerializer)
+    DataSerializer, DataListSerializer, DataInstanceSerializer, OSMSerializer)
 from onadata.libs.serializers.geojson_serializer import (GeoJsonSerializer,
                                                          GeoJsonListSerializer)
 from onadata.libs import filters
@@ -469,6 +470,32 @@ List the geojson values
 >               }]
 >        }
 
+## OSM
+
+The `.osm` file format concatenates all the files for a form or individual
+ submission. When the `.json` endpoint is accessed, the individual osm files
+ are listed on the `_attachments` key.
+
+### OSM endpoint for all osm files uploaded to a form concatenated.
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{pk}</code>.osm
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/28058.osm
+
+### OSM endpoint with all osm files for a specific submission concatenated.
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{data_id}</code>.osm
+</pre>
+
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/data/28058/20.osm
+
 
 """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
@@ -480,6 +507,7 @@ List the geojson values
         renderers.SurveyRenderer,
         renderers.GeoJsonRenderer,
         renderers.KMLRenderer,
+        renderers.OSMRenderer,
     ]
 
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
@@ -498,7 +526,10 @@ List the geojson values
         pk_lookup, dataid_lookup = self.lookup_fields
         pk = self.kwargs.get(pk_lookup)
         dataid = self.kwargs.get(dataid_lookup)
-        if pk is not None and dataid is None \
+        fmt = self.kwargs.get('format')
+        if fmt == Attachment.OSM:
+            serializer_class = OSMSerializer
+        elif pk is not None and dataid is None \
                 and pk != self.public_data_endpoint:
             serializer_class = DataListSerializer
         elif pk is not None and dataid is not None:
@@ -642,7 +673,7 @@ List the geojson values
             raise ParseError(_(u"Data ID should be an integer"))
 
         try:
-            instance = Instance.objects.get(pk=data_id)
+            instance = self.get_object()
 
             if _format == 'json' or _format is None:
                 return Response(instance.json)
@@ -656,6 +687,10 @@ List the geojson values
                         "fields": query_params.get('fields')}
 
                 serializer = GeoJsonSerializer(data)
+
+                return Response(serializer.data)
+            elif _format == Attachment.OSM:
+                serializer = self.get_serializer(instance)
 
                 return Response(serializer.data)
             else:
@@ -694,7 +729,7 @@ List the geojson values
         query = request.GET.get("query", {})
         export_type = kwargs.get('format')
 
-        if export_type is None or export_type in ['json']:
+        if export_type is None or export_type in ['json', 'osm']:
             # perform default viewset retrieve, no data export
             return super(DataViewSet, self).list(request, *args, **kwargs)
         elif export_type == 'geojson':

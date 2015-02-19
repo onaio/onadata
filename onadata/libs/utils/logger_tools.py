@@ -174,8 +174,15 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
     instance = _get_instance(xml, new_uuid, submitted_by, status, xform)
 
     for f in media_files:
+        filename, extension = os.path.splitext(f.name)
+        extension = extension.replace('.', '')
+        content_type = u'text/xml' \
+            if extension == Attachment.OSM else f.content_type
+
         Attachment.objects.get_or_create(
-            instance=instance, media_file=f, mimetype=f.content_type)
+            instance=instance, media_file=f, mimetype=content_type,
+            extension=extension
+        )
 
     # override date created if required
     if date_created_override:

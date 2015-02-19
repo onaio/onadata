@@ -11,6 +11,8 @@ from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.renderers import XMLRenderer
 
+from onadata.libs.utils.osm import get_combined_osm
+
 
 class XLSRenderer(BaseRenderer):
     media_type = 'application/vnd.openxmlformats'
@@ -174,3 +176,14 @@ class GeoJsonRenderer(BaseRenderer):
 
     def render(self, data, media_type=None, renderer_context=None):
         return json.dumps(data)
+
+
+class OSMRenderer(BaseRenderer):
+    media_type = 'text/xml'
+    format = 'osm'
+    charset = 'utf-8'
+
+    def render(self, data, media_type=None, renderer_context=None):
+        """Combine/concatenate the list of osm files to one file"""
+
+        return get_combined_osm(data)

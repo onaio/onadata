@@ -195,7 +195,7 @@ class TestAbstractViewSet(TestCase):
             self.project, context={'request': request}).data
 
     def _publish_xls_form_to_project(self, publish_data={}, merge=True,
-                                     public=False):
+                                     public=False, xlsform_path=None):
         if not hasattr(self, 'project'):
             self._project_create()
         elif self.project.created_by != self.user:
@@ -225,7 +225,7 @@ class TestAbstractViewSet(TestCase):
         else:
             data = publish_data
 
-        path = os.path.join(
+        path = xlsform_path or os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
         with HTTMock(enketo_mock):
@@ -279,7 +279,11 @@ class TestAbstractViewSet(TestCase):
             post_data = {'xml_submission_file': f}
 
             if media_file is not None:
-                post_data['media_file'] = media_file
+                if isinstance(media_file, list):
+                    for c in range(len(media_file)):
+                        post_data['media_file_{}'.format(c)] = media_file[c]
+                else:
+                    post_data['media_file'] = media_file
 
             if username is None:
                 username = self.user.username
