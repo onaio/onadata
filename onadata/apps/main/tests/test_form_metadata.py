@@ -9,8 +9,7 @@ from django.core.cache import cache
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.views import show, edit, download_metadata,\
     download_media_data, delete_metadata
-from onadata.libs.utils.cache_tools import (
-    XFORM_METADATA_CACHE, safe_delete)
+from onadata.libs.utils.cache_tools import XFORM_METADATA_CACHE
 from test_base import TestBase
 
 

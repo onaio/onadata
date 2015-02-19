@@ -13,8 +13,7 @@ from django.conf import settings
 from hashlib import md5
 from onadata.apps.logger.models import XForm
 
-from onadata.libs.utils.cache_tools import (safe_delete,
-    XFORM_METADATA_CACHE)
+from onadata.libs.utils.cache_tools import (safe_delete, XFORM_METADATA_CACHE)
 
 CHUNK_SIZE = 1024
 
