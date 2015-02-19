@@ -121,6 +121,9 @@ class SubmissionSerializer(serializers.Serializer):
 
 class OSMSerializer(serializers.Serializer):
     def to_native(self, obj):
+        """
+        Return a list of osm file objects from attachments.
+        """
         if obj is None:
             return super(OSMSerializer, self).to_native(obj)
 
