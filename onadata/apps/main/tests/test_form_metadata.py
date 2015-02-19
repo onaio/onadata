@@ -4,10 +4,13 @@ import hashlib
 from django.core.files.base import File
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.urlresolvers import reverse
+from django.core.cache import cache
 
 from onadata.apps.main.models import MetaData
 from onadata.apps.main.views import show, edit, download_metadata,\
     download_media_data, delete_metadata
+from onadata.libs.utils.cache_tools import (
+    XFORM_METADATA_CACHE, safe_delete)
 from test_base import TestBase
 
 
@@ -57,6 +60,15 @@ class TestFormMetadata(TestBase):
         self._add_metadata()
         self.assertEquals(count + 1, len(MetaData.objects.filter(
             xform=self.xform, data_type='supporting_doc')))
+
+    def test_delete_cached_xform_metadata_object_on_save(self):
+        count = MetaData.objects.count()
+        cache.set('{}{}'.format(XFORM_METADATA_CACHE, self.xform.id), True)
+        self._add_metadata()
+
+        self.assertIsNone(
+            cache.get('{}{}'.format(XFORM_METADATA_CACHE, self.xform.id)))
+        self.assertEquals(count + 1, MetaData.objects.count())
 
     def test_adds_supporting_media_on_submit(self):
         count = len(MetaData.objects.filter(xform=self.xform,

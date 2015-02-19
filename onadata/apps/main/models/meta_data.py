@@ -3,6 +3,7 @@ import os
 import requests
 
 from contextlib import closing
+from django.db.models.signals import post_save
 from django.core.exceptions import ValidationError
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -11,6 +12,9 @@ from django.db import models
 from django.conf import settings
 from hashlib import md5
 from onadata.apps.logger.models import XForm
+
+from onadata.libs.utils.cache_tools import (safe_delete,
+    XFORM_METADATA_CACHE)
 
 CHUNK_SIZE = 1024
 
@@ -277,3 +281,13 @@ class MetaData(models.Model):
         parts = self.data_value.split('|')
 
         return parts[1].replace('xls', 'templates') if len(parts) > 1 else None
+
+
+def clear_cached_metadata_instance_object(
+        sender, instance=None, created=False, **kwargs):
+    safe_delete('{}{}'.format(
+        XFORM_METADATA_CACHE, instance.xform.pk))
+
+
+post_save.connect(clear_cached_metadata_instance_object, sender=MetaData,
+                  dispatch_uid='clear_cached_metadata_instance_object')
