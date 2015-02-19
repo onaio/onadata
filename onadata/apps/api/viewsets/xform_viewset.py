@@ -1159,7 +1159,6 @@ previous call
             }
             resp = json.dumps(resp)
         resp_code = status.HTTP_202_ACCEPTED
-
         return Response(data=resp,
                         status=resp_code,
                         content_type="application/json")
