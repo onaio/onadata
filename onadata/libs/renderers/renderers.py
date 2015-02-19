@@ -174,3 +174,12 @@ class GeoJsonRenderer(BaseRenderer):
 
     def render(self, data, media_type=None, renderer_context=None):
         return json.dumps(data)
+
+
+class OSMRenderer(BaseRenderer):
+    media_type = 'text/xml'
+    format = 'osm'
+    charset = 'utf-8'
+
+    def render(self, data, media_type=None, renderer_context=None):
+        return data
