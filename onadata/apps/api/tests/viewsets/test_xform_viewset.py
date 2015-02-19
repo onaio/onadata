@@ -935,6 +935,12 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             formid = self.xform.pk
             count = XForm.objects.count()
 
+            data = {}
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get('Last-Modified'), None)
+
             data = {'username': 'mjomba'}
             request = self.factory.post('/', data=data, **self.extra)
             response = view(request, pk=formid)
