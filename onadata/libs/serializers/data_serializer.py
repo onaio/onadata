@@ -4,9 +4,11 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
+from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.logger.views import _parse_int
+from onadata.libs.utils.osm import get_combined_osm
 
 
 class DataSerializer(serializers.HyperlinkedModelSerializer):
@@ -115,3 +117,15 @@ class SubmissionSerializer(serializers.Serializer):
             'submissionDate': obj.date_created.isoformat(),
             'markedAsCompleteDate': obj.date_modified.isoformat()
         }
+
+
+class OSMSerializer(serializers.Serializer):
+    def to_native(self, obj):
+        if obj is None:
+            return super(OSMSerializer, self).to_native(obj)
+
+        osm_files = [
+            a.media_file
+            for a in obj.attachments.filter(extension=Attachment.OSM)]
+
+        return get_combined_osm(osm_files)
