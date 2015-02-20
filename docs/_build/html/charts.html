@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Charts &mdash; Onadata API 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Onadata API 1.0 documentation" href="index.html" />
+    <link rel="next" title="Data Lists" href="data.html" />
+    <link rel="prev" title="Welcome to Onadata API’s documentation!" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="data.html" title="Data Lists"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Onadata API’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Onadata API 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="charts">
+<h1>Charts<a class="headerlink" href="#charts" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div>&#8220;&#8221;&#8220;</div></blockquote>
+<p>View chart for specific fields in a form or dataset.</p>
+<p>### List of chart chart endpoints accessible to registered user
+&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/charts&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/charts">https://ona.io/api/v1/charts</a></p>
+<p>&gt; Response
+&gt;
+&gt;        [{
+&gt;
+&gt;            &#8220;id&#8221;: 4240,
+&gt;            &#8220;id_string&#8221;: &#8220;dhis2form&#8221;
+&gt;            &#8220;url&#8221;: &#8220;<a class="reference external" href="https://ona.io/api/v1/charts/4240">https://ona.io/api/v1/charts/4240</a>&#8221;,
+&gt;        }
+&gt;        ...</p>
+<p>### Get a list of chart field endpoints for a specific form or dataset.</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/charts/&lt;code&gt;{formid}&lt;/code&gt;&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/charts/4240">https://ona.io/api/v1/charts/4240</a></p>
+<p>&gt; Response
+&gt;
+&gt;        {
+&gt;
+&gt;            &#8220;id&#8221;: 4240,
+&gt;            &#8220;id_string&#8221;: &#8220;dhis2form&#8221;
+&gt;            &#8220;url&#8221;: &#8220;<a class="reference external" href="https://ona.io/api/v1/charts/4240">https://ona.io/api/v1/charts/4240</a>&#8221;,
+&gt;            &#8220;fields&#8221;: {
+&gt;                &#8220;uuid&#8221;: &#8220;<a class="reference external" href="https://ona.io/api/v1/charts/4240?field_name=uuid">https://ona.io/api/v1/charts/4240?field_name=uuid</a>&#8221;,
+&gt;                &#8220;num&#8221;: &#8220;<a class="reference external" href="https://ona.io/api/v1/charts/4240?field_name=num">https://ona.io/api/v1/charts/4240?field_name=num</a>&#8221;,
+&gt;                ...
+&gt;            }
+&gt;        }</p>
+<p>### Get a chart for a specific field in a form</p>
+<ul class="simple">
+<li><cite>field_name</cite> - a field name in the form</li>
+<li><cite>format</cite> - can be <cite>html</cite> or <cite>json</cite></li>
+</ul>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/charts/&lt;code&gt;{formid}&lt;/code&gt;.&lt;code&gt;{format}&lt;/code&gt;?field_name=&lt;code&gt;field_name&lt;/code&gt;&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/charts/4240.html?field_name=age">https://ona.io/api/v1/charts/4240.html?field_name=age</a></p>
+<p>&gt; Response
+&gt;
+&gt; - <cite>html</cite> format response is a html, javascript and css to the chart
+&gt; - <cite>json</cite> format response is the <cite>JSON</cite> data that can be passed to a charting
+&gt; library</p>
+<p>### Get a chart data for all fields in a form</p>
+<p>The only field ommitted is instanceID since it is unique for every record.</p>
+<ul class="simple">
+<li><cite>fields</cite> - is a comma separated list of fields to be included in the </li>
+</ul>
+<p>response. If <cite>fields=all</cite> then all the fields of the form will be returned.</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/charts/&lt;code&gt;{formid}&lt;/code&gt;?&lt;code&gt;fields=all&lt;/code&gt;
+&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/charts/4240?fields=all">https://ona.io/api/v1/charts/4240?fields=all</a></p>
+<p>&gt; Response
+&gt;
+&gt; - <cite>json</cite> format response is the <cite>JSON</cite> data for each field that can be
+&gt; passed to a charting library</p>
+<blockquote>
+<div>&#8220;&#8221;&#8220;</div></blockquote>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to Onadata API&#8217;s documentation!</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="data.html"
+                        title="next chapter">Data Lists</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/charts.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="data.html" title="Data Lists"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Onadata API’s documentation!"
+             >previous</a> |</li>
+        <li><a href="index.html">Onadata API 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Ona.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

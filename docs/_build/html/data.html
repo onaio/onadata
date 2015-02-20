@@ -1,0 +1,499 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Data Lists &mdash; Onadata API 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Onadata API 1.0 documentation" href="index.html" />
+    <link rel="next" title="Stats" href="stats.html" />
+    <link rel="prev" title="Charts" href="charts.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="stats.html" title="Stats"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="charts.html" title="Charts"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Onadata API 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="data-lists">
+<h1>Data Lists<a class="headerlink" href="#data-lists" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div>&#8220;&#8221;&#8220;</div></blockquote>
+<p>This endpoint provides access to submitted data in JSON format. Where:</p>
+<ul class="simple">
+<li><cite>pk</cite> - the form unique identifier</li>
+<li><cite>dataid</cite> - submission data unique identifier</li>
+<li><cite>owner</cite> - username of the owner(user/organization) of the data point</li>
+</ul>
+<p>## GET JSON List of data end points</p>
+<p>Lists the data endpoints accessible to requesting user, for anonymous access
+a list of public data endpoints is returned.</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data
+&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data">https://ona.io/api/v1/data</a></p>
+<p>&gt; Response
+&gt;
+&gt;        [{
+&gt;            &#8220;id&#8221;: 4240,
+&gt;            &#8220;id_string&#8221;: &#8220;dhis2form&#8221;
+&gt;            &#8220;title&#8221;: &#8220;dhis2form&#8221;
+&gt;            &#8220;description&#8221;: &#8220;dhis2form&#8221;
+&gt;            &#8220;url&#8221;: &#8220;<a class="reference external" href="https://ona.io/api/v1/data/4240">https://ona.io/api/v1/data/4240</a>&#8221;
+&gt;         },
+&gt;            ...
+&gt;        ]</p>
+<p>## GET JSON List of data end points using limit operators</p>
+<p>Lists the data endpoints accesible to the requesting user based on &#8216;start&#8217;
+and/or &#8216;limit&#8217; query parameters. Use the start parameter to skip a number
+of records and the limit parameter to limit the number of records returned.
+&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;start&lt;/code&gt;=&lt;code&gt;start_value&lt;/code&gt;
+&lt;/pre&gt;
+&gt;
+&gt;       curl -X GET &#8216;<a class="reference external" href="https://ona.io/api/v1/data/2?start=5">https://ona.io/api/v1/data/2?start=5</a>&#8216;</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;limit&lt;/code&gt;=&lt;code&gt;limit_value&lt;/code&gt;
+&lt;/pre&gt;
+&gt;
+&gt;       curl -X GET &#8216;<a class="reference external" href="https://ona.io/api/v1/data/2?limit=2">https://ona.io/api/v1/data/2?limit=2</a>&#8216;</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;start&lt;/code&gt;=&lt;code&gt;start_value&lt;/code&gt;&amp;&lt;/code&gt;&lt;code&gt;limit&lt;/code&gt;=&lt;code&gt;limit_value&lt;/code&gt;
+&lt;/pre&gt;
+&gt;
+&gt;       curl -X GET &#8216;<a class="reference external" href="https://ona.io/api/v1/data/2?start=3&amp;limit=4">https://ona.io/api/v1/data/2?start=3&amp;limit=4</a>&#8216;</p>
+<p>## Download data in <cite>csv</cite> format
+&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data.csv&lt;/pre&gt;
+&gt;
+&gt;       curl -O <a class="reference external" href="https://ona.io/api/v1/data.csv">https://ona.io/api/v1/data.csv</a></p>
+<p>## GET JSON List of data end points filter by owner</p>
+<p>Lists the data endpoints accessible to requesting user, for the specified
+<cite>owner</cite> as a query parameter.</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data?&lt;code&gt;owner&lt;/code&gt;=&lt;code&gt;owner_username&lt;/code&gt;
+&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data?owner=ona">https://ona.io/api/v1/data?owner=ona</a></p>
+<p>## Get Submitted data for a specific form
+Provides a list of json submitted data for a specific form.
+&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;&lt;/pre&gt;
+&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/22845">https://ona.io/api/v1/data/22845</a></p>
+<p>&gt; Response
+&gt;
+&gt;        [
+&gt;            {
+&gt;                &#8220;_id&#8221;: 4503,
+&gt;                &#8220;_bamboo_dataset_id&#8221;: &#8220;&#8221;,
+&gt;                &#8220;_deleted_at&#8221;: null,
+&gt;                &#8220;expense_type&#8221;: &#8220;service&#8221;,
+&gt;                &#8220;_xform_id_string&#8221;: &#8220;exp&#8221;,
+&gt;                &#8220;_geolocation&#8221;: [
+&gt;                    null,
+&gt;                    null
+&gt;                ],
+&gt;                &#8220;end&#8221;: &#8220;2013-01-03T10:26:25.674+03&#8221;,
+&gt;                &#8220;start&#8221;: &#8220;2013-01-03T10:25:17.409+03&#8221;,
+&gt;                &#8220;expense_date&#8221;: &#8220;2011-12-23&#8221;,
+&gt;                &#8220;_status&#8221;: &#8220;submitted_via_web&#8221;,
+&gt;                &#8220;today&#8221;: &#8220;2013-01-03&#8221;,
+&gt;                &#8220;_uuid&#8221;: &#8220;2e599f6fe0de42d3a1417fb7d821c859&#8221;,
+&gt;                &#8220;imei&#8221;: &#8220;351746052013466&#8221;,
+&gt;                &#8220;formhub/uuid&#8221;: &#8220;46ea15e2b8134624a47e2c4b77eef0d4&#8221;,
+&gt;                &#8220;kind&#8221;: &#8220;monthly&#8221;,
+&gt;                &#8220;_submission_time&#8221;: &#8220;2013-01-03T02:27:19&#8221;,
+&gt;                &#8220;required&#8221;: &#8220;yes&#8221;,
+&gt;                &#8220;_attachments&#8221;: [],
+&gt;                &#8220;item&#8221;: &#8220;Rent&#8221;,
+&gt;                &#8220;amount&#8221;: &#8220;35000.0&#8221;,
+&gt;                &#8220;deviceid&#8221;: &#8220;351746052013466&#8221;,
+&gt;                &#8220;subscriberid&#8221;: &#8220;639027...60317&#8221;
+&gt;            },
+&gt;            {
+&gt;                ....
+&gt;                &#8220;subscriberid&#8221;: &#8220;639027...60317&#8221;
+&gt;            }
+&gt;        ]</p>
+<p>## Get a single data submission for a given form</p>
+<dl class="docutils">
+<dt>Get a single specific submission json data providing <cite>pk</cite></dt>
+<dd>and <cite>dataid</cite> as url path parameters, where:</dd>
+</dl>
+<ul class="simple">
+<li><cite>pk</cite> - is the identifying number for a specific form</li>
+<li><cite>dataid</cite> - is the unique id of the data, the value of <cite>_id</cite> or <cite>_uuid</cite></li>
+</ul>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;&lt;/pre&gt;
+&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/22845/4503">https://ona.io/api/v1/data/22845/4503</a></p>
+<p>&gt; Response
+&gt;
+&gt;            {
+&gt;                &#8220;_id&#8221;: 4503,
+&gt;                &#8220;_bamboo_dataset_id&#8221;: &#8220;&#8221;,
+&gt;                &#8220;_deleted_at&#8221;: null,
+&gt;                &#8220;expense_type&#8221;: &#8220;service&#8221;,
+&gt;                &#8220;_xform_id_string&#8221;: &#8220;exp&#8221;,
+&gt;                &#8220;_geolocation&#8221;: [
+&gt;                    null,
+&gt;                    null
+&gt;                ],
+&gt;                &#8220;end&#8221;: &#8220;2013-01-03T10:26:25.674+03&#8221;,
+&gt;                &#8220;start&#8221;: &#8220;2013-01-03T10:25:17.409+03&#8221;,
+&gt;                &#8220;expense_date&#8221;: &#8220;2011-12-23&#8221;,
+&gt;                &#8220;_status&#8221;: &#8220;submitted_via_web&#8221;,
+&gt;                &#8220;today&#8221;: &#8220;2013-01-03&#8221;,
+&gt;                &#8220;_uuid&#8221;: &#8220;2e599f6fe0de42d3a1417fb7d821c859&#8221;,
+&gt;                &#8220;imei&#8221;: &#8220;351746052013466&#8221;,
+&gt;                &#8220;formhub/uuid&#8221;: &#8220;46ea15e2b8134624a47e2c4b77eef0d4&#8221;,
+&gt;                &#8220;kind&#8221;: &#8220;monthly&#8221;,
+&gt;                &#8220;_submission_time&#8221;: &#8220;2013-01-03T02:27:19&#8221;,
+&gt;                &#8220;required&#8221;: &#8220;yes&#8221;,
+&gt;                &#8220;_attachments&#8221;: [],
+&gt;                &#8220;item&#8221;: &#8220;Rent&#8221;,
+&gt;                &#8220;amount&#8221;: &#8220;35000.0&#8221;,
+&gt;                &#8220;deviceid&#8221;: &#8220;351746052013466&#8221;,
+&gt;                &#8220;subscriberid&#8221;: &#8220;639027...60317&#8221;
+&gt;            },
+&gt;            {
+&gt;                ....
+&gt;                &#8220;subscriberid&#8221;: &#8220;639027...60317&#8221;
+&gt;            }
+&gt;        ]</p>
+<p>## Query submitted data of a specific form
+Provides a list of json submitted data for a specific form. Use <cite>query</cite>
+parameter to apply form data specific, see
+&lt;a href=&#8221;<a class="reference external" href="http://docs.mongodb.org/manual/reference/operator/query/">http://docs.mongodb.org/manual/reference/operator/query/</a>&#8220;&gt;
+<a class="reference external" href="http://docs.mongodb.org/manual/reference/operator/query">http://docs.mongodb.org/manual/reference/operator/query</a>/&lt;/a&gt;.</p>
+<p>For more details see
+&lt;a href=&#8221;<a class="reference external" href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API">https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API</a>)#
+api-parameters&#8221;&gt;
+API Parameters&lt;/a&gt;.
+&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?query={&#8220;field&#8221;:&#8221;value&#8221;}&lt;/b&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?query={&#8220;field&#8221;:{&#8220;op&#8221;: &#8220;value&#8221;}}&#8221;&lt;/b&gt;
+&lt;/pre&gt;
+&gt; Example
+&gt;
+&gt;       curl -X GET &#8216;<a class="reference external" href="https://ona.io/api/v1/data/22845">https://ona.io/api/v1/data/22845</a>?query={&#8220;kind&#8221;: &#8220;monthly&#8221;}&#8217;
+&gt;       curl -X GET &#8216;<a class="reference external" href="https://ona.io/api/v1/data/22845">https://ona.io/api/v1/data/22845</a>?query={&#8220;date&#8221;: {&#8220;$gt&#8221;: &#8220;2014-09-29T01:02:03+0000&#8221;}}&#8217;</p>
+<p>&gt; Response
+&gt;
+&gt;        [
+&gt;            {
+&gt;                &#8220;_id&#8221;: 4503,
+&gt;                &#8220;_bamboo_dataset_id&#8221;: &#8220;&#8221;,
+&gt;                &#8220;_deleted_at&#8221;: null,
+&gt;                &#8220;expense_type&#8221;: &#8220;service&#8221;,
+&gt;                &#8220;_xform_id_string&#8221;: &#8220;exp&#8221;,
+&gt;                &#8220;_geolocation&#8221;: [
+&gt;                    null,
+&gt;                    null
+&gt;                ],
+&gt;                &#8220;end&#8221;: &#8220;2013-01-03T10:26:25.674+03&#8221;,
+&gt;                &#8220;start&#8221;: &#8220;2013-01-03T10:25:17.409+03&#8221;,
+&gt;                &#8220;expense_date&#8221;: &#8220;2011-12-23&#8221;,
+&gt;                &#8220;_status&#8221;: &#8220;submitted_via_web&#8221;,
+&gt;                &#8220;today&#8221;: &#8220;2013-01-03&#8221;,
+&gt;                &#8220;_uuid&#8221;: &#8220;2e599f6fe0de42d3a1417fb7d821c859&#8221;,
+&gt;                &#8220;imei&#8221;: &#8220;351746052013466&#8221;,
+&gt;                &#8220;formhub/uuid&#8221;: &#8220;46ea15e2b8134624a47e2c4b77eef0d4&#8221;,
+&gt;                &#8220;kind&#8221;: &#8220;monthly&#8221;,
+&gt;                &#8220;_submission_time&#8221;: &#8220;2013-01-03T02:27:19&#8221;,
+&gt;                &#8220;required&#8221;: &#8220;yes&#8221;,
+&gt;                &#8220;_attachments&#8221;: [],
+&gt;                &#8220;item&#8221;: &#8220;Rent&#8221;,
+&gt;                &#8220;amount&#8221;: &#8220;35000.0&#8221;,
+&gt;                &#8220;deviceid&#8221;: &#8220;351746052013466&#8221;,
+&gt;                &#8220;subscriberid&#8221;: &#8220;639027...60317&#8221;
+&gt;            },
+&gt;            {
+&gt;                ....
+&gt;                &#8220;subscriberid&#8221;: &#8220;639027...60317&#8221;
+&gt;            }
+&gt;        ]</p>
+<p>## Query submitted data of a specific form using Tags
+Provides a list of json submitted data for a specific form matching specific
+tags. Use the <cite>tags</cite> query parameter to filter the list of forms, <cite>tags</cite>
+should be a comma separated list of tags.</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data?&lt;code&gt;tags&lt;/code&gt;=&lt;code&gt;tag1,tag2&lt;/code&gt;&lt;/pre&gt;
+&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;tags&lt;/code&gt;=&lt;code&gt;tag1,tag2&lt;/code&gt;&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/22845?tags=monthly">https://ona.io/api/v1/data/22845?tags=monthly</a></p>
+<p>## Tag a submission data point</p>
+<p>A <cite>POST</cite> payload of parameter <cite>tags</cite> with a comma separated list of tags.</p>
+<p>Examples</p>
+<ul class="simple">
+<li><cite>animal fruit denim</cite> - space delimited, no commas</li>
+<li><cite>animal, fruit denim</cite> - comma delimited</li>
+</ul>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;POST&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;/labels&lt;/pre&gt;</p>
+<p>Payload</p>
+<blockquote>
+<div>{&#8220;tags&#8221;: &#8220;tag1, tag2&#8221;}</div></blockquote>
+<p>## Delete a specific tag from a submission</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;DELETE&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;/labels/&lt;code&gt;tag_name&lt;/code&gt;&lt;/pre&gt;</p>
+<p>&gt; Request
+&gt;
+&gt;       curl -X DELETE <a class="reference external" href="https://ona.io/api/v1/data/28058/20/labels/tag1">https://ona.io/api/v1/data/28058/20/labels/tag1</a>
+or to delete the tag &#8220;hello world&#8221;
+&gt;
+&gt;       curl -X DELETE <a class="reference external" href="https://ona.io/api/v1/data/28058/20/labels/hello%20world">https://ona.io/api/v1/data/28058/20/labels/hello%20world</a>
+&gt;
+&gt; Response
+&gt;
+&gt;        HTTP 200 OK</p>
+<p>## Get list of public data endpoints</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/public
+&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/public">https://ona.io/api/v1/data/public</a></p>
+<p>&gt; Response
+&gt;
+&gt;        [{
+&gt;            &#8220;id&#8221;: 4240,
+&gt;            &#8220;id_string&#8221;: &#8220;dhis2form&#8221;
+&gt;            &#8220;title&#8221;: &#8220;dhis2form&#8221;
+&gt;            &#8220;description&#8221;: &#8220;dhis2form&#8221;
+&gt;            &#8220;url&#8221;: &#8220;<a class="reference external" href="https://ona.io/api/v1/data/4240">https://ona.io/api/v1/data/4240</a>&#8221;
+&gt;         },
+&gt;            ...
+&gt;        ]</p>
+<p>## Get enketo edit link for a submission instance</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;/enketo
+&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/28058/20/enketo?return_url=url">https://ona.io/api/v1/data/28058/20/enketo?return_url=url</a></p>
+<p>&gt; Response
+&gt;       {&#8220;url&#8221;: &#8220;<a class="reference external" href="https://hmh2a.enketo.formhub.org">https://hmh2a.enketo.formhub.org</a>&#8220;}
+&gt;
+&gt;</p>
+<p>## Delete a specific submission instance</p>
+<p>Delete a specific submission in a form</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;DELETE&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;
+&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X DELETE <a class="reference external" href="https://ona.io/api/v1/data/28058/20">https://ona.io/api/v1/data/28058/20</a></p>
+<p>&gt; Response
+&gt;
+&gt;       HTTP 204 No Content
+&gt;
+&gt;</p>
+<p>## GEOJSON</p>
+<p>Get a valid geojson value from the submissions</p>
+<p>Options</p>
+<ul class="simple">
+<li><cite>geo_field</cite> - valid field that can be converted to a geojson.</li>
+</ul>
+<p>(Point, LineString, Polygon)
+* <cite>fields</cite> - additional comma separated values that are to be added to the
+properties section</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;.geojson
+&lt;/pre&gt;</p>
+<p>With options
+&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;.geojson?geo_field=&lt;code&gt;{field_name}&lt;/code&gt;&amp;fields=&lt;code&gt;{list,of,fields}&lt;/code&gt;
+&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/28058/20.geojson">https://ona.io/api/v1/data/28058/20.geojson</a></p>
+<p>&gt; Response
+&gt;
+&gt;       HTTP 200 OK
+&gt; Response
+&gt;
+&gt;        {
+&gt;           &#8220;type&#8221;: &#8220;Feature&#8221;,
+&gt;           &#8220;geometry&#8221;:
+&gt;               {
+&gt;                   &#8220;type&#8221;: &#8220;GeometryCollection&#8221;,
+&gt;                    &#8220;geometries&#8221;:
+&gt;                       [{
+&gt;                           &#8220;type&#8221;: &#8220;Point&#8221;,
+&gt;                           &#8220;coordinates&#8221;:
+&gt;                               [36.787219, -1.294197]
+&gt;                       }]
+&gt;               },
+&gt;           &#8220;properties&#8221;:
+&gt;               {
+&gt;                   &#8220;id&#8221;: 6448,
+&gt;                    &#8220;xform&#8221;: 65
+&gt;               }
+&gt;       }
+&gt;</p>
+<p>List the geojson values</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;.geojson
+&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/28058.geojson">https://ona.io/api/v1/data/28058.geojson</a></p>
+<p>&gt; Response
+&gt;
+&gt;       HTTP 200 OK
+&gt; Response
+&gt;
+&gt;        {
+&gt;           &#8220;type&#8221;: &#8220;FeatureCollection&#8221;,
+&gt;            &#8220;features&#8221;:
+&gt;               [{
+&gt;                   &#8220;type&#8221;: &#8220;Feature&#8221;,
+&gt;                    &#8220;geometry&#8221;:
+&gt;                       {
+&gt;                       &#8220;type&#8221;: &#8220;GeometryCollection&#8221;,
+&gt;                        &#8220;geometries&#8221;:
+&gt;                           [{
+&gt;                               &#8220;type&#8221;: &#8220;Point&#8221;,
+&gt;                                &#8220;coordinates&#8221;: [36.787219, -1.294197]
+&gt;                           }]
+&gt;                       },
+&gt;                    &#8220;properties&#8221;:
+&gt;                       {&#8220;id&#8221;: 6448, &#8220;xform&#8221;: 65}
+&gt;               },
+&gt;                {
+&gt;                    &#8220;type&#8221;: &#8220;Feature&#8221;,
+&gt;                     &#8220;geometry&#8221;:
+&gt;                        {
+&gt;                           &#8220;type&#8221;: &#8220;GeometryCollection&#8221;,
+&gt;                            &#8220;geometries&#8221;:
+&gt;                               [{
+&gt;                                   &#8220;type&#8221;: &#8220;Point&#8221;,
+&gt;                                    &#8220;coordinates&#8221;: [36.7872606, -1.2942131]
+&gt;                               }]
+&gt;                        },
+&gt;                      &#8220;properties&#8221;:
+&gt;                           {&#8220;id&#8221;: 6447, &#8220;xform&#8221;: 65}
+&gt;               }]
+&gt;        }</p>
+<p>## OSM</p>
+<dl class="docutils">
+<dt>The <cite>.osm</cite> file format concatenates all the files for a form or individual</dt>
+<dd>submission. When the <cite>.json</cite> endpoint is accessed, the individual osm files
+are listed on the <cite>_attachments</cite> key.</dd>
+</dl>
+<p>### OSM endpoint for all osm files uploaded to a form concatenated.</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;.osm
+&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/28058.osm">https://ona.io/api/v1/data/28058.osm</a></p>
+<p>### OSM endpoint with all osm files for a specific submission concatenated.</p>
+<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
+&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{data_id}&lt;/code&gt;.osm
+&lt;/pre&gt;</p>
+<p>&gt; Example
+&gt;
+&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/28058/20.osm">https://ona.io/api/v1/data/28058/20.osm</a></p>
+<p>&#8220;&#8221;&#8220;</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="charts.html"
+                        title="previous chapter">Charts</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="stats.html"
+                        title="next chapter">Stats</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/data.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="stats.html" title="Stats"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="charts.html" title="Charts"
+             >previous</a> |</li>
+        <li><a href="index.html">Onadata API 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Ona.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

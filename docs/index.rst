@@ -3,13 +3,58 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Onadata API's documentation!
+Welcome to Ona API's documentation!
 =======================================
 
-Contents:
+Ona JSON Rest Api
+==================
+
+
+Endpoints:
+==========
+
+Data
+----
 
 .. toctree::
    :maxdepth: 2
+
+   charts
+   data
+   stats
+
+Forms
+-----
+
+.. toctree::
+   :maxdepth: 2
+
+   forms
+   media
+   metadata
+   projects
+   submissions
+
+Users and Organizations
+-----------------------
+
+.. toctree::
+   :maxdepth: 2
+
+   orgs
+   profiles
+   teams
+   user
+   users
+
+Quick start
+-----------
+
+.. toctree::
+   :maxdepth: 2
+
+   quick_start
+   
 
 
 

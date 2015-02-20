@@ -1,0 +1,171 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Stats &mdash; Onadata API 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Onadata API 1.0 documentation" href="index.html" />
+    <link rel="next" title="Forms" href="forms.html" />
+    <link rel="prev" title="Data Lists" href="data.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="forms.html" title="Forms"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="data.html" title="Data Lists"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Onadata API 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="stats">
+<h1>Stats<a class="headerlink" href="#stats" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div>&#8220;&#8221;&#8220;</div></blockquote>
+<p>Stats summary for median, mean, mode, range, max, min.
+A query parameter <cite>method</cite> can be used to limit the results to either
+<cite>mean</cite>, <cite>median</cite>, <cite>mode</cite> or <cite>range</cite> only results.</p>
+<p>Example:</p>
+<blockquote>
+<div>GET /api/v1/stats/1?</div></blockquote>
+<p>Response:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>[</dt>
+<dd><dl class="first docutils">
+<dt>{</dt>
+<dd><dl class="first last docutils">
+<dt>&#8220;age&#8221;:</dt>
+<dd><dl class="first docutils">
+<dt>{</dt>
+<dd>&#8220;median&#8221;: 8,
+&#8220;mean&#8221;: 23.4,
+&#8220;mode&#8221;: 23,
+&#8220;range&#8221;: 24,
+&#8220;max&#8221;: 28,
+&#8220;min&#8221;: 4</dd>
+</dl>
+<p class="last">},</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="last">...</p>
+</dd>
+</dl>
+<p>]</p>
+</div></blockquote>
+<p>Example:</p>
+<blockquote>
+<div>GET /api/v1/stats/1?method=median</div></blockquote>
+<p>Response:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>[</dt>
+<dd><dl class="first docutils">
+<dt>{</dt>
+<dd><dl class="first last docutils">
+<dt>&#8220;age&#8221;:</dt>
+<dd><dl class="first docutils">
+<dt>{</dt>
+<dd>&#8220;median&#8221;: 8,</dd>
+</dl>
+<p class="last">},</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="last">...</p>
+</dd>
+</dl>
+<p>]</p>
+</div></blockquote>
+<p>&#8220;&#8221;&#8220;</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="data.html"
+                        title="previous chapter">Data Lists</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="forms.html"
+                        title="next chapter">Forms</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/stats.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="forms.html" title="Forms"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="data.html" title="Data Lists"
+             >previous</a> |</li>
+        <li><a href="index.html">Onadata API 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Ona.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
