@@ -1,44 +1,57 @@
 Data Lists
-**********
-   """
+===========
+
 This endpoint provides access to submitted data in JSON format. Where:
 
-* `pk` - the form unique identifier
-* `dataid` - submission data unique identifier
-* `owner` - username of the owner(user/organization) of the data point
+- **pk** - the form unique identifier
+- **dataid** - submission data unique identifier
+- **owner** - username of the owner(user/organization) of the data point
+ 
 
-## GET JSON List of data end points
+GET JSON List of data end points
+--------------------------------
 
 Lists the data endpoints accessible to requesting user, for anonymous access
+
 a list of public data endpoints is returned.
 
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data
-</pre>
+**GET** /api/v1/data
+------------------------
 
-> Example
->
->       curl -X GET https://ona.io/api/v1/data
+Example
+----------
+::
+curl -X GET https://ona.io/api/v1/data
 
-> Response
->
->        [{
->            "id": 4240,
->            "id_string": "dhis2form"
->            "title": "dhis2form"
->            "description": "dhis2form"
->            "url": "https://ona.io/api/v1/data/4240"
->         },
->            ...
->        ]
+Response
+----------
+::
+        [{
 
-## GET JSON List of data end points using limit operators
+           "id": 4240,
+
+           "id_string": "dhis2form"
+
+          "title": "dhis2form"
+
+          "description": "dhis2form"
+
+            "url": "https://ona.io/api/v1/data/4240"
+
+         },
+           ...
+        ]
+
+GET JSON List of data end points using limit operators
+-------------------------------------------------------
 
 Lists the data endpoints accesible to the requesting user based on 'start'
 and/or 'limit' query parameters. Use the start parameter to skip a number
 of records and the limit parameter to limit the number of records returned.
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{pk}</code>?<code>start</code>=<code>start_value\
+
+GET  /api/v1/data/<code>{pk}</code>?<code>start</code>=<code>start_value\
+--------------------------------------------------------------------------
 </code>
 </pre>
 >
