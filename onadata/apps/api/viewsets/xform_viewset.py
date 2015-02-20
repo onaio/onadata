@@ -447,6 +447,42 @@ https://ona.io/api/v1/forms/28058
 >
 >       HTTP 204 NO CONTENT
 
+## Export form data asynchronously
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/<code>{pk}</code>/export_async
+</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls
+>
+> Response
+>
+>       HTTP 202 Accepted
+>       {"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
+>
+> You can use the `job_uuid` value to check the progress of data export
+
+## Check progress of exporting form data asynchronously
+
+<pre class="prettyprint">
+<b>GET</b> /api/v1/forms/<code>{pk}</code>/export_async?job_uuid=UUID
+</pre>
+> Example
+>
+>       curl -X GET https://ona.io/api/v1/forms/28058/export_async?job_uuid=\
+d1559e9e-5bab-480d-9804-e32111e8b2b8
+>
+> Response
+> If the job is done:-
+>
+>       HTTP 202 Accepted
+>       {
+>           "job_status": "SUCCESS",
+>           "export_url": "https://ona.io/api/v1/forms/28058.xls"
+>       }
+>
+
 ## Delete an XLS form asynchronously
 
 <pre class="prettyprint">
@@ -462,6 +498,7 @@ https://ona.io/api/v1/forms/28058
 >       {"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
 >
 > You can use the `job_uuid` value to check on the upload progress (see below)
+
 ## Check on XLS form deletion progress
 
 <pre class="prettyprint">
