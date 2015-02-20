@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Onadata API 1.0 documentation" href="index.html" />
-    <link rel="next" title="Stats" href="stats.html" />
+    <link rel="next" title="Stats List" href="stats.html" />
     <link rel="prev" title="Charts" href="charts.html" /> 
   </head>
   <body>
@@ -35,7 +35,7 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="stats.html" title="Stats"
+          <a href="stats.html" title="Stats List"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="charts.html" title="Charts"
@@ -60,406 +60,664 @@
 <div class="section" id="get-json-list-of-data-end-points">
 <h2>GET JSON List of data end points<a class="headerlink" href="#get-json-list-of-data-end-points" title="Permalink to this headline">¶</a></h2>
 <p>Lists the data endpoints accessible to requesting user, for anonymous access</p>
-<p>a list of public data endpoints is returned.</p>
-</div>
-<div class="section" id="get-api-v1-data">
-<h2><strong>GET</strong> /api/v1/data<a class="headerlink" href="#get-api-v1-data" title="Permalink to this headline">¶</a></h2>
+<p>a list of public data endpoints is returned.:</p>
+<div class="highlight-python"><div class="highlight"><pre>**GET** /api/v1/data
+</pre></div>
 </div>
 <div class="section" id="example">
-<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
-<p>::
-curl -X GET <a class="reference external" href="https://ona.io/api/v1/data">https://ona.io/api/v1/data</a></p>
+<h3>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/data
+</pre></div>
+</div>
 </div>
 <div class="section" id="response">
-<h2>Response<a class="headerlink" href="#response" title="Permalink to this headline">¶</a></h2>
-<dl class="docutils">
-<dt>::</dt>
-<dd><p class="first">[{</p>
+<h3>Response<a class="headerlink" href="#response" title="Permalink to this headline">¶</a></h3>
 <blockquote>
-<div><blockquote>
-<div><blockquote>
-<div><p>&#8220;id&#8221;: 4240,</p>
-<p>&#8220;id_string&#8221;: &#8220;dhis2form&#8221;</p>
+<div><div class="highlight-python"><div class="highlight"><pre>[{
+
+  &quot;id&quot;: 4240,
+
+  &quot;id_string&quot;: &quot;dhis2form&quot;
+
+  &quot;title&quot;: &quot;dhis2form&quot;
+
+  &quot;description&quot;: &quot;dhis2form&quot;
+
+  &quot;url&quot;: &quot;https://ona.io/api/v1/data/4240&quot;
+
+ },
+   ...
+]
+</pre></div>
+</div>
 </div></blockquote>
-<p>&#8220;title&#8221;: &#8220;dhis2form&#8221;</p>
-<p>&#8220;description&#8221;: &#8220;dhis2form&#8221;</p>
-<blockquote>
-<div>&#8220;url&#8221;: &#8220;<a class="reference external" href="https://ona.io/api/v1/data/4240">https://ona.io/api/v1/data/4240</a>&#8220;</div></blockquote>
-</div></blockquote>
-<dl class="docutils">
-<dt>},</dt>
-<dd>...</dd>
-</dl>
-</div></blockquote>
-<p class="last">]</p>
-</dd>
-</dl>
+</div>
 </div>
 <div class="section" id="get-json-list-of-data-end-points-using-limit-operators">
 <h2>GET JSON List of data end points using limit operators<a class="headerlink" href="#get-json-list-of-data-end-points-using-limit-operators" title="Permalink to this headline">¶</a></h2>
 <p>Lists the data endpoints accesible to the requesting user based on &#8216;start&#8217;
 and/or &#8216;limit&#8217; query parameters. Use the start parameter to skip a number
-of records and the limit parameter to limit the number of records returned.
-&lt;pre class=&#8221;prettyprint&#8221;&gt;</p>
+of records and the limit parameter to limit the number of records returned.:</p>
+<div class="highlight-python"><div class="highlight"><pre>    GET  /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;start&lt;/code&gt;=&lt;code&gt;start_value\
+
+curl -X GET &#39;https://ona.io/api/v1/data/2?start=5&#39;
+
+    GET /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;limit&lt;/code&gt;=&lt;code&gt;limit_value
+
+    curl -X GET &#39;https://ona.io/api/v1/data/2?limit=2&#39;
+
+    GET /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;start&lt;/code&gt;=&lt;code&gt;start_value
+    &lt;/code&gt;&amp;&lt;/code&gt;&lt;code&gt;limit&lt;/code&gt;=&lt;code&gt;limit_value&lt;/code&gt;
+
+    curl -X GET &#39;https://ona.io/api/v1/data/2?start=3&amp;limit=4&#39;
+</pre></div>
 </div>
-<div class="section" id="get-api-v1-data-code-pk-code-code-start-code-code-start-value">
-<h2>GET  /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;start&lt;/code&gt;=&lt;code&gt;start_value<a class="headerlink" href="#get-api-v1-data-code-pk-code-code-start-code-code-start-value" title="Permalink to this headline">¶</a></h2>
-<p>&lt;/code&gt;
-&lt;/pre&gt;
-&gt;
-&gt;       curl -X GET &#8216;<a class="reference external" href="https://ona.io/api/v1/data/2?start=5">https://ona.io/api/v1/data/2?start=5</a>&#8216;</p>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;limit&lt;/code&gt;=&lt;code&gt;limit_value&lt;/code&gt;
-&lt;/pre&gt;
-&gt;
-&gt;       curl -X GET &#8216;<a class="reference external" href="https://ona.io/api/v1/data/2?limit=2">https://ona.io/api/v1/data/2?limit=2</a>&#8216;</p>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;start&lt;/code&gt;=&lt;code&gt;start_value&lt;/code&gt;&amp;&lt;/code&gt;&lt;code&gt;limit&lt;/code&gt;=&lt;code&gt;limit_value&lt;/code&gt;
-&lt;/pre&gt;
-&gt;
-&gt;       curl -X GET &#8216;<a class="reference external" href="https://ona.io/api/v1/data/2?start=3&amp;limit=4">https://ona.io/api/v1/data/2?start=3&amp;limit=4</a>&#8216;</p>
-<p>## Download data in <cite>csv</cite> format
-&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data.csv&lt;/pre&gt;
-&gt;
-&gt;       curl -O <a class="reference external" href="https://ona.io/api/v1/data.csv">https://ona.io/api/v1/data.csv</a></p>
-<p>## GET JSON List of data end points filter by owner</p>
+</div>
+<div class="section" id="download-data-in-csv-format">
+<h2>Download data in <cite>csv</cite> format<a class="headerlink" href="#download-data-in-csv-format" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><div class="highlight"><pre>GET /api/v1/data.csv
+
+curl -O https://ona.io/api/v1/data.csv
+</pre></div>
+</div>
+</div>
+<div class="section" id="get-json-list-of-data-end-points-filter-by-owner">
+<h2>GET JSON List of data end points filter by owner<a class="headerlink" href="#get-json-list-of-data-end-points-filter-by-owner" title="Permalink to this headline">¶</a></h2>
 <p>Lists the data endpoints accessible to requesting user, for the specified
-<cite>owner</cite> as a query parameter.</p>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data?&lt;code&gt;owner&lt;/code&gt;=&lt;code&gt;owner_username&lt;/code&gt;
-&lt;/pre&gt;</p>
-<p>&gt; Example
-&gt;
-&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data?owner=ona">https://ona.io/api/v1/data?owner=ona</a></p>
-<p>## Get Submitted data for a specific form
-Provides a list of json submitted data for a specific form.
-&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;&lt;/pre&gt;
-&gt; Example
-&gt;
-&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/22845">https://ona.io/api/v1/data/22845</a></p>
-<p>&gt; Response
-&gt;
-&gt;        [
-&gt;            {
-&gt;                &#8220;_id&#8221;: 4503,
-&gt;                &#8220;_bamboo_dataset_id&#8221;: &#8220;&#8221;,
-&gt;                &#8220;_deleted_at&#8221;: null,
-&gt;                &#8220;expense_type&#8221;: &#8220;service&#8221;,
-&gt;                &#8220;_xform_id_string&#8221;: &#8220;exp&#8221;,
-&gt;                &#8220;_geolocation&#8221;: [
-&gt;                    null,
-&gt;                    null
-&gt;                ],
-&gt;                &#8220;end&#8221;: &#8220;2013-01-03T10:26:25.674+03&#8221;,
-&gt;                &#8220;start&#8221;: &#8220;2013-01-03T10:25:17.409+03&#8221;,
-&gt;                &#8220;expense_date&#8221;: &#8220;2011-12-23&#8221;,
-&gt;                &#8220;_status&#8221;: &#8220;submitted_via_web&#8221;,
-&gt;                &#8220;today&#8221;: &#8220;2013-01-03&#8221;,
-&gt;                &#8220;_uuid&#8221;: &#8220;2e599f6fe0de42d3a1417fb7d821c859&#8221;,
-&gt;                &#8220;imei&#8221;: &#8220;351746052013466&#8221;,
-&gt;                &#8220;formhub/uuid&#8221;: &#8220;46ea15e2b8134624a47e2c4b77eef0d4&#8221;,
-&gt;                &#8220;kind&#8221;: &#8220;monthly&#8221;,
-&gt;                &#8220;_submission_time&#8221;: &#8220;2013-01-03T02:27:19&#8221;,
-&gt;                &#8220;required&#8221;: &#8220;yes&#8221;,
-&gt;                &#8220;_attachments&#8221;: [],
-&gt;                &#8220;item&#8221;: &#8220;Rent&#8221;,
-&gt;                &#8220;amount&#8221;: &#8220;35000.0&#8221;,
-&gt;                &#8220;deviceid&#8221;: &#8220;351746052013466&#8221;,
-&gt;                &#8220;subscriberid&#8221;: &#8220;639027...60317&#8221;
-&gt;            },
-&gt;            {
-&gt;                ....
-&gt;                &#8220;subscriberid&#8221;: &#8220;639027...60317&#8221;
-&gt;            }
-&gt;        ]</p>
-<p>## Get a single data submission for a given form</p>
-<dl class="docutils">
-<dt>Get a single specific submission json data providing <cite>pk</cite></dt>
-<dd>and <cite>dataid</cite> as url path parameters, where:</dd>
-</dl>
+<cite>owner</cite> as a query parameter.:</p>
+<div class="highlight-python"><div class="highlight"><pre>GET&lt;/b&gt; /api/v1/data?&lt;code&gt;owner&lt;/code&gt;=&lt;code&gt;owner_username&lt;/code&gt;
+</pre></div>
+</div>
+<div class="section" id="id1">
+<h3>Example<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/data?owner=ona
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="get-submitted-data-for-a-specific-form">
+<h2>Get Submitted data for a specific form<a class="headerlink" href="#get-submitted-data-for-a-specific-form" title="Permalink to this headline">¶</a></h2>
+<p>Provides a list of json submitted data for a specific form.</p>
+<div class="highlight-python"><div class="highlight"><pre>GET /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;
+</pre></div>
+</div>
+</div>
+<div class="section" id="id2">
+<h2>Example<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/data/22845
+</pre></div>
+</div>
+<div class="section" id="id3">
+<h3>Response<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>[
+
+     {
+
+         &quot;_id&quot;: 4503,
+
+         &quot;_bamboo_dataset_id&quot;: &quot;&quot;,
+
+         &quot;_deleted_at&quot;: null,
+
+         &quot;expense_type&quot;: &quot;service&quot;,
+
+         &quot;_xform_id_string&quot;: &quot;exp&quot;,
+
+         &quot;_geolocation&quot;: [
+
+             null,
+
+             null
+
+         ],
+
+         &quot;end&quot;: &quot;2013-01-03T10:26:25.674+03&quot;,
+
+         &quot;start&quot;: &quot;2013-01-03T10:25:17.409+03&quot;,
+
+         &quot;expense_date&quot;: &quot;2011-12-23&quot;,
+
+         &quot;_status&quot;: &quot;submitted_via_web&quot;,
+
+         &quot;today&quot;: &quot;2013-01-03&quot;,
+
+         &quot;_uuid&quot;: &quot;2e599f6fe0de42d3a1417fb7d821c859&quot;,
+
+         &quot;imei&quot;: &quot;351746052013466&quot;,
+
+         &quot;formhub/uuid&quot;: &quot;46ea15e2b8134624a47e2c4b77eef0d4&quot;,
+
+         &quot;kind&quot;: &quot;monthly&quot;,
+
+         &quot;_submission_time&quot;: &quot;2013-01-03T02:27:19&quot;,
+
+         &quot;required&quot;: &quot;yes&quot;,
+
+         &quot;_attachments&quot;: [],
+
+         &quot;item&quot;: &quot;Rent&quot;,
+
+         &quot;amount&quot;: &quot;35000.0&quot;,
+
+         &quot;deviceid&quot;: &quot;351746052013466&quot;,
+
+         &quot;subscriberid&quot;: &quot;639027...60317&quot;
+
+     },
+
+     {....
+
+         &quot;subscriberid&quot;: &quot;639027...60317&quot;
+
+     }
+
+ ]
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="get-a-single-data-submission-for-a-given-form">
+<h2>Get a single data submission for a given form<a class="headerlink" href="#get-a-single-data-submission-for-a-given-form" title="Permalink to this headline">¶</a></h2>
+<p>Get a single specific submission json data providing <cite>pk</cite></p>
+<p>and <cite>dataid</cite> as url path parameters, where:</p>
 <ul class="simple">
 <li><cite>pk</cite> - is the identifying number for a specific form</li>
 <li><cite>dataid</cite> - is the unique id of the data, the value of <cite>_id</cite> or <cite>_uuid</cite></li>
 </ul>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;&lt;/pre&gt;
-&gt; Example
-&gt;
-&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/22845/4503">https://ona.io/api/v1/data/22845/4503</a></p>
-<p>&gt; Response
-&gt;
-&gt;            {
-&gt;                &#8220;_id&#8221;: 4503,
-&gt;                &#8220;_bamboo_dataset_id&#8221;: &#8220;&#8221;,
-&gt;                &#8220;_deleted_at&#8221;: null,
-&gt;                &#8220;expense_type&#8221;: &#8220;service&#8221;,
-&gt;                &#8220;_xform_id_string&#8221;: &#8220;exp&#8221;,
-&gt;                &#8220;_geolocation&#8221;: [
-&gt;                    null,
-&gt;                    null
-&gt;                ],
-&gt;                &#8220;end&#8221;: &#8220;2013-01-03T10:26:25.674+03&#8221;,
-&gt;                &#8220;start&#8221;: &#8220;2013-01-03T10:25:17.409+03&#8221;,
-&gt;                &#8220;expense_date&#8221;: &#8220;2011-12-23&#8221;,
-&gt;                &#8220;_status&#8221;: &#8220;submitted_via_web&#8221;,
-&gt;                &#8220;today&#8221;: &#8220;2013-01-03&#8221;,
-&gt;                &#8220;_uuid&#8221;: &#8220;2e599f6fe0de42d3a1417fb7d821c859&#8221;,
-&gt;                &#8220;imei&#8221;: &#8220;351746052013466&#8221;,
-&gt;                &#8220;formhub/uuid&#8221;: &#8220;46ea15e2b8134624a47e2c4b77eef0d4&#8221;,
-&gt;                &#8220;kind&#8221;: &#8220;monthly&#8221;,
-&gt;                &#8220;_submission_time&#8221;: &#8220;2013-01-03T02:27:19&#8221;,
-&gt;                &#8220;required&#8221;: &#8220;yes&#8221;,
-&gt;                &#8220;_attachments&#8221;: [],
-&gt;                &#8220;item&#8221;: &#8220;Rent&#8221;,
-&gt;                &#8220;amount&#8221;: &#8220;35000.0&#8221;,
-&gt;                &#8220;deviceid&#8221;: &#8220;351746052013466&#8221;,
-&gt;                &#8220;subscriberid&#8221;: &#8220;639027...60317&#8221;
-&gt;            },
-&gt;            {
-&gt;                ....
-&gt;                &#8220;subscriberid&#8221;: &#8220;639027...60317&#8221;
-&gt;            }
-&gt;        ]</p>
-<p>## Query submitted data of a specific form
-Provides a list of json submitted data for a specific form. Use <cite>query</cite>
-parameter to apply form data specific, see
-&lt;a href=&#8221;<a class="reference external" href="http://docs.mongodb.org/manual/reference/operator/query/">http://docs.mongodb.org/manual/reference/operator/query/</a>&#8220;&gt;
-<a class="reference external" href="http://docs.mongodb.org/manual/reference/operator/query">http://docs.mongodb.org/manual/reference/operator/query</a>/&lt;/a&gt;.</p>
-<p>For more details see
-&lt;a href=&#8221;<a class="reference external" href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API">https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API</a>)#
-api-parameters&#8221;&gt;
+<div class="highlight-python"><div class="highlight"><pre>GET /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;
+</pre></div>
+</div>
+<div class="section" id="id4">
+<h3>Example<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/data/22845/4503
+</pre></div>
+</div>
+</div>
+<div class="section" id="id5">
+<h3>Response<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>    {
+
+        &quot;_id&quot;: 4503,
+
+        &quot;_bamboo_dataset_id&quot;: &quot;&quot;,
+
+        &quot;_deleted_at&quot;: null,
+
+        &quot;expense_type&quot;: &quot;service&quot;,
+
+        &quot;_xform_id_string&quot;: &quot;exp&quot;,
+
+        &quot;_geolocation&quot;: [
+
+            null,
+
+            null
+
+        ],
+
+        &quot;end&quot;: &quot;2013-01-03T10:26:25.674+03&quot;,
+
+        &quot;start&quot;: &quot;2013-01-03T10:25:17.409+03&quot;,
+
+        &quot;expense_date&quot;: &quot;2011-12-23&quot;,
+
+        &quot;_status&quot;: &quot;submitted_via_web&quot;,
+
+        &quot;today&quot;: &quot;2013-01-03&quot;,
+
+        &quot;_uuid&quot;: &quot;2e599f6fe0de42d3a1417fb7d821c859&quot;,
+
+        &quot;imei&quot;: &quot;351746052013466&quot;,
+
+        &quot;formhub/uuid&quot;: &quot;46ea15e2b8134624a47e2c4b77eef0d4&quot;,
+
+        &quot;kind&quot;: &quot;monthly&quot;,
+
+        &quot;_submission_time&quot;: &quot;2013-01-03T02:27:19&quot;,
+
+        &quot;required&quot;: &quot;yes&quot;,
+
+        &quot;_attachments&quot;: [],
+
+        &quot;item&quot;: &quot;Rent&quot;,
+
+        &quot;amount&quot;: &quot;35000.0&quot;,
+
+        &quot;deviceid&quot;: &quot;351746052013466&quot;,
+
+        &quot;subscriberid&quot;: &quot;639027...60317&quot;
+
+    },
+
+    {
+
+        ....
+
+        &quot;subscriberid&quot;: &quot;639027...60317&quot;
+
+    }
+
+]
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="query-submitted-data-of-a-specific-form">
+<h2>Query submitted data of a specific form<a class="headerlink" href="#query-submitted-data-of-a-specific-form" title="Permalink to this headline">¶</a></h2>
+<p>Provides a list of json submitted data for a specific form. Use <cite>query</cite></p>
+<p>parameter to apply form data specific, see</p>
+<div class="section" id="for-more-details-see">
+<h3>For more details see<a class="headerlink" href="#for-more-details-see" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>&lt;a href=&quot;https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)#
+api-parameters&quot;&gt;
 API Parameters&lt;/a&gt;.
-&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?query={&#8220;field&#8221;:&#8221;value&#8221;}&lt;/b&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?query={&#8220;field&#8221;:{&#8220;op&#8221;: &#8220;value&#8221;}}&#8221;&lt;/b&gt;
-&lt;/pre&gt;
-&gt; Example
-&gt;
-&gt;       curl -X GET &#8216;<a class="reference external" href="https://ona.io/api/v1/data/22845">https://ona.io/api/v1/data/22845</a>?query={&#8220;kind&#8221;: &#8220;monthly&#8221;}&#8217;
-&gt;       curl -X GET &#8216;<a class="reference external" href="https://ona.io/api/v1/data/22845">https://ona.io/api/v1/data/22845</a>?query={&#8220;date&#8221;: {&#8220;$gt&#8221;: &#8220;2014-09-29T01:02:03+0000&#8221;}}&#8217;</p>
-<p>&gt; Response
-&gt;
-&gt;        [
-&gt;            {
-&gt;                &#8220;_id&#8221;: 4503,
-&gt;                &#8220;_bamboo_dataset_id&#8221;: &#8220;&#8221;,
-&gt;                &#8220;_deleted_at&#8221;: null,
-&gt;                &#8220;expense_type&#8221;: &#8220;service&#8221;,
-&gt;                &#8220;_xform_id_string&#8221;: &#8220;exp&#8221;,
-&gt;                &#8220;_geolocation&#8221;: [
-&gt;                    null,
-&gt;                    null
-&gt;                ],
-&gt;                &#8220;end&#8221;: &#8220;2013-01-03T10:26:25.674+03&#8221;,
-&gt;                &#8220;start&#8221;: &#8220;2013-01-03T10:25:17.409+03&#8221;,
-&gt;                &#8220;expense_date&#8221;: &#8220;2011-12-23&#8221;,
-&gt;                &#8220;_status&#8221;: &#8220;submitted_via_web&#8221;,
-&gt;                &#8220;today&#8221;: &#8220;2013-01-03&#8221;,
-&gt;                &#8220;_uuid&#8221;: &#8220;2e599f6fe0de42d3a1417fb7d821c859&#8221;,
-&gt;                &#8220;imei&#8221;: &#8220;351746052013466&#8221;,
-&gt;                &#8220;formhub/uuid&#8221;: &#8220;46ea15e2b8134624a47e2c4b77eef0d4&#8221;,
-&gt;                &#8220;kind&#8221;: &#8220;monthly&#8221;,
-&gt;                &#8220;_submission_time&#8221;: &#8220;2013-01-03T02:27:19&#8221;,
-&gt;                &#8220;required&#8221;: &#8220;yes&#8221;,
-&gt;                &#8220;_attachments&#8221;: [],
-&gt;                &#8220;item&#8221;: &#8220;Rent&#8221;,
-&gt;                &#8220;amount&#8221;: &#8220;35000.0&#8221;,
-&gt;                &#8220;deviceid&#8221;: &#8220;351746052013466&#8221;,
-&gt;                &#8220;subscriberid&#8221;: &#8220;639027...60317&#8221;
-&gt;            },
-&gt;            {
-&gt;                ....
-&gt;                &#8220;subscriberid&#8221;: &#8220;639027...60317&#8221;
-&gt;            }
-&gt;        ]</p>
-<p>## Query submitted data of a specific form using Tags
-Provides a list of json submitted data for a specific form matching specific
+
+GET /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?query={&quot;field&quot;:&quot;value&quot;}&lt;/b&gt;
+GET /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?query={&quot;field&quot;:{&quot;op&quot;: &quot;value&quot;}}&quot;&lt;/b&gt;
+</pre></div>
+</div>
+</div>
+<div class="section" id="id6">
+<h3>Example<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>    curl -X GET &#39;https://ona.io/api/v1/data/22845?query={&quot;kind&quot;:
+&quot;monthly&quot;}&#39;
+    curl -X GET &#39;https://ona.io/api/v1/data/22845?query={&quot;date&quot;:
+
+{&quot;$gt&quot;: &quot;2014-09-29T01:02:03+0000&quot;}}&#39;
+</pre></div>
+</div>
+</div>
+<div class="section" id="id7">
+<h3>Response<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[</span>
+
+    <span class="p">{</span>
+
+        <span class="s">&quot;_id&quot;</span><span class="p">:</span> <span class="mi">4503</span><span class="p">,</span>
+
+        <span class="s">&quot;_bamboo_dataset_id&quot;</span><span class="p">:</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;_deleted_at&quot;</span><span class="p">:</span> <span class="n">null</span><span class="p">,</span>
+
+        <span class="s">&quot;expense_type&quot;</span><span class="p">:</span> <span class="s">&quot;service&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;_xform_id_string&quot;</span><span class="p">:</span> <span class="s">&quot;exp&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;_geolocation&quot;</span><span class="p">:</span> <span class="p">[</span>
+
+            <span class="n">null</span><span class="p">,</span>
+
+            <span class="n">null</span>
+
+       <span class="p">],</span>
+
+        <span class="s">&quot;end&quot;</span><span class="p">:</span> <span class="s">&quot;2013-01-03T10:26:25.674+03&quot;</span><span class="p">,</span>
+
+       <span class="s">&quot;start&quot;</span><span class="p">:</span> <span class="s">&quot;2013-01-03T10:25:17.409+03&quot;</span><span class="p">,</span>
+
+       <span class="s">&quot;expense_date&quot;</span><span class="p">:</span> <span class="s">&quot;2011-12-23&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;_status&quot;</span><span class="p">:</span> <span class="s">&quot;submitted_via_web&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;today&quot;</span><span class="p">:</span> <span class="s">&quot;2013-01-03&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;_uuid&quot;</span><span class="p">:</span> <span class="s">&quot;2e599f6fe0de42d3a1417fb7d821c859&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;imei&quot;</span><span class="p">:</span> <span class="s">&quot;351746052013466&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;formhub/uuid&quot;</span><span class="p">:</span> <span class="s">&quot;46ea15e2b8134624a47e2c4b77eef0d4&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;kind&quot;</span><span class="p">:</span> <span class="s">&quot;monthly&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;_submission_time&quot;</span><span class="p">:</span> <span class="s">&quot;2013-01-03T02:27:19&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;required&quot;</span><span class="p">:</span> <span class="s">&quot;yes&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;_attachments&quot;</span><span class="p">:</span> <span class="p">[],</span>
+
+        <span class="s">&quot;item&quot;</span><span class="p">:</span> <span class="s">&quot;Rent&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;amount&quot;</span><span class="p">:</span> <span class="s">&quot;35000.0&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;deviceid&quot;</span><span class="p">:</span> <span class="s">&quot;351746052013466&quot;</span><span class="p">,</span>
+
+        <span class="s">&quot;subscriberid&quot;</span><span class="p">:</span> <span class="s">&quot;639027...60317&quot;</span>
+
+    <span class="p">},</span>
+
+    <span class="p">{</span>
+
+        <span class="s">&quot;subscriberid&quot;</span><span class="p">:</span> <span class="s">&quot;639027...60317&quot;</span>
+
+    <span class="p">}</span>
+
+<span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="query-submitted-data-of-a-specific-form-using-tags">
+<h2>Query submitted data of a specific form using Tags<a class="headerlink" href="#query-submitted-data-of-a-specific-form-using-tags" title="Permalink to this headline">¶</a></h2>
+<p>Provides a list of json submitted data for a specific form matching specific
 tags. Use the <cite>tags</cite> query parameter to filter the list of forms, <cite>tags</cite>
-should be a comma separated list of tags.</p>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data?&lt;code&gt;tags&lt;/code&gt;=&lt;code&gt;tag1,tag2&lt;/code&gt;&lt;/pre&gt;
-&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;tags&lt;/code&gt;=&lt;code&gt;tag1,tag2&lt;/code&gt;&lt;/pre&gt;</p>
-<p>&gt; Example
-&gt;
-&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/22845?tags=monthly">https://ona.io/api/v1/data/22845?tags=monthly</a></p>
-<p>## Tag a submission data point</p>
+should be a comma separated list of tags.:</p>
+<div class="highlight-python"><div class="highlight"><pre>    GET /api/v1/data?&lt;code&gt;tags&lt;/code&gt;=&lt;code&gt;tag1,tag2&lt;/code&gt;
+GET /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;tags\&lt;/code&gt;=&lt;code&gt;tag1,tag2&lt;/code&gt;
+</pre></div>
+</div>
+<div class="section" id="id8">
+<h3>Example<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/data/22845?tags=monthly
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="tag-a-submission-data-point">
+<h2>Tag a submission data point<a class="headerlink" href="#tag-a-submission-data-point" title="Permalink to this headline">¶</a></h2>
 <p>A <cite>POST</cite> payload of parameter <cite>tags</cite> with a comma separated list of tags.</p>
-<p>Examples</p>
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li><cite>animal fruit denim</cite> - space delimited, no commas</li>
 <li><cite>animal, fruit denim</cite> - comma delimited</li>
 </ul>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;POST&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;/labels&lt;/pre&gt;</p>
-<p>Payload</p>
-<blockquote>
-<div>{&#8220;tags&#8221;: &#8220;tag1, tag2&#8221;}</div></blockquote>
-<p>## Delete a specific tag from a submission</p>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;DELETE&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;/labels/&lt;code&gt;tag_name&lt;/code&gt;&lt;/pre&gt;</p>
-<p>&gt; Request
-&gt;
-&gt;       curl -X DELETE <a class="reference external" href="https://ona.io/api/v1/data/28058/20/labels/tag1">https://ona.io/api/v1/data/28058/20/labels/tag1</a>
-or to delete the tag &#8220;hello world&#8221;
-&gt;
-&gt;       curl -X DELETE <a class="reference external" href="https://ona.io/api/v1/data/28058/20/labels/hello%20world">https://ona.io/api/v1/data/28058/20/labels/hello%20world</a>
-&gt;
-&gt; Response
-&gt;
-&gt;        HTTP 200 OK</p>
-<p>## Get list of public data endpoints</p>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/public
-&lt;/pre&gt;</p>
-<p>&gt; Example
-&gt;
-&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/public">https://ona.io/api/v1/data/public</a></p>
-<p>&gt; Response
-&gt;
-&gt;        [{
-&gt;            &#8220;id&#8221;: 4240,
-&gt;            &#8220;id_string&#8221;: &#8220;dhis2form&#8221;
-&gt;            &#8220;title&#8221;: &#8220;dhis2form&#8221;
-&gt;            &#8220;description&#8221;: &#8220;dhis2form&#8221;
-&gt;            &#8220;url&#8221;: &#8220;<a class="reference external" href="https://ona.io/api/v1/data/4240">https://ona.io/api/v1/data/4240</a>&#8221;
-&gt;         },
-&gt;            ...
-&gt;        ]</p>
-<p>## Get enketo edit link for a submission instance</p>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;/enketo
-&lt;/pre&gt;</p>
-<p>&gt; Example
-&gt;
-&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/28058/20/enketo?return_url=url">https://ona.io/api/v1/data/28058/20/enketo?return_url=url</a></p>
-<p>&gt; Response
-&gt;       {&#8220;url&#8221;: &#8220;<a class="reference external" href="https://hmh2a.enketo.formhub.org">https://hmh2a.enketo.formhub.org</a>&#8220;}
-&gt;
-&gt;</p>
-<p>## Delete a specific submission instance</p>
-<p>Delete a specific submission in a form</p>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;DELETE&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;
-&lt;/pre&gt;</p>
-<p>&gt; Example
-&gt;
-&gt;       curl -X DELETE <a class="reference external" href="https://ona.io/api/v1/data/28058/20">https://ona.io/api/v1/data/28058/20</a></p>
-<p>&gt; Response
-&gt;
-&gt;       HTTP 204 No Content
-&gt;
-&gt;</p>
-<p>## GEOJSON</p>
+<div class="highlight-python"><div class="highlight"><pre>POST /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;/labels
+</pre></div>
+</div>
+<p><strong>Payload</strong></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span><span class="s">&quot;tags&quot;</span><span class="p">:</span> <span class="s">&quot;tag1, tag2&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="delete-a-specific-tag-from-a-submission">
+<h2>Delete a specific tag from a submission<a class="headerlink" href="#delete-a-specific-tag-from-a-submission" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><div class="highlight"><pre>DELETE /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;\
+{dataid}&lt;/code&gt;/labels/&lt;code&gt;tag_name&lt;/code&gt;&lt;/pre&gt;
+</pre></div>
+</div>
+<div class="section" id="request">
+<h3>Request<a class="headerlink" href="#request" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>      curl -X DELETE
+
+https://ona.io/api/v1/data/28058/20/labels/tag1
+
+or to delete the tag &quot;hello world&quot;
+
+     curl -X DELETE \
+
+https://ona.io/api/v1/data/28058/20/labels/hello%20world
+</pre></div>
+</div>
+</div>
+<div class="section" id="id9">
+<h3>Response<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>HTTP 200 OK
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="get-list-of-public-data-endpoints">
+<h2>Get list of public data endpoints<a class="headerlink" href="#get-list-of-public-data-endpoints" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">GET</span> <span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">v1</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">public</span>
+</pre></div>
+</div>
+<div class="section" id="id10">
+<h3>Example<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/data/public
+</pre></div>
+</div>
+</div>
+<div class="section" id="id11">
+<h3>Response<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>[{
+
+       &quot;id&quot;: 4240,
+
+       &quot;id_string&quot;: &quot;dhis2form&quot;
+
+       &quot;title&quot;: &quot;dhis2form&quot;
+
+       &quot;description&quot;: &quot;dhis2form&quot;
+
+       &quot;url&quot;: &quot;https://ona.io/api/v1/data/4240&quot;
+
+    },
+
+       ...
+
+   ]
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="get-enketo-edit-link-for-a-submission-instance">
+<h2>Get enketo edit link for a submission instance<a class="headerlink" href="#get-enketo-edit-link-for-a-submission-instance" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><div class="highlight"><pre>GET /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;/enketo
+</pre></div>
+</div>
+<div class="section" id="id12">
+<h3>Example<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/data/28058/20/enketo?return_url=url
+</pre></div>
+</div>
+</div>
+<div class="section" id="id13">
+<h3>Response<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span><span class="s">&quot;url&quot;</span><span class="p">:</span> <span class="s">&quot;https://hmh2a.enketo.formhub.org&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="delete-a-specific-submission-instance">
+<h2>Delete a specific submission instance<a class="headerlink" href="#delete-a-specific-submission-instance" title="Permalink to this headline">¶</a></h2>
+<p><strong>Delete a specific submission in a form</strong></p>
+<div class="highlight-python"><div class="highlight"><pre>DELETE /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;
+</pre></div>
+</div>
+<div class="section" id="id14">
+<h3>Example<a class="headerlink" href="#id14" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>curl -X DELETE https://ona.io/api/v1/data/28058/20
+</pre></div>
+</div>
+</div>
+<div class="section" id="id15">
+<h3>Response<a class="headerlink" href="#id15" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>HTTP 204 No Content
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="geojson">
+<h2>GEOJSON<a class="headerlink" href="#geojson" title="Permalink to this headline">¶</a></h2>
 <p>Get a valid geojson value from the submissions</p>
-<p>Options</p>
-<ul class="simple">
-<li><cite>geo_field</cite> - valid field that can be converted to a geojson.</li>
+<p><strong>Options</strong></p>
+<ul>
+<li><p class="first"><cite>geo_field</cite> - valid field that can be converted to a geojson.</p>
+<blockquote>
+<div><p>(Point, LineString, Polygon)</p>
+</div></blockquote>
+</li>
+<li><p class="first"><cite>fields</cite> - additional comma separated values that are to be added to the</p>
+<blockquote>
+<div><p>properties section</p>
+</div></blockquote>
+</li>
 </ul>
-<p>(Point, LineString, Polygon)
-* <cite>fields</cite> - additional comma separated values that are to be added to the
-properties section</p>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;.geojson
-&lt;/pre&gt;</p>
-<p>With options
-&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;.geojson?geo_field=&lt;code&gt;{field_name}&lt;/code&gt;&amp;fields=&lt;code&gt;{list,of,fields}&lt;/code&gt;
-&lt;/pre&gt;</p>
-<p>&gt; Example
-&gt;
-&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/28058/20.geojson">https://ona.io/api/v1/data/28058/20.geojson</a></p>
-<p>&gt; Response
-&gt;
-&gt;       HTTP 200 OK
-&gt; Response
-&gt;
-&gt;        {
-&gt;           &#8220;type&#8221;: &#8220;Feature&#8221;,
-&gt;           &#8220;geometry&#8221;:
-&gt;               {
-&gt;                   &#8220;type&#8221;: &#8220;GeometryCollection&#8221;,
-&gt;                    &#8220;geometries&#8221;:
-&gt;                       [{
-&gt;                           &#8220;type&#8221;: &#8220;Point&#8221;,
-&gt;                           &#8220;coordinates&#8221;:
-&gt;                               [36.787219, -1.294197]
-&gt;                       }]
-&gt;               },
-&gt;           &#8220;properties&#8221;:
-&gt;               {
-&gt;                   &#8220;id&#8221;: 6448,
-&gt;                    &#8220;xform&#8221;: 65
-&gt;               }
-&gt;       }
-&gt;</p>
-<p>List the geojson values</p>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;.geojson
-&lt;/pre&gt;</p>
-<p>&gt; Example
-&gt;
-&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/28058.geojson">https://ona.io/api/v1/data/28058.geojson</a></p>
-<p>&gt; Response
-&gt;
-&gt;       HTTP 200 OK
-&gt; Response
-&gt;
-&gt;        {
-&gt;           &#8220;type&#8221;: &#8220;FeatureCollection&#8221;,
-&gt;            &#8220;features&#8221;:
-&gt;               [{
-&gt;                   &#8220;type&#8221;: &#8220;Feature&#8221;,
-&gt;                    &#8220;geometry&#8221;:
-&gt;                       {
-&gt;                       &#8220;type&#8221;: &#8220;GeometryCollection&#8221;,
-&gt;                        &#8220;geometries&#8221;:
-&gt;                           [{
-&gt;                               &#8220;type&#8221;: &#8220;Point&#8221;,
-&gt;                                &#8220;coordinates&#8221;: [36.787219, -1.294197]
-&gt;                           }]
-&gt;                       },
-&gt;                    &#8220;properties&#8221;:
-&gt;                       {&#8220;id&#8221;: 6448, &#8220;xform&#8221;: 65}
-&gt;               },
-&gt;                {
-&gt;                    &#8220;type&#8221;: &#8220;Feature&#8221;,
-&gt;                     &#8220;geometry&#8221;:
-&gt;                        {
-&gt;                           &#8220;type&#8221;: &#8220;GeometryCollection&#8221;,
-&gt;                            &#8220;geometries&#8221;:
-&gt;                               [{
-&gt;                                   &#8220;type&#8221;: &#8220;Point&#8221;,
-&gt;                                    &#8220;coordinates&#8221;: [36.7872606, -1.2942131]
-&gt;                               }]
-&gt;                        },
-&gt;                      &#8220;properties&#8221;:
-&gt;                           {&#8220;id&#8221;: 6447, &#8220;xform&#8221;: 65}
-&gt;               }]
-&gt;        }</p>
-<p>## OSM</p>
+<div class="highlight-python"><div class="highlight"><pre>GET  /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;.geojson
+</pre></div>
+</div>
+<p><strong>With options</strong></p>
+<div class="highlight-python"><div class="highlight"><pre>GET /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{dataid}&lt;/code&gt;.geojson?\
+geo_field=&lt;code&gt;{field_name}&lt;/code&gt;&amp;fields=&lt;code&gt;{list,of,fields}&lt;/code&gt;
+</pre></div>
+</div>
+<div class="section" id="id16">
+<h3>Example<a class="headerlink" href="#id16" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/data/28058/20.geojson
+</pre></div>
+</div>
+</div>
+<div class="section" id="id17">
+<h3>Response<a class="headerlink" href="#id17" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>HTTP 200 OK
+</pre></div>
+</div>
+</div>
+<div class="section" id="id18">
+<h3>Response<a class="headerlink" href="#id18" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre> {
+
+    &quot;type&quot;: &quot;Feature&quot;,
+
+    &quot;geometry&quot;:
+
+        {
+
+            &quot;type&quot;: &quot;GeometryCollection&quot;,
+
+             &quot;geometries&quot;:
+
+                [{
+
+                    &quot;type&quot;: &quot;Point&quot;,
+
+                   &quot;coordinates&quot;:
+
+                        [36.787219, -1.294197]
+
+               }]
+
+        },
+
+    &quot;properties&quot;:
+
+       {
+
+            &quot;id&quot;: 6448,
+
+             &quot;xform&quot;: 65
+
+        }
+
+}
+</pre></div>
+</div>
+<p><strong>List the geojson values</strong></p>
+<div class="highlight-python"><div class="highlight"><pre>GET /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;.geojson
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="id19">
+<h2>Example<a class="headerlink" href="#id19" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><div class="highlight"><pre>     curl -X GET https://ona.io/api/v1/data/28058.geojson
+
+Response
+--------
+
+   **HTTP 200 OK**
+</pre></div>
+</div>
+<div class="section" id="id20">
+<h3>Response<a class="headerlink" href="#id20" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">{</span>
+
+   <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;FeatureCollection&quot;</span><span class="p">,</span>
+
+    <span class="s">&quot;features&quot;</span><span class="p">:</span>
+
+       <span class="p">[{</span>
+
+           <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;Feature&quot;</span><span class="p">,</span>
+
+            <span class="s">&quot;geometry&quot;</span><span class="p">:</span>
+
+               <span class="p">{</span>
+
+               <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;GeometryCollection&quot;</span><span class="p">,</span>
+
+                <span class="s">&quot;geometries&quot;</span><span class="p">:</span>
+
+                   <span class="p">[{</span>
+
+                       <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;Point&quot;</span><span class="p">,</span>
+
+                        <span class="s">&quot;coordinates&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">36.787219</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.294197</span><span class="p">]</span>
+
+                   <span class="p">}]</span>
+
+               <span class="p">},</span>
+
+            <span class="s">&quot;properties&quot;</span><span class="p">:</span>
+
+               <span class="p">{</span><span class="s">&quot;id&quot;</span><span class="p">:</span> <span class="mi">6448</span><span class="p">,</span> <span class="s">&quot;xform&quot;</span><span class="p">:</span> <span class="mi">65</span><span class="p">}</span>
+
+       <span class="p">},</span>
+
+        <span class="p">{</span>
+            <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;Feature&quot;</span><span class="p">,</span>
+
+             <span class="s">&quot;geometry&quot;</span><span class="p">:</span>
+
+                <span class="p">{</span>
+
+                   <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;GeometryCollection&quot;</span><span class="p">,</span>
+
+                    <span class="s">&quot;geometries&quot;</span><span class="p">:</span>
+
+                       <span class="p">[{</span>
+
+                           <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;Point&quot;</span><span class="p">,</span>
+
+                            <span class="s">&quot;coordinates&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">36.7872606</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.2942131</span><span class="p">]</span>
+
+                       <span class="p">}]</span>
+
+                <span class="p">},</span>
+
+              <span class="s">&quot;properties&quot;</span><span class="p">:</span>
+
+                   <span class="p">{</span><span class="s">&quot;id&quot;</span><span class="p">:</span> <span class="mi">6447</span><span class="p">,</span> <span class="s">&quot;xform&quot;</span><span class="p">:</span> <span class="mi">65</span><span class="p">}</span>
+
+       <span class="p">}]</span>
+
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="osm">
+<h2>OSM<a class="headerlink" href="#osm" title="Permalink to this headline">¶</a></h2>
 <dl class="docutils">
 <dt>The <cite>.osm</cite> file format concatenates all the files for a form or individual</dt>
 <dd>submission. When the <cite>.json</cite> endpoint is accessed, the individual osm files
 are listed on the <cite>_attachments</cite> key.</dd>
 </dl>
-<p>### OSM endpoint for all osm files uploaded to a form concatenated.</p>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;.osm
-&lt;/pre&gt;</p>
-<p>&gt; Example
-&gt;
-&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/28058.osm">https://ona.io/api/v1/data/28058.osm</a></p>
-<p>### OSM endpoint with all osm files for a specific submission concatenated.</p>
-<p>&lt;pre class=&#8221;prettyprint&#8221;&gt;
-&lt;b&gt;GET&lt;/b&gt; /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{data_id}&lt;/code&gt;.osm
-&lt;/pre&gt;</p>
-<p>&gt; Example
-&gt;
-&gt;       curl -X GET <a class="reference external" href="https://ona.io/api/v1/data/28058/20.osm">https://ona.io/api/v1/data/28058/20.osm</a></p>
-<p>&#8220;&#8221;&#8220;</p>
+<div class="section" id="osm-endpoint-for-all-osm-files-uploaded-to-a-form-concatenated">
+<h3>OSM endpoint for all osm files uploaded to a form concatenated.<a class="headerlink" href="#osm-endpoint-for-all-osm-files-uploaded-to-a-form-concatenated" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>GET /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;.osm
+</pre></div>
+</div>
+</div>
+<div class="section" id="id21">
+<h3>Example<a class="headerlink" href="#id21" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/data/28058.osm
+</pre></div>
+</div>
+</div>
+<div class="section" id="osm-endpoint-with-all-osm-files-for-a-specific-submission-concatenated">
+<h3>OSM endpoint with all osm files for a specific submission concatenated.<a class="headerlink" href="#osm-endpoint-with-all-osm-files-for-a-specific-submission-concatenated" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>GET /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;/&lt;code&gt;{data_id}&lt;/code&gt;.osm
+</pre></div>
+</div>
+</div>
+<div class="section" id="id22">
+<h3>Example<a class="headerlink" href="#id22" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/data/28058/20.osm
+</pre></div>
+</div>
+</div>
 </div>
 </div>
 
@@ -472,12 +730,78 @@ are listed on the <cite>_attachments</cite> key.</dd>
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Data Lists</a><ul>
-<li><a class="reference internal" href="#get-json-list-of-data-end-points">GET JSON List of data end points</a></li>
-<li><a class="reference internal" href="#get-api-v1-data"><strong>GET</strong> /api/v1/data</a></li>
+<li><a class="reference internal" href="#get-json-list-of-data-end-points">GET JSON List of data end points</a><ul>
 <li><a class="reference internal" href="#example">Example</a></li>
 <li><a class="reference internal" href="#response">Response</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#get-json-list-of-data-end-points-using-limit-operators">GET JSON List of data end points using limit operators</a></li>
-<li><a class="reference internal" href="#get-api-v1-data-code-pk-code-code-start-code-code-start-value">GET  /api/v1/data/&lt;code&gt;{pk}&lt;/code&gt;?&lt;code&gt;start&lt;/code&gt;=&lt;code&gt;start_value</a></li>
+<li><a class="reference internal" href="#download-data-in-csv-format">Download data in <cite>csv</cite> format</a></li>
+<li><a class="reference internal" href="#get-json-list-of-data-end-points-filter-by-owner">GET JSON List of data end points filter by owner</a><ul>
+<li><a class="reference internal" href="#id1">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#get-submitted-data-for-a-specific-form">Get Submitted data for a specific form</a></li>
+<li><a class="reference internal" href="#id2">Example</a><ul>
+<li><a class="reference internal" href="#id3">Response</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#get-a-single-data-submission-for-a-given-form">Get a single data submission for a given form</a><ul>
+<li><a class="reference internal" href="#id4">Example</a></li>
+<li><a class="reference internal" href="#id5">Response</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#query-submitted-data-of-a-specific-form">Query submitted data of a specific form</a><ul>
+<li><a class="reference internal" href="#for-more-details-see">For more details see</a></li>
+<li><a class="reference internal" href="#id6">Example</a></li>
+<li><a class="reference internal" href="#id7">Response</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#query-submitted-data-of-a-specific-form-using-tags">Query submitted data of a specific form using Tags</a><ul>
+<li><a class="reference internal" href="#id8">Example</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tag-a-submission-data-point">Tag a submission data point</a><ul>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#delete-a-specific-tag-from-a-submission">Delete a specific tag from a submission</a><ul>
+<li><a class="reference internal" href="#request">Request</a></li>
+<li><a class="reference internal" href="#id9">Response</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#get-list-of-public-data-endpoints">Get list of public data endpoints</a><ul>
+<li><a class="reference internal" href="#id10">Example</a></li>
+<li><a class="reference internal" href="#id11">Response</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#get-enketo-edit-link-for-a-submission-instance">Get enketo edit link for a submission instance</a><ul>
+<li><a class="reference internal" href="#id12">Example</a></li>
+<li><a class="reference internal" href="#id13">Response</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#delete-a-specific-submission-instance">Delete a specific submission instance</a><ul>
+<li><a class="reference internal" href="#id14">Example</a></li>
+<li><a class="reference internal" href="#id15">Response</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#geojson">GEOJSON</a><ul>
+<li><a class="reference internal" href="#id16">Example</a></li>
+<li><a class="reference internal" href="#id17">Response</a></li>
+<li><a class="reference internal" href="#id18">Response</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id19">Example</a><ul>
+<li><a class="reference internal" href="#id20">Response</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#osm">OSM</a><ul>
+<li><a class="reference internal" href="#osm-endpoint-for-all-osm-files-uploaded-to-a-form-concatenated">OSM endpoint for all osm files uploaded to a form concatenated.</a></li>
+<li><a class="reference internal" href="#id21">Example</a></li>
+<li><a class="reference internal" href="#osm-endpoint-with-all-osm-files-for-a-specific-submission-concatenated">OSM endpoint with all osm files for a specific submission concatenated.</a></li>
+<li><a class="reference internal" href="#id22">Example</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -487,7 +811,7 @@ are listed on the <cite>_attachments</cite> key.</dd>
                         title="previous chapter">Charts</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="stats.html"
-                        title="next chapter">Stats</a></p>
+                        title="next chapter">Stats List</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/data.txt"
@@ -517,7 +841,7 @@ are listed on the <cite>_attachments</cite> key.</dd>
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="stats.html" title="Stats"
+          <a href="stats.html" title="Stats List"
              >next</a> |</li>
         <li class="right" >
           <a href="charts.html" title="Charts"
