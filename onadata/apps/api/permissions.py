@@ -35,7 +35,7 @@ class XFormPermissions(DjangoObjectPermissions):
         is_authenticated = request and request.user.is_authenticated()
 
         if 'pk' in view.kwargs:
-            check_inherit_permission_from_project(view.kwargs.get('pk'),
+            check_inherit_permission_from_project(view.kwargs['pk'],
                                                   request.user)
 
         if is_authenticated and view.action == 'create':
