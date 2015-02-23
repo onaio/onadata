@@ -1,11 +1,10 @@
 import os
 import json
-import warnings
 
 from datetime import datetime
 
 from celery.result import AsyncResult
-from django.core.exceptions import ValidationError, ImproperlyConfigured
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -13,7 +12,6 @@ from django.http import Http404, HttpResponseBadRequest, HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
-from django.shortcuts import get_object_or_404
 
 from rest_framework import exceptions
 from rest_framework import status
