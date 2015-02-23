@@ -977,6 +977,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
 
             # can clone shared forms
             self.user = alice_profile.user
+            self.extra = {
+                'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
             request = self.factory.post('/', data=data, **self.extra)
             response = view(request, pk=formid)
             self.assertTrue(self.xform.shared)
