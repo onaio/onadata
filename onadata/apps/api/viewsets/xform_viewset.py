@@ -1068,51 +1068,6 @@ previous call
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def get_object(self, queryset=None):
-        if queryset is None:
-            queryset = self.filter_queryset(self.get_queryset())
-
-        # Perform the lookup filtering.
-        # Note that `pk` and `slug` are deprecated styles of lookup filtering.
-        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
-        lookup = self.kwargs.get(lookup_url_kwarg, None)
-        pk = self.kwargs.get(self.pk_url_kwarg, None)
-        slug = self.kwargs.get(self.slug_url_kwarg, None)
-
-        if lookup is not None:
-            filter_kwargs = {self.lookup_field: lookup}
-        elif pk is not None and self.lookup_field == 'pk':
-            warnings.warn(
-                'The `pk_url_kwarg` attribute is deprecated. '
-                'Use the `lookup_field` attribute instead',
-                DeprecationWarning
-            )
-            filter_kwargs = {'pk': pk}
-        elif slug is not None and self.lookup_field == 'pk':
-            warnings.warn(
-                'The `slug_url_kwarg` attribute is deprecated. '
-                'Use the `lookup_field` attribute instead',
-                DeprecationWarning
-            )
-            filter_kwargs = {self.slug_field: slug}
-        else:
-            raise ImproperlyConfigured(
-                'Expected view %s to be called with a URL keyword argument '
-                'named "%s". Fix your URL conf, or set the `.lookup_field` '
-                'attribute on the view correctly.' %
-                (self.__class__.__name__, self.lookup_field)
-            )
-
-        obj = get_object_or_404(queryset, **filter_kwargs)
-
-        # May raise a permission denied
-        if obj.shared and self.action == 'clone':
-            pass
-        else:
-            self.check_object_permissions(self.request, obj)
-
-        return obj
-
     @action(methods=['POST'])
     def clone(self, request, *args, **kwargs):
         self.object = self.get_object()
