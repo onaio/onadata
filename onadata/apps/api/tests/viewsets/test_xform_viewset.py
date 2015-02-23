@@ -961,6 +961,31 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.status_code, 201)
             self.assertEqual(count + 1, XForm.objects.count())
 
+    def test_form_clone_shared_forms(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            alice_profile = self._create_user_profile(alice_data)
+            view = XFormViewSet.as_view({
+                'post': 'clone'
+            })
+            self.xform.shared = True
+            self.xform.save()
+            formid = self.xform.pk
+            count = XForm.objects.count()
+            data = {'username': 'alice'}
+
+            # can clone shared forms
+            self.user = alice_profile.user
+            self.extra = {
+                'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertTrue(self.xform.shared)
+            self.assertTrue(self.user.has_perm('can_add_xform', alice_profile))
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(count + 1, XForm.objects.count())
+
     def test_xform_serializer_none(self):
         data = {
             'title': u'',
