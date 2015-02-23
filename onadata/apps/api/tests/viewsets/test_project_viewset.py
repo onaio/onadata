@@ -1,6 +1,12 @@
+
+import os
 import json
+import requests
 from mock import patch
 from operator import itemgetter
+from httmock import urlmatch, HTTMock
+
+from django.conf import settings
 
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
@@ -16,6 +22,16 @@ from django.db.models import Q
 from onadata.apps.main.models import MetaData
 
 
+@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+def enketo_mock(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = \
+        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform",\n'\
+        '  "code": "200"\n}'
+    return response
+
+
 class TestProjectViewSet(TestAbstractViewSet):
 
     def setUp(self):
@@ -24,6 +40,33 @@ class TestProjectViewSet(TestAbstractViewSet):
             'get': 'list',
             'post': 'create'
         })
+
+    @patch('urllib2.urlopen')
+    def test_publish_xlsform_using_url_upload(self,  mock_urlopen):
+        with HTTMock(enketo_mock):
+            self._project_create()
+            view = ProjectViewSet.as_view({
+                'post': 'forms'
+            })
+
+            pre_count = XForm.objects.count()
+            project_id = self.project.pk
+            xls_url = 'https://ona.io/examples/forms/tutorial/form.xlsx'
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation_different_id_string.xlsx")
+
+            xls_file = open(path)
+            mock_urlopen.return_value = xls_file
+
+            post_data = {'xls_url': xls_url}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=project_id)
+
+            mock_urlopen.assert_called_with(xls_url)
+            xls_file.close()
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     def test_projects_list(self):
         self._project_create()
