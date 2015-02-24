@@ -249,7 +249,14 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
 
 def publish_project_xform(request, project):
     def set_form():
-        form = QuickConverter({'project': project.pk}, request.FILES)
+        props = {
+            'project': project.pk,
+            'dropbox_xls_url': request.DATA.get('dropbox_xls_url'),
+            'xls_url': request.DATA.get('xls_url'),
+            'csv_url': request.DATA.get('csv_url')
+        }
+
+        form = QuickConverter(props, request.FILES)
 
         return form.publish(project.organization, created_by=request.user)
 
