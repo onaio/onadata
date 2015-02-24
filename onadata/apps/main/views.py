@@ -1110,6 +1110,7 @@ def set_perm(request, username, id_string):
                     }, audit, request)
                 remove_perm('change_xform', user, xform)
                 remove_perm('view_xform', user, xform)
+                remove_perm('report_xform', user, xform)
     elif perm_type == 'link':
         current = MetaData.public_link(xform)
         if for_user == 'all':
