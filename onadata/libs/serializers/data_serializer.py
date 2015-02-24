@@ -3,6 +3,7 @@ import json
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
+from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
@@ -151,3 +152,25 @@ class OSMSerializer(serializers.Serializer):
                 self._data = self.to_native(obj)
 
         return self._data
+
+
+class OSMSiteMapSerializer(serializers.Serializer):
+    def to_native(self, obj):
+        """
+        Return a list of osm file objects from attachments.
+        """
+        if obj is None:
+            return super(OSMSiteMapSerializer, self).to_native(obj)
+
+        id_string = obj.get('instance__xform__id_string')
+        pk = obj.get('instance__xform')
+        title = obj.get('instance__xform__title')
+        user = obj.get('instance__xform__user__username')
+
+        kwargs = {'pk': pk}
+        url = reverse('osm-list', kwargs=kwargs,
+                      request=self.context.get('request'))
+
+        return {
+            'url': url, 'title': title, 'id_string': id_string, 'user': user
+        }
