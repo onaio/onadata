@@ -51,7 +51,7 @@ class TestOSM(TestAbstractViewSet):
             self.assertMultiLineEqual(response.content, osm)
 
             # look at the data/[pk].osm endpoint
-            # view = OsmViewSet.as_view({'get': 'list'})
+            view = OsmViewSet.as_view({'get': 'list'})
             response = view(request, pk=formid, format='osm')
             self.assertEqual(response.status_code, 200)
             response.render()
@@ -64,7 +64,7 @@ class TestOSM(TestAbstractViewSet):
         self.assertEqual(response['Location'],
                          'http://testserver/api/v1/osm.json')
 
-        response = view(request)
+        response = view(request, format='json')
         self.assertEqual(response.status_code, 200)
         data = [{
             'url': 'http://testserver/api/v1/osm/{}'.format(self.xform.pk),

@@ -74,7 +74,7 @@ The `.osm` file format concatenates all the files for a form or individual
 """
     renderer_classes = [
         renderers.OSMRenderer,
-        UnicodeJSONRenderer
+        UnicodeJSONRenderer,
     ]
 
     serializer_class = OSMSerializer
@@ -87,7 +87,8 @@ The `.osm` file format concatenates all the files for a form or individual
     queryset = XForm.objects.filter().select_related()
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        pk = self.kwargs.get('pk')
+        if self.action == 'list' and pk is None:
             return OSMSiteMapSerializer
 
         return super(OsmViewSet, self).get_serializer_class()
@@ -109,8 +110,33 @@ The `.osm` file format concatenates all the files for a form or individual
 
         return obj
 
+    def retrieve(self, request, *args, **kwargs):
+        fmt = kwargs.get('format', request.accepted_renderer.format)
+        if fmt != 'osm':
+            pk_lookup, dataid_lookup = self.lookup_fields
+            pk = self.kwargs.get(pk_lookup)
+            dataid = self.kwargs.get(dataid_lookup)
+            kwargs = {'pk': pk, 'format': 'osm'}
+            viewname = 'osm-list'
+            if dataid:
+                kwargs[dataid_lookup] = dataid
+                viewname = 'osm-detail'
+
+            return HttpResponsePermanentRedirect(
+                reverse(viewname, kwargs=kwargs, request=request))
+
+        return super(OsmViewSet, self).retrieve(request, *args, **kwargs)
+
     def list(self, request, *args, **kwargs):
-        fmt = kwargs.get('format')
+        fmt = kwargs.get('format', request.accepted_renderer.format)
+        pk = kwargs.get('pk')
+        if pk:
+            if fmt != 'osm':
+                return HttpResponsePermanentRedirect(
+                    reverse('osm-list', kwargs={'pk': pk, 'format': 'osm'},
+                            request=request))
+            return super(OsmViewSet, self).list(request, *args, **kwargs)
+
         if fmt == 'osm':
             return HttpResponsePermanentRedirect(
                 reverse('osm-list', kwargs={'format': 'json'},
@@ -121,4 +147,4 @@ The `.osm` file format concatenates all the files for a form or individual
             .distinct('instance__xform')
         serializer = self.get_serializer(instances, many=True)
 
-        return Response(serializer.data)
+        return Response(serializer.data, content_type='application/json')
