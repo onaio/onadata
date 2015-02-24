@@ -9,7 +9,7 @@ def get_combined_osm(files):
     :return string: osm xml string of the combined files
     """
     xml = u""
-    if len(files):
+    if len(files) and isinstance(files, list):
         first = etree.parse(files[0])
 
         for f in files[1:]:
@@ -18,5 +18,8 @@ def get_combined_osm(files):
                 first.getroot().append(child)
 
         xml = etree.tostring(first, encoding='utf-8', xml_declaration=True)
+    elif isinstance(files, dict):
+        if 'detail' in files:
+            xml = u'<error>' + files['detail'] + '</error>'
 
     return xml
