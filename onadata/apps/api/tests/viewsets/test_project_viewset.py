@@ -1037,6 +1037,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         view = ProjectViewSet.as_view({
             'patch': 'partial_update'
         })
+        old_org = self.project.organization
 
         data_patch = {
             'owner': 'http://testserver/api/v1/users/%s' %
@@ -1046,6 +1047,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=projectid)
 
         self.assertEqual(response.status_code, 200)
+        project = Project.objects.get(pk=projectid)
 
-        self.assertEquals(response.data['users'][1]['user'],
-                          self.organization.user.username)
+        self.assertNotEqual(old_org, project.organization)
