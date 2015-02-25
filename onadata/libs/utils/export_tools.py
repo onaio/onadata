@@ -602,10 +602,10 @@ class ExportBuilder(object):
             var_types = dict(
                 [(tmp_k[element['title']],
                   0 if element['type'] in ['decimal', 'int'] else 255)
-                 for element in section['elements']]
-                + [(tmp_k[item],
+                 for element in section['elements']] +
+                [(tmp_k[item],
                     0 if item in ['_id', '_index', '_parent_index'] else 255)
-                   for item in self.EXTRA_FIELDS]
+                 for item in self.EXTRA_FIELDS]
             )
             sav_file = NamedTemporaryFile(suffix=".sav")
             sav_writer = SavWriter(sav_file.name, varNames=var_names,

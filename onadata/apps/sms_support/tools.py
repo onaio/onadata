@@ -41,8 +41,8 @@ SENSITIVE_FIELDS = ('text', 'select all that apply', 'geopoint', 'barcode')
 
 
 def is_last(index, items):
-    return index == len(items) - 1 or (items[-1].get('type') == 'note'
-                                       and index == len(items) - 2)
+    return index == len(items) - 1 or (items[-1].get('type') == 'note' and
+                                       index == len(items) - 2)
 
 
 def get_sms_instance_id(instance):
@@ -228,8 +228,9 @@ def check_form_sms_compatibility(form, json_survey=None):
     if sum([1 for e in groups if e.get('type') != 'group']):
         return prep_return(_(u"All your questions must be in groups."))
     # all groups must have an sms_field
-    bad_groups = [e.get('name') for e in groups if not e.get('sms_field', '')
-                  and not e.get('name', '') == 'meta']
+    bad_groups = [e.get('name') for e in groups
+                  if not e.get('sms_field', '') and
+                  not e.get('name', '') == 'meta']
     if len(bad_groups):
         return prep_return(_(u"All your groups must have an 'sms_field' "
                              u"(use 'meta' prefixed ones for non-fillable "

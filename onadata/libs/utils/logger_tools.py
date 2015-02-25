@@ -149,8 +149,8 @@ def check_submission_permissions(request, xform):
     :returns: None.
     :raises: PermissionDenied based on the above criteria.
     """
-    if request and (xform.user.profile.require_auth or xform.require_auth
-                    or request.path == '/submission')\
+    if request and (xform.user.profile.require_auth or xform.require_auth or
+                    request.path == '/submission')\
             and xform.user != request.user\
             and not request.user.has_perm('report_xform', xform):
         raise PermissionDenied(
@@ -521,8 +521,8 @@ def inject_instanceid(xml_str, uuid):
         survey_node = children.item(0)
         meta_tags = [
             n for n in survey_node.childNodes
-            if n.nodeType == Node.ELEMENT_NODE
-            and n.tagName.lower() == "meta"]
+            if n.nodeType == Node.ELEMENT_NODE and
+            n.tagName.lower() == "meta"]
         if len(meta_tags) == 0:
             meta_tag = xml.createElement("meta")
             xml.documentElement.appendChild(meta_tag)
@@ -532,8 +532,7 @@ def inject_instanceid(xml_str, uuid):
         # check if we have an instanceID tag
         uuid_tags = [
             n for n in meta_tag.childNodes
-            if n.nodeType == Node.ELEMENT_NODE
-            and n.tagName == "instanceID"]
+            if n.nodeType == Node.ELEMENT_NODE and n.tagName == "instanceID"]
         if len(uuid_tags) == 0:
             uuid_tag = xml.createElement("instanceID")
             meta_tag.appendChild(uuid_tag)

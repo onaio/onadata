@@ -470,9 +470,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             # check for UUID and remove
             uuid_nodes = [
                 node for node in model_node.childNodes
-                if node.nodeType == Node.ELEMENT_NODE
-                and node.getAttribute("nodeset") ==
-                "/transportation/formhub/uuid"]
+                if node.nodeType == Node.ELEMENT_NODE and
+                node.getAttribute("nodeset") == "/transportation/formhub/uuid"]
             self.assertEqual(len(uuid_nodes), 1)
             uuid_node = uuid_nodes[0]
             uuid_node.setAttribute("calculate", "''")
