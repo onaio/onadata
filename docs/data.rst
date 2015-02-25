@@ -1,11 +1,14 @@
+Data
+******
+
 Data Lists
 ===========
 
 This endpoint provides access to submitted data in JSON format. Where:
 
-- **pk** - the form unique identifier
-- **dataid** - submission data unique identifier
-- **owner** - username of the owner(user/organization) of the data point
+- ``pk`` - the form unique identifier
+- ``dataid`` - submission data unique identifier
+- ``owner`` - username of the owner(user/organization) of the data point
  
 
 GET JSON List of data end points
@@ -13,12 +16,16 @@ GET JSON List of data end points
 
 Lists the data endpoints accessible to requesting user, for anonymous access
 
-a list of public data endpoints is returned.::
+a list of public data endpoints is returned.
 
-	**GET** /api/v1/data
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data
+  </pre>
 
 Example
-********
+^^^^^^^^
 ::
 	
 
@@ -26,7 +33,7 @@ Example
 	   
 
 Response
-******** 
+^^^^^^^^^ 
 	::
 	
 	        [{
@@ -50,26 +57,47 @@ GET JSON List of data end points using limit operators
 
 Lists the data endpoints accesible to the requesting user based on 'start'
 and/or 'limit' query parameters. Use the start parameter to skip a number
-of records and the limit parameter to limit the number of records returned.::
+of records and the limit parameter to limit the number of records returned.
 
-	GET  /api/v1/data/<code>{pk}</code>?<code>start</code>=<code>start_value\
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/data/<code>{pk}</code>?<code>start</code>=<code>start_value</code>
+    </pre>
+
+::
 
     curl -X GET 'https://ona.io/api/v1/data/2?start=5'
 
-	GET /api/v1/data/<code>{pk}</code>?<code>limit</code>=<code>limit_value
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>?<code>start</code>=<code>start_value </code>&</code><code>limit</code>=<code>limit_value</code>
+  </pre>
+
+::
 
 	curl -X GET 'https://ona.io/api/v1/data/2?limit=2'
 
-	GET /api/v1/data/<code>{pk}</code>?<code>start</code>=<code>start_value
-	</code>&</code><code>limit</code>=<code>limit_value</code>
+.. raw:: html
 
-	curl -X GET 'https://ona.io/api/v1/data/2?start=3&limit=4'
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>?<code>start</code>=<code>start_value</code>&</code><code>limit</code>=<code>limit_value</code>
+  </pre>
+
+::
+
+	 curl -X GET 'https://ona.io/api/v1/data/2?start=3&limit=4'
 
 Download data in `csv` format
 -----------------------------
-::
+.. raw:: html
 
-	GET /api/v1/data.csv
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data.csv</pre>
+
+::
 
 	curl -O https://ona.io/api/v1/data.csv
 
@@ -77,12 +105,17 @@ GET JSON List of data end points filter by owner
 ------------------------------------------------
 
 Lists the data endpoints accessible to requesting user, for the specified
-`owner` as a query parameter.::
+``owner`` as a query parameter.
 
-	GET</b> /api/v1/data?<code>owner</code>=<code>owner_username</code>
+.. raw:: html
+
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data?<code>owner</code>=<code>owner_username</code>
+  </pre>
 
 Example
-*******
+^^^^^^^^^
 ::
 
        curl -X GET https://ona.io/api/v1/data?owner=ona
@@ -90,18 +123,20 @@ Example
 Get Submitted data for a specific form
 ------------------------------------------
 Provides a list of json submitted data for a specific form.
-::
 
-	GET /api/v1/data/<code>{pk}</code>
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code></pre>
 
 Example
---------
+^^^^^^^^^
 ::
 
       curl -X GET https://ona.io/api/v1/data/22845
 
 Response
-********
+^^^^^^^^^
 ::
 
        [
@@ -172,25 +207,26 @@ Response
 Get a single data submission for a given form
 ----------------------------------------------
 
-Get a single specific submission json data providing `pk`
+Get a single specific submission json data providing ``pk``
 
-and `dataid` as url path parameters, where:
+and ``dataid`` as url path parameters, where:
 
-- `pk` - is the identifying number for a specific form
-- `dataid` - is the unique id of the data, the value of `_id` or `_uuid`
+- ``pk`` - is the identifying number for a specific form
+- ``dataid`` - is the unique id of the data, the value of ``_id`` or ``_uuid``
 
-::
+.. raw:: html
 
-	GET /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code></pre>
 
 Example
-*******
+^^^^^^^^^
 ::
 
        curl -X GET https://ona.io/api/v1/data/22845/4503
 
 Response
-********
+^^^^^^^^^
 ::
 
             {
@@ -259,28 +295,32 @@ Response
 
 Query submitted data of a specific form
 ----------------------------------------
-Provides a list of json submitted data for a specific form. Use `query`
+Provides a list of json submitted data for a specific form. Use ``query``
 
-parameter to apply form data specific, see
+parameter to apply form data specific, see |query|
 
-.. |codes_link| raw:: html
+.. |query| raw:: html
 
 	<a href="http://docs.mongodb.org/manual/reference/operator/query/">
 	http://docs.mongodb.org/manual/reference/operator/query/</a>.
 
-For more details see
-*********************
-::
+For more details see |APIParameters|
 
-	<a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)#
-	api-parameters">
-	API Parameters</a>.
+.. |APIParameters| raw:: html
 
-	GET /api/v1/data/<code>{pk}</code>?query={"field":"value"}</b>
-	GET /api/v1/data/<code>{pk}</code>?query={"field":{"op": "value"}}"</b>
+  <a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)#
+  api-parameters">
+  API Parameters</a>.
+      
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":"value"}</b>
+  <b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":{"op": "value"}}"</b>
+  </pre>
 
 Example
-********
+^^^^^^^^^
 ::
 
 	    curl -X GET 'https://ona.io/api/v1/data/22845?query={"kind": 
@@ -290,7 +330,7 @@ Example
 	{"$gt": "2014-09-29T01:02:03+0000"}}'
 
 Response
-********
+^^^^^^^^^
 ::
 
         [
@@ -361,13 +401,17 @@ Query submitted data of a specific form using Tags
 --------------------------------------------------
 Provides a list of json submitted data for a specific form matching specific
 tags. Use the `tags` query parameter to filter the list of forms, `tags`
-should be a comma separated list of tags.::
+should be a comma separated list of tags.
 
-	GET /api/v1/data?<code>tags</code>=<code>tag1,tag2</code>
-    GET /api/v1/data/<code>{pk}</code>?<code>tags\</code>=<code>tag1,tag2</code>
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data?<code>tags</code>=<code>tag1,tag2</code></pre>
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>?<code>tags</code>=<code>tag1,tag2</code></pre>
 
 Example
-*******
+^^^^^^^^^
 ::
 
       curl -X GET https://ona.io/api/v1/data/22845?tags=monthly
@@ -375,16 +419,17 @@ Example
 Tag a submission data point
 ----------------------------
 
-A `POST` payload of parameter `tags` with a comma separated list of tags.
+A ``POST`` payload of parameter `tags` with a comma separated list of tags.
 
 Examples
-*********
-- `animal fruit denim` - space delimited, no commas
-- `animal, fruit denim` - comma delimited
+^^^^^^^^^
+- ``animal fruit denim`` - space delimited, no commas
+- ``animal, fruit denim`` - comma delimited
 
-::
+.. raw:: html
 
-	POST /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/labels
+  <pre class="prettyprint">
+  <b>POST</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/labels</pre>
 
 **Payload**
 ::
@@ -393,13 +438,14 @@ Examples
 
 Delete a specific tag from a submission
 ----------------------------------------
-::
 
-	DELETE /api/v1/data/<code>{pk}</code>/<code>\
-	{dataid}</code>/labels/<code>tag_name</code></pre>
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>DELETE</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/labels/<code>tag_name</code></pre>
 
 Request
-********
+^^^^^^^^^
 ::
 
 	      curl -X DELETE 
@@ -408,30 +454,31 @@ Request
 
 	or to delete the tag "hello world"
 
-	     curl -X DELETE \
-
-	https://ona.io/api/v1/data/28058/20/labels/hello%20world
+	     curl -X DELETE https://ona.io/api/v1/data/28058/20/labels/hello%20world
 
 Response
-********
+^^^^^^^^^
 ::
 
 	HTTP 200 OK
 
 Get list of public data endpoints
 ----------------------------------
-::
 
-	GET /api/v1/data/public
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/public
+  </pre>
 
 Example
-********
+^^^^^^^^^
 ::
 
        curl -X GET https://ona.io/api/v1/data/public
 
 Response
-*********
+^^^^^^^^^
 ::
 
      [{
@@ -454,18 +501,20 @@ Response
 
 Get enketo edit link for a submission instance
 -----------------------------------------------
-::
+.. raw:: html
 
-	GET /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/enketo
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/enketo
+  </pre>
 
 Example
-*******
+^^^^^^^^^
 ::
 
       curl -X GET https://ona.io/api/v1/data/28058/20/enketo?return_url=url
 
 Response
-********
+^^^^^^^^^
 ::
 
 	{"url": "https://hmh2a.enketo.formhub.org"}
@@ -475,18 +524,20 @@ Delete a specific submission instance
 
 **Delete a specific submission in a form**
 
-::
+.. raw:: html
 
-	DELETE /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>
+  <pre class="prettyprint">
+  <b>DELETE</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>
+  </pre>
 
 Example
-*******
+^^^^^^^^^
 ::
 
       curl -X DELETE https://ona.io/api/v1/data/28058/20
 
 Response
-********
+^^^^^^^^^
 ::
   
        HTTP 204 No Content
@@ -499,40 +550,43 @@ Get a valid geojson value from the submissions
 
 **Options**
 
-- `geo_field` - valid field that can be converted to a geojson.
+- ``geo_field`` - valid field that can be converted to a geojson.
 
 	(Point, LineString, Polygon)
 
-- `fields` - additional comma separated values that are to be added to the
+- ``fields`` - additional comma separated values that are to be added to the
 
 	properties section
 
-::
+.. raw:: html
 
-
-	GET  /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson
+  </pre>
 
 **With options**
 
-::
+.. raw:: html
 
-	GET /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson?\
-	geo_field=<code>{field_name}</code>&fields=<code>{list,of,fields}</code>
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson?
+  geo_field=<code>{field_name}</code>&fields=<code>{list,of,fields}</code>
+  </pre>
 
 Example
-*******
+^^^^^^^^^
 ::
 
       curl -X GET https://ona.io/api/v1/data/28058/20.geojson
 
 Response
-********
+^^^^^^^^^
 ::
 
        HTTP 200 OK
 
 Response
-*********
+^^^^^^^^^
 ::
 
         {
@@ -574,23 +628,25 @@ Response
 
 **List the geojson values**
 
-::
+.. raw:: html
 
-	GET /api/v1/data/<code>{pk}</code>.geojson
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>.geojson
+  </pre>
 
 Example
--------
+^^^^^^^^^
 ::
 
       curl -X GET https://ona.io/api/v1/data/28058.geojson
 
- Response
- --------
+Response
+^^^^^^^^^
 
     **HTTP 200 OK**
 
 Response
-*********
+^^^^^^^^^
 ::
 
         {
@@ -664,25 +720,29 @@ The `.osm` file format concatenates all the files for a form or individual
  are listed on the `_attachments` key.
 
 OSM endpoint for all osm files uploaded to a form concatenated.
-***************************************************************
-::
+-----------------------------------------------------------------
+.. raw:: html
 
-	GET /api/v1/data/<code>{pk}</code>.osm
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>.osm
+  </pre>
 
 Example
-********
+^^^^^^^^^
 ::
 
 	curl -X GET https://ona.io/api/v1/data/28058.osm
 
 OSM endpoint with all osm files for a specific submission concatenated.
-***********************************************************************
-::
+-----------------------------------------------------------------------
+.. raw:: html
 
-	GET /api/v1/data/<code>{pk}</code>/<code>{data_id}</code>.osm
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{data_id}</code>.osm
+  </pre>
 
 Example
-********
+^^^^^^^^^
 ::
 
 	curl -X GET https://ona.io/api/v1/data/28058/20.osm

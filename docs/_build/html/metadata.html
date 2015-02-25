@@ -51,6 +51,161 @@
             
   <div class="section" id="metadata">
 <h1>Metadata<a class="headerlink" href="#metadata" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="meta-data-list">
+<h2>Meta Data List<a class="headerlink" href="#meta-data-list" title="Permalink to this headline">¶</a></h2>
+<p>This endpoint provides access to form metadata, for example, supporting
+documents, media files to be used in the form, source documents and map
+layers.</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">pk</span></tt> - primary key for the metadata</li>
+<li><tt class="docutils literal"><span class="pre">formid</span></tt> - the form id for a form</li>
+<li><tt class="docutils literal"><span class="pre">format</span></tt> - is the extension of a file format e.g <tt class="docutils literal"><span class="pre">png</span></tt>, <tt class="docutils literal"><span class="pre">csv</span></tt></li>
+</ul>
+<div class="section" id="permissions">
+<h3>Permissions<a class="headerlink" href="#permissions" title="Permalink to this headline">¶</a></h3>
+<p>This endpoint applys the same permissions someone has on the form.</p>
+</div>
+<div class="section" id="get-list-of-metadata">
+<h3>Get list of metadata<a class="headerlink" href="#get-list-of-metadata" title="Permalink to this headline">¶</a></h3>
+<p>Returns a list of metadata accross all forms requesting user has access to.</p>
+<pre class="prettyprint">GET /api/v1/metadata</pre><div class="highlight-python"><div class="highlight"><pre>HTTP 200 OK
+
+[
+    {
+        &quot;data_file&quot;: &quot;&quot;,
+        &quot;data_file_type&quot;: null,
+        &quot;data_type&quot;: &quot;public_link&quot;,
+        &quot;data_value&quot;: &quot;http://mylink&quot;,
+        &quot;id&quot;: 406,
+        &quot;url&quot;: &quot;https://ona.io/api/v1/metadata/406&quot;,
+        &quot;xform&quot;: 328
+    },
+    {
+        &quot;data_file&quot;: &quot;username/form-media/a.png&quot;,
+        &quot;data_file_type&quot;: &quot;image/png&quot;,
+        &quot;data_type&quot;: &quot;media&quot;,
+        &quot;data_value&quot;: &quot;a.png&quot;,
+        &quot;id&quot;: 7100,
+        &quot;url&quot;: &quot;https://ona.io/api/v1/metadata/7100&quot;,
+        &quot;xform&quot;: 320
+    },
+    ....
+]
+</pre></div>
+</div>
+</div>
+<div class="section" id="get-list-of-metadata-for-a-specific-form">
+<h3>Get list of metadata for a specific form<a class="headerlink" href="#get-list-of-metadata-for-a-specific-form" title="Permalink to this headline">¶</a></h3>
+<p>The form endpoint, <tt class="docutils literal"><span class="pre">/api/v1/forms/formid</span></tt>, contains a <tt class="docutils literal"><span class="pre">metadata</span></tt> field
+has list of metadata for the form. Alternatively, you can supply the query
+parameter <tt class="docutils literal"><span class="pre">xform</span></tt> with the <cite>formid</cite> as the value.</p>
+<pre class="prettyprint">
+GET /api/v1/metdata?<code>xform=formid</code></pre><div class="highlight-python"><div class="highlight"><pre>HTTP 200 OK
+
+[
+    {
+        &quot;data_file&quot;: &quot;username/form-media/a.png&quot;,
+        &quot;data_file_type&quot;: &quot;image/png&quot;,
+        &quot;data_type&quot;: &quot;media&quot;,
+        &quot;data_value&quot;: &quot;a.png&quot;,
+        &quot;id&quot;: 7100,
+        &quot;url&quot;: &quot;https://ona.io/api/v1/metadata/7100&quot;,
+        &quot;xform&quot;: 320
+    },
+    ....
+]
+</pre></div>
+</div>
+</div>
+<div class="section" id="get-a-specific-metadata">
+<h3>Get a specific metadata<a class="headerlink" href="#get-a-specific-metadata" title="Permalink to this headline">¶</a></h3>
+<pre class="prettyprint">
+GET /api/v1/metadata/<code>{pk}</code></pre><div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/metadata/7100
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre>HTTP 200 OK
+
+{
+    &quot;data_file&quot;: &quot;username/form-media/a.png&quot;,
+    &quot;data_file_type&quot;: &quot;image/png&quot;,
+    &quot;data_type&quot;: &quot;media&quot;,
+    &quot;data_value&quot;: &quot;a.png&quot;,
+    &quot;id&quot;: 7100,
+    &quot;url&quot;: &quot;https://ona.io/api/v1/metadata/7100&quot;,
+    &quot;xform&quot;: 320
+}
+</pre></div>
+</div>
+<p>If the metadata is a file, appending the extension of the file type would
+return the file itself e.g:</p>
+<pre class="prettyprint">
+GET /api/v1/metadata/<code>{pk}.{format}</code></pre><div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/metadata/7100.png -o a.png
+</pre></div>
+</div>
+<p>Alternatively, if the request is made with an <tt class="docutils literal"><span class="pre">Accept</span></tt> header of the
+content type of the file the file would be returned e.g</p>
+<pre class="prettyprint">GET /api/v1/metadata/<code>{pk}</code> Accept: image/png </pre><div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/metadata/7100 -H &quot;Accept: image/png&quot; -o a.png
+</pre></div>
+</div>
+</div>
+<div class="section" id="add-metadata-or-media-file-to-a-form">
+<h3>Add metadata or media file to a form<a class="headerlink" href="#add-metadata-or-media-file-to-a-form" title="Permalink to this headline">¶</a></h3>
+<pre class="prettyprint">POST /api/v1/metadata</pre><p><em>Payload</em></p>
+<div class="highlight-python"><div class="highlight"><pre>       {&quot;xform&quot;: &lt;formid&gt;, &quot;data_type&quot;: &quot;&lt;data_type&gt;&quot;, \
+&quot;data_value&quot;: &quot;&lt;data_value&gt;&quot;}
+</pre></div>
+</div>
+<p>Where:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">data_type</span></tt> - can be &#8216;media&#8217; or &#8216;source&#8217; or &#8216;supporting_doc&#8217;</li>
+<li><tt class="docutils literal"><span class="pre">data_value</span></tt> - can be text or a file name</li>
+<li><tt class="docutils literal"><span class="pre">xform</span></tt> - the form id you are adding the media to</li>
+<li><tt class="docutils literal"><span class="pre">data_file</span></tt> - optional, should be the file you want to upload</li>
+</ul>
+<div class="section" id="example">
+<h4>Example:<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-python"><div class="highlight"><pre>curl -X POST -d &quot;{&quot;data_type&quot;: &quot;mapbox_layer&quot;, &quot;data_value&quot;:&quot;example||https://api.tiles.mapbox.com/v3/examples.map-0l53fhk2.json||example attribution&quot;, &quot;xform&quot;: 320}&quot; https://ona.io/api/v1/metadata -H &quot;Content-Type: appliction/json&quot;
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre>HTTP 201 CREATED
+
+{
+&quot;id&quot;: 7119,
+&quot;xform&quot;: 320,
+&quot;data_value&quot;: &quot;example||https://api.tiles.mapbox.com/v3/examples.map-0l53fhk2.json||example attribution&quot;,
+&quot;data_type&quot;: &quot;mapbox_layer&quot;,
+&quot;data_file&quot;: null,
+&quot;data_file_type&quot;: null,
+&quot;url&quot;: &quot;https://ona.io/api/v1/metadata/7119.json&quot;
+}
+</pre></div>
+</div>
+</div>
+<div class="section" id="media-upload-example">
+<h4>Media upload example:<a class="headerlink" href="#media-upload-example" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-python"><div class="highlight"><pre>        curl -X POST -F &#39;data_type=media&#39; -F &#39;data_value=demo.jpg&#39; \
+-F &#39;xform=320&#39; -F &quot;data_file=@folder.jpg&quot; https://ona.io/api/v1/metadata.json
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre>HTTP 201 CREATED
+
+{
+&quot;id&quot;: 7121,
+&quot;xform&quot;: 320,
+&quot;data_value&quot;: &quot;folder.jpg&quot;,
+&quot;data_type&quot;: &quot;media&quot;,
+&quot;data_file&quot;: &quot;ukanga/formid-media/folder.jpg&quot;,
+&quot;data_file_type&quot;: &quot;image/jpeg&quot;,
+&quot;url&quot;: &quot;https://ona.io/api/v1/metadata/7121.json&quot;
+}
+</pre></div>
+</div>
+</div>
+<div class="section" id="delete-metadata">
+<h4>Delete Metadata<a class="headerlink" href="#delete-metadata" title="Permalink to this headline">¶</a></h4>
+<pre class="prettyprint">DELETE /api/v1/metadata/<code>{pk}</code></pre></div>
+</div>
+</div>
 </div>
 
 
@@ -59,6 +214,26 @@
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Metadata</a><ul>
+<li><a class="reference internal" href="#meta-data-list">Meta Data List</a><ul>
+<li><a class="reference internal" href="#permissions">Permissions</a></li>
+<li><a class="reference internal" href="#get-list-of-metadata">Get list of metadata</a></li>
+<li><a class="reference internal" href="#get-list-of-metadata-for-a-specific-form">Get list of metadata for a specific form</a></li>
+<li><a class="reference internal" href="#get-a-specific-metadata">Get a specific metadata</a></li>
+<li><a class="reference internal" href="#add-metadata-or-media-file-to-a-form">Add metadata or media file to a form</a><ul>
+<li><a class="reference internal" href="#example">Example:</a></li>
+<li><a class="reference internal" href="#media-upload-example">Media upload example:</a></li>
+<li><a class="reference internal" href="#delete-metadata">Delete Metadata</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
   <h4>Previous topic</h4>
   <p class="topless"><a href="media.html"
                         title="previous chapter">Media</a></p>

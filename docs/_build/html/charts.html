@@ -51,20 +51,20 @@
             
   <div class="section" id="charts">
 <h1>Charts<a class="headerlink" href="#charts" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="charts-list">
+<h2>Charts List<a class="headerlink" href="#charts-list" title="Permalink to this headline">¶</a></h2>
 <p>View chart for specific fields in a form or dataset.</p>
 <div class="section" id="list-of-chart-chart-endpoints-accessible-to-registered-user">
-<h2>List of chart chart endpoints accessible to registered user<a class="headerlink" href="#list-of-chart-chart-endpoints-accessible-to-registered-user" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><div class="highlight"><pre>GET/api/v1/charts&lt;/pre&gt;
-</pre></div>
-</div>
-<div class="section" id="example">
-<h3>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h3>
+<h3>List of chart chart endpoints accessible to registered user<a class="headerlink" href="#list-of-chart-chart-endpoints-accessible-to-registered-user" title="Permalink to this headline">¶</a></h3>
+<pre class="prettyprint">
+<b>GET</b> /api/v1/charts</pre><div class="section" id="example">
+<h4>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/charts
 </pre></div>
 </div>
 </div>
 <div class="section" id="response">
-<h3>Response<a class="headerlink" href="#response" title="Permalink to this headline">¶</a></h3>
+<h4>Response<a class="headerlink" href="#response" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-python"><div class="highlight"><pre>[{
 
     &quot;id&quot;: 4240,
@@ -77,19 +77,18 @@
 </div>
 </div>
 <div class="section" id="get-a-list-of-chart-field-endpoints-for-a-specific-form-or-dataset">
-<h2>Get a list of chart field endpoints for a specific form or dataset.<a class="headerlink" href="#get-a-list-of-chart-field-endpoints-for-a-specific-form-or-dataset" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><div class="highlight"><pre>GET /api/v1/charts/&lt;code&gt;{formid}&lt;/code&gt;
-</pre></div>
-</div>
-<div class="section" id="id1">
-<h3>Example<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<h3>Get a list of chart field endpoints for a specific form or dataset.<a class="headerlink" href="#get-a-list-of-chart-field-endpoints-for-a-specific-form-or-dataset" title="Permalink to this headline">¶</a></h3>
+<pre class="prettyprint">
+<b>GET</b> /api/v1/charts/<code>{formid}</code></pre><div class="section" id="id1">
+<h4>Example<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/charts/4240
 </pre></div>
 </div>
 </div>
 <div class="section" id="id2">
-<h3>Response<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<h4>Response<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-python"><div class="highlight"><pre>{
+
 
     &quot;id&quot;: 4240,
 
@@ -99,9 +98,9 @@
 
     &quot;fields&quot;: {
 
-        &quot;uuid&quot;: &quot;https://ona.io/api/v1/charts/4240?field_name=uuid&quot;,
+    &quot;uuid&quot;: &quot;https://ona.io/api/v1/charts/4240?field_name=uuid&quot;,
 
-        &quot;num&quot;: &quot;https://ona.io/api/v1/charts/4240?field_name=num&quot;,
+    &quot;num&quot;: &quot;https://ona.io/api/v1/charts/4240?field_name=num&quot;,
 
         ...
 
@@ -113,53 +112,62 @@
 </div>
 </div>
 <div class="section" id="get-a-chart-for-a-specific-field-in-a-form">
-<h2>Get a chart for a specific field in a form<a class="headerlink" href="#get-a-chart-for-a-specific-field-in-a-form" title="Permalink to this headline">¶</a></h2>
+<h3>Get a chart for a specific field in a form<a class="headerlink" href="#get-a-chart-for-a-specific-field-in-a-form" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><cite>field_name</cite> - a field name in the form</li>
-<li><cite>format</cite> - can be <cite>html</cite> or <cite>json</cite></li>
+<li><tt class="docutils literal"><span class="pre">field_name</span></tt> - a field name in the form</li>
+<li><tt class="docutils literal"><span class="pre">format</span></tt> - can be <tt class="docutils literal"><span class="pre">html</span></tt> or <tt class="docutils literal"><span class="pre">json</span></tt></li>
 </ul>
-<div class="highlight-python"><div class="highlight"><pre>&lt;b&gt;GET&lt;/b&gt; /api/v1/charts/&lt;code&gt;{formid}&lt;/code&gt;.&lt;code&gt;{format}&lt;/code&gt;?field_name=&lt;code&gt;field_name&lt;/code&gt;
-</pre></div>
-</div>
-<div class="section" id="id3">
-<h3>Example<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<pre class="prettyprint">
+<b>GET</b> /api/v1/charts/<code>{formid}</code>.<code>{format}</code>?\
+field_name=<code>field_name</code></pre><div class="section" id="id3">
+<h4>Example<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/charts/4240.html?field_name=age
 </pre></div>
 </div>
 </div>
 <div class="section" id="id4">
-<h3>Response<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
-<ul class="simple">
-<li><cite>html</cite> format response is a html, javascript and css to the chart</li>
-<li><cite>json</cite> format response is the <cite>JSON</cite> data that can be passed to a charting</li>
-</ul>
+<h4>Response<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
 <blockquote>
-<div>library</div></blockquote>
+<div><ul>
+<li><p class="first"><tt class="docutils literal"><span class="pre">html</span></tt> format response is a html, javascript and css to the chart</p>
+</li>
+<li><dl class="first docutils">
+<dt><tt class="docutils literal"><span class="pre">json</span></tt> format response is the <tt class="docutils literal"><span class="pre">JSON</span></tt> data that can be passed to a charting</dt>
+<dd><p class="first last">library</p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
 </div>
 </div>
 <div class="section" id="get-a-chart-data-for-all-fields-in-a-form">
-<h2>Get a chart data for all fields in a form<a class="headerlink" href="#get-a-chart-data-for-all-fields-in-a-form" title="Permalink to this headline">¶</a></h2>
+<h3>Get a chart data for all fields in a form<a class="headerlink" href="#get-a-chart-data-for-all-fields-in-a-form" title="Permalink to this headline">¶</a></h3>
 <p>The only field ommitted is instanceID since it is unique for every record.</p>
-<ul>
-<li><p class="first"><cite>fields</cite> - is a comma separated list of fields to be included in the response. If <cite>fields=all</cite> then all the fields of the form will be returned.:</p>
-<div class="highlight-python"><div class="highlight"><pre>GET /api/v1/charts/&lt;code&gt;{formid}&lt;/code&gt;?&lt;code&gt;fields=all&lt;/code&gt;
-</pre></div>
-</div>
-</li>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">fields</span></tt> - is a comma separated list of fields to be included in the response. If <tt class="docutils literal"><span class="pre">fields=all</span></tt> then all the fields of the form  will be returned.</li>
 </ul>
-<div class="section" id="id5">
-<h3>Example<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<pre class="prettyprint">
+<b>GET</b> /api/v1/charts/<code>{formid}</code>?<code>fields=all</code>
+</pre><div class="section" id="id5">
+<h4>Example<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h4>
 <div class="highlight-python"><div class="highlight"><pre>curl -X GET https://ona.io/api/v1/charts/4240?fields=all
 </pre></div>
 </div>
 </div>
 <div class="section" id="id6">
-<h3>Response<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<h4>Response<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h4>
 <blockquote>
-<div><ul class="simple">
-<li><cite>json</cite> format response is the <cite>JSON</cite> data for each field that can be passed to a charting library</li>
+<div><ul>
+<li><dl class="first docutils">
+<dt><cite>json</cite> format response is the <cite>JSON</cite> data for each field that can be</dt>
+<dd><p class="first last">passed to a charting library</p>
+</dd>
+</dl>
+</li>
 </ul>
 </div></blockquote>
+</div>
 </div>
 </div>
 </div>
@@ -173,6 +181,7 @@
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Charts</a><ul>
+<li><a class="reference internal" href="#charts-list">Charts List</a><ul>
 <li><a class="reference internal" href="#list-of-chart-chart-endpoints-accessible-to-registered-user">List of chart chart endpoints accessible to registered user</a><ul>
 <li><a class="reference internal" href="#example">Example</a></li>
 <li><a class="reference internal" href="#response">Response</a></li>
@@ -191,6 +200,8 @@
 <li><a class="reference internal" href="#get-a-chart-data-for-all-fields-in-a-form">Get a chart data for all fields in a form</a><ul>
 <li><a class="reference internal" href="#id5">Example</a></li>
 <li><a class="reference internal" href="#id6">Response</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

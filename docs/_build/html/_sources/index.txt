@@ -17,7 +17,7 @@ Data
 ----
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    charts
    data
@@ -27,7 +27,7 @@ Forms
 -----
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    forms
    media
@@ -39,7 +39,7 @@ Users and Organizations
 -----------------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    orgs
    profiles
@@ -51,7 +51,7 @@ Quick start
 -----------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    quick_start
    
