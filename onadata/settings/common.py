@@ -263,6 +263,9 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = (
     'dev.ona.io',
 )
+CORS_URLS_ALLOW_ALL_REGEX = (
+    r'^/api/v1/osm/.*$',
+)
 
 USE_THOUSAND_SEPARATOR = True
 
