@@ -27,6 +27,14 @@ class TestAttachment(TestBase):
     def test_mimetype(self):
         self.assertEqual(self.attachment.mimetype, 'image/jpeg')
 
+    def test_create_attachment_with_media_file_length_more_the_100(self):
+        pre_count = Attachment.objects.count()
+        Attachment.objects.create(
+            instance=self.instance,
+            media_file='a'*150
+        )
+        self.assertEqual(pre_count + 1, Attachment.objects.count())
+
     def test_thumbnails(self):
         for attachment in Attachment.objects.filter(instance=self.instance):
             url = image_url(attachment, 'small')
