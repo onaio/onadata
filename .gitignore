@@ -55,3 +55,6 @@ custom_template
 .vagrant
 Vagrantfile
 ansible
+
+# compile documentation
+docs/_build
