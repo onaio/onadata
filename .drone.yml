@@ -1,0 +1,11 @@
+image: bradrydzewski/python:onadata
+services:
+    - onaio/postgis
+    - onaio/mongodb
+script:
+    - source /home/ubuntu/virtualenv/python2.7/bin/activate
+    - ./script/database/install_postgis onadata_test postgres 127.0.0.1
+    - pip install -r requirements/base.pip --allow-all-external  --upgrade flake8
+    - python manage.py syncdb --noinput --settings=onadata.settings.drone_test
+    - python manage.py migrate --noinput --settings=onadata.settings.drone_test
+    - python manage.py test --noinput --settings=onadata.settings.drone_test

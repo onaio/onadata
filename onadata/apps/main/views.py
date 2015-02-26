@@ -457,20 +457,19 @@ def api(request, username=None, id_string=None):
 
     try:
         args = {
-            'username': username,
-            'id_string': id_string,
+            'xform': xform,
             'query': request.GET.get('query'),
             'fields': request.GET.get('fields'),
             'sort': request.GET.get('sort')
         }
         if 'start' in request.GET:
-            args["start"] = int(request.GET.get('start'))
+            args["start_index"] = int(request.GET.get('start'))
         if 'limit' in request.GET:
             args["limit"] = int(request.GET.get('limit'))
         if 'count' in request.GET:
             args["count"] = True if int(request.GET.get('count')) > 0\
                 else False
-        cursor = ParsedInstance.query_mongo(**args)
+        cursor = ParsedInstance.query_data(**args)
     except ValueError as e:
         return HttpResponseBadRequest(e.__str__())
 
@@ -1325,7 +1324,7 @@ def activity_api(request, username):
         if 'count' in request.GET:
             query_args["count"] = True \
                 if int(request.GET.get('count')) > 0 else False
-        cursor = AuditLog.query_mongo(**query_args)
+        cursor = AuditLog.query_data(**query_args)
     except ValueError as e:
         return HttpResponseBadRequest(e.__str__())
 

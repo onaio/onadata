@@ -13,7 +13,7 @@ class ServiceDefinition(RestServiceInterface):
     def send(self, url, parsed_instance):
 
         xform = parsed_instance.instance.xform
-        rows = [parsed_instance.to_dict_for_mongo()]
+        rows = [parsed_instance.instance.json]
 
         # prefix meta columns names for bamboo
         prefix = (u'%(id_string)s_%(id)s'

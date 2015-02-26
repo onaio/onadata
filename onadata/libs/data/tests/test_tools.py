@@ -42,6 +42,9 @@ class TestTools(TestBase):
         mock_time.side_effect = times
         self._make_submissions()
 
+        for i in self.xform.instances.all().order_by('-pk'):
+            i.date_created = times.pop()
+            i.save()
         count_key = 'count'
         fields = ['_submission_time']
 

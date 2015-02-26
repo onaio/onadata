@@ -4,14 +4,43 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
-from django.conf import settings
+from jsonfield import JSONField
 
 from onadata.apps.logger.models import XForm
 from onadata.apps.restservice.utils import call_ziggy_services
 from onadata.libs.utils import common_tags
 
-xform_instances = settings.MONGO_DB.instances
-mongo_ziggys = settings.MONGO_DB.ziggys
+
+def save_entity(instance, zi, new_form_instance, reporter, ziggy_entity=None):
+    data = {
+        '_id': zi.entity_id,
+        'instanceId': zi.instance_id,
+        'entityId': zi.entity_id,
+        'formInstance': new_form_instance,
+        'formName': instance.get('formName'),
+        'clientVersion': zi.client_version,
+        'serverVersion': zi.server_version,
+        'formDataDefinitionVersion': zi.form_version,
+        'reporterId': reporter.username
+    }
+    if ziggy_entity:
+        ziggy_entity.data = data
+    else:
+        ziggy_entity = ZiggyEntity(data=data, entity_id=zi.entity_id)
+
+    ziggy_entity.save()
+
+
+class ZiggyEntity(models.Model):
+    data = JSONField()
+    entity_id = models.CharField(max_length=249, null=False)
+
+    date_created = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
+    date_deleted = models.DateTimeField(null=True, default=None)
+
+    class Meta:
+        app_label = 'logger'
 
 
 class ZiggyInstance(models.Model):
@@ -31,7 +60,7 @@ class ZiggyInstance(models.Model):
     """
     entity_id = models.CharField(max_length=249, null=False)
     instance_id = models.CharField(max_length=249, null=False, unique=True)
-    form_instance = models.TextField()
+    form_instance = JSONField()
     reporter = models.ForeignKey(User, related_name='ziggys', null=False)
     client_version = models.BigIntegerField(null=True, default=None)
     server_version = models.BigIntegerField()
@@ -69,7 +98,7 @@ class ZiggyInstance(models.Model):
     def create_ziggy_instance(cls, user, instance, reporter):
         entity_id = instance['entityId']
         instance_id = instance['instanceId']
-        form_instance = instance['formInstance']
+        form_instance = json.loads(instance['formInstance'])
         client_version = instance['clientVersion']
         form_version = instance['formDataDefinitionVersion']
         form_name = instance['formName']
@@ -84,6 +113,8 @@ class ZiggyInstance(models.Model):
             reporter=reporter, client_version=client_version,
             form_instance=form_instance, form_version=form_version,
             xform=xform)
+        zi.save()
+
         return zi
 
     @classmethod
@@ -97,43 +128,51 @@ class ZiggyInstance(models.Model):
                 reporter = get_object_or_404(User, username=reporter_id)
 
             zi = cls.create_ziggy_instance(form_user, instance, reporter)
-            zi.save()
             data.append(zi.pk)
 
             # get ths formInstance within the db if it exists
-            entity = mongo_ziggys.find_one(zi.entity_id)
-            if entity:
-                existing_form_instance = json.loads(entity['formInstance'])
+            entities = ZiggyEntity.objects.filter(entity_id=zi.entity_id)
+            ziggy_entity = None
+
+            if entities.count():
+                entity = entities[0].data
+                existing_form_instance = entity['formInstance']
                 existing_field_data = existing_form_instance['form']['fields']
-                new_field_data = json.loads(zi.form_instance)['form']['fields']
+                new_field_data = zi.form_instance['form']['fields']
                 existing_field_data = ZiggyInstance.merge_ziggy_form_instances(
                     existing_field_data, new_field_data)
                 existing_form_instance['form']['fields'] = existing_field_data
-                new_form_instance = json.dumps(existing_form_instance)
+                new_form_instance = existing_form_instance
+                ziggy_entity = entities[0]
             else:
                 new_form_instance = zi.form_instance
 
-            mongo_data = {
-                '_id': zi.entity_id,
-                'instanceId': zi.instance_id,
-                'entityId': zi.entity_id,
-                'formInstance': new_form_instance,
-                'formName': instance.get('formName'),
-                'clientVersion': zi.client_version,
-                'serverVersion': zi.server_version,
-                'formDataDefinitionVersion': zi.form_version,
-                'reporterId': reporter.username
-            }
-            mongo_ziggys.save(mongo_data)
+            save_entity(instance, zi, new_form_instance, reporter,
+                        ziggy_entity)
+
         return len(data)
 
     @classmethod
     def get_current_list(cls, reporter_id, client_version):
-        query = {
-            'reporterId': reporter_id,
-            'serverVersion': {'$gte': int(client_version)}
-        }
-        return mongo_ziggys.find(query)
+        """Returns ziggy entities for specified reporter and client_version
+        greater or equal integer valuei.
+
+        :param string reporter_id: reporter's username
+        :client_version integer client_version:
+            or string of the ziggy client version.
+
+        :raises TypeError: if not an integer
+
+        :return: with the json entities
+        :rtype: ZiggyEntity ValuesQueryset
+        """
+        client_version = int(client_version)
+        # need to ensure params are in a string for json query
+        # not to raise a explicity type cast error
+        return ZiggyEntity.objects.values_list('data', flat=True).extra(
+            where=['data->>%s = %s', 'data->>%s >= %s'],
+            params=['reporterId', unicode(reporter_id),
+                    'clientVersion', unicode(client_version)])
 
     @classmethod
     def field_by_name_exists(cls, name):
@@ -142,7 +181,10 @@ class ZiggyInstance(models.Model):
         @param name: the name key to look for
         @return: a function to use with filter
         """
-        return lambda rec: rec['name'] == name
+        def _equal(rec):
+            return rec['name'] == name
+
+        return _equal
 
     @classmethod
     def merge_ziggy_form_instances(cls, source_data, update_data):
@@ -160,7 +202,7 @@ class ZiggyInstance(models.Model):
 
 def ziggy_to_formhub_instance(ziggy_instance):
     # todo: use form's fields to map fields to values
-    ziggy_dict = json.loads(ziggy_instance.form_instance)
+    ziggy_dict = ziggy_instance.form_instance.copy()
     formhub_dict = {}
     for field in ziggy_dict['form']['fields']:
         if 'bind' in field:
@@ -176,15 +218,8 @@ def rest_service_ziggy_submission(sender, instance, raw, created,
     # TODO: this only works if the formName within ziggy matches this form's
     # name
     if created and instance.xform:
-        # convert instance to a mongo style record
-        formhub_instance = ziggy_to_formhub_instance(instance)
-        # create mongo instance and capture its object id
-        object_id = xform_instances.save(formhub_instance)
-        # update _uuid since its whats used in f2dhis2 service calls
-        xform_instances.update({'_id': object_id},
-                               {'$set': {common_tags.UUID: object_id}})
-        object_id_str = str(object_id)
-        services_called = call_ziggy_services(instance, object_id_str)
+        services_called = call_ziggy_services(instance, instance.pk)
+
         return services_called
 
 post_save.connect(rest_service_ziggy_submission, sender=ZiggyInstance)

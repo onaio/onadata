@@ -1,3 +1,4 @@
+import json
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -7,6 +8,7 @@ from django.core.exceptions import PermissionDenied
 
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.pagination import BasePaginationSerializer
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
@@ -22,10 +24,11 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.apps.api.permissions import XFormPermissions
-from onadata.libs.serializers.data_serializer import (
-    DataSerializer, DataListSerializer, DataInstanceSerializer, OSMSerializer)
-from onadata.libs.serializers.geojson_serializer import (GeoJsonSerializer,
-                                                         GeoJsonListSerializer)
+from onadata.libs.serializers.data_serializer import DataSerializer
+from onadata.libs.serializers.data_serializer import DataListSerializer
+from onadata.libs.serializers.data_serializer import OSMSerializer
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
+from onadata.libs.serializers.geojson_serializer import GeoJsonListSerializer
 from onadata.libs import filters
 from onadata.libs.utils.viewer_tools import (
     EnketoError,
@@ -33,6 +36,18 @@ from onadata.libs.utils.viewer_tools import (
 
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
+
+
+class CustomPaginationSerializer(BasePaginationSerializer):
+    def to_native(self, obj):
+        ret = self._dict_class()
+        ret.fields = self._dict_class()
+        results = super(CustomPaginationSerializer, self).to_native(obj)
+
+        if results:
+            ret = results[self.results_field]
+
+        return ret
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin,
@@ -71,17 +86,19 @@ a list of public data endpoints is returned.
 >            ...
 >        ]
 
-## GET JSON List of data end points using limit operators
+## Pagination
 
-Lists the data endpoints accesible to the requesting user based on 'start'
-and/or 'limit' query parameters. Use the start parameter to skip a number
-of records and the limit parameter to limit the number of records returned.
+Use the following query paramaters:
+
+    - `page` - Page number, only if present pagination is done.
+    - `page_size` - Number of record returned, default size is 100 records.
+
 <pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{pk}</code>?<code>start</code>=<code>start_value\
+<b>GET</b> /api/v1/data/<code>{pk}</code>?<code>page</code>=<cod>page_number\
 </code>
 </pre>
 >
->       curl -X GET 'https://ona.io/api/v1/data/2?start=5'
+>       curl -X GET 'https://ona.io/api/v1/data/2?page=1'
 
 <pre class="prettyprint">
 <b>GET</b> /api/v1/data/<code>{pk}</code>?<code>limit</code>=<code>limit_value\
@@ -210,61 +227,10 @@ Get a single specific submission json data providing `pk`
 >        ]
 
 ## Query submitted data of a specific form
-Provides a list of json submitted data for a specific form. Use `query`
-parameter to apply form data specific, see
-<a href="http://docs.mongodb.org/manual/reference/operator/query/">
-http://docs.mongodb.org/manual/reference/operator/query/</a>.
 
-For more details see
-<a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)#
-api-parameters">
-API Parameters</a>.
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":"value"}</b>
-<b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":{"op": "value"}}"</b>
-</pre>
-> Example
->
->       curl -X GET 'https://ona.io/api/v1/data/22845?query={"kind": \
-"monthly"}'
->       curl -X GET 'https://ona.io/api/v1/data/22845?query={"date": \
-{"$gt": "2014-09-29T01:02:03+0000"}}'
-
-> Response
->
->        [
->            {
->                "_id": 4503,
->                "_bamboo_dataset_id": "",
->                "_deleted_at": null,
->                "expense_type": "service",
->                "_xform_id_string": "exp",
->                "_geolocation": [
->                    null,
->                    null
->                ],
->                "end": "2013-01-03T10:26:25.674+03",
->                "start": "2013-01-03T10:25:17.409+03",
->                "expense_date": "2011-12-23",
->                "_status": "submitted_via_web",
->                "today": "2013-01-03",
->                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
->                "imei": "351746052013466",
->                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
->                "kind": "monthly",
->                "_submission_time": "2013-01-03T02:27:19",
->                "required": "yes",
->                "_attachments": [],
->                "item": "Rent",
->                "amount": "35000.0",
->                "deviceid": "351746052013466",
->                "subscriberid": "639027...60317"
->            },
->            {
->                ....
->                "subscriberid": "639027...60317"
->            }
->        ]
+Using `query` parameter, you can pass in a json key/value query.
+MongoDB like query is no longer available, mongodb is no longer part of the
+ setup.
 
 ## Query submitted data of a specific form using Tags
 Provides a list of json submitted data for a specific form matching specific
@@ -519,6 +485,10 @@ The `.osm` file format concatenates all the files for a form or individual
     lookup_fields = ('pk', 'dataid')
     extra_lookup_fields = None
     public_data_endpoint = 'public'
+    pagination_serializer_class = CustomPaginationSerializer
+    paginate_by = 100
+    paginate_by_param = 'page_size'
+    page_kwarg = 'page'
 
     queryset = XForm.objects.all()
 
@@ -532,8 +502,6 @@ The `.osm` file format concatenates all the files for a form or individual
         elif pk is not None and dataid is None \
                 and pk != self.public_data_endpoint:
             serializer_class = DataListSerializer
-        elif pk is not None and dataid is not None:
-            serializer_class = DataInstanceSerializer
         else:
             serializer_class = \
                 super(DataViewSet, self).get_serializer_class()
@@ -705,6 +673,8 @@ The `.osm` file format concatenates all the files for a form or individual
             )
 
     def list(self, request, *args, **kwargs):
+        query = request.GET.get("query", {})
+        export_type = kwargs.get('format')
         lookup_field = self.lookup_field
         lookup = self.kwargs.get(lookup_field)
 
@@ -716,6 +686,22 @@ The `.osm` file format concatenates all the files for a form or individual
 
         if lookup == self.public_data_endpoint:
             self.object_list = self._get_public_forms_queryset()
+        elif lookup:
+            qs = self.filter_queryset(self.get_queryset())
+            self.object_list = Instance.objects.filter(xform__in=qs)
+
+        if (export_type is None or export_type in ['json']) \
+                and hasattr(self, 'object_list'):
+
+            if isinstance(query, six.string_types):
+                query = json.loads(query)
+
+            where = []
+            for k, v in query.items():
+                where.append("json->>'{}' = '{}'".format(k, v))
+
+            if where:
+                self.object_list = self.object_list.extra(where=where)
 
             page = self.paginate_queryset(self.object_list)
             if page is not None:
@@ -729,7 +715,10 @@ The `.osm` file format concatenates all the files for a form or individual
         query = request.GET.get("query", {})
         export_type = kwargs.get('format')
 
-        if export_type is None or export_type in ['json', 'osm']:
+        if export_type == Attachment.OSM:
+            serializer = self.get_serializer(self.object_list, many=True)
+            return Response(serializer.data)
+        elif export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
             return super(DataViewSet, self).list(request, *args, **kwargs)
         elif export_type == 'geojson':

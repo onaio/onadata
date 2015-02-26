@@ -3,9 +3,11 @@ from unittest import skip
 
 from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
+from pyxform.errors import PyXFormError
 
 from onadata.apps.main.views import show
 from onadata.apps.logger.models import XForm
+from onadata.libs.utils.logger_tools import XLSFormError
 from test_base import TestBase
 
 
@@ -15,8 +17,9 @@ class TestFormErrors(TestBase):
         self.xls_path = os.path.join(
             self.this_directory, "fixtures",
             "transportation", "transportation.xls")
-        response = self._publish_xls_file(self.xls_path)
-        self.assertEquals(response.status_code, 200)
+        count = XForm.objects.count()
+        self._publish_xls_file(self.xls_path)
+        self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.all()[0]
 
     def test_bad_id_string(self):
@@ -24,8 +27,7 @@ class TestFormErrors(TestBase):
         count = XForm.objects.count()
         xls_path = os.path.join(self.this_directory, "fixtures",
                                 "transportation", "transportation.bad_id.xls")
-        response = self._publish_xls_file(xls_path)
-        self.assertEquals(response.status_code, 200)
+        self.assertRaises(XLSFormError, self._publish_xls_file, xls_path)
         self.assertEquals(XForm.objects.count(), count)
 
     @skip
@@ -91,6 +93,9 @@ class TestFormErrors(TestBase):
         self.xform.save()
         xls_path = os.path.join(self.this_directory, "fixtures",
                                 "transportation", "tutorial .xls")
-        response = self._publish_xls_file(xls_path)
-        self.assertEquals(response.status_code, 200)
+        msg = u"The name 'tutorial ' is an invalid xml tag. Names must begin"\
+            u" with a letter, colon, or underscore, subsequent characters "\
+            u"can include numbers, dashes, and periods"
+        with self.assertRaisesMessage(PyXFormError, msg):
+            self._publish_xls_file(xls_path)
         self.assertEquals(XForm.objects.count(), count)

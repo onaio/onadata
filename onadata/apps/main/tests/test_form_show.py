@@ -11,7 +11,6 @@ from onadata.apps.main.views import show, form_photos, update_xform, profile,\
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.views import download_xlsform, download_jsonform,\
     download_xform, delete_xform
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.views import export_list, map_view
 from onadata.libs.utils.logger_tools import publish_xml_form
 from onadata.libs.utils.user_auth import http_auth_string
@@ -197,10 +196,11 @@ class TestFormShow(TestBase):
         }))
 
         # check that a form with geopoints has the map url
-        response = self._publish_xls_file(
+        count = XForm.objects.count()
+        self._publish_xls_file(
             os.path.join(
                 os.path.dirname(__file__), "fixtures", "gps", "gps.xls"))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.latest('date_created')
 
         show_url = reverse(show, kwargs={
@@ -424,29 +424,6 @@ class TestFormShow(TestBase):
         form_deleted = XForm.objects.filter(
             user=bob, id_string=id_string).count() == 0
         self.assertFalse(form_deleted)
-
-    def test_xform_delete_cascades_mongo_instances(self):
-        initial_mongo_count = ParsedInstance.query_mongo(
-            self.user.username, self.xform.id_string, '{}', '[]', '{}',
-            count=True)[0]["count"]
-        # submit instance
-        for i in range(len(self.surveys)):
-            self._submit_transport_instance(i)
-        # check mongo record exists
-        mongo_count = ParsedInstance.query_mongo(
-            self.user.username, self.xform.id_string, '{}', '[]', '{}',
-            count=True)[0]["count"]
-        self.assertEqual(mongo_count, initial_mongo_count + len(self.surveys))
-        # delete form
-        xform_delete_url = reverse(delete_xform, kwargs={
-            'username': self.user.username,
-            'id_string': self.xform.id_string
-        })
-        self.client.post(xform_delete_url)
-        mongo_count = ParsedInstance.query_mongo(
-            self.user.username, self.xform.id_string, '{}', '[]', '{}',
-            count=True)[0]["count"]
-        self.assertEqual(mongo_count, initial_mongo_count)
 
     def test_enketo_preview(self):
         url = reverse(

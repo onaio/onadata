@@ -1,5 +1,5 @@
 from os import path
-from datetime import datetime
+from django.utils import timezone
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
@@ -52,7 +52,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'image/jpeg')
 
-        self.attachment.instance.xform.deleted_at = datetime.now()
+        self.attachment.instance.xform.deleted_at = timezone.now()
         self.attachment.instance.xform.save()
         request = self.factory.get('/', **self.extra)
         response = self.retrieve_view(request, pk=pk)
@@ -113,7 +113,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertTrue(isinstance(response.data, list))
         initial_count = len(response.data)
 
-        self.xform.deleted_at = datetime.now()
+        self.xform.deleted_at = timezone.now()
         self.xform.save()
         request = self.factory.get('/', **self.extra)
         response = self.list_view(request)

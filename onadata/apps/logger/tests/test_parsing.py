@@ -9,6 +9,7 @@ from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
 from onadata.apps.logger.xform_instance_parser import get_uuid_from_xml,\
     get_meta_from_xml, get_deprecated_uuid_from_xml
 from onadata.libs.utils.common_tags import XFORM_ID_STRING
+from onadata.apps.logger.models.xform import XForm
 
 XML = u"xml"
 DICT = u"dict"
@@ -24,8 +25,9 @@ class TestXFormInstanceParser(TestBase):
             os.path.dirname(os.path.abspath(__file__)),
             "../fixtures/new_repeats/new_repeats.xls"
         )
+        count = XForm.objects.count()
         self._publish_xls_file_and_set_xform(xls_file_path)
-        self.assertEqual(self.response.status_code, 200)
+        self.assertEqual(count + 1, XForm.objects.count())
 
         # submit an instance
         xml_submission_file_path = os.path.join(
@@ -156,8 +158,9 @@ class TestXFormInstanceParser(TestBase):
             os.path.dirname(os.path.abspath(__file__)),
             "../fixtures/new_repeats/new_repeats.xls"
         )
+        count = XForm.objects.count()
         self._publish_xls_file_and_set_xform(xls_file_path)
-        self.assertEqual(self.response.status_code, 200)
+        self.assertEqual(count + 1, XForm.objects.count())
 
         # submit an instance
         xml_submission_file_path = os.path.join(

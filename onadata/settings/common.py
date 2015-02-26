@@ -18,7 +18,7 @@ from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
 import djcelery
-from pymongo import MongoClient
+# from pymongo import MongoClient
 
 
 djcelery.setup_loader()
@@ -54,10 +54,6 @@ TIME_ZONE = 'America/New_York'
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
-
-
-def ugettext(s):
-    return s
 
 LANGUAGES = (
     ('fr', u'Français'),
@@ -466,15 +462,15 @@ NA_REP = 'n/a'
 ENKETO_PROTOCOL = 'https'
 
 # MongoDB
-if MONGO_DATABASE.get('USER') and MONGO_DATABASE.get('PASSWORD'):
-    MONGO_CONNECTION_URL = (
-        "mongodb://%(USER)s:%(PASSWORD)s@%(HOST)s:%(PORT)s") % MONGO_DATABASE
-else:
-    MONGO_CONNECTION_URL = "mongodb://%(HOST)s:%(PORT)s" % MONGO_DATABASE
+# if MONGO_DATABASE.get('USER') and MONGO_DATABASE.get('PASSWORD'):
+#     MONGO_CONNECTION_URL = (
+#         "mongodb://%(USER)s:%(PASSWORD)s@%(HOST)s:%(PORT)s") % MONGO_DATABASE
+# else:
+#     MONGO_CONNECTION_URL = "mongodb://%(HOST)s:%(PORT)s" % MONGO_DATABASE
 
-MONGO_CONNECTION = MongoClient(
-    MONGO_CONNECTION_URL, safe=True, j=True, tz_aware=True)
-MONGO_DB = MONGO_CONNECTION[MONGO_DATABASE['NAME']]
+# MONGO_CONNECTION = MongoClient(
+#     MONGO_CONNECTION_URL, safe=True, j=True, tz_aware=True)
+# MONGO_DB = MONGO_CONNECTION[MONGO_DATABASE['NAME']]
 
 if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
     # site templates overrides

@@ -672,8 +672,8 @@ class TestExportBuilder(TestBase):
                 ]
             }
         childrens_section = export_builder.section_by_name('children')
-        match = filter(lambda x: expected_section['elements'][0]['xpath']
-                       == x['xpath'], childrens_section['elements'])[0]
+        match = filter(lambda x: expected_section['elements'][0]['xpath'] ==
+                       x['xpath'], childrens_section['elements'])[0]
         self.assertEqual(
             expected_section['elements'][0]['title'], match['title'])
 
@@ -694,8 +694,8 @@ class TestExportBuilder(TestBase):
             }
         main_section = export_builder.section_by_name('childrens_survey')
         match = filter(
-            lambda x: (expected_section['elements'][0]['xpath']
-                       == x['xpath']), main_section['elements'])[0]
+            lambda x: (expected_section['elements'][0]['xpath'] ==
+                       x['xpath']), main_section['elements'])[0]
         self.assertEqual(
             expected_section['elements'][0]['title'], match['title'])
 

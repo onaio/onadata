@@ -16,11 +16,30 @@ from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
-    UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION
+    UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, STATUS, DURATION, \
+    START_TIME, END_TIME
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.data.query import get_numeric_fields
-from onadata.libs.utils.cache_tools import (
-    safe_delete, PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE, IS_ORG)
+from onadata.libs.utils.cache_tools import safe_delete
+from onadata.libs.utils.cache_tools import IS_ORG
+from onadata.libs.utils.cache_tools import PROJ_SUB_DATE_CACHE
+from onadata.libs.utils.cache_tools import PROJ_NUM_DATASET_CACHE
+from onadata.libs.utils.timing import calculate_duration
+
+
+def _get_attachments_from_instance(instance):
+    attachments = []
+    for a in instance.attachments.all():
+        attachment = dict()
+        attachment['download_url'] = a.media_file.url
+        attachment['mimetype'] = a.mimetype
+        attachment['filename'] = a.media_file.name
+        attachment['instance'] = a.instance.pk
+        attachment['xform'] = instance.xform.id
+        attachment['id'] = a.id
+        attachments.append(attachment)
+
+    return attachments
 
 
 class FormInactiveError(Exception):
@@ -212,20 +231,24 @@ class Instance(models.Model):
             self.geom = GeometryCollection(points)
 
     def _set_json(self):
-        doc = self.get_dict()
+        # only set json if it is not already set
+        if not self.json:
+            doc = self.get_dict()
 
-        if not self.date_created:
-            now = submission_time()
-            self.date_created = now
+            if not self.date_created:
+                now = submission_time()
+                self.date_created = now
 
-        point = self.point
-        if point:
-            doc[GEOLOCATION] = [point.y, point.x]
+            point = self.point
+            if point:
+                doc[GEOLOCATION] = [point.y, point.x]
 
-        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
-        doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
-        doc[SUBMITTED_BY] = self.user.username\
-            if self.user is not None else None
+            doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
+            doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
+            doc[SUBMITTED_BY] = self.user.username\
+                if self.user is not None else None
+        else:
+            doc = self.get_full_dict()
         self.json = doc
 
     def _set_parser(self):
@@ -259,25 +282,29 @@ class Instance(models.Model):
     def get_full_dict(self):
         # TODO should we store all of these in the JSON no matter what?
         d = self.json
-        data = {
+        d.update(self.get_dict())
+        doc = {
             UUID: self.uuid,
             ID: self.id,
             BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
-            self.USERFORM_ID: u'%s_%s' % (
-                self.user.username,
-                self.xform.id_string),
-            ATTACHMENTS: [a.media_file.name for a in
-                          self.attachments.all()],
-            self.STATUS: self.status,
+            ATTACHMENTS: _get_attachments_from_instance(self),
+            STATUS: self.status,
             TAGS: list(self.tags.names()),
             NOTES: self.get_notes(),
-            VERSION: self.version
+            VERSION: self.version,
+            DURATION: self.get_duration()
         }
+        point = self.point
+        if point:
+            doc[GEOLOCATION] = [point.y, point.x]
+        else:
+            doc[GEOLOCATION] = [None, None]
 
-        if isinstance(self.instance.deleted_at, datetime):
-            data[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
+        if isinstance(self.deleted_at, datetime):
+            doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
 
-        d.update(data)
+        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
+        d.update(doc)
 
         return d
 
@@ -321,6 +348,12 @@ class Instance(models.Model):
         self.xform.submission_count(force_update=True)
         self.parsed_instance.save()
 
+    def get_duration(self):
+        data = self.get_dict()
+        _start, _end = data.get(START_TIME, ''), data.get(END_TIME, '')
+
+        return calculate_duration(_start, _end)
+
 
 post_save.connect(update_xform_submission_count, sender=Instance,
                   dispatch_uid='update_xform_submission_count')
@@ -334,6 +367,14 @@ def save_project(sender, instance=None, created=False, **kwargs):
 
 pre_save.connect(save_project, sender=Instance,
                  dispatch_uid='save_project_instance')
+
+
+def save_full_json(sender, instance=None, created=False, **kwargs):
+    if created:
+        instance.json = instance.get_full_dict()
+        instance.save()
+
+post_save.connect(save_full_json, Instance, dispatch_uid='save_full_json')
 
 
 class InstanceHistory(models.Model):

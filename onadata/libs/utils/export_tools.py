@@ -7,8 +7,6 @@ import six
 from urlparse import urlparse
 from zipfile import ZipFile
 
-from bson import json_util
-from django.conf import settings
 from django.core.files.base import File
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files.storage import get_storage_class
@@ -25,20 +23,17 @@ from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import\
-    _is_invalid_for_mongo, _encode_for_mongo, dict_for_mongo,\
-    _decode_from_mongo
+    _is_invalid_for_mongo, _encode_for_mongo, _decode_from_mongo
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     image_urls
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
-    DELETEDAT, USERFORM_ID, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
+    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION)
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 
 
 # this is Mongo Collection where we will store the parsed submissions
-xform_instances = settings.MONGO_DB.instances
-
 QUESTION_TYPES_TO_EXCLUDE = [
     u'note',
 ]
@@ -411,7 +406,7 @@ class ExportBuilder(object):
 
         return row
 
-    def to_zipped_csv(self, path, data, *args):
+    def to_zipped_csv(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):
             csv_writer.writerow(
                 [encode_if_str(row, field) for field in fields])
@@ -501,7 +496,7 @@ class ExportBuilder(object):
             i += 1
         return generated_name
 
-    def to_xls_export(self, path, data, *args):
+    def to_xls_export(self, path, data, *args, **kwargs):
         def write_row(data, work_sheet, fields, work_sheet_titles):
             # update parent_table with the generated sheet's title
             data[PARENT_TABLE_NAME] = work_sheet_titles.get(
@@ -569,17 +564,20 @@ class ExportBuilder(object):
         wb.save(filename=path)
 
     def to_flat_csv_export(
-            self, path, data, username, id_string, filter_query):
+            self, path, data, username, id_string, filter_query,
+            start=None, end=None):
         # TODO resolve circular import
         from onadata.apps.viewer.pandas_mongo_bridge import\
             CSVDataFrameBuilder
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
-            self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES)
+            self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
+            start, end
+        )
         csv_builder.export_to(path)
 
-    def to_zipped_sav(self, path, data, *args):
+    def to_zipped_sav(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):
             sav_writer.writerow(
                 [encode_if_str(row, field, True) for field in fields])
@@ -604,10 +602,10 @@ class ExportBuilder(object):
             var_types = dict(
                 [(tmp_k[element['title']],
                   0 if element['type'] in ['decimal', 'int'] else 255)
-                 for element in section['elements']]
-                + [(tmp_k[item],
+                 for element in section['elements']] +
+                [(tmp_k[item],
                     0 if item in ['_id', '_index', '_parent_index'] else 255)
-                   for item in self.EXTRA_FIELDS]
+                 for item in self.EXTRA_FIELDS]
             )
             sav_file = NamedTemporaryFile(suffix=".sav")
             sav_writer = SavWriter(sav_file.name, varNames=var_names,
@@ -675,7 +673,7 @@ def dict_to_flat_export(d, parent_index=0):
 def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
                     split_select_multiples=True,
-                    binary_select_multiples=False):
+                    binary_select_multiples=False, start=None, end=None):
     """
     Create appropriate export object given the export type
     """
@@ -691,8 +689,12 @@ def generate_export(export_type, extension, username, id_string,
     xform = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
 
-    # query mongo for the cursor
-    records = query_mongo(username, id_string, filter_query)
+    instances = xform.instances.filter(deleted_at=None)
+    if isinstance(start, datetime):
+        instances = instances.filter(date_created__gte=start)
+    if isinstance(end, datetime):
+        instances = instances.filter(date_created__lte=end)
+    records = instances.order_by('pk').values_list('json', flat=True)
 
     export_builder = ExportBuilder()
     export_builder.GROUP_DELIMITER = group_delimiter
@@ -706,7 +708,9 @@ def generate_export(export_type, extension, username, id_string,
     func = getattr(export_builder, export_type_func_map[export_type])
     try:
         func.__call__(
-            temp_file.name, records, username, id_string, filter_query)
+            temp_file.name, records, username, id_string, filter_query,
+            start=start, end=end
+        )
     except NoRecordsFoundError:
         pass
 
@@ -744,21 +748,9 @@ def generate_export(export_type, extension, username, id_string,
     export.filename = basename
     export.internal_status = Export.SUCCESSFUL
     # dont persist exports that have a filter
-    if filter_query is None:
+    if filter_query is None and start is None and end is None:
         export.save()
     return export
-
-
-def query_mongo(username, id_string, query=None, hide_deleted=True):
-    query = json.loads(query, object_hook=json_util.object_hook)\
-        if query else {}
-    query = dict_for_mongo(query)
-    query[USERFORM_ID] = u'{0}_{1}'.format(username, id_string)
-    if hide_deleted:
-        # display only active elements
-        # join existing query with deleted_at_query on an $and
-        query = {"$and": [query, {"_deleted_at": None}]}
-    return xform_instances.find(query)
 
 
 def should_create_new_export(xform, export_type):

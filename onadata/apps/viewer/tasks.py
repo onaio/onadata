@@ -11,7 +11,8 @@ from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import generate_export,\
     generate_attachments_zip_export, generate_kml_export,\
     generate_external_export
-from onadata.libs.utils.logger_tools import mongo_sync_status, report_exception
+from onadata.libs.utils.logger_tools import report_exception
+from onadata.libs.utils.mongo_sync import mongo_sync_status
 
 
 def create_async_export(xform, export_type, query, force_xlsx, options=None):

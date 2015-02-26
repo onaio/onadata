@@ -78,13 +78,13 @@ class TestPandasMongoBridge(TestBase):
     def _xls_data_for_dataframe(self):
         xls_df_builder = XLSDataFrameBuilder(self.user.username,
                                              self.xform.id_string)
-        cursor = xls_df_builder._query_mongo()
+        cursor = xls_df_builder._query_data()
         return xls_df_builder._format_for_dataframe(cursor)
 
     def _csv_data_for_dataframe(self):
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
                                              self.xform.id_string)
-        cursor = csv_df_builder._query_mongo()
+        cursor = csv_df_builder._query_data()
         return csv_df_builder._format_for_dataframe(cursor)
 
     def test_generated_sections(self):
@@ -297,7 +297,7 @@ class TestPandasMongoBridge(TestBase):
         self._submit_fixture_instance("nested_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
                                              self.xform.id_string)
-        cursor = csv_df_builder._query_mongo()
+        cursor = [k for k in csv_df_builder._query_data()]
         record = cursor[0]
         select_multiples = CSVDataFrameBuilder._collect_select_multiples(dd)
         result = CSVDataFrameBuilder._split_select_multiples(record,
@@ -534,13 +534,13 @@ class TestPandasMongoBridge(TestBase):
             self._submit_fixture_instance("new_repeats", "01")
         df_builder = XLSDataFrameBuilder(self.user.username,
                                          self.xform.id_string)
-        record_count = df_builder._query_mongo(count=True)
+        record_count = df_builder._query_data(count=True)
         self.assertEqual(record_count, 3)
-        cursor = df_builder._query_mongo()
+        cursor = df_builder._query_data()
         records = [record for record in cursor]
         self.assertTrue(len(records), 3)
         # test querying using limits
-        cursor = df_builder._query_mongo(start=2, limit=2)
+        cursor = df_builder._query_data(start=2, limit=2)
         records = [record for record in cursor]
         self.assertTrue(len(records), 1)
 
@@ -569,7 +569,7 @@ class TestPandasMongoBridge(TestBase):
             self._submit_fixture_instance("new_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
                                              self.xform.id_string)
-        record_count = csv_df_builder._query_mongo(count=True)
+        record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name, data_frame_max_size=3)

@@ -3,10 +3,10 @@ sudo add-apt-repository -y ppa:chris-lea/node.js
 
 # add postgres repo
 # http://trac.osgeo.org/postgis/wiki/UsersWikiPostGIS21UbuntuPGSQL93Apt
-sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main" >> /etc/apt/sources.list'
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main" >> /etc/apt/sources.list'
 wget --quiet -O - http://apt.postgresql.org/pub/repos/apt/ACCC4CF8.asc | sudo apt-key add -
 sudo apt-get update -qqy
-sudo apt-get install -qq gfortran libatlas-base-dev libjpeg-dev zlib1g-dev python-software-properties ghostscript
+sudo apt-get install -qq gfortran libatlas-base-dev libjpeg-dev zlib1g-dev python-software-properties ghostscript libxslt1-dev
 
 # install Geospatial libraries for GeoDjango
 sudo apt-get install -qq binutils libproj-dev gdal-bin Postgresql-9.3-postgis

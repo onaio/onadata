@@ -9,6 +9,7 @@ from pyxform.survey_element import SurveyElement
 from pyxform.section import Section, RepeatingSection
 from pyxform.question import Question
 
+from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.exceptions import NoRecordsFoundError
@@ -18,9 +19,6 @@ from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     DURATION
 from onadata.libs.utils.export_tools import question_types_to_exclude
 
-
-# this is Mongo Collection where we will store the parsed submissions
-xform_instances = settings.MONGO_DB.instances
 
 # the bind type of select multiples that we use to compare
 MULTIPLE_SELECT_BIND_TYPE = u"select"
@@ -82,13 +80,18 @@ class AbstractDataFrameBuilder(object):
 
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
-                 split_select_multiples=True, binary_select_multiples=False):
+                 split_select_multiples=True, binary_select_multiples=False,
+                 start=None, end=None):
         self.username = username
         self.id_string = id_string
         self.filter_query = filter_query
         self.group_delimiter = group_delimiter
         self.split_select_multiples = split_select_multiples
         self.BINARY_SELECT_MULTIPLES = binary_select_multiples
+        self.start = start
+        self.end = end
+        self.xform = XForm.objects.get(id_string=self.id_string,
+                                       user__username=self.username)
         self._setup()
 
     def _setup(self):
@@ -226,6 +229,45 @@ class AbstractDataFrameBuilder(object):
             cursor = ParsedInstance.query_mongo(**query_args)
             return cursor
 
+    def _query_data(self, query='{}', start=0,
+                    limit=ParsedInstance.DEFAULT_LIMIT,
+                    fields='[]', count=False):
+        # ParsedInstance.query_mongo takes params as json strings
+        # so we dumps the fields dictionary
+        count_args = {
+            'xform': self.xform,
+            'query': query,
+            'start': self.start,
+            'end': self.end,
+            'fields': '[]',
+            'sort': '{}',
+            'count': True
+        }
+        count_object = list(ParsedInstance.query_data(**count_args))
+        record_count = count_object[0]["count"]
+        if record_count == 0:
+            raise NoRecordsFoundError("No records found for your query")
+        # if count was requested, return the count
+        if count:
+            return record_count
+        else:
+            query_args = {
+                'xform': self.xform,
+                'query': query,
+                'fields': fields,
+                'start': self.start,
+                'end': self.end,
+                # TODO: we might want to add this in for the user
+                # to sepcify a sort order
+                'sort': 'pk',
+                'start_index': start,
+                'limit': limit,
+                'count': False
+            }
+            # use ParsedInstance.query_mongo
+            cursor = ParsedInstance.query_data(**query_args)
+            return cursor
+
 
 class XLSDataFrameBuilder(AbstractDataFrameBuilder):
 
@@ -247,10 +289,11 @@ class XLSDataFrameBuilder(AbstractDataFrameBuilder):
 
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
-                 split_select_multiples=True, binary_select_multiples=False):
+                 split_select_multiples=True, binary_select_multiples=False,
+                 start=None, end=None):
         super(XLSDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
-            split_select_multiples, binary_select_multiples)
+            split_select_multiples, binary_select_multiples, start, end)
 
     def _setup(self):
         super(XLSDataFrameBuilder, self)._setup()
@@ -262,15 +305,15 @@ class XLSDataFrameBuilder(AbstractDataFrameBuilder):
         self.xls_writer = ExcelWriter(file_path)
 
         # get record count
-        record_count = self._query_mongo(count=True)
+        record_count = self._query_data(count=True)
 
         # query in batches and for each batch create an XLSDataFrameWriter and
         # write to existing xls_writer object
         start = 0
         header = True
         while start < record_count:
-            cursor = self._query_mongo(self.filter_query, start=start,
-                                       limit=batchsize)
+            cursor = self._query_data(self.filter_query, start_index=start,
+                                      limit=batchsize)
 
             data = self._format_for_dataframe(cursor)
 
@@ -479,10 +522,11 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
-                 split_select_multiples=True, binary_select_multiples=False):
+                 split_select_multiples=True, binary_select_multiples=False,
+                 start=None, end=None):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
-            split_select_multiples, binary_select_multiples)
+            split_select_multiples, binary_select_multiples, start, end)
         self.ordered_columns = OrderedDict()
 
     def _setup(self):
@@ -612,7 +656,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     def export_to(self, file_or_path, data_frame_max_size=30000):
         from math import ceil
         # get record count
-        record_count = self._query_mongo(query=self.filter_query, count=True)
+        record_count = self._query_data(query=self.filter_query, count=True)
 
         self.ordered_columns = OrderedDict()
         self._build_ordered_columns(self.dd.survey, self.ordered_columns)
@@ -625,7 +669,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         num_data_frames = \
             int(ceil(float(record_count) / float(data_frame_max_size)))
         for i in range(num_data_frames):
-            cursor = self._query_mongo(
+            cursor = self._query_data(
                 self.filter_query, start=(i * data_frame_max_size),
                 limit=data_frame_max_size)
             data = self._format_for_dataframe(cursor)
