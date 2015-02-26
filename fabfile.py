@@ -128,6 +128,11 @@ def deploy(deployment_name, branch='master'):
         run("pip install numpy")
         run("pip install -r %s" % env.pip_requirements_file)
 
+    # build the docs before collect static
+    with cd(os.path.join(env.code_src, "docs")):
+        with source(env.virtualenv):
+            run("make html")
+
     with cd(env.code_src):
         config_module = env.django_config_module
         local_settings_check(config_module)
@@ -137,11 +142,6 @@ def deploy(deployment_name, branch='master'):
             run("python manage.py migrate --settings=%s" % config_module)
             run("python manage.py collectstatic --settings=%s --noinput"
                 % config_module)
-
-    # build the docs
-    with cd(os.path.join(env.code_src, "docs")):
-        with source(env.virtualenv):
-            run("make html")
 
     run("sudo %s restart" % env.celeryd)
     run("sudo /usr/local/bin/uwsgi --reload %s" % env.pid)
