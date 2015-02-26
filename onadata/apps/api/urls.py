@@ -1,10 +1,7 @@
 from django.conf.urls import url
 from django.views.generic import RedirectView
 from rest_framework import routers
-from rest_framework.response import Response
-from rest_framework.reverse import reverse
 from rest_framework.urlpatterns import format_suffix_patterns
-from rest_framework.views import APIView
 
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
