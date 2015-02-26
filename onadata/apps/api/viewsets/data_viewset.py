@@ -53,6 +53,9 @@ class CustomPaginationSerializer(BasePaginationSerializer):
 class DataViewSet(AnonymousUserPublicFormsMixin,
                   LastModifiedMixin,
                   ModelViewSet):
+    """
+    This endpoint provides access to submitted data.
+    """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
         renderers.XLSXRenderer,

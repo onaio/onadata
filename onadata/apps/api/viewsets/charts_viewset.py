@@ -24,6 +24,9 @@ def get_form_field_chart_url(url, field):
 
 
 class ChartBrowsableAPIRenderer(BrowsableAPIRenderer):
+    """
+    View chart for specific fields in a form or dataset.
+    """
 
     def get_default_renderer(self, view):
         """

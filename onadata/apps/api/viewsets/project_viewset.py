@@ -29,6 +29,9 @@ from onadata.settings.common import (
 
 
 class ProjectViewSet(LastModifiedMixin, LabelsMixin, ModelViewSet):
+    """
+    List, Retrieve, Update, Create Project and Project Forms.
+    """
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     lookup_field = 'pk'

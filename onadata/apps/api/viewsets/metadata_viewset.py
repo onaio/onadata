@@ -13,6 +13,9 @@ from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
 
 
 class MetaDataViewSet(LastModifiedMixin, viewsets.ModelViewSet):
+    """
+    This endpoint provides access to form metadata.
+    """
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.MetaDataFilter,)
     queryset = MetaData.objects.select_related('xform')

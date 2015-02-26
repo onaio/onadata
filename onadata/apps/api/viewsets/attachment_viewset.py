@@ -16,6 +16,9 @@ from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
 
 
 class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
+    """
+    List attachments of viewsets.
+    """
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.AttachmentFilter,)
     lookup_field = 'pk'

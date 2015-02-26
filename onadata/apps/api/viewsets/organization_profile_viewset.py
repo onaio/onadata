@@ -121,7 +121,7 @@ class OrganizationProfileViewSet(LastModifiedMixin,
                                  ObjectLookupMixin,
                                  ModelViewSet):
     """
-    List, Retrieve, Update, Create/Register Organizations
+    List, Retrieve, Update, Create/Register Organizations.
     """
     queryset = OrganizationProfile.objects.all()
     serializer_class = OrganizationSerializer
