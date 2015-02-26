@@ -32,6 +32,10 @@ class Attachment(models.Model):
             mimetype, encoding = mimetypes.guess_type(self.media_file.name)
             if mimetype:
                 self.mimetype = mimetype
+        if len(self.media_file.name) > 255:
+            raise ValueError(
+                "Length of the media file should be less or equal to 255")
+
         super(Attachment, self).save(*args, **kwargs)
 
     @property
