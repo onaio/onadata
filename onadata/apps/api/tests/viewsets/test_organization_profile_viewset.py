@@ -405,7 +405,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, [u'denoinc', newname])
+        self.assertEqual(sorted(response.data), sorted([u'denoinc', newname]))
 
         user_role = 'editor'
         data = {'username': newname, 'role': user_role}

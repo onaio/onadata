@@ -17,7 +17,7 @@ def upload_to(instance, filename):
 class Attachment(models.Model):
     OSM = 'osm'
     instance = models.ForeignKey(Instance, related_name="attachments")
-    media_file = models.FileField(upload_to=upload_to)
+    media_file = models.FileField(max_length=255, upload_to=upload_to)
     mimetype = models.CharField(
         max_length=50, null=False, blank=True, default='')
     extension = models.CharField(max_length=10, null=False, blank=False,
@@ -32,6 +32,10 @@ class Attachment(models.Model):
             mimetype, encoding = mimetypes.guess_type(self.media_file.name)
             if mimetype:
                 self.mimetype = mimetype
+        if len(self.media_file.name) > 255:
+            raise ValueError(
+                "Length of the media file should be less or equal to 255")
+
         super(Attachment, self).save(*args, **kwargs)
 
     @property
