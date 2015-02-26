@@ -6,11 +6,8 @@
 Welcome to Ona API's documentation!
 =======================================
 
-Ona JSON Rest Api
-==================
-
-Endpoints:
-==========
+Ona JSON Rest Api Endpoints
+===========================
 
 Data
 ----
@@ -118,8 +115,7 @@ You can learn more about oauth2 `here`_.
 
 -  ``name`` - name of your application
 -  ``client_type`` - Client Type: select confidential
--  ``authorization_grant_type`` - Authorization grant type:
-   Authorization code
+-  ``authorization_grant_type`` - Authorization grant type: Authorization code
 -  ``redirect_uri`` - Redirect urls: redirection endpoint
 
 Keep note of the ``client_id`` and the ``client_secret``, it is required
@@ -194,8 +190,7 @@ Payload:
 
 ::
 
-    grant_type=authorization_code&code=YYYYYYYYY&client_id=XXXXXX&
-    redirect_uri=http://redirect/uri/path
+    grant_type=authorization_code&code=YYYYYYYYY&client_id=XXXXXX&redirect_uri=http://redirect/uri/path
 
 curl example:
 
@@ -233,8 +228,7 @@ Example using curl:
 
 ::
 
-    curl -X GET https://ona.io/api/v1
-    -H "Authorization: Bearer ACCESS_TOKEN"
+    curl -X GET https://ona.io/api/v1 -H "Authorization: Bearer ACCESS_TOKEN"
 
 Quick start
 -----------

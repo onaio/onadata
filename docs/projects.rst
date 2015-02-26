@@ -1,5 +1,6 @@
 Projects
 ********
+
 Project List
 ============
 
@@ -114,24 +115,24 @@ Example
 ^^^^^^^^
 ::
 
-        curl -X PATCH -d 'metadata={"description": "Lorem ipsum","location": "Nakuru, Kenya","category": "water"}'https://ona.io/api/v1/projects/1
+        curl -X PATCH -d 'metadata={"description": "Lorem ipsum","location": "Nakuru, Kenya","category": "water"}' https://ona.io/api/v1/projects/1
 
 Response
 ^^^^^^^^^
 ::
 
-       {
-           "url": "https://ona.io/api/v1/projects/1",
-           "owner": "https://ona.io/api/v1/users/ona",
-           "name": "project 1",
-           "metadata": {
-                        "description": "Lorem ipsum",
-                        "location": "Nakuru, Kenya",
-                        "category": "water"
-                        }
-           "date_created": "2013-07-24T13:37:39Z",
-           "date_modified": "2013-07-24T13:37:39Z"
-       }
+    {
+        "url": "https://ona.io/api/v1/projects/1",
+        "owner": "https://ona.io/api/v1/users/ona",
+        "name": "project 1",
+        "metadata": {
+            "description": "Lorem ipsum",
+            "location": "Nakuru, Kenya",
+            "category": "water"
+        },
+        "date_created": "2013-07-24T13:37:39Z",
+        "date_modified": "2013-07-24T13:37:39Z"
+    }
 
 Share a project with a specific user
 -------------------------------------
@@ -139,8 +140,7 @@ Share a project with a specific user
 You can share a project with a specific user by ``POST`` a payload with
 
 - ``username`` of the user you want to share the form with and
-- ``role`` you want the user to have on the project.Available roles are ``readonly``,
-	``dataentry``, ``editor``, ``manager``.
+- ``role`` you want the user to have on the project.Available roles are ``readonly``, ``dataentry``, ``editor``, ``manager``.
 
 .. raw:: html
 
@@ -152,14 +152,13 @@ Example
 ^^^^^^^^
 ::
 
-	       curl -X POST -d username=alice -d role=readonly\
-	 https://ona.io/api/v1/projects/1/share
+    curl -X POST -d username=alice -d role=readonly https://ona.io/api/v1/projects/1/share
 
 Response
 ^^^^^^^^^
 ::
 
-        HTTP 204 NO CONTENT
+    HTTP 204 NO CONTENT
 
 Send an email to users on project share
 ----------------------------------------
@@ -176,9 +175,7 @@ Example
 ^^^^^^^^^
 ::
 
-	       curl -X POST -d username=alice -d role=readonly -d email_msg=I have\
-	 shared the project with you\
-	 https://ona.io/api/v1/projects/1/share
+    curl -X POST -d username=alice -d role=readonly -d email_msg="I have shared the project with you" https://ona.io/api/v1/projects/1/share
 
 Response
 ^^^^^^^^^
@@ -197,8 +194,7 @@ Example
 ^^^^^^^^
 ::
 
-	       curl -X POST -d "username=alice" -d "role=readonly" \
-	 -d "remove=True" http://localhost:8000/api/v1/projects/1/share
+    curl -X POST -d "username=alice" -d "role=readonly" -d "remove=True" http://localhost:8000/api/v1/projects/1/share
 
 Response
 ^^^^^^^^^
@@ -209,57 +205,52 @@ Response
 Assign a form to a project
 ----------------------------
 
-To [re]assign an existing form to a project you need to ``POST`` a payload of
-``formid=FORMID`` to the endpoint below.
+To [re]assign an existing form to a project you need to ``POST`` a payload of ``formid=FORMID`` to the endpoint below.
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>POST</b> /api/v1/projects/<code>{pk}</code>/forms</pre>
+	<pre class="prettyprint"><b>POST</b> /api/v1/projects/<code>{pk}</code>/forms</pre>
 
 Example
 ^^^^^^^^
 ::
 
-	       curl -X POST -d '{"formid": 28058}' \
-	https://ona.io/api/v1/projects/1/forms -H "Content-Type: application/json"
+    curl -X POST -d '{"formid": 28058}' https://ona.io/api/v1/projects/1/forms -H "Content-Type: application/json"
 
 Response
 ^^^^^^^^^
 ::
 
-       {
-           "url": "https://ona.io/api/v1/forms/28058",
-           "formid": 28058,
-           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
-           "id_string": "Birds",
-           "sms_id_string": "Birds",
-           "title": "Birds",
-           "allows_sms": false,
-           "bamboo_dataset": "",
-           "description": "",
-           "downloadable": true,
-           "encrypted": false,
-           "owner": "ona",
-           "public": false,
-           "public_data": false,
-           "date_created": "2013-07-25T14:14:22.892Z",
-           "date_modified": "2013-07-25T14:14:22.892Z"
-       }
+    {
+        "url": "https://ona.io/api/v1/forms/28058",
+        "formid": 28058,
+        "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
+        "id_string": "Birds",
+        "sms_id_string": "Birds",
+        "title": "Birds",
+        "allows_sms": false,
+        "bamboo_dataset": "",
+        "description": "",
+        "downloadable": true,
+        "encrypted": false,
+        "owner": "ona",
+        "public": false,
+        "public_data": false,
+        "date_created": "2013-07-25T14:14:22.892Z",
+        "date_modified": "2013-07-25T14:14:22.892Z"
+    }
 
 Upload XLSForm to a project
 --------------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>POST</b> /api/v1/projects/<code>{pk}</code>/forms</pre>
+    <pre class="prettyprint"><b>POST</b> /api/v1/projects/<code>{pk}</code>/forms</pre>
 
 Example
 ^^^^^^^^
 ::
 
-	       curl -X POST -F xls_file=@/path/to/form.xls\
- 	https://ona.io/api/v1/projects/1/forms
+    curl -X POST -F xls_file=@/path/to/form.xls https://ona.io/api/v1/projects/1/forms
 
 Response
 ^^^^^^^^^
@@ -289,8 +280,7 @@ Get forms for a project
 ---------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/projects/<code>{pk}</code>/forms
+	<pre class="prettyprint"><b>GET</b> /api/v1/projects/<code>{pk}</code>/forms
 	</pre>
 
 Example
@@ -305,7 +295,7 @@ Response
 
        [
            {
-              "url": "https://ona.io/api/v1/forms/28058",
+               "url": "https://ona.io/api/v1/forms/28058",
                "formid": 28058,
                "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
                "id_string": "Birds",
@@ -424,21 +414,19 @@ Request
 ^^^^^^^^
 ::
 
-    	   curl -X DELETE \
-	https://ona.io/api/v1/projects/28058/labels/tag1
+    curl -X DELETE https://ona.io/api/v1/projects/28058/labels/tag1
 
 or to delete the tag "hello world"
 
 ::
 
-    	   curl -X DELETE \
-	https://ona.io/api/v1/projects/28058/labels/hello%20world
+    curl -X DELETE https://ona.io/api/v1/projects/28058/labels/hello%20world
 
 Response
 ^^^^^^^^^
 ::
 
-        HTTP 200 OK
+    HTTP 200 OK
 
 Add a star to a project
 --------------------------

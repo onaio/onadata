@@ -24,9 +24,8 @@ Response
 ::
 
         [{
-
             "id": 4240,
-            "id_string": "dhis2form"
+            "id_string": "dhis2form",
             "url": "https://ona.io/api/v1/charts/4240",
         }
         ...
@@ -50,24 +49,14 @@ Response
 ::
 
             {
-
-
                 "id": 4240,
-
-                "id_string": "dhis2form"
-
+                "id_string": "dhis2form",
                 "url": "https://ona.io/api/v1/charts/4240",
-
                 "fields": {
-
-                "uuid": "https://ona.io/api/v1/charts/4240?field_name=uuid",
-
-                "num": "https://ona.io/api/v1/charts/4240?field_name=num",
-
+                    "uuid": "https://ona.io/api/v1/charts/4240?field_name=uuid",
+                    "num": "https://ona.io/api/v1/charts/4240?field_name=num",
                     ...
-
                 }
-
             }
 
 Get a chart for a specific field in a form
@@ -79,8 +68,7 @@ Get a chart for a specific field in a form
 .. raw:: html
 
     <pre class="prettyprint">
-    <b>GET</b> /api/v1/charts/<code>{formid}</code>.<code>{format}</code>?\
-    field_name=<code>field_name</code></pre>
+    <b>GET</b> /api/v1/charts/<code>{formid}</code>.<code>{format}</code>?field_name=<code>field_name</code></pre>
 
 Example
 ^^^^^^^
@@ -92,8 +80,7 @@ Response
 ^^^^^^^^
 
  - ``html`` format response is a html, javascript and css to the chart
- - ``json`` format response is the ``JSON`` data that can be passed to a charting
-    library
+ - ``json`` format response is the ``JSON`` data that can be passed to a charting library
 
 Get a chart data for all fields in a form
 ------------------------------------------
@@ -117,7 +104,6 @@ Example
 Response
 ^^^^^^^^^
 
- - `json` format response is the `JSON` data for each field that can be
-    passed to a charting library
+ - `json` format response is the `JSON` data for each field that can be passed to a charting library
 
     

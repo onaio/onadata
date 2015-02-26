@@ -27,30 +27,24 @@ a list of public data endpoints is returned.
 Example
 ^^^^^^^^
 ::
-	
 
-	   curl -X GET https://ona.io/api/v1/data
+    curl -X GET https://ona.io/api/v1/data
 	   
 
 Response
 ^^^^^^^^^ 
-	::
-	
-	        [{
+::
 
-	          "id": 4240,
-
-	          "id_string": "dhis2form"
-
-	          "title": "dhis2form"
-
-	          "description": "dhis2form"
-
-	          "url": "https://ona.io/api/v1/data/4240"
-
-	         },
-	           ...
-	        ]
+    [
+        {
+            "id": 4240,
+            "id_string": "dhis2form",
+            "title": "dhis2form",
+            "description": "dhis2form",
+            "url": "https://ona.io/api/v1/data/4240"
+        },
+        ...
+    ]
 
 GET JSON List of data end points using limit operators
 -------------------------------------------------------
@@ -140,67 +134,34 @@ Response
 ::
 
        [
-
             {
-
                 "_id": 4503,
-
                 "_bamboo_dataset_id": "",
-
                 "_deleted_at": null,
-
                 "expense_type": "service",
-
                 "_xform_id_string": "exp",
-
                 "_geolocation": [
-
                     null,
-
                     null
-
                 ],
-
                 "end": "2013-01-03T10:26:25.674+03",
-
                 "start": "2013-01-03T10:25:17.409+03",
-
                 "expense_date": "2011-12-23",
-
                 "_status": "submitted_via_web",
-
                 "today": "2013-01-03",
-
                 "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
-
                 "imei": "351746052013466",
-
                 "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
-
                 "kind": "monthly",
-
                 "_submission_time": "2013-01-03T02:27:19",
-
                 "required": "yes",
-
                 "_attachments": [],
-
                 "item": "Rent",
-
                 "amount": "35000.0",
-
                 "deviceid": "351746052013466",
-
                 "subscriberid": "639027...60317"
-
             },
-
-            {....
-
-                "subscriberid": "639027...60317"
-
-            }
-
+            ....
         ]
 
 
@@ -229,173 +190,40 @@ Response
 ^^^^^^^^^
 ::
 
-            {
-
-                "_id": 4503,
-
-                "_bamboo_dataset_id": "",
-
-                "_deleted_at": null,
-
-                "expense_type": "service",
-
-                "_xform_id_string": "exp",
-
-                "_geolocation": [
-
-                    null,
-
-                    null
-
-                ],
-
-                "end": "2013-01-03T10:26:25.674+03",
-
-                "start": "2013-01-03T10:25:17.409+03",
-
-                "expense_date": "2011-12-23",
-
-                "_status": "submitted_via_web",
-
-                "today": "2013-01-03",
-
-                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
-
-                "imei": "351746052013466",
-
-                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
-
-                "kind": "monthly",
-
-                "_submission_time": "2013-01-03T02:27:19",
-
-                "required": "yes",
-
-                "_attachments": [],
-
-                "item": "Rent",
-
-                "amount": "35000.0",
-
-                "deviceid": "351746052013466",
-
-                "subscriberid": "639027...60317"
-
-            },
-
-            {
-
-                ....
-
-                "subscriberid": "639027...60317"
-
-            }
-
-        ]
+    [
+        {
+            "_id": 4503,
+            "_bamboo_dataset_id": "",
+            "_deleted_at": null,
+            "expense_type": "service",
+            "_xform_id_string": "exp",
+            "_geolocation": [
+                null,
+                null
+            ],
+            "end": "2013-01-03T10:26:25.674+03",
+            "start": "2013-01-03T10:25:17.409+03",
+            "expense_date": "2011-12-23",
+            "_status": "submitted_via_web",
+            "today": "2013-01-03",
+            "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
+            "imei": "351746052013466",
+            "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
+            "kind": "monthly",
+            "_submission_time": "2013-01-03T02:27:19",
+            "required": "yes",
+            "_attachments": [],
+            "item": "Rent",
+            "amount": "35000.0",
+            "deviceid": "351746052013466",
+            "subscriberid": "639027...60317"
+        },
+        ....
+    ]
 
 Query submitted data of a specific form
 ----------------------------------------
-Provides a list of json submitted data for a specific form. Use ``query``
-
-parameter to apply form data specific, see |query|
-
-.. |query| raw:: html
-
-	<a href="http://docs.mongodb.org/manual/reference/operator/query/">
-	http://docs.mongodb.org/manual/reference/operator/query/</a>.
-
-For more details see |APIParameters|
-
-.. |APIParameters| raw:: html
-
-  <a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)#
-  api-parameters">
-  API Parameters</a>.
-      
-.. raw:: html
-
-  <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":"value"}</b>
-  <b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":{"op": "value"}}"</b>
-  </pre>
-
-Example
-^^^^^^^^^
-::
-
-	    curl -X GET 'https://ona.io/api/v1/data/22845?query={"kind": 
-	"monthly"}'
-	    curl -X GET 'https://ona.io/api/v1/data/22845?query={"date": 
-
-	{"$gt": "2014-09-29T01:02:03+0000"}}'
-
-Response
-^^^^^^^^^
-::
-
-        [
-
-            {
-
-                "_id": 4503,
-
-                "_bamboo_dataset_id": "",
-
-                "_deleted_at": null,
-
-                "expense_type": "service",
-
-                "_xform_id_string": "exp",
-
-                "_geolocation": [
-
-                    null,
-
-                    null
-
-               ],
-
-                "end": "2013-01-03T10:26:25.674+03",
-
-               "start": "2013-01-03T10:25:17.409+03",
-
-               "expense_date": "2011-12-23",
-
-                "_status": "submitted_via_web",
-
-                "today": "2013-01-03",
-
-                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
-
-                "imei": "351746052013466",
-
-                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
-
-                "kind": "monthly",
-
-                "_submission_time": "2013-01-03T02:27:19",
-
-                "required": "yes",
-
-                "_attachments": [],
-
-                "item": "Rent",
-
-                "amount": "35000.0",
-
-                "deviceid": "351746052013466",
-
-                "subscriberid": "639027...60317"
-
-            },
-
-            {
-                
-                "subscriberid": "639027...60317"
-
-            }
-
-        ]
+Use the `query` parameter to pass in a JSON key/value query.
 
 Query submitted data of a specific form using Tags
 --------------------------------------------------
@@ -448,13 +276,13 @@ Request
 ^^^^^^^^^
 ::
 
-	      curl -X DELETE 
+    curl -X DELETE https://ona.io/api/v1/data/28058/20/labels/tag1
 
-	https://ona.io/api/v1/data/28058/20/labels/tag1
+or to delete the tag "hello world"
 
-	or to delete the tag "hello world"
+::
 
-	     curl -X DELETE https://ona.io/api/v1/data/28058/20/labels/hello%20world
+    curl -X DELETE https://ona.io/api/v1/data/28058/20/labels/hello%20world
 
 Response
 ^^^^^^^^^
@@ -481,23 +309,16 @@ Response
 ^^^^^^^^^
 ::
 
-     [{
-
+    [
+        {
             "id": 4240,
-
-            "id_string": "dhis2form"
-
-            "title": "dhis2form"
-
-            "description": "dhis2form"
-
+            "id_string": "dhis2form",
+            "title": "dhis2form",
+            "description": "dhis2form",
             "url": "https://ona.io/api/v1/data/4240"
-
-         },
-
-            ...
-
-        ]
+        },
+        ...
+    ]
 
 Get enketo edit link for a submission instance
 -----------------------------------------------
@@ -511,13 +332,13 @@ Example
 ^^^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/data/28058/20/enketo?return_url=url
+    curl -X GET https://ona.io/api/v1/data/28058/20/enketo?return_url=url
 
 Response
 ^^^^^^^^^
 ::
 
-	{"url": "https://hmh2a.enketo.formhub.org"}
+    {"url": "https://hmh2a.enketo.formhub.org"}
 
 Delete a specific submission instance
 --------------------------------------
@@ -534,13 +355,13 @@ Example
 ^^^^^^^^^
 ::
 
-      curl -X DELETE https://ona.io/api/v1/data/28058/20
+    curl -X DELETE https://ona.io/api/v1/data/28058/20
 
 Response
 ^^^^^^^^^
 ::
   
-       HTTP 204 No Content
+    HTTP 204 No Content
 
 
 GEOJSON
@@ -550,13 +371,8 @@ Get a valid geojson value from the submissions
 
 **Options**
 
-- ``geo_field`` - valid field that can be converted to a geojson.
-
-	(Point, LineString, Polygon)
-
-- ``fields`` - additional comma separated values that are to be added to the
-
-	properties section
+- ``geo_field`` - valid field that can be converted to a geojson (Point, LineString, Polygon).
+- ``fields`` - additional comma separated values that are to be added to the properties section
 
 .. raw:: html
 
@@ -569,61 +385,39 @@ Get a valid geojson value from the submissions
 .. raw:: html
 
   <pre class="prettyprint">
-  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson?
-  geo_field=<code>{field_name}</code>&fields=<code>{list,of,fields}</code>
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>.geojson?geo_field=<code>{field_name}</code>&fields=<code>{list,of,fields}</code>
   </pre>
 
 Example
 ^^^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/data/28058/20.geojson
+    curl -X GET https://ona.io/api/v1/data/28058/20.geojson
 
 Response
 ^^^^^^^^^
 ::
 
-       HTTP 200 OK
+    HTTP 200 OK
 
 Response
 ^^^^^^^^^
 ::
 
-        {
-
-           "type": "Feature",
-
-           "geometry":
-
-               {
-
-                   "type": "GeometryCollection",
-
-                    "geometries":
-
-                       [{
-
-                           "type": "Point",
-
-                          "coordinates":
-
-                               [36.787219, -1.294197]
-
-                      }]
-
-               },
-
-           "properties":
-
-              {
-
-                   "id": 6448,
-
-                    "xform": 65
-
-               }
-
-       }
+    {
+        "type": "Feature",
+        "geometry": {
+            "type": "GeometryCollection",
+            "geometries": [{
+                "type": "Point",
+                "coordinates": [36.787219, -1.294197]
+            }]
+        },
+        "properties": {
+            "id": 6448,
+            "xform": 65
+        }
+    }
 
 
 **List the geojson values**
@@ -649,75 +443,43 @@ Response
 ^^^^^^^^^
 ::
 
-        {
-
-           "type": "FeatureCollection",
-
-            "features":
-
-               [{
-
-                   "type": "Feature",
-
-                    "geometry":
-
-                       {
-
-                       "type": "GeometryCollection",
-
-                        "geometries":
-
-                           [{
-
-                               "type": "Point",
-
-                                "coordinates": [36.787219, -1.294197]
-
-                           }]
-
-                       },
-
-                    "properties":
-
-                       {"id": 6448, "xform": 65}
-
-               },
-
-                {
-                    "type": "Feature",
-
-                     "geometry":
-
-                        {
-
-                           "type": "GeometryCollection",
-
-                            "geometries":
-
-                               [{
-
-                                   "type": "Point",
-
-                                    "coordinates": [36.7872606, -1.2942131]
-
-                               }]
-
-                        },
-
-                      "properties":
-
-                           {"id": 6447, "xform": 65}
-
-               }]
-
-        }
+    {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "GeometryCollection",
+                    "geometries": [{
+                        "type": "Point",
+                        "coordinates": [36.787219, -1.294197]
+                    }]
+                },
+                    "properties": {
+                        "id": 6448,
+                        "xform": 65
+                    }
+            },
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "GeometryCollection",
+                    "geometries": [{
+                        "type": "Point",
+                        "coordinates": [36.7872606, -1.2942131]
+                    }]
+                },
+                "properties": {
+                    "id": 6447,
+                    "xform": 65
+                }
+            }]
+    }
 
 OSM
 ----
 
-The `.osm` file format concatenates all the files for a form or individual
- submission. When the `.json` endpoint is accessed, the individual osm files
- are listed on the `_attachments` key.
+The `.osm` file format concatenates all the files for a form or individual submission. When the `.json` endpoint is accessed, the individual osm files are listed on the `_attachments` key.
 
 OSM endpoint for all osm files uploaded to a form concatenated.
 -----------------------------------------------------------------
@@ -745,4 +507,4 @@ Example
 ^^^^^^^^^
 ::
 
-	curl -X GET https://ona.io/api/v1/data/28058/20.osm
+    curl -X GET https://ona.io/api/v1/data/28058/20.osm

@@ -46,8 +46,7 @@ Here is some example JSON, it would replace `[the JSON]` above:
 
        {
            "transport": {
-               "available_transportation_types_to_referral_facility": \
-				["ambulance", "bicycle"],
+               "available_transportation_types_to_referral_facility": ["ambulance", "bicycle"],
                "loop_over_transport_types_frequency": {
                    "ambulance": {
                        "frequency_to_referral_facility": "daily"

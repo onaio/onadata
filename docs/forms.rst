@@ -35,22 +35,18 @@ Example
 ^^^^^^^
 ::
 
-	       curl -X POST -F xls_file=@/path/to/form.xls \
-	https://ona.io/api/v1/forms
+    curl -X POST -F xls_file=@/path/to/form.xls https://ona.io/api/v1/forms
 
 **OR post an xlsform url**
 ::
 
-	       curl -X POST -d \
-	"xls_url=https://ona.io/ukanga/forms/tutorial/form.xls" \
-	https://ona.io/api/v1/forms
+    curl -X POST -d "xls_url=https://ona.io/ukanga/forms/tutorial/form.xls" https://ona.io/api/v1/forms
 
 **OR post an xlsform via Dropbox url**
 
 ::
 
-	curl -X POST -d "dropbox_xls_url=https://www.dropbox.com/s/ynenld7xdf1vdlo/tutorial.xls?dl=1" 
-	https://ona.io/api/v1/forms
+    curl -X POST -d "dropbox_xls_url=https://www.dropbox.com/s/ynenld7xdf1vdlo/tutorial.xls?dl=1" https://ona.io/api/v1/forms
 
 Response
 ^^^^^^^^^
@@ -226,7 +222,6 @@ Response
 ^^^^^^^^
 ::
 
-
        HTTP 202 Accepted
        {"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
 
@@ -248,7 +243,7 @@ Example
 
 Response
 ^^^^^^^^
-If the job is done:-
+If the job is done:
 
 ::
 
@@ -276,6 +271,8 @@ Example
 Response
 ^^^^^^^^
 
+::
+
        HTTP 202 Accepted
        {"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
 
@@ -293,13 +290,12 @@ Example
 ^^^^^^^
 ::
 
-	       curl -X GET https://ona.io/api/v1/forms/28058/delete_async?job_uuid=\
-	d1559e9e-5bab-480d-9804-e32111e8b2b8
+    curl -X GET https://ona.io/api/v1/forms/28058/delete_async?job_uuid=d1559e9e-5bab-480d-9804-e32111e8b2b8
 
 Response
 ^^^^^^^^
 
-If the job is done:-
+If the job is done:
 
 ::
 
@@ -324,24 +320,26 @@ Response
 ----------
 ::
 
-       [{
-           "url": "https://ona.io/api/v1/forms/28058",
-          "formid": 28058,
-           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
-           "id_string": "Birds",
-           "sms_id_string": "Birds",
-           "title": "Birds",
-           ...
-       }, ...]
+    [
+        {
+            "url": "https://ona.io/api/v1/forms/28058",
+            "formid": 28058,
+            "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
+            "id_string": "Birds",
+            "sms_id_string": "Birds",
+            "title": "Birds",
+            ...
+        },
+        ...
+    ]
 
 
 Get `JSON` | `XML` | `XLS` Form Representation
 ----------------------------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/<code>{pk}</code>/form.\
-	<code>{format}</code></pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/<code>{pk}</code>/form.<code>{format}</code></pre>
 
 JSON Example
 ^^^^^^^^^^^^
@@ -397,7 +395,7 @@ XLS Example
 
 Response
 ^^^^^^^^
-     **Xls file downloaded**
+     **XLS file downloaded**
 
 Get list of forms with specific tag(s)
 --------------------------------------
@@ -419,19 +417,27 @@ Request
        curl -X GET https://ona.io/api/v1/forms?tag=smart,brand+new
 
 Response
+^^^^^^^^
 ::
 
         HTTP 200 OK
 
-       [{
-           "url": "https://ona.io/api/v1/forms/28058",
-           "formid": 28058,
-           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
-           "id_string": "Birds",
-           "sms_id_string": "Birds",
-           "title": "Birds",
-           ...
-       }, ...]
+Response
+^^^^^^^^
+::
+
+    [
+        {
+            "url": "https://ona.io/api/v1/forms/28058",
+            "formid": 28058,
+            "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
+            "id_string": "Birds",
+            "sms_id_string": "Birds",
+            "title": "Birds",
+            ...
+        },
+        ...
+    ]
 
 
 Get list of Tags for a specific Form
@@ -488,14 +494,13 @@ Request
 ^^^^^^^
 ::
 
-	      curl -X DELETE \
-	https://ona.io/api/v1/forms/28058/labels/tag1
+    curl -X DELETE https://ona.io/api/v1/forms/28058/labels/tag1
 
 or to delete the tag "hello world"
+
 ::
 
-	       curl -X DELETE \
-	https://ona.io/api/v1/forms/28058/labels/hello%20world
+    curl -X DELETE https://ona.io/api/v1/forms/28058/labels/hello%20world
 
 Response
 ^^^^^^^^
@@ -514,17 +519,23 @@ Request
 ^^^^^^^
 ::
 
-	       curl -X GET \
-	https://ona.io/api/v1/forms/28058/enketo
+    curl -X GET https://ona.io/api/v1/forms/28058/enketo
+
+Response
+^^^^^^^^^^
+::
+
+    HTTP 200 OK
 
 Response
 ^^^^^^^^^
 ::
 
-       {"enketo_url": "https://h6ic6.enketo.org/webform",
-        "enketo_preview_url": "https://H6Ic6.enketo.org/webform"}
+    {
+        "enketo_url": "https://h6ic6.enketo.org/webform",
+        "enketo_preview_url": "https://H6Ic6.enketo.org/webform"
+    }
 
-        HTTP 200 OK
 
 Get form data in xls, csv format.
 ---------------------------------
@@ -569,7 +580,7 @@ Example 2 Custom XLS reports (beta)
 
     curl -X GET https://ona.io/api/v1/forms/28058.xls?meta=12121
 
-                   or
+or
 
 ::
 
@@ -588,16 +599,14 @@ Example 3 Custom XLS reports with meta or token and data_id(beta)
 .. raw:: html
 
 	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/{pk}.{format}?{meta}&{data_id} -L -o {filename.xls}
-	</code>
-	</pre>
+	<b>GET</b> /api/v1/forms/{pk}.{format}?{meta}&{data_id} -L -o {filename.xls}</code></pre>
 
 ::
 
 
-      curl "https://ona.io/api/v1/forms/2.xls?meta=19&data_id=7" -L -o data.xlsx
+    curl "https://ona.io/api/v1/forms/2.xls?meta=19&data_id=7" -L -o data.xlsx
 
-                  or
+or
 
 ::
 
@@ -626,14 +635,12 @@ Share a form with a specific user
 You can share a form with a  specific user by `POST` a payload with
 
 - ``username`` of the user you want to share the form with and
-- ``role`` you want the user to have on the form. Available roles are ``readonly``,
-	``dataentry``, ``editor``, ``manager``.
+- ``role`` you want the user to have on the form. Available roles are ``readonly``, ``dataentry``, ``editor``, ``manager``.
 
 .. raw:: html
 
 	<pre class="prettyprint">
-	<b>POST</b> /api/v1/forms/<code>{pk}</code>/share
-	</pre>
+	<b>POST</b> /api/v1/forms/<code>{pk}</code>/share</pre>
 
 Example
 ^^^^^^^
@@ -670,21 +677,21 @@ Response
 ^^^^^^^^
 ::
 
-        HTTP 201 CREATED
-       {
-           "url": "https://ona.io/api/v1/forms/124",
+    HTTP 201 CREATED
 
-           "formid": 124,
+Response
+^^^^^^^^
+::
 
-           "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1e",
-
-           "id_string": "Birds_cloned_1",
-
-           "sms_id_string": "Birds_cloned_1",
-
-           "title": "Birds_cloned_1",
-           ...
-       }
+    {
+        "url": "https://ona.io/api/v1/forms/124",
+        "formid": 124,
+        "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1e",
+        "id_string": "Birds_cloned_1",
+        "sms_id_string": "Birds_cloned_1",
+        "title": "Birds_cloned_1",
+        ...
+    }
 
 Import CSV data to existing form
 ---------------------------------
@@ -704,20 +711,22 @@ Example
 
     curl -X POST https://ona.io/api/v1/forms/123/csv_import -F csv_file=@/path/to/csv_import.csv
 
+If the job was executed immediately:
+
 Response
 ^^^^^^^^^
- f the job was executed immediately:-
-
 ::
 
     HTTP 200 OK
-       {
-           "additions": 9,
-           "updates": 0
-       }
+    {
+        "additions": 9,
+        "updates": 0
+    }
 
- If the import is a long running task:-
+If the import is a long running task:
 
+Response
+^^^^^^^^^
 ::
 
     HTTP 200 OK
@@ -741,28 +750,30 @@ Example
 ^^^^^^^
 ::
 
-	curl -X GET https://ona.io/api/v1/forms/123/csv_import?job_uuid=UUID
+    curl -X GET https://ona.io/api/v1/forms/123/csv_import?job_uuid=UUID
 
 Response
 ^^^^^^^^
 
- If the job is done:-
- ::
+If the job is done:
 
-       HTTP 200 OK
-       {
-           "additions": 90000,
-           "updates": 10000
-       }
+::
 
- If the import is still running:-
- ::
+    HTTP 200 OK
+    {
+        "additions": 90000,
+        "updates": 10000
+    }
 
-       HTTP 200 OK
-       {
-           "current": 100,
-           "total": 100000
-       }
+If the import is still running:
+
+::
+
+    HTTP 200 OK
+    {
+        "current": 100,
+        "total": 100000
+    }
 
 Upload a XLS form async
 -----------------------
@@ -776,15 +787,14 @@ Example
 -------
 ::
 
-      	curl -X POST https://ona.io/api/v1/forms/create_async \
-	-F xls_file=@/path/to/xls_file
+      	curl -X POST https://ona.io/api/v1/forms/create_async -F xls_file=@/path/to/xls_file
 
 Response
 --------
 ::
 
     HTTP 202 Accepted
-	{"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
+    {"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
 
 You can use the `job_uuid value to check on the upload progress` (see below)
 
@@ -803,7 +813,9 @@ Example
 
 Response
 ^^^^^^^^
-If the job is done:-
+
+If the job is done:
+
 ::
 
       {
@@ -825,7 +837,7 @@ If the job is done:-
            "date_modified": "2013-07-25T14:14:22.892Z"
       }
 
-If the upload is still running:-
+If the upload is still running:
 
 ::
 
