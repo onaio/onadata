@@ -28,6 +28,12 @@ class TestAttachment(TestBase):
         self.assertEqual(self.attachment.mimetype, 'image/jpeg')
 
     def test_create_attachment_with_media_file_length_more_the_100(self):
+        with self.assertRaises(ValueError):
+            Attachment.objects.create(
+                instance=self.instance,
+                media_file='a'*300
+            )
+
         pre_count = Attachment.objects.count()
         Attachment.objects.create(
             instance=self.instance,
