@@ -18,8 +18,6 @@ from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
 import djcelery
-# from pymongo import MongoClient
-
 
 djcelery.setup_loader()
 
@@ -461,17 +459,6 @@ NA_REP = 'n/a'
 # specifically for site urls sent to enketo
 ENKETO_PROTOCOL = 'https'
 
-# MongoDB
-# if MONGO_DATABASE.get('USER') and MONGO_DATABASE.get('PASSWORD'):
-#     MONGO_CONNECTION_URL = (
-#         "mongodb://%(USER)s:%(PASSWORD)s@%(HOST)s:%(PORT)s") % MONGO_DATABASE
-# else:
-#     MONGO_CONNECTION_URL = "mongodb://%(HOST)s:%(PORT)s" % MONGO_DATABASE
-
-# MONGO_CONNECTION = MongoClient(
-#     MONGO_CONNECTION_URL, safe=True, j=True, tz_aware=True)
-# MONGO_DB = MONGO_CONNECTION[MONGO_DATABASE['NAME']]
-
 if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
     # site templates overrides
     TEMPLATE_DIRS = (
@@ -510,6 +497,7 @@ try:
         RESERVED_USERNAMES = [line.rstrip() for line in f]
 except EnvironmentError:
     RESERVED_USERNAMES = []
+
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:

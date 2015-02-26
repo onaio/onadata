@@ -138,6 +138,11 @@ def deploy(deployment_name, branch='master'):
             run("python manage.py collectstatic --settings=%s --noinput"
                 % config_module)
 
+    # build the docs
+    with cd(os.path.join(env.code_src, "docs")):
+        with source(env.virtualenv):
+            run("make html")
+
     run("sudo %s restart" % env.celeryd)
     run("sudo /usr/local/bin/uwsgi --reload %s" % env.pid)
 
