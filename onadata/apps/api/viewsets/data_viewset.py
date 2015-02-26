@@ -715,7 +715,10 @@ The `.osm` file format concatenates all the files for a form or individual
         query = request.GET.get("query", {})
         export_type = kwargs.get('format')
 
-        if export_type is None or export_type in ['json', 'osm']:
+        if export_type == Attachment.OSM:
+            serializer = self.get_serializer(self.object_list, many=True)
+            return Response(serializer.data)
+        elif export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
             return super(DataViewSet, self).list(request, *args, **kwargs)
         elif export_type == 'geojson':
