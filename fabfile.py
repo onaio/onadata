@@ -128,6 +128,11 @@ def deploy(deployment_name, branch='master'):
         run("pip install numpy")
         run("pip install -r %s" % env.pip_requirements_file)
 
+    # build the docs before collect static
+    with cd(os.path.join(env.code_src, "docs")):
+        with source(env.virtualenv):
+            run("make html")
+
     with cd(env.code_src):
         config_module = env.django_config_module
         local_settings_check(config_module)
