@@ -1,9 +1,6 @@
 Projects
 ********
 
-Project List
-============
-
 List, Retrieve, Update, Create Project and Project Forms
 
 Where:

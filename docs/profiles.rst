@@ -12,7 +12,7 @@ contain alphanumeric, \_, @, +, . and - characters
    <pre class="prettyprint"><b>POST</b> /api/v1/profiles</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
@@ -34,14 +34,14 @@ List User Profiles
    <pre class="prettyprint"><b>GET</b> /api/v1/profiles</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X GET https://ona.io/api/v1/profiles
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -78,14 +78,14 @@ Retrieve User Profile Information
    <pre class="prettyprint"><b>GET</b> /api/v1/profiles/{pk}</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X GET https://ona.io/api/v1/profiles/demo
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -120,14 +120,14 @@ JSON, for example, ``{"country": "KE"}`` will set the country to ``KE``.
    <pre class="prettyprint"><b>PATCH</b> /api/v1/profiles/{username}</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
     curl -X PATCH -d ‘{"country": "KE"}’ https://ona.io/api/v1/profiles/demo -H "Content-Type: application/json"
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -164,14 +164,14 @@ update ``b`` with value ``Beeh``, we would use this endpoing and add an
    <pre class="prettyprint"><b>PATCH</b> /api/v1/profiles/{username}</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
     curl -X PATCH -d ‘{"metadata": {"b": "Beeh"}, "overwrite": "false"}’ https://ona.io/api/v1/profiles/demo -H "Content-Type: application/json"
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -197,14 +197,14 @@ Change authenticated user’s password
 ------------------------------------
 
 Example
--------
+^^^^^^^
 
 ::
 
     curl -X POST -d current_password=password1 -d new_password=password2 https://ona.io/api/v1/profile/demouser/change_password
     
 Response
---------
+^^^^^^^^
 
 ::
 

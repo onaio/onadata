@@ -9,7 +9,7 @@ Register a new Organization
    <pre class="prettyprint"><b>POST</b> /api/v1/orgs</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
@@ -30,14 +30,14 @@ List of Organizations
    <pre class="prettyprint"><b>GET</b> /api/v1/orgs</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
     curl -X GET https://ona.io/api/v1/orgs
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -67,14 +67,14 @@ Retrieve Organization Profile Information
    <pre class="prettyprint"><b>GET</b> /api/v1/orgs/{username}</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X GET https://ona.io/api/v1/orgs/modilabs
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -106,14 +106,14 @@ metadata to ``{"computer": "mac"}``.
    <pre class="prettyprint"><b>PATCH</b> /api/v1/orgs/{username}</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
     curl -X PATCH -d ‘{“metadata”: {“computer”: “mac”}}’https://ona.io/api/v1/profiles/modilabs -H “Content-Type: application/json”
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -145,14 +145,14 @@ Get a list of organization members.
    <pre class="prettyprint"><b>GET</b> /api/v1/orgs/{username}/members</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X GET https://ona.io/api/v1/orgs/modilabs/members
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -170,14 +170,14 @@ the role of the user.\ ``{"username": "member1", "role": "editor"}``
    <pre class="prettyprint"><b>POST</b> /api/v1/orgs/{username}/members</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X POST -d '{"username": "member1"}' https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -196,14 +196,14 @@ present, ``email_subject`` is optional.
    </pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X POST -d '{"username": "member1", "email_msg": "You have been added to Ona", "email_subject": "Your have been added"}' https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -220,14 +220,14 @@ role ``{"username": "member1", "role": "owner|manager|editor|dataentry|readonly"
    <pre class="prettyprint"><b>PUT</b> /api/v1/orgs/{username}/members</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X PUT -d '{"username": "member1", "role": "editor"}' https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -244,14 +244,14 @@ To remove a user from an organization requires a JSON payload of
    <pre class="prettyprint"><b>DELETE</b> /api/v1/orgs/{username}/members</pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X DELETE -d '{"username": "member1"}' https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type:application/json"
 
 Response
---------
+^^^^^^^^
 
 ::
 

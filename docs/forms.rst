@@ -1,10 +1,6 @@
 Forms
 ******
 
-X Form List
-=============
-
- 
 Publish XLSForms, List, Retrieve Published Forms.
 --------------------------------------------------
 
@@ -317,7 +313,7 @@ Example
        curl -X GET https://ona.io/api/v1/forms
 
 Response
-----------
+^^^^^^^^
 ::
 
     [
@@ -522,7 +518,7 @@ Request
     curl -X GET https://ona.io/api/v1/forms/28058/enketo
 
 Response
-^^^^^^^^^^
+^^^^^^^^
 ::
 
     HTTP 200 OK
@@ -616,7 +612,7 @@ or
 XLS file is downloaded
 
 Response
-^^^^^^^^^^
+^^^^^^^^
 ::
 
     HTTP 200 OK
@@ -649,7 +645,7 @@ Example
       curl -X POST -d '{"username": "alice", "role": "readonly"}' https://ona.io/api/v1/forms/123.json
 
 Response
-^^^^^^^^^
+^^^^^^^^
 ::
        
     HTTP 204 NO CONTENT
@@ -714,7 +710,7 @@ Example
 If the job was executed immediately:
 
 Response
-^^^^^^^^^
+^^^^^^^^
 ::
 
     HTTP 200 OK
@@ -726,7 +722,7 @@ Response
 If the import is a long running task:
 
 Response
-^^^^^^^^^
+^^^^^^^^
 ::
 
     HTTP 200 OK
@@ -784,13 +780,13 @@ Upload a XLS form async
 
 
 Example
--------
+^^^^^^^
 ::
 
       	curl -X POST https://ona.io/api/v1/forms/create_async -F xls_file=@/path/to/xls_file
 
 Response
---------
+^^^^^^^^
 ::
 
     HTTP 202 Accepted

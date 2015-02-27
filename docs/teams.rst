@@ -13,7 +13,7 @@ Provides a json list of teams and the projects the team is assigned to.
    </pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
@@ -24,14 +24,14 @@ Optional params:
 -  ``org`` : Filter by organization.
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X GET https://ona.io/api/v1/teams?org=bruize
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -64,14 +64,14 @@ Shows teams details and the projects the team is assigned to, where:
    </pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X GET https://ona.io/api/v1/teams/1
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -94,14 +94,14 @@ A list of usernames is the response for members of the team.
    </pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X GET https://ona.io/api/v1/teams/1/members
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -121,7 +121,7 @@ for members of the team.
    </pre>
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -141,14 +141,14 @@ for all team members.
    </pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X POST -d project=3 -d role=readonly https://ona.io/api/v1/teams/1/share
 
 Response
---------
+^^^^^^^^
 
 ::
 
@@ -168,14 +168,14 @@ project for all team members.
    </pre>
 
 Example
--------
+^^^^^^^
 
 ::
 
       curl -X POST -d project=3 -d role=readonly -d remove=true https://ona.io/api/v1/teams/1/share
 
 Response
---------
+^^^^^^^^
 
 ::
 

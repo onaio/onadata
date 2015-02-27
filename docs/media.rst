@@ -1,9 +1,6 @@
 
-Media
-*******
-
-Attachment List
-================
+Attachements and Media
+**********************
 
 Lists attachments of all xforms
 --------------------------------
@@ -19,6 +16,7 @@ Example
        curl -X GET https://ona.io/api/v1/media
 
 Response
+^^^^^^^^
 ::
 
     [

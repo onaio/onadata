@@ -9,11 +9,11 @@ Welcome to Ona API's documentation!
 Ona JSON Rest Api Endpoints
 ===========================
 
-Data
-----
+Data Endpoints
+--------------
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    charts
    data
@@ -23,7 +23,7 @@ Forms
 -----
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    forms
    media
@@ -35,7 +35,7 @@ Users and Organizations
 -----------------------
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    orgs
    profiles

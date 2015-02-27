@@ -1,9 +1,5 @@
-===========
-Submissions
-===========
-
-X Form Submission Api List
-==========================
+Form Submissions
+****************
 
 Implements OpenRosa Api |FormSubmissionAPI|
 

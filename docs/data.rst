@@ -1,8 +1,5 @@
 Data
-******
-
-Data Lists
-===========
+****
 
 This endpoint provides access to submitted data in JSON format. Where:
 
@@ -482,7 +479,7 @@ OSM
 The `.osm` file format concatenates all the files for a form or individual submission. When the `.json` endpoint is accessed, the individual osm files are listed on the `_attachments` key.
 
 OSM endpoint for all osm files uploaded to a form concatenated.
------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. raw:: html
 
   <pre class="prettyprint">
@@ -496,7 +493,7 @@ Example
 	curl -X GET https://ona.io/api/v1/data/28058.osm
 
 OSM endpoint with all osm files for a specific submission concatenated.
------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. raw:: html
 
   <pre class="prettyprint">

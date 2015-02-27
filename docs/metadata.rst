@@ -1,9 +1,6 @@
 Metadata
 ********
 
-Meta Data List
-================
-
 This endpoint provides access to form metadata, for example, supporting
 documents, media files to be used in the form, source documents and map
 layers.
@@ -13,12 +10,12 @@ layers.
 - ``format`` - is the extension of a file format e.g ``png``, ``csv``
 
 Permissions
-------------
+-----------
 
 This endpoint applys the same permissions someone has on the form.
 
 Get list of metadata
----------------------
+--------------------
 
 Returns a list of metadata accross all forms requesting user has access to.
 
