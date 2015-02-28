@@ -79,6 +79,25 @@ def _is_invalid_for_mongo(key):
         key_whitelist and (key.startswith('$') or key.count('.') > 0)
 
 
+def _sort_from_mongo_sort_str(sort_str):
+    sort_values = []
+    if isinstance(sort_str, six.string_types):
+        if sort_str.startswith('{'):
+            sort_dict = json.loads(sort_str)
+            for k, v in sort_dict.items():
+                try:
+                    v = int(v)
+                except ValueError:
+                    pass
+                if v < 0:
+                    k = u'-{}'.format(k)
+                sort_values.append(k)
+        else:
+            sort_values.append(sort_str)
+
+    return sort_values
+
+
 class ParsedInstance(models.Model):
     USERFORM_ID = u'_userform_id'
     STATUS = u'_status'
@@ -133,7 +152,7 @@ class ParsedInstance(models.Model):
             instances = instances.filter(date_created__gte=start)
         if isinstance(end, datetime.datetime):
             instances = instances.filter(date_created__lte=end)
-        sort = 'pk' if sort is None else sort
+        sort = ['pk'] if sort is None else _sort_from_mongo_sort_str(sort)
 
         where_params = []
         sql_where = u""
@@ -178,7 +197,7 @@ class ParsedInstance(models.Model):
             if where_params:
                 instances = instances.extra(where=where, params=where_params)
 
-            records = instances.order_by(sort).values_list('json', flat=True)
+            records = instances.order_by(*sort).values_list('json', flat=True)
 
             if start_index is not None:
                 _sql, _params = records.query.sql_with_params()

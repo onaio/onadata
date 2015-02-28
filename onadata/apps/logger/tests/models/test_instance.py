@@ -108,3 +108,20 @@ class TestInstance(TestBase):
         """
         id_string = get_id_string_from_xml_str(submission)
         self.assertEqual(id_string, 'id_string')
+
+    def test_query_data_sort(self):
+        self._publish_transportation_form()
+        self._make_submissions()
+        latest = Instance.objects.filter(xform=self.xform).latest('pk').pk
+        oldest = Instance.objects.filter(xform=self.xform).first().pk
+
+        data = [i.get('_id') for i in ParsedInstance.query_data(
+            self.xform, sort='-pk')]
+        self.assertEqual(data[0], latest)
+        self.assertEqual(data[len(data) - 1], oldest)
+
+        # mongo sort
+        data = [i.get('_id') for i in ParsedInstance.query_data(
+            self.xform, sort='{"pk": "-1"}')]
+        self.assertEqual(data[0], latest)
+        self.assertEqual(data[len(data) - 1], oldest)
