@@ -137,3 +137,19 @@ class TestInstance(TestBase):
             self.xform, sort='{"_id": -1}')]
         self.assertEqual(data[0], latest)
         self.assertEqual(data[len(data) - 1], oldest)
+
+    def test_query_filter_by_integer(self):
+        self._publish_transportation_form()
+        self._make_submissions()
+        oldest = Instance.objects.filter(xform=self.xform).first().pk
+
+        data = [i.get('_id') for i in ParsedInstance.query_data(
+            self.xform, query='[{"_id": %s}]' % (oldest))]
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data, [oldest])
+
+        # with fields
+        data = [i.get('_id') for i in ParsedInstance.query_data(
+            self.xform, query='{"_id": %s}' % (oldest), fields='["_id"]')]
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data, [oldest])

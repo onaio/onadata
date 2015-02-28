@@ -186,6 +186,9 @@ class ParsedInstance(models.Model):
             query = json.loads(query)
             or_where = []
             or_params = []
+            if isinstance(query, list):
+                query = query[0]
+
             if '$or' in query.keys():
                 or_dict = query.pop('$or')
                 for l in or_dict:
@@ -195,7 +198,10 @@ class ParsedInstance(models.Model):
                 or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
 
             where = [u"json->>%s = %s" for i in query.items()] + or_where
-            [where_params.extend(i) for i in query.items()]
+            # with postgresql 9.3 the json field is treated as a string
+            # converting the value of the where clause prevents
+            # type cast exception
+            [where_params.extend((k, unicode(v))) for k, v in query.items()]
             where_params.extend(or_params)
 
         if fields and isinstance(fields, six.string_types):
