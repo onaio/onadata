@@ -98,6 +98,32 @@ def _sort_from_mongo_sort_str(sort_str):
     return sort_values
 
 
+def _json_order_by(sort_list):
+    _list = []
+
+    for field in sort_list:
+        _str = u" json->>%s"
+        if field.startswith('-'):
+            _str += u" DESC"
+        else:
+            _str += u" ASC"
+        _list.append(_str)
+
+    if len(_list) > 0:
+        return u"ORDER BY {}".format(u",".join(_list))
+
+    return u""
+
+
+def _json_order_by_params(sort_list):
+    params = []
+
+    for field in sort_list:
+        params.append(field.lstrip('-'))
+
+    return params
+
+
 class ParsedInstance(models.Model):
     USERFORM_ID = u'_userform_id'
     STATUS = u'_status'
@@ -183,8 +209,13 @@ class ParsedInstance(models.Model):
                 sql_where = u" AND " + u" AND ".join(where)
 
             sql += u" WHERE xform_id = %s " + sql_where \
-                + u" AND deleted_at IS NULL ORDER BY id"
+                + u" AND deleted_at IS NULL"
             params = [xform.pk] + where_params
+
+            # apply sorting
+            if ParsedInstance._has_json_fields(sort):
+                sql = u"{} {}".format(sql, _json_order_by(sort))
+                params = params + _json_order_by_params(sort)
 
             if start_index is not None:
                 sql += u" OFFSET %s LIMIT %s"
@@ -197,7 +228,16 @@ class ParsedInstance(models.Model):
             if where_params:
                 instances = instances.extra(where=where, params=where_params)
 
-            records = instances.order_by(*sort).values_list('json', flat=True)
+            if ParsedInstance._has_json_fields(sort):
+                # we have to do an sql query for json field order
+                records = instances.values_list('json', flat=True)
+                _sql, _params = records.query.sql_with_params()
+                sql = u"{} {}".format(_sql, _json_order_by(sort))
+                params = list(_params) + _json_order_by_params(sort)
+                records = ParsedInstance.query_iterator(sql, None, params)
+            else:
+                records = instances.order_by(*sort)\
+                    .values_list('json', flat=True)
 
             if start_index is not None:
                 _sql, _params = records.query.sql_with_params()
@@ -209,6 +249,15 @@ class ParsedInstance(models.Model):
                 records = ParsedInstance.query_iterator(sql, None, params)
 
         return records
+
+    @classmethod
+    def _has_json_fields(cls, sort_list):
+        """
+        Checks if any field in sort_list is not a field in the Instance model
+        """
+        fields = Instance._meta.get_all_field_names()
+
+        return any([i for i in sort_list if i.lstrip('-') not in fields])
 
     def to_dict_for_mongo(self):
         d = self.to_dict()
