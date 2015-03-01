@@ -259,7 +259,7 @@ class AbstractDataFrameBuilder(object):
                 'end': self.end,
                 # TODO: we might want to add this in for the user
                 # to sepcify a sort order
-                'sort': 'pk',
+                'sort': 'id',
                 'start_index': start,
                 'limit': limit,
                 'count': False
