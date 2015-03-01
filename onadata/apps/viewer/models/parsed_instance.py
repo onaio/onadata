@@ -248,13 +248,14 @@ class ParsedInstance(models.Model):
             if start_index is not None:
                 if ParsedInstance._has_json_fields(sort):
                     _sql, _params = sql, params
+                    params = _params + [start_index, limit]
                 else:
                     _sql, _params = records.query.sql_with_params()
+                    params = list(_params + (start_index, limit))
                 # some inconsistent/weird behavior I noticed with django's
                 # queryset made me have to do a raw query
                 # records = records[start_index: limit]
                 sql = u"{} OFFSET %s LIMIT %s".format(_sql)
-                params = list(_params + (start_index, limit))
                 records = ParsedInstance.query_iterator(sql, None, params)
 
         return records
