@@ -246,7 +246,10 @@ class ParsedInstance(models.Model):
                     .values_list('json', flat=True)
 
             if start_index is not None:
-                _sql, _params = records.query.sql_with_params()
+                if ParsedInstance._has_json_fields(sort):
+                    _sql, _params = sql, params
+                else:
+                    _sql, _params = records.query.sql_with_params()
                 # some inconsistent/weird behavior I noticed with django's
                 # queryset made me have to do a raw query
                 # records = records[start_index: limit]
