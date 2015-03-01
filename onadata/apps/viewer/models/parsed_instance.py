@@ -178,7 +178,7 @@ class ParsedInstance(models.Model):
             instances = instances.filter(date_created__gte=start)
         if isinstance(end, datetime.datetime):
             instances = instances.filter(date_created__lte=end)
-        sort = ['pk'] if sort is None else _sort_from_mongo_sort_str(sort)
+        sort = ['id'] if sort is None else _sort_from_mongo_sort_str(sort)
 
         where_params = []
         sql_where = u""
@@ -197,11 +197,31 @@ class ParsedInstance(models.Model):
 
                 or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
 
-            where = [u"json->>%s = %s" for i in query.items()] + or_where
-            # with postgresql 9.3 the json field is treated as a string
-            # converting the value of the where clause prevents
-            # type cast exception
-            [where_params.extend((k, unicode(v))) for k, v in query.items()]
+            # where = [u"json->>%s = %s" for i in query.items()] + or_where
+            where = []
+            for k, v in query.items():
+                if isinstance(v, dict):
+                    _v = None
+                    if '$gt' in v:
+                        where.append(u"json->>%s > %s")
+                        _v = v.get('$gt')
+                    if '$gte' in v:
+                        where.append(u"json->>%s >= %s")
+                        _v = v.get('$gte')
+                    if '$lt' in v:
+                        where.append(u"json->>%s < %s")
+                        _v = v.get('$lt')
+                    if '$lte' in v:
+                        where.append(u"json->>%s <= %s")
+                        _v = v.get('$lte')
+                    if _v is None:
+                        _v = v
+                    where_params.extend((k, unicode(_v)))
+                else:
+                    where.append(u"json->>%s = %s")
+                    where_params.extend((k, unicode(v)))
+            where += or_where
+            # [where_params.extend((k, unicode(v))) for k, v in query.items()]
             where_params.extend(or_params)
 
         if fields and isinstance(fields, six.string_types):

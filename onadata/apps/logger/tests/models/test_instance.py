@@ -153,3 +153,10 @@ class TestInstance(TestBase):
             self.xform, query='{"_id": %s}' % (oldest), fields='["_id"]')]
         self.assertEqual(len(data), 1)
         self.assertEqual(data, [oldest])
+
+        # mongo $gt
+        data = [i.get('_id') for i in ParsedInstance.query_data(
+            self.xform, query='{"_id": {"$gt": %s}}' % (oldest),
+            fields='["_id"]')]
+        self.assertEqual(self.xform.instances.count(), 4)
+        self.assertEqual(len(data), 3)
