@@ -78,7 +78,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     extra_lookup_fields = None
     public_data_endpoint = 'public'
     pagination_serializer_class = CustomPaginationSerializer
-    paginate_by = 100
+    paginate_by = 1000000
     paginate_by_param = 'page_size'
     page_kwarg = 'page'
 
