@@ -17,6 +17,11 @@ class DataSerializer(serializers.HyperlinkedModelSerializer):
         lookup_field = 'pk'
 
 
+class JsonDataSerializer(serializers.Serializer):
+    def to_native(self, obj):
+        return obj
+
+
 class DataListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instance

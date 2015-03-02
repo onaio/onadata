@@ -79,7 +79,7 @@ def _is_invalid_for_mongo(key):
         key_whitelist and (key.startswith('$') or key.count('.') > 0)
 
 
-def _sort_from_mongo_sort_str(sort_str):
+def sort_from_mongo_sort_str(sort_str):
     sort_values = []
     if isinstance(sort_str, six.string_types):
         if sort_str.startswith('{'):
@@ -225,7 +225,7 @@ class ParsedInstance(models.Model):
             instances = instances.filter(date_created__gte=start)
         if isinstance(end, datetime.datetime):
             instances = instances.filter(date_created__lte=end)
-        sort = ['id'] if sort is None else _sort_from_mongo_sort_str(sort)
+        sort = ['id'] if sort is None else sort_from_mongo_sort_str(sort)
 
         sql_where = u""
         where, where_params = cls._get_where_clause(query)
