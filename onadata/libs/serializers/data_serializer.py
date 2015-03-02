@@ -22,7 +22,8 @@ class DataListSerializer(serializers.ModelSerializer):
         model = Instance
 
     def to_native(self, obj):
-        return {} if not obj else obj.json
+        return obj
+        # return {} if not obj else obj.json
 
 
 class SubmissionSerializer(serializers.Serializer):

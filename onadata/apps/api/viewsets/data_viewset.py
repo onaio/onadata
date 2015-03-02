@@ -1,4 +1,3 @@
-import json
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -19,6 +18,7 @@ from onadata.apps.api.tools import add_tags_to_instance
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -285,15 +285,9 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if (export_type is None or export_type in ['json']) \
                 and hasattr(self, 'object_list'):
 
-            if isinstance(query, six.string_types):
-                query = json.loads(query)
-
-            where = []
-            for k, v in query.items():
-                where.append("json->>'{}' = '{}'".format(k, v))
-
-            if where:
-                self.object_list = self.object_list.extra(where=where)
+            if self.object_list and lookup != self.public_data_endpoint:
+                self.object_list = ParsedInstance.query_data(
+                    self.object_list[0].xform, query=query)
 
             page = self.paginate_queryset(self.object_list)
             if page is not None:
