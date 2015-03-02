@@ -313,19 +313,11 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
-
         query_str = '{"_id": "%s"}' % dataid
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
-
-        # mongo like query
-        query_str = '{"_id": {"$lt": %s}}' % dataid
-        request = self.factory.get('/?query=%s' % query_str, **self.extra)
-        response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 3)
 
     def test_anon_data_list(self):
         self._make_submissions()
