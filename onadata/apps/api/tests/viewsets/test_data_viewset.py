@@ -313,11 +313,19 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+
         query_str = '{"_id": "%s"}' % dataid
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+
+        query_str = '{"_id: "%s"}' % dataid
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data.get('detail'),
+                         u"Expecting ':' delimiter: line 1 column 9 (char 8)")
 
     def test_anon_data_list(self):
         self._make_submissions()

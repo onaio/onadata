@@ -285,7 +285,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if (export_type is None or export_type in ['json']) \
                 and hasattr(self, 'object_list'):
 
-            where, where_params = ParsedInstance._get_where_clause(query)
+            try:
+                where, where_params = ParsedInstance._get_where_clause(query)
+            except ValueError as e:
+                raise ParseError(unicode(e))
 
             if where:
                 self.object_list = self.object_list.extra(where=where,
