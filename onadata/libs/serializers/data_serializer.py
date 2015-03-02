@@ -22,7 +22,14 @@ class DataListSerializer(serializers.ModelSerializer):
         model = Instance
 
     def to_native(self, obj):
-        return {} if not obj else obj.json
+        data = {}
+        if obj:
+            if obj.json.get('_id') is None:
+                data = obj.get_full_dict()
+            else:
+                data = obj.json
+
+        return data
 
 
 class SubmissionSerializer(serializers.Serializer):

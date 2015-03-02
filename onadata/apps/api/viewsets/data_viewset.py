@@ -19,6 +19,7 @@ from onadata.apps.api.tools import add_tags_to_instance
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -285,15 +286,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if (export_type is None or export_type in ['json']) \
                 and hasattr(self, 'object_list'):
 
-            if isinstance(query, six.string_types):
-                query = json.loads(query)
-
-            where = []
-            for k, v in query.items():
-                where.append("json->>'{}' = '{}'".format(k, v))
+            where, where_params = ParsedInstance._get_where_clause(query)
 
             if where:
-                self.object_list = self.object_list.extra(where=where)
+                self.object_list = self.object_list.extra(where=where,
+                                                          params=where_params)
 
             page = self.paginate_queryset(self.object_list)
             if page is not None:

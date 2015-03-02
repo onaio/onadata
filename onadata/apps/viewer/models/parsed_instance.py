@@ -167,21 +167,9 @@ class ParsedInstance(models.Model):
                 yield dict(zip(fields, row))
 
     @classmethod
-    def query_data(cls, xform, query=None, fields=None, sort=None, start=None,
-                   end=None, start_index=None, limit=DEFAULT_LIMIT,
-                   count=None):
-        if start_index is not None and (start_index < 0 or limit < 0):
-            raise ValueError(_("Invalid start/limit params"))
-
-        instances = xform.instances.filter(deleted_at=None)
-        if isinstance(start, datetime.datetime):
-            instances = instances.filter(date_created__gte=start)
-        if isinstance(end, datetime.datetime):
-            instances = instances.filter(date_created__lte=end)
-        sort = ['id'] if sort is None else _sort_from_mongo_sort_str(sort)
-
+    def _get_where_clause(cls, query):
+        where = []
         where_params = []
-        sql_where = u""
         if query and isinstance(query, six.string_types):
             query = json.loads(query)
             or_where = []
@@ -198,7 +186,6 @@ class ParsedInstance(models.Model):
                 or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
 
             # where = [u"json->>%s = %s" for i in query.items()] + or_where
-            where = []
             for k, v in query.items():
                 if isinstance(v, dict):
                     _v = None
@@ -223,6 +210,25 @@ class ParsedInstance(models.Model):
             where += or_where
             # [where_params.extend((k, unicode(v))) for k, v in query.items()]
             where_params.extend(or_params)
+
+        return where, where_params
+
+    @classmethod
+    def query_data(cls, xform, query=None, fields=None, sort=None, start=None,
+                   end=None, start_index=None, limit=DEFAULT_LIMIT,
+                   count=None):
+        if start_index is not None and (start_index < 0 or limit < 0):
+            raise ValueError(_("Invalid start/limit params"))
+
+        instances = xform.instances.filter(deleted_at=None)
+        if isinstance(start, datetime.datetime):
+            instances = instances.filter(date_created__gte=start)
+        if isinstance(end, datetime.datetime):
+            instances = instances.filter(date_created__lte=end)
+        sort = ['id'] if sort is None else _sort_from_mongo_sort_str(sort)
+
+        sql_where = u""
+        where, where_params = cls._get_where_clause(query)
 
         if fields and isinstance(fields, six.string_types):
             fields = json.loads(fields)
