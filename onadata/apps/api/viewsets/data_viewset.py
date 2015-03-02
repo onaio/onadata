@@ -79,8 +79,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     public_data_endpoint = 'public'
     pagination_serializer_class = CustomPaginationSerializer
     paginate_by = 1000000
-    paginate_by_param = 'page_size'
-    page_kwarg = 'page'
+    paginate_by_param = 'limit'
+    page_kwarg = 'start'
 
     queryset = XForm.objects.all()
 
