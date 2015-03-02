@@ -1,5 +1,7 @@
-import time
 import datetime
+import six
+import time
+
 from itertools import chain
 from django.utils import timezone
 
@@ -38,6 +40,12 @@ def get_date(_object=None):
         _date = _object.xform.date_modified
     elif hasattr(_object, "profile"):
         _date = _object.profile.date_modified
+    elif isinstance(_object, dict):
+        # most likely an instance json, use _submission_time
+        _date = _object.get('_submission_time')
+        if isinstance(_date, six.string_types):
+            _date = datetime.datetime.strptime(_date[:19],
+                                               '%Y-%m-%dT%H:%M:%S')
 
     return get_header_date_format(_date)
 
