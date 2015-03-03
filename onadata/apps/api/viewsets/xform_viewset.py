@@ -398,7 +398,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         http_status = status.HTTP_400_BAD_REQUEST
 
         try:
-            url = enketo_url(form_url, self.object.id_string)
+            # pass default arguments to enketo_url to prepopulate form fields
+            request_vars = request.GET
+            defaults = generate_enketo_form_defaults(
+                self.object, **request_vars)
+            url = enketo_url(form_url, self.object.id_string, **defaults)
             preview_url = get_enketo_preview_url(request,
                                                  request.user.username,
                                                  self.object.id_string)
