@@ -380,7 +380,10 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             return HttpResponseBadRequest('400 BAD REQUEST',
                                           content_type='application/json',
                                           status=400)
-        return response_for_format(form, format=format)
+        filename = form.id_string + "." + format
+        response = response_for_format(form, format=format)
+        response['Content-Disposition'] = 'attachment; filename=' + filename
+        return response
 
     @action(methods=['GET'])
     def enketo(self, request, **kwargs):
