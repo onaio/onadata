@@ -8,21 +8,22 @@ from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):
+    args = '<username>'
     help = ugettext_lazy("Sync account with '_id'")
 
     def handle(self, *args, **kwargs):
 
-        username = args[0]
-        if username:
-            users = User.objects.filter(username__contains=username)
-
-            for user in users:
-                self.add_id(user)
+        # username
+        if args:
+            users = User.objects.filter(username__contains=args[0])
         else:
-            # Get all the users
-            for user in queryset_iterator(
-                    User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)):
-                self.add_id(user)
+            # All the accounts
+            self.stdout.write("Fetching all the account {}", ending='\n')
+            users = queryset_iterator(
+                User.objects.exclude(pk=settings.ANONYMOUS_USER_ID))
+
+        for user in users:
+            self.add_id(user)
 
     def add_id(self, user):
         self.stdout.write("Syncing for account {}".format(user.username),
@@ -31,12 +32,12 @@ class Command(BaseCommand):
 
         count = 0
         failed = 0
-        for i in Instance.objects.filter(xform__downloadable=True,
-                                         xform__in=xforms)\
+        for instance in Instance.objects.filter(
+                xform__downloadable=True, xform__in=xforms)\
                 .extra(where=['("logger_instance".json->>%s) is null'],
                        params=["_id"]).iterator():
             try:
-                i.save()
+                instance.save()
                 count += 1
             except Exception as e:
                 failed += 1
