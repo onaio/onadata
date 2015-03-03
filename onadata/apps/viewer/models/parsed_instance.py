@@ -215,10 +215,13 @@ class ParsedInstance(models.Model):
 
     @classmethod
     def query_data(cls, xform, query=None, fields=None, sort=None, start=None,
-                   end=None, start_index=None, limit=DEFAULT_LIMIT,
-                   count=None):
-        if start_index is not None and (start_index < 0 or limit < 0):
+                   end=None, start_index=None, limit=None, count=None):
+        if start_index is not None and \
+                (start_index is not None and start_index < 0 or
+                 (limit is not None and limit < 0)):
             raise ValueError(_("Invalid start/limit params"))
+        if limit is not None and start_index is None:
+            start_index = 0
 
         instances = xform.instances.filter(deleted_at=None)
         if isinstance(start, datetime.datetime):
@@ -250,8 +253,11 @@ class ParsedInstance(models.Model):
                 params = params + _json_order_by_params(sort)
 
             if start_index is not None:
-                sql += u" OFFSET %s LIMIT %s"
-                params += [start_index, limit]
+                sql += u" OFFSET %s"
+                params += [start_index]
+            if limit is not None:
+                sql += u" LIMIT %s"
+                params += [limit]
             records = ParsedInstance.query_iterator(sql, fields, params, count)
         else:
             if count:
@@ -274,14 +280,17 @@ class ParsedInstance(models.Model):
             if start_index is not None:
                 if ParsedInstance._has_json_fields(sort):
                     _sql, _params = sql, params
-                    params = _params + [start_index, limit]
+                    params = _params + [start_index]
                 else:
                     _sql, _params = records.query.sql_with_params()
-                    params = list(_params + (start_index, limit))
+                    params = list(_params + (start_index,))
                 # some inconsistent/weird behavior I noticed with django's
                 # queryset made me have to do a raw query
                 # records = records[start_index: limit]
-                sql = u"{} OFFSET %s LIMIT %s".format(_sql)
+                sql = u"{} OFFSET %s".format(_sql)
+                if limit is not None:
+                    sql = u"{} LIMIT %s".format(sql)
+                    params += [limit]
                 records = ParsedInstance.query_iterator(sql, None, params)
 
         return records

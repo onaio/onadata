@@ -36,6 +36,7 @@ from onadata.libs import filters
 from onadata.libs.utils.viewer_tools import (
     EnketoError,
     get_enketo_edit_url)
+from onadata.libs.data import parse_int
 
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
@@ -93,11 +94,14 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         dataid = self.kwargs.get(dataid_lookup)
         fmt = self.kwargs.get('format')
         sort = self.request.GET.get("sort")
+        limit = parse_int(self.request.GET.get("limit"))
+        start = parse_int(self.request.GET.get("start"))
+        fields = self.request.GET.get("fields")
         if fmt == Attachment.OSM:
             serializer_class = OSMSerializer
         elif pk is not None and dataid is None \
                 and pk != self.public_data_endpoint:
-            if sort:
+            if sort or limit or start or fields:
                 serializer_class = JsonDataSerializer
             else:
                 serializer_class = DataListSerializer
@@ -275,8 +279,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         fields = request.GET.get("fields")
         query = request.GET.get("query", {})
         sort = request.GET.get("sort")
-        start = request.GET.get("start")
-        limit = request.GET.get("limit")
+        start = parse_int(request.GET.get("start"))
+        limit = parse_int(request.GET.get("limit"))
         export_type = kwargs.get('format')
         lookup_field = self.lookup_field
         lookup = self.kwargs.get(lookup_field)
@@ -304,7 +308,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             if where:
                 self.object_list = self.object_list.extra(where=where,
                                                           params=where_params)
-            if sort and lookup != self.public_data_endpoint:
+            if (sort or limit or start or fields) and \
+                    lookup != self.public_data_endpoint:
                 if self.object_list.count():
                     xform = self.object_list[0].xform
                 self.object_list = \
