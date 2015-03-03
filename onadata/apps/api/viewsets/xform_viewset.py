@@ -383,6 +383,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         filename = form.id_string + "." + format
         response = response_for_format(form, format=format)
         response['Content-Disposition'] = 'attachment; filename=' + filename
+
         return response
 
     @action(methods=['GET'])
