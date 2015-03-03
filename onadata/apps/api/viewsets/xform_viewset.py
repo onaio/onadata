@@ -38,7 +38,10 @@ from onadata.libs.serializers.share_xform_serializer import (
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
-from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
+from onadata.libs.utils.viewer_tools import (
+    enketo_url,
+    EnketoError,
+    generate_enketo_form_defaults)
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.exceptions import NoRecordsFoundError, J2XException
 from onadata.libs.utils.export_tools import generate_export,\
