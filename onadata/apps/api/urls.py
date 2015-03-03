@@ -1,5 +1,7 @@
 from django.conf.urls import url
 from django.views.generic import RedirectView
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
 from rest_framework import routers
 from rest_framework.urlpatterns import format_suffix_patterns
 from rest_framework.views import APIView
@@ -149,6 +151,8 @@ class MultiLookupRouter(routers.DefaultRouter):
             """
 ## Ona JSON Rest API endpoints:
 
+### DOCS
+* [/docs](/docs) - Ona API Documentation
 ### Data
 * [/api/v1/charts](/api/v1/charts) - List, Retrieve Charts of collected data
 * [/api/v1/data](/api/v1/data) - List, Retrieve submission data
@@ -170,13 +174,21 @@ Update organization and organization info
 * [/api/v1/user](/api/v1/user) - Return authenticated user profile info
 * [/api/v1/users](/api/v1/users) - List, Retrieve user data
 """
+        _ignore_model_permissions = True
+
+        def get(self, request, format=None):
+            ret = {}
+            for key, url_name in api_root_dict.items():
+                ret[key] = reverse(
+                    url_name, request=request, format=format)
+            return Response(ret)
+
+        return OnaApi.as_view()
+
     def get_urls(self):
         ret = []
 
         if self.include_root_view:
-            #root_url = url(
-            #    r'^$', RedirectView.as_view(url='/static/docs/index.html'),
-            #    name=self.root_view_name)
             root_url = url(r'^$', self.get_api_root_view(),
                            name=self.root_view_name)
             ret.append(root_url)

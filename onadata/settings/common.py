@@ -233,7 +233,6 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.UnicodeJSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.JSONPRenderer',
         'rest_framework.renderers.XMLRenderer',
         'rest_framework_csv.renderers.CSVRenderer',
