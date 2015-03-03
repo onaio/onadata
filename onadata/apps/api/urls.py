@@ -2,6 +2,7 @@ from django.conf.urls import url
 from django.views.generic import RedirectView
 from rest_framework import routers
 from rest_framework.urlpatterns import format_suffix_patterns
+from rest_framework.views import APIView
 
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
@@ -135,13 +136,49 @@ class MultiLookupRouter(routers.DefaultRouter):
             ret = super(MultiLookupRouter, self).get_routes(viewset)
         return ret
 
+    def get_api_root_view(self):
+        """
+        Return a view to use as the API root.
+        """
+        api_root_dict = {}
+        list_name = self.routes[0].name
+        for prefix, viewset, basename in self.registry:
+            api_root_dict[prefix] = list_name.format(basename=basename)
+
+        class OnaApi(APIView):
+            """
+## Ona JSON Rest API endpoints:
+
+### Data
+* [/api/v1/charts](/api/v1/charts) - List, Retrieve Charts of collected data
+* [/api/v1/data](/api/v1/data) - List, Retrieve submission data
+* [/api/v1/stats](/api/v1/stats) - Summary statistics
+
+### Forms
+* [/api/v1/forms](/api/v1/forms) - List, Retrieve form information
+* [/api/v1/media](/api/v1/media) - List, Retrieve media attachments
+* [/api/v1/metadata](/api/v1/metadata) - List, Retrieve form metadata
+* [/api/v1/projects](/api/v1/projects) - List, Retrieve, Create,
+ Update organization projects, forms
+* [/api/v1/submissions](/api/v1/submissions) - Submit XForms to a form
+
+### Users and Organizations
+* [/api/v1/orgs](/api/v1/orgs) - List, Retrieve, Create,
+Update organization and organization info
+* [/api/v1/profiles](/api/v1/profiles) - List, Create, Update user information
+* [/api/v1/teams](/api/v1/teams) - List, Retrieve, Create, Update teams
+* [/api/v1/user](/api/v1/user) - Return authenticated user profile info
+* [/api/v1/users](/api/v1/users) - List, Retrieve user data
+"""
     def get_urls(self):
         ret = []
 
         if self.include_root_view:
-            root_url = url(
-                r'^$', RedirectView.as_view(url='/static/docs/index.html'),
-                name=self.root_view_name)
+            #root_url = url(
+            #    r'^$', RedirectView.as_view(url='/static/docs/index.html'),
+            #    name=self.root_view_name)
+            root_url = url(r'^$', self.get_api_root_view(),
+                           name=self.root_view_name)
             ret.append(root_url)
         for prefix, viewset, basename in self.registry:
             lookup = self.get_lookup_regex(viewset)
