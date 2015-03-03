@@ -1,5 +1,4 @@
 from django.conf.urls import url
-from django.views.generic import RedirectView
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import routers
@@ -174,8 +173,6 @@ Update organization and organization info
 * [/api/v1/user](/api/v1/user) - Return authenticated user profile info
 * [/api/v1/users](/api/v1/users) - List, Retrieve user data
 """
-        _ignore_model_permissions = True
-
         def get(self, request, format=None):
             ret = {}
             for key, url_name in api_root_dict.items():

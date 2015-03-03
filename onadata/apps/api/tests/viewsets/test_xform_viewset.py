@@ -454,6 +454,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.get('Last-Modified'), None)
 
             # test for supported formats
+
             # JSON format
             response = view(request, pk=formid, format='json')
             self.assertEqual(response.status_code, 200)
