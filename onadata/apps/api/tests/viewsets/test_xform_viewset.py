@@ -443,17 +443,33 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.get('Last-Modified'), None)
 
             # test for supported formats
+            #json format
             response = view(request, pk=formid, format='json')
             self.assertEqual(response.status_code, 200)
             self.assertNotEqual(response.get('Last-Modified'), None)
             self.assertDictContainsSubset(data, response.data)
+            # test correct file name
+            self.assertEqual(response.get('Content-Disposition'),
+                             'attachment; filename='
+                             + self.xform.id_string + "." + 'json')
+            # xml format
             response = view(request, pk=formid, format='xml')
             self.assertEqual(response.status_code, 200)
             self.assertNotEqual(response.get('Last-Modified'), None)
             response_doc = minidom.parseString(response.data)
+            # test correct file name
+            self.assertEqual(response.get('Content-Disposition'),
+                             'attachment; filename='
+                             + self.xform.id_string + "." + 'xml')
+
+            # xls format
             response = view(request, pk=formid, format='xls')
             self.assertEqual(response.status_code, 200)
             self.assertNotEqual(response.get('Last-Modified'), None)
+            # test correct file name
+            self.assertEqual(response.get('Content-Disposition'),
+                             'attachment; filename='
+                             + self.xform.id_string + "." + 'xls')
 
             xml_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
