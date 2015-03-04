@@ -465,6 +465,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.get('Content-Disposition'),
                              'attachment; filename=' +
                              self.xform.id_string + "." + 'json')
+
             # XML format
             response = view(request, pk=formid, format='xml')
             self.assertEqual(response.status_code, 200)
