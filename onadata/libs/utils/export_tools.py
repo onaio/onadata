@@ -49,10 +49,16 @@ def encode_if_str(row, key, encode_dates=False):
         return val.encode('utf-8')
 
     if encode_dates and isinstance(val, datetime):
-        return val.strftime('%Y-%m-%dT%H:%M:%S%z').encode('utf-8')
+        try:
+            return val.strftime('%Y-%m-%dT%H:%M:%S%z').encode('utf-8')
+        except ValueError:
+            raise Exception(u"%s has an invalid datetime format" % (val))
 
     if encode_dates and isinstance(val, date):
-        return val.strftime('%Y-%m-%d').encode('utf-8')
+        try:
+            return val.strftime('%Y-%m-%d').encode('utf-8')
+        except ValueError:
+            raise Exception(u"%s has an invalid date format" % (val))
 
     return val
 
