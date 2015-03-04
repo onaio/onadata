@@ -35,6 +35,7 @@ class TestViewerTools(TestBase):
         self._publish_transportation_form()
         # create kwargs with existing xform variable
         xform_variable_name = \
+            '/transportation/transport/'\
             'available_transportation_types_to_referral_facility'
         xform_variable_value = 'ambulance'
         kwargs = {xform_variable_name: xform_variable_value}
