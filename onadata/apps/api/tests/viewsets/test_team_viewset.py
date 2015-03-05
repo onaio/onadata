@@ -327,5 +327,4 @@ class TestTeamViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
 
-        self.assertEqual(len(response.data.get('users')),
-                         3)
+        self.assertEqual(len(response.data.get('users')), 2)
