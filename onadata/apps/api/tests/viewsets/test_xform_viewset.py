@@ -460,8 +460,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertDictContainsSubset(data, response.data)
             # test correct file name
             self.assertEqual(response.get('Content-Disposition'),
-                             'attachment; filename='
-                             + self.xform.id_string + "." + 'json')
+                             'attachment; filename=' +
+                             self.xform.id_string + "." + 'json')
             # xml format
             response = view(request, pk=formid, format='xml')
             self.assertEqual(response.status_code, 200)
