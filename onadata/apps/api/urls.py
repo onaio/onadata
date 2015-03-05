@@ -1,4 +1,5 @@
 from django.conf.urls import url
+from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import routers
@@ -150,35 +151,17 @@ class MultiLookupRouter(routers.DefaultRouter):
             """
 ## Ona JSON Rest API endpoints:
 
-### DOCS
-* [/docs](/docs) - Ona API Documentation
-### Data
-* [/api/v1/charts](/api/v1/charts) - List, Retrieve Charts of collected data
-* [/api/v1/data](/api/v1/data) - List, Retrieve submission data
-* [/api/v1/stats](/api/v1/stats) - Summary statistics
-
-### Forms
-* [/api/v1/forms](/api/v1/forms) - List, Retrieve form information
-* [/api/v1/media](/api/v1/media) - List, Retrieve media attachments
-* [/api/v1/metadata](/api/v1/metadata) - List, Retrieve form metadata
-* [/api/v1/projects](/api/v1/projects) - List, Retrieve, Create,
- Update organization projects, forms
-* [/api/v1/submissions](/api/v1/submissions) - Submit XForms to a form
-
-### Users and Organizations
-* [/api/v1/orgs](/api/v1/orgs) - List, Retrieve, Create,
-Update organization and organization info
-* [/api/v1/profiles](/api/v1/profiles) - List, Create, Update user information
-* [/api/v1/teams](/api/v1/teams) - List, Retrieve, Create, Update teams
-* [/api/v1/user](/api/v1/user) - Return authenticated user profile info
-* [/api/v1/users](/api/v1/users) - List, Retrieve user data
 """
-        def get(self, request, format=None):
-            ret = {}
-            for key, url_name in api_root_dict.items():
-                ret[key] = reverse(
-                    url_name, request=request, format=format)
-            return Response(ret)
+            def get(self, request, format=None):
+                ret = {}
+                for key, url_name in api_root_dict.items():
+                    ret[key] = reverse(
+                        url_name, request=request, format=format)
+
+                # Adding for static documentation
+                ret['api-docs'] = \
+                    request.build_absolute_uri(settings.STATIC_DOC)
+                return Response(ret)
 
         return OnaApi.as_view()
 

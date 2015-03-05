@@ -497,6 +497,8 @@ try:
 except EnvironmentError:
     RESERVED_USERNAMES = []
 
+STATIC_DOC = '/static/docs/index.html'
+
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:

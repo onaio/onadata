@@ -17,8 +17,7 @@ urlpatterns = patterns(
     # change Language
     (r'^i18n/', include('django.conf.urls.i18n')),
     url('^api/v1/', include(router.urls)),
-    url(r'^api-docs/', RedirectView.as_view(url='/static/docs/index.html')),
-    url(r'^docs/', RedirectView.as_view(url='/static/docs/index.html')),
+    url(r'^api-docs/', RedirectView.as_view(url=settings.STATIC_DOC)),
     url(r'^api/', RedirectView.as_view(url='/api/v1/')),
     url(r'^api/v1', RedirectView.as_view(url='/api/v1/')),
 
