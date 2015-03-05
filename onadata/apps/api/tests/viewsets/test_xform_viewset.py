@@ -113,6 +113,16 @@ def external_mock_single_instance(url, request):
     return response
 
 
+@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+def enketo_mock_with_form_defaults(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = \
+        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform?d[%2Fnum]=1",\n'\
+        '  "code": "200"\n}'
+    return response
+
+
 class TestXFormViewSet(TestAbstractViewSet):
 
     def setUp(self):
@@ -443,15 +453,15 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.get('Last-Modified'), None)
 
             # test for supported formats
-            #json format
+            # json format
             response = view(request, pk=formid, format='json')
             self.assertEqual(response.status_code, 200)
             self.assertNotEqual(response.get('Last-Modified'), None)
             self.assertDictContainsSubset(data, response.data)
             # test correct file name
             self.assertEqual(response.get('Content-Disposition'),
-                             'attachment; filename='
-                             + self.xform.id_string + "." + 'json')
+                             'attachment; filename=' +
+                             self.xform.id_string + "." + 'json')
             # xml format
             response = view(request, pk=formid, format='xml')
             self.assertEqual(response.status_code, 200)
@@ -459,8 +469,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             response_doc = minidom.parseString(response.data)
             # test correct file name
             self.assertEqual(response.get('Content-Disposition'),
-                             'attachment; filename='
-                             + self.xform.id_string + "." + 'xml')
+                             'attachment; filename=' +
+                             self.xform.id_string + "." + 'xml')
 
             # xls format
             response = view(request, pk=formid, format='xls')
@@ -468,8 +478,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertNotEqual(response.get('Last-Modified'), None)
             # test correct file name
             self.assertEqual(response.get('Content-Disposition'),
-                             'attachment; filename='
-                             + self.xform.id_string + "." + 'xls')
+                             'attachment; filename=' +
+                             self.xform.id_string + "." + 'xls')
 
             xml_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
@@ -582,6 +592,25 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
+    def test_enketo_url_with_default_form_params(self):
+        with HTTMock(enketo_mock_with_form_defaults):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({
+                'get': 'enketo'
+            })
+            formid = self.xform.pk
+
+            get_data = {'num': '1'}
+            request = self.factory.get('/', data=get_data, **self.extra)
+            response = view(request, pk=formid)
+            url = "https://dmfrm.enketo.org/webform?d[%2Fnum]=1"
+            preview_url = "%(uri)s?server=%(server)s&id=%(id_string)s" % {
+                'uri': settings.ENKETO_PREVIEW_URL,
+                'server': "http://testserver/bob/",
+                'id_string': 'transportation_2011_07_25'}
+            data = {"enketo_url": url, "enketo_preview_url": preview_url}
+            self.assertEqual(response.data, data)
+
     def test_enketo_urls_remain_the_same_after_form_replacement(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -669,7 +698,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                         xform=xform, data_type="enketo_preview_url"))
 
     @patch('urllib2.urlopen')
-    def test_publish_xlsform_using_url_upload(self,  mock_urlopen):
+    def test_publish_xlsform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
             view = XFormViewSet.as_view({
                 'post': 'create'
@@ -695,7 +724,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     @patch('urllib2.urlopen')
-    def test_publish_csvform_using_url_upload(self,  mock_urlopen):
+    def test_publish_csvform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
             view = XFormViewSet.as_view({
                 'post': 'create'
@@ -1501,7 +1530,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
             self._login_user_and_profile(extra_post_data=alice_data)
             self.assertEqual(self.user.username, 'alice')
-            self.assertNotEqual(previous_user,  self.user)
+            self.assertNotEqual(previous_user, self.user)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.tasks.get_async_status')

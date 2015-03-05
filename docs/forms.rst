@@ -532,6 +532,34 @@ Response
         "enketo_preview_url": "https://H6Ic6.enketo.org/webform"
     }
 
+Get webform/enketo link with default form values
+-------------------------------------------------
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo?name=value</pre>
+
+Request
+^^^^^^^
+::
+
+    curl -X GET https://ona.io/api/v1/forms/28058/enketo?name=test
+
+Response
+^^^^^^^^
+::
+
+    HTTP 200 OK
+
+Response
+^^^^^^^^^
+::
+
+    {
+        "enketo_url": "https://h6ic6.enketo.org/webform?d[%2Fform_id%2Fname]=test",
+        "enketo_preview_url": "https://H6Ic6.enketo.org/webform/preview?server=https://ona.io/geoffreymuchai/&id=form_id"
+    }
+
 
 Get form data in xls, csv format.
 ---------------------------------

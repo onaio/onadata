@@ -160,7 +160,7 @@ def get_client_ip(request):
 
 
 def enketo_url(form_url, id_string, instance_xml=None,
-               instance_id=None, return_url=None):
+               instance_id=None, return_url=None, **kwargs):
     if not hasattr(settings, 'ENKETO_URL')\
             and not hasattr(settings, 'ENKETO_API_SURVEY_PATH'):
         return False
@@ -178,6 +178,12 @@ def enketo_url(form_url, id_string, instance_xml=None,
             'instance_id': instance_id,
             'return_url': return_url
         })
+
+    if kwargs:
+        # Kwargs need to take note of xform variable paths i.e.
+        # kwargs = {'defaults[/widgets/text_widgets/my_string]': "Hey Mark"}
+        values.update(kwargs)
+
     req = requests.post(url, data=values,
                         auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
     if req.status_code in [200, 201]:
@@ -199,6 +205,19 @@ def enketo_url(form_url, id_string, instance_xml=None,
             if 'message' in response:
                 raise EnketoError(response['message'])
     return False
+
+
+def generate_enketo_form_defaults(xform, **kwargs):
+    defaults = {}
+    survey_elements = xform.data_dictionary().get_survey_elements()
+
+    if kwargs:
+        for name, value in kwargs.iteritems():
+            for field in survey_elements:
+                if field.name == name:
+                    defaults["defaults[{}]".format(field.get_xpath())] = value
+
+    return defaults
 
 
 def create_attachments_zipfile(attachments):
