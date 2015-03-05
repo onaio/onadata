@@ -20,6 +20,7 @@ from rest_framework.decorators import action, detail_route, list_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.exceptions import ParseError
 
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
@@ -519,10 +520,13 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                     resp.update(submit_csv(request.user.username,
                                            self.object, csv_file))
                 else:
-                    resp.update(
-                        {u'task_id': submit_csv_async.delay(
-                            request.user.username, self.object,
-                            csv_file).task_id})
+                    task = submit_csv_async.delay(request.user.username,
+                                                  self.object,
+                                                  csv_file)
+                    if task is None:
+                        raise ParseError('Task not found')
+                    else:
+                        resp.update({u'task_id': task.task_id})
 
         return Response(
             data=resp,
