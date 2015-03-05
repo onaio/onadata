@@ -174,7 +174,48 @@ class TestDataViewSet(TestBase):
             '/', data={"page": "invalid", "page-size": "invalid"},
             **self.extra)
         response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 404)
+
+    def test_data_start_limit(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+
+        # no start, limit params
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        request = self.factory.get('/', data={"start": "1", "limit": 2},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        request = self.factory.get('/', data={"limit": "3"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)
+
+        request = self.factory.get(
+            '/', data={"start": "1", "limit": "2"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        # invalid start is ignored, all data is returned
+        request = self.factory.get('/', data={"start": "invalid"},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        # invalid limit is ignored, all data is returned
+        request = self.factory.get('/', data={"limit": "invalid"},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
 
     def test_data_anon(self):
         self._make_submissions()
