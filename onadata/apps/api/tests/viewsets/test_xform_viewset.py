@@ -1177,6 +1177,41 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.data.get('additions'), 9)
             self.assertEqual(response.data.get('updates'), 0)
 
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.xform_viewset.submit_csv_async')
+    def test_raise_error_when_task_is_none(self, mock_submit_csv_async):
+        with HTTMock(enketo_mock):
+            settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD = 5
+            mock_submit_csv_async.delay.return_value = None
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({'post': 'csv_import'})
+            csv_import = open(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
+                    'fixtures', 'good.csv'))
+            post_data = {'csv_file': csv_import}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.data.get('detail'), 'Task not found')
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.xform_viewset.submit_csv_async')
+    def test_import_csv_asynchronously(self, mock_submit_csv_async):
+        with HTTMock(enketo_mock):
+            settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD = 5
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({'post': 'csv_import'})
+            csv_import = open(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
+                    'fixtures', 'good.csv'))
+            post_data = {'csv_file': csv_import}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNotNone(response.data.get('task_id'))
+
     def test_csv_import_fail(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
