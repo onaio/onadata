@@ -56,4 +56,12 @@ To compile MO files and update live translations
 
     $ django-admin.py compilemessages ;
     $ for app in {main,viewer} ; do cd onadata/apps/${app} && django-admin.py compilemessages && cd - ; done
-    
+
+Api Documentation
+-----------------
+
+.. code-block:: sh
+
+    $ cd docs
+    $ make html
+    $ python manage.py collectstatic
