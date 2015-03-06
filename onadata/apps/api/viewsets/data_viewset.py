@@ -253,18 +253,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             elif _format == 'xml':
                 return Response(instance.xml)
             elif _format == 'geojson':
-                return super(DataViewSet, self).retrieve(request, *args, **kwargs)
-                # query_params = (request and request.QUERY_PARAMS) or {}
-
-                # data = {"instance": instance,
-                #         "geo_field": query_params.get('geo_field'),
-                #         "fields": query_params.get('fields')}
-
-                # import ipdb
-                # ipdb.set_trace()
-                # serializer = GeoJsonSerializer(data)
-
-                # return Response(serializer.data)
+                return super(DataViewSet, self)\
+                    .retrieve(request, *args, **kwargs)
             elif _format == Attachment.OSM:
                 serializer = self.get_serializer(instance)
 
@@ -341,19 +331,13 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         if export_type == Attachment.OSM:
             serializer = self.get_serializer(self.object_list, many=True)
+
             return Response(serializer.data)
         elif export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
             return super(DataViewSet, self).list(request, *args, **kwargs)
         elif export_type == 'geojson':
-            self.object_list = self.filter_queryset(self.get_queryset())
-            query_params = (request and request.QUERY_PARAMS) or {}
-
-            data = {"instances": self.object_list,
-                    "geo_field": query_params.get('geo_field'),
-                    "fields": query_params.get('fields')}
-
-            serializer = GeoJsonListSerializer(data)
+            serializer = self.get_serializer(xform.instances.all(), many=True)
 
             return Response(serializer.data)
 

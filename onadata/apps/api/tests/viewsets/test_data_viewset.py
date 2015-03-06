@@ -631,22 +631,114 @@ class TestDataViewSet(TestBase):
 
         self.assertEqual(response.status_code, 200)
 
-        test_geo = {'type': 'Feature',
-                    'geometry':
-                        {u'type': u'GeometryCollection',
-                         u'geometries':
-                             [{u'type': u'Point',
-                               u'coordinates': [36.787219, -1.294197]}]},
-                    'properties': {'id': dataid, 'xform': self.xform.pk,
-                                   'today': '2015-01-15'}}
+        test_geo = {
+            'type': 'Feature',
+            'geometry': {
+                u'type': u'GeometryCollection',
+                u'geometries': [{
+                    u'type': u'Point',
+                    u'coordinates': [
+                        36.787219,
+                        -1.294197
+                    ]
+                }
+                ]
+            },
+            'properties': {
+                'id': dataid,
+                'xform': self.xform.pk,
+                'today': '2015-01-15'
+            }
+        }
 
         self.assertEqual(response.data, test_geo)
 
         view = DataViewSet.as_view({'get': 'list'})
-        request = self.factory.get('/', **self.extra)
+        request = self.factory.get('/', data=data_get, **self.extra)
         response = view(request, pk=self.xform.pk, format='geojson')
-
+        data = {
+            'type': 'FeatureCollection',
+            'features': [
+                {
+                    'type': 'Feature',
+                    'geometry': {
+                        u'type': u'GeometryCollection',
+                        u'geometries': [{
+                            u'type': u'Point',
+                            u'coordinates': [
+                                36.787219,
+                                -1.294197
+                            ]
+                        }
+                        ]
+                    },
+                    'properties': {
+                        'id': 4,
+                        'xform': 2,
+                        'today': '2015-01-15'
+                    }
+                },
+                {
+                    'type': 'Feature',
+                    'geometry': {
+                        u'type': u'GeometryCollection',
+                        u'geometries': [{
+                            u'type': u'Point',
+                            u'coordinates': [
+                                36.787219,
+                                -1.294197
+                            ]
+                        }
+                        ]
+                    },
+                    'properties': {
+                        'id': 3,
+                        'xform': 2,
+                        'today': '2015-01-15'
+                    }
+                },
+                {
+                    'type': 'Feature',
+                    'geometry': {
+                        u'type': u'GeometryCollection',
+                        u'geometries': [{
+                            u'type': u'Point',
+                            u'coordinates': [
+                                36.787219,
+                                -1.294197
+                            ]
+                        }
+                        ]
+                    },
+                    'properties': {
+                        'id': 2,
+                        'xform': 2,
+                        'today': '2015-01-15'
+                    }
+                },
+                {
+                    'type': 'Feature',
+                    'geometry': {
+                        u'type': u'GeometryCollection',
+                        u'geometries': [{
+                            u'type': u'Point',
+                            u'coordinates': [
+                                36.787219,
+                                -1.294197
+                            ]
+                        }
+                        ]
+                    },
+                    'properties': {
+                        'id': 1,
+                        'xform': 2,
+                        'today': '2015-01-15'
+                    }
+                }
+            ]
+            }
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
 
     def test_geojson_geofield(self):
         self._publish_submit_geojson()
