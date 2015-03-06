@@ -31,7 +31,6 @@ from onadata.libs.serializers.data_serializer import DataListSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
-from onadata.libs.serializers.geojson_serializer import GeoJsonListSerializer
 from onadata.libs import filters
 from onadata.libs.utils.viewer_tools import (
     EnketoError,
@@ -279,6 +278,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         export_type = kwargs.get('format')
         lookup_field = self.lookup_field
         lookup = self.kwargs.get(lookup_field)
+        is_public_request = lookup == self.public_data_endpoint
 
         if lookup_field not in kwargs.keys():
             self.object_list = self.filter_queryset(self.get_queryset())
@@ -286,7 +286,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
             return Response(serializer.data)
 
-        if lookup == self.public_data_endpoint:
+        if is_public_request:
             self.object_list = self._get_public_forms_queryset()
         elif lookup:
             qs = self.filter_queryset(self.get_queryset())
@@ -294,36 +294,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         if (export_type is None or export_type in ['json']) \
                 and hasattr(self, 'object_list'):
-
-            try:
-                where, where_params = ParsedInstance._get_where_clause(query)
-            except ValueError as e:
-                raise ParseError(unicode(e))
-
-            if where:
-                self.object_list = self.object_list.extra(where=where,
-                                                          params=where_params)
-            if (sort or limit or start or fields) and \
-                    lookup != self.public_data_endpoint:
-                if self.object_list.count():
-                    xform = self.object_list[0].xform
-                    self.object_list = \
-                        ParsedInstance.query_data(
-                            xform, query=query, sort=sort,
-                            start_index=start, limit=limit,
-                            fields=fields)
-
-            if not isinstance(self.object_list, types.GeneratorType):
-                page = self.paginate_queryset(self.object_list)
-            else:
-                page = None
-
-            if page is not None:
-                serializer = self.get_pagination_serializer(page)
-            else:
-                serializer = self.get_serializer(self.object_list, many=True)
-
-            return Response(serializer.data)
+            return self._get_data(query, fields, sort, start, limit,
+                                  is_public_request)
 
         xform = self.get_object()
         query = request.GET.get("query", {})
@@ -337,8 +309,38 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             # perform default viewset retrieve, no data export
             return super(DataViewSet, self).list(request, *args, **kwargs)
         elif export_type == 'geojson':
-            serializer = self.get_serializer(xform.instances.all(), many=True)
+            serializer = self.get_serializer(self.object_list, many=True)
 
             return Response(serializer.data)
 
         return custom_response_handler(request, xform, query, export_type)
+
+    def _get_data(self, query, fields, sort, start, limit, is_public_request):
+        try:
+            where, where_params = ParsedInstance._get_where_clause(query)
+        except ValueError as e:
+            raise ParseError(unicode(e))
+
+        if where:
+            self.object_list = self.object_list.extra(where=where,
+                                                      params=where_params)
+        if (sort or limit or start or fields) and not is_public_request:
+            if self.object_list.count():
+                xform = self.object_list[0].xform
+                self.object_list = \
+                    ParsedInstance.query_data(
+                        xform, query=query, sort=sort,
+                        start_index=start, limit=limit,
+                        fields=fields)
+
+        if not isinstance(self.object_list, types.GeneratorType):
+            page = self.paginate_queryset(self.object_list)
+        else:
+            page = None
+
+        if page is not None:
+            serializer = self.get_pagination_serializer(page)
+        else:
+            serializer = self.get_serializer(self.object_list, many=True)
+
+        return Response(serializer.data)
