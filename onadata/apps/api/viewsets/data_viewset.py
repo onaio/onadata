@@ -99,6 +99,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         fields = self.request.GET.get("fields")
         if fmt == Attachment.OSM:
             serializer_class = OSMSerializer
+        elif fmt == 'geojson':
+            serializer_class = GeoJsonSerializer
         elif pk is not None and dataid is None \
                 and pk != self.public_data_endpoint:
             if sort or limit or start or fields:
@@ -251,15 +253,18 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             elif _format == 'xml':
                 return Response(instance.xml)
             elif _format == 'geojson':
-                query_params = (request and request.QUERY_PARAMS) or {}
+                return super(DataViewSet, self).retrieve(request, *args, **kwargs)
+                # query_params = (request and request.QUERY_PARAMS) or {}
 
-                data = {"instance": instance,
-                        "geo_field": query_params.get('geo_field'),
-                        "fields": query_params.get('fields')}
+                # data = {"instance": instance,
+                #         "geo_field": query_params.get('geo_field'),
+                #         "fields": query_params.get('fields')}
 
-                serializer = GeoJsonSerializer(data)
+                # import ipdb
+                # ipdb.set_trace()
+                # serializer = GeoJsonSerializer(data)
 
-                return Response(serializer.data)
+                # return Response(serializer.data)
             elif _format == Attachment.OSM:
                 serializer = self.get_serializer(instance)
 

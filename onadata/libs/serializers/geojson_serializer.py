@@ -52,57 +52,24 @@ def create_feature(instance, geo_field, fields):
 
 class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
 
-    def __init__(self, *args, **kwargs):
-        # Don't pass the 'fields' arg up to the superclass
-        fields = kwargs.pop('fields', None)
-
-        # Instantiate the superclass normally
-        super(GeoJsonSerializer, self).__init__(*args, **kwargs)
-
-        if fields is not None:
-            # Drop any fields that are not specified in the `fields` argument.
-            allowed = set(fields)
-            existing = set(self.fields.keys())
-            for field_name in existing - allowed:
-                self.fields.pop(field_name)
-
-    def to_native(self, obj):
-
-        if obj is None:
-            return super(GeoJsonSerializer, self).to_native(obj)
-        geo_field = None
-        fields = None
-
-        if 'fields' in obj and obj.get('fields'):
-            fields = obj.get('fields').split(',')
-
-        if 'instance' in obj and obj.get('instance'):
-            instance = obj.get('instance')
-
-        if 'geo_field' in obj and obj.get('geo_field'):
-            geo_field = obj.get('geo_field')
-
-        if geo_field:
-            return create_feature(instance, geo_field, fields)
-
-        # Use the default serializer
-        res = super(GeoJsonSerializer, self).to_native(instance)
-        # Add additional parameters added by the user
-        if fields:
-            for field in fields:
-                res.get('properties').update({field: instance.json.get(field)})
-        else:
-            res.get('properties').update(instance.json)
-
-        return res
-
     class Meta:
         model = Instance
         geo_field = "geom"
         lookup_field = 'pk'
         id_field = False
-
         fields = ('id', 'xform')
+
+    def to_native(self, obj):
+        ret = super(GeoJsonSerializer, self).to_native(obj)
+        request = self.context.get('request')
+
+        if ret and 'properties' in ret and obj and request is not None:
+            fields = request.QUERY_PARAMS.get('fields')
+            if fields:
+                for field in fields.split(','):
+                    ret['properties'][field] = obj.json.get(field)
+
+        return ret
 
 
 class GeoJsonListSerializer(GeoJsonSerializer):
