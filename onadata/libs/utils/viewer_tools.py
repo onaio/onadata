@@ -216,6 +216,7 @@ def generate_enketo_form_defaults(xform, **kwargs):
             for field in survey_elements:
                 if field.name == name:
                     defaults["defaults[{}]".format(field.get_xpath())] = value
+                    break
 
     return defaults
 

@@ -46,6 +46,31 @@ class TestViewerTools(TestBase):
             defaults,
             {key: xform_variable_value})
 
+    def test_get_enketo_defaults_with_multiple_params(self):
+        # create xform
+        self._publish_transportation_form()
+        # create kwargs with existing xform variable
+        transportation_types = \
+            'available_transportation_types_to_referral_facility'
+        transportation_types_value = 'ambulance'
+
+        frequency = 'frequency_to_referral_facility'
+        frequency_value = 'daily'
+
+        kwargs = {
+            transportation_types: transportation_types_value,
+            frequency: frequency_value}
+        defaults = generate_enketo_form_defaults(self.xform, **kwargs)
+
+        transportation_types_key = \
+            "defaults[/transportation/transport/{}]".format(
+                transportation_types)
+        frequency_key = "defaults[/transportation/transport/"\
+                        "loop_over_transport_types_frequency/"\
+                        "{}/{}]".format(transportation_types_value, frequency)
+        self.assertIn(transportation_types_key, defaults)
+        self.assertIn(frequency_key, defaults)
+
     def test_get_enketo_defaults_with_non_existent_field(self):
         # create xform
         self._publish_transportation_form()
