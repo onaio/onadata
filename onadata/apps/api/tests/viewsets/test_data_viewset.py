@@ -175,6 +175,22 @@ class TestDataViewSet(TestBase):
             **self.extra)
         response = view(request, pk=formid)
 
+    def test_data_start_limit_no_records(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+
+        # no start, limit params
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        request = self.factory.get('/', data={"start": "1", "limit": 2},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
     def test_data_start_limit(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})

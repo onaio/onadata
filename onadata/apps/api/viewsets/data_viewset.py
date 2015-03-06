@@ -312,10 +312,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     lookup != self.public_data_endpoint:
                 if self.object_list.count():
                     xform = self.object_list[0].xform
-                self.object_list = \
-                    ParsedInstance.query_data(xform, query=query, sort=sort,
-                                              start_index=start, limit=limit,
-                                              fields=fields)
+                    self.object_list = \
+                        ParsedInstance.query_data(
+                            xform, query=query, sort=sort,
+                            start_index=start, limit=limit,
+                            fields=fields)
 
             if not isinstance(self.object_list, types.GeneratorType):
                 page = self.paginate_queryset(self.object_list)
