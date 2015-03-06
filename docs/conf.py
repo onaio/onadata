@@ -20,12 +20,7 @@ from django.conf import settings
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-<<<<<<< HEAD
-sys.path.insert(0, os.path.abspath('..'))
-sys.path.append(os.path.abspath('_themes'))
-=======
 sys.path.insert(0, os.path.abspath('onadata.apps.api.viewsets'))
->>>>>>> MC:Added automodule feature
 settings.configure()
 
 # -- General configuration ------------------------------------------------
