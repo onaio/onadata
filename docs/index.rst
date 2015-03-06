@@ -236,6 +236,7 @@ Quick start
 .. toctree::
    :maxdepth: 3
 
+   viewsets
    quick_start
 
 Indices and tables
