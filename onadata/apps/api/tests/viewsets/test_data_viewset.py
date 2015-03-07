@@ -1,7 +1,6 @@
+import geojson
 import os
 import requests
-import json
-import geojson
 
 from django.utils import timezone
 from django.test import RequestFactory
@@ -656,6 +655,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', data=data_get, **self.extra)
         response = view(request, pk=self.xform.pk, format='geojson')
+        instances = self.xform.instances.all()
         data = {
             'type': 'FeatureCollection',
             'features': [
@@ -673,8 +673,8 @@ class TestDataViewSet(TestBase):
                         ]
                     },
                     'properties': {
-                        'id': 4,
-                        'xform': 2,
+                        'id': instances[0].pk,
+                        'xform': self.xform.pk,
                         'today': '2015-01-15'
                     }
                 },
@@ -692,8 +692,8 @@ class TestDataViewSet(TestBase):
                         ]
                     },
                     'properties': {
-                        'id': 3,
-                        'xform': 2,
+                        'id': instances[1].pk,
+                        'xform': self.xform.pk,
                         'today': '2015-01-15'
                     }
                 },
@@ -711,8 +711,8 @@ class TestDataViewSet(TestBase):
                         ]
                     },
                     'properties': {
-                        'id': 2,
-                        'xform': 2,
+                        'id': instances[2].pk,
+                        'xform': self.xform.pk,
                         'today': '2015-01-15'
                     }
                 },
@@ -730,8 +730,8 @@ class TestDataViewSet(TestBase):
                         ]
                     },
                     'properties': {
-                        'id': 1,
-                        'xform': 2,
+                        'id': instances[3].pk,
+                        'xform': self.xform.pk,
                         'today': '2015-01-15'
                     }
                 }
@@ -756,18 +756,18 @@ class TestDataViewSet(TestBase):
                         format='geojson')
 
         self.assertEqual(response.status_code, 200)
+        test_loc = geojson.Feature(
+            geometry=geojson.GeometryCollection([
+                geojson.Point((36.787219, -1.294197))]),
+            properties={
+                'xform': self.xform.pk,
+                'id': dataid,
+                u'today': '2015-01-15'
+            }
+        )
+        test_loc.pop('id')
 
-        test_loc = {'geometry':
-                    {
-                        'coordinates': [36.787219, -1.294197],
-                        'type': u'Point'},
-                    'id': dataid,
-                    'properties':
-                    {
-                        'today': '2015-01-15'
-                    },
-                    'type': 'Feature'}
-        self.assertEqual(geojson.dumps(response.data), json.dumps(test_loc))
+        self.assertEqual(response.data, test_loc)
 
         view = DataViewSet.as_view({'get': 'list'})
 
@@ -778,8 +778,10 @@ class TestDataViewSet(TestBase):
         self.assertEquals(response.data['type'], 'FeatureCollection')
         self.assertEquals(len(response.data['features']), 4)
         self.assertEquals(response.data['features'][0]['type'], 'Feature')
-        self.assertEquals(response.data['features'][0]['geometry']['type'],
-                          'Point')
+        self.assertEquals(
+            response.data['features'][0]['geometry']['geometries'][0]['type'],
+            'Point'
+        )
 
     def test_geojson_linestring(self):
         self._publish_submit_geojson()

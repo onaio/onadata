@@ -63,11 +63,37 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
         ret = super(GeoJsonSerializer, self).to_native(obj)
         request = self.context.get('request')
 
-        if ret and 'properties' in ret and obj and request is not None:
+        if obj and ret and 'properties' in ret and request is not None:
             fields = request.QUERY_PARAMS.get('fields')
             if fields:
                 for field in fields.split(','):
                     ret['properties'][field] = obj.json.get(field)
+
+        if obj and ret and request:
+            geo_field = request.QUERY_PARAMS.get('geo_field')
+            if geo_field:
+                points = obj.json.get(geo_field)
+                if points:
+                    points = points.split(';')
+                    pnt_list = []
+                    for pnt in points:
+                        point = pnt.split()
+                        pnt_list.append((float(point[1]), float(point[0])))
+
+                    if len(pnt_list) == 1:
+                        geometry = geojson.GeometryCollection(
+                            [geojson.Point(pnt_list[0])])
+                    elif len(pnt_list) > 1 and \
+                            pnt_list[0] == pnt_list[len(pnt_list)-1]:
+                        # First and last point are same -> Polygon
+                        geometry = geojson.Polygon([pnt_list])
+                    else:
+                        # First and last point not same -> LineString
+                        geometry = geojson.LineString(pnt_list)
+                else:
+                    geometry = geojson.Feature()
+
+                ret['geometry'] = geometry
 
         return ret
 
