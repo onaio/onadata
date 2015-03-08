@@ -335,12 +335,9 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         if not isinstance(self.object_list, types.GeneratorType):
             page = self.paginate_queryset(self.object_list)
-        else:
-            page = None
-
-        if page is not None:
             serializer = self.get_pagination_serializer(page)
         else:
             serializer = self.get_serializer(self.object_list, many=True)
+            page = None
 
         return Response(serializer.data)

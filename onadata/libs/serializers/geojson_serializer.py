@@ -50,6 +50,32 @@ def create_feature(instance, geo_field, fields):
                            properties=properties)
 
 
+def is_polygon(point_list):
+    """Takes a list of tuples and determines if it is a polygon"""
+    return (len(point_list) > 1 and
+            point_list[0] == point_list[len(point_list)-1])
+
+
+def geometry_from_string(points):
+    """Takes a string, returns a geometry object"""
+
+    points = points.split(';')
+    pnt_list = [tuple(map(float, reversed(point.split()[:2])))
+                for point in points]
+
+    if len(pnt_list) == 1:
+        geometry = geojson.GeometryCollection(
+            [geojson.Point(pnt_list[0])])
+    elif is_polygon(pnt_list):
+        # First and last point are same -> Polygon
+        geometry = geojson.Polygon([pnt_list])
+    else:
+        # First and last point not same -> LineString
+        geometry = geojson.LineString(pnt_list)
+
+    return geometry
+
+
 class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
 
     class Meta:
@@ -73,25 +99,8 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
             geo_field = request.QUERY_PARAMS.get('geo_field')
             if geo_field:
                 points = obj.json.get(geo_field)
-                if points:
-                    points = points.split(';')
-                    pnt_list = []
-                    for pnt in points:
-                        point = pnt.split()
-                        pnt_list.append((float(point[1]), float(point[0])))
-
-                    if len(pnt_list) == 1:
-                        geometry = geojson.GeometryCollection(
-                            [geojson.Point(pnt_list[0])])
-                    elif len(pnt_list) > 1 and \
-                            pnt_list[0] == pnt_list[len(pnt_list)-1]:
-                        # First and last point are same -> Polygon
-                        geometry = geojson.Polygon([pnt_list])
-                    else:
-                        # First and last point not same -> LineString
-                        geometry = geojson.LineString(pnt_list)
-                else:
-                    geometry = geojson.Feature()
+                geometry = geometry_from_string(points) \
+                    if points else geojson.Feature()
 
                 ret['geometry'] = geometry
 
