@@ -1,7 +1,11 @@
 import os
 import time
+import requests
+
+from httmock import urlmatch, HTTMock
 
 from django.core.urlresolvers import reverse
+from django.test.utils import override_settings
 from nose import SkipTest
 from pybamboo.connection import Connection
 from pybamboo.dataset import Dataset
@@ -9,11 +13,20 @@ from pybamboo.dataset import Dataset
 from onadata.apps.main.views import show, link_to_bamboo
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.main.models import MetaData
 from onadata.apps.restservice.views import add_service, delete_service
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 from onadata.apps.restservice.models import RestService
 
 
+@urlmatch(netloc=r'(.*\.)?textit\.io$')
+def textit_mock():
+    import ipdb
+    ipdb.set_trace()
+    response = requests.Response()
+    response.status_code = 201
+    response._content = ""
+    return response
 class RestServiceTest(TestBase):
 
     def setUp(self):
@@ -169,3 +182,30 @@ class RestServiceTest(TestBase):
                      'service_name': self.service_name}
         response = self.client.post(add_service_url, post_data)
         self.assertEqual(response.status_code, 404)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    def test_textit_service(self):
+        service_url = "https://textit.io/api/v1/runs.json"
+        service_name = "textit"
+
+        self._add_rest_service(service_url, service_name)
+
+        # add metadata
+        api_token = "asdaasda"
+        flow_uuid = "getvdgdfd"
+        default_contact = "sadlsdfskjdfds"
+
+        MetaData.textit(self.xform,data_value="{}|{}|{}".format(api_token,
+                                                              flow_uuid,
+                                                              default_contact))
+
+        with HTTMock(textit_mock):
+
+            xml_submission = os.path.join(self.this_directory,
+                                       u'fixtures',
+                                       u'dhisform_submission1.xml')
+
+            self._make_submission(xml_submission)
+            self.assertEqual(self.response.status_code, 201)
+
+
