@@ -236,8 +236,10 @@ Quick start
 .. toctree::
    :maxdepth: 3
 
-   viewsets
+   apps.api.viewsets
    quick_start
+   modules
+   apps.api.management
 
 Indices and tables
 ==================
