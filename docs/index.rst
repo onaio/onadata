@@ -43,6 +43,14 @@ Users and Organizations
    user
    users
 
+Modules
+-----------
+
+.. toctree::
+   :maxdepth: 2
+
+   modules
+
 Ona Tagging API
 ~~~~~~~~~~~~~~~
 
@@ -234,12 +242,11 @@ Quick start
 -----------
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
-   apps.api.viewsets
    quick_start
    modules
-   apps.api.management
+   
 
 Indices and tables
 ==================

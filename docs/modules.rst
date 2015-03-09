@@ -1,7 +1,7 @@
-apps
-====
+onadata
+=======
 
 .. toctree::
    :maxdepth: 4
 
-   apps
+   onadata
