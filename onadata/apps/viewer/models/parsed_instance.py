@@ -124,6 +124,12 @@ def _json_order_by_params(sort_list):
     return params
 
 
+def get_name_from_survey_element(element):
+    xpath = element.get_xpath()
+    model = xpath.split('/')[1]
+    return element.get_xpath().replace('/%s/' % model, '')
+
+
 class ParsedInstance(models.Model):
     USERFORM_ID = u'_userform_id'
     STATUS = u'_status'
@@ -167,7 +173,8 @@ class ParsedInstance(models.Model):
                 yield dict(zip(fields, row))
 
     @classmethod
-    def _get_where_clause(cls, query):
+    def _get_where_clause(cls, query, form_integer_fields=[]):
+        known_integers = ['_id'] + form_integer_fields
         where = []
         where_params = []
         if query and isinstance(query, six.string_types):
@@ -188,18 +195,20 @@ class ParsedInstance(models.Model):
             # where = [u"json->>%s = %s" for i in query.items()] + or_where
             for k, v in query.items():
                 if isinstance(v, dict):
+                    json_str = u"CAST(json->>%s AS INT)" \
+                        if k in known_integers else u"json->%s"
                     _v = None
                     if '$gt' in v:
-                        where.append(u"json->>%s > %s")
+                        where.append(u"{} > %s".format(json_str))
                         _v = v.get('$gt')
                     if '$gte' in v:
-                        where.append(u"json->>%s >= %s")
+                        where.append(u"{} >= %s".format(json_str))
                         _v = v.get('$gte')
                     if '$lt' in v:
-                        where.append(u"json->>%s < %s")
+                        where.append(u"{} < %s".format(json_str))
                         _v = v.get('$lt')
                     if '$lte' in v:
-                        where.append(u"json->>%s <= %s")
+                        where.append(u"{} <= %s".format(json_str))
                         _v = v.get('$lte')
                     if _v is None:
                         _v = v
@@ -231,7 +240,11 @@ class ParsedInstance(models.Model):
         sort = ['id'] if sort is None else sort_from_mongo_sort_str(sort)
 
         sql_where = u""
-        where, where_params = cls._get_where_clause(query)
+        data_dictionary = xform.data_dictionary()
+        known_integers = [
+            get_name_from_survey_element(e)
+            for e in data_dictionary.get_survey_elements_of_type('integer')]
+        where, where_params = cls._get_where_clause(query, known_integers)
 
         if fields and isinstance(fields, six.string_types):
             fields = json.loads(fields)
