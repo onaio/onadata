@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import six
 from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
+from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -85,7 +86,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     paginate_by_param = 'page_size'
     page_kwarg = 'page'
 
-    queryset = XForm.objects.all()
+    queryset = XForm.objects.filter().select_related()
 
     def get_serializer_class(self):
         pk_lookup, dataid_lookup = self.lookup_fields
@@ -230,7 +231,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         elif isinstance(self.object, Instance):
 
             if request.user.has_perm("delete_xform", self.object.xform):
-                self.object.delete()
+                self.object.set_deleted(timezone.now())
             else:
                 raise PermissionDenied(_(u"You do not have delete "
                                          u"permissions."))
@@ -290,7 +291,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             self.object_list = self._get_public_forms_queryset()
         elif lookup:
             qs = self.filter_queryset(self.get_queryset())
-            self.object_list = Instance.objects.filter(xform__in=qs)
+            self.object_list = Instance.objects.filter(xform__in=qs,
+                                                       deleted_at=None)
 
         if (export_type is None or export_type in ['json']) \
                 and hasattr(self, 'object_list'):

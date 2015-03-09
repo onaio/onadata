@@ -590,17 +590,27 @@ class TestDataViewSet(TestBase):
 
     def test_delete_submission(self):
         self._make_submissions()
-        before_count = self.xform.instances.all().count()
-        view = DataViewSet.as_view({'delete': 'destroy'})
-        request = self.factory.delete('/', **self.extra)
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by('id')[0].pk
+        view = DataViewSet.as_view({
+            'delete': 'destroy',
+            'get': 'list'
+        })
 
+        # 4 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 4)
+
+        request = self.factory.delete('/', **self.extra)
         response = view(request, pk=formid, dataid=dataid)
 
         self.assertEqual(response.status_code, 204)
-        count = self.xform.instances.all().count()
-        self.assertEquals(before_count - 1, count)
+
+        # remaining 3 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 3)
 
         self._create_user_and_login(username='alice', password='alice')
         # Managers can delete
@@ -608,12 +618,16 @@ class TestDataViewSet(TestBase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
         request = self.factory.delete('/', **self.extra)
-        dataid = self.xform.instances.all().order_by('id')[0].pk
+        dataid = self.xform.instances.filter(deleted_at=None)\
+            .order_by('id')[0].pk
         response = view(request, pk=formid, dataid=dataid)
 
         self.assertEqual(response.status_code, 204)
-        count = self.xform.instances.all().count()
-        self.assertEquals(before_count - 2, count)
+
+        # remaining 3 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 2)
 
     def test_geojson_format(self):
         self._publish_submit_geojson()
