@@ -54,8 +54,12 @@ def save_metadata(metadata_obj):
 
 
 def unique_type_for_form(xform, data_type, data_value=None, data_file=None):
-    result = MetaData.objects.get_or_create(
-        xform=xform, data_type=data_type, data_value=data_value)
+    result, created = MetaData.objects.get_or_create(
+        xform=xform, data_type=data_type)
+
+    if data_value:
+        result.data_value = data_value
+        result.save()
 
     if data_file:
         if result.data_value is None or result.data_value == '':
@@ -64,6 +68,10 @@ def unique_type_for_form(xform, data_type, data_value=None, data_file=None):
         result.data_file_type = data_file.content_type
         result = save_metadata(result)
     return result
+
+
+def type_for_form(xform, data_type):
+    return MetaData.objects.filter(xform=xform, data_type=data_type)
 
 
 def create_media(media):
