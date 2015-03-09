@@ -110,7 +110,15 @@ def _check_set_role(request, organization, username, required=False):
         _update_username_role(organization, username, role_cls)
 
         owners_team = get_organization_owners_team(organization)
-        user = User.objects.get(username=username)
+
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            data = {'username': [_(u"User `%(username)s` does not exist."
+                                   % {'username': username})]}
+            
+            return [status.HTTP_400_BAD_REQUEST, data]
+
         # add the owner to owners team
         if role == OwnerRole.name:
             add_user_to_team(owners_team, user)

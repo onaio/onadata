@@ -600,3 +600,20 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         owner_team = get_organization_owners_team(self.organization)
 
         self.assertNotIn(aboy, owner_team.user_set.all())
+
+    def test_put_role_user_none_existent(self):
+        self._org_create()
+        newname = 'i-do-no-exist'
+        view = OrganizationProfileViewSet.as_view({
+            'get': 'retrieve',
+            'post': 'members',
+            'put': 'members'
+        })
+
+        data = {'username': newname, 'role': 'editor'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
