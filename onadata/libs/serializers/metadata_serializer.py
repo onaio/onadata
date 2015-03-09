@@ -25,9 +25,20 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
     data_file = serializers.FileField(required=False)
     data_file_type = serializers.CharField(max_length=255, required=False)
+    media_url = serializers.SerializerMethodField('get_media_url')
 
     class Meta:
         model = MetaData
+        fields = ('id', 'xform', 'data_value', 'data_type', 'data_file',
+                  'data_file_type', 'media_url')
+
+    def get_media_url(self, obj):
+        if obj.data_type == "media":
+            if getattr(obj, "data_file"):
+                if getattr(obj.data_file, "url"):
+                    return obj.data_file.url
+
+        return None
 
     def validate_data_value(self, attrs, source):
         """Ensure we have a valid url if we are adding a media uri
