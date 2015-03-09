@@ -1,10 +1,10 @@
-viewsets package
+apps.api.viewsets package
 ==================================
 
 Submodules
 ----------
 
-attachment_viewset module
+apps.api.viewsets.attachment_viewset module
 -------------------------------------------
 
 .. automodule:: apps.api.viewsets.attachment_viewset
