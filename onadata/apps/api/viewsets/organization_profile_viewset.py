@@ -116,8 +116,8 @@ def _check_set_role(request, organization, username, required=False):
         except User.DoesNotExist:
             data = {'username': [_(u"User `%(username)s` does not exist."
                                    % {'username': username})]}
-            
-            return [status.HTTP_400_BAD_REQUEST, data]
+
+            return (status.HTTP_400_BAD_REQUEST, data)
 
         # add the owner to owners team
         if role == OwnerRole.name:
