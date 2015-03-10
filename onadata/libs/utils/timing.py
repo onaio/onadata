@@ -64,10 +64,10 @@ def calculate_duration(start_time, end_time):
     An empty string is returned if either of the time formats does
     not match '_format' format else, the duration is returned
     """
-    _format = "%Y-%m-%dT%H:%M:%S.%f+03:00"
+    _format = "%Y-%m-%dT%H:%M:%S"
     try:
-        _start = datetime.datetime.strptime(start_time, _format)
-        _end = datetime.datetime.strptime(end_time, _format)
+        _start = datetime.datetime.strptime(start_time[:19], _format)
+        _end = datetime.datetime.strptime(end_time[:19], _format)
     except ValueError:
         return ''
 
