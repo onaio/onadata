@@ -218,7 +218,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'data_file_type': None,
                 u'url': u'http://testserver/api/v1/metadata/%s' %
                 preview_url.pk,
-                'file_hash': None
+                'file_hash': None,
+                'media_url': None
             }, {
                 'id': url.pk,
                 'data_value': u'https://dmfrm.enketo.org/webform',
@@ -227,7 +228,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'data_type': u'enketo_url',
                 u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
                 'data_file_type': None,
-                'file_hash': None
+                'file_hash': None,
+                'media_url': None
             }]
             del self.form_data['date_modified']
             del response.data[0]['date_modified']
@@ -267,7 +269,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'data_file_type': None,
                 u'url': u'http://testserver/api/v1/metadata/%s' %
                 preview_url.pk,
-                'file_hash': None
+                'file_hash': None,
+                'media_url': None
             }, {
                 'id': url.pk,
                 'xform': self.xform.pk,
@@ -276,7 +279,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'data_file': u'',
                 'data_file_type': None,
                 u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
-                'file_hash': None
+                'file_hash': None,
+                'media_url': None
             }]
 
             self.form_data['metadata'].sort()
@@ -339,7 +343,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'data_file_type': None,
                 u'url': u'http://testserver/api/v1/metadata/%s' %
                 preview_url.pk,
-                'file_hash': None
+                'file_hash': None,
+                'media_url': None
             }, {
                 'id': url.pk,
                 'xform': self.xform.pk,
@@ -348,7 +353,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'data_file': u'',
                 'data_file_type': None,
                 u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
-                'file_hash': None
+                'file_hash': None,
+                'media_url': None
             }]
 
             response_data = sorted(response.data)
@@ -415,7 +421,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                 'data_file_type': None,
                 u'url': u'http://testserver/api/v1/metadata/%s' %
                 preview_url.pk,
-                'file_hash': None
+                'file_hash': None,
+                'media_url': None
             }, {
                 'id': url.pk,
                 'xform': self.xform.pk,
@@ -424,7 +431,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                 'data_file': u'',
                 'data_file_type': None,
                 u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
-                'file_hash': None
+                'file_hash': None,
+                'media_url': None
             }]
 
             self.form_data['metadata'].sort()

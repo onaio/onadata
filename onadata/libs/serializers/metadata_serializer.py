@@ -30,7 +30,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = MetaData
         fields = ('id', 'xform', 'data_value', 'data_type', 'data_file',
-                  'data_file_type', 'media_url')
+                  'data_file_type', 'media_url', 'file_hash', 'url')
 
     def get_media_url(self, obj):
         if obj.data_type == "media":
