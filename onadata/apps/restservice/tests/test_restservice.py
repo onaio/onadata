@@ -27,6 +27,8 @@ def textit_mock():
     response.status_code = 201
     response._content = ""
     return response
+
+
 class RestServiceTest(TestBase):
 
     def setUp(self):
@@ -195,17 +197,16 @@ class RestServiceTest(TestBase):
         flow_uuid = "getvdgdfd"
         default_contact = "sadlsdfskjdfds"
 
-        MetaData.textit(self.xform,data_value="{}|{}|{}".format(api_token,
-                                                              flow_uuid,
-                                                              default_contact))
+        MetaData.textit(
+            self.xform, data_value="{}|{}|{}".format(api_token,
+                                                     flow_uuid,
+                                                     default_contact))
 
         with HTTMock(textit_mock):
 
             xml_submission = os.path.join(self.this_directory,
-                                       u'fixtures',
-                                       u'dhisform_submission1.xml')
+                                          u'fixtures',
+                                          u'dhisform_submission1.xml')
 
             self._make_submission(xml_submission)
             self.assertEqual(self.response.status_code, 201)
-
-
