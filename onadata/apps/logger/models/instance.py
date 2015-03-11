@@ -233,12 +233,9 @@ class Instance(models.Model):
         self.json = self.get_full_dict()
 
     def get_full_dict(self):
-        if not self.json:
-            doc = {}
-        else:
-            doc = self.json
-
+        doc = self.json or {}
         doc.update(self.get_dict())
+
         if self.id:
             doc.update({
                 UUID: self.uuid,
