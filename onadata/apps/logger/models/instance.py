@@ -16,7 +16,7 @@ from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
-    UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, STATUS, DURATION
+    UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, STATUS, DURATION, START, END
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import safe_delete
@@ -334,12 +334,12 @@ class Instance(models.Model):
     def get_duration(self):
         data = self.get_dict()
         dd = self.xform.data_dictionary()
-        start_name, end_name = 'start', 'end'
-        start = dd.get_survey_elements_of_type('start')
+        start_name, end_name = START, END
+        start = dd.get_survey_elements_of_type(START)
         if start:
             start_name = start[0].get_abbreviated_xpath()
 
-        end = dd.get_survey_elements_of_type('end')
+        end = dd.get_survey_elements_of_type(END)
         if end:
             end_name = end[0].get_abbreviated_xpath()
 
