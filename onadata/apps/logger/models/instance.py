@@ -264,8 +264,7 @@ class Instance(models.Model):
                 self.date_created = now
 
             doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
-            doc[SUBMITTED_BY] = self.user.username\
-                if self.user is not None else None
+            doc[SUBMITTED_BY] = self.user.username if self.user else None
 
         return doc
 
