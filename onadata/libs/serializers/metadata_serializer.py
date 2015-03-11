@@ -33,10 +33,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                   'data_file_type', 'media_url', 'file_hash', 'url')
 
     def get_media_url(self, obj):
-        if obj.data_type == "media":
-            if getattr(obj, "data_file"):
-                if getattr(obj.data_file, "url"):
-                    return obj.data_file.url
+        if obj.data_type == "media" and getattr(obj, "data_file") \
+                and getattr(obj.data_file, "url"):
+            return obj.data_file.url
 
         return None
 
