@@ -168,7 +168,7 @@ Provides a sorted list of json submitted data for a specific form by Specifing t
 
 ::
 
-  {"field":value}
+    {"field":value}
 
 Query sorted by the age field ascending.
 
