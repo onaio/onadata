@@ -165,25 +165,34 @@ Response
 Sort submitted data of a specific form using existing fields
 -------------------------------------------------------------
 Provides a sorted list of json submitted data for a specific form by Specifing the order in which the query returns matching data. Use the `sort` parameter to filter the list of submissions.The sort parameter has field and value pairs.
+
 ::
+
   {"field":value}
+
 Query sorted by the age field ascending.
+
 ::
+    
     {"age":1}
 
 Descending sort query using the age field:
+
 ::
+
     {"age":-1}
   
 
 Example of Ascending Sort
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+
 ::
 
       curl -X GET https://ona.io/api/v1/data/328.json?sort={"age":1}
 
 Example of Descending sort
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 ::
 
       curl -X GET https://ona.io/api/v1/data/328.json?sort={"age":-1}
