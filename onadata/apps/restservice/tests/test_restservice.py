@@ -1,8 +1,6 @@
 import os
 import time
-import requests
-
-from httmock import urlmatch, HTTMock
+from mock import patch
 
 from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
@@ -17,16 +15,6 @@ from onadata.apps.main.models import MetaData
 from onadata.apps.restservice.views import add_service, delete_service
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 from onadata.apps.restservice.models import RestService
-
-
-@urlmatch(netloc=r'(.*\.)?textit\.io$')
-def textit_mock():
-    import ipdb
-    ipdb.set_trace()
-    response = requests.Response()
-    response.status_code = 201
-    response._content = ""
-    return response
 
 
 class RestServiceTest(TestBase):
@@ -186,7 +174,8 @@ class RestServiceTest(TestBase):
         self.assertEqual(response.status_code, 404)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    def test_textit_service(self):
+    @patch('httplib2.Http')
+    def test_textit_service(self, mock_http):
         service_url = "https://textit.io/api/v1/runs.json"
         service_name = "textit"
 
@@ -202,11 +191,11 @@ class RestServiceTest(TestBase):
                                                      flow_uuid,
                                                      default_contact))
 
-        with HTTMock(textit_mock):
+        xml_submission = os.path.join(self.this_directory,
+                                      u'fixtures',
+                                      u'dhisform_submission1.xml')
 
-            xml_submission = os.path.join(self.this_directory,
-                                          u'fixtures',
-                                          u'dhisform_submission1.xml')
-
-            self._make_submission(xml_submission)
-            self.assertEqual(self.response.status_code, 201)
+        self.assertFalse(mock_http.called)
+        self._make_submission(xml_submission)
+        self.assertTrue(mock_http.called)
+        self.assertEquals(mock_http.call_count, 1)

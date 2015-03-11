@@ -1,3 +1,7 @@
+from mock import patch
+
+from django.test.utils import override_settings
+
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.restservice.models import RestService
@@ -125,3 +129,22 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 204)
         meta = MetaData.objects.filter(xform=self.xform, data_type='textit')
         self.assertEquals(len(meta), 0)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('httplib2.Http')
+    def test_textit_flow(self, mock_http):
+        rest = RestService(name="textit",
+                           service_url="https://server.io",
+                           xform=self.xform)
+        rest.save()
+
+        MetaData.textit(self.xform,
+                        data_value='{}|{}|{}'.format("sadsdfhsdf",
+                                                     "sdfskhfskdjhfs",
+                                                     "ksadaskjdajsda"))
+
+        self.assertFalse(mock_http.called)
+        self._make_submissions()
+
+        self.assertTrue(mock_http.called)
+        self.assertEquals(mock_http.call_count, 4)
