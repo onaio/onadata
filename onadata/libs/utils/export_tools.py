@@ -162,12 +162,8 @@ def dict_to_joined_export(data, index, indices, name):
                 if key in [TAGS]:
                     output[name][key] = ",".join(val)
                 elif key in [NOTES]:
-                    try:
-                        note_list = [v['note'] for v in val]
-                    except TypeError:
-                        message = u'String indices must be integers; "%s"' \
-                                  ' isn\'t a dictionary' % val
-                        raise Exception(message)
+                    note_list = [v if isinstance(v, basestring)
+                                 else v['note'] for v in val]
                     output[name][key] = "\r\n".join(note_list)
                 else:
                     output[name][key] = val
