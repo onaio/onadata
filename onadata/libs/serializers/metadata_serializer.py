@@ -14,6 +14,7 @@ METADATA_TYPES = (
     ('source', _(u"Source")),
     ('supporting_doc', _(u"Supporting Document")),
     ('external_export', _(u"External Export")),
+    ('textit', _(u"External Export"))
 )
 
 

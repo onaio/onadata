@@ -3,6 +3,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
 from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
+from onadata.apps.main.models.meta_data import MetaData
 
 
 class TestRestServicesViewSet(TestAbstractViewSet):
@@ -81,3 +82,46 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
 
         self.assertEquals(response.data, data)
+
+    def test_textit(self):
+        self.view = RestServicesViewSet.as_view({
+            'delete': 'textit',
+            'get': 'textit',
+            'post': 'textit',
+        })
+
+        rest = RestService(name="testservice",
+                           service_url="http://serviec.io",
+                           xform=self.xform)
+        rest.save()
+
+        post_data = {
+            "auth_token": "sadsdfhsdf",
+            "flow_uuid": "sdfskhfskdjhfs",
+            "contacts": "ksadaskjdajsda"
+        }
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = self.view(request, pk=rest.pk)
+
+        self.assertEquals(response.status_code, 201)
+
+        meta = MetaData.objects.filter(xform=self.xform, data_type='textit')
+        self.assertEquals(len(meta), 1)
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=rest.pk)
+
+        self.assertEquals(response.status_code, 200)
+
+        self.assertEquals(response.data['xform'], self.xform.pk)
+        self.assertEquals(response.data['data_type'], 'textit')
+        self.assertEquals(response.data['data_value'],
+                          '{}|{}|{}'.format("sadsdfhsdf", "sdfskhfskdjhfs",
+                                            "ksadaskjdajsda"))
+
+        request = self.factory.delete('/', **self.extra)
+        response = self.view(request, pk=rest.pk)
+
+        self.assertEquals(response.status_code, 204)
+        meta = MetaData.objects.filter(xform=self.xform, data_type='textit')
+        self.assertEquals(len(meta), 0)
