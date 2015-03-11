@@ -247,21 +247,19 @@ class Instance(models.Model):
                 NOTES: self.get_notes(),
                 VERSION: self.version,
                 DURATION: self.get_duration(),
-                XFORM_ID_STRING: self._parser.get_xform_id_string()
+                XFORM_ID_STRING: self._parser.get_xform_id_string(),
+                GEOLOCATION: [self.point.y, self.point.x] if self.point
+                else [None, None],
+                SUBMITTED_BY: self.user.username if self.user else None
             })
-
-            doc[GEOLOCATION] = \
-                [self.point.y, self.point.x] if self.point else [None, None]
 
             if isinstance(self.deleted_at, datetime):
                 doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
 
             if not self.date_created:
-                now = submission_time()
-                self.date_created = now
+                self.date_created = submission_time()
 
             doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
-            doc[SUBMITTED_BY] = self.user.username if self.user else None
 
         return doc
 
