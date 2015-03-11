@@ -230,9 +230,7 @@ class Instance(models.Model):
             self.geom = GeometryCollection(points)
 
     def _set_json(self):
-        # only set json if it is not already set
-        if not self.json:
-            self.json = self.get_full_dict()
+        self.json = self.get_full_dict()
 
     def get_full_dict(self):
         if not self.json:
