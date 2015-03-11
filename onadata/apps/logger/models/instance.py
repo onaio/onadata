@@ -253,11 +253,8 @@ class Instance(models.Model):
                 XFORM_ID_STRING: self._parser.get_xform_id_string()
             })
 
-            point = self.point
-            if point:
-                doc[GEOLOCATION] = [point.y, point.x]
-            else:
-                doc[GEOLOCATION] = [None, None]
+            doc[GEOLOCATION] = \
+                [self.point.y, self.point.x] if self.point else [None, None]
 
             if isinstance(self.deleted_at, datetime):
                 doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
