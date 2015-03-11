@@ -29,3 +29,16 @@ class TestExportTools(TestBase):
         row = {"datetime": datetime(2001, 9, 9)}
         date_str = encode_if_str(row, "datetime", True)
         self.assertEqual(date_str, '2001-09-09T00:00:00')
+
+    def test_raise_exception_on_type_error(self):
+        from onadata.libs.utils.export_tools import dict_to_joined_export
+        index = 1
+        indices = {}
+        survey_name = 'test'
+        d = {
+            '_notes': '12345678'
+        }
+        with self.assertRaises(Exception) as error:
+            dict_to_joined_export(d, index, indices, survey_name)
+        e = u'String indices must be integers; "12345678" isn\'t a dictionary'
+        self.assertEqual(error.exception.message, e)
