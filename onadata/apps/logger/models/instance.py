@@ -41,6 +41,11 @@ def _get_attachments_from_instance(instance):
     return attachments
 
 
+def _get_tag_or_element_type_xpath(dd, tag):
+    elems = dd.get_survey_elements_of_type(tag)
+    return elems[0].get_abbreviated_xpath() if elems else tag
+
+
 class FormInactiveError(Exception):
 
     def __unicode__(self):
@@ -334,16 +339,9 @@ class Instance(models.Model):
     def get_duration(self):
         data = self.get_dict()
         dd = self.xform.data_dictionary()
-        start_name, end_name = START, END
-        start = dd.get_survey_elements_of_type(START)
-        if start:
-            start_name = start[0].get_abbreviated_xpath()
-
-        end = dd.get_survey_elements_of_type(END)
-        if end:
-            end_name = end[0].get_abbreviated_xpath()
-
-        start_time, end_time = data.get(start_name, ''), data.get(end_name, '')
+        start_name = _get_tag_or_element_type_xpath(dd, START)
+        end_name = _get_tag_or_element_type_xpath(dd, END)
+        start_time, end_time = data.get(start_name), data.get(end_name)
 
         return calculate_duration(start_time, end_time)
 
