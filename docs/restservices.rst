@@ -172,4 +172,4 @@ Deleting
 
 ::
 
-    curl -X DELETE https://ona.io/api/v1/restservices/236/textit 
+    curl -X DELETE https://ona.io/api/v1/restservices/236/textit

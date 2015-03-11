@@ -10,7 +10,12 @@ class ServiceDefinition(RestServiceInterface):
     verbose_name = u'TextIt POST'
 
     def send(self, url, parsed_instance):
-
+        """
+        Sends the submission to the configured rest service
+        :param url:
+        :param parsed_instance:
+        :return:
+        """
         extra_data = parsed_instance.instance.json
         # Ensure both key and value are string
         for key in extra_data:

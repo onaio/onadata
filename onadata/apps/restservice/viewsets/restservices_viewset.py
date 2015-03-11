@@ -15,7 +15,7 @@ from onadata.apps.main.models.meta_data import MetaData
 
 class RestServicesViewSet(LastModifiedMixin, ModelViewSet):
     """
-    This endpoint provides access to form restservices.
+    This endpoint provides access to form rest services.
     """
     queryset = RestService.objects.select_related('xform')
     serializer_class = RestServiceSerializer
@@ -24,6 +24,15 @@ class RestServicesViewSet(LastModifiedMixin, ModelViewSet):
 
     @detail_route(methods=['POST', 'GET', 'DELETE'])
     def textit(self, request, *args, **kwargs):
+        """
+        This action enable one to set auth_token, flow_uuid and the contact to
+        be used with textit
+
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
         self.object = self.get_object()
 
         if request.method == 'GET':
