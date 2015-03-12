@@ -161,6 +161,16 @@ Response
             ....
         ]
 
+Paginate data of a specific form 
+-------------------------------------------
+Returns a list of json submitted data for a specific form using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
+
+Example
+^^^^^^^^
+::
+  
+      curl -X GET https://ona.io/api/v1/data/328.json?page=1&page_size=4
+
 
 Sort submitted data of a specific form using existing fields
 -------------------------------------------------------------
