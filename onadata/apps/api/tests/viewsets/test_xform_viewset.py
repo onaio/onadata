@@ -19,7 +19,7 @@ from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import XForm, Instance
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -130,6 +130,35 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.view = XFormViewSet.as_view({
             'get': 'list',
         })
+
+    def instances_with_geopoints_should_be_true_for_forms_with_geopoints(self):
+        with HTTMock(enketo_mock):
+            xls_file_path = os.path.join(
+                settings.PROJECT_ROOT, "libs", "data", "tests", "fixtures",
+                "tutorial", "tutorial.xls")
+
+            self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+            xml_submission_file_path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+                "tutorial", "instances", "tutorial_2012-06-27_11-27-53.xml")
+
+            self._make_submission(xml_submission_file_path)
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve',
+            })
+            formid = self.xform.pk
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.data.get('instances_with_geopoints'))
+
+            Instance.objects.get(xform__id=formid).delete()
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.data.get('instances_with_geopoints'))
 
     def test_form_list(self):
         with HTTMock(enketo_mock):
