@@ -42,6 +42,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     enketo_url = serializers.SerializerMethodField('get_enketo_url')
     enketo_preview_url = serializers.SerializerMethodField(
         'get_enketo_preview_url')
+    instances_with_geopoints = serializers.SerializerMethodField(
+        'get_instances_with_geopoints')
 
     class Meta:
         model = XForm
@@ -50,6 +52,10 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             'bamboo_dataset', 'last_submission_time')
         exclude = ('id', 'json', 'xml', 'xls', 'user', 'has_start_time',
                    'shared', 'shared_data', 'deleted_at')
+
+    def get_instances_with_geopoints(self, obj):
+        return obj.instances_with_geopoints or \
+            obj.instances.exclude(geom=None).count() > 0
 
     def get_xform_permissions(self, obj):
         if obj:
