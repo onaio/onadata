@@ -68,6 +68,7 @@ class TestProcess(TestBase):
             i = self.xform.instances.get(uuid=uuid)
             i.date_created = pytz.timezone('UTC').localize(
                 datetime.strptime(submission_time, MONGO_STRFTIME))
+            i.json = i.get_full_dict()
             i.save()
 
     def test_uuid_submit(self):
@@ -385,7 +386,8 @@ class TestProcess(TestBase):
             {'meta/instanceID': 'uuid:5b2cc313-fc09-437e-8149-fcd32f695d41',
              '_uuid': '5b2cc313-fc09-437e-8149-fcd32f695d41',
              '_submission_time': '2013-02-14T15:37:21',
-             '_tags': '', '_notes': '', '_version': '2014111', '_duration': ''
+             '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
+             '_submitted_by': 'bob'
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
@@ -396,7 +398,8 @@ class TestProcess(TestBase):
              "meta/instanceID": "uuid:f3d8dc65-91a6-4d0f-9e97-802128083390",
              '_uuid': 'f3d8dc65-91a6-4d0f-9e97-802128083390',
              '_submission_time': '2013-02-14T15:37:22',
-             '_tags': '', '_notes': '', '_version': '2014111', '_duration': ''
+             '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
+             '_submitted_by': 'bob'
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
@@ -404,7 +407,8 @@ class TestProcess(TestBase):
              "meta/instanceID": "uuid:9c6f3468-cfda-46e8-84c1-75458e72805d",
              '_uuid': '9c6f3468-cfda-46e8-84c1-75458e72805d',
              '_submission_time': '2013-02-14T15:37:23',
-             '_tags': '', '_notes': '', '_version': '2014111', '_duration': ''
+             '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
+             '_submitted_by': 'bob'
              },
             {"available_transportation_types_to_referral_facility/taxi":
              "True",
@@ -416,7 +420,8 @@ class TestProcess(TestBase):
              "meta/instanceID": "uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf",
              '_uuid': '9f0a1508-c3b7-4c99-be00-9b237c26bcbf',
              '_submission_time': '2013-02-14T15:37:24',
-             '_tags': '', '_notes': '', '_version': '2014111', '_duration': ''
+             '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
+             '_submitted_by': 'bob'
              }
         ]
 

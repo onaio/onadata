@@ -9,6 +9,7 @@ from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.instance import Instance
 from django.db.utils import DataError
+from onadata.libs.utils.timing import calculate_duration
 
 
 def raise_data_error(a):
@@ -49,15 +50,14 @@ class TestChartsViewSet(TestBase):
         instance = Instance.objects.all()[0]
         _dict = instance.parsed_instance.to_dict_for_mongo()
         self.assertIn('_duration', _dict.keys())
-        self.assertEqual(_dict.get('_duration'), 24.898)
+        self.assertEqual(_dict.get('_duration'), 24.0)
         self.assertNotEqual(_dict.get('_duration'), None)
 
-        # the instance below has a valid start time and an invalid end time
-        instance = Instance.objects.all()[1]
-        _dict = instance.parsed_instance.to_dict_for_mongo()
+        _dict = instance.json
+        duration = calculate_duration(_dict.get('start_time'), 'invalid')
         self.assertIn('_duration', _dict.keys())
-        self.assertEqual(_dict.get('_duration'), '')
-        self.assertNotEqual(_dict.get('_duration'), None)
+        self.assertEqual(duration, '')
+        self.assertNotEqual(duration, None)
 
     def test_get_on_categorized_field(self):
         data = {'field_name': 'gender'}

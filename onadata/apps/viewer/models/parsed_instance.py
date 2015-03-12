@@ -125,10 +125,7 @@ def _json_order_by_params(sort_list):
 
 
 def get_name_from_survey_element(element):
-    xpath = element.get_xpath()
-    model = xpath.split('/')[1]
-
-    return element.get_xpath().replace('/%s/' % model, '')
+    return element.get_abbreviated_xpath()
 
 
 class ParsedInstance(models.Model):
