@@ -1077,7 +1077,6 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             'downloadable': False,
             'allows_sms': False,
             'uuid': u'',
-            'instances_with_geopoints': False,
             'num_of_submissions': 0,
             'version': u'',
             'project': None,
