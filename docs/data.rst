@@ -164,7 +164,7 @@ Response
 
 Sort submitted data of a specific form using existing fields
 -------------------------------------------------------------
-Provides a sorted list of json submitted data for a specific form by Specifing the order in which the query returns matching data. Use the `sort` parameter to filter the list of submissions.The sort parameter has field and value pairs.
+Provides a sorted list of json submitted data for a specific form by specifing the order in which the query returns matching data. Use the `sort` parameter to filter the list of submissions.The sort parameter has field and value pairs.
 
 ::
 
