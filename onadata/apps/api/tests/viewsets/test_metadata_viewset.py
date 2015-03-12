@@ -85,15 +85,15 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             'data_file':
             u'%s/formid-media/screenshot.png' % self.user.username,
             'data_file_type': u'image/png',
-            'media_url': u'http://localhost:8000/media/%s/formid-media/ \
-            screenshot.png' % self.user.username,
+            'media_url': u'http://localhost:8000/media/%s/formid-media/'
+            'screenshot.png' % self.user.username,
             'file_hash': u'md5:09b9e5e3278ac2a43fce25681ffada85',
             'url': 'http://testserver/api/v1/metadata/%s' % self.metadata.pk
         }
         request = self.factory.get('/', **self.extra)
         response = self.view(request, pk=self.metadata.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(sorted(response.data), sorted(data))
+        self.assertDictEqual(response.data, data)
 
     def test_add_mapbox_layer(self):
         data_type = 'mapbox_layer'
