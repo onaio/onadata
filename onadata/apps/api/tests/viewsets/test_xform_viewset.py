@@ -131,7 +131,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             'get': 'list',
         })
 
-    def instances_with_geopoints_should_be_true_for_forms_with_geopoints(self):
+    def test_instances_with_geopoints_true_for_instances_with_geopoints(self):
         with HTTMock(enketo_mock):
             xls_file_path = os.path.join(
                 settings.PROJECT_ROOT, "libs", "data", "tests", "fixtures",
@@ -149,6 +149,13 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'get': 'retrieve',
             })
             formid = self.xform.pk
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.data.get('instances_with_geopoints'))
+
+            self.xform.instances_with_geopoints = False
+            self.xform.save()
             request = self.factory.get('/', **self.extra)
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 200)
