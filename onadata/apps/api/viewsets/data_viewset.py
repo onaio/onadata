@@ -92,7 +92,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         pk_lookup, dataid_lookup = self.lookup_fields
         pk = self.kwargs.get(pk_lookup)
         dataid = self.kwargs.get(dataid_lookup)
-        fmt = self.kwargs.get('format')
+        fmt = self.kwargs.get('format', self.request.GET.get("format"))
         sort = self.request.GET.get("sort")
         limit = parse_int(self.request.GET.get("limit"))
         start = parse_int(self.request.GET.get("start"))
@@ -276,7 +276,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         sort = request.GET.get("sort")
         start = parse_int(request.GET.get("start"))
         limit = parse_int(request.GET.get("limit"))
-        export_type = kwargs.get('format')
+        export_type = kwargs.get('format', request.GET.get("format"))
         lookup_field = self.lookup_field
         lookup = self.kwargs.get(lookup_field)
         is_public_request = lookup == self.public_data_endpoint
@@ -300,8 +300,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                                   is_public_request)
 
         xform = self.get_object()
-        query = request.GET.get("query", {})
-        export_type = kwargs.get('format')
 
         if export_type == Attachment.OSM:
             serializer = self.get_serializer(self.object_list, many=True)
