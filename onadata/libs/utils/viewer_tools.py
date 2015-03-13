@@ -209,13 +209,12 @@ def enketo_url(form_url, id_string, instance_xml=None,
 
 def generate_enketo_form_defaults(xform, **kwargs):
     defaults = {}
-    survey_elements = xform.data_dictionary().get_survey_elements()
 
     if kwargs:
         for name, value in kwargs.iteritems():
-            for field in survey_elements:
-                if field.name == name:
-                    defaults["defaults[{}]".format(field.get_xpath())] = value
+            field = xform.data_dictionary().get_survey_element(name)
+            if field:
+                defaults["defaults[{}]".format(field.get_xpath())] = value
 
     return defaults
 
