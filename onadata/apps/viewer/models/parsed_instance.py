@@ -420,7 +420,7 @@ def rest_service_form_submission(sender, **kwargs):
     parsed_instance = kwargs.get('instance')
     created = kwargs.get('created')
     if created:
-        call_service_async(parsed_instance)
+        call_service_async.delay(parsed_instance)
 
 
 post_save.connect(rest_service_form_submission, sender=ParsedInstance)

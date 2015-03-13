@@ -3,6 +3,7 @@ import json
 
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 from onadata.apps.main.models import MetaData
+from onadata.settings.common import METADATA_SEPARATOR
 
 
 class ServiceDefinition(RestServiceInterface):
@@ -24,16 +25,16 @@ class ServiceDefinition(RestServiceInterface):
             if not isinstance(value, basestring):
                 extra_data[key] = str(value)
 
-        meta = MetaData.objects.get(xform=parsed_instance.instance.xform,
-                                    data_type="textit")
-        textit_value = meta.data_value.split('|')
+        meta = MetaData.textit(parsed_instance.instance.xform)
+
+        token, flow_uuid, contacts = meta.data_value.split(METADATA_SEPARATOR)
         post_data = {
             "extra": extra_data,
-            "flow_uuid": textit_value[1],
-            "contacts": textit_value[2]
+            "flow_uuid": flow_uuid,
+            "contacts": contacts
         }
         headers = {"Content-Type": "application/json",
-                   "Authorization": "Token {}".format(textit_value[0])}
+                   "Authorization": "Token {}".format(token)}
         http = httplib2.Http()
 
         resp, content = http.request(uri=url, method='POST',
