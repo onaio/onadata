@@ -54,6 +54,12 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                    'shared', 'shared_data', 'deleted_at')
 
     def get_instances_with_geopoints(self, obj):
+        if not obj.instances_with_geopoints and \
+                obj.instances.exclude(geom=None).count() > 0:
+            obj.instances_with_geopoints = True
+            obj.save()
+            return obj.instances_with_geopoints
+
         return obj.instances_with_geopoints or \
             obj.instances.exclude(geom=None).count() > 0
 
