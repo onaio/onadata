@@ -1,7 +1,10 @@
 from django.conf.urls import url
-from django.views.generic import RedirectView
+from django.conf import settings
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
 from rest_framework import routers
 from rest_framework.urlpatterns import format_suffix_patterns
+from rest_framework.views import APIView
 
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
@@ -135,13 +138,39 @@ class MultiLookupRouter(routers.DefaultRouter):
             ret = super(MultiLookupRouter, self).get_routes(viewset)
         return ret
 
+    def get_api_root_view(self):
+        """
+        Return a view to use as the API root.
+        """
+        api_root_dict = {}
+        list_name = self.routes[0].name
+        for prefix, viewset, basename in self.registry:
+            api_root_dict[prefix] = list_name.format(basename=basename)
+
+        class OnaApi(APIView):
+            """
+## Ona JSON Rest API endpoints:
+
+"""
+            def get(self, request, format=None):
+                ret = {}
+                for key, url_name in api_root_dict.items():
+                    ret[key] = reverse(
+                        url_name, request=request, format=format)
+
+                # Adding for static documentation
+                ret['api-docs'] = \
+                    request.build_absolute_uri(settings.STATIC_DOC)
+                return Response(ret)
+
+        return OnaApi.as_view()
+
     def get_urls(self):
         ret = []
 
         if self.include_root_view:
-            root_url = url(
-                r'^$', RedirectView.as_view(url='/static/docs/index.html'),
-                name=self.root_view_name)
+            root_url = url(r'^$', self.get_api_root_view(),
+                           name=self.root_view_name)
             ret.append(root_url)
         for prefix, viewset, basename in self.registry:
             lookup = self.get_lookup_regex(viewset)

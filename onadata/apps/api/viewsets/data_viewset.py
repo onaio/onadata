@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import six
 from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
+from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -31,11 +32,11 @@ from onadata.libs.serializers.data_serializer import DataListSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
-from onadata.libs.serializers.geojson_serializer import GeoJsonListSerializer
 from onadata.libs import filters
 from onadata.libs.utils.viewer_tools import (
     EnketoError,
     get_enketo_edit_url)
+from onadata.libs.data import parse_int
 
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
@@ -85,7 +86,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     paginate_by_param = 'page_size'
     page_kwarg = 'page'
 
-    queryset = XForm.objects.all()
+    queryset = XForm.objects.filter().select_related()
 
     def get_serializer_class(self):
         pk_lookup, dataid_lookup = self.lookup_fields
@@ -93,11 +94,16 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         dataid = self.kwargs.get(dataid_lookup)
         fmt = self.kwargs.get('format')
         sort = self.request.GET.get("sort")
+        limit = parse_int(self.request.GET.get("limit"))
+        start = parse_int(self.request.GET.get("start"))
+        fields = self.request.GET.get("fields")
         if fmt == Attachment.OSM:
             serializer_class = OSMSerializer
+        elif fmt == 'geojson':
+            serializer_class = GeoJsonSerializer
         elif pk is not None and dataid is None \
                 and pk != self.public_data_endpoint:
-            if sort:
+            if sort or limit or start or fields:
                 serializer_class = JsonDataSerializer
             else:
                 serializer_class = DataListSerializer
@@ -225,7 +231,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         elif isinstance(self.object, Instance):
 
             if request.user.has_perm("delete_xform", self.object.xform):
-                self.object.delete()
+                self.object.set_deleted(timezone.now())
             else:
                 raise PermissionDenied(_(u"You do not have delete "
                                          u"permissions."))
@@ -247,15 +253,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             elif _format == 'xml':
                 return Response(instance.xml)
             elif _format == 'geojson':
-                query_params = (request and request.QUERY_PARAMS) or {}
-
-                data = {"instance": instance,
-                        "geo_field": query_params.get('geo_field'),
-                        "fields": query_params.get('fields')}
-
-                serializer = GeoJsonSerializer(data)
-
-                return Response(serializer.data)
+                return super(DataViewSet, self)\
+                    .retrieve(request, *args, **kwargs)
             elif _format == Attachment.OSM:
                 serializer = self.get_serializer(instance)
 
@@ -275,11 +274,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         fields = request.GET.get("fields")
         query = request.GET.get("query", {})
         sort = request.GET.get("sort")
-        start = request.GET.get("start")
-        limit = request.GET.get("limit")
+        start = parse_int(request.GET.get("start"))
+        limit = parse_int(request.GET.get("limit"))
         export_type = kwargs.get('format')
         lookup_field = self.lookup_field
         lookup = self.kwargs.get(lookup_field)
+        is_public_request = lookup == self.public_data_endpoint
 
         if lookup_field not in kwargs.keys():
             self.object_list = self.filter_queryset(self.get_queryset())
@@ -287,42 +287,17 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
             return Response(serializer.data)
 
-        if lookup == self.public_data_endpoint:
+        if is_public_request:
             self.object_list = self._get_public_forms_queryset()
         elif lookup:
             qs = self.filter_queryset(self.get_queryset())
-            self.object_list = Instance.objects.filter(xform__in=qs)
+            self.object_list = Instance.objects.filter(xform__in=qs,
+                                                       deleted_at=None)
 
         if (export_type is None or export_type in ['json']) \
                 and hasattr(self, 'object_list'):
-
-            try:
-                where, where_params = ParsedInstance._get_where_clause(query)
-            except ValueError as e:
-                raise ParseError(unicode(e))
-
-            if where:
-                self.object_list = self.object_list.extra(where=where,
-                                                          params=where_params)
-            if sort and lookup != self.public_data_endpoint:
-                if self.object_list.count():
-                    xform = self.object_list[0].xform
-                self.object_list = \
-                    ParsedInstance.query_data(xform, query=query, sort=sort,
-                                              start_index=start, limit=limit,
-                                              fields=fields)
-
-            if not isinstance(self.object_list, types.GeneratorType):
-                page = self.paginate_queryset(self.object_list)
-            else:
-                page = None
-
-            if page is not None:
-                serializer = self.get_pagination_serializer(page)
-            else:
-                serializer = self.get_serializer(self.object_list, many=True)
-
-            return Response(serializer.data)
+            return self._get_data(query, fields, sort, start, limit,
+                                  is_public_request)
 
         xform = self.get_object()
         query = request.GET.get("query", {})
@@ -330,20 +305,41 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         if export_type == Attachment.OSM:
             serializer = self.get_serializer(self.object_list, many=True)
+
             return Response(serializer.data)
         elif export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
             return super(DataViewSet, self).list(request, *args, **kwargs)
         elif export_type == 'geojson':
-            self.object_list = self.filter_queryset(self.get_queryset())
-            query_params = (request and request.QUERY_PARAMS) or {}
-
-            data = {"instances": self.object_list,
-                    "geo_field": query_params.get('geo_field'),
-                    "fields": query_params.get('fields')}
-
-            serializer = GeoJsonListSerializer(data)
+            serializer = self.get_serializer(self.object_list, many=True)
 
             return Response(serializer.data)
 
         return custom_response_handler(request, xform, query, export_type)
+
+    def _get_data(self, query, fields, sort, start, limit, is_public_request):
+        try:
+            where, where_params = ParsedInstance._get_where_clause(query)
+        except ValueError as e:
+            raise ParseError(unicode(e))
+
+        if where:
+            self.object_list = self.object_list.extra(where=where,
+                                                      params=where_params)
+        if (sort or limit or start or fields) and not is_public_request:
+            if self.object_list.count():
+                xform = self.object_list[0].xform
+                self.object_list = \
+                    ParsedInstance.query_data(
+                        xform, query=query, sort=sort,
+                        start_index=start, limit=limit,
+                        fields=fields)
+
+        if not isinstance(self.object_list, types.GeneratorType):
+            page = self.paginate_queryset(self.object_list)
+            serializer = self.get_pagination_serializer(page)
+        else:
+            serializer = self.get_serializer(self.object_list, many=True)
+            page = None
+
+        return Response(serializer.data)

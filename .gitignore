@@ -58,3 +58,5 @@ ansible
 
 # compile documentation
 docs/_build
+dev_https
+stunnel.pem

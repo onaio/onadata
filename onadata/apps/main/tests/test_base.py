@@ -200,6 +200,7 @@ class TestBase(TransactionTestCase):
         if forced_submission_time:
             instance = Instance.objects.order_by('-pk').all()[0]
             instance.date_created = forced_submission_time
+            instance.json = instance.get_full_dict()
             instance.save()
             instance.parsed_instance.save()
 

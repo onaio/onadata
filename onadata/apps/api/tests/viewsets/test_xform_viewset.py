@@ -113,6 +113,16 @@ def external_mock_single_instance(url, request):
     return response
 
 
+@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+def enketo_mock_with_form_defaults(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = \
+        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform?d[%2Fnum]=1",\n'\
+        '  "code": "200"\n}'
+    return response
+
+
 class TestXFormViewSet(TestAbstractViewSet):
 
     def setUp(self):
@@ -361,6 +371,16 @@ class TestXFormViewSet(TestAbstractViewSet):
             response.data[0]['metadata'].sort()
             self.assertEqual(response.data, [bobs_form_data])
 
+            # apply filter, see only bob's forms, case insensitive
+            request = self.factory.get(
+                '/', data={'owner': 'BoB'}, **self.extra)
+            response = self.view(request)
+            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.status_code, 200)
+            bobs_form_data['metadata'].sort()
+            response.data[0]['metadata'].sort()
+            self.assertEqual(response.data, [bobs_form_data])
+
             # apply filter, see only alice's forms
             request = self.factory.get(
                 '/', data={'owner': 'alice'}, **self.extra)
@@ -437,39 +457,45 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                 "type": "survey",
             }
             request = self.factory.get('/', **self.extra)
+
             # test for unsupported format
             response = view(request, pk=formid, format='csvzip')
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get('Last-Modified'), None)
 
             # test for supported formats
-            #json format
+
+            # JSON format
             response = view(request, pk=formid, format='json')
             self.assertEqual(response.status_code, 200)
             self.assertNotEqual(response.get('Last-Modified'), None)
             self.assertDictContainsSubset(data, response.data)
+
             # test correct file name
             self.assertEqual(response.get('Content-Disposition'),
-                             'attachment; filename='
-                             + self.xform.id_string + "." + 'json')
-            # xml format
+                             'attachment; filename=' +
+                             self.xform.id_string + "." + 'json')
+
+            # XML format
             response = view(request, pk=formid, format='xml')
             self.assertEqual(response.status_code, 200)
             self.assertNotEqual(response.get('Last-Modified'), None)
             response_doc = minidom.parseString(response.data)
+
             # test correct file name
             self.assertEqual(response.get('Content-Disposition'),
-                             'attachment; filename='
-                             + self.xform.id_string + "." + 'xml')
+                             'attachment; filename=' +
+                             self.xform.id_string + "." + 'xml')
 
-            # xls format
+            # XLS format
             response = view(request, pk=formid, format='xls')
             self.assertEqual(response.status_code, 200)
             self.assertNotEqual(response.get('Last-Modified'), None)
+
             # test correct file name
             self.assertEqual(response.get('Content-Disposition'),
-                             'attachment; filename='
-                             + self.xform.id_string + "." + 'xls')
+                             'attachment; filename=' +
+                             self.xform.id_string + "." + 'xls')
 
             xml_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
@@ -582,6 +608,25 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
+    def test_enketo_url_with_default_form_params(self):
+        with HTTMock(enketo_mock_with_form_defaults):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({
+                'get': 'enketo'
+            })
+            formid = self.xform.pk
+
+            get_data = {'num': '1'}
+            request = self.factory.get('/', data=get_data, **self.extra)
+            response = view(request, pk=formid)
+            url = "https://dmfrm.enketo.org/webform?d[%2Fnum]=1"
+            preview_url = "%(uri)s?server=%(server)s&id=%(id_string)s" % {
+                'uri': settings.ENKETO_PREVIEW_URL,
+                'server': "http://testserver/bob/",
+                'id_string': 'transportation_2011_07_25'}
+            data = {"enketo_url": url, "enketo_preview_url": preview_url}
+            self.assertEqual(response.data, data)
+
     def test_enketo_urls_remain_the_same_after_form_replacement(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -669,7 +714,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                         xform=xform, data_type="enketo_preview_url"))
 
     @patch('urllib2.urlopen')
-    def test_publish_xlsform_using_url_upload(self,  mock_urlopen):
+    def test_publish_xlsform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
             view = XFormViewSet.as_view({
                 'post': 'create'
@@ -695,7 +740,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     @patch('urllib2.urlopen')
-    def test_publish_csvform_using_url_upload(self,  mock_urlopen):
+    def test_publish_csvform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
             view = XFormViewSet.as_view({
                 'post': 'create'
@@ -1148,6 +1193,41 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.data.get('additions'), 9)
             self.assertEqual(response.data.get('updates'), 0)
 
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.xform_viewset.submit_csv_async')
+    def test_raise_error_when_task_is_none(self, mock_submit_csv_async):
+        with HTTMock(enketo_mock):
+            settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD = 5
+            mock_submit_csv_async.delay.return_value = None
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({'post': 'csv_import'})
+            csv_import = open(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
+                    'fixtures', 'good.csv'))
+            post_data = {'csv_file': csv_import}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.data.get('detail'), 'Task not found')
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.xform_viewset.submit_csv_async')
+    def test_import_csv_asynchronously(self, mock_submit_csv_async):
+        with HTTMock(enketo_mock):
+            settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD = 5
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({'post': 'csv_import'})
+            csv_import = open(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
+                    'fixtures', 'good.csv'))
+            post_data = {'csv_file': csv_import}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 200)
+            self.assertIsNotNone(response.data.get('task_id'))
+
     def test_csv_import_fail(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -1501,7 +1581,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
             self._login_user_and_profile(extra_post_data=alice_data)
             self.assertEqual(self.user.username, 'alice')
-            self.assertNotEqual(previous_user,  self.user)
+            self.assertNotEqual(previous_user, self.user)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.tasks.get_async_status')

@@ -29,7 +29,7 @@ from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
     DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
-    SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION)
+    SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION)
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 
 
@@ -49,10 +49,16 @@ def encode_if_str(row, key, encode_dates=False):
         return val.encode('utf-8')
 
     if encode_dates and isinstance(val, datetime):
-        return val.strftime('%Y-%m-%dT%H:%M:%S%z').encode('utf-8')
+        try:
+            return val.strftime('%Y-%m-%dT%H:%M:%S%z').encode('utf-8')
+        except ValueError:
+            raise Exception(u"%s has an invalid datetime format" % (val))
 
     if encode_dates and isinstance(val, date):
-        return val.strftime('%Y-%m-%d').encode('utf-8')
+        try:
+            return val.strftime('%Y-%m-%d').encode('utf-8')
+        except ValueError:
+            raise Exception(u"%s has an invalid date format" % (val))
 
     return val
 
@@ -169,7 +175,7 @@ class ExportBuilder(object):
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields we export but are not within the form's structure
     EXTRA_FIELDS = [ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME,
-                    PARENT_INDEX, TAGS, NOTES, VERSION]
+                    PARENT_INDEX, TAGS, NOTES, VERSION, DURATION, SUBMITTED_BY]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
 

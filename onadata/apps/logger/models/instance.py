@@ -16,8 +16,7 @@ from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
-    UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, STATUS, DURATION, \
-    START_TIME, END_TIME
+    UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, STATUS, DURATION, START, END
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import safe_delete
@@ -40,6 +39,11 @@ def _get_attachments_from_instance(instance):
         attachments.append(attachment)
 
     return attachments
+
+
+def _get_tag_or_element_type_xpath(dd, tag):
+    elems = dd.get_survey_elements_of_type(tag)
+    return elems[0].get_abbreviated_xpath() if elems else tag
 
 
 class FormInactiveError(Exception):
@@ -231,25 +235,38 @@ class Instance(models.Model):
             self.geom = GeometryCollection(points)
 
     def _set_json(self):
-        # only set json if it is not already set
-        if not self.json:
-            doc = self.get_dict()
+        self.json = self.get_full_dict()
+
+    def get_full_dict(self):
+        doc = self.json or {}
+        doc.update(self.get_dict())
+
+        if self.id:
+            doc.update({
+                UUID: self.uuid,
+                ID: self.id,
+                BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
+                ATTACHMENTS: _get_attachments_from_instance(self),
+                STATUS: self.status,
+                TAGS: list(self.tags.names()),
+                NOTES: self.get_notes(),
+                VERSION: self.version,
+                DURATION: self.get_duration(),
+                XFORM_ID_STRING: self._parser.get_xform_id_string(),
+                GEOLOCATION: [self.point.y, self.point.x] if self.point
+                else [None, None],
+                SUBMITTED_BY: self.user.username if self.user else None
+            })
+
+            if isinstance(self.deleted_at, datetime):
+                doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
 
             if not self.date_created:
-                now = submission_time()
-                self.date_created = now
-
-            point = self.point
-            if point:
-                doc[GEOLOCATION] = [point.y, point.x]
+                self.date_created = submission_time()
 
             doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
-            doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
-            doc[SUBMITTED_BY] = self.user.username\
-                if self.user is not None else None
-        else:
-            doc = self.get_full_dict()
-        self.json = doc
+
+        return doc
 
     def _set_parser(self):
         if not hasattr(self, "_parser"):
@@ -278,35 +295,6 @@ class Instance(models.Model):
         instance_dict = self._parser.get_flat_dict_with_attributes() if flat \
             else self._parser.to_dict()
         return self.numeric_converter(instance_dict)
-
-    def get_full_dict(self):
-        # TODO should we store all of these in the JSON no matter what?
-        d = self.json
-        d.update(self.get_dict())
-        doc = {
-            UUID: self.uuid,
-            ID: self.id,
-            BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
-            ATTACHMENTS: _get_attachments_from_instance(self),
-            STATUS: self.status,
-            TAGS: list(self.tags.names()),
-            NOTES: self.get_notes(),
-            VERSION: self.version,
-            DURATION: self.get_duration()
-        }
-        point = self.point
-        if point:
-            doc[GEOLOCATION] = [point.y, point.x]
-        else:
-            doc[GEOLOCATION] = [None, None]
-
-        if isinstance(self.deleted_at, datetime):
-            doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
-
-        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
-        d.update(doc)
-
-        return d
 
     def get_notes(self):
         return [note['note'] for note in self.notes.values('note')]
@@ -350,9 +338,12 @@ class Instance(models.Model):
 
     def get_duration(self):
         data = self.get_dict()
-        _start, _end = data.get(START_TIME, ''), data.get(END_TIME, '')
+        dd = self.xform.data_dictionary()
+        start_name = _get_tag_or_element_type_xpath(dd, START)
+        end_name = _get_tag_or_element_type_xpath(dd, END)
+        start_time, end_time = data.get(start_name), data.get(end_name)
 
-        return calculate_duration(_start, _end)
+        return calculate_duration(start_time, end_time)
 
 
 post_save.connect(update_xform_submission_count, sender=Instance,

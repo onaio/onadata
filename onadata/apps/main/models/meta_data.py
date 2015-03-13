@@ -1,6 +1,7 @@
 import mimetypes
 import os
 import requests
+import logging
 
 from contextlib import closing
 from django.db.models.signals import post_save
@@ -8,7 +9,7 @@ from django.core.exceptions import ValidationError
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import URLValidator
-from django.db import models
+from django.db import models, IntegrityError
 from django.conf import settings
 from hashlib import md5
 from onadata.apps.logger.models import XForm
@@ -43,22 +44,29 @@ def upload_to(instance, filename):
     )
 
 
+def save_metadata(metadata_obj):
+    try:
+        metadata_obj.save()
+    except IntegrityError:
+        logging.exception("MetaData object '%s' already exists" % metadata_obj)
+
+    return metadata_obj
+
+
 def unique_type_for_form(xform, data_type, data_value=None, data_file=None):
-    result = type_for_form(xform, data_type)
-    if not len(result):
-        result = MetaData(data_type=data_type, xform=xform)
-        result.save()
-    else:
-        result = result[0]
+    result, created = MetaData.objects.get_or_create(
+        xform=xform, data_type=data_type)
+
     if data_value:
         result.data_value = data_value
         result.save()
+
     if data_file:
         if result.data_value is None or result.data_value == '':
             result.data_value = data_file.name
         result.data_file = data_file
         result.data_file_type = data_file.content_type
-        result.save()
+        result = save_metadata(result)
     return result
 
 

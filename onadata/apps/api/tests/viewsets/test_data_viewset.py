@@ -1,7 +1,6 @@
+import geojson
 import os
 import requests
-import json
-import geojson
 
 from django.utils import timezone
 from django.test import RequestFactory
@@ -174,7 +173,64 @@ class TestDataViewSet(TestBase):
             '/', data={"page": "invalid", "page-size": "invalid"},
             **self.extra)
         response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 404)
+
+    def test_data_start_limit_no_records(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+
+        # no start, limit params
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        request = self.factory.get('/', data={"start": "1", "limit": 2},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+    def test_data_start_limit(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+
+        # no start, limit params
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        request = self.factory.get('/', data={"start": "1", "limit": 2},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        request = self.factory.get('/', data={"limit": "3"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 3)
+
+        request = self.factory.get(
+            '/', data={"start": "1", "limit": "2"}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        # invalid start is ignored, all data is returned
+        request = self.factory.get('/', data={"start": "invalid"},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        # invalid limit is ignored, all data is returned
+        request = self.factory.get('/', data={"limit": "invalid"},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
 
     def test_data_anon(self):
         self._make_submissions()
@@ -534,17 +590,27 @@ class TestDataViewSet(TestBase):
 
     def test_delete_submission(self):
         self._make_submissions()
-        before_count = self.xform.instances.all().count()
-        view = DataViewSet.as_view({'delete': 'destroy'})
-        request = self.factory.delete('/', **self.extra)
         formid = self.xform.pk
         dataid = self.xform.instances.all().order_by('id')[0].pk
+        view = DataViewSet.as_view({
+            'delete': 'destroy',
+            'get': 'list'
+        })
 
+        # 4 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 4)
+
+        request = self.factory.delete('/', **self.extra)
         response = view(request, pk=formid, dataid=dataid)
 
         self.assertEqual(response.status_code, 204)
-        count = self.xform.instances.all().count()
-        self.assertEquals(before_count - 1, count)
+
+        # remaining 3 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 3)
 
         self._create_user_and_login(username='alice', password='alice')
         # Managers can delete
@@ -552,12 +618,16 @@ class TestDataViewSet(TestBase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
         request = self.factory.delete('/', **self.extra)
-        dataid = self.xform.instances.all().order_by('id')[0].pk
+        dataid = self.xform.instances.filter(deleted_at=None)\
+            .order_by('id')[0].pk
         response = view(request, pk=formid, dataid=dataid)
 
         self.assertEqual(response.status_code, 204)
-        count = self.xform.instances.all().count()
-        self.assertEquals(before_count - 2, count)
+
+        # remaining 3 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 2)
 
     def test_geojson_format(self):
         self._publish_submit_geojson()
@@ -574,22 +644,115 @@ class TestDataViewSet(TestBase):
 
         self.assertEqual(response.status_code, 200)
 
-        test_geo = {'type': 'Feature',
-                    'geometry':
-                        {u'type': u'GeometryCollection',
-                         u'geometries':
-                             [{u'type': u'Point',
-                               u'coordinates': [36.787219, -1.294197]}]},
-                    'properties': {'id': dataid, 'xform': self.xform.pk,
-                                   'today': '2015-01-15'}}
+        test_geo = {
+            'type': 'Feature',
+            'geometry': {
+                u'type': u'GeometryCollection',
+                u'geometries': [{
+                    u'type': u'Point',
+                    u'coordinates': [
+                        36.787219,
+                        -1.294197
+                    ]
+                }
+                ]
+            },
+            'properties': {
+                'id': dataid,
+                'xform': self.xform.pk,
+                'today': '2015-01-15'
+            }
+        }
 
         self.assertEqual(response.data, test_geo)
 
         view = DataViewSet.as_view({'get': 'list'})
-        request = self.factory.get('/', **self.extra)
+        request = self.factory.get('/', data=data_get, **self.extra)
         response = view(request, pk=self.xform.pk, format='geojson')
-
+        instances = self.xform.instances.all()
+        data = {
+            'type': 'FeatureCollection',
+            'features': [
+                {
+                    'type': 'Feature',
+                    'geometry': {
+                        u'type': u'GeometryCollection',
+                        u'geometries': [{
+                            u'type': u'Point',
+                            u'coordinates': [
+                                36.787219,
+                                -1.294197
+                            ]
+                        }
+                        ]
+                    },
+                    'properties': {
+                        'id': instances[0].pk,
+                        'xform': self.xform.pk,
+                        'today': '2015-01-15'
+                    }
+                },
+                {
+                    'type': 'Feature',
+                    'geometry': {
+                        u'type': u'GeometryCollection',
+                        u'geometries': [{
+                            u'type': u'Point',
+                            u'coordinates': [
+                                36.787219,
+                                -1.294197
+                            ]
+                        }
+                        ]
+                    },
+                    'properties': {
+                        'id': instances[1].pk,
+                        'xform': self.xform.pk,
+                        'today': '2015-01-15'
+                    }
+                },
+                {
+                    'type': 'Feature',
+                    'geometry': {
+                        u'type': u'GeometryCollection',
+                        u'geometries': [{
+                            u'type': u'Point',
+                            u'coordinates': [
+                                36.787219,
+                                -1.294197
+                            ]
+                        }
+                        ]
+                    },
+                    'properties': {
+                        'id': instances[2].pk,
+                        'xform': self.xform.pk,
+                        'today': '2015-01-15'
+                    }
+                },
+                {
+                    'type': 'Feature',
+                    'geometry': {
+                        u'type': u'GeometryCollection',
+                        u'geometries': [{
+                            u'type': u'Point',
+                            u'coordinates': [
+                                36.787219,
+                                -1.294197
+                            ]
+                        }
+                        ]
+                    },
+                    'properties': {
+                        'id': instances[3].pk,
+                        'xform': self.xform.pk,
+                        'today': '2015-01-15'
+                    }
+                }
+            ]
+            }
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, data)
 
     def test_geojson_geofield(self):
         self._publish_submit_geojson()
@@ -607,18 +770,18 @@ class TestDataViewSet(TestBase):
                         format='geojson')
 
         self.assertEqual(response.status_code, 200)
+        test_loc = geojson.Feature(
+            geometry=geojson.GeometryCollection([
+                geojson.Point((36.787219, -1.294197))]),
+            properties={
+                'xform': self.xform.pk,
+                'id': dataid,
+                u'today': '2015-01-15'
+            }
+        )
+        test_loc.pop('id')
 
-        test_loc = {'geometry':
-                    {
-                        'coordinates': [36.787219, -1.294197],
-                        'type': u'Point'},
-                    'id': dataid,
-                    'properties':
-                    {
-                        'today': '2015-01-15'
-                    },
-                    'type': 'Feature'}
-        self.assertEqual(geojson.dumps(response.data), json.dumps(test_loc))
+        self.assertEqual(response.data, test_loc)
 
         view = DataViewSet.as_view({'get': 'list'})
 
@@ -629,8 +792,10 @@ class TestDataViewSet(TestBase):
         self.assertEquals(response.data['type'], 'FeatureCollection')
         self.assertEquals(len(response.data['features']), 4)
         self.assertEquals(response.data['features'][0]['type'], 'Feature')
-        self.assertEquals(response.data['features'][0]['geometry']['type'],
-                          'Point')
+        self.assertEquals(
+            response.data['features'][0]['geometry']['geometries'][0]['type'],
+            'Point'
+        )
 
     def test_geojson_linestring(self):
         self._publish_submit_geojson()

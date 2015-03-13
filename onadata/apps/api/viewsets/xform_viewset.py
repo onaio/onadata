@@ -20,6 +20,7 @@ from rest_framework.decorators import action, detail_route, list_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.exceptions import ParseError
 
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
@@ -38,7 +39,10 @@ from onadata.libs.serializers.share_xform_serializer import (
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
-from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
+from onadata.libs.utils.viewer_tools import (
+    enketo_url,
+    EnketoError,
+    generate_enketo_form_defaults)
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.exceptions import NoRecordsFoundError, J2XException
 from onadata.libs.utils.export_tools import generate_export,\
@@ -164,7 +168,7 @@ def _generate_new_export(request, xform, query, export_type):
 
 
 def _get_user(username):
-    users = User.objects.filter(username=username)
+    users = User.objects.filter(username__iexact=username)
 
     return users.count() and users[0] or None
 
@@ -395,7 +399,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         http_status = status.HTTP_400_BAD_REQUEST
 
         try:
-            url = enketo_url(form_url, self.object.id_string)
+            # pass default arguments to enketo_url to prepopulate form fields
+            request_vars = request.GET
+            defaults = generate_enketo_form_defaults(
+                self.object, **request_vars)
+            url = enketo_url(form_url, self.object.id_string, **defaults)
             preview_url = get_enketo_preview_url(request,
                                                  request.user.username,
                                                  self.object.id_string)
@@ -512,10 +520,13 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                     resp.update(submit_csv(request.user.username,
                                            self.object, csv_file))
                 else:
-                    resp.update(
-                        {u'task_id': submit_csv_async.delay(
-                            request.user.username, self.object,
-                            csv_file).task_id})
+                    task = submit_csv_async.delay(request.user.username,
+                                                  self.object,
+                                                  csv_file)
+                    if task is None:
+                        raise ParseError('Task not found')
+                    else:
+                        resp.update({u'task_id': task.task_id})
 
         return Response(
             data=resp,

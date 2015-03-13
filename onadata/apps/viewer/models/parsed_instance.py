@@ -124,6 +124,10 @@ def _json_order_by_params(sort_list):
     return params
 
 
+def get_name_from_survey_element(element):
+    return element.get_abbreviated_xpath()
+
+
 class ParsedInstance(models.Model):
     USERFORM_ID = u'_userform_id'
     STATUS = u'_status'
@@ -167,7 +171,8 @@ class ParsedInstance(models.Model):
                 yield dict(zip(fields, row))
 
     @classmethod
-    def _get_where_clause(cls, query):
+    def _get_where_clause(cls, query, form_integer_fields=[]):
+        known_integers = ['_id'] + form_integer_fields
         where = []
         where_params = []
         if query and isinstance(query, six.string_types):
@@ -188,18 +193,20 @@ class ParsedInstance(models.Model):
             # where = [u"json->>%s = %s" for i in query.items()] + or_where
             for k, v in query.items():
                 if isinstance(v, dict):
+                    json_str = u"CAST(json->>%s AS INT)" \
+                        if k in known_integers else u"json->%s"
                     _v = None
                     if '$gt' in v:
-                        where.append(u"json->>%s > %s")
+                        where.append(u"{} > %s".format(json_str))
                         _v = v.get('$gt')
                     if '$gte' in v:
-                        where.append(u"json->>%s >= %s")
+                        where.append(u"{} >= %s".format(json_str))
                         _v = v.get('$gte')
                     if '$lt' in v:
-                        where.append(u"json->>%s < %s")
+                        where.append(u"{} < %s".format(json_str))
                         _v = v.get('$lt')
                     if '$lte' in v:
-                        where.append(u"json->>%s <= %s")
+                        where.append(u"{} <= %s".format(json_str))
                         _v = v.get('$lte')
                     if _v is None:
                         _v = v
@@ -215,10 +222,13 @@ class ParsedInstance(models.Model):
 
     @classmethod
     def query_data(cls, xform, query=None, fields=None, sort=None, start=None,
-                   end=None, start_index=None, limit=DEFAULT_LIMIT,
-                   count=None):
-        if start_index is not None and (start_index < 0 or limit < 0):
+                   end=None, start_index=None, limit=None, count=None):
+        if start_index is not None and \
+                (start_index is not None and start_index < 0 or
+                 (limit is not None and limit < 0)):
             raise ValueError(_("Invalid start/limit params"))
+        if limit is not None and start_index is None:
+            start_index = 0
 
         instances = xform.instances.filter(deleted_at=None)
         if isinstance(start, datetime.datetime):
@@ -228,7 +238,11 @@ class ParsedInstance(models.Model):
         sort = ['id'] if sort is None else sort_from_mongo_sort_str(sort)
 
         sql_where = u""
-        where, where_params = cls._get_where_clause(query)
+        data_dictionary = xform.data_dictionary()
+        known_integers = [
+            get_name_from_survey_element(e)
+            for e in data_dictionary.get_survey_elements_of_type('integer')]
+        where, where_params = cls._get_where_clause(query, known_integers)
 
         if fields and isinstance(fields, six.string_types):
             fields = json.loads(fields)
@@ -250,8 +264,11 @@ class ParsedInstance(models.Model):
                 params = params + _json_order_by_params(sort)
 
             if start_index is not None:
-                sql += u" OFFSET %s LIMIT %s"
-                params += [start_index, limit]
+                sql += u" OFFSET %s"
+                params += [start_index]
+            if limit is not None:
+                sql += u" LIMIT %s"
+                params += [limit]
             records = ParsedInstance.query_iterator(sql, fields, params, count)
         else:
             if count:
@@ -274,14 +291,17 @@ class ParsedInstance(models.Model):
             if start_index is not None:
                 if ParsedInstance._has_json_fields(sort):
                     _sql, _params = sql, params
-                    params = _params + [start_index, limit]
+                    params = _params + [start_index]
                 else:
                     _sql, _params = records.query.sql_with_params()
-                    params = list(_params + (start_index, limit))
+                    params = list(_params + (start_index,))
                 # some inconsistent/weird behavior I noticed with django's
                 # queryset made me have to do a raw query
                 # records = records[start_index: limit]
-                sql = u"{} OFFSET %s LIMIT %s".format(_sql)
+                sql = u"{} OFFSET %s".format(_sql)
+                if limit is not None:
+                    sql = u"{} LIMIT %s".format(sql)
+                    params += [limit]
                 records = ParsedInstance.query_iterator(sql, None, params)
 
         return records

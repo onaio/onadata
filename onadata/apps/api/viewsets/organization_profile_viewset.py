@@ -12,7 +12,8 @@ from onadata.apps.api.tools import (get_organization_members,
                                     add_user_to_organization,
                                     remove_user_from_organization,
                                     get_organization_owners_team,
-                                    add_user_to_team)
+                                    add_user_to_team,
+                                    remove_user_from_team)
 from onadata.apps.api import permissions
 from onadata.libs.filters import OrganizationPermissionFilter
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
@@ -108,10 +109,22 @@ def _check_set_role(request, organization, username, required=False):
     else:
         _update_username_role(organization, username, role_cls)
 
+        owners_team = get_organization_owners_team(organization)
+
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            data = {'username': [_(u"User `%(username)s` does not exist."
+                                   % {'username': username})]}
+
+            return (status.HTTP_400_BAD_REQUEST, data)
+
         # add the owner to owners team
         if role == OwnerRole.name:
-            add_user_to_team(get_organization_owners_team(organization),
-                             User.objects.get(username=username))
+            add_user_to_team(owners_team, user)
+
+        if role != OwnerRole.name:
+            remove_user_from_team(owners_team, user)
 
         return (status.HTTP_200_OK, []) if request.method == 'PUT' \
             else (status.HTTP_201_CREATED, [])

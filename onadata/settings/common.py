@@ -233,9 +233,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.UnicodeJSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.JSONPRenderer',
-        'rest_framework.renderers.XMLRenderer',
         'rest_framework_csv.renderers.CSVRenderer',
     ),
 }
@@ -497,6 +495,8 @@ try:
         RESERVED_USERNAMES = [line.rstrip() for line in f]
 except EnvironmentError:
     RESERVED_USERNAMES = []
+
+STATIC_DOC = '/static/docs/index.html'
 
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/

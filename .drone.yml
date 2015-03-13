@@ -1,7 +1,6 @@
 image: bradrydzewski/python:onadata
 services:
     - onaio/postgis
-    - onaio/mongodb
 script:
     - source /home/ubuntu/virtualenv/python2.7/bin/activate
     - ./script/database/install_postgis onadata_test postgres 127.0.0.1
