@@ -93,6 +93,7 @@ class ProjectOwnerFilter(XFormOwnerFilter):
 
 
 class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
+    owner_prefix = 'organization'
 
     def filter_queryset(self, request, queryset, view):
         """
@@ -100,6 +101,7 @@ class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
         """
         user = request.user
         project_id = view.kwargs.get(view.lookup_field)
+        owner = request.QUERY_PARAMS.get('owner')
 
         if user.is_anonymous():
             return queryset.filter(Q(shared=True))
@@ -120,6 +122,13 @@ class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
 
             if project.shared:
                 return queryset.filter(Q(id=project_id))
+
+        if owner:
+            kwargs = {
+                self.owner_prefix + '__username': owner
+            }
+
+            return queryset.filter(**kwargs)
 
         return super(AnonUserProjectFilter, self)\
             .filter_queryset(request, queryset, view)
