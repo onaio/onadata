@@ -136,6 +136,10 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
 
         safe_delete('{}{}'.format(IS_ORG, xform.pk))
 
+        if xform.instances.exclude(geom=None).count() < 1:
+            xform.instances_with_geopoints = False
+            xform.save()
+
 
 class Instance(models.Model):
     json = JSONField(default={}, null=False)
