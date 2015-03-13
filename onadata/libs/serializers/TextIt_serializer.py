@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from onadata.libs.models.textit_service import TextitService
+from onadata.libs.models.textit_service import TextItService
 from onadata.libs.serializers.fields.xform_field import XFormField
 
 
@@ -18,4 +18,4 @@ class TextItSerializer(serializers.Serializer):
             instance.flow_uuid = attrs.get('flow_uuid', instance.flow_uuid)
             instance.contacts = attrs.get('contacts', instance.contacts)
 
-        return TextitService(**attrs)
+        return TextItService(**attrs)

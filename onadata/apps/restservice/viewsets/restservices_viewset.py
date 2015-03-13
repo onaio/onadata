@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from onadata.apps.api.permissions import MetaDataObjectPermissions
-from onadata.libs.models.textit_service import TextitService
-from onadata.libs.serializers.Textit_serializer import TextItSerializer
+from onadata.libs.models.textit_service import TextItService
+from onadata.libs.serializers.TextIt_serializer import TextItSerializer
 from onadata.apps.restservice.models import RestService
 from onadata.libs import filters
 from onadata.libs.serializers.restservices_serializer import \
@@ -40,12 +40,12 @@ class RestServicesViewSet(LastModifiedMixin, ModelViewSet):
 
             if data.get("service") == 'textit':
                 if data.get("remove"):
-                    instance = TextitService(xform=self.object.xform,
+                    instance = TextItService(xform=self.object.xform,
                                              remove=True)
                     instance.save()
                     return Response(status=status.HTTP_204_NO_CONTENT)
 
-                instance = TextitService(xform=self.object.xform)
+                instance = TextItService(xform=self.object.xform)
                 instance.retrieve()
                 serializer = TextItSerializer(instance=instance)
                 return Response(serializer.data)

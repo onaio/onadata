@@ -2,7 +2,7 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.settings.common import METADATA_SEPARATOR
 
 
-class TextitService(object):
+class TextItService(object):
 
     def __init__(self, xform, auth_token=None, flow_uuid=None, contacts=None,
                  remove=False):

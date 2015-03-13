@@ -1,13 +1,15 @@
 import httplib2
 import json
+from six import string_types
 
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 from onadata.apps.main.models import MetaData
 from onadata.settings.common import METADATA_SEPARATOR
+from onadata.libs.utils.common_tags import TEXTIT
 
 
 class ServiceDefinition(RestServiceInterface):
-    id = u'textit'
+    id = TEXTIT
     verbose_name = u'TextIt POST'
 
     def send(self, url, parsed_instance):
@@ -44,17 +46,18 @@ class ServiceDefinition(RestServiceInterface):
         for key in record:
             value = record[key]
             # Ensure both key and value are string
-            if not isinstance(value, basestring):
+            if not isinstance(value, string_types):
                 record[key] = str(value)
 
             if '/' in key:
                 # replace with _
                 record[key.replace('/', '_')]\
                     = record.pop(key)
-            # Check if the value is a list containing nested dict and apply same
-            if value:
-                if isinstance(value, list) and isinstance(value[0], dict):
-                    for v in value:
-                        self.clean_keys_of_slashes(v)
+            # Check if the value is a list containing nested dict and apply
+            # same
+            if value and isinstance(value, list)\
+                    and isinstance(value[0], dict):
+                for v in value:
+                    self.clean_keys_of_slashes(v)
 
         return record

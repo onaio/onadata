@@ -104,72 +104,64 @@ Delete a Rest Service
 
 	<pre class="prettyprint">DELETE /api/v1/restservices/<code>{pk}</code></pre>
 
-Textit Rest Service
--------------------
+Webhook
+-------
+Utility action for the different services.
 
-This action adds, retrieves and delete metadata associated with the textit rest service.
-
-Adding:
-^^^^^^^^
+Adding TextIt:
+^^^^^^^^^^^^^
 .. raw:: html
 
-	<pre class="prettyprint">POST /api/v1/restservices/<code>{pk}</code>/textit</pre>
+	<pre class="prettyprint">POST /api/v1/restservices/<code>{pk}</code>/webhook</pre>
 
 *Payload*
 ::
 
 	       {"auth_token": <auth_token>, "flow_uuid": "<flow_uuid>",
-	       "contacts": "<contacts>"}
+	       "contacts": "<contacts>", "service": "textit"}
 
 Where:
 
+- ``service`` - Service which is being configured.
 - ``auth_token`` - The authentication token for the rest service.
 - ``flow_uuid`` - The flow uuid in textit.
 - ``contacts`` - The contact used in the flow.
 ::
 
-        curl -X POST -d "{"auth_token": "abffbbb8f16f7a1bc75f141b5aa538sasdsd", "flow_uuid":"cf7d7891-a01b-4ca9-99d2-weqqrwqd", "contacts": "52d4ff71-4d4e-464c-bksadfsdiwew""}" https://ona.io/api/v1/restservices/236/textit -H "Content-Type: appliction/json"
+        curl -X POST -d "{"auth_token": "abffbbb8f16f7a1bc75f141b5aa538sasdsd", "flow_uuid":"cf7d7891-a01b-4ca9-99d2-weqqrwqd", "contacts": "52d4ff71-4d4e-464c-bksadfsdiwew", "service": "textit"}" https://ona.io/api/v1/restservices/236/textit -H "Content-Type: appliction/json"
 
 ::
 
         HTTP 201 CREATED
 
         {
-            id: 39627,
             xform: 9929,
-            data_value: "abffbbb8f16f7a1bc75f141b5aa538sasdsd|cf7d7891-a01b-4ca9-99d2-weqqrwqd|52d4ff71-4d4e-464c-bksadfsdiwew",
-            data_type: "textit",
-            data_file: "",
-            data_file_type: null,
-            url: "https://ona.io/api/v1/metadata/39627",
-            file_hash: null
+            auth_token: "abffbbb8f16f7a1bc75f141b5asdsadafc6d2d7d2b",
+            flow_uuid: "cf7d7891-a01b-4ca9-9adssd-7baf5f77c741",
+            contacts: "52d4ff71-4d4e-464c-asda-f0c04cc9e66d"
         }
 
-Retrieving:
-^^^^^^^^^^
+Retrieving TextIt:
+^^^^^^^^^^^^^^^^^
 
 ::
 
-        curl -X GET https://ona.io/api/v1/restservices/236/textit
+        curl -X GET https://ona.io/api/v1/restservices/236/webhook?service=textit
 
 ::
 
         HTTP 200 OK
 
         {
-            id: 39627,
             xform: 9929,
-            data_value: "abffbbb8f16f7a1bc75f141b5aa538sasdsd|cf7d7891-a01b-4ca9-99d2-weqqrwqd|52d4ff71-4d4e-464c-bksadfsdiwew",
-            data_type: "textit",
-            data_file: "",
-            data_file_type: null,
-            url: "https://ona.io/api/v1/metadata/39627",
-            file_hash: null
+            auth_token: "abffbbb8f16f7a1bc75f141b5asdsadafc6d2d7d2b",
+            flow_uuid: "cf7d7891-a01b-4ca9-9adssd-7baf5f77c741",
+            contacts: "52d4ff71-4d4e-464c-asda-f0c04cc9e66d"
         }
 
-Deleting
-^^^^^^^^
+Deleting TextIt
+^^^^^^^^^^^^^^^
 
 ::
 
-    curl -X DELETE https://ona.io/api/v1/restservices/236/textit
+    curl -X GET https://ona.io/api/v1/restservices/236/webhook?service=textit&remove=true
