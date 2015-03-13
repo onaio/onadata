@@ -162,8 +162,9 @@ def dict_to_joined_export(data, index, indices, name):
                 if key in [TAGS]:
                     output[name][key] = ",".join(val)
                 elif key in [NOTES]:
-                    output[name][key] = "\r\n".join(
-                        [v['note'] for v in val])
+                    note_list = [v if isinstance(v, six.string_types)
+                                 else v['note'] for v in val]
+                    output[name][key] = "\r\n".join(note_list)
                 else:
                     output[name][key] = val
 
