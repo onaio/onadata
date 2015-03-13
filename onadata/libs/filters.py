@@ -72,7 +72,7 @@ class XFormOwnerFilter(filters.BaseFilterBackend):
 
         if owner:
             kwargs = {
-                self.owner_prefix + '__username': owner
+                self.owner_prefix + '__username__iexact': owner
             }
 
             return queryset.filter(**kwargs)

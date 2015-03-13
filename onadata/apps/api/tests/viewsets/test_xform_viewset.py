@@ -371,6 +371,16 @@ class TestXFormViewSet(TestAbstractViewSet):
             response.data[0]['metadata'].sort()
             self.assertEqual(response.data, [bobs_form_data])
 
+            # apply filter, see only bob's forms, case insensitive
+            request = self.factory.get(
+                '/', data={'owner': 'BoB'}, **self.extra)
+            response = self.view(request)
+            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.status_code, 200)
+            bobs_form_data['metadata'].sort()
+            response.data[0]['metadata'].sort()
+            self.assertEqual(response.data, [bobs_form_data])
+
             # apply filter, see only alice's forms
             request = self.factory.get(
                 '/', data={'owner': 'alice'}, **self.extra)

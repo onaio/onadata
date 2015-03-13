@@ -168,7 +168,7 @@ def _generate_new_export(request, xform, query, export_type):
 
 
 def _get_user(username):
-    users = User.objects.filter(username=username)
+    users = User.objects.filter(username__iexact=username)
 
     return users.count() and users[0] or None
 
