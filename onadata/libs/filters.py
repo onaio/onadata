@@ -125,7 +125,7 @@ class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
 
         if owner:
             kwargs = {
-                self.owner_prefix + '__username': owner
+                self.owner_prefix + '__username__iexact': owner
             }
 
             return queryset.filter(**kwargs)
@@ -212,7 +212,7 @@ class TeamOrgFilter(filters.BaseFilterBackend):
         # Get all the teams for the organization
         if org:
             kwargs = {
-                'organization__username': org
+                'organization__username__iexact': org
             }
 
             return Team.objects.filter(**kwargs)
