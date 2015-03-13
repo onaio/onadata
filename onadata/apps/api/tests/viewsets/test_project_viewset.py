@@ -514,6 +514,16 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
+        # authenticated user can view public project
+        joe_data = {'username': 'joe', 'email': 'joe@localhost.com'}
+        self._login_user_and_profile(joe_data)
+
+        request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(updated_project_data, response.data)
+        self.assertIn(self.project_data, response.data)
+
     def test_project_partial_updates(self):
         self._project_create()
         view = ProjectViewSet.as_view({
