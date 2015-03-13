@@ -225,7 +225,8 @@ class TestProjectViewSet(TestAbstractViewSet):
             'data_file': u'',
             'data_file_type': None,
             u'url': u'http://testserver/api/v1/metadata/%s' % preview_url.pk,
-            'file_hash': None
+            'file_hash': None,
+            'media_url': None
         }, {
             'id': url.pk,
             'data_value': u'https://dmfrm.enketo.org/webform',
@@ -234,7 +235,8 @@ class TestProjectViewSet(TestAbstractViewSet):
             'data_type': u'enketo_url',
             u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
             'data_file_type': None,
-            'file_hash': None
+            'file_hash': None,
+            'media_url': None
         }]
 
         self.form_data['metadata'].sort()

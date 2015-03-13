@@ -74,6 +74,34 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'image/png')
 
+    def test_get_metadata(self):
+        self.fixture_dir = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "instances", "transport_2011-07-25_19-05-49"
+        )
+        self.data_value = '1335783522563.jpg'
+        self.path = os.path.join(self.fixture_dir, self.data_value)
+
+        self._add_form_metadata(
+            self.xform, "media", self.data_value, self.path)
+        data = {
+            'id': self.metadata.pk,
+            'xform': self.xform.pk,
+            'data_value': u'1335783522563.jpg',
+            'data_type': u'media',
+            'data_file':
+            u'%s/formid-media/1335783522563.jpg' % self.user.username,
+            'data_file_type': u'image/jpeg',
+            'media_url': u'http://localhost:8000/media/%s/formid-media/'
+            '1335783522563.jpg' % self.user.username,
+            'file_hash': u'md5:2ca0d22073a9b6b4ebe51368b08da60c',
+            'url': 'http://testserver/api/v1/metadata/%s' % self.metadata.pk
+        }
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=self.metadata.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.data, data)
+
     def test_add_mapbox_layer(self):
         data_type = 'mapbox_layer'
         data_value = 'test_mapbox_layer||http://0.0.0.0:8080||attribution'
