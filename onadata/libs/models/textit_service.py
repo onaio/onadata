@@ -1,16 +1,22 @@
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.settings.common import METADATA_SEPARATOR
+from onadata.apps.restservice.models import RestService
+from django.conf import settings
+
+METADATA_SEPARATOR = settings.METADATA_SEPARATOR
 
 
 class TextItService(object):
 
-    def __init__(self, xform, auth_token=None, flow_uuid=None, contacts=None,
+    def __init__(self, xform, service_url=None, name=None, auth_token=None,
+                 flow_uuid=None, contacts=None,
                  remove=False):
         self.xform = xform
         self.auth_token = auth_token
         self.flow_uuid = flow_uuid
         self.contacts = contacts
         self.remove = remove
+        self.name = name
+        self.service_url = service_url
 
     def save(self, **kwargs):
 
@@ -18,6 +24,10 @@ class TextItService(object):
             meta = MetaData.textit(self.xform)
             meta.delete()
         else:
+            RestService.objects.get_or_create(
+                name=self.name,
+                service_url=self.service_url,
+                xform=self.xform)
             data_value = '{}|{}|{}'.format(self.auth_token,
                                            self.flow_uuid,
                                            self.contacts)

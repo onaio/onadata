@@ -26,7 +26,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         count = RestService.objects.all().count()
 
         post_data = {
-            "name": "textit",
+            "name": "generic_json",
             "service_url": "https://textit.io",
             "xform": self.xform.pk
         }
@@ -34,7 +34,38 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         response = self.view(request)
 
         self.assertEquals(response.status_code, 201)
-        self.assertEquals(count+1, RestService.objects.all().count())
+        self.assertEquals(count + 1, RestService.objects.all().count())
+
+    def test_textit_service_missing_params(self):
+        post_data = {
+            "name": "textit",
+            "service_url": "https://textit.io",
+            "xform": self.xform.pk,
+        }
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = self.view(request)
+
+        self.assertEquals(response.status_code, 400)
+
+    def test_textit_service(self):
+        count = RestService.objects.all().count()
+
+        post_data = {
+            "name": "textit",
+            "service_url": "https://textit.io",
+            "xform": self.xform.pk,
+            "auth_token": "sadsdfhsdf",
+            "flow_uuid": "sdfskhfskdjhfs",
+            "contacts": "ksadaskjdajsda"
+        }
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = self.view(request)
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(count + 1, RestService.objects.all().count())
+
+        meta = MetaData.objects.filter(xform=self.xform, data_type='textit')
+        self.assertEquals(len(meta), 1)
 
     def test_update(self):
         rest = RestService(name="testservice",

@@ -5,12 +5,13 @@ from rest_framework import status
 
 from onadata.apps.api.permissions import MetaDataObjectPermissions
 from onadata.libs.models.textit_service import TextItService
-from onadata.libs.serializers.TextIt_serializer import TextItSerializer
+from onadata.libs.serializers.textit_serializer import TextItSerializer
 from onadata.apps.restservice.models import RestService
 from onadata.libs import filters
 from onadata.libs.serializers.restservices_serializer import \
     RestServiceSerializer
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.utils.common_tags import TEXTIT
 
 
 class RestServicesViewSet(LastModifiedMixin, ModelViewSet):
@@ -21,6 +22,14 @@ class RestServicesViewSet(LastModifiedMixin, ModelViewSet):
     serializer_class = RestServiceSerializer
     permission_classes = [MetaDataObjectPermissions, ]
     filter_backends = (filters.MetaDataFilter, )
+
+    def get_serializer_class(self):
+        name = self.request.DATA.get('name')
+
+        if name == TEXTIT:
+            return TextItSerializer
+
+        return super(RestServicesViewSet, self).get_serializer_class()
 
     @detail_route(methods=['POST', 'GET'])
     def webhook(self, request, *args, **kwargs):
