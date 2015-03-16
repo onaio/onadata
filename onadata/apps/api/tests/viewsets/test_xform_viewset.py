@@ -167,6 +167,29 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             self.assertFalse(response.data.get('instances_with_geopoints'))
 
+    def test_num_of_submission_is_correct(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+            formid = self.xform.pk
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=formid)
+            num_of_submissions = response.data.get('num_of_submissions')
+            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.status_code, 200)
+
+            self.xform.num_of_submissions = num_of_submissions - 1
+            self.xform.save()
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=formid)
+            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data.get('num_of_submissions'),
+                             num_of_submissions)
+
     def test_form_list(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
