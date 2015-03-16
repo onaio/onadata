@@ -96,7 +96,10 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         post_data = {
             "name": "textit",
             "service_url": "https://textit.io",
-            "xform": self.xform.pk
+            "xform": self.xform.pk,
+            "auth_token": "sadsdfhsdf",
+            "flow_uuid": "sdfskhfskdjhfs",
+            "contacts": "ksadaskjdajsda"
         }
 
         request = self.factory.put('/', data=post_data, **self.extra)
@@ -138,51 +141,6 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.data, data)
 
-    def test_textit_webhook(self):
-        self.view = RestServicesViewSet.as_view({
-            'get': 'webhook',
-            'post': 'webhook',
-        })
-
-        rest = RestService(name="testservice",
-                           service_url="http://serviec.io",
-                           xform=self.xform)
-        rest.save()
-
-        post_data = {
-            "service": "textit",
-            "auth_token": "sadsdfhsdf",
-            "flow_uuid": "sdfskhfskdjhfs",
-            "contacts": "ksadaskjdajsda"
-        }
-        request = self.factory.post('/', data=post_data, **self.extra)
-        response = self.view(request, pk=rest.pk)
-
-        self.assertEquals(response.status_code, 201)
-
-        meta = MetaData.objects.filter(xform=self.xform, data_type='textit')
-        self.assertEquals(len(meta), 1)
-
-        request = self.factory.get('/',
-                                   data={"service": "textit"},
-                                   **self.extra)
-        response = self.view(request, pk=rest.pk)
-
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data['xform'], self.xform.pk)
-        self.assertEquals(response.data['auth_token'], "sadsdfhsdf")
-        self.assertEquals(response.data['flow_uuid'], "sdfskhfskdjhfs")
-        self.assertEquals(response.data['contacts'], "ksadaskjdajsda")
-
-        data = {"service": "textit", "remove": 'true'}
-
-        request = self.factory.get('/', data=data, **self.extra)
-        response = self.view(request, pk=rest.pk)
-
-        self.assertEquals(response.status_code, 204)
-        meta = MetaData.objects.filter(xform=self.xform, data_type='textit')
-        self.assertEquals(len(meta), 0)
-
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('httplib2.Http')
     def test_textit_flow(self, mock_http):
@@ -201,26 +159,3 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         self.assertTrue(mock_http.called)
         self.assertEquals(mock_http.call_count, 4)
-
-    def test_textit_webhook_unsupported(self):
-        self.view = RestServicesViewSet.as_view({
-            'post': 'webhook',
-        })
-
-        rest = RestService(name="testservice",
-                           service_url="http://serviec.io",
-                           xform=self.xform)
-        rest.save()
-
-        post_data = {
-            "service": "unsupported",
-            "auth_token": "sadsdfhsdf",
-            "flow_uuid": "sdfskhfskdjhfs",
-            "contacts": "ksadaskjdajsda"
-        }
-        request = self.factory.post('/', data=post_data, **self.extra)
-        response = self.view(request, pk=rest.pk)
-
-        self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.data,
-                          {"error": u"Service not yet supported"})

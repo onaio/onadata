@@ -9,31 +9,31 @@ class TextItService(object):
 
     def __init__(self, xform, service_url=None, name=None, auth_token=None,
                  flow_uuid=None, contacts=None,
-                 remove=False):
+                 pk=None):
+        self.pk = pk
         self.xform = xform
         self.auth_token = auth_token
         self.flow_uuid = flow_uuid
         self.contacts = contacts
-        self.remove = remove
         self.name = name
         self.service_url = service_url
 
     def save(self, **kwargs):
 
-        if self.remove:
-            meta = MetaData.textit(self.xform)
-            meta.delete()
-        else:
-            rs, created = RestService.objects.get_or_create(
-                name=self.name,
-                service_url=self.service_url,
-                xform=self.xform)
-            data_value = '{}|{}|{}'.format(self.auth_token,
-                                           self.flow_uuid,
-                                           self.contacts)
+        rs = RestService() if not self.pk else \
+            RestService.objects.get(pk=self.pk)
 
-            MetaData.textit(self.xform, data_value=data_value)
-            self.pk = rs.pk
+        rs.name = self.name
+        rs.service_url = self.service_url
+        rs.xform = self.xform
+        rs.save()
+
+        data_value = '{}|{}|{}'.format(self.auth_token,
+                                       self.flow_uuid,
+                                       self.contacts)
+
+        MetaData.textit(self.xform, data_value=data_value)
+        self.pk = rs.pk
 
     def retrieve(self):
         meta = MetaData.textit(self.xform)
