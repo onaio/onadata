@@ -5,6 +5,7 @@ from onadata.libs.serializers.fields.xform_field import XFormField
 
 
 class TextItSerializer(serializers.Serializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     xform = XFormField()
     auth_token = serializers.CharField(max_length=255, required=True)
     flow_uuid = serializers.CharField(max_length=255, required=True)

@@ -24,7 +24,7 @@ class TextItService(object):
             meta = MetaData.textit(self.xform)
             meta.delete()
         else:
-            RestService.objects.get_or_create(
+            rs, created = RestService.objects.get_or_create(
                 name=self.name,
                 service_url=self.service_url,
                 xform=self.xform)
@@ -33,6 +33,7 @@ class TextItService(object):
                                            self.contacts)
 
             MetaData.textit(self.xform, data_value=data_value)
+            self.pk = rs.pk
 
     def retrieve(self):
         meta = MetaData.textit(self.xform)
