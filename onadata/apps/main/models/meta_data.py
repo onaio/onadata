@@ -15,6 +15,7 @@ from hashlib import md5
 from onadata.apps.logger.models import XForm
 
 from onadata.libs.utils.cache_tools import (safe_delete, XFORM_METADATA_CACHE)
+from onadata.libs.utils.common_tags import TEXTIT
 
 CHUNK_SIZE = 1024
 
@@ -292,7 +293,7 @@ class MetaData(models.Model):
     @staticmethod
     def textit(xform, data_value=None):
         """Add a textit auth token flow uuid and default contact uuid"""
-        data_type = 'textit'
+        data_type = TEXTIT
         return unique_type_for_form(xform, data_type, data_value)
 
 
