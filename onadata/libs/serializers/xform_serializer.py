@@ -57,8 +57,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_num_of_submissions(self, obj):
         if obj.num_of_submissions != obj.instances.count():
-            obj.num_of_submissions = obj.instances.count()
-            obj.save()
+            obj.submission_count(force_update=True)
 
         return obj.num_of_submissions
 
