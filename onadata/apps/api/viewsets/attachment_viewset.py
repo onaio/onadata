@@ -61,4 +61,10 @@ class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
                 if not xform.shared_data:
                     raise Http404(_("Not Found"))
 
+        self.object_list = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(self.object_list)
+        if page is not None:
+            serializer = self.get_pagination_serializer(page)
+            return Response(serializer.data.get('results'))
+
         return super(AttachmentViewSet, self).list(request, *args, **kwargs)
