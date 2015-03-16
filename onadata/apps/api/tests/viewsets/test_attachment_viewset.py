@@ -58,6 +58,59 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         response = self.retrieve_view(request, pk=pk)
         self.assertEqual(response.status_code, 404)
 
+    def test_attachment_pagination(self):
+        self._submit_transport_instance_w_attachment()
+        self._submit_transport_instance_w_attachment(
+            media_file="1335783522564.JPG")
+
+        # not using pagination params
+        request = self.factory.get('/', **self.extra)
+        response = self.list_view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+        self.assertEqual(len(response.data), 2)
+
+        # valid page and page_size
+        request = self.factory.get(
+            '/', data={"page": 1, "page_size": 1}, **self.extra)
+        response = self.list_view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+        self.assertEqual(len(response.data), 1)
+
+        # invalid page type
+        request = self.factory.get('/', data={"page": "invalid"}, **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+        self.assertEqual(len(response.data), 2)
+
+        # invalid page size type
+        request = self.factory.get('/', data={"page_size": "invalid"},
+                                   **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+        self.assertEqual(len(response.data), 2)
+
+        # invalid page and page_size types
+        request = self.factory.get(
+            '/', data={"page": "invalid", "page_size": "invalid"},
+            **self.extra)
+        response = self.list_view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(isinstance(response.data, list))
+        self.assertEqual(len(response.data), 2)
+
+        # invalid page size
+        request = self.factory.get(
+            '/', data={"page": 4, "page_size": 1}, **self.extra)
+        response = self.list_view(request)
+        self.assertEqual(response.status_code, 404)
+
     def test_retrieve_and_list_views_with_anonymous_user(self):
         """Retrieve metadata of a public form"""
         # anon user private form access not allowed

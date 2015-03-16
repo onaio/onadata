@@ -3,7 +3,7 @@ from django.utils.translation import ugettext as _
 from rest_framework import renderers
 from rest_framework import viewsets
 from rest_framework.response import Response
-
+from rest_framework.pagination import BasePaginationSerializer
 
 from onadata.apps.api.permissions import AttachmentObjectPermissions
 from onadata.apps.logger.models.attachment import Attachment
@@ -25,6 +25,9 @@ class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Attachment.objects.all()
     permission_classes = (AttachmentObjectPermissions,)
     serializer_class = AttachmentSerializer
+    pagination_class = BasePaginationSerializer
+    paginate_by_param = 'page_size'
+    page_kwarg = 'page'
     renderer_classes = (
         renderers.JSONRenderer,
         renderers.BrowsableAPIRenderer,
@@ -57,5 +60,11 @@ class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
                 xform = XForm.objects.get(id=xform)
                 if not xform.shared_data:
                     raise Http404(_("Not Found"))
+
+        self.object_list = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(self.object_list)
+        if page is not None:
+            serializer = self.get_pagination_serializer(page)
+            return Response(serializer.data.get('results'))
 
         return super(AttachmentViewSet, self).list(request, *args, **kwargs)

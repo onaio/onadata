@@ -34,6 +34,16 @@ Response
         ...
     ]
 
+Paginate attachment
+-------------------------------------------
+Returns a list of attachments using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
+
+Example
+^^^^^^^^
+::
+  
+      curl -X GET https://ona.io/api/v1/media.json?page=1&page_size=4
+
 Retrieve details of an attachment
 ---------------------------------
 .. raw:: html
