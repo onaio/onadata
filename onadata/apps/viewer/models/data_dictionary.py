@@ -15,7 +15,7 @@ from pyxform.question import Question
 from pyxform.section import RepeatingSection
 from pyxform.utils import has_external_choices
 from pyxform.xform2json import create_survey_element_from_xml
-from pyxform.xls2json import SurveyReader
+from pyxform.xls2json import parse_file_to_json
 from xml.dom import Node
 
 from onadata.apps.logger.models.xform import XForm
@@ -208,9 +208,10 @@ class DataDictionary(XForm):
 
     def save(self, *args, **kwargs):
         if self.xls:
-            # check if version is set
-            excel_reader = SurveyReader(self.xls)
-            survey_dict = excel_reader.to_json_dict()
+            default_name = None \
+                if not self.pk else self.survey.xml_instance().tagName
+            survey_dict = parse_file_to_json(
+                self.xls.name, default_name=default_name, file_object=self.xls)
             if has_external_choices(survey_dict):
                 self.survey_dict = survey_dict
                 self.has_external_choices = True

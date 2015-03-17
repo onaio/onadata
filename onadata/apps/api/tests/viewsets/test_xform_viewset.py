@@ -1416,6 +1416,29 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                 self.assertEqual(response.data.get(
                     'text'), expected_response)
 
+    def test_update_xform_xls_file_with_different_model_name(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            self.assertIsNotNone(self.xform.version)
+            form_id = self.xform.pk
+
+            view = XFormViewSet.as_view({
+                'patch': 'partial_update',
+            })
+
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation_updated.xls")
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.patch('/', data=post_data, **self.extra)
+                response = view(request, pk=form_id)
+                self.assertEqual(response.status_code, 200)
+                dd = XForm.objects.get(pk=form_id).data_dictionary()
+                self.assertEqual('transportation',
+                                 dd.survey.xml_instance().tagName)
+
     def test_id_strings_should_be_unique_in_each_account(self):
         with HTTMock(enketo_mock):
             project_count = Project.objects.count()
