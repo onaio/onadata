@@ -114,3 +114,18 @@ class ProjectViewSet(LastModifiedMixin, LabelsMixin, ModelViewSet):
             return Response(serializer.data)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def list(self, request, *args, **kwargs):
+
+        owner = request.QUERY_PARAMS.get('owner')
+
+        if owner:
+            kwargs = {'organization__username__iexact': owner}
+            self.object_list = self.filter_queryset(self.get_queryset()) | \
+                Project.objects.filter(shared=True, **kwargs)
+        else:
+            self.object_list = self.filter_queryset(self.get_queryset())
+
+        serializer = self.get_serializer(self.object_list, many=True)
+
+        return Response(serializer.data)
