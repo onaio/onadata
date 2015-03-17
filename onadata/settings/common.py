@@ -487,6 +487,7 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
 CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
 CSV_ROW_IMPORT_ASYNC_THRESHOLD = 100
 SEND_EMAIL_ACTIVATION_API = False
+METADATA_SEPARATOR = "|"
 
 path = os.path.join(
     PROJECT_ROOT, "settings", "reserved_accounts.txt")

@@ -62,3 +62,5 @@ MAX = u"max"
 RANGE = u"range"
 MEDIAN = u"median"
 MODE = u"mode"
+
+TEXTIT = u'textit'

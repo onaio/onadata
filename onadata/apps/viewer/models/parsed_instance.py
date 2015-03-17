@@ -13,7 +13,7 @@ from django.utils.translation import ugettext as _
 from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.instance import _get_attachments_from_instance
 from onadata.apps.logger.models.instance import Instance
-from onadata.apps.restservice.utils import call_service
+from onadata.apps.restservice.task import call_service_async
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
     NOTES, SUBMITTED_BY, VERSION, DURATION
@@ -419,8 +419,9 @@ class ParsedInstance(models.Model):
 def rest_service_form_submission(sender, **kwargs):
     parsed_instance = kwargs.get('instance')
     created = kwargs.get('created')
+
     if created:
-        call_service(parsed_instance)
+        call_service_async.delay(parsed_instance.pk)
 
 
 post_save.connect(rest_service_form_submission, sender=ParsedInstance)

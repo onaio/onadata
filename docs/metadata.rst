@@ -12,12 +12,12 @@ layers.
 Permissions
 -----------
 
-This endpoint applys the same permissions someone has on the form.
+This endpoint applies the same permissions someone has on the form.
 
 Get list of metadata
 --------------------
 
-Returns a list of metadata accross all forms requesting user has access to.
+Returns a list of metadata across all forms requesting user has access to.
 
 .. raw:: html
 

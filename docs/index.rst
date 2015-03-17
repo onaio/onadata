@@ -30,6 +30,7 @@ Forms
    metadata
    projects
    submissions
+   restservices
 
 Users and Organizations
 -----------------------
