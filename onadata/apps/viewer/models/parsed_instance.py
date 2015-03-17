@@ -124,6 +124,17 @@ def _json_order_by_params(sort_list):
     return params
 
 
+def _json_sql_str(key, known_integers=[], known_dates=[]):
+    _json_str = u"json->%s"
+
+    if key in known_integers:
+        _json_str = u"CAST(json->>%s AS INT)"
+    elif key in known_dates:
+        _json_str = u"CAST(json->>%s AS DATE)"
+
+    return _json_str
+
+
 def get_name_from_survey_element(element):
     return element.get_abbreviated_xpath()
 
@@ -173,6 +184,7 @@ class ParsedInstance(models.Model):
     @classmethod
     def _get_where_clause(cls, query, form_integer_fields=[]):
         known_integers = ['_id'] + form_integer_fields
+        known_dates = ['_submission_time']
         where = []
         where_params = []
         if query and isinstance(query, six.string_types):
@@ -193,8 +205,7 @@ class ParsedInstance(models.Model):
             # where = [u"json->>%s = %s" for i in query.items()] + or_where
             for k, v in query.items():
                 if isinstance(v, dict):
-                    json_str = u"CAST(json->>%s AS INT)" \
-                        if k in known_integers else u"json->%s"
+                    json_str = _json_sql_str(k, known_integers, known_dates)
                     _v = None
                     if '$gt' in v:
                         where.append(u"{} > %s".format(json_str))
@@ -210,6 +221,9 @@ class ParsedInstance(models.Model):
                         _v = v.get('$lte')
                     if _v is None:
                         _v = v
+                    if k in known_dates:
+                        _v = datetime.datetime.strptime(
+                            _v[:19], MONGO_STRFTIME)
                     where_params.extend((k, unicode(_v)))
                 else:
                     where.append(u"json->>%s = %s")
