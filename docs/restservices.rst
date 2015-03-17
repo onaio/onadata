@@ -1,5 +1,5 @@
 RestServices
-****
+************
 
 This endpoint enable one to setup a rest service for a form.
 
@@ -35,6 +35,7 @@ Returns a list of rest services across all forms requesting user has access to.
         },
         ...
     ]
+
 Get a specific Rest Service
 ---------------------------
 .. raw:: html
@@ -55,7 +56,8 @@ Get a specific Rest Service
             xform: 9929,
             name: "textit",
             service_url: "https://textit.in/api/v1/runs.json"
-     },
+     }
+
 Add a Rest Service to a form
 ----------------------------
 .. raw:: html
@@ -97,9 +99,10 @@ Example:
             xform: 9929,
             name: "textit",
             service_url: "https://textit.in/api/v1/runs.json"
-        },
+        }
+
 Delete a Rest Service
-^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 .. raw:: html
 
 	<pre class="prettyprint">DELETE /api/v1/restservices/<code>{pk}</code></pre>
@@ -109,7 +112,7 @@ Webhook
 Utility action for the different services.
 
 Adding TextIt:
-^^^^^^^^^^^^^
+^^^^^^^^^^^^^^
 .. raw:: html
 
 	<pre class="prettyprint">POST /api/v1/restservices/<code>{pk}</code>/webhook</pre>
@@ -126,6 +129,7 @@ Where:
 - ``auth_token`` - The authentication token for the rest service.
 - ``flow_uuid`` - The flow uuid in textit.
 - ``contacts`` - The contact used in the flow.
+
 ::
 
         curl -X POST -d "{"auth_token": "abffbbb8f16f7a1bc75f141b5aa538sasdsd", "flow_uuid":"cf7d7891-a01b-4ca9-99d2-weqqrwqd", "contacts": "52d4ff71-4d4e-464c-bksadfsdiwew", "service": "textit"}" https://ona.io/api/v1/restservices/236/textit -H "Content-Type: appliction/json"
@@ -142,7 +146,7 @@ Where:
         }
 
 Retrieving TextIt:
-^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 
 ::
 
