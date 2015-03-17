@@ -520,10 +520,23 @@ class TestProjectViewSet(TestAbstractViewSet):
         joe_data = {'username': 'joe', 'email': 'joe@localhost.com'}
         self._login_user_and_profile(joe_data)
 
+        # should not show private projects when filtered by owner
         request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertNotIn(updated_project_data, response.data)
+        self.assertNotIn(self.project_data, response.data)
+
+        # should show public project when filtered by owner
+        self.project.shared = True
+        self.project.save()
+        request.user = self.user
+        self.project_data = ProjectSerializer(
+            self.project, context={'request': request}).data
+
+        request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
         self.assertIn(self.project_data, response.data)
 
     def test_project_partial_updates(self):
