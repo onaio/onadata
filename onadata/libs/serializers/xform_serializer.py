@@ -56,7 +56,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                    'shared', 'shared_data', 'deleted_at')
 
     def get_num_of_submissions(self, obj):
-        if obj.num_of_submissions != obj.instances.count():
+        if obj.num_of_submissions != obj.instances.filter(
+                deleted_at__isnull=True).count():
             obj.submission_count(force_update=True)
 
         return obj.num_of_submissions
