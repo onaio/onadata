@@ -855,6 +855,20 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                 self.assertTrue(OwnerRole.user_has_role(self.user, metadata))
                 self.assertEquals("owner", response.data['users'][0]['role'])
 
+    def test_publish_csv_with_universal_newline_xlsform(self):
+        with HTTMock(enketo_mock):
+            view = XFormViewSet.as_view({
+                'post': 'create'
+            })
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "api", "tests", "fixtures",
+                "universal_newline.csv")
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.post('/', data=post_data, **self.extra)
+                response = view(request)
+                self.assertEqual(response.status_code, 201)
+
     def test_publish_xlsform_anon(self):
         view = XFormViewSet.as_view({
             'post': 'create'

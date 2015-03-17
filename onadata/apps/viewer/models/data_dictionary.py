@@ -210,8 +210,23 @@ class DataDictionary(XForm):
         if self.xls:
             default_name = None \
                 if not self.pk else self.survey.xml_instance().tagName
-            survey_dict = parse_file_to_json(
-                self.xls.name, default_name=default_name, file_object=self.xls)
+            try:
+                survey_dict = parse_file_to_json(
+                    self.xls.name, default_name=default_name,
+                    file_object=self.xls)
+            except csv.Error as e:
+                newline_error = u'new-line character seen in unquoted field '\
+                    u'- do you need to open the file in universal-newline '\
+                    u'mode?'
+                if newline_error == unicode(e):
+                    self.xls.seek(0)
+                    file_obj = StringIO(
+                        u'\n'.join(self.xls.read().splitlines()))
+                    survey_dict = parse_file_to_json(
+                        self.xls.name, default_name=default_name,
+                        file_object=file_obj)
+                else:
+                    raise e
             if has_external_choices(survey_dict):
                 self.survey_dict = survey_dict
                 self.has_external_choices = True
