@@ -16,6 +16,7 @@ from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Attachment
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs import permissions as role
+from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from httmock import urlmatch, HTTMock
 
 
@@ -365,7 +366,8 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
-        dataid = self.xform.instances.all()[0].pk
+        instance = self.xform.instances.all()[0]
+        dataid = instance.pk
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
@@ -375,6 +377,13 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+
+        submission_time = instance.date_created.strftime(MONGO_STRFTIME)
+        query_str = '{"_submission_time": {"$gte": "%s"}}' % submission_time
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
 
         query_str = '{"_id: "%s"}' % dataid
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
