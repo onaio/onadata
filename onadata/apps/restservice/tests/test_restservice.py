@@ -199,3 +199,15 @@ class RestServiceTest(TestBase):
         self._make_submission(xml_submission)
         self.assertTrue(mock_http.called)
         self.assertEquals(mock_http.call_count, 1)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('httplib2.Http')
+    def test_rest_service_not_set(self, mock_http):
+        xml_submission = os.path.join(self.this_directory,
+                                      u'fixtures',
+                                      u'dhisform_submission1.xml')
+
+        self.assertFalse(mock_http.called)
+        self._make_submission(xml_submission)
+        self.assertFalse(mock_http.called)
+        self.assertEquals(mock_http.call_count, 0)
