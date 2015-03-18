@@ -665,8 +665,10 @@ def form_upload(request, username):
 def ziggy_submissions(request, username):
     """
     Accepts ziggy JSON submissions.
+
         - stored in mongo, ziggy_instances
         - ZiggyInstance Django Model
+
     Copy form_instance - to create actual Instances for a specific form?
     """
     data = {'message': _(u"Invalid request!")}

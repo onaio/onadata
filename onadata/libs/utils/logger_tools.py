@@ -210,8 +210,8 @@ def create_instance(username, xml_file, media_files,
     a way for an admin to mark duplicate instances. This should
     simplify things a bit.
     Submission cases:
-        If there is a username and no uuid, submitting an old ODK form.
-        If there is a username and a uuid, submitting a new ODK form.
+    * If there is a username and no uuid, submitting an old ODK form.
+    * If there is a username and a uuid, submitting a new ODK form.
     """
     try:
         instance = None

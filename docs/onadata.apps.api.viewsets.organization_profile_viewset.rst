@@ -1,10 +1,5 @@
 onadata.apps.api.viewsets.organization_profile_viewset module
--------------------------------------------------------------
-
-.. automodule:: onadata.apps.api.viewsets.organization_profile_viewset
-    :members:
-    :undoc-members:
-    :show-inheritance:
+==============================================================
 
 Module contents
 ---------------

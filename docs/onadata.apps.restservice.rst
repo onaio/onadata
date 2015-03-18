@@ -6,10 +6,8 @@ Subpackages
 
 .. toctree::
 
-    onadata.apps.restservice.migrations
     onadata.apps.restservice.services
-    onadata.apps.restservice.tests
-
+    
 Submodules
 ----------
 

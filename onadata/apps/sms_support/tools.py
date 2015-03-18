@@ -50,7 +50,7 @@ def get_sms_instance_id(instance):
 
         For now, we strip down to the first 8 chars of the UUID.
         Until we figure out what we really want (might as well be used
-            by formhub XML) """
+        by formhub XML) """
     return instance.uuid[:8]
 
 

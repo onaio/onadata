@@ -7,7 +7,6 @@ Subpackages
 .. toctree::
 
     onadata.apps.api.management
-    onadata.apps.api.migrations
     onadata.apps.api.models
     onadata.apps.api.viewsets
 

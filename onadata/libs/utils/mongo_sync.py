@@ -78,12 +78,13 @@ def mongo_sync_status(remongo=False, update_all=False, user=None, xform=None):
     parameters, if present and defined:
 
     remongo    -> if True, update the records missing in mongodb
-                  (default: False)
+    (default: False)
+
     update_all -> if True, update all the relevant records (default: False)
     user       -> if specified, apply only to the forms for the given user
-                  (default: None)
-    xform      -> if specified, apply only to the given form (default: None)
+    (default: None)
 
+    xform      -> if specified, apply only to the given form (default: None)
     """
     mongo_instances = get_mongo_connection().instances
 

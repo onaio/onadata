@@ -28,14 +28,6 @@ onadata.apps.viewer.management.commands.mark_start_times module
     :undoc-members:
     :show-inheritance:
 
-onadata.apps.viewer.management.commands.relink module
------------------------------------------------------
-
-.. automodule:: onadata.apps.viewer.management.commands.relink
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 onadata.apps.viewer.management.commands.set_uuid_in_xml module
 --------------------------------------------------------------
 

@@ -78,7 +78,7 @@ def create_organization(name, creator):
     """
     Organization created by a user
     - create a team, OwnerTeam with full permissions to the creator
-        - Team(name='Owners', organization=organization).save()
+    - Team(name='Owners', organization=organization).save()
 
     """
     organization, created = User.objects.get_or_create(username__iexact=name)

@@ -121,8 +121,9 @@ def audit_log(action, request_user, account_user, message, audit, request,
     @param message: The message to be displayed on the log
     @param level: log level
     @param audit: a dict of key/values of other info pertaining to the action
-                  e.g. form's id_string, submission uuid
+    e.g. form's id_string, submission uuid
     @return: None
+
     """
     logger = logging.getLogger("audit_logger")
     extra = {
