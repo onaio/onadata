@@ -6,3 +6,8 @@
 body{
 	font-size:14px!important;
 }
+.rst-content tt{
+	position: relative;
+	top: 8px;
+	margin-bottom: 2px;
+}
