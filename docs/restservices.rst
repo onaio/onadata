@@ -107,9 +107,6 @@ Delete a Rest Service
 
 	<pre class="prettyprint">DELETE /api/v1/restservices/<code>{pk}</code></pre>
 
-Webhook
--------
-Utility action for the different services.
 
 Adding TextIt:
 ^^^^^^^^^^^^^^
@@ -121,7 +118,8 @@ Adding TextIt:
 ::
 
 	       {"auth_token": <auth_token>, "flow_uuid": "<flow_uuid>",
-	       "contacts": "<contacts>", "service": "textit"}
+	       "contacts": "<contacts>", "name": "textit",
+	        "service_url": "service_url", "xform": "xform"}
 
 Where:
 
@@ -129,6 +127,9 @@ Where:
 - ``auth_token`` - The authentication token for the rest service.
 - ``flow_uuid`` - The flow uuid in textit.
 - ``contacts`` - The contact used in the flow.
+- ``service_url`` - The external url.
+- ``name`` - Name of the supported service.
+- ``xform`` - the form id you are adding the media to.
 
 ::
 
@@ -143,29 +144,8 @@ Where:
             auth_token: "abffbbb8f16f7a1bc75f141b5asdsadafc6d2d7d2b",
             flow_uuid: "cf7d7891-a01b-4ca9-9adssd-7baf5f77c741",
             contacts: "52d4ff71-4d4e-464c-asda-f0c04cc9e66d"
+            id: 236,
+            name: "textit",
+            service_url: "https://textit.in/api/v1/runs.json"
         }
 
-Retrieving TextIt:
-^^^^^^^^^^^^^^^^^^
-
-::
-
-        curl -X GET https://ona.io/api/v1/restservices/236/webhook?service=textit
-
-::
-
-        HTTP 200 OK
-
-        {
-            xform: 9929,
-            auth_token: "abffbbb8f16f7a1bc75f141b5asdsadafc6d2d7d2b",
-            flow_uuid: "cf7d7891-a01b-4ca9-9adssd-7baf5f77c741",
-            contacts: "52d4ff71-4d4e-464c-asda-f0c04cc9e66d"
-        }
-
-Deleting TextIt
-^^^^^^^^^^^^^^^
-
-::
-
-    curl -X GET https://ona.io/api/v1/restservices/236/webhook?service=textit&remove=true
