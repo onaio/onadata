@@ -103,9 +103,10 @@ def media_resources(media_list, download=False):
 
     @param media_list - list of MetaData objects of type `media`
     @param download - boolean, when True downloads media files when
-                      media.data_value is a valid url
+    media.data_value is a valid url
 
     return a list of MetaData objects
+
     """
     data = []
     for media in media_list:

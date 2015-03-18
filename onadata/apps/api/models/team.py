@@ -11,8 +11,8 @@ class Team(Group):
     """
     TODO: documentation
     TODO: Whenever a member is removed from members team,
-          we  should remove them from all teams and projects
-          within the organization.
+    we  should remove them from all teams and projects
+    within the organization.
     """
     class Meta:
         app_label = 'api'

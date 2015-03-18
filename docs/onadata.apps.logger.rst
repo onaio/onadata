@@ -7,7 +7,6 @@ Subpackages
 .. toctree::
 
     onadata.apps.logger.management
-    onadata.apps.logger.migrations
     onadata.apps.logger.models
 
 Submodules

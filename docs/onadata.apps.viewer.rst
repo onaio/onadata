@@ -7,7 +7,6 @@ Subpackages
 .. toctree::
 
     onadata.apps.viewer.management
-    onadata.apps.viewer.migrations
     onadata.apps.viewer.models
     onadata.apps.viewer.templatetags
 
