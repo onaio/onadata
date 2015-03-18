@@ -112,7 +112,7 @@ Adding TextIt:
 ^^^^^^^^^^^^^^
 .. raw:: html
 
-	<pre class="prettyprint">POST /api/v1/restservices/<code>{pk}</code>/webhook</pre>
+	<pre class="prettyprint">POST /api/v1/restservices</pre>
 
 *Payload*
 ::
