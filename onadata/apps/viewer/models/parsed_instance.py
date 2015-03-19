@@ -11,6 +11,7 @@ from django.db.models.signals import post_save
 from django.utils.translation import ugettext as _
 
 from onadata.apps.logger.models.note import Note
+from onadata.apps.restservice.models import RestService
 from onadata.apps.logger.models.instance import _get_attachments_from_instance
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.restservice.task import call_service_async
@@ -435,7 +436,10 @@ def rest_service_form_submission(sender, **kwargs):
     created = kwargs.get('created')
 
     if created:
-        call_service_async.delay(parsed_instance.pk)
+        # Check if any rest service is set
+        if RestService.objects.filter(xform=parsed_instance.instance.xform)\
+                .count() > 0:
+            call_service_async.delay(parsed_instance.pk)
 
 
 post_save.connect(rest_service_form_submission, sender=ParsedInstance)
