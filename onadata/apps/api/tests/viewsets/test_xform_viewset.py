@@ -1815,8 +1815,6 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             get_data = {'job_uuid': data.get('job_uuid')}
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid, format='xls')
-            import ipdb
-            ipdb.set_trace()
             self.assertTrue(async_result.called)
             self.assertEqual(response.status_code, 202)
 
