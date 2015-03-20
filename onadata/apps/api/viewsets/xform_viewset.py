@@ -587,11 +587,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             'token': token,
             'data': data_id
         }
-        export_type = _get_export_type(export_type)
-
-        if export_type in external_export_types and \
-                (token is not None) or (meta is not None):
-            export_type = Export.EXTERNAL_EXPORT
 
         if job_uuid:
             job = AsyncResult(job_uuid)
@@ -618,6 +613,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 }
 
         else:
+            export_type = _get_export_type(export_type)
+
+            if export_type in external_export_types and \
+                    (token is not None) or (meta is not None):
+                export_type = Export.EXTERNAL_EXPORT
             export, async_result = viewer_task.create_async_export(
                 xform, export_type, query, False, options=options)
             resp = {

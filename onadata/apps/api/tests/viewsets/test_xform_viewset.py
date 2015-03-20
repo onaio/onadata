@@ -1790,6 +1790,12 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                                     data_value)
             metadata = MetaData.objects.get(xform=self.xform,
                                             data_type='external_export')
+            paths = [os.path.join(
+                self.main_directory, 'fixtures', 'transportation',
+                'instances_w_uuid', s, s + '.xml')
+                for s in ['transport_2011-07-25_19-05-36']]
+
+            self._make_submission(paths[0])
             view = XFormViewSet.as_view({
                 'get': 'export_async',
             })
@@ -1808,8 +1814,9 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             data = json.loads(response.data)
             get_data = {'job_uuid': data.get('job_uuid')}
             request = self.factory.get('/', data=get_data, **self.extra)
-            response = view(request, pk=formid)
-
+            response = view(request, pk=formid, format='xls')
+            import ipdb
+            ipdb.set_trace()
             self.assertTrue(async_result.called)
             self.assertEqual(response.status_code, 202)
 
