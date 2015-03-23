@@ -9,7 +9,20 @@ from onadata.libs.utils.image_tools import image_url
 
 
 class MediaViewSet(viewsets.ViewSet):
+    """A view to redirect to actual attachments url"""
+
     def retrieve(self, request, pk=None):
+        """
+        Redirect to final atrtachment url
+
+        param pk: the attachment id
+        query param filename: the filename of the associated attachment is
+            required and has to match
+        query param suffix: (optional) - specify small | medium | large to
+            retuurn resized images.
+
+        return HttpResponseRedirect: redirects to final image url
+        """
         try:
             int(pk)
         except ValueError:

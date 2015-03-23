@@ -28,6 +28,7 @@ Forms
    forms
    media
    metadata
+   files
    projects
    submissions
    restservices
@@ -246,7 +247,7 @@ Quick start
    :maxdepth: 2
 
    quick_start
-   
+
 
 Indices and tables
 ==================
