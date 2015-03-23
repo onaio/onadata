@@ -1,9 +1,9 @@
 import json
 
 from rest_framework import serializers
-from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models.attachment import Attachment
+from onadata.apps.logger.models.instance import get_attachment_url
 from onadata.libs.utils.decorators import check_obj
 
 
@@ -62,8 +62,7 @@ class AttachmentSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
 
         if obj:
-            kwargs = {'pk': obj.pk, 'format': obj.extension.lower()}
-            path = reverse('attachment-detail', kwargs=kwargs)
+            path = get_attachment_url(obj)
 
             return request.build_absolute_uri(path) if request else path
 
@@ -71,10 +70,7 @@ class AttachmentSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
 
         if obj.mimetype.startswith('image'):
-            kwargs = {'pk': obj.pk, 'format': obj.extension.lower()}
-
-            path = u'{}?suffix={}'.format(
-                reverse('attachment-detail', kwargs=kwargs), 'small')
+            path = get_attachment_url(obj, 'small')
 
             return request.build_absolute_uri(path) if request else path
 
@@ -82,10 +78,7 @@ class AttachmentSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
 
         if obj.mimetype.startswith('image'):
-            kwargs = {'pk': obj.pk, 'format': obj.extension.lower()}
-
-            path = u'{}?suffix={}'.format(
-                reverse('attachment-detail', kwargs=kwargs), 'medium')
+            path = get_attachment_url(obj, 'medium')
 
             return request.build_absolute_uri(path) if request else path
 

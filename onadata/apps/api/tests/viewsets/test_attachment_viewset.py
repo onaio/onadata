@@ -4,15 +4,13 @@ from django.utils import timezone
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
+from onadata.apps.logger.models.instance import get_attachment_url
 
 
 def attachment_url(attachment, suffix=None):
-    url = u'http://testserver/api/v1/media/{}.{}'.format(
-        attachment.pk, attachment.extension.lower())
-    if suffix:
-        url += u'?suffix={}'.format(suffix)
+    path = get_attachment_url(attachment, suffix)
 
-    return url
+    return u'http://testserver{}'.format(path)
 
 
 class TestAttachmentViewSet(TestAbstractViewSet):

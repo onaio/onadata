@@ -27,17 +27,25 @@ from onadata.libs.utils.cache_tools import PROJ_NUM_DATASET_CACHE
 from onadata.libs.utils.timing import calculate_duration
 
 
+def get_attachment_url(attachment, suffix=None):
+    kwargs = {'pk': attachment.pk}
+    url = u'{}?filename={}'.format(
+        reverse('files-detail', kwargs=kwargs),
+        attachment.media_file.name
+    )
+    if suffix:
+        url += u'&suffix={}'.format(suffix)
+
+    return url
+
+
 def _get_attachments_from_instance(instance):
     attachments = []
     for a in instance.attachments.all():
         attachment = dict()
-        kwargs = {'pk': a.pk, 'format': a.extension.lower()}
-        attachment['download_url'] = u'{}'.format(
-            reverse('attachment-detail', kwargs=kwargs))
-        attachment['small_download_url'] = u'{}?suffix={}'.format(
-            reverse('attachment-detail', kwargs=kwargs), 'small')
-        attachment['medium_download_url'] = u'{}?suffix={}'.format(
-            reverse('attachment-detail', kwargs=kwargs), 'medium')
+        attachment['download_url'] = get_attachment_url(a)
+        attachment['small_download_url'] = get_attachment_url(a, 'small')
+        attachment['medium_download_url'] = get_attachment_url(a, 'medium')
         attachment['mimetype'] = a.mimetype
         attachment['filename'] = a.media_file.name
         attachment['instance'] = a.instance.pk
