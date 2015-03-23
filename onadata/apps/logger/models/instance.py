@@ -4,6 +4,7 @@ from django.contrib.gis.db import models
 from django.db.models.signals import post_save, pre_save, post_delete
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import GeometryCollection, Point
+from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from jsonfield import JSONField
@@ -30,7 +31,13 @@ def _get_attachments_from_instance(instance):
     attachments = []
     for a in instance.attachments.all():
         attachment = dict()
-        attachment['download_url'] = a.media_file.url
+        kwargs = {'pk': a.pk, 'format': a.extension.lower()}
+        attachment['download_url'] = u'{}'.format(
+            reverse('attachment-detail', kwargs=kwargs))
+        attachment['small_download_url'] = u'{}?suffix={}'.format(
+            reverse('attachment-detail', kwargs=kwargs), 'small')
+        attachment['medium_download_url'] = u'{}?suffix={}'.format(
+            reverse('attachment-detail', kwargs=kwargs), 'medium')
         attachment['mimetype'] = a.mimetype
         attachment['filename'] = a.media_file.name
         attachment['instance'] = a.instance.pk

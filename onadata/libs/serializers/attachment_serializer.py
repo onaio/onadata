@@ -1,8 +1,10 @@
+import json
+
 from rest_framework import serializers
+from rest_framework.reverse import reverse
+
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.libs.utils.decorators import check_obj
-from onadata.libs.utils.image_tools import image_url
-import json
 
 
 def dict_key_for_value(_dict, value):
@@ -57,15 +59,35 @@ class AttachmentSerializer(serializers.ModelSerializer):
 
     @check_obj
     def get_download_url(self, obj):
-        return obj.media_file.url if obj.media_file.url else None
+        request = self.context.get('request')
+
+        if obj:
+            kwargs = {'pk': obj.pk, 'format': obj.extension.lower()}
+            path = reverse('attachment-detail', kwargs=kwargs)
+
+            return request.build_absolute_uri(path) if request else path
 
     def get_small_download_url(self, obj):
+        request = self.context.get('request')
+
         if obj.mimetype.startswith('image'):
-            return image_url(obj, 'small')
+            kwargs = {'pk': obj.pk, 'format': obj.extension.lower()}
+
+            path = u'{}?suffix={}'.format(
+                reverse('attachment-detail', kwargs=kwargs), 'small')
+
+            return request.build_absolute_uri(path) if request else path
 
     def get_medium_download_url(self, obj):
+        request = self.context.get('request')
+
         if obj.mimetype.startswith('image'):
-            return image_url(obj, 'medium')
+            kwargs = {'pk': obj.pk, 'format': obj.extension.lower()}
+
+            path = u'{}?suffix={}'.format(
+                reverse('attachment-detail', kwargs=kwargs), 'medium')
+
+            return request.build_absolute_uri(path) if request else path
 
     def get_field_xpath(self, obj):
         qa_dict = obj.instance.get_dict()

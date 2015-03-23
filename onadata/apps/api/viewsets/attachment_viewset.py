@@ -1,7 +1,10 @@
 from django.http import Http404
 from django.utils.translation import ugettext as _
+from django.core.files.storage import default_storage
+from django.conf import settings
 from rest_framework import renderers
 from rest_framework import viewsets
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.pagination import BasePaginationSerializer
 
@@ -13,6 +16,21 @@ from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
     MediaFileRenderer
+from onadata.libs.utils.image_tools import image_url
+from onadata.libs.utils.viewer_tools import get_path
+
+
+def get_attachment_data(attachment, suffix):
+    if suffix in settings.THUMB_CONF.keys():
+        image_url(attachment, suffix)
+        suffix = settings.THUMB_CONF.get(suffix).get('suffix')
+        f = default_storage.open(
+            get_path(attachment.media_file.name, suffix))
+        data = f.read()
+    else:
+        data = attachment.media_file.read()
+
+    return data
 
 
 class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
@@ -38,9 +56,16 @@ class AttachmentViewSet(LastModifiedMixin, viewsets.ReadOnlyModelViewSet):
 
         if isinstance(request.accepted_renderer, MediaFileRenderer) \
                 and self.object.media_file is not None:
-            data = self.object.media_file.read()
+            suffix = request.QUERY_PARAMS.get('suffix')
+            try:
+                data = get_attachment_data(self.object, suffix)
+            except IOError as e:
+                if unicode(e).startswith('File does not exist'):
+                    raise Http404()
 
-            return Response(data, content_type=self.object.mimetype)
+                raise ParseError(e)
+            else:
+                return Response(data, content_type=self.object.mimetype)
 
         filename = request.QUERY_PARAMS.get('filename')
         serializer = self.get_serializer(self.object)

@@ -4,7 +4,15 @@ from django.utils import timezone
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
-from onadata.libs.utils.image_tools import image_url
+
+
+def attachment_url(attachment, suffix=None):
+    url = u'http://testserver/api/v1/media/{}.{}'.format(
+        attachment.pk, attachment.extension.lower())
+    if suffix:
+        url += u'?suffix={}'.format(suffix)
+
+    return url
 
 
 class TestAttachmentViewSet(TestAbstractViewSet):
@@ -24,12 +32,13 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self._submit_transport_instance_w_attachment()
 
         pk = self.attachment.pk
+
         data = {
             'url': 'http://testserver/api/v1/media/%s' % pk,
             'field_xpath': None,
-            'download_url': self.attachment.media_file.url,
-            'small_download_url': image_url(self.attachment, 'small'),
-            'medium_download_url': image_url(self.attachment, 'medium'),
+            'download_url': attachment_url(self.attachment),
+            'small_download_url': attachment_url(self.attachment, 'small'),
+            'medium_download_url': attachment_url(self.attachment, 'medium'),
             'id': pk,
             'xform': self.xform.pk,
             'instance': self.attachment.instance.pk,
@@ -230,7 +239,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, basestring))
-        self.assertEqual(response.data, self.attachment.media_file.url)
+        self.assertEqual(response.data, attachment_url(self.attachment))
 
         data['filename'] = 10000000
         request = self.factory.get('/', data, **self.extra)
@@ -256,4 +265,4 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, basestring))
-        self.assertEqual(response.data, self.attachment.media_file.url)
+        self.assertEqual(response.data, attachment_url(self.attachment))
