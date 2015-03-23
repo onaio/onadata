@@ -585,28 +585,29 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         options = {
             'meta': meta,
             'token': token,
-            'data': data_id
+            'data_id': data_id
         }
 
         if job_uuid:
             job = AsyncResult(job_uuid)
-
             if job.state == 'SUCCESS':
                 export_id = job.result
                 export = Export.objects.get(id=export_id)
-                if export:
-                    export_url = reverse(
-                        'xform-detail',
-                        kwargs={'pk': xform.pk, 'format': export.export_type},
-                        request=request
-                    )
+                if export.is_successful:
                     resp = {
-                        u'job_status': job.state,
-                        u'export_url': export_url
+                        u'JOB_STATUS': job.state,
+                        u'EXPORT_URL': export.export_url
                     }
                 else:
-                    raise Http404(_("Export Fot Found"))
-
+                    if export.status is 0:
+                        export_status = "Pending"
+                    elif export.status is 1:
+                        export_status = "Successful"
+                    else:
+                        export_status = "Failed"
+                    resp = {
+                        'EXPORT_STATUS': export_status
+                    }
             else:
                 resp = {
                     'JOB_STATUS': job.state

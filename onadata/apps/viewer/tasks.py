@@ -76,6 +76,8 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
             arguments["token"] = options["token"]
         if options and "meta" in options:
             arguments["meta"] = options["meta"]
+        if options and "data_id" in options:
+            arguments["data_id"] = options["data_id"]
 
         result = create_external_export.apply_async(
             (), arguments)
@@ -312,14 +314,14 @@ def create_sav_zip_export(username, id_string, export_id, query=None,
 
 @task()
 def create_external_export(username, id_string, export_id, query=None,
-                           token=None, meta=None):
+                           token=None, meta=None, data_id=None):
     export = Export.objects.get(id=export_id)
     try:
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
         gen_export = generate_external_export(
             Export.EXTERNAL_EXPORT, username,
-            id_string, export_id, token, query, meta
+            id_string, export_id, token, query, meta, data_id
         )
     except (Exception, NoRecordsFoundError, ConnectionError) as e:
         export.internal_status = Export.FAILED
