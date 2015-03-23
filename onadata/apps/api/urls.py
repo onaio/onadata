@@ -28,6 +28,7 @@ from onadata.apps.api.viewsets.briefcase_api import BriefcaseApi
 from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
 from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
+from onadata.apps.api.viewsets.media_viewset import MediaViewSet
 
 
 def make_routes(template_text):
@@ -223,3 +224,4 @@ router.register(r'submissions', XFormSubmissionApi, base_name='submissions')
 router.register(r'briefcase', BriefcaseApi, base_name='briefcase')
 router.register(r'osm', OsmViewSet, base_name='osm')
 router.register(r'restservices', RestServicesViewSet, base_name='restservices')
+router.register(r'files', MediaViewSet, base_name='files')
