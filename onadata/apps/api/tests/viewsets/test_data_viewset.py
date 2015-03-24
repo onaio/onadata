@@ -18,6 +18,7 @@ from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs import permissions as role
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from httmock import urlmatch, HTTMock
+from onadata.apps.logger.models.instance import get_attachment_url
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
@@ -569,13 +570,18 @@ class TestDataViewSet(TestBase):
 
         data = {
             u'_bamboo_dataset_id': u'',
-            u'_attachments': [{u'download_url': self.attachment.media_file.url,
-                               u'mimetype': self.attachment.mimetype,
-                               u'instance': self.attachment.instance.pk,
-                               u'filename': self.attachment.media_file.name,
-                               u'id': self.attachment.pk,
-                               u'xform': self.xform.id}
-                              ],
+            u'_attachments': [{
+                'download_url': get_attachment_url(self.attachment),
+                'small_download_url':
+                get_attachment_url(self.attachment, 'small'),
+                'medium_download_url':
+                get_attachment_url(self.attachment, 'medium'),
+                u'mimetype': self.attachment.mimetype,
+                u'instance': self.attachment.instance.pk,
+                u'filename': self.attachment.media_file.name,
+                u'id': self.attachment.pk,
+                u'xform': self.xform.id}
+            ],
             u'_geolocation': [None, None],
             u'_xform_id_string': u'transportation_2011_07_25',
             u'transport/available_transportation_types_to_referral_facility':
