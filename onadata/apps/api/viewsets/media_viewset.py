@@ -4,12 +4,15 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets
+from rest_framework.permissions import AllowAny
+
 from onadata.apps.logger.models import Attachment
 from onadata.libs.utils.image_tools import image_url
 
 
 class MediaViewSet(viewsets.ViewSet):
     """A view to redirect to actual attachments url"""
+    permission_classes = (AllowAny, )
 
     def retrieve(self, request, pk=None):
         """
