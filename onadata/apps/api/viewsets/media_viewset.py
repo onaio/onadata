@@ -13,7 +13,7 @@ class MediaViewSet(viewsets.ViewSet):
 
     def retrieve(self, request, pk=None):
         """
-        Redirect to final atrtachment url
+        Redirect to final attachment url
 
         param pk: the attachment id
         query param filename: the filename of the associated attachment is
@@ -40,11 +40,11 @@ class MediaViewSet(viewsets.ViewSet):
             if obj.mimetype.startswith('image'):
                 suffix = request.QUERY_PARAMS.get('suffix')
 
-                if suffix and suffix not in settings.THUMB_CONF.keys():
-                    raise Http404()
-
-                if suffix and suffix in settings.THUMB_CONF.keys():
-                    url = image_url(obj, suffix)
+                if suffix:
+                    if suffix in settings.THUMB_CONF.keys():
+                        url = image_url(obj, suffix)
+                    else:
+                        raise Http404()
 
             if not url:
                 url = obj.media_file.url
