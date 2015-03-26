@@ -210,12 +210,19 @@ class TestBase(TransactionTestCase):
 
     def _make_submission_w_attachment(self, path, attachment_path):
         with open(path) as f:
-            a = open(attachment_path)
-            post_data = {'xml_submission_file': f, 'media_file': a}
+            data = {'xml_submission_file': f}
+            if attachment_path is not None:
+                if isinstance(attachment_path, list):
+                    for c in range(len(attachment_path)):
+                        data['media_file_{}'.format(c)] = open(
+                            attachment_path[c])
+                else:
+                    data['media_file'] = open(attachment_path)
+
             url = '/%s/submission' % self.user.username
             auth = DigestAuth('bob', 'bob')
             self.factory = APIRequestFactory()
-            request = self.factory.post(url, post_data)
+            request = self.factory.post(url, data)
             request.user = authenticate(username='bob',
                                         password='bob')
             self.response = submission(request,
