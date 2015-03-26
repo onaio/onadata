@@ -8,16 +8,30 @@ def get_combined_osm(files):
 
     :return string: osm xml string of the combined files
     """
+    def _parse_osm_file(f):
+        try:
+            return etree.parse(f)
+        except:
+            return None
+
     xml = u""
     if len(files) and isinstance(files, list):
-        first = etree.parse(files[0])
+        osm = None
+        for f in files:
+            _osm = _parse_osm_file(f)
+            if _osm is None:
+                continue
 
-        for f in files[1:]:
-            osm_root = etree.parse(f).getroot()
-            for child in osm_root.getchildren():
-                first.getroot().append(child)
+            if osm is None:
+                osm = _osm
+                continue
 
-        xml = etree.tostring(first, encoding='utf-8', xml_declaration=True)
+            for child in _osm.getroot().getchildren():
+                osm.getroot().append(child)
+
+        if osm:
+            xml = etree.tostring(osm, encoding='utf-8', xml_declaration=True)
+
     elif isinstance(files, dict):
         if 'detail' in files:
             xml = u'<error>' + files['detail'] + '</error>'
