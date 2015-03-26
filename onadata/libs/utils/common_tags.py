@@ -64,3 +64,4 @@ MEDIAN = u"median"
 MODE = u"mode"
 
 TEXTIT = u'textit'
+OSM = u'osm'
