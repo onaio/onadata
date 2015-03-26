@@ -1762,20 +1762,21 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             })
             formid = self.xform.pk
 
-            request = self.factory.get(
-                '/', data={"format": "xls"}, **self.extra)
-            response = view(request, pk=formid)
-            self.assertIsNotNone(response.data)
-            self.assertEqual(response.status_code, 202)
-            self.assertTrue('job_uuid' in response.data)
+            for format in ['xls', 'osm']:
+                request = self.factory.get(
+                    '/', data={"format": format}, **self.extra)
+                response = view(request, pk=formid)
+                self.assertIsNotNone(response.data)
+                self.assertEqual(response.status_code, 202)
+                self.assertTrue('job_uuid' in response.data)
 
-            data = json.loads(response.data)
-            get_data = {'job_uuid': data.get('job_uuid')}
-            request = self.factory.get('/', data=get_data, **self.extra)
-            response = view(request, pk=formid)
+                data = json.loads(response.data)
+                get_data = {'job_uuid': data.get('job_uuid')}
+                request = self.factory.get('/', data=get_data, **self.extra)
+                response = view(request, pk=formid)
 
-            self.assertTrue(async_result.called)
-            self.assertEqual(response.status_code, 202)
+                self.assertTrue(async_result.called)
+                self.assertEqual(response.status_code, 202)
 
     def test_check_async_publish_empty_uuid(self):
         view = XFormViewSet.as_view({

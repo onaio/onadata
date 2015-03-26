@@ -187,3 +187,9 @@ class OSMRenderer(BaseRenderer):
         """Combine/concatenate the list of osm files to one file"""
 
         return get_combined_osm(data)
+
+
+class OSMExportRenderer(BaseRenderer):
+    media_type = 'text/xml'
+    format = 'osm'
+    charset = 'utf-8'
