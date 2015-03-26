@@ -2,6 +2,8 @@ import os
 import json
 import random
 from requests import ConnectionError
+from urlparse import urlparse
+
 from datetime import datetime
 
 from celery.result import AsyncResult
@@ -31,7 +33,9 @@ from rest_framework.filters import DjangoFilterBackend
 
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
+from onadata.apps.api.models import TempToken
 from onadata.apps.viewer import tasks as viewer_task
+from onadata.libs.authentication import TempTokenAuthentication
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -595,6 +599,33 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         response['Content-Disposition'] = 'attachment; filename=' + filename
 
         return response
+
+    @list_route(methods=['GET'])
+    def login(self, request, **kwargs):
+        return_url = request.QUERY_PARAMS.get('return')
+        url = urlparse(return_url)
+        redirect_url = "%s://%s%s" % (url.scheme, url.netloc, url.path)
+
+        import ipdb
+        ipdb.set_trace()
+        temp_token_param = filter(lambda p: p.startswith('temp-token'), url.query.split('&'))[0]
+        temp_token = temp_token_param.split('=')[1]
+
+        if temp_token and TempToken.objects.get(key=temp_token) is not None:
+            tta = TempTokenAuthentication()
+            user, token = tta.authenticate_credentials(key=temp_token)
+
+            if user:
+                request.user = user
+                request.auth = token
+                max_age = 30 * 24 * 60 * 60 * 1000
+
+                res_red = HttpResponseRedirect(redirect_url)
+                res_red.set_signed_cookie('__enketo_meta_uid', user.username,
+                        max_age=max_age, salt='s0m3v3rys3cr3tk3y')
+                res_red.set_signed_cookie('__enketo', token, httponly=True, secure=False,
+                        max_age=max_age, salt='s0m3v3rys3cr3tk3y')
+                return res_red
 
     @action(methods=['GET'])
     def enketo(self, request, **kwargs):
