@@ -69,7 +69,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
             (), arguments)
     elif export_type == Export.OSM_EXPORT:
         # start async export
-        result = create_kml_export.apply_async(
+        result = create_osm_export.apply_async(
             (), arguments)
     elif export_type == Export.EXTERNAL_EXPORT:
         if options and "token" in options:
