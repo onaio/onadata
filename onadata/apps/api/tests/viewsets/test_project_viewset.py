@@ -84,9 +84,16 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
+        user_props = ['user', 'first_name', 'last_name', 'role', 'gravatar',
+                      'metadata', 'permissions']
+        user_props.sort()
+
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.project_data)
+        res_user_props = response.data['users'][0].keys()
+        res_user_props.sort()
+        self.assertEqual(res_user_props, user_props)
 
     def test_projects_tags(self):
         self._project_create()
