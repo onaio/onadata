@@ -8,9 +8,11 @@ from requests import ConnectionError
 
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.exceptions import NoRecordsFoundError
-from onadata.libs.utils.export_tools import generate_export,\
-    generate_attachments_zip_export, generate_kml_export,\
-    generate_external_export
+from onadata.libs.utils.export_tools import generate_export
+from onadata.libs.utils.export_tools import generate_attachments_zip_export
+from onadata.libs.utils.export_tools import generate_kml_export
+from onadata.libs.utils.export_tools import generate_external_export
+from onadata.libs.utils.export_tools import generate_osm_export
 from onadata.libs.utils.logger_tools import report_exception
 from onadata.libs.utils.mongo_sync import mongo_sync_status
 
@@ -62,6 +64,10 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
         result = create_zip_export.apply_async(
             (), arguments)
     elif export_type == Export.KML_EXPORT:
+        # start async export
+        result = create_kml_export.apply_async(
+            (), arguments)
+    elif export_type == Export.OSM_EXPORT:
         # start async export
         result = create_kml_export.apply_async(
             (), arguments)
@@ -173,6 +179,34 @@ def create_kml_export(username, id_string, export_id, query=None):
         # catch this since it potentially stops celery
         gen_export = generate_kml_export(
             Export.KML_EXPORT, 'kml', username, id_string, export_id, query)
+    except (Exception, NoRecordsFoundError) as e:
+        export.internal_status = Export.FAILED
+        export.save()
+        # mail admins
+        details = {
+            'export_id': export_id,
+            'username': username,
+            'id_string': id_string
+        }
+        report_exception("KML Export Exception: Export ID - "
+                         "%(export_id)s, /%(username)s/%(id_string)s"
+                         % details, e, sys.exc_info())
+        raise
+    else:
+        return gen_export.id
+
+
+@task()
+def create_osm_export(username, id_string, export_id, query=None):
+    # we re-query the db instead of passing model objects according to
+    # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
+
+    export = Export.objects.get(id=export_id)
+    try:
+        # though export is not available when for has 0 submissions, we
+        # catch this since it potentially stops celery
+        gen_export = generate_osm_export(
+            Export.OSM_EXPORT, 'osm', username, id_string, export_id, query)
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()

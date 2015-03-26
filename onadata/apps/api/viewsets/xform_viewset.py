@@ -47,6 +47,7 @@ from onadata.apps.viewer.models.export import Export
 from onadata.libs.exceptions import NoRecordsFoundError, J2XException
 from onadata.libs.utils.export_tools import generate_export,\
     should_create_new_export, generate_external_export, generate_kml_export
+from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
 from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newset_export_for
@@ -67,7 +68,7 @@ EXPORT_EXT = {
     'savzip': Export.SAV_ZIP_EXPORT,
     'uuid': Export.EXTERNAL_EXPORT,
     'kml': Export.KML_EXPORT,
-
+    OSM: Export.OSM_EXPORT
 }
 
 # Supported external exports
