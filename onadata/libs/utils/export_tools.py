@@ -31,6 +31,7 @@ from onadata.libs.utils.common_tags import (
     DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION)
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
+from onadata.libs.utils.osm import get_combined_osm
 
 
 # this is Mongo Collection where we will store the parsed submissions
@@ -936,6 +937,53 @@ def kml_export_data(id_string, user):
                          '</table>' % (img_url, ''.join(table_rows))})
 
     return data_for_template
+
+
+def generate_osm_export(
+        export_type, extension, username, id_string, export_id=None,
+        filter_query=None):
+    # TODO resolve circular import
+    from onadata.apps.viewer.models.export import Export
+    xform = XForm.objects.get(user__username=username, id_string=id_string)
+    attachments = Attachment.objects.filter(
+        extension=Attachment.OSM,
+        instance__xform=xform
+    )
+    content = get_combined_osm([a.media_file for a in attachments])
+
+    basename = "%s_%s" % (id_string,
+                          datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+    filename = basename + "." + extension
+    file_path = os.path.join(
+        username,
+        'exports',
+        id_string,
+        export_type,
+        filename)
+
+    storage = get_storage_class()()
+    temp_file = NamedTemporaryFile(suffix=extension)
+    temp_file.write(content)
+    temp_file.seek(0)
+    export_filename = storage.save(
+        file_path,
+        File(temp_file, file_path))
+    temp_file.close()
+
+    dir_name, basename = os.path.split(export_filename)
+
+    # get or create export object
+    if(export_id):
+        export = Export.objects.get(id=export_id)
+    else:
+        export = Export.objects.create(xform=xform, export_type=export_type)
+
+    export.filedir = dir_name
+    export.filename = basename
+    export.internal_status = Export.SUCCESSFUL
+    export.save()
+
+    return export
 
 
 def _get_records(instances):
