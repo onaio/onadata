@@ -45,8 +45,11 @@ from onadata.libs.utils.viewer_tools import (
     generate_enketo_form_defaults)
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.exceptions import NoRecordsFoundError, J2XException
-from onadata.libs.utils.export_tools import generate_export,\
-    should_create_new_export, generate_external_export, generate_kml_export
+from onadata.libs.utils.export_tools import generate_export
+from onadata.libs.utils.export_tools import generate_kml_export
+from onadata.libs.utils.export_tools import generate_external_export
+from onadata.libs.utils.export_tools import generate_osm_export
+from onadata.libs.utils.export_tools import should_create_new_export
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
 from onadata.libs.utils import log
@@ -139,6 +142,10 @@ def _generate_new_export(request, xform, query, export_type):
                 xform.id_string, None, request.GET.get('token'), query,
                 request.GET.get('meta'), request.GET.get('data_id')
             )
+        elif export_type == Export.OSM_EXPORT:
+            export = generate_osm_export(
+                export_type, extension, xform.user.username,
+                xform.id_string, export_id=None, filter_query=None)
         elif export_type == Export.KML_EXPORT:
             export = generate_kml_export(
                 export_type, extension, xform.user.username,
