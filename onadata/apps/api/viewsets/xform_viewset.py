@@ -33,9 +33,7 @@ from rest_framework.filters import DjangoFilterBackend
 
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
-from onadata.apps.api.models import TempToken
 from onadata.apps.viewer import tasks as viewer_task
-from onadata.libs.authentication import TempTokenAuthentication
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -631,7 +629,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                                           max_age=max_age,
                                           salt='s0m3v3rys3cr3tk3y')
 
-            # return Response("wohooo! you are authenticated")
             return res_red
 
         return Response("You are getting this because it didn't redirect")
