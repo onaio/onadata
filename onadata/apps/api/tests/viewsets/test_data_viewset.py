@@ -367,7 +367,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
-        instance = self.xform.instances.all()[0]
+        instance = self.xform.instances.all().order_by('pk')[0]
         dataid = instance.pk
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
