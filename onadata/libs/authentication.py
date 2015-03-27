@@ -60,15 +60,6 @@ class DigestAuthentication(BaseAuthentication):
         self.authenticator = HttpDigestAuthenticator()
 
     def authenticate(self, request):
-        # if request.path.startswith('/ivermac/formList'):
-        #     print "user: %w" % request.user
-        #     print "request object: %w" % request._request
-
-        import ipdb
-        ipdb.set_trace()
-        if request.path.startswith('/api/v1/forms/login'):
-            return enketo_temp_token_authentication(request)
-
         auth = get_authorization_header(request).split()
 
         if not auth or auth[0].lower() != b'digest':
@@ -120,3 +111,20 @@ class TempTokenAuthentication(TokenAuthentication):
 
     def authenticate_header(self, request):
         return 'TempToken'
+
+
+class EnketoTempTokenAuthentication(TokenAuthentication):
+    model = TempToken
+
+    def authenticate(self, request):
+        try:
+            token = request.get_signed_cookie(
+                '__enketo', salt='s0m3v3rys3cr3tk3y')
+            temp_token = self.model.objects.get(key=token)
+            if temp_token:
+                return temp_token.user, token
+            raise exceptions.AuthenticationFailed('No such token')
+        except KeyError:
+            pass
+
+        return None
