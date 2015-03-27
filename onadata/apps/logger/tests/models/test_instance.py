@@ -1,6 +1,7 @@
 import os
 
 from datetime import datetime
+from datetime import timedelta
 from django.utils.timezone import utc
 from django_digest.test import DigestAuth
 from mock import patch
@@ -160,3 +161,28 @@ class TestInstance(TestBase):
             fields='["_id"]')]
         self.assertEqual(self.xform.instances.count(), 4)
         self.assertEqual(len(data), 3)
+
+    @patch('onadata.apps.logger.models.instance.submission_time')
+    def test_query_filter_by_datetime_field(self, mock_time):
+        self._publish_transportation_form()
+        now = datetime(2014, 01, 01, tzinfo=utc)
+        times = [now, now + timedelta(seconds=1), now + timedelta(seconds=2),
+                 now + timedelta(seconds=3)]
+        mock_time.side_effect = times
+        self._make_submissions()
+
+        atime = None
+
+        for i in self.xform.instances.all().order_by('-pk'):
+            i.date_created = times.pop()
+            i.save()
+            if atime is None:
+                atime = i.date_created.strftime(MONGO_STRFTIME)
+
+        # mongo $gt
+        data = [i.get('_submission_time') for i in ParsedInstance.query_data(
+            self.xform, query='{"_submission_time": {"$lt": "%s"}}' % (atime),
+            fields='["_submission_time"]')]
+        self.assertEqual(self.xform.instances.count(), 4)
+        self.assertEqual(len(data), 3)
+        self.assertNotIn(atime, data)
