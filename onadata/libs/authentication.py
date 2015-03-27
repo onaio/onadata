@@ -60,15 +60,6 @@ class DigestAuthentication(BaseAuthentication):
         self.authenticator = HttpDigestAuthenticator()
 
     def authenticate(self, request):
-        # if request.path.startswith('/ivermac/formList'):
-        #     print "user: %w" % request.user
-        #     print "request object: %w" % request._request
-
-        import ipdb
-        ipdb.set_trace()
-        if request.path.startswith('/api/v1/forms/login'):
-            return enketo_temp_token_authentication(request)
-
         auth = get_authorization_header(request).split()
 
         if not auth or auth[0].lower() != b'digest':
