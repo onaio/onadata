@@ -131,7 +131,7 @@ def _json_sql_str(key, known_integers=[], known_dates=[]):
     if key in known_integers:
         _json_str = u"CAST(json->>%s AS INT)"
     elif key in known_dates:
-        _json_str = u"CAST(json->>%s AS DATE)"
+        _json_str = u"CAST(json->>%s AS TIMESTAMP)"
 
     return _json_str
 
