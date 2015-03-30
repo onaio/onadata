@@ -522,7 +522,7 @@ def edit(request, username, id_string):
     if username == request.user.username or\
             request.user.has_perm('logger.change_xform', xform):
         if request.POST.get('description') or\
-            request.POST.get('description') == '':
+                request.POST.get('description') == '':
             audit = {
                 'xform': xform.id_string
             }
