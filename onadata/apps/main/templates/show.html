@@ -36,7 +36,7 @@
             <div class="input">
             <form>
                 {% csrf_token %}
-                <textarea id="description" class="input-xxlarge present" disabled="" rows="3" name="textarea">{% if xform.description %}{{ xform.description }}{% else %}{% trans "None" %}{% endif %}</textarea>
+                <textarea id="description" class="input-xxlarge present" disabled="" rows="3" name="textarea" placeholder='No description'>{% if xform.description %}{{ xform.description }}{% else %}{% trans "None" %}{% endif %}</textarea>
                 {% if can_edit %}
                     <a id="description_edit" data-id="description" href="" class="btn small bind-edit">{% trans "edit" %}</a>
                     <a id="description_save" data-id="description" style="display:none" href="" class="btn small btn-primary bind-save" data-url="{% url "onadata.apps.main.views.edit" content_user.username xform.id_string %}">{% trans "save" %}</a>
