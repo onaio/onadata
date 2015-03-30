@@ -147,10 +147,6 @@ class XForm(BaseModel):
 
         self.title = title_xml
 
-    def _set_description(self):
-        self.description = self.description \
-            if self.description and self.description != '' else self.title
-
     def _set_encrypted_field(self):
         if self.json and self.json != '':
             json_dict = json.loads(self.json)
@@ -164,7 +160,6 @@ class XForm(BaseModel):
 
     def save(self, *args, **kwargs):
         self._set_title()
-        self._set_description()
         old_id_string = self.id_string
         self._set_id_string()
         self._set_encrypted_field()
