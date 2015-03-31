@@ -27,7 +27,7 @@ class TestUserPermissions(TestAbstractViewSet):
             'owner': 'http://testserver/api/v1/users/bob',
             'public': False,
             'public_data': False,
-            'description': u'transportation_2011_07_25',
+            'description': u'',
             'downloadable': True,
             'allows_sms': False,
             'encrypted': False,
