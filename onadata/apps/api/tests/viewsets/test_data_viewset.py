@@ -34,7 +34,7 @@ def _data_list(formid):
         u'id': formid,
         u'id_string': u'transportation_2011_07_25',
         u'title': 'transportation_2011_07_25',
-        u'description': 'transportation_2011_07_25',
+        u'description': '',
         u'url': u'http://testserver/api/v1/data/%s' % formid
     }]
 
