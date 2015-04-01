@@ -1764,7 +1764,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
 
             for format in ['xls', 'osm', 'csv']:
                 request = self.factory.get(
-                    '/', data={"fmt": format}, **self.extra)
+                    '/', data={"format": format}, **self.extra)
                 response = view(request, pk=formid)
                 self.assertIsNotNone(response.data)
                 self.assertEqual(response.status_code, 202)
@@ -1810,7 +1810,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.status_code, 202)
             self.assertTrue('job_uuid' in response.data)
 
-            data = json.loads(response.data)
+            data = response.data
             get_data = {'job_uuid': data.get('job_uuid')}
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid, format='xls')
@@ -1857,7 +1857,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.status_code, 202)
             self.assertTrue('job_uuid' in response.data)
 
-            data = json.loads(response.data)
+            data = response.data
             get_data = {'job_uuid': data.get('job_uuid')}
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid, format='xls')

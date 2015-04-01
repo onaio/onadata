@@ -574,7 +574,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     @action(methods=['GET'])
     def export_async(self, request, *args, **kwargs):
         job_uuid = request.QUERY_PARAMS.get('job_uuid')
-        export_type = request.QUERY_PARAMS.get('fmt')
+        export_type = request.QUERY_PARAMS.get('format')
         query = request.GET.get("query", {})
         xform = self.get_object()
 
