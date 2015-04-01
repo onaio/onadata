@@ -212,7 +212,7 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls
+       curl -X GET https://ona.io/api/v1/forms/28058/export_async?fmt=xls
 
 Response
 ^^^^^^^^

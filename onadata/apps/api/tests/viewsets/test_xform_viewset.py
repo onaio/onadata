@@ -1762,15 +1762,14 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             })
             formid = self.xform.pk
 
-            for format in ['xls', 'osm']:
+            for format in ['xls', 'osm', 'csv']:
                 request = self.factory.get(
-                    '/', data={"format": format}, **self.extra)
+                    '/', data={"fmt": format}, **self.extra)
                 response = view(request, pk=formid)
                 self.assertIsNotNone(response.data)
                 self.assertEqual(response.status_code, 202)
                 self.assertTrue('job_uuid' in response.data)
-
-                data = json.loads(response.data)
+                data = response.data
                 get_data = {'job_uuid': data.get('job_uuid')}
                 request = self.factory.get('/', data=get_data, **self.extra)
                 response = view(request, pk=formid)

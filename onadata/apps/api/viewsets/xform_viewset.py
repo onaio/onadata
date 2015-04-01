@@ -574,7 +574,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     @action(methods=['GET'])
     def export_async(self, request, *args, **kwargs):
         job_uuid = request.QUERY_PARAMS.get('job_uuid')
-        export_type = request.QUERY_PARAMS.get('format')
+        export_type = request.QUERY_PARAMS.get('fmt')
         query = request.GET.get("query", {})
         xform = self.get_object()
 
@@ -623,7 +623,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             resp = {
                 u'job_uuid': async_result.task_id
             }
-            resp = json.dumps(resp)
         resp_code = status.HTTP_202_ACCEPTED
         return Response(data=resp,
                         status=resp_code,
