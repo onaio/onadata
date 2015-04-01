@@ -351,7 +351,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             self.assertContains(response, instanceId, status_code=201)
             self.assertEqual(Instance.objects.count(), count + 1)
 
-    def test_form_export_with_no_xls_returns_404(self):
+    def test_form_export_with_no_xlsform_returns_200(self):
         self._publish_xml_form()
         self.view = XFormViewSet.as_view({'get': 'retrieve'})
 
@@ -359,6 +359,10 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request, pk=xform.pk, format='csv')
 
+        self.assertEqual(response.status_code, 200)
+
+        self.view = XFormViewSet.as_view({'get': 'form'})
+        response = self.view(request, pk=xform.pk, format='xls')
         self.assertEqual(response.status_code, 404)
 
     def tearDown(self):
