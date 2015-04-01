@@ -15,7 +15,6 @@ from django.utils import timezone
 
 from rest_framework import exceptions
 from rest_framework import status
-from rest_framework.reverse import reverse
 from rest_framework.decorators import action, detail_route, list_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
@@ -579,33 +578,48 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         query = request.GET.get("query", {})
         xform = self.get_object()
 
+        token = request.QUERY_PARAMS.get('token')
+        meta = request.QUERY_PARAMS.get('meta')
+        data_id = request.QUERY_PARAMS.get('data_id')
+        options = {
+            'meta': meta,
+            'token': token,
+            'data_id': data_id
+        }
+
         if job_uuid:
             job = AsyncResult(job_uuid)
-
             if job.state == 'SUCCESS':
                 export_id = job.result
                 export = Export.objects.get(id=export_id)
-                if export:
-                    export_url = reverse(
-                        'xform-detail',
-                        kwargs={'pk': xform.pk, 'format': export.export_type},
-                        request=request
-                    )
+                if export.is_successful:
                     resp = {
-                        u'job_status': job.state,
-                        u'export_url': export_url
+                        u'JOB_STATUS': job.state,
+                        u'EXPORT_URL': export.export_url
                     }
                 else:
-                    raise Http404(_("Export Fot Found"))
-
+                    if export.status is 0:
+                        export_status = "Pending"
+                    elif export.status is 1:
+                        export_status = "Successful"
+                    else:
+                        export_status = "Failed"
+                    resp = {
+                        'EXPORT_STATUS': export_status
+                    }
             else:
                 resp = {
                     'JOB_STATUS': job.state
                 }
 
         else:
+            export_type = _get_export_type(export_type)
+
+            if export_type in external_export_types and \
+                    (token is not None) or (meta is not None):
+                export_type = Export.EXTERNAL_EXPORT
             export, async_result = viewer_task.create_async_export(
-                xform, export_type, query, False)
+                xform, export_type, query, False, options=options)
             resp = {
                 u'job_uuid': async_result.task_id
             }
