@@ -1879,7 +1879,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             with HTTMock(external_mock):
                 # External export
                 request = self.factory.get(
-                    '/', data={"format": "xls", "meta": metadata.pk},
+                    '/', data={"fmt": "xls", "meta": metadata.pk},
                     **self.extra)
                 response = view(request, pk=formid)
 
@@ -1889,6 +1889,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
 
             data = response.data
             get_data = {'job_uuid': data.get('job_uuid')}
+
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid, format='xls')
             self.assertTrue(async_result.called)
@@ -1925,7 +1926,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             with HTTMock(external_mock):
                 # External export
                 request = self.factory.get(
-                    '/', data={"format": "xls", "meta": metadata.pk,
+                    '/', data={"fmt": "xls", "meta": metadata.pk,
                                'data_id': self.xform.instances.all()[0].pk},
                     **self.extra)
                 response = view(request, pk=formid)
@@ -1936,6 +1937,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
 
             data = response.data
             get_data = {'job_uuid': data.get('job_uuid')}
+
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid, format='xls')
             self.assertTrue(async_result.called)
