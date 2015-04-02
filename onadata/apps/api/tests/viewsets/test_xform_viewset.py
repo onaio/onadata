@@ -1806,7 +1806,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             with HTTMock(external_mock):
                 # External export
                 request = self.factory.get(
-                    '/', data={"fmt": "xls", "meta": metadata.pk},
+                    '/', data={"format": "xls", "meta": metadata.pk},
                     **self.extra)
                 response = view(request, pk=formid)
 
@@ -1853,7 +1853,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             with HTTMock(external_mock):
                 # External export
                 request = self.factory.get(
-                    '/', data={"fmt": "xls", "meta": metadata.pk,
+                    '/', data={"format": "xls", "meta": metadata.pk,
                                'data_id': self.xform.instances.all()[0].pk},
                     **self.extra)
                 response = view(request, pk=formid)
