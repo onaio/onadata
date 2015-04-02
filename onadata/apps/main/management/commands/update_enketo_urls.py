@@ -43,8 +43,7 @@ class Command(BaseCommand):
         request.META['SERVER_PORT'] = server_port
 
         resultset = MetaData.objects.filter(
-            Q(data_type='enketo_url') | Q(data_type='enketo_preview_url'),
-            xform__user__username='ivermac')
+            Q(data_type='enketo_url') | Q(data_type='enketo_preview_url'))
         for meta_data in resultset:
             username = meta_data.xform.user.username
             id_string = meta_data.xform.id_string
