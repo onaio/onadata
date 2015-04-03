@@ -19,7 +19,9 @@ from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import XForm
+from onadata.apps.viewer.models import Export
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -1769,13 +1771,15 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                 self.assertIsNotNone(response.data)
                 self.assertEqual(response.status_code, 202)
                 self.assertTrue('job_uuid' in response.data)
-                data = response.data
-                get_data = {'job_uuid': data.get('job_uuid')}
+                task_id = response.data.get('job_uuid')
+                get_data = {'job_uuid': task_id}
                 request = self.factory.get('/', data=get_data, **self.extra)
                 response = view(request, pk=formid)
 
                 self.assertTrue(async_result.called)
                 self.assertEqual(response.status_code, 202)
+                export = Export.objects.get(task_id=task_id)
+                self.assertTrue(export.is_successful)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.xform_viewset.AsyncResult')

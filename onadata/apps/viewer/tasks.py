@@ -218,7 +218,7 @@ def create_osm_export(username, id_string, export_id, query=None):
             'username': username,
             'id_string': id_string
         }
-        report_exception("KML Export Exception: Export ID - "
+        report_exception("OSM Export Exception: Export ID - "
                          "%(export_id)s, /%(username)s/%(id_string)s"
                          % details, e, sys.exc_info())
         raise
