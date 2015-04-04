@@ -17,6 +17,7 @@ from rest_framework import exceptions
 from rest_framework import status
 from rest_framework.decorators import action, detail_route, list_route
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
@@ -575,7 +576,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     def export_async(self, request, *args, **kwargs):
         job_uuid = request.QUERY_PARAMS.get('job_uuid')
         export_type = request.QUERY_PARAMS.get('format')
-        query = request.GET.get("query", {})
+        query = request.GET.get("query")
         xform = self.get_object()
 
         token = request.QUERY_PARAMS.get('token')
@@ -593,9 +594,18 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 export_id = job.result
                 export = Export.objects.get(id=export_id)
                 if export.is_successful:
+                    if export.export_type != Export.EXTERNAL_EXPORT:
+                        export_url = reverse(
+                            'xform-detail',
+                            kwargs={'pk': xform.pk,
+                                    'format': export.export_type},
+                            request=request
+                        )
+                    else:
+                        export_url = export.export_url
                     resp = {
                         u'JOB_STATUS': job.state,
-                        u'EXPORT_URL': export.export_url
+                        u'EXPORT_URL': export_url
                     }
                 else:
                     if export.status is 0:
