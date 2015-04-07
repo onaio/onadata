@@ -51,7 +51,7 @@ class Command(BaseCommand):
             xform = meta_data.xform
 
             if data_type == 'enketo_url':
-                form_url = _get_form_url(request, username, protocol='http')
+                form_url = _get_form_url(request, username, protocol=protocol)
                 _enketo_url = enketo_url(form_url, id_string)
                 MetaData.enketo_url(xform, _enketo_url)
             elif data_type == 'enketo_preview_url':
