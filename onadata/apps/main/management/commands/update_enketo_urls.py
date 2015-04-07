@@ -37,7 +37,7 @@ class Command(BaseCommand):
 
         # required for generation of enketo url
         request.META['HTTP_HOST'] = '%s:%s' % (server_name, server_port)\
-            if server_port != 80 else server_name
+            if server_port != '80' else server_name
 
         # required for generation of enketo preview url
         request.META['SERVER_NAME'] = server_name
