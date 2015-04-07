@@ -1690,7 +1690,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.tasks.get_async_status')
     def test_publish_form_async(self, mock_get_status):
-        mock_get_status.return_value = {'JOB_STATUS': 'PENDING'}
+        mock_get_status.return_value = {'job_status': 'PENDING'}
 
         count = XForm.objects.count()
         view = XFormViewSet.as_view({
@@ -1721,13 +1721,13 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         self.assertTrue(mock_get_status.called)
 
         self.assertEqual(response.status_code, 202)
-        self.assertEquals(response.data, {'JOB_STATUS': 'PENDING'})
+        self.assertEquals(response.data, {'job_status': 'PENDING'})
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.tasks.get_async_status')
     def test_delete_xform_async(self, mock_get_status):
         with HTTMock(enketo_mock):
-            mock_get_status.return_value = {'JOB_STATUS': 'PENDING'}
+            mock_get_status.return_value = {'job_status': 'PENDING'}
             self._publish_xls_form_to_project()
             count = XForm.objects.count()
             view = XFormViewSet.as_view({
@@ -1752,7 +1752,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
 
             self.assertTrue(mock_get_status.called)
             self.assertEqual(response.status_code, 202)
-            self.assertEquals(response.data, {'JOB_STATUS': 'PENDING'})
+            self.assertEquals(response.data, {'job_status': 'PENDING'})
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.xform_viewset.AsyncResult')

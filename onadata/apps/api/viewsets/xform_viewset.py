@@ -604,8 +604,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                     else:
                         export_url = export.export_url
                     resp = {
-                        u'JOB_STATUS': job.state,
-                        u'EXPORT_URL': export_url
+                        u'job_status': job.state,
+                        u'export_url': export_url
                     }
                 else:
                     if export.status is 0:
