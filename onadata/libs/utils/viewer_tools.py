@@ -165,7 +165,8 @@ def enketo_url(form_url, id_string, instance_xml=None,
             and not hasattr(settings, 'ENKETO_API_SURVEY_PATH'):
         return False
 
-    url = urljoin(settings.ENKETO_URL, settings.ENKETO_API_SURVEY_PATH)
+    url = urljoin(
+        settings.ENKETO_URL, settings.ENKETO_API_SURVEY_PATH + "/offline")
 
     values = {
         'form_id': id_string,
@@ -196,6 +197,8 @@ def enketo_url(form_url, id_string, instance_xml=None,
                 return response['edit_url']
             if 'url' in response:
                 return response['url']
+            if 'offline_url' in response:
+                return response['offline_url']
     else:
         try:
             response = req.json()
