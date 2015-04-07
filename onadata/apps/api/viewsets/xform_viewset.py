@@ -615,11 +615,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                     else:
                         export_status = "Failed"
                     resp = {
-                        'EXPORT_STATUS': export_status
+                        'export_status': export_status
                     }
             else:
                 resp = {
-                    'JOB_STATUS': job.state
+                    'job_status': job.state
                 }
 
         else:
