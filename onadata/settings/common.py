@@ -14,6 +14,7 @@ import os
 import subprocess  # nopep8, used by included files
 import sys  # nopep8, used by included files
 import socket
+from urlparse import urljoin
 
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
@@ -91,12 +92,13 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/static/'
 
 # Enketo URL
-ENKETO_URL = 'https://enketo.ona.io/'
-ENKETO_API_SURVEY_PATH = '/api_v1/survey'
-ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
-ENKETO_PREVIEW_URL = ENKETO_URL + 'webform/preview'
-ENKETO_API_TOKEN = ''
-ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v1/instance/iframe"
+ENKETO_PROTOCOL = 'https'
+ENKETO_URL = ENKETO_PROTOCOL + '://enketo.ona.io/'
+ENKETO_API_INSTANCE_IFRAME_URL = urljoin(ENKETO_URL, 'api_v2/instance/iframe')
+ENKETO_API_TOKEN = os.environ.get('ENKETO_API_TOKEN')
+ENKETO_API_SURVEY_PATH = '/api_v2/survey'
+ENKETO_OFFLINE_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH + '/offline')
+ENKETO_PREVIEW_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH + '/preview')
 
 # Login URLs
 LOGIN_URL = '/accounts/login/'
@@ -453,9 +455,6 @@ BINARY_SELECT_MULTIPLES = False
 
 # Use 'n/a' for empty values by default on csv exports
 NA_REP = 'n/a'
-
-# specifically for site urls sent to enketo
-ENKETO_PROTOCOL = 'https'
 
 if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
     # site templates overrides
