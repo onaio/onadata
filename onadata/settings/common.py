@@ -97,6 +97,7 @@ ENKETO_URL = ENKETO_PROTOCOL + '://enketo.ona.io/'
 ENKETO_API_INSTANCE_IFRAME_URL = urljoin(ENKETO_URL, 'api_v2/instance/iframe')
 ENKETO_API_TOKEN = os.environ.get('ENKETO_API_TOKEN')
 ENKETO_API_SURVEY_PATH = '/api_v2/survey'
+ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
 ENKETO_OFFLINE_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH + '/offline')
 ENKETO_PREVIEW_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH + '/preview')
 
