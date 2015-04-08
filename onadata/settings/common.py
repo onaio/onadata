@@ -13,6 +13,7 @@ import logging
 import os
 import subprocess  # nopep8, used by included files
 import sys  # nopep8, used by included files
+from urlparse import urljoin
 
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
@@ -90,12 +91,13 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/static/'
 
 # Enketo URL
-ENKETO_URL = 'https://enketo.formhub.org/'
-ENKETO_API_SURVEY_PATH = '/api_v1/survey'
-ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
-ENKETO_PREVIEW_URL = ENKETO_URL + 'webform/preview'
-ENKETO_API_TOKEN = ''
-ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v1/instance/iframe"
+ENKETO_PROTOCOL = 'https'
+ENKETO_URL = ENKETO_PROTOCOL + '://enketo-stage.ona.io/'
+ENKETO_API_INSTANCE_IFRAME_URL = urljoin(ENKETO_URL, 'api_v2/instance/iframe')
+ENKETO_API_TOKEN = '0nad1srupts'
+ENKETO_API_SURVEY_PATH = '/api_v2/survey'
+ENKETO_OFFLINE_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH + '/offline')
+ENKETO_PREVIEW_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH + '/preview')
 
 # Login URLs
 LOGIN_URL = '/accounts/login/'
