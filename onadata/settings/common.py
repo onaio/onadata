@@ -456,9 +456,6 @@ BINARY_SELECT_MULTIPLES = False
 # Use 'n/a' for empty values by default on csv exports
 NA_REP = 'n/a'
 
-# specifically for site urls sent to enketo
-ENKETO_PROTOCOL = 'https'
-
 if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
     # site templates overrides
     TEMPLATE_DIRS = (
