@@ -2,7 +2,6 @@ import json
 from mock import patch
 
 from django.contrib.auth.models import User
-from onadata.apps.main.models import UserProfile
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
