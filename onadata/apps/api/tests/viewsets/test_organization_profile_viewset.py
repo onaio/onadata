@@ -2,6 +2,7 @@ import json
 from mock import patch
 
 from django.contrib.auth.models import User
+from onadata.apps.main.models import UserProfile
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
@@ -232,13 +233,6 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         })
 
         member = 'aboy'
-        expected_data = self.company_data
-        expected_data['users'].append({
-            'first_name': u'Bob',
-            'last_name': u'erama',
-            'role': 'member',
-            'user': member
-        })
         cur_username = self.profile_data['username']
         self.profile_data['username'] = member
         self._login_user_and_profile()
@@ -256,6 +250,16 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.profile_data['username'] = member
         self._login_user_and_profile()
 
+        expected_data = self.company_data
+        expected_data['users'].append({
+            'first_name': u'Bob',
+            'last_name': u'erama',
+            'role': 'member',
+            'user': member,
+            'gravatar': self.user.profile.gravatar,
+            'metadata': self.user.profile.metadata,
+        })
+
         request = self.factory.get('/', **self.extra)
         response = view(request)
         self.assertEqual(response.status_code, 200)
@@ -269,7 +273,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'post': 'members'
         })
 
-        User.objects.create(username='aboy')
+        self.profile_data['username'] = "aboy"
+        self._create_user_profile()
         data = {'username': 'aboy'}
         user_role = 'member'
         request = self.factory.post(
@@ -397,7 +402,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'put': 'members'
         })
 
-        User.objects.create(username=newname)
+        self.profile_data['username'] = newname
+        self._create_user_profile()
         data = {'username': newname}
         request = self.factory.post(
             '/', data=json.dumps(data),
@@ -538,7 +544,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'get': 'retrieve'
         })
 
-        User.objects.create(username='aboy', email='aboy@org.com')
+        self.profile_data['username'] = "aboy"
+        self._create_user_profile()
         data = {'username': 'aboy',
                 'role': 'editor'}
         request = self.factory.post(
@@ -565,7 +572,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             'put': 'members'
         })
 
-        aboy = User.objects.create(username='aboy', email='aboy@org.com')
+        self.profile_data['username'] = "aboy"
+        aboy = self._create_user_profile().user
+
         data = {'username': 'aboy',
                 'role': 'owner'}
         request = self.factory.post(
