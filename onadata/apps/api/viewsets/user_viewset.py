@@ -4,6 +4,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework import filters
 
+from onadata.libs.filters import UserNoOrganizationsFilter
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.user_serializer import UserSerializer
 from onadata.apps.api import permissions
@@ -17,7 +18,7 @@ class UserViewSet(LastModifiedMixin, ReadOnlyModelViewSet):
     serializer_class = UserSerializer
     lookup_field = 'username'
     permission_classes = [permissions.UserViewSetPermissions]
-    filter_backends = (filters.SearchFilter,)
+    filter_backends = (filters.SearchFilter, UserNoOrganizationsFilter,)
     search_fields = ('=email',)
 
     def get_object(self, queryset=None):
