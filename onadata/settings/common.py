@@ -23,7 +23,7 @@ djcelery.setup_loader()
 
 CURRENT_FILE = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.realpath(
-    os.path.join(os.path.dirname(CURRENT_FILE), '..//'))
+    os.path.join(os.path.dirname(CURRENT_FILE), '../'))
 PRINT_EXCEPTION = False
 
 TEMPLATED_EMAIL_TEMPLATE_DIR = 'templated_email/'
@@ -489,8 +489,7 @@ CSV_ROW_IMPORT_ASYNC_THRESHOLD = 100
 SEND_EMAIL_ACTIVATION_API = False
 METADATA_SEPARATOR = "|"
 
-path = os.path.join(
-    PROJECT_ROOT, "settings", "reserved_accounts.txt")
+path = os.path.join(PROJECT_ROOT, "..", "extras", "reserved_accounts.txt")
 try:
     with open(path, 'r') as f:
         RESERVED_USERNAMES = [line.rstrip() for line in f]
