@@ -96,3 +96,30 @@ class TestUserViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         # empty results
         self.assertEqual(response.data, [])
+
+    def test_get_non_org_users(self):
+        self._org_create()
+
+        view = UserViewSet.as_view(
+            {'get': 'list'}
+        )
+
+        all_users_request = self.factory.get('/')
+        all_users_response = view(all_users_request)
+
+        self.assertEquals(all_users_response.status_code, 200)
+        self.assertEquals(
+            len(filter(
+                lambda user: user['username'] == 'denoinc',
+                all_users_response.data)),
+            1)
+
+        no_orgs_request = self.factory.get('/', data={'no_orgs': ''})
+        no_orgs_response = view(no_orgs_request)
+
+        self.assertEquals(no_orgs_response.status_code, 200)
+        self.assertEquals(
+            len(filter(
+                lambda user: user['username'] == 'denoinc',
+                no_orgs_response.data)),
+            0)

@@ -9,7 +9,7 @@ from rest_framework.exceptions import ParseError
 
 
 from onadata.apps.logger.models import XForm, Instance
-from onadata.apps.api.models import Team
+from onadata.apps.api.models import Team, OrganizationProfile
 
 
 class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
@@ -208,5 +208,17 @@ class TeamOrgFilter(filters.BaseFilterBackend):
             }
 
             return Team.objects.filter(**kwargs)
+
+        return queryset
+
+
+class UserNoOrganizationsFilter(filters.BaseFilterBackend):
+
+    def filter_queryset(self, request, queryset, view):
+        if 'no_orgs' in request.QUERY_PARAMS:
+            organization_user_ids = OrganizationProfile.objects.values_list(
+                'user__id',
+                flat=True)
+            queryset = queryset.exclude(id__in=organization_user_ids)
 
         return queryset
