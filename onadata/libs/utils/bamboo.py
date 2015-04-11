@@ -6,7 +6,7 @@ from pybamboo.connection import Connection
 from pybamboo.exceptions import ErrorParsingBambooData
 
 from onadata.apps.logger.models.instance import Instance
-from onadata.apps.viewer.pandas_mongo_bridge import CSVDataFrameBuilder
+from onadata.libs.utils.csv_data_frame_builder import CSVDataFrameBuilder
 from onadata.apps.restservice.models import RestService
 from onadata.libs.exceptions import NoRecordsFoundError
 

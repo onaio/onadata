@@ -3,12 +3,11 @@ import os
 from tempfile import NamedTemporaryFile
 
 from django.utils.dateparse import parse_datetime
-from django.core.urlresolvers import reverse
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
-from onadata.apps.viewer.pandas_mongo_bridge import AbstractDataFrameBuilder,\
+from onadata.libs.utils.csv_data_frame_builder import AbstractDataFrameBuilder,\
     CSVDataFrameBuilder, CSVDataFrameWriter, ExcelWriter,\
     get_prefix_from_xpath, get_valid_sheet_name, XLSDataFrameBuilder,\
     XLSDataFrameWriter, remove_dups_from_list_maintain_order
@@ -108,108 +107,6 @@ class TestPandasMongoBridge(TestBase):
         data = self._xls_data_for_dataframe()
         self.assertEqual(len(data[self.survey_name]), 1)
         self.assertEqual(len(data[u"kids_details"]), 2)
-
-    def test_xls_columns(self):
-        """
-        Test that our expected columns are in the data
-        """
-        self._publish_single_level_repeat_form()
-        self._submit_fixture_instance("new_repeats", "01")
-        data = self._xls_data_for_dataframe()
-        # columns in the default sheet
-        expected_default_columns = [
-            u"gps",
-            u"_gps_latitude",
-            u"_gps_longitude",
-            u"_gps_altitude",
-            u"_gps_precision",
-            u"web_browsers/firefox",
-            u"web_browsers/safari",
-            u"web_browsers/ie",
-            u"info/age",
-            u"web_browsers/chrome",
-            u"kids/has_kids",
-            u"info/name",
-            u"meta/instanceID"
-        ] + AbstractDataFrameBuilder.ADDITIONAL_COLUMNS +\
-            XLSDataFrameBuilder.EXTRA_COLUMNS
-        # get the header
-        default_columns = [k for k in data[self.survey_name][0]]
-        self.assertEqual(sorted(expected_default_columns),
-                         sorted(default_columns))
-
-        # columns in the kids_details sheet
-        expected_kids_details_columns = [
-            u"kids/kids_details/kids_name",
-            u"kids/kids_details/kids_age"
-        ] + AbstractDataFrameBuilder.ADDITIONAL_COLUMNS +\
-            XLSDataFrameBuilder.EXTRA_COLUMNS
-        kids_details_columns = [k for k in data[u"kids_details"][0]]
-        self.assertEqual(sorted(expected_kids_details_columns),
-                         sorted(kids_details_columns))
-
-    def test_xls_columns_for_gps_within_groups(self):
-        """
-        Test that a valid xpath is generated for extra gps fields that are NOT
-        top level
-        """
-        self._publish_grouped_gps_form()
-        self._submit_fixture_instance("grouped_gps", "01")
-        data = self._xls_data_for_dataframe()
-        # columns in the default sheet
-        expected_default_columns = [
-            u"gps_group/gps",
-            u"gps_group/_gps_latitude",
-            u"gps_group/_gps_longitude",
-            u"gps_group/_gps_altitude",
-            u"gps_group/_gps_precision",
-            u"web_browsers/firefox",
-            u"web_browsers/safari",
-            u"web_browsers/ie",
-            u"web_browsers/chrome",
-            u"meta/instanceID"
-        ] + AbstractDataFrameBuilder.ADDITIONAL_COLUMNS +\
-            XLSDataFrameBuilder.EXTRA_COLUMNS
-        default_columns = [k for k in data[self.survey_name][0]]
-        self.assertEqual(sorted(expected_default_columns),
-                         sorted(default_columns))
-
-    def test_xlsx_output_when_data_exceeds_limits(self):
-        self._publish_xls_fixture_set_xform("xlsx_output")
-        self._submit_fixture_instance("xlsx_output", "01")
-        xls_builder = XLSDataFrameBuilder(username=self.user.username,
-                                          id_string=self.xform.id_string)
-        self.assertEqual(xls_builder.exceeds_xls_limits, True)
-        # test that the view returns an xlsx file instead
-        url = reverse('xls_export', kwargs={
-            'username': self.user.username,
-            'id_string': self.xform.id_string
-        })
-        self.response = self.client.get(url)
-        self.assertEqual(self.response.status_code, 200)
-        self.assertEqual(self.response["content-type"],
-                         'application/vnd.openxmlformats')
-
-    def test_xlsx_export_for_repeats(self):
-        """
-        Make sure exports run fine when the xlsx file has multiple sheets
-        """
-        self._publish_xls_fixture_set_xform("new_repeats")
-        self._submit_fixture_instance("new_repeats", "01")
-        XLSDataFrameBuilder(username=self.user.username,
-                            id_string=self.xform.id_string)
-        # test that the view returns an xlsx file instead
-        url = reverse('xls_export', kwargs={
-            'username': self.user.username,
-            'id_string': self.xform.id_string
-        })
-        params = {
-            'xlsx': 'true'  # force xlsx
-        }
-        self.response = self.client.get(url, params)
-        self.assertEqual(self.response.status_code, 200)
-        self.assertEqual(self.response["content-type"],
-                         'application/vnd.openxmlformats')
 
     def test_csv_dataframe_export_to(self):
         self._publish_nested_repeats_form()

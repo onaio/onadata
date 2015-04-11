@@ -575,7 +575,7 @@ class ExportBuilder(object):
             self, path, data, username, id_string, filter_query,
             start=None, end=None):
         # TODO resolve circular import
-        from onadata.apps.viewer.pandas_mongo_bridge import\
+        from onadata.libs.utils.csv_data_frame_builder import\
             CSVDataFrameBuilder
 
         csv_builder = CSVDataFrameBuilder(
