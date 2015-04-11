@@ -22,7 +22,7 @@ from django.db.models import Q
 from onadata.apps.main.models import MetaData
 
 
-@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
 def enketo_mock(url, request):
     response = requests.Response()
     response.status_code = 201
@@ -225,7 +225,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.form_data['metadata'] = [{
             'id': preview_url.pk,
             'xform': self.xform.pk,
-            'data_value': u'https://enketo.formhub.org/webform/preview?'
+            'data_value': u'https://enketo.ona.io/webform/preview?'
             'server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.xform.user.username,
             'data_type': u'enketo_preview_url',

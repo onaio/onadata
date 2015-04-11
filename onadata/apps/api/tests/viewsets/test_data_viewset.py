@@ -21,11 +21,11 @@ from httmock import urlmatch, HTTMock
 from onadata.apps.logger.models.instance import get_attachment_url
 
 
-@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
 def enketo_mock(url, request):
     response = requests.Response()
     response.status_code = 201
-    response._content = '{"url": "https://hmh2a.enketo.formhub.org"}'
+    response._content = '{"url": "https://hmh2a.enketo.ona.io"}'
     return response
 
 
@@ -514,7 +514,7 @@ class TestDataViewSet(TestBase):
             response = view(request, pk=formid, dataid=dataid)
             self.assertEqual(
                 response.data['url'],
-                "https://hmh2a.enketo.formhub.org")
+                "https://hmh2a.enketo.ona.io")
 
     def test_get_form_public_data(self):
         self._make_submissions()

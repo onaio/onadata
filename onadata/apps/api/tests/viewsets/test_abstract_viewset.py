@@ -30,7 +30,7 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.apps.logger.views import submission
 
 
-@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
 def enketo_mock(url, request):
     response = requests.Response()
     response.status_code = 201

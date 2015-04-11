@@ -21,15 +21,15 @@ from onadata.libs.utils.viewer_tools import enketo_url
 from test_base import TestBase
 
 
-@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
 def enketo_mock(url, request):
     response = requests.Response()
     response.status_code = 201
-    response._content = '{"url": "https://hmh2a.enketo.formhub.org"}'
+    response._content = '{"url": "https://hmh2a.enketo.ona.io"}'
     return response
 
 
-@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
 def enketo_error_mock(url, request):
     response = requests.Response()
     response.status_code = 400
