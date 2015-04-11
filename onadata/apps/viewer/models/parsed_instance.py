@@ -10,14 +10,13 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.utils.translation import ugettext as _
 
-from onadata.apps.logger.models.note import Note
 from onadata.apps.restservice.models import RestService
 from onadata.apps.logger.models.instance import _get_attachments_from_instance
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.restservice.task import call_service_async
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
-    NOTES, SUBMITTED_BY, VERSION, DURATION
+    SUBMITTED_BY, VERSION, DURATION
 
 from onadata.libs.utils.model_tools import queryset_iterator
 
@@ -345,7 +344,6 @@ class ParsedInstance(models.Model):
             SUBMISSION_TIME: self.instance.date_created.strftime(
                 MONGO_STRFTIME),
             TAGS: list(self.instance.tags.names()),
-            NOTES: self.get_notes(),
             SUBMITTED_BY: self.instance.user.username
             if self.instance.user else None,
             VERSION: self.instance.version,
@@ -409,26 +407,6 @@ class ParsedInstance(models.Model):
         self.end_time = None
         self._set_geopoint()
         super(ParsedInstance, self).save(*args, **kwargs)
-
-    def add_note(self, note):
-        note = Note(instance=self.instance, note=note)
-        note.save()
-
-    def remove_note(self, pk):
-        note = self.instance.notes.get(pk=pk)
-        note.delete()
-
-    def get_notes(self):
-        notes = []
-        note_qs = self.instance.notes.values(
-            'id', 'note', 'date_created', 'date_modified')
-        for note in note_qs:
-            note['date_created'] = \
-                note['date_created'].strftime(MONGO_STRFTIME)
-            note['date_modified'] = \
-                note['date_modified'].strftime(MONGO_STRFTIME)
-            notes.append(note)
-        return notes
 
 
 def rest_service_form_submission(sender, **kwargs):

@@ -52,15 +52,6 @@ onadata.apps.logger.models.xform module
     :undoc-members:
     :show-inheritance:
 
-onadata.apps.logger.models.ziggy_instance module
-------------------------------------------------
-
-.. automodule:: onadata.apps.logger.models.ziggy_instance
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 Module contents
 ---------------
 

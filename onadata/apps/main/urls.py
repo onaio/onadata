@@ -258,10 +258,6 @@ urlpatterns = patterns(
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/tables",
         'onadata.apps.viewer.views.stats_tables'),
 
-    # Ziggy
-    url(r"^(?P<username>[^/]+)/form-submissions$",
-        'onadata.apps.logger.views.ziggy_submissions'),
-
     # static media
     url(r'^media/(?P<path>.*)$', 'django.views.static.serve',
         {'document_root': settings.MEDIA_ROOT}),
