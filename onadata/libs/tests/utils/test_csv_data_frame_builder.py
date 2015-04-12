@@ -8,8 +8,8 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
 from onadata.libs.utils.csv_data_frame_builder import AbstractDataFrameBuilder,\
-    CSVDataFrameBuilder, CSVDataFrameWriter, get_prefix_from_xpath,\
-    remove_dups_from_list_maintain_order
+    CSVDataFrameBuilder, get_prefix_from_xpath,\
+    remove_dups_from_list_maintain_order, write_to_csv
 from onadata.libs.utils.common_tags import NA_REP
 
 
@@ -33,7 +33,7 @@ def xml_inst_filepath_from_fixture_name(fixture_name, instance_name):
     )
 
 
-class TestPandasMongoBridge(TestBase):
+class TestCSVDataFrameBuilder(TestBase):
 
     def setUp(self):
         self._create_user_and_login()
@@ -299,10 +299,10 @@ class TestPandasMongoBridge(TestBase):
         columns = ["key"]
         # test csv
         passed = False
-        csv_df_writer = CSVDataFrameWriter(data, columns)
         temp_file = NamedTemporaryFile(suffix=".csv")
+        write_to_csv(temp_file.name, data, columns)
         try:
-            csv_df_writer.write_to_csv(temp_file)
+            write_to_csv(temp_file.name, data, columns)
             passed = True
         except UnicodeEncodeError:
             pass

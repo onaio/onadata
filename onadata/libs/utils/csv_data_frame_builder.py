@@ -1,8 +1,10 @@
+import csv
+import codecs
+import cStringIO
 from collections import OrderedDict
 from itertools import chain
 
 from django.conf import settings
-from pandas.core.frame import DataFrame
 from pyxform.section import Section, RepeatingSection
 from pyxform.question import Question
 
@@ -42,6 +44,47 @@ def get_prefix_from_xpath(xpath):
     else:
         raise ValueError(
             '%s cannot be prefixed, it returns %s' % (xpath, str(parts)))
+
+
+class UnicodeWriter:
+    """
+    A CSV writer which will write rows to CSV file "f",
+    which is encoded in the given encoding.
+    """
+
+    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
+        # Redirect output to a queue
+        self.queue = cStringIO.StringIO()
+        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
+        self.stream = f
+        self.encoder = codecs.getincrementalencoder(encoding)()
+
+    def writerow(self, row):
+        self.writer.writerow([unicode(s).encode("utf-8") for s in row])
+        # Fetch UTF-8 output from the queue ...
+        data = self.queue.getvalue()
+        data = data.decode("utf-8")
+        # ... and reencode it into the target encoding
+        data = self.encoder.encode(data)
+        # write to the target stream
+        self.stream.write(data)
+        # empty queue
+        self.queue.truncate(0)
+
+    def writerows(self, rows):
+        for row in rows:
+            self.writerow(row)
+
+
+def write_to_csv(path, rows, columns):
+    na_rep = getattr(settings, 'NA_REP', NA_REP)
+    with open(path, 'wb') as csvfile:
+        writer = UnicodeWriter(csvfile, lineterminator='\n')
+        writer.writerow(columns)
+        for row in rows:
+            for col in AbstractDataFrameBuilder.IGNORED_COLUMNS:
+                row.pop(col, None)
+            writer.writerow([row.get(col, na_rep) for col in columns])
 
 
 class AbstractDataFrameBuilder(object):
@@ -344,27 +387,13 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             data.append(flat_dict)
         return data
 
-    def export_to(self, file_or_path, data_frame_max_size=30000):
-        from math import ceil
-        # get record count
-        record_count = self._query_data(query=self.filter_query, count=True)
-
+    def export_to(self, path, data_frame_max_size=30000):
         self.ordered_columns = OrderedDict()
         self._build_ordered_columns(self.dd.survey, self.ordered_columns)
 
-        # pandas will only export 30k records in a dataframe to a csv
-        # - we need to create multiple 30k dataframes if required,
-        # we need to go through all the records though so that
-        # we can figure out the columns we need for repeats
-        datas = []
-        num_data_frames = \
-            int(ceil(float(record_count) / float(data_frame_max_size)))
-        for i in range(num_data_frames):
-            cursor = self._query_data(
-                self.filter_query, start=(i * data_frame_max_size),
-                limit=data_frame_max_size)
-            data = self._format_for_dataframe(cursor)
-            datas.append(data)
+        cursor = self._query_data(
+            self.filter_query)
+        data = self._format_for_dataframe(cursor)
 
         columns = list(chain.from_iterable(
             [[xpath] if cols is None else cols
@@ -378,36 +407,4 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         # add extra columns
         columns += [col for col in self.ADDITIONAL_COLUMNS]
 
-        header = True
-        if hasattr(file_or_path, 'read'):
-            csv_file = file_or_path
-            close = False
-        else:
-            csv_file = open(file_or_path, "wb")
-            close = True
-
-        for data in datas:
-            writer = CSVDataFrameWriter(data, columns)
-            writer.write_to_csv(csv_file, header=header)
-            header = False
-        if close:
-            csv_file.close()
-
-
-class CSVDataFrameWriter(object):
-
-    def __init__(self, records, columns):
-        if len(records) < 1:
-            raise NoRecordsFoundError("No records found for your query")
-
-        self.dataframe = DataFrame(records, columns=columns)
-
-        # remove columns we don't want
-        for col in AbstractDataFrameBuilder.IGNORED_COLUMNS:
-            if col in self.dataframe.columns:
-                del(self.dataframe[col])
-
-    def write_to_csv(self, csv_file, header=True, index=False):
-        na_rep = getattr(settings, 'NA_REP', NA_REP)
-        self.dataframe.to_csv(csv_file, header=header, index=index,
-                              na_rep=na_rep, encoding='utf-8')
+        write_to_csv(path, data, columns)
