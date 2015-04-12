@@ -387,7 +387,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             data.append(flat_dict)
         return data
 
-    def export_to(self, path, data_frame_max_size=30000):
+    def export_to(self, path):
         self.ordered_columns = OrderedDict()
         self._build_ordered_columns(self.dd.survey, self.ordered_columns)
 

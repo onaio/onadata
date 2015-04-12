@@ -7,7 +7,7 @@ from django.utils.dateparse import parse_datetime
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
-from onadata.libs.utils.csv_data_frame_builder import AbstractDataFrameBuilder,\
+from onadata.libs.utils.csv_builder import AbstractDataFrameBuilder,\
     CSVDataFrameBuilder, get_prefix_from_xpath,\
     remove_dups_from_list_maintain_order, write_to_csv
 from onadata.libs.utils.common_tags import NA_REP
