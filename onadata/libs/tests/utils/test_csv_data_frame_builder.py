@@ -8,9 +8,8 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
 from onadata.libs.utils.csv_data_frame_builder import AbstractDataFrameBuilder,\
-    CSVDataFrameBuilder, CSVDataFrameWriter, ExcelWriter,\
-    get_prefix_from_xpath, get_valid_sheet_name, XLSDataFrameBuilder,\
-    XLSDataFrameWriter, remove_dups_from_list_maintain_order
+    CSVDataFrameBuilder, CSVDataFrameWriter, get_prefix_from_xpath,\
+    get_valid_sheet_name, remove_dups_from_list_maintain_order
 from onadata.libs.utils.common_tags import NA_REP
 
 
@@ -74,26 +73,11 @@ class TestPandasMongoBridge(TestBase):
         self._publish_xls_fixture_set_xform("grouped_gps")
         self.survey_name = u"grouped_gps"
 
-    def _xls_data_for_dataframe(self):
-        xls_df_builder = XLSDataFrameBuilder(self.user.username,
-                                             self.xform.id_string)
-        cursor = xls_df_builder._query_data()
-        return xls_df_builder._format_for_dataframe(cursor)
-
     def _csv_data_for_dataframe(self):
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
                                              self.xform.id_string)
         cursor = csv_df_builder._query_data()
         return csv_df_builder._format_for_dataframe(cursor)
-
-    def test_generated_sections(self):
-        self._publish_single_level_repeat_form()
-        self._submit_fixture_instance("new_repeats", "01")
-        xls_df_builder = XLSDataFrameBuilder(self.user.username,
-                                             self.xform.id_string)
-        expected_section_keys = [self.survey_name, u"kids_details"]
-        section_keys = xls_df_builder.sections.keys()
-        self.assertEqual(sorted(expected_section_keys), sorted(section_keys))
 
     def test_row_counts(self):
         """
@@ -326,19 +310,6 @@ class TestPandasMongoBridge(TestBase):
         # fake data
         data = [{"key": unicode_char}]
         columns = ["key"]
-        # test xls
-        xls_df_writer = XLSDataFrameWriter(data, columns)
-        temp_file = NamedTemporaryFile(suffix=".xls")
-        excel_writer = ExcelWriter(temp_file.name)
-        passed = False
-        try:
-            xls_df_writer.write_to_excel(excel_writer, "default")
-            passed = True
-        except UnicodeEncodeError:
-            pass
-        finally:
-            temp_file.close()
-        self.assertTrue(passed)
         # test csv
         passed = False
         csv_df_writer = CSVDataFrameWriter(data, columns)
@@ -419,27 +390,6 @@ class TestPandasMongoBridge(TestBase):
         generated_sheet_name = get_valid_sheet_name(duplicate_sheet_name,
                                                     sheet_names)
         self.assertEqual(generated_sheet_name, expected_sheet_name)
-
-    def test_query_mongo(self):
-        """
-        Test querying for record count and records using
-        AbstractDataFrameBuilder._query_mongo
-        """
-        self._publish_single_level_repeat_form()
-        # submit 3 instances
-        for i in range(3):
-            self._submit_fixture_instance("new_repeats", "01")
-        df_builder = XLSDataFrameBuilder(self.user.username,
-                                         self.xform.id_string)
-        record_count = df_builder._query_data(count=True)
-        self.assertEqual(record_count, 3)
-        cursor = df_builder._query_data()
-        records = [record for record in cursor]
-        self.assertTrue(len(records), 3)
-        # test querying using limits
-        cursor = df_builder._query_data(start=2, limit=2)
-        records = [record for record in cursor]
-        self.assertTrue(len(records), 1)
 
     def test_prefix_from_xpath(self):
         xpath = "parent/child/grandhild"
