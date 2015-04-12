@@ -9,7 +9,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
 from onadata.libs.utils.csv_data_frame_builder import AbstractDataFrameBuilder,\
     CSVDataFrameBuilder, CSVDataFrameWriter, get_prefix_from_xpath,\
-    get_valid_sheet_name, remove_dups_from_list_maintain_order
+    remove_dups_from_list_maintain_order
 from onadata.libs.utils.common_tags import NA_REP
 
 
@@ -78,19 +78,6 @@ class TestPandasMongoBridge(TestBase):
                                              self.xform.id_string)
         cursor = csv_df_builder._query_data()
         return csv_df_builder._format_for_dataframe(cursor)
-
-    def test_row_counts(self):
-        """
-        Test the number of rows in each sheet
-
-        We expect a single row in the main new_repeats sheet and 2 rows in the
-        kids details sheet one for each repeat
-        """
-        self._publish_single_level_repeat_form()
-        self._submit_fixture_instance("new_repeats", "01")
-        data = self._xls_data_for_dataframe()
-        self.assertEqual(len(data[self.survey_name]), 1)
-        self.assertEqual(len(data[u"kids_details"]), 2)
 
     def test_csv_dataframe_export_to(self):
         self._publish_nested_repeats_form()
@@ -366,31 +353,6 @@ class TestPandasMongoBridge(TestBase):
         expected_result = ["a", "z", "b", "y", "c", "x"]
         self.assertEqual(result, expected_result)
 
-    def test_valid_sheet_name(self):
-        sheet_names = ["sheet_1", "sheet_2"]
-        desired_sheet_name = "sheet_3"
-        expected_sheet_name = "sheet_3"
-        generated_sheet_name = get_valid_sheet_name(desired_sheet_name,
-                                                    sheet_names)
-        self.assertEqual(generated_sheet_name, expected_sheet_name)
-
-    def test_invalid_sheet_name(self):
-        sheet_names = ["sheet_1", "sheet_2"]
-        desired_sheet_name = "sheet_3_with_more_than_max_expected_length"
-        expected_sheet_name = "sheet_3_with_more_than_max_exp"
-        generated_sheet_name = get_valid_sheet_name(desired_sheet_name,
-                                                    sheet_names)
-        self.assertEqual(generated_sheet_name, expected_sheet_name)
-
-    def test_duplicate_sheet_name(self):
-        sheet_names = ["sheet_2_with_duplicate_sheet_n",
-                       "sheet_2_with_duplicate_sheet_1"]
-        duplicate_sheet_name = "sheet_2_with_duplicate_sheet_n"
-        expected_sheet_name = "sheet_2_with_duplicate_sheet_2"
-        generated_sheet_name = get_valid_sheet_name(duplicate_sheet_name,
-                                                    sheet_names)
-        self.assertEqual(generated_sheet_name, expected_sheet_name)
-
     def test_prefix_from_xpath(self):
         xpath = "parent/child/grandhild"
         prefix = get_prefix_from_xpath(xpath)
@@ -479,99 +441,3 @@ class TestPandasMongoBridge(TestBase):
         }
         self.maxDiff = None
         self.assertEqual(data_0, expected_data_0)
-
-    # todo: test nested repeats as well on xls
-    def test_xls_groups_within_repeats(self):
-        self._publish_xls_fixture_set_xform("groups_in_repeats")
-        self._submit_fixture_instance("groups_in_repeats", "01")
-        dd = self.xform.data_dictionary()
-        dd.get_keys()
-        data = self._xls_data_for_dataframe()
-        # remove dynamic fields
-        ignore_list = [
-            '_uuid', 'meta/instanceID', 'formhub/uuid', '_submission_time',
-            '_id', '_bamboo_dataset_id']
-        for item in ignore_list:
-            # pop unwanted keys from main section
-            for d in data["groups_in_repeats"]:
-                if item in d:
-                    d.pop(item)
-            # pop unwanted keys from children's section
-            for d in data["children"]:
-                if item in d:
-                    d.pop(item)
-        # todo: add _id to xls export
-        expected_data = {
-            u"groups_in_repeats":
-            [
-                {
-                    u'picture': None,
-                    u'has_children': u'1',
-                    u'name': u'Abe',
-                    u'age': 88,
-                    u'web_browsers/chrome': True,
-                    u'web_browsers/safari': False,
-                    u'web_browsers/ie': False,
-                    u'web_browsers/firefox': False,
-                    u'gps': u'-1.2626156 36.7923571 0.0 30.0',
-                    u'_duration': '',
-                    u'_gps_latitude': u'-1.2626156',
-                    u'_gps_longitude': u'36.7923571',
-                    u'_gps_altitude': u'0.0',
-                    u'_gps_precision': u'30.0',
-                    u'_index': 1,
-                    u'_parent_table_name': None,
-                    u'_parent_index': -1,
-                    u'_tags': [],
-                    u'_notes': [],
-                    u'_version': self.xform.version,
-                    u'_duration': u'',
-                    u'_submitted_by': u'bob'
-                }
-            ],
-            u"children": [
-                {
-                    u'children/childs_info/name': u'Cain',
-                    u'children/childs_info/age': 56,
-                    u'children/immunization/immunization_received/polio_1':
-                    True,
-                    u'children/immunization/immunization_received/polio_2':
-                    False,
-                    u'_index': 1,
-                    u'_parent_table_name': u'groups_in_repeats',
-                    u'_parent_index': 1,
-                },
-                {
-                    u'children/childs_info/name': u'Able',
-                    u'children/childs_info/age': 48,
-                    u'children/immunization/immunization_received/polio_1':
-                    True,
-                    u'children/immunization/immunization_received/polio_2':
-                    True,
-                    u'_index': 2,
-                    u'_parent_table_name': u'groups_in_repeats',
-                    u'_parent_index': 1,
-                }
-            ]
-        }
-        self.maxDiff = None
-        self.assertEqual(
-            data["groups_in_repeats"][0],
-            expected_data["groups_in_repeats"][0])
-        # each of the children should have children/... keys, we can guratnee
-        # the order so we cant check the values, just make sure they are not
-        # none
-        self.assertEqual(len(data["children"]), 2)
-        for child in data["children"]:
-            self.assertTrue("children/childs_info/name" in child)
-            self.assertIsNotNone(child["children/childs_info/name"])
-            self.assertTrue("children/childs_info/age" in child)
-            self.assertIsNotNone(child["children/childs_info/name"])
-            self.assertTrue(
-                "children/immunization/immunization_received/polio_1" in child)
-            self.assertEqual(type(child[
-                "children/immunization/immunization_received/polio_1"]), bool)
-            self.assertTrue(
-                "children/immunization/immunization_received/polio_2" in child)
-            self.assertEqual(type(child[
-                "children/immunization/immunization_received/polio_2"]), bool)
