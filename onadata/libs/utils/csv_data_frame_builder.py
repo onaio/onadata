@@ -12,7 +12,7 @@ from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP,\
-    BAMBOO_DATASET_ID, DELETEDAT, TAGS, SUBMITTED_BY, VERSION,\
+    BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
     DURATION
 from onadata.libs.utils.export_tools import question_types_to_exclude
 
@@ -49,7 +49,7 @@ class AbstractDataFrameBuilder(object):
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields NOT within the form def that we want to include
     ADDITIONAL_COLUMNS = [
-        UUID, SUBMISSION_TIME, TAGS, VERSION, DURATION, SUBMITTED_BY]
+        UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION, SUBMITTED_BY]
     BINARY_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
@@ -232,7 +232,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
         # check for lists
         if type(value) is list and len(value) > 0 \
-                and key != ATTACHMENTS:
+                and key not in [ATTACHMENTS, NOTES]:
             for index, item in enumerate(value):
                 # start at 1
                 index += 1
@@ -273,7 +273,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         else:
             # anything that's not a list will be in the top level dict so its
             # safe to simply assign
-            if key == ATTACHMENTS:
+            if key == NOTES:
+                d[key] = u"\r\n".join(value)
+            elif key == ATTACHMENTS:
                 d[key] = []
             else:
                 d[key] = value
