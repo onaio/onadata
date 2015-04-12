@@ -44,8 +44,6 @@ from onadata.apps.sms_support.tools import check_form_sms_compatibility,\
     is_sms_related
 from onadata.apps.sms_support.autodoc import get_autodoc_for
 from onadata.apps.sms_support.providers import providers_doc
-from onadata.libs.utils.bamboo import get_new_bamboo_dataset,\
-    delete_bamboo_dataset, ensure_rest_service
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
     publish_form
@@ -1173,47 +1171,6 @@ def delete_data(request, username=None, id_string=None):
         response_text = ("%s(%s)" % (callback, response_text))
 
     return HttpResponse(response_text, content_type='application/json')
-
-
-@require_POST
-@is_owner
-def link_to_bamboo(request, username, id_string):
-    xform = get_object_or_404(XForm,
-                              user__username__iexact=username,
-                              id_string__iexact=id_string)
-    owner = xform.user
-    audit = {
-        'xform': xform.id_string
-    }
-
-    # try to delete the dataset first (in case it exists)
-    if xform.bamboo_dataset and delete_bamboo_dataset(xform):
-        xform.bamboo_dataset = u''
-        xform.save()
-        audit_log(
-            Actions.BAMBOO_LINK_DELETED, request.user, owner,
-            _("Bamboo link deleted on '%(id_string)s'.")
-            % {'id_string': xform.id_string}, audit, request)
-
-    # create a new one from all the data
-    dataset_id = get_new_bamboo_dataset(xform)
-
-    # update XForm
-    xform.bamboo_dataset = dataset_id
-    xform.save()
-    ensure_rest_service(xform)
-
-    audit_log(
-        Actions.BAMBOO_LINK_CREATED, request.user, owner,
-        _("Bamboo link created on '%(id_string)s'.") %
-        {
-            'id_string': xform.id_string,
-        }, audit, request)
-
-    return HttpResponseRedirect(reverse(show, kwargs={
-        'username': username,
-        'id_string': id_string
-    }))
 
 
 @require_POST

@@ -98,8 +98,6 @@ urlpatterns = patterns(
         'onadata.apps.main.views.edit'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/perms$',
         'onadata.apps.main.views.set_perm'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/bamboo$',
-        'onadata.apps.main.views.link_to_bamboo'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/photos',
         'onadata.apps.main.views.form_photos'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/doc/(?P<data_id>\d+)'
