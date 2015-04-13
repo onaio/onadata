@@ -215,7 +215,7 @@ class TeamOrgFilter(filters.BaseFilterBackend):
 class UserNoOrganizationsFilter(filters.BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
-        if 'no_orgs' in request.QUERY_PARAMS:
+        if str(request.QUERY_PARAMS.get('orgs')).lower() == 'false':
             organization_user_ids = OrganizationProfile.objects.values_list(
                 'user__id',
                 flat=True)
