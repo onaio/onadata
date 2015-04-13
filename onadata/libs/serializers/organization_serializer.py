@@ -84,4 +84,6 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             'role': get_role_in_org(u, obj),
             'first_name': u.first_name,
             'last_name': u.last_name,
+            'gravatar': u.profile.gravatar,
+            'metadata': u.profile.metadata,
         } for u in members]
