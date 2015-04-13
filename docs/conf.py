@@ -24,7 +24,7 @@ sys.path.insert(0, abspath(dirname(dirname(__file__))))
 sys.path.append(abspath('_themes'))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE",
-                      "onadata.settings.example_sqlite")
+                      "onadata.settings.common")
 
 # -- General configuration ------------------------------------------------
 

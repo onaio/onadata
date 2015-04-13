@@ -13,14 +13,6 @@ Subpackages
 Submodules
 ----------
 
-onadata.apps.viewer.pandas_mongo_bridge module
-----------------------------------------------
-
-.. automodule:: onadata.apps.viewer.pandas_mongo_bridge
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 onadata.apps.viewer.tasks module
 --------------------------------
 

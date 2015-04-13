@@ -10,7 +10,7 @@ from fabric.operations import put
 DEPLOYMENTS = {
     'stage': {
         'home': '/home/ubuntu/src/',
-        'host_string': 'ubuntu@stage.ona.io',
+        'host_string': 'ubuntu@54.77.70.168',
         'project': 'ona',
         'key_filename': os.path.expanduser('~/.ssh/ona.pem'),
         'celeryd': '/etc/init.d/celeryd-ona',
