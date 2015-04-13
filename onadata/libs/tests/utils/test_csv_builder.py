@@ -364,11 +364,7 @@ class TestCSVDataFrameBuilder(TestBase):
         prefix = get_prefix_from_xpath(xpath)
         self.assertTrue(prefix is None)
 
-    def test_csv_export_with_df_size_limit(self):
-        """
-        To fix pandas limitation of 30k rows on csv export, we specify a max
-        number of records in a dataframe on export - lets test it
-        """
+    def test_csv_export(self):
         self._publish_single_level_repeat_form()
         # submit 7 instances
         for i in range(4):
@@ -381,7 +377,7 @@ class TestCSVDataFrameBuilder(TestBase):
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name, data_frame_max_size=3)
+        csv_df_builder.export_to(temp_file.name)
         csv_file = open(temp_file.name)
         csv_reader = csv.reader(csv_file)
         header = csv_reader.next()
