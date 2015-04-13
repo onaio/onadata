@@ -200,7 +200,6 @@ INSTALLED_APPS = (
     'onadata.apps.api',
     'guardian',
     'djcelery',
-    'onadata.apps.stats',
     'onadata.apps.sms_support',
     'onadata.libs',
 )
