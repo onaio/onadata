@@ -4,14 +4,6 @@ onadata.apps.restservice.services package
 Submodules
 ----------
 
-onadata.apps.restservice.services.bamboo module
------------------------------------------------
-
-.. automodule:: onadata.apps.restservice.services.bamboo
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 onadata.apps.restservice.services.f2dhis2 module
 ------------------------------------------------
 

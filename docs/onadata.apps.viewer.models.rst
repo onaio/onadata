@@ -20,14 +20,6 @@ onadata.apps.viewer.models.export module
     :undoc-members:
     :show-inheritance:
 
-onadata.apps.viewer.models.instance_modification module
--------------------------------------------------------
-
-.. automodule:: onadata.apps.viewer.models.instance_modification
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 onadata.apps.viewer.models.parsed_instance module
 -------------------------------------------------
 

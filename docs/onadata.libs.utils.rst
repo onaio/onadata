@@ -27,14 +27,6 @@ onadata.libs.utils.backup_tools module
     :undoc-members:
     :show-inheritance:
 
-onadata.libs.utils.bamboo module
---------------------------------
-
-.. automodule:: onadata.libs.utils.bamboo
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 onadata.libs.utils.briefcase_client module
 ------------------------------------------
 
@@ -71,6 +63,14 @@ onadata.libs.utils.country_field module
 ---------------------------------------
 
 .. automodule:: onadata.libs.utils.country_field
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.utils.csv_builder module
+----------------------------------------------
+
+.. automodule:: onadata.libs.utils.csv_builder
     :members:
     :undoc-members:
     :show-inheritance:
