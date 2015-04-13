@@ -30,6 +30,18 @@ Response
            ...
        ]
 
+List Users excluding organizations
+----------------------------------
+
+Organizations are a type of user in the Ona API. To get all users excluding
+organizations, set the `orgs` parameter to `false`. It is true by default.
+
+Example
+^^^^^^^
+
+::
+        curl -X GET https://ona.io/api/v1/users?orgs=false
+
 Retrieve a specific user info
 -----------------------------
 
