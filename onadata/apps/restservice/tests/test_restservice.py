@@ -4,11 +4,8 @@ from mock import patch
 
 from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
-from nose import SkipTest
-from pybamboo.connection import Connection
-from pybamboo.dataset import Dataset
 
-from onadata.apps.main.views import show, link_to_bamboo
+from onadata.apps.main.views import show
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models import MetaData
@@ -72,69 +69,6 @@ class RestServiceTest(TestBase):
 
     def test_add_service(self):
         self._add_rest_service(self.service_url, self.service_name)
-
-    def test_bamboo_service(self):
-        # comment out when we can test or mock it differently
-        raise SkipTest
-        service_url = 'http://bamboo.io/'
-        service_name = 'bamboo'
-
-        xml_submission1 = os.path.join(self.this_directory,
-                                       u'fixtures',
-                                       u'dhisform_submission1.xml')
-        xml_submission2 = os.path.join(self.this_directory,
-                                       u'fixtures',
-                                       u'dhisform_submission2.xml')
-        xml_submission3 = os.path.join(self.this_directory,
-                                       u'fixtures',
-                                       u'dhisform_submission3.xml')
-
-        # make sure xform doesnt have a bamboo dataset
-        self.xform.bamboo_dataset = ''
-        self.xform.save()
-
-        # make a first submission without the service
-        self._make_submission(xml_submission1)
-        self.assertEqual(self.response.status_code, 201)
-
-        # add rest service AFTER 1st submission
-        self._add_rest_service(service_url, service_name)
-
-        # submit another one.
-        self._make_submission(xml_submission2)
-        self.assertEqual(self.response.status_code, 201)
-        self.wait(5)
-        # it should have created the whole dataset
-        xform = XForm.objects.get(id=self.xform.id)
-        self.assertTrue(
-            xform.bamboo_dataset != '' and xform.bamboo_dataset is not None)
-        dataset = Dataset(connection=Connection(service_url),
-                          dataset_id=xform.bamboo_dataset)
-        self.assertEqual(dataset.get_info()['num_rows'], 2)
-
-        # submit a third one. check that we have 3 records
-        self._make_submission(xml_submission3)
-        self.assertEqual(self.response.status_code, 201)
-        self.wait(5)
-        self.assertEqual(dataset.get_info()['num_rows'], 3)
-
-        # test regeneration
-        dsi = dataset.get_info()
-        regen_url = reverse(link_to_bamboo, kwargs={
-            'username': self.user.username,
-            'id_string': self.xform.id_string
-        })
-        response = self.client.post(regen_url, {})
-        # deleting DS redirects to profile page
-        self.assertEqual(response.status_code, 302)
-        self.wait(5)
-        xform = XForm.objects.get(id=self.xform.id)
-        self.assertTrue(xform.bamboo_dataset)
-        dataset = Dataset(connection=Connection(service_url),
-                          dataset_id=xform.bamboo_dataset)
-        new_dsi = dataset.get_info()
-        self.assertEqual(new_dsi['num_rows'], dsi['num_rows'])
-        self.assertNotEqual(new_dsi['id'], dsi['id'])
 
     def test_anon_service_view(self):
         self.xform.shared = True

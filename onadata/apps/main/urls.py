@@ -98,8 +98,6 @@ urlpatterns = patterns(
         'onadata.apps.main.views.edit'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/perms$',
         'onadata.apps.main.views.set_perm'),
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/bamboo$',
-        'onadata.apps.main.views.link_to_bamboo'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/photos',
         'onadata.apps.main.views.form_photos'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/doc/(?P<data_id>\d+)'
@@ -257,10 +255,6 @@ urlpatterns = patterns(
     # Stats tables
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/tables",
         'onadata.apps.viewer.views.stats_tables'),
-
-    # Ziggy
-    url(r"^(?P<username>[^/]+)/form-submissions$",
-        'onadata.apps.logger.views.ziggy_submissions'),
 
     # static media
     url(r'^media/(?P<path>.*)$', 'django.views.static.serve',

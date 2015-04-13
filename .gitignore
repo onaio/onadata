@@ -24,6 +24,7 @@ build
 .DS_Store
 .idea
 .odk
+*.iml
 .project
 .pydevproject
 .sass-cache

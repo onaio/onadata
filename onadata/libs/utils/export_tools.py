@@ -34,7 +34,6 @@ from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.osm import get_combined_osm
 
 
-# this is Mongo Collection where we will store the parsed submissions
 QUESTION_TYPES_TO_EXCLUDE = [
     u'note',
 ]
@@ -575,8 +574,7 @@ class ExportBuilder(object):
             self, path, data, username, id_string, filter_query,
             start=None, end=None):
         # TODO resolve circular import
-        from onadata.apps.viewer.pandas_mongo_bridge import\
-            CSVDataFrameBuilder
+        from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,

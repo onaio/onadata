@@ -3,15 +3,13 @@ import os
 from tempfile import NamedTemporaryFile
 
 from django.utils.dateparse import parse_datetime
-from django.core.urlresolvers import reverse
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import xform_instance_to_dict
-from onadata.apps.viewer.pandas_mongo_bridge import AbstractDataFrameBuilder,\
-    CSVDataFrameBuilder, CSVDataFrameWriter, ExcelWriter,\
-    get_prefix_from_xpath, get_valid_sheet_name, XLSDataFrameBuilder,\
-    XLSDataFrameWriter, remove_dups_from_list_maintain_order
+from onadata.libs.utils.csv_builder import AbstractDataFrameBuilder,\
+    CSVDataFrameBuilder, get_prefix_from_xpath,\
+    remove_dups_from_list_maintain_order, write_to_csv
 from onadata.libs.utils.common_tags import NA_REP
 
 
@@ -35,7 +33,7 @@ def xml_inst_filepath_from_fixture_name(fixture_name, instance_name):
     )
 
 
-class TestPandasMongoBridge(TestBase):
+class TestCSVDataFrameBuilder(TestBase):
 
     def setUp(self):
         self._create_user_and_login()
@@ -75,141 +73,11 @@ class TestPandasMongoBridge(TestBase):
         self._publish_xls_fixture_set_xform("grouped_gps")
         self.survey_name = u"grouped_gps"
 
-    def _xls_data_for_dataframe(self):
-        xls_df_builder = XLSDataFrameBuilder(self.user.username,
-                                             self.xform.id_string)
-        cursor = xls_df_builder._query_data()
-        return xls_df_builder._format_for_dataframe(cursor)
-
     def _csv_data_for_dataframe(self):
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
                                              self.xform.id_string)
         cursor = csv_df_builder._query_data()
         return csv_df_builder._format_for_dataframe(cursor)
-
-    def test_generated_sections(self):
-        self._publish_single_level_repeat_form()
-        self._submit_fixture_instance("new_repeats", "01")
-        xls_df_builder = XLSDataFrameBuilder(self.user.username,
-                                             self.xform.id_string)
-        expected_section_keys = [self.survey_name, u"kids_details"]
-        section_keys = xls_df_builder.sections.keys()
-        self.assertEqual(sorted(expected_section_keys), sorted(section_keys))
-
-    def test_row_counts(self):
-        """
-        Test the number of rows in each sheet
-
-        We expect a single row in the main new_repeats sheet and 2 rows in the
-        kids details sheet one for each repeat
-        """
-        self._publish_single_level_repeat_form()
-        self._submit_fixture_instance("new_repeats", "01")
-        data = self._xls_data_for_dataframe()
-        self.assertEqual(len(data[self.survey_name]), 1)
-        self.assertEqual(len(data[u"kids_details"]), 2)
-
-    def test_xls_columns(self):
-        """
-        Test that our expected columns are in the data
-        """
-        self._publish_single_level_repeat_form()
-        self._submit_fixture_instance("new_repeats", "01")
-        data = self._xls_data_for_dataframe()
-        # columns in the default sheet
-        expected_default_columns = [
-            u"gps",
-            u"_gps_latitude",
-            u"_gps_longitude",
-            u"_gps_altitude",
-            u"_gps_precision",
-            u"web_browsers/firefox",
-            u"web_browsers/safari",
-            u"web_browsers/ie",
-            u"info/age",
-            u"web_browsers/chrome",
-            u"kids/has_kids",
-            u"info/name",
-            u"meta/instanceID"
-        ] + AbstractDataFrameBuilder.ADDITIONAL_COLUMNS +\
-            XLSDataFrameBuilder.EXTRA_COLUMNS
-        # get the header
-        default_columns = [k for k in data[self.survey_name][0]]
-        self.assertEqual(sorted(expected_default_columns),
-                         sorted(default_columns))
-
-        # columns in the kids_details sheet
-        expected_kids_details_columns = [
-            u"kids/kids_details/kids_name",
-            u"kids/kids_details/kids_age"
-        ] + AbstractDataFrameBuilder.ADDITIONAL_COLUMNS +\
-            XLSDataFrameBuilder.EXTRA_COLUMNS
-        kids_details_columns = [k for k in data[u"kids_details"][0]]
-        self.assertEqual(sorted(expected_kids_details_columns),
-                         sorted(kids_details_columns))
-
-    def test_xls_columns_for_gps_within_groups(self):
-        """
-        Test that a valid xpath is generated for extra gps fields that are NOT
-        top level
-        """
-        self._publish_grouped_gps_form()
-        self._submit_fixture_instance("grouped_gps", "01")
-        data = self._xls_data_for_dataframe()
-        # columns in the default sheet
-        expected_default_columns = [
-            u"gps_group/gps",
-            u"gps_group/_gps_latitude",
-            u"gps_group/_gps_longitude",
-            u"gps_group/_gps_altitude",
-            u"gps_group/_gps_precision",
-            u"web_browsers/firefox",
-            u"web_browsers/safari",
-            u"web_browsers/ie",
-            u"web_browsers/chrome",
-            u"meta/instanceID"
-        ] + AbstractDataFrameBuilder.ADDITIONAL_COLUMNS +\
-            XLSDataFrameBuilder.EXTRA_COLUMNS
-        default_columns = [k for k in data[self.survey_name][0]]
-        self.assertEqual(sorted(expected_default_columns),
-                         sorted(default_columns))
-
-    def test_xlsx_output_when_data_exceeds_limits(self):
-        self._publish_xls_fixture_set_xform("xlsx_output")
-        self._submit_fixture_instance("xlsx_output", "01")
-        xls_builder = XLSDataFrameBuilder(username=self.user.username,
-                                          id_string=self.xform.id_string)
-        self.assertEqual(xls_builder.exceeds_xls_limits, True)
-        # test that the view returns an xlsx file instead
-        url = reverse('xls_export', kwargs={
-            'username': self.user.username,
-            'id_string': self.xform.id_string
-        })
-        self.response = self.client.get(url)
-        self.assertEqual(self.response.status_code, 200)
-        self.assertEqual(self.response["content-type"],
-                         'application/vnd.openxmlformats')
-
-    def test_xlsx_export_for_repeats(self):
-        """
-        Make sure exports run fine when the xlsx file has multiple sheets
-        """
-        self._publish_xls_fixture_set_xform("new_repeats")
-        self._submit_fixture_instance("new_repeats", "01")
-        XLSDataFrameBuilder(username=self.user.username,
-                            id_string=self.xform.id_string)
-        # test that the view returns an xlsx file instead
-        url = reverse('xls_export', kwargs={
-            'username': self.user.username,
-            'id_string': self.xform.id_string
-        })
-        params = {
-            'xlsx': 'true'  # force xlsx
-        }
-        self.response = self.client.get(url, params)
-        self.assertEqual(self.response.status_code, 200)
-        self.assertEqual(self.response["content-type"],
-                         'application/vnd.openxmlformats')
 
     def test_csv_dataframe_export_to(self):
         self._publish_nested_repeats_form()
@@ -429,25 +297,12 @@ class TestPandasMongoBridge(TestBase):
         # fake data
         data = [{"key": unicode_char}]
         columns = ["key"]
-        # test xls
-        xls_df_writer = XLSDataFrameWriter(data, columns)
-        temp_file = NamedTemporaryFile(suffix=".xls")
-        excel_writer = ExcelWriter(temp_file.name)
-        passed = False
-        try:
-            xls_df_writer.write_to_excel(excel_writer, "default")
-            passed = True
-        except UnicodeEncodeError:
-            pass
-        finally:
-            temp_file.close()
-        self.assertTrue(passed)
         # test csv
         passed = False
-        csv_df_writer = CSVDataFrameWriter(data, columns)
         temp_file = NamedTemporaryFile(suffix=".csv")
+        write_to_csv(temp_file.name, data, columns)
         try:
-            csv_df_writer.write_to_csv(temp_file)
+            write_to_csv(temp_file.name, data, columns)
             passed = True
         except UnicodeEncodeError:
             pass
@@ -498,52 +353,6 @@ class TestPandasMongoBridge(TestBase):
         expected_result = ["a", "z", "b", "y", "c", "x"]
         self.assertEqual(result, expected_result)
 
-    def test_valid_sheet_name(self):
-        sheet_names = ["sheet_1", "sheet_2"]
-        desired_sheet_name = "sheet_3"
-        expected_sheet_name = "sheet_3"
-        generated_sheet_name = get_valid_sheet_name(desired_sheet_name,
-                                                    sheet_names)
-        self.assertEqual(generated_sheet_name, expected_sheet_name)
-
-    def test_invalid_sheet_name(self):
-        sheet_names = ["sheet_1", "sheet_2"]
-        desired_sheet_name = "sheet_3_with_more_than_max_expected_length"
-        expected_sheet_name = "sheet_3_with_more_than_max_exp"
-        generated_sheet_name = get_valid_sheet_name(desired_sheet_name,
-                                                    sheet_names)
-        self.assertEqual(generated_sheet_name, expected_sheet_name)
-
-    def test_duplicate_sheet_name(self):
-        sheet_names = ["sheet_2_with_duplicate_sheet_n",
-                       "sheet_2_with_duplicate_sheet_1"]
-        duplicate_sheet_name = "sheet_2_with_duplicate_sheet_n"
-        expected_sheet_name = "sheet_2_with_duplicate_sheet_2"
-        generated_sheet_name = get_valid_sheet_name(duplicate_sheet_name,
-                                                    sheet_names)
-        self.assertEqual(generated_sheet_name, expected_sheet_name)
-
-    def test_query_mongo(self):
-        """
-        Test querying for record count and records using
-        AbstractDataFrameBuilder._query_mongo
-        """
-        self._publish_single_level_repeat_form()
-        # submit 3 instances
-        for i in range(3):
-            self._submit_fixture_instance("new_repeats", "01")
-        df_builder = XLSDataFrameBuilder(self.user.username,
-                                         self.xform.id_string)
-        record_count = df_builder._query_data(count=True)
-        self.assertEqual(record_count, 3)
-        cursor = df_builder._query_data()
-        records = [record for record in cursor]
-        self.assertTrue(len(records), 3)
-        # test querying using limits
-        cursor = df_builder._query_data(start=2, limit=2)
-        records = [record for record in cursor]
-        self.assertTrue(len(records), 1)
-
     def test_prefix_from_xpath(self):
         xpath = "parent/child/grandhild"
         prefix = get_prefix_from_xpath(xpath)
@@ -555,11 +364,7 @@ class TestPandasMongoBridge(TestBase):
         prefix = get_prefix_from_xpath(xpath)
         self.assertTrue(prefix is None)
 
-    def test_csv_export_with_df_size_limit(self):
-        """
-        To fix pandas limitation of 30k rows on csv export, we specify a max
-        number of records in a dataframe on export - lets test it
-        """
+    def test_csv_export(self):
         self._publish_single_level_repeat_form()
         # submit 7 instances
         for i in range(4):
@@ -572,7 +377,7 @@ class TestPandasMongoBridge(TestBase):
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
-        csv_df_builder.export_to(temp_file.name, data_frame_max_size=3)
+        csv_df_builder.export_to(temp_file.name)
         csv_file = open(temp_file.name)
         csv_reader = csv.reader(csv_file)
         header = csv_reader.next()
@@ -632,99 +437,3 @@ class TestPandasMongoBridge(TestBase):
         }
         self.maxDiff = None
         self.assertEqual(data_0, expected_data_0)
-
-    # todo: test nested repeats as well on xls
-    def test_xls_groups_within_repeats(self):
-        self._publish_xls_fixture_set_xform("groups_in_repeats")
-        self._submit_fixture_instance("groups_in_repeats", "01")
-        dd = self.xform.data_dictionary()
-        dd.get_keys()
-        data = self._xls_data_for_dataframe()
-        # remove dynamic fields
-        ignore_list = [
-            '_uuid', 'meta/instanceID', 'formhub/uuid', '_submission_time',
-            '_id', '_bamboo_dataset_id']
-        for item in ignore_list:
-            # pop unwanted keys from main section
-            for d in data["groups_in_repeats"]:
-                if item in d:
-                    d.pop(item)
-            # pop unwanted keys from children's section
-            for d in data["children"]:
-                if item in d:
-                    d.pop(item)
-        # todo: add _id to xls export
-        expected_data = {
-            u"groups_in_repeats":
-            [
-                {
-                    u'picture': None,
-                    u'has_children': u'1',
-                    u'name': u'Abe',
-                    u'age': 88,
-                    u'web_browsers/chrome': True,
-                    u'web_browsers/safari': False,
-                    u'web_browsers/ie': False,
-                    u'web_browsers/firefox': False,
-                    u'gps': u'-1.2626156 36.7923571 0.0 30.0',
-                    u'_duration': '',
-                    u'_gps_latitude': u'-1.2626156',
-                    u'_gps_longitude': u'36.7923571',
-                    u'_gps_altitude': u'0.0',
-                    u'_gps_precision': u'30.0',
-                    u'_index': 1,
-                    u'_parent_table_name': None,
-                    u'_parent_index': -1,
-                    u'_tags': [],
-                    u'_notes': [],
-                    u'_version': self.xform.version,
-                    u'_duration': u'',
-                    u'_submitted_by': u'bob'
-                }
-            ],
-            u"children": [
-                {
-                    u'children/childs_info/name': u'Cain',
-                    u'children/childs_info/age': 56,
-                    u'children/immunization/immunization_received/polio_1':
-                    True,
-                    u'children/immunization/immunization_received/polio_2':
-                    False,
-                    u'_index': 1,
-                    u'_parent_table_name': u'groups_in_repeats',
-                    u'_parent_index': 1,
-                },
-                {
-                    u'children/childs_info/name': u'Able',
-                    u'children/childs_info/age': 48,
-                    u'children/immunization/immunization_received/polio_1':
-                    True,
-                    u'children/immunization/immunization_received/polio_2':
-                    True,
-                    u'_index': 2,
-                    u'_parent_table_name': u'groups_in_repeats',
-                    u'_parent_index': 1,
-                }
-            ]
-        }
-        self.maxDiff = None
-        self.assertEqual(
-            data["groups_in_repeats"][0],
-            expected_data["groups_in_repeats"][0])
-        # each of the children should have children/... keys, we can guratnee
-        # the order so we cant check the values, just make sure they are not
-        # none
-        self.assertEqual(len(data["children"]), 2)
-        for child in data["children"]:
-            self.assertTrue("children/childs_info/name" in child)
-            self.assertIsNotNone(child["children/childs_info/name"])
-            self.assertTrue("children/childs_info/age" in child)
-            self.assertIsNotNone(child["children/childs_info/name"])
-            self.assertTrue(
-                "children/immunization/immunization_received/polio_1" in child)
-            self.assertEqual(type(child[
-                "children/immunization/immunization_received/polio_1"]), bool)
-            self.assertTrue(
-                "children/immunization/immunization_received/polio_2" in child)
-            self.assertEqual(type(child[
-                "children/immunization/immunization_received/polio_2"]), bool)

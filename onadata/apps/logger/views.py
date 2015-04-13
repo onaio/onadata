@@ -32,7 +32,6 @@ from onadata.apps.logger.import_tools import import_instances_from_zip
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
-from onadata.apps.logger.models.ziggy_instance import ZiggyInstance
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.viewer_tools import enketo_url
 from onadata.libs.utils.logger_tools import (
@@ -659,46 +658,3 @@ def form_upload(request, username):
             else:
                 status = 400
     return OpenRosaResponse(content, status=status)
-
-
-@csrf_exempt
-def ziggy_submissions(request, username):
-    """
-    Accepts ziggy JSON submissions.
-
-        - stored in mongo, ziggy_instances
-        - ZiggyInstance Django Model
-
-    Copy form_instance - to create actual Instances for a specific form?
-    """
-    data = {'message': _(u"Invalid request!")}
-    status = 400
-    form_user = get_object_or_404(User, username__iexact=username)
-    if request.method == 'POST':
-        json_post = request.body
-        if json_post:
-            # save submission
-            # i.e pick entity_id, instance_id, server_version, client_version?
-            # reporter_id
-            records = ZiggyInstance.create_ziggy_instances(
-                form_user, json_post)
-
-            data = {'status': 'success',
-                    'message': _(u"Successfully processed %(records)s records"
-                                 % {'records': records})}
-            status = 201
-    else:
-        # get clientVersion and reportId
-        reporter_id = request.GET.get('reporter-id', None)
-        client_version = request.GET.get('timestamp', 0)
-        if reporter_id is not None and client_version is not None:
-            try:
-                cursor = ZiggyInstance.get_current_list(
-                    reporter_id, client_version)
-            except ValueError as e:
-                status = 400
-                data = {'message': '%s' % e}
-            else:
-                status = 200
-                data = [record for record in cursor]
-    return HttpResponse(json.dumps(data), status=status)

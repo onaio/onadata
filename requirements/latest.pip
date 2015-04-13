@@ -1,7 +1,5 @@
-# pybamboo has deps in common but on newer versions.
-# on top so those will be overwritten
-pybamboo==0.5.8.1
 pytz>=2013b
+simplejson
 
 Distribute
 Django<1.7
@@ -27,10 +25,6 @@ django-celery>=3.0.10
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 python_digest
 django_digest
-
-# new export code relies on
-pandas>=0.11.0
-
 requests
 
 elaphe>=0.5.3

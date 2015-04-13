@@ -423,10 +423,10 @@ class ParsedInstance(models.Model):
         note_qs = self.instance.notes.values(
             'id', 'note', 'date_created', 'date_modified')
         for note in note_qs:
-            note['date_created'] = \
-                note['date_created'].strftime(MONGO_STRFTIME)
-            note['date_modified'] = \
-                note['date_modified'].strftime(MONGO_STRFTIME)
+            note['date_created'] = note['date_created'].strftime(
+                MONGO_STRFTIME)
+            note['date_modified'] = note['date_modified'].strftime(
+                MONGO_STRFTIME)
             notes.append(note)
         return notes
 
