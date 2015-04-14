@@ -97,7 +97,7 @@ def external_mock(url, request):
 
 
 @urlmatch(netloc=r'(.*\.)?xls_server$')
-def external_mock_single_instance(url, request):
+def external_mock_single_instance(url, request, uuid=None):
     json_str = '[{"transport_loop_over_transport_types_frequency_ambulance' \
                '_frequency_to_referral_facility": "daily",' \
                ' "transport_available_transportation_types_to_referral' \
@@ -112,6 +112,25 @@ def external_mock_single_instance(url, request):
     response.status_code = 201
     response._content = \
         "/xls/ee3ff9d8f5184fc4a8fdebc2547cc059"
+    return response
+
+
+@urlmatch(netloc=r'(.*\.)?xls_server$')
+def external_mock_single_instance2(url, request, uuid=None):
+    json_str = '[{"transport_loop_over_transport_types_frequency_ambulance' \
+               '_frequency_to_referral_facility": "daily",' \
+               ' "transport_available_transportation_types_to_referral' \
+               '_facility": "ambulance bicycle",' \
+               ' "meta_instanceID": "uuid:7a9ba167019a4152a31e46049587d672",' \
+               ' "transport_loop_over_transport_types_frequency_bicycle' \
+               '_frequency_to_referral_facility": "weekly",' \
+               ' "_xform_id_string": "transportation_2011_07_25"}]'
+
+    assert request.body == json_str, "json payload not as expected"
+    response = requests.Response()
+    response.status_code = 201
+    response._content = \
+        "/xls/ee3ff9d8f5184fc4a8fdebc2547cc057"
     return response
 
 
@@ -1880,3 +1899,62 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
 
         self.assertEqual(response.status_code, 202)
         self.assertEquals(response.data, {u'error': u'Empty job uuid'})
+
+    def test_always_new_report_with_data_id(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+
+            data_value = 'template 1|http://xls_server'
+            self._add_form_metadata(self.xform, 'external_export',
+                                    data_value)
+            metadata = MetaData.objects.get(xform=self.xform,
+                                            data_type='external_export')
+            paths = [os.path.join(
+                self.main_directory, 'fixtures', 'transportation',
+                'instances_w_uuid', s, s + '.xml')
+                for s in ['transport_2011-07-25_19-05-36']]
+
+            self._make_submission(paths[0])
+            self.assertEqual(self.response.status_code, 201)
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve',
+            })
+            data = {'meta': metadata.pk,
+                    'data_id': self.xform.instances.all()[0].pk}
+            formid = self.xform.pk
+            request = self.factory.get('/', data=data,
+                                       **self.extra)
+
+            with HTTMock(external_mock_single_instance):
+                # External export
+                response = view(
+                    request,
+                    pk=formid,
+                    format='xls')
+                self.assertEqual(response.status_code, 302)
+                expected_url = \
+                    'http://xls_server/xls/ee3ff9d8f5184fc4a8fdebc2547cc059'
+                self.assertEquals(response.url, expected_url)
+
+            count = Export.objects.filter(xform=self.xform,
+                                          export_type=Export.EXTERNAL_EXPORT)\
+                .count()
+
+            with HTTMock(external_mock_single_instance2):
+                # External export
+                response = view(
+                    request,
+                    pk=formid,
+                    format='xls')
+                self.assertEqual(response.status_code, 302)
+                expected_url = \
+                    'http://xls_server/xls/ee3ff9d8f5184fc4a8fdebc2547cc057'
+                self.assertEquals(response.url, expected_url)
+
+            count2 = Export.objects.filter(xform=self.xform,
+                                           export_type=Export.EXTERNAL_EXPORT)\
+                .count()
+
+            self.assertEquals(count+1, count2)
