@@ -114,7 +114,7 @@ class TestUserViewSet(TestAbstractViewSet):
                 all_users_response.data)),
             1)
 
-        no_orgs_request = self.factory.get('/', data={'no_orgs': ''})
+        no_orgs_request = self.factory.get('/', data={'orgs': 'false'})
         no_orgs_response = view(no_orgs_request)
 
         self.assertEquals(no_orgs_response.status_code, 200)
