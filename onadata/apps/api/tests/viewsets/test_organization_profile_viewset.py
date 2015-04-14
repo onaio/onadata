@@ -420,7 +420,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [u'denoinc', newname])
+        self.assertEqual(sorted(response.data), sorted([u'denoinc', newname]))
 
         # getting profile
         request = self.factory.get('/', **self.extra)
