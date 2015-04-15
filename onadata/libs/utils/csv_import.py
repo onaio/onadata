@@ -130,9 +130,25 @@ def submit_csv(username, xform, csv_file):
     csv_file.seek(0)
 
     csv_reader = ucsv.DictReader(csv_file)
+    csv_header = csv_reader.fieldnames
+
     # check for spaces in headers
-    if any(' ' in header for header in csv_reader.fieldnames):
+    if any(' ' in header for header in csv_header):
         return {'error': u'CSV file fieldnames should not contain spaces'}
+
+    # Get the data dictionary
+    dd = xform.data_dictionary()
+    xform_header = dd.get_headers()
+
+    missing_col = set(xform_header).difference(csv_header)
+    addition_col = set(csv_header).difference(xform_header)
+
+    if missing_col or addition_col:
+        return {'error': u'Sorry uploaded file columns do not match the form.'
+                         u' The uploaded file includes these missing columns:'
+                         u' {0}. The uploaded file has these additional'
+                         u' columns: {1}.'.format(list(missing_col),
+                                                  list(addition_col))}
 
     rollback_uuids = []
     submission_time = datetime.utcnow().isoformat()
