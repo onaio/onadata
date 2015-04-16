@@ -143,12 +143,10 @@ def submit_csv(username, xform, csv_file):
     missing_col = set(xform_header).difference(csv_header)
     addition_col = set(csv_header).difference(xform_header)
 
-    if missing_col or addition_col:
+    if missing_col:
         return {'error': u'Sorry uploaded file columns do not match the form.'
                          u' The uploaded file includes these missing columns:'
-                         u' {0}. The uploaded file has these additional'
-                         u' columns: {1}.'.format(list(missing_col),
-                                                  list(addition_col))}
+                         u' "{0}".'.format(', '.join(list(missing_col)))}
 
     rollback_uuids = []
     submission_time = datetime.utcnow().isoformat()
@@ -157,6 +155,10 @@ def submit_csv(username, xform, csv_file):
     additions = inserts = 0
     try:
         for row in csv_reader:
+            # remove the additional columns
+            for index in addition_col:
+                del row[index]
+
             # fetch submission uuid before purging row metadata
             row_uuid = row.get('_uuid')
             submitted_by = row.get('_submitted_by')
@@ -219,7 +221,8 @@ def submit_csv(username, xform, csv_file):
                 try:
                     current_task.update_state(state='PROGRESS',
                                               meta={'progress': additions,
-                                                    'total': num_rows})
+                                                    'total': num_rows,
+                                                    'info': addition_col})
                 except:
                     pass
 
@@ -238,7 +241,9 @@ def submit_csv(username, xform, csv_file):
                                 xform=xform).delete()
         return {'error': str(e)}
 
-    return {'additions': additions - inserts, 'updates': inserts}
+    return {u'additions': additions - inserts, u'updates': inserts,
+            u'info': u'Additional columns excluded from the upload: "{0}".'
+            .format(', '.join(list(addition_col)))}
 
 
 def get_async_csv_submission_status(job_uuid):
