@@ -209,7 +209,8 @@ class ExportBuilder(object):
     def format_field_title(cls, abbreviated_xpath, field_delimiter):
         if field_delimiter != '/':
             return field_delimiter.join(abbreviated_xpath.split('/'))
-        return abbreviated_xpath
+        abbreviated_xpath_list = abbreviated_xpath.split('/')
+        return abbreviated_xpath_list[len(abbreviated_xpath_list)-1]
 
     def set_survey(self, survey):
         # TODO resolve circular import

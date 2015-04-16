@@ -80,7 +80,9 @@ def write_to_csv(path, rows, columns):
     na_rep = getattr(settings, 'NA_REP', NA_REP)
     with open(path, 'wb') as csvfile:
         writer = UnicodeWriter(csvfile, lineterminator='\n')
-        writer.writerow(columns)
+
+        new_colum = [col.split('/')[-1:][0] if '/' in col else col for col in columns]
+        writer.writerow(new_colum)
         for row in rows:
             for col in AbstractDataFrameBuilder.IGNORED_COLUMNS:
                 row.pop(col, None)
