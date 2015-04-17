@@ -110,7 +110,8 @@ class CSVImportTestCase(TestBase):
                          u'submit_csv edits #2 test Failed!')
 
     def test_import_non_utf8_csv(self):
-        self._publish_xls_file(self.xls_file_path)
+        xls_file_path = os.path.join(self.fixtures_dir, "mali_health.xls")
+        self._publish_xls_file(xls_file_path)
         self.xform = XForm.objects.get()
 
         count = Instance.objects.count()
