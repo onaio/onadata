@@ -193,6 +193,8 @@ class ExportBuilder(object):
         'dateTime': lambda x: datetime.strptime(x[:19], '%Y-%m-%dT%H:%M:%S')
     }
 
+    TRUNCATE_GROUP_TITLE = False
+
     XLS_SHEET_NAME_MAX_CHARS = 31
 
     @classmethod
@@ -206,11 +208,17 @@ class ExportBuilder(object):
             return date_obj
 
     @classmethod
-    def format_field_title(cls, abbreviated_xpath, field_delimiter):
+    def format_field_title(cls, abbreviated_xpath, field_delimiter,
+                           truncate_title=False):
         if field_delimiter != '/':
             return field_delimiter.join(abbreviated_xpath.split('/'))
-        abbreviated_xpath_list = abbreviated_xpath.split('/')
-        return abbreviated_xpath_list[len(abbreviated_xpath_list)-1]
+
+        # Check if to truncate the group name prefix
+        if truncate_title:
+            abbreviated_xpath_list = abbreviated_xpath.split(field_delimiter)
+            return abbreviated_xpath_list[len(abbreviated_xpath_list)-1]
+        else:
+            return abbreviated_xpath
 
     def set_survey(self, survey):
         # TODO resolve circular import
@@ -219,7 +227,8 @@ class ExportBuilder(object):
 
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
-                gps_fields, encoded_fields, field_delimiter='/'):
+                gps_fields, encoded_fields, field_delimiter='/',
+                truncate_title=False):
             for child in survey_element.children:
                 current_section_name = current_section['name']
                 # if a section, recurs
@@ -247,7 +256,7 @@ class ExportBuilder(object):
                         current_section['elements'].append({
                             'title': ExportBuilder.format_field_title(
                                 child.get_abbreviated_xpath(),
-                                field_delimiter),
+                                field_delimiter, truncate_title),
                             'xpath': child_xpath,
                             'type': child.bind.get(u"type")
                         })
@@ -264,7 +273,7 @@ class ExportBuilder(object):
                         for c in child.children:
                             _xpath = c.get_abbreviated_xpath()
                             _title = ExportBuilder.format_field_title(
-                                _xpath, field_delimiter)
+                                _xpath, field_delimiter, truncate_title)
                             choice = {
                                 'title': _title,
                                 'xpath': _xpath,
@@ -288,7 +297,8 @@ class ExportBuilder(object):
                             [
                                 {
                                     'title': ExportBuilder.format_field_title(
-                                        xpath, field_delimiter),
+                                        xpath, field_delimiter,
+                                        truncate_title),
                                     'xpath': xpath,
                                     'type': 'decimal'
                                 }
@@ -314,7 +324,7 @@ class ExportBuilder(object):
         build_sections(
             main_section, self.survey, self.sections,
             self.select_multiples, self.gps_fields, self.encoded_fields,
-            self.GROUP_DELIMITER)
+            self.GROUP_DELIMITER, self.TRUNCATE_GROUP_TITLE)
 
     def section_by_name(self, name):
         matches = filter(lambda s: s['name'] == name, self.sections)
@@ -580,7 +590,7 @@ class ExportBuilder(object):
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
-            start, end
+            start, end, self.TRUNCATE_GROUP_TITLE
         )
         csv_builder.export_to(path)
 
@@ -680,7 +690,8 @@ def dict_to_flat_export(d, parent_index=0):
 def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
                     split_select_multiples=True,
-                    binary_select_multiples=False, start=None, end=None):
+                    binary_select_multiples=False, start=None, end=None,
+                    truncate_title=False):
     """
     Create appropriate export object given the export type
     """
@@ -704,6 +715,8 @@ def generate_export(export_type, extension, username, id_string,
     records = instances.order_by('pk').values_list('json', flat=True)
 
     export_builder = ExportBuilder()
+
+    export_builder.TRUNCATE_GROUP_TITLE = truncate_title
     export_builder.GROUP_DELIMITER = group_delimiter
     export_builder.SPLIT_SELECT_MULTIPLES = split_select_multiples
     export_builder.BINARY_SELECT_MULTIPLES = binary_select_multiples

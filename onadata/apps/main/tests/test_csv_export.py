@@ -92,3 +92,24 @@ class TestExport(TestBase):
                 expected_content = f1.read()
                 actual_content = f2.read()
                 self.assertEquals(actual_content, expected_content)
+
+    def test_csv_export_truncated_titles(self):
+        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xls')
+        self._publish_xls_file_and_set_xform(path)
+        path = os.path.join(self.fixture_dir, 'tutorial_w_repeats.xml')
+        self._make_submission(
+            path, forced_submission_time=self._submission_time)
+        # test csv
+        export = generate_export(Export.CSV_EXPORT, 'csv', self.user.username,
+                                 'tutorial_w_repeats', truncate_title=True)
+        storage = get_storage_class()()
+        self.assertTrue(storage.exists(export.filepath))
+        path, ext = os.path.splitext(export.filename)
+        self.assertEqual(ext, '.csv')
+        with open(os.path.join(
+                self.fixture_dir, 'tutorial_w_repeats_truncate_titles.csv')) \
+                as f1:
+            with storage.open(export.filepath) as f2:
+                expected_content = f1.read()
+                actual_content = f2.read()
+                self.assertEquals(actual_content, expected_content)

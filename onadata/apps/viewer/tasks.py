@@ -99,7 +99,8 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 def create_xls_export(username, id_string, export_id, query=None,
                       force_xlsx=True, group_delimiter='/',
                       split_select_multiples=True,
-                      binary_select_multiples=False):
+                      binary_select_multiples=False,
+                      truncate_title=False):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
     ext = 'xls' if not force_xlsx else 'xlsx'
@@ -115,7 +116,9 @@ def create_xls_export(username, id_string, export_id, query=None,
     try:
         gen_export = generate_export(
             Export.XLS_EXPORT, ext, username, id_string, export_id, query,
-            group_delimiter, split_select_multiples, binary_select_multiples)
+            group_delimiter, split_select_multiples, binary_select_multiples,
+            truncate_title=truncate_title
+        )
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
@@ -138,7 +141,7 @@ def create_xls_export(username, id_string, export_id, query=None,
 @task()
 def create_csv_export(username, id_string, export_id, query=None,
                       group_delimiter='/', split_select_multiples=True,
-                      binary_select_multiples=False):
+                      binary_select_multiples=False, truncate_title=False):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
     export = Export.objects.get(id=export_id)
@@ -147,7 +150,9 @@ def create_csv_export(username, id_string, export_id, query=None,
         # catch this since it potentially stops celery
         gen_export = generate_export(
             Export.CSV_EXPORT, 'csv', username, id_string, export_id, query,
-            group_delimiter, split_select_multiples, binary_select_multiples)
+            group_delimiter, split_select_multiples, binary_select_multiples,
+            truncate_title=False
+        )
     except NoRecordsFoundError:
         # not much we can do but we don't want to report this as the user
         # should not even be on this page if the survey has no records

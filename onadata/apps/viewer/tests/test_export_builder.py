@@ -1005,3 +1005,9 @@ class TestExportBuilder(TestBase):
         for section in export_builder.sections:
             section_name = section['name'].replace('/', '_')
             _test_sav_file(section_name)
+
+    def test_generate_field_title_truncated_titles(self):
+        field_name = ExportBuilder.format_field_title("child/age", "/",
+                                                      truncate_title=True)
+        expected_field_name = "age"
+        self.assertEqual(field_name, expected_field_name)

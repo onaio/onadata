@@ -76,13 +76,19 @@ class UnicodeWriter:
             self.writerow(row)
 
 
-def write_to_csv(path, rows, columns):
+def write_to_csv(path, rows, columns, truncate_tite=False):
     na_rep = getattr(settings, 'NA_REP', NA_REP)
     with open(path, 'wb') as csvfile:
         writer = UnicodeWriter(csvfile, lineterminator='\n')
 
-        new_colum = [col.split('/')[-1:][0] if '/' in col else col for col in columns]
-        writer.writerow(new_colum)
+        # Check if to truncate the group name prefix
+        if truncate_tite:
+            new_colum = [col.split('/')[-1:][0]
+                         if '/' in col else col for col in columns]
+            writer.writerow(new_colum)
+        else:
+            writer.writerow(columns)
+
         for row in rows:
             for col in AbstractDataFrameBuilder.IGNORED_COLUMNS:
                 row.pop(col, None)
@@ -103,7 +109,7 @@ class AbstractDataFrameBuilder(object):
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
-                 start=None, end=None):
+                 start=None, end=None, truncate_title=False):
         self.username = username
         self.id_string = id_string
         self.filter_query = filter_query
@@ -112,6 +118,7 @@ class AbstractDataFrameBuilder(object):
         self.BINARY_SELECT_MULTIPLES = binary_select_multiples
         self.start = start
         self.end = end
+        self.truncate_title = truncate_title
         self.xform = XForm.objects.get(id_string=self.id_string,
                                        user__username=self.username)
         self._setup()
@@ -259,10 +266,11 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
-                 start=None, end=None):
+                 start=None, end=None, truncate_title=False):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
-            split_select_multiples, binary_select_multiples, start, end)
+            split_select_multiples, binary_select_multiples, start, end,
+            truncate_title)
         self.ordered_columns = OrderedDict()
 
     def _setup(self):
@@ -409,4 +417,4 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         # add extra columns
         columns += [col for col in self.ADDITIONAL_COLUMNS]
 
-        write_to_csv(path, data, columns)
+        write_to_csv(path, data, columns, truncate_tite=self.truncate_title)
