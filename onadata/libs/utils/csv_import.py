@@ -144,9 +144,10 @@ def submit_csv(username, xform, csv_file):
     addition_col = set(csv_header).difference(xform_header)
 
     if missing_col:
-        return {'error': u'Sorry uploaded file columns do not match the form.'
-                         u' The uploaded file includes these missing columns:'
-                         u' "{0}".'.format(', '.join(list(missing_col)))}
+        return {'error': u"Sorry uploaded file column(s) do not match the "
+                         u"form."
+                         u" The uploaded file includes these missing columns:"
+                         u" '{0}'.".format(', '.join(list(missing_col)))}
 
     rollback_uuids = []
     submission_time = datetime.utcnow().isoformat()
@@ -241,8 +242,8 @@ def submit_csv(username, xform, csv_file):
                                 xform=xform).delete()
         return {'error': str(e)}
 
-    return {u'additions': additions - inserts, u'updates': inserts,
-            u'info': u'Additional columns excluded from the upload: "{0}".'
+    return {u"additions": additions - inserts, u"updates": inserts,
+            u"info": u"Additional column(s) excluded from the upload: '{0}'."
             .format(', '.join(list(addition_col)))}
 
 

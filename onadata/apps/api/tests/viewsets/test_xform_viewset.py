@@ -1311,9 +1311,9 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.status_code, 400)
             self.assertIn("error", response.data)
             self.assertEquals(response.data.get('error'),
-                              u'Sorry uploaded file columns do not match the'
-                              u' form. The uploaded file includes these '
-                              u'missing columns: "_version, _duration".')
+                              u"Sorry uploaded file column(s) do not match the"
+                              u" form. The uploaded file includes these "
+                              u"missing columns: '_version, _duration'.")
 
     def test_csv_import_additional_columns(self):
         with HTTMock(enketo_mock):
@@ -1332,8 +1332,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.status_code, 200)
             self.assertIn("info", response.data)
             self.assertEquals(response.data.get('info'),
-                              u'Additional columns excluded from the upload:'
-                              u' "_additional".')
+                              u"Additional column(s) excluded from the upload:"
+                              u" '_additional'.")
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.xform_viewset.submit_csv_async')
