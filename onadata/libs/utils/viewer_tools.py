@@ -162,7 +162,9 @@ def get_client_ip(request):
 def enketo_url(form_url, id_string, instance_xml=None,
                instance_id=None, return_url=None, **kwargs):
     if not hasattr(settings, 'ENKETO_URL')\
-            and not hasattr(settings, 'ENKETO_API_SURVEY_PATH'):
+            and not hasattr(settings, 'ENKETO_API_SURVEY_PATH')\
+            and (not hasattr(settings, 'ENKETO_API_TOKEN') or
+                 settings.ENKETO_API_TOKEN == ''):
         return False
 
     url = urljoin(settings.ENKETO_URL, settings.ENKETO_API_SURVEY_PATH)
