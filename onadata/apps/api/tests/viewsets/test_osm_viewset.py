@@ -5,6 +5,7 @@ from django.test import RequestFactory
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment
 
 
@@ -30,6 +31,15 @@ class TestOSM(TestAbstractViewSet):
         xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
         combined_osm_path = os.path.join(osm_fixtures_dir, 'combined.osm')
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+
+        # look at the forms.json?instances_with_osm=False
+        request = self.factory.get('/', {'instances_with_osm': 'True'},
+                                   **self.extra)
+        view = XFormViewSet.as_view({'get': 'list'})
+        response = view(request, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
         submission_path = os.path.join(osm_fixtures_dir, 'instance_a.xml')
         files = [open(path) for path in paths]
         count = Attachment.objects.filter(extension='osm').count()
@@ -72,3 +82,11 @@ class TestOSM(TestAbstractViewSet):
             'id_string': self.xform.id_string, 'user': self.xform.user.username
         }]
         self.assertEqual(response.data, data)
+
+        # look at the forms.json?instances_with_osm=True
+        request = self.factory.get('/', {'instances_with_osm': 'True'},
+                                   **self.extra)
+        view = XFormViewSet.as_view({'get': 'list'})
+        response = view(request, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.data, [])

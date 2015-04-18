@@ -21,6 +21,7 @@ from rest_framework.reverse import reverse
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
+from rest_framework.filters import DjangoFilterBackend
 
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
@@ -332,7 +333,9 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                             'shared', 'shared_data', 'title'))
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
                        filters.TagFilter,
-                       filters.XFormOwnerFilter)
+                       filters.XFormOwnerFilter,
+                       DjangoFilterBackend)
+    filter_fields = ('instances_with_osm',)
 
     public_forms_endpoint = 'public'
 
