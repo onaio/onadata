@@ -81,6 +81,7 @@ class XForm(BaseModel):
     uuid_bind_location = 4
     bamboo_dataset = models.CharField(max_length=60, default=u'')
     instances_with_geopoints = models.BooleanField(default=False)
+    instances_with_osm = models.BooleanField(default=False)
     num_of_submissions = models.IntegerField(default=0)
     version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True,
                                blank=True)

@@ -174,6 +174,9 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
         extension = extension.replace('.', '')
         content_type = u'text/xml' \
             if extension == Attachment.OSM else f.content_type
+        if extension == Attachment.OSM and not xform.instances_with_osm:
+            xform.instances_with_osm = True
+            xform.save()
 
         Attachment.objects.get_or_create(
             instance=instance, media_file=f, mimetype=content_type,
