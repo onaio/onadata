@@ -1,4 +1,5 @@
 from django.forms import widgets
+from requests.exceptions import ConnectionError
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from django.core.cache import cache
@@ -106,7 +107,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                 try:
                     url = enketo_url(form_url, obj.id_string)
                     MetaData.enketo_url(obj, url)
-                except EnketoError:
+                except (EnketoError, ConnectionError):
                     pass
 
                 cache.set('{}{}'.format(ENKETO_URL_CACHE, obj.pk), url)
