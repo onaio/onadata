@@ -1,9 +1,7 @@
 import os
 import json
 import random
-import csv
 
-from cStringIO import StringIO
 from datetime import datetime
 
 from celery.result import AsyncResult
@@ -18,7 +16,7 @@ from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
 
-from pyxform.xls2json import parse_file_to_json, workbook_to_json
+from pyxform.xls2json import workbook_to_json
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.xls2json_backends import csv_to_dict
 from rest_framework import exceptions
@@ -604,7 +602,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 survey_xml = survey.to_xml()
 
                 return Response(survey_xml, status=200)
-
 
     def retrieve(self, request, *args, **kwargs):
         lookup_field = self.lookup_field
