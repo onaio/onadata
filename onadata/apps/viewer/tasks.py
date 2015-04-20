@@ -45,6 +45,9 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
             arguments["binary_select_multiples"] =\
                 options["binary_select_multiples"]
 
+        if options and "truncate_title" in options:
+            arguments["truncate_title"] = options["truncate_title"]
+
         # start async export
         if export_type in [Export.XLS_EXPORT, Export.GDOC_EXPORT]:
             result = create_xls_export.apply_async((), arguments)

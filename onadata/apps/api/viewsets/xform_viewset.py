@@ -151,9 +151,14 @@ def _generate_new_export(request, xform, query, export_type):
                 export_type, extension, xform.user.username,
                 xform.id_string, export_id=None, filter_query=None)
         else:
+            truncate_title = False
+
+            if "truncate_title" in request.QUERY_PARAMS:
+                truncate_title = request.QUERY_PARAMS["truncate_title"]
+
             export = generate_export(
                 export_type, extension, xform.user.username,
-                xform.id_string, None, query
+                xform.id_string, None, query, truncate_title=truncate_title
             )
         audit = {
             "xform": xform.id_string,
@@ -582,10 +587,13 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         token = request.QUERY_PARAMS.get('token')
         meta = request.QUERY_PARAMS.get('meta')
         data_id = request.QUERY_PARAMS.get('data_id')
+        truncate_title = request.QUERY_PARAMS.get('truncate_title')
+
         options = {
             'meta': meta,
             'token': token,
-            'data_id': data_id
+            'data_id': data_id,
+            'truncate_title': truncate_title
         }
 
         if job_uuid:
