@@ -1311,9 +1311,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.status_code, 400)
             self.assertIn("error", response.data)
             self.assertEquals(response.data.get('error'),
-                              u"Sorry uploaded file column(s) do not match the"
-                              u" form. The uploaded file includes these "
-                              u"missing columns: 'name, age'.")
+                              u"Sorry uploaded file does not match the form. "
+                              u"The file is missing the column(s): name, age.")
 
     def test_csv_import_additional_columns(self):
         with HTTMock(enketo_mock):
