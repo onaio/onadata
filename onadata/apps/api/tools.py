@@ -256,7 +256,8 @@ def publish_project_xform(request, project):
             'project': project.pk,
             'dropbox_xls_url': request.DATA.get('dropbox_xls_url'),
             'xls_url': request.DATA.get('xls_url'),
-            'csv_url': request.DATA.get('csv_url')
+            'csv_url': request.DATA.get('csv_url'),
+            'text_xls_form': request.DATA.get('text_xls_form')
         }
 
         form = QuickConverter(props, request.FILES)
