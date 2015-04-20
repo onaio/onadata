@@ -76,7 +76,7 @@ def create_instance_from_json(username, request):
     return safe_create_instance(username, xml_file, [], None, request)
 
 
-class XFormSubmissionApi(OpenRosaHeadersMixin,
+class XFormSubmissionViewSet(OpenRosaHeadersMixin,
                          mixins.CreateModelMixin, viewsets.GenericViewSet):
 
     authentication_classes = (DigestAuthentication,

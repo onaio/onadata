@@ -6,15 +6,15 @@ from django_digest.test import DigestAuth
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
-from onadata.apps.api.viewsets.xform_list_api import XFormListApi
+from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
 from onadata.libs.permissions import DataEntryRole
 from onadata.libs.permissions import ReadOnlyRole
 
 
-class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
+class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
     def setUp(self):
         super(self.__class__, self).setUp()
-        self.view = XFormListApi.as_view({
+        self.view = XFormListViewSet.as_view({
             "get": "list"
         })
         self._publish_xls_form_to_project()
@@ -183,7 +183,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
                              'text/xml; charset=utf-8')
 
     def test_retrieve_xform_xml(self):
-        self.view = XFormListApi.as_view({
+        self.view = XFormListViewSet.as_view({
             "get": "retrieve"
         })
         request = self.factory.head('/')
@@ -226,7 +226,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
 
     def test_retrieve_xform_manifest(self):
         self._load_metadata(self.xform)
-        self.view = XFormListApi.as_view({
+        self.view = XFormListViewSet.as_view({
             "get": "manifest"
         })
         request = self.factory.head('/')
@@ -251,7 +251,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
 
     def test_retrieve_xform_manifest_anonymous_user(self):
         self._load_metadata(self.xform)
-        self.view = XFormListApi.as_view({
+        self.view = XFormListViewSet.as_view({
             "get": "manifest"
         })
         request = self.factory.get('/')
@@ -277,7 +277,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
         self.user.profile.require_auth = True
         self.user.profile.save()
         self._load_metadata(self.xform)
-        self.view = XFormListApi.as_view({
+        self.view = XFormListViewSet.as_view({
             "get": "manifest"
         })
         request = self.factory.get('/')
@@ -289,7 +289,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
 
     def test_retrieve_xform_media(self):
         self._load_metadata(self.xform)
-        self.view = XFormListApi.as_view({
+        self.view = XFormListViewSet.as_view({
             "get": "media"
         })
         request = self.factory.head('/')
@@ -304,7 +304,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
 
     def test_retrieve_xform_media_anonymous_user(self):
         self._load_metadata(self.xform)
-        self.view = XFormListApi.as_view({
+        self.view = XFormListViewSet.as_view({
             "get": "media"
         })
         request = self.factory.get('/')
@@ -321,7 +321,7 @@ class TestXFormListApi(TestAbstractViewSet, TransactionTestCase):
         self.user.profile.require_auth = True
         self.user.profile.save()
         self._load_metadata(self.xform)
-        self.view = XFormListApi.as_view({
+        self.view = XFormListViewSet.as_view({
             "get": "media"
         })
         request = self.factory.get('/')

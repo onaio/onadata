@@ -3,9 +3,9 @@ from django.conf import settings
 from django.views.generic import RedirectView
 
 from onadata.apps.api.urls import router
-from onadata.apps.api.urls import XFormListApi
-from onadata.apps.api.urls import XFormSubmissionApi
-from onadata.apps.api.urls import BriefcaseApi
+from onadata.apps.api.urls import XFormListViewSet
+from onadata.apps.api.urls import XFormSubmissionViewSet
+from onadata.apps.api.urls import BriefcaseViewset
 
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
@@ -117,16 +117,16 @@ urlpatterns = patterns(
 
     # briefcase api urls
     url(r"^(?P<username>\w+)/view/submissionList$",
-        BriefcaseApi.as_view({'get': 'list', 'head': 'list'}),
+        BriefcaseViewset.as_view({'get': 'list', 'head': 'list'}),
         name='view-submission-list'),
     url(r"^(?P<username>\w+)/view/downloadSubmission$",
-        BriefcaseApi.as_view({'get': 'retrieve', 'head': 'retrieve'}),
+        BriefcaseViewset.as_view({'get': 'retrieve', 'head': 'retrieve'}),
         name='view-download-submission'),
     url(r"^(?P<username>\w+)/formUpload$",
-        BriefcaseApi.as_view({'post': 'create', 'head': 'create'}),
+        BriefcaseViewset.as_view({'post': 'create', 'head': 'create'}),
         name='form-upload'),
     url(r"^(?P<username>\w+)/upload$",
-        BriefcaseApi.as_view({'post': 'create', 'head': 'create'}),
+        BriefcaseViewset.as_view({'post': 'create', 'head': 'create'}),
         name='upload'),
 
     # exporting stuff
@@ -180,38 +180,38 @@ urlpatterns = patterns(
 
     # odk data urls
     url(r"^submission$",
-        XFormSubmissionApi.as_view({'post': 'create', 'head': 'create'}),
+        XFormSubmissionViewSet.as_view({'post': 'create', 'head': 'create'}),
         name='submissions'),
     url(r"^formList$",
-        XFormListApi.as_view({'get': 'list'}), name='form-list'),
+        XFormListViewSet.as_view({'get': 'list'}), name='form-list'),
     url(r"^(?P<username>\w+)/formList$",
-        XFormListApi.as_view({'get': 'list'}), name='form-list'),
+        XFormListViewSet.as_view({'get': 'list'}), name='form-list'),
     url(r"^(?P<username>\w+)/xformsManifest/(?P<pk>[\d+^/]+)$",
-        XFormListApi.as_view({'get': 'manifest'}),
+        XFormListViewSet.as_view({'get': 'manifest'}),
         name='manifest-url'),
     url(r"^xformsManifest/(?P<pk>[\d+^/]+)$",
-        XFormListApi.as_view({'get': 'manifest'}),
+        XFormListViewSet.as_view({'get': 'manifest'}),
         name='manifest-url'),
     url(r"^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)"
         "/(?P<metadata>[\d+^/.]+)$",
-        XFormListApi.as_view({'get': 'media'}), name='xform-media'),
+        XFormListViewSet.as_view({'get': 'media'}), name='xform-media'),
     url(r"^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)"
         "/(?P<metadata>[\d+^/.]+)\.(?P<format>[a-z]+[0-9]*)$",
-        XFormListApi.as_view({'get': 'media'}), name='xform-media'),
+        XFormListViewSet.as_view({'get': 'media'}), name='xform-media'),
     url(r"^xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)$",
-        XFormListApi.as_view({'get': 'media'}), name='xform-media'),
+        XFormListViewSet.as_view({'get': 'media'}), name='xform-media'),
     url(r"^xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)\."
         "(?P<format>[a-z]+[0-9]*)$",
-        XFormListApi.as_view({'get': 'media'}), name='xform-media'),
+        XFormListViewSet.as_view({'get': 'media'}), name='xform-media'),
     url(r"^(?P<username>\w+)/submission$",
-        XFormSubmissionApi.as_view({'post': 'create', 'head': 'create'}),
+        XFormSubmissionViewSet.as_view({'post': 'create', 'head': 'create'}),
         name='submissions'),
     url(r"^(?P<username>\w+)/bulk-submission$",
         'onadata.apps.logger.views.bulksubmission'),
     url(r"^(?P<username>\w+)/bulk-submission-form$",
         'onadata.apps.logger.views.bulksubmission_form'),
     url(r"^(?P<username>\w+)/forms/(?P<pk>[\d+^/]+)/form\.xml$",
-        XFormListApi.as_view({'get': 'retrieve'}),
+        XFormListViewSet.as_view({'get': 'retrieve'}),
         name="download_xform"),
     url(r"^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/form\.xml$",
         'onadata.apps.logger.views.download_xform', name="download_xform"),
