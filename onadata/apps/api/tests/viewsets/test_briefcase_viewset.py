@@ -9,7 +9,8 @@ from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.tests.viewsets import test_abstract_viewset
 from onadata.apps.api.viewsets.briefcase_viewset import BriefcaseViewset
-from onadata.apps.api.viewsets.xform_submission_viewset import XFormSubmissionViewSet
+from onadata.apps.api.viewsets.xform_submission_viewset import\
+    XFormSubmissionViewSet
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet

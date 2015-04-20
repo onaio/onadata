@@ -63,8 +63,8 @@ def _parse_int(num):
 
 
 class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
-                   mixins.RetrieveModelMixin, mixins.ListModelMixin,
-                   viewsets.GenericViewSet):
+                       mixins.RetrieveModelMixin, mixins.ListModelMixin,
+                       viewsets.GenericViewSet):
     """
     Implements the [Briefcase Aggregate API](\
     https://code.google.com/p/opendatakit/wiki/BriefcaseAggregateAPI).

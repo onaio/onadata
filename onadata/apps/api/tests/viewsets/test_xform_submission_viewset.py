@@ -8,7 +8,8 @@ import simplejson as json
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
-from onadata.apps.api.viewsets.xform_submission_viewset import XFormSubmissionViewSet
+from onadata.apps.api.viewsets.xform_submission_viewset import\
+    XFormSubmissionViewSet
 from onadata.apps.logger.models import Attachment
 from onadata.libs.permissions import DataEntryRole
 
