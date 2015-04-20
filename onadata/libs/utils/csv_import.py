@@ -143,11 +143,16 @@ def submit_csv(username, xform, csv_file):
     missing_col = set(xform_header).difference(csv_header)
     addition_col = set(csv_header).difference(xform_header)
 
-    if missing_col:
+    # change to list
+    missing_col = list(missing_col)
+    # remove all metadata columns
+    missing = [col for col in missing_col if not col.startswith("_")]
+
+    if missing:
         return {'error': u"Sorry uploaded file column(s) do not match the "
                          u"form."
                          u" The uploaded file includes these missing columns:"
-                         u" '{0}'.".format(', '.join(list(missing_col)))}
+                         u" '{0}'.".format(', '.join(missing_col))}
 
     rollback_uuids = []
     submission_time = datetime.utcnow().isoformat()
