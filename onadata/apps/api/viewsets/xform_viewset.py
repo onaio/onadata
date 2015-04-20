@@ -1,10 +1,15 @@
 import os
 import json
+import random
+import csv
 
+from cStringIO import StringIO
 from datetime import datetime
 
 from celery.result import AsyncResult
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -13,6 +18,8 @@ from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
 
+from pyxform.xls2json import parse_file_to_json
+from pyxform.builder import create_survey_element_from_dict
 from rest_framework import exceptions
 from rest_framework import status
 from rest_framework.decorators import action, detail_route, list_route
@@ -78,6 +85,40 @@ EXPORT_EXT = {
 
 # Supported external exports
 external_export_types = ['xls']
+
+
+def upload_to_survey_draft(filename, username):
+    return os.path.join(
+        username,
+        'survey-drafts',
+        os.path.split(filename)[1]
+    )
+
+
+def get_survey_dict(survey_path, default_name=None):
+    csv_file = open(survey_path)
+    try:
+        survey_dict = parse_file_to_json(
+            survey_path,
+            default_name=default_name,
+            file_object=open(survey_path))
+    except csv.Error as e:
+        newline_error = u'new-line character seen in unquoted field '\
+            u'- do you need to open the file in universal-newline '\
+            u'mode?'
+        if newline_error == unicode(e):
+            csv_file.seek(0)
+            file_obj = StringIO(
+                u'\n'.join(csv_file.read().splitlines()))
+            survey_dict = parse_file_to_json(
+                survey_path, default_name=default_name,
+                file_object=file_obj)
+
+            return survey_dict
+        else:
+            raise e
+
+    return survey_dict
 
 
 def _get_export_type(export_type):
@@ -542,6 +583,43 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 data = {"enketo_url": url, "enketo_preview_url": preview_url}
 
         return Response(data, http_status)
+
+    @list_route(methods=['POST', 'GET'])
+    def survey_preview(self, request, **kwargs):
+
+        if request.method.upper() == 'POST':
+            csv_data = request.DATA.get('body')
+            if csv_data:
+                rand_name = "survey_draft_%s.csv" % ''.join(
+                    random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
+
+                csv_file = ContentFile(csv_data)
+                csv_name = default_storage.save(
+                    upload_to_survey_draft(rand_name, request.user.username),
+                    csv_file)
+
+                survey_path = "%s%s" % (settings.MEDIA_ROOT, csv_name)
+                survey_dict = get_survey_dict(survey_path)
+
+                survey = create_survey_element_from_dict(survey_dict)
+                survey_xml = survey.to_xml()
+
+                return Response({'unique_string': rand_name}, status=200)
+            else:
+                raise ParseError('Missing body')
+
+        if request.method.upper() == 'GET':
+            filename = "survey_draft_2invjl.csv"
+            username = "ivermac"
+            survey_path = "%s%s" % (
+                settings.MEDIA_ROOT,
+                upload_to_survey_draft(filename, username))
+
+            survey_dict = get_survey_dict(survey_path)
+            survey = create_survey_element_from_dict(survey_dict)
+            survey_xml = survey.to_xml()
+
+            return Response(survey_xml, status=200)
 
     def retrieve(self, request, *args, **kwargs):
         lookup_field = self.lookup_field
