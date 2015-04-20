@@ -152,7 +152,7 @@ def submit_csv(username, xform, csv_file):
         return {'error': u"Sorry uploaded file column(s) do not match the "
                          u"form."
                          u" The uploaded file includes these missing columns:"
-                         u" '{0}'.".format(', '.join(missing_col))}
+                         u" '{0}'.".format(', '.join(missing))}
 
     rollback_uuids = []
     submission_time = datetime.utcnow().isoformat()
