@@ -1,1 +1,1 @@
-from SilenceSouth import SilenceSouth  # noqa
+from silence_south import SilenceSouth  # noqa
