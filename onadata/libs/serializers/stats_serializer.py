@@ -2,12 +2,10 @@ from django.utils.translation import ugettext as _
 from rest_framework import exceptions
 from rest_framework import serializers
 
-from onadata.apps.api.tools import (
-    get_all_stats,
-    get_mode_for_numeric_fields_in_form,
-    get_mean_for_numeric_fields_in_form,
-    get_median_for_numeric_fields_in_form, get_min_max_range
-)
+from onadata.libs.data.statistics import\
+    get_median_for_numeric_fields_in_form,\
+    get_mean_for_numeric_fields_in_form,\
+    get_mode_for_numeric_fields_in_form, get_min_max_range, get_all_stats
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
 
