@@ -21,9 +21,7 @@ class CSVImportTestCase(TestBase):
                                          'libs', 'utils', 'tests', 'fixtures')
         self.good_csv = open(os.path.join(self.fixtures_dir, 'good.csv'))
         self.bad_csv = open(os.path.join(self.fixtures_dir, 'bad.csv'))
-        xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xls')
-        self._publish_xls_file(xls_file_path)
-        self.xform = XForm.objects.get()
+        self.xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xls')
 
     def test_submit_csv_param_sanity_check(self):
         resp = csv_import.submit_csv(u'userX', XForm(), 123456)
@@ -31,6 +29,9 @@ class CSVImportTestCase(TestBase):
 
     @mock.patch('onadata.libs.utils.csv_import.safe_create_instance')
     def test_submit_csv_xml_params(self, safe_create_instance):
+        self._publish_xls_file(self.xls_file_path)
+        self.xform = XForm.objects.get()
+
         safe_create_instance.return_value = {}
         single_csv = open(os.path.join(self.fixtures_dir, 'single.csv'))
         csv_import.submit_csv(self.user.username, self.xform, single_csv)
@@ -54,6 +55,8 @@ class CSVImportTestCase(TestBase):
     @mock.patch('onadata.libs.utils.csv_import.dict2xmlsubmission')
     def test_submit_csv_xml_location_property_test(
             self, d2x, safe_create_instance):
+        self._publish_xls_file(self.xls_file_path)
+        self.xform = XForm.objects.get()
         safe_create_instance.return_value = [None, ]
         single_csv = open(os.path.join(self.fixtures_dir, 'single.csv'))
         csv_import.submit_csv(self.user.username, self.xform, single_csv)
@@ -72,6 +75,11 @@ class CSVImportTestCase(TestBase):
                          test_location2_val, u'Location2 prop test fail')
 
     def test_submit_csv_and_rollback(self):
+        xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                     "tests", "fixtures", "tutorial.xls")
+        self._publish_xls_file(xls_file_path)
+        self.xform = XForm.objects.get()
+
         count = Instance.objects.count()
         csv_import.submit_csv(self.user.username, self.xform, self.good_csv)
         self.assertEqual(Instance.objects.count(),
@@ -81,6 +89,11 @@ class CSVImportTestCase(TestBase):
                          count + 8, u'submit_csv username check failed!')
 
     def test_submit_csv_edits(self):
+        xls_file_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                     "tests", "fixtures", "tutorial.xls")
+        self._publish_xls_file(xls_file_path)
+        self.xform = XForm.objects.get()
+
         csv_import.submit_csv(self.user.username, self.xform, self.good_csv)
         self.assertEqual(Instance.objects.count(),
                          9, u'submit_csv edits #1 test Failed!')
@@ -97,6 +110,10 @@ class CSVImportTestCase(TestBase):
                          u'submit_csv edits #2 test Failed!')
 
     def test_import_non_utf8_csv(self):
+        xls_file_path = os.path.join(self.fixtures_dir, "mali_health.xls")
+        self._publish_xls_file(xls_file_path)
+        self.xform = XForm.objects.get()
+
         count = Instance.objects.count()
         non_utf8_csv = open(os.path.join(self.fixtures_dir, 'non_utf8.csv'))
         result = csv_import.submit_csv(self.user.username,
@@ -108,6 +125,9 @@ class CSVImportTestCase(TestBase):
                          u'Non unicode csv import rollback failed!')
 
     def test_reject_spaces_in_headers(self):
+        self._publish_xls_file(self.xls_file_path)
+        self.xform = XForm.objects.get()
+
         non_utf8csv = open(os.path.join(self.fixtures_dir, 'header_space.csv'))
         result = csv_import.submit_csv(self.user.username,
                                        self.xform, non_utf8csv)
@@ -116,6 +136,11 @@ class CSVImportTestCase(TestBase):
                          u'Incorrect error message returned.')
 
     def test_nested_geo_paths_csv(self):
+        self.xls_file_path = os.path.join(self.fixtures_dir,
+                                          'tutorial-nested-geo.xls')
+        self._publish_xls_file(self.xls_file_path)
+        self.xform = XForm.objects.get()
+
         good_csv = open(os.path.join(self.fixtures_dir, 'another_good.csv'))
         csv_import.submit_csv(self.user.username, self.xform, good_csv)
         self.assertEqual(Instance.objects.count(),

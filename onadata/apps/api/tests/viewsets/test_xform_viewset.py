@@ -1279,7 +1279,9 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
 
     def test_csv_import(self):
         with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
+            xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                    "tests", "fixtures", "tutorial.xls")
+            self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({'post': 'csv_import'})
             csv_import = open(
                 os.path.join(
@@ -1292,6 +1294,45 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.get('Last-Modified'), None)
             self.assertEqual(response.data.get('additions'), 9)
             self.assertEqual(response.data.get('updates'), 0)
+
+    def test_csv_import_diff_column(self):
+        with HTTMock(enketo_mock):
+            xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                    "tests", "fixtures", "tutorial.xls")
+            self._publish_xls_form_to_project(xlsform_path=xls_path)
+            view = XFormViewSet.as_view({'post': 'csv_import'})
+            csv_import = open(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
+                    'fixtures', 'wrong_col.csv'))
+            post_data = {'csv_file': csv_import}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("error", response.data)
+            self.assertEquals(response.data.get('error'),
+                              u"Sorry uploaded file does not match the form. "
+                              u"The file is missing the column(s): name, age.")
+
+    def test_csv_import_additional_columns(self):
+        with HTTMock(enketo_mock):
+            xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                    "tests", "fixtures", "tutorial.xls")
+            self._publish_xls_form_to_project(xlsform_path=xls_path)
+            view = XFormViewSet.as_view({'post': 'csv_import'})
+            csv_import = open(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
+                    'fixtures', 'additional.csv'))
+            post_data = {'csv_file': csv_import}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("info", response.data)
+            self.assertEquals(response.data.get('info'),
+                              u"Additional column(s) excluded from the upload:"
+                              u" '_additional'.")
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.xform_viewset.submit_csv_async')
