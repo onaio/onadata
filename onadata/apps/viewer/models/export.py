@@ -58,6 +58,7 @@ class Export(models.Model):
         (SAV_ZIP_EXPORT, 'SAV ZIP'),
         (SAV_EXPORT, 'SAV'),
         (EXTERNAL_EXPORT, 'Excel'),
+        (OSM, OSM),
     ]
 
     EXPORT_TYPE_DICT = dict(export_type for export_type in EXPORT_TYPES)
