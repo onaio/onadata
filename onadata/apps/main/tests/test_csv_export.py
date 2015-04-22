@@ -101,7 +101,7 @@ class TestExport(TestBase):
             path, forced_submission_time=self._submission_time)
         # test csv
         export = generate_export(Export.CSV_EXPORT, 'csv', self.user.username,
-                                 'tutorial_w_repeats', truncate_title=True)
+                                 'tutorial_w_repeats', remove_group_name=True)
         storage = get_storage_class()()
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)

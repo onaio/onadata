@@ -67,6 +67,13 @@ def question_types_to_exclude(_type):
     return _type in QUESTION_TYPES_TO_EXCLUDE
 
 
+def str_to_bool(s):
+    if s in ['True', 'true', 'TRUE']:
+        return True
+    else:
+        return False
+
+
 class DictOrganizer(object):
 
     def set_dict_iterator(self, dict_iterator):
@@ -209,12 +216,12 @@ class ExportBuilder(object):
 
     @classmethod
     def format_field_title(cls, abbreviated_xpath, field_delimiter,
-                           truncate_title=False):
+                           remove_group_name=False):
         if field_delimiter != '/':
             return field_delimiter.join(abbreviated_xpath.split('/'))
 
         # Check if to truncate the group name prefix
-        if truncate_title:
+        if remove_group_name:
             abbreviated_xpath_list = abbreviated_xpath.split(field_delimiter)
             return abbreviated_xpath_list[len(abbreviated_xpath_list)-1]
         else:
@@ -228,7 +235,7 @@ class ExportBuilder(object):
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
                 gps_fields, encoded_fields, field_delimiter='/',
-                truncate_title=False):
+                remove_group_name=False):
             for child in survey_element.children:
                 current_section_name = current_section['name']
                 # if a section, recurs
@@ -256,7 +263,7 @@ class ExportBuilder(object):
                         current_section['elements'].append({
                             'title': ExportBuilder.format_field_title(
                                 child.get_abbreviated_xpath(),
-                                field_delimiter, truncate_title),
+                                field_delimiter, remove_group_name),
                             'xpath': child_xpath,
                             'type': child.bind.get(u"type")
                         })
@@ -273,7 +280,7 @@ class ExportBuilder(object):
                         for c in child.children:
                             _xpath = c.get_abbreviated_xpath()
                             _title = ExportBuilder.format_field_title(
-                                _xpath, field_delimiter, truncate_title)
+                                _xpath, field_delimiter, remove_group_name)
                             choice = {
                                 'title': _title,
                                 'xpath': _xpath,
@@ -298,7 +305,7 @@ class ExportBuilder(object):
                                 {
                                     'title': ExportBuilder.format_field_title(
                                         xpath, field_delimiter,
-                                        truncate_title),
+                                        remove_group_name),
                                     'xpath': xpath,
                                     'type': 'decimal'
                                 }
@@ -691,7 +698,7 @@ def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
                     split_select_multiples=True,
                     binary_select_multiples=False, start=None, end=None,
-                    truncate_title=False):
+                    remove_group_name=False):
     """
     Create appropriate export object given the export type
     """
@@ -716,7 +723,7 @@ def generate_export(export_type, extension, username, id_string,
 
     export_builder = ExportBuilder()
 
-    export_builder.TRUNCATE_GROUP_TITLE = truncate_title
+    export_builder.TRUNCATE_GROUP_TITLE = remove_group_name
     export_builder.GROUP_DELIMITER = group_delimiter
     export_builder.SPLIT_SELECT_MULTIPLES = split_select_multiples
     export_builder.BINARY_SELECT_MULTIPLES = binary_select_multiples

@@ -1008,6 +1008,6 @@ class TestExportBuilder(TestBase):
 
     def test_generate_field_title_truncated_titles(self):
         field_name = ExportBuilder.format_field_title("child/age", "/",
-                                                      truncate_title=True)
+                                                      remove_group_name=True)
         expected_field_name = "age"
         self.assertEqual(field_name, expected_field_name)

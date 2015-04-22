@@ -212,7 +212,7 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/forms/28058/export_async?fmt=xls
+       curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls
 
 Response
 ^^^^^^^^
@@ -248,6 +248,19 @@ If the job is done:
            "job_status": "SUCCESS",
            "export_url": "https://ona.io/api/v1/forms/28058.xls"
        }
+
+
+CSV and XLS exports without group name prefixed to the field names
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+To generate csv or xls export with the group name truncated from the field
+names set `remove_group_name` param to `true`. Default for this param is `false`.
+
+Example
+^^^^^^^
+
+::
+
+     curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&remove_group_name=true
 
 
 Delete an XLS form asynchronously
