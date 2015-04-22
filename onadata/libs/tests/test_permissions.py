@@ -9,7 +9,8 @@ from onadata.libs.permissions import (
     CAN_ADD_XFORM_TO_PROFILE,
     ReadOnlyRole,
     OwnerRole,
-    EditorRole)
+    EditorRole,
+    ReadOnlyRoleNoDownload)
 
 
 def perms_for(user, obj):
@@ -92,3 +93,18 @@ class TestPermissions(TestBase):
         self.assertTrue(org_user in [d['user'] for d in users_with_perms])
         self.assertIn('first_name', users_with_perms[0].keys())
         self.assertIn('last_name', users_with_perms[0].keys())
+
+    def test_readonly_no_downloads_has_role(self):
+        self._publish_transportation_form()
+        alice = self._create_user('alice', 'alice')
+
+        self.assertFalse(ReadOnlyRoleNoDownload.user_has_role(alice,
+                                                              self.xform))
+        self.assertFalse(ReadOnlyRoleNoDownload.has_role(
+            perms_for(alice, self.xform), self.xform))
+
+        ReadOnlyRoleNoDownload.add(alice, self.xform)
+
+        self.assertTrue(ReadOnlyRoleNoDownload.user_has_role(alice, self.xform))
+        self.assertTrue(ReadOnlyRoleNoDownload.has_role(
+            perms_for(alice, self.xform), self.xform))

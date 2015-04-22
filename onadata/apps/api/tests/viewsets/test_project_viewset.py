@@ -14,7 +14,8 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import (
-    OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
+    OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole,
+    ReadOnlyRoleNoDownload)
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
@@ -363,7 +364,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_profile = self._create_user_profile(alice_data)
         projectid = self.project.pk
 
-        ROLES = [ReadOnlyRole,
+        ROLES = [ReadOnlyRoleNoDownload,
+                 ReadOnlyRole,
                  DataEntryRole,
                  EditorRole,
                  ManagerRole,
