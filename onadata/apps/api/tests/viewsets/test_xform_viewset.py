@@ -1303,10 +1303,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                                     "tests", "fixtures", "tutorial.xls")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({'post': 'csv_import'})
-            csv_import = open(
-                os.path.join(
-                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
-                    'fixtures', 'wrong_col.csv'))
+            csv_import = fixtures_path('wrong_col.csv')
             post_data = {'csv_file': csv_import}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
@@ -1322,10 +1319,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                                     "tests", "fixtures", "tutorial.xls")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({'post': 'csv_import'})
-            csv_import = open(
-                os.path.join(
-                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
-                    'fixtures', 'additional.csv'))
+            csv_import = fixtures_path('additional.csv')
             post_data = {'csv_file': csv_import}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
