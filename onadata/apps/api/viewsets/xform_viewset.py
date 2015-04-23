@@ -61,6 +61,7 @@ from onadata.libs.utils.csv_import import get_async_csv_submission_status
 from onadata.libs.utils.csv_import import submit_csv
 from onadata.libs.utils.csv_import import submit_csv_async
 from onadata.libs.utils.viewer_tools import _get_form_url
+from onadata.libs.utils.export_tools import str_to_bool
 
 
 EXPORT_EXT = {
@@ -151,9 +152,16 @@ def _generate_new_export(request, xform, query, export_type):
                 export_type, extension, xform.user.username,
                 xform.id_string, export_id=None, filter_query=None)
         else:
+            remove_group_name = False
+
+            if "remove_group_name" in request.QUERY_PARAMS:
+                remove_group_name = \
+                    str_to_bool(request.QUERY_PARAMS["remove_group_name"])
+
             export = generate_export(
                 export_type, extension, xform.user.username,
-                xform.id_string, None, query
+                xform.id_string, None, query,
+                remove_group_name=remove_group_name
             )
         audit = {
             "xform": xform.id_string,
@@ -582,10 +590,13 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         token = request.QUERY_PARAMS.get('token')
         meta = request.QUERY_PARAMS.get('meta')
         data_id = request.QUERY_PARAMS.get('data_id')
+        remove_group_name = request.QUERY_PARAMS.get('remove_group_name')
+
         options = {
             'meta': meta,
             'token': token,
-            'data_id': data_id
+            'data_id': data_id,
+            'remove_group_name': remove_group_name
         }
 
         if job_uuid:
