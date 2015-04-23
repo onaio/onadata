@@ -18,7 +18,7 @@ class CSVImportTestCase(TestBase):
     def setUp(self):
         super(CSVImportTestCase, self).setUp()
         self.fixtures_dir = os.path.join(settings.PROJECT_ROOT,
-                                         'libs', 'utils', 'tests', 'fixtures')
+                                         'libs', 'tests', 'utils', 'fixtures')
         self.good_csv = open(os.path.join(self.fixtures_dir, 'good.csv'))
         self.bad_csv = open(os.path.join(self.fixtures_dir, 'bad.csv'))
         self.xls_file_path = os.path.join(self.fixtures_dir, 'tutorial.xls')

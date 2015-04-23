@@ -8,15 +8,16 @@ import simplejson as json
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
-from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
+from onadata.apps.api.viewsets.xform_submission_viewset import\
+    XFormSubmissionViewSet
 from onadata.apps.logger.models import Attachment
 from onadata.libs.permissions import DataEntryRole
 
 
-class TestXFormSubmissionApi(TestAbstractViewSet, TransactionTestCase):
+class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
     def setUp(self):
         super(self.__class__, self).setUp()
-        self.view = XFormSubmissionApi.as_view({
+        self.view = XFormSubmissionViewSet.as_view({
             "head": "create",
             "post": "create"
         })

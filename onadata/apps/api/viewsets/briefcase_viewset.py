@@ -62,9 +62,9 @@ def _parse_int(num):
         pass
 
 
-class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
-                   mixins.RetrieveModelMixin, mixins.ListModelMixin,
-                   viewsets.GenericViewSet):
+class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
+                       mixins.RetrieveModelMixin, mixins.ListModelMixin,
+                       viewsets.GenericViewSet):
     """
     Implements the [Briefcase Aggregate API](\
     https://code.google.com/p/opendatakit/wiki/BriefcaseAggregateAPI).
@@ -108,7 +108,7 @@ class BriefcaseApi(OpenRosaHeadersMixin, mixins.CreateModelMixin,
             else:
                 queryset = queryset.filter(user=profile.user)
         else:
-            queryset = super(BriefcaseApi, self).filter_queryset(queryset)
+            queryset = super(BriefcaseViewset, self).filter_queryset(queryset)
 
         formId = self.request.GET.get('formId', '')
 

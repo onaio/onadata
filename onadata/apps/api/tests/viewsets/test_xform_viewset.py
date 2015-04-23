@@ -144,6 +144,11 @@ def enketo_mock_with_form_defaults(url, request):
     return response
 
 
+def fixtures_path(filepath):
+    return open(os.path.join(
+        settings.PROJECT_ROOT, 'libs', 'tests', 'utils', 'fixtures', filepath))
+
+
 class TestXFormViewSet(TestAbstractViewSet):
 
     def setUp(self):
@@ -1283,10 +1288,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                                     "tests", "fixtures", "tutorial.xls")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({'post': 'csv_import'})
-            csv_import = open(
-                os.path.join(
-                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
-                    'fixtures', 'good.csv'))
+            csv_import = fixtures_path('good.csv')
             post_data = {'csv_file': csv_import}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
@@ -1301,10 +1303,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                                     "tests", "fixtures", "tutorial.xls")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({'post': 'csv_import'})
-            csv_import = open(
-                os.path.join(
-                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
-                    'fixtures', 'wrong_col.csv'))
+            csv_import = fixtures_path('wrong_col.csv')
             post_data = {'csv_file': csv_import}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
@@ -1320,10 +1319,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                                     "tests", "fixtures", "tutorial.xls")
             self._publish_xls_form_to_project(xlsform_path=xls_path)
             view = XFormViewSet.as_view({'post': 'csv_import'})
-            csv_import = open(
-                os.path.join(
-                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
-                    'fixtures', 'additional.csv'))
+            csv_import = fixtures_path('additional.csv')
             post_data = {'csv_file': csv_import}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
@@ -1342,10 +1338,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             mock_submit_csv_async.delay.return_value = None
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({'post': 'csv_import'})
-            csv_import = open(
-                os.path.join(
-                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
-                    'fixtures', 'good.csv'))
+            csv_import = fixtures_path('good.csv')
             post_data = {'csv_file': csv_import}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
@@ -1359,10 +1352,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             settings.CSV_ROW_IMPORT_ASYNC_THRESHOLD = 5
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({'post': 'csv_import'})
-            csv_import = open(
-                os.path.join(
-                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
-                    'fixtures', 'good.csv'))
+            csv_import = fixtures_path('good.csv')
             post_data = {'csv_file': csv_import}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
@@ -1373,10 +1363,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({'post': 'csv_import'})
-            csv_import = open(
-                os.path.join(
-                    settings.PROJECT_ROOT, 'libs', 'utils', 'tests',
-                    'fixtures', 'bad.csv'))
+            csv_import = fixtures_path('bad.csv')
             post_data = {'csv_file': csv_import}
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
@@ -1388,8 +1375,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         """Test that invalid post returns 400 with the error in json respone"""
         self._publish_xls_form_to_project()
         view = XFormViewSet.as_view({'post': 'csv_import'})
-        csv_import = open(os.path.join(settings.PROJECT_ROOT, 'libs', 'utils',
-                                       'tests', 'fixtures', 'bad.csv'))
+        csv_import = fixtures_path('bad.csv')
         post_data = {'wrong_file_field': csv_import}
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=self.xform.id)

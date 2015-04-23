@@ -22,9 +22,10 @@ from onadata.apps.api.viewsets.user_viewset import UserViewSet
 from onadata.apps.api.viewsets.submissionstats_viewset import\
     SubmissionStatsViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
-from onadata.apps.api.viewsets.xform_list_api import XFormListApi
-from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
-from onadata.apps.api.viewsets.briefcase_api import BriefcaseApi
+from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
+from onadata.apps.api.viewsets.xform_submission_viewset import\
+    XFormSubmissionViewSet
+from onadata.apps.api.viewsets.briefcase_viewset import BriefcaseViewset
 from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
 from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
@@ -219,9 +220,10 @@ router.register(r'stats/submissions', SubmissionStatsViewSet,
 router.register(r'charts', ChartsViewSet, base_name='chart')
 router.register(r'metadata', MetaDataViewSet, base_name='metadata')
 router.register(r'media', AttachmentViewSet, base_name='attachment')
-router.register(r'formlist', XFormListApi, base_name='formlist')
-router.register(r'submissions', XFormSubmissionApi, base_name='submissions')
-router.register(r'briefcase', BriefcaseApi, base_name='briefcase')
+router.register(r'formlist', XFormListViewSet, base_name='formlist')
+router.register(r'submissions', XFormSubmissionViewSet,
+                base_name='submissions')
+router.register(r'briefcase', BriefcaseViewset, base_name='briefcase')
 router.register(r'osm', OsmViewSet, base_name='osm')
 router.register(r'restservices', RestServicesViewSet, base_name='restservices')
 router.register(r'files', MediaViewSet, base_name='files')

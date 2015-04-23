@@ -8,8 +8,9 @@ from django_digest.test import DigestAuth
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.api.tests.viewsets import test_abstract_viewset
-from onadata.apps.api.viewsets.briefcase_api import BriefcaseApi
-from onadata.apps.api.viewsets.xform_submission_api import XFormSubmissionApi
+from onadata.apps.api.viewsets.briefcase_viewset import BriefcaseViewset
+from onadata.apps.api.viewsets.xform_submission_viewset import\
+    XFormSubmissionViewSet
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
@@ -22,7 +23,7 @@ def ordered_instances(xform):
     return Instance.objects.filter(xform=xform).order_by('id')
 
 
-class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
+class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
 
     def setUp(self):
         super(test_abstract_viewset.TestAbstractViewSet, self).setUp()
@@ -45,7 +46,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             'form-upload', kwargs={'username': self.user.username})
 
     def _publish_xml_form(self, auth=None):
-        view = BriefcaseApi.as_view({'post': 'create'})
+        view = BriefcaseViewset.as_view({'post': 'create'})
         count = XForm.objects.count()
 
         with codecs.open(self.form_def_path, encoding='utf-8') as f:
@@ -63,7 +64,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
         self.xform = XForm.objects.order_by('pk').reverse()[0]
 
     def test_view_submission_list(self):
-        view = BriefcaseApi.as_view({'get': 'list'})
+        view = BriefcaseViewset.as_view({'get': 'list'})
         self._publish_xml_form()
         self._make_submissions()
         request = self.factory.get(
@@ -91,7 +92,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             self.assertContains(response, expected_submission_list)
 
     def test_view_submission_list_w_deleted_submission(self):
-        view = BriefcaseApi.as_view({'get': 'list'})
+        view = BriefcaseViewset.as_view({'get': 'list'})
         self._publish_xml_form()
         self._make_submissions()
         uuid = 'f3d8dc65-91a6-4d0f-9e97-802128083390'
@@ -120,7 +121,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
                     '{{resumptionCursor}}', '%s' % last_index)
             self.assertContains(response, expected_submission_list)
 
-        view = BriefcaseApi.as_view({'get': 'retrieve'})
+        view = BriefcaseViewset.as_view({'get': 'retrieve'})
         formId = u'%(formId)s[@version=null and @uiVersion=null]/' \
                  u'%(formId)s[@key=uuid:%(instanceId)s]' % {
                      'formId': self.xform.id_string,
@@ -136,7 +137,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
         self.assertTrue(response.status_code, 404)
 
     def test_view_submission_list_OtherUser(self):
-        view = BriefcaseApi.as_view({'get': 'list'})
+        view = BriefcaseViewset.as_view({'get': 'list'})
         self._publish_xml_form()
         self._make_submissions()
         # alice cannot view bob's submissionList
@@ -165,7 +166,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
                     return get_last_index(xform)
             return 0
 
-        view = BriefcaseApi.as_view({'get': 'list'})
+        view = BriefcaseViewset.as_view({'get': 'list'})
         self._publish_xml_form()
         self._make_submissions()
         params = {'formId': self.xform.id_string}
@@ -206,7 +207,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             last_index += 2
 
     def test_view_downloadSubmission(self):
-        view = BriefcaseApi.as_view({'get': 'retrieve'})
+        view = BriefcaseViewset.as_view({'get': 'retrieve'})
         self._publish_xml_form()
         self.maxDiff = None
         self._submit_transport_instance_w_attachment()
@@ -236,7 +237,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             self.assertMultiLineEqual(response.content, text)
 
     def test_view_downloadSubmission_OtherUser(self):
-        view = BriefcaseApi.as_view({'get': 'retrieve'})
+        view = BriefcaseViewset.as_view({'get': 'retrieve'})
         self._publish_xml_form()
         self.maxDiff = None
         self._submit_transport_instance_w_attachment()
@@ -259,7 +260,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
         self.assertEqual(response.status_code, 404)
 
     def test_publish_xml_form_OtherUser(self):
-        view = BriefcaseApi.as_view({'post': 'create'})
+        view = BriefcaseViewset.as_view({'post': 'create'})
         # deno cannot publish form to bob's account
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._create_user_profile(alice_data)
@@ -277,7 +278,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             self.assertEqual(response.status_code, 403)
 
     def test_publish_xml_form_where_filename_is_not_id_string(self):
-        view = BriefcaseApi.as_view({'post': 'create'})
+        view = BriefcaseViewset.as_view({'post': 'create'})
         form_def_path = os.path.join(
             self.main_directory, 'fixtures', 'transportation',
             'Transportation Form.xml')
@@ -295,7 +296,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
                 response, "successfully published.", status_code=201)
 
     def test_form_upload(self):
-        view = BriefcaseApi.as_view({'post': 'create'})
+        view = BriefcaseViewset.as_view({'post': 'create'})
         self._publish_xml_form()
 
         with codecs.open(self.form_def_path, encoding='utf-8') as f:
@@ -314,7 +315,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
             )
 
     def test_upload_head_request(self):
-        view = BriefcaseApi.as_view({'head': 'create'})
+        view = BriefcaseViewset.as_view({'head': 'create'})
 
         auth = DigestAuth(self.login_username, self.login_password)
         request = self.factory.head(self._form_upload_url)
@@ -329,7 +330,7 @@ class TestBriefcaseAPI(test_abstract_viewset.TestAbstractViewSet):
         self.assertTrue(response.has_header('Date'))
 
     def test_submission_with_instance_id_on_root_node(self):
-        view = XFormSubmissionApi.as_view({'post': 'create'})
+        view = XFormSubmissionViewSet.as_view({'post': 'create'})
         self._publish_xml_form()
         message = u"Successful submission."
         instanceId = u'5b2cc313-fc09-437e-8149-fcd32f695d41'

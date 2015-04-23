@@ -28,7 +28,7 @@ from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
 DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 
 
-class XFormListApi(viewsets.ReadOnlyModelViewSet):
+class XFormListViewSet(viewsets.ReadOnlyModelViewSet):
     authentication_classes = (DigestAuthentication,)
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.XFormListObjectPermissionFilter,)
@@ -52,7 +52,7 @@ class XFormListApi(viewsets.ReadOnlyModelViewSet):
         if self.action and self.action == 'manifest':
             return [XFormManifestRenderer()]
 
-        return super(XFormListApi, self).get_renderers()
+        return super(XFormListViewSet, self).get_renderers()
 
     def filter_queryset(self, queryset):
         username = self.kwargs.get('username')
@@ -71,7 +71,7 @@ class XFormListApi(viewsets.ReadOnlyModelViewSet):
                 queryset = queryset.filter(user=profile.user)
 
         if not self.request.user.is_anonymous():
-            queryset = super(XFormListApi, self).filter_queryset(queryset)
+            queryset = super(XFormListViewSet, self).filter_queryset(queryset)
 
         return queryset
 
