@@ -171,10 +171,10 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         from onadata.apps.logger.models import Instance
         from django.db.models import Count
 
-        list = Instance.objects.filter(xform=obj)\
+        versions = Instance.objects.filter(xform=obj)\
             .values('version')\
-            .annotate(total = Count('version'))
-        return list
+            .annotate(total=Count('version'))
+        return versions
 
 
 class XFormListSerializer(serializers.Serializer):
