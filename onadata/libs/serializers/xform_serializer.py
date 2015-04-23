@@ -46,6 +46,9 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         'get_instances_with_geopoints')
     num_of_submissions = serializers.SerializerMethodField(
         'get_num_of_submissions')
+    form_versions = serializers.SerializerMethodField(
+        'get_form_versions')
+
 
     class Meta:
         model = XForm
@@ -163,6 +166,15 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             return xform_metadata
 
         return []
+
+    def get_form_versions(self, obj):
+        from onadata.apps.logger.models import Instance
+        from django.db.models import Count
+
+        list = Instance.objects.filter(xform=obj)\
+            .values('version')\
+            .annotate(total = Count('version'))
+        return list
 
 
 class XFormListSerializer(serializers.Serializer):
