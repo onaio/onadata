@@ -1157,3 +1157,52 @@ class TestProjectViewSet(TestAbstractViewSet):
                                                     self.project))
         self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
                                                     self.xform))
+
+    def test_project_share_readonly_no_downloads(self):
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        tom_data = {'username': 'tom', 'email': 'tom@localhost.com'}
+        tom_data = self._create_user_profile(tom_data)
+        projectid = self.project.pk
+
+        self.assertFalse(
+            ReadOnlyRoleNoDownload.user_has_role(alice_profile.user,
+                                                 self.project))
+
+        data = {'username': 'alice', 'role': ReadOnlyRoleNoDownload.name}
+        request = self.factory.post('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'post': 'share',
+            'get': 'retrieve'
+        })
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 204)
+
+        data = {'username': 'tom', 'role': ReadOnlyRole.name}
+        request = self.factory.post('/', data=data, **self.extra)
+
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 204)
+
+        request = self.factory.get('/', **self.extra)
+
+        response = view(request, pk=self.project.pk)
+
+        # get the users
+        users = response.data.get('users')
+
+        self.assertEqual(len(users), 3)
+
+        for user in users:
+            if user.get('user') == 'bob':
+                self.assertEquals(user.get('role'), 'owner')
+            elif user.get('user') == 'alice':
+                self.assertEquals(user.get('role'), 'readonly-no-download')
+            elif user.get('user') == 'tom':
+                self.assertEquals(user.get('role'), 'readonly')
