@@ -249,12 +249,14 @@ class ExportBuilder(object):
                         self.sections.append(section)
                         build_sections(
                             section, child, sections, select_multiples,
-                            gps_fields, encoded_fields, field_delimiter)
+                            gps_fields, encoded_fields, field_delimiter,
+                            remove_group_name)
                     else:
                         # its a group, recurs using the same section
                         build_sections(
                             current_section, child, sections, select_multiples,
-                            gps_fields, encoded_fields, field_delimiter)
+                            gps_fields, encoded_fields, field_delimiter,
+                            remove_group_name)
                 elif isinstance(child, Question) and child.bind.get(u"type")\
                         not in QUESTION_TYPES_TO_EXCLUDE:
                     # add to survey_sections
