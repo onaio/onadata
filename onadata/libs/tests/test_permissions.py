@@ -105,6 +105,7 @@ class TestPermissions(TestBase):
 
         ReadOnlyRoleNoDownload.add(alice, self.xform)
 
-        self.assertTrue(ReadOnlyRoleNoDownload.user_has_role(alice, self.xform))
+        self.assertTrue(ReadOnlyRoleNoDownload.user_has_role(alice,
+                                                             self.xform))
         self.assertTrue(ReadOnlyRoleNoDownload.has_role(
             perms_for(alice, self.xform), self.xform))

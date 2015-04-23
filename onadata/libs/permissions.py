@@ -104,7 +104,7 @@ class Role(object):
 
 
 class ReadOnlyRoleNoDownload(Role):
-    name = 'readonly-no-downloadS'
+    name = 'readonly-no-download'
     permissions = (
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_VIEW_XFORM, XForm),

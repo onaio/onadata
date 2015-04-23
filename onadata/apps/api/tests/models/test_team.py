@@ -11,6 +11,7 @@ from onadata.libs.permissions import (
     CAN_VIEW_PROJECT,
     CAN_ADD_XFORM,
     CAN_ADD_SUBMISSIONS_PROJECT,
+    CAN_EXPORT_PROJECT,
     get_team_project_default_permissions)
 
 
@@ -81,7 +82,8 @@ class TestTeam(TestAbstractModels):
 
         permission_names = sorted(
             [p.permission.codename for p in object_permissions])
-        self.assertEqual([CAN_ADD_SUBMISSIONS_PROJECT, CAN_VIEW_PROJECT],
+        self.assertEqual([CAN_EXPORT_PROJECT, CAN_ADD_SUBMISSIONS_PROJECT,
+                          CAN_VIEW_PROJECT],
                          permission_names)
 
         self.assertEqual(get_team_project_default_permissions(team, project),
