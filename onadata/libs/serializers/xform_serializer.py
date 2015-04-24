@@ -17,7 +17,8 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.cache_tools import (XFORM_PERMISSIONS_CACHE,
                                             ENKETO_URL_CACHE,
                                             ENKETO_PREVIEW_URL_CACHE,
-                                            XFORM_METADATA_CACHE)
+                                            XFORM_METADATA_CACHE,
+                                            XFORM_DATA_VERSIONS)
 
 
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
@@ -168,9 +169,17 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         return []
 
     def get_xform_versions(self, obj):
+        versions = cache.get('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk))
+
+        if versions:
+            return versions
+
         versions = Instance.objects.filter(xform=obj)\
             .values('version')\
             .annotate(total=Count('version'))
+
+        cache.set('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk), versions)
+
         return versions
 
 
