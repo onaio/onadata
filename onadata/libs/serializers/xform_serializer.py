@@ -2,8 +2,9 @@ from django.forms import widgets
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from django.core.cache import cache
+from django.db.models import Count
 
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import XForm, Instance
 from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
@@ -47,8 +48,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     num_of_submissions = serializers.SerializerMethodField(
         'get_num_of_submissions')
     form_versions = serializers.SerializerMethodField(
-        'get_form_versions')
-
+        'get_xform_versions')
 
     class Meta:
         model = XForm
@@ -167,10 +167,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
         return []
 
-    def get_form_versions(self, obj):
-        from onadata.apps.logger.models import Instance
-        from django.db.models import Count
-
+    def get_xform_versions(self, obj):
         versions = Instance.objects.filter(xform=obj)\
             .values('version')\
             .annotate(total=Count('version'))

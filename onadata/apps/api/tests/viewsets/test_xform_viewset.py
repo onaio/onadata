@@ -1970,12 +1970,11 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                 response = view(request, pk=self.xform.pk)
                 self.assertEqual(response.status_code, 200)
 
-
             # make more submission after form update
             surveys = ['transport_2011-07-25_19-05-36-edited']
             paths = [os.path.join(
-            self.main_directory, 'fixtures', 'transportation',
-            'instances_w_uuid', s, s + '.xml') for s in surveys]
+                self.main_directory, 'fixtures', 'transportation',
+                'instances_w_uuid', s, s + '.xml') for s in surveys]
 
             auth = DigestAuth(self.profile_data['username'],
                               self.profile_data['password1'])

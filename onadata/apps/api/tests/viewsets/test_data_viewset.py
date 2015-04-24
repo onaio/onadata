@@ -2,7 +2,6 @@ import geojson
 import os
 import requests
 
-from django.conf import settings
 from django.utils import timezone
 from django.test import RequestFactory
 from django_digest.test import DigestAuth
