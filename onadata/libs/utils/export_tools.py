@@ -19,6 +19,7 @@ from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
 from json2xlsclient.client import Client
 
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
@@ -723,6 +724,9 @@ def generate_export(export_type, extension, username, id_string,
     if isinstance(end, datetime):
         instances = instances.filter(date_created__lte=end)
     records = instances.order_by('pk').values_list('json', flat=True)
+
+    records = ParsedInstance.query_data(xform, query=filter_query,
+                                        start=start, end=end)
 
     export_builder = ExportBuilder()
 
