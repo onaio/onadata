@@ -609,17 +609,20 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 raise ParseError('Missing body')
 
         if request.method.upper() == 'GET':
-            filename = "survey_draft_2invjl.csv"
-            username = "ivermac"
-            survey_path = "%s%s" % (
-                settings.MEDIA_ROOT,
-                upload_to_survey_draft(filename, username))
+            filename = request.QUERY_PARAMS.get('filename')
+            username = request.user.username
+            if filename and username:
+                survey_path = "%s%s" % (
+                    settings.MEDIA_ROOT,
+                    upload_to_survey_draft(filename, username))
 
-            survey_dict = get_survey_dict(survey_path)
-            survey = create_survey_element_from_dict(survey_dict)
-            survey_xml = survey.to_xml()
+                survey_dict = get_survey_dict(survey_path)
+                survey = create_survey_element_from_dict(survey_dict)
+                survey_xml = survey.to_xml()
 
-            return Response(survey_xml, status=200)
+                return Response(survey_xml, status=200)
+
+            return Response("Filename MUST be provided", status=400)
 
     def retrieve(self, request, *args, **kwargs):
         lookup_field = self.lookup_field
