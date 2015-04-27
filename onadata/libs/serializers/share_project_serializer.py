@@ -47,6 +47,9 @@ class ShareProjectSerializer(serializers.Serializer):
                 raise ValidationError(_(u"Cannot share project with"
                                         u" the owner"))
 
+        if not user.is_active:
+            raise ValidationError(_(u"User is not active"))
+
         return attrs
 
     def validate_role(self, attrs, source):

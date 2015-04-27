@@ -1082,3 +1082,76 @@ class TestProjectViewSet(TestAbstractViewSet):
         project = Project.objects.get(pk=projectid)
 
         self.assertNotEqual(old_org, project.organization)
+
+    def test_project_share_inactive_user(self):
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        # set the user inactive
+        self.assertTrue(alice_profile.user.is_active)
+        alice_profile.user.is_active = False
+        alice_profile.user.save()
+
+        projectid = self.project.pk
+
+        self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                    self.project))
+
+        data = {'username': 'alice', 'role': ReadOnlyRole.name}
+        request = self.factory.put('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'put': 'share'
+        })
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {'username': [u'User is not active']})
+
+        self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                    self.project))
+        self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                    self.xform))
+
+    def test_project_share_remove_inactive_user(self):
+        # create project and publish form to project
+        self._publish_xls_form_to_project()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        projectid = self.project.pk
+
+        self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                    self.project))
+
+        data = {'username': 'alice', 'role': ReadOnlyRole.name}
+        request = self.factory.put('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'put': 'share'
+        })
+        response = view(request, pk=projectid)
+
+        self.assertEqual(response.status_code, 204)
+
+        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                   self.project))
+        self.assertTrue(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                   self.xform))
+
+        # set the user inactive
+        self.assertTrue(alice_profile.user.is_active)
+        alice_profile.user.is_active = False
+        alice_profile.user.save()
+
+        data = {'username': 'alice', 'role': ReadOnlyRole.name, "remove": True}
+        request = self.factory.put('/', data=data, **self.extra)
+
+        self.assertEqual(response.status_code, 204)
+
+        self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                    self.project))
+        self.assertFalse(ReadOnlyRole.user_has_role(alice_profile.user,
+                                                    self.xform))
