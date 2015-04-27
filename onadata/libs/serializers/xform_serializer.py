@@ -169,18 +169,22 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         return []
 
     def get_xform_versions(self, obj):
-        versions = cache.get('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk))
+        if obj:
+            versions = cache.get('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk))
 
-        if versions:
+            if versions:
+                return versions
+
+            versions = Instance.objects.filter(xform=obj)\
+                .values('version')\
+                .annotate(total=Count('version'))
+
+            if versions:
+                cache.set('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk),
+                          list(versions))
+
             return versions
-
-        versions = Instance.objects.filter(xform=obj)\
-            .values('version')\
-            .annotate(total=Count('version'))
-
-        cache.set('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk), versions)
-
-        return versions
+        return []
 
 
 class XFormListSerializer(serializers.Serializer):
