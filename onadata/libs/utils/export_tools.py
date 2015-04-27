@@ -1079,7 +1079,8 @@ def generate_external_export(
     ser = parsed_url.scheme + '://' + parsed_url.netloc
 
     instances = Instance.objects.filter(xform__user=user,
-                                        xform__id_string=id_string)
+                                        xform__id_string=id_string,
+                                        deleted_at=None)
     if data_id:
         instances = instances.filter(pk=data_id)
     records = _get_records(instances)
