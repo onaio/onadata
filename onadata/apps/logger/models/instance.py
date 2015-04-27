@@ -127,7 +127,7 @@ def update_xform_submission_count(sender, instance, created, **kwargs):
         else:
             profile.num_of_submissions += 1
             profile.save()
-            
+
         safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, xform.pk))
 
 
