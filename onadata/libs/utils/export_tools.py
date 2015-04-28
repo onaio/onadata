@@ -1019,7 +1019,7 @@ def clean_keys_of_slashes(record):
     :param record: list containing a couple of dictionaries
     :return: record with keys without slashes
     """
-    for key in record:
+    for key in record.keys():
         value = record[key]
         if '/' in key:
             # replace with _
@@ -1079,7 +1079,7 @@ def generate_external_export(
 
     ser = parsed_url.scheme + '://' + parsed_url.netloc
 
-    instances = ParsedInstance.query_data(xform)
+    instances = ParsedInstance.query_data(xform, query=filter_query)
     if data_id:
         inst = Instance.objects.filter(xform__user=user,
                                        xform__id_string=id_string,
