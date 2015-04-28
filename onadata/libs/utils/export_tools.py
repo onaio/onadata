@@ -1079,7 +1079,7 @@ def generate_external_export(
 
     ser = parsed_url.scheme + '://' + parsed_url.netloc
 
-    instances = ParsedInstance.query_data(xform, query=filter_query)
+    # Get single submission data
     if data_id:
         inst = Instance.objects.filter(xform__user=user,
                                        xform__id_string=id_string,
@@ -1087,6 +1087,8 @@ def generate_external_export(
                                        pk=data_id)
 
         instances = [inst[0].get_dict() if inst else {}]
+    else:
+        instances = ParsedInstance.query_data(xform, query=filter_query)
 
     records = _get_records(instances)
 
