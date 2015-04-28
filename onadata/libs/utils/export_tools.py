@@ -23,7 +23,8 @@ from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import\
-    _is_invalid_for_mongo, _encode_for_mongo, _decode_from_mongo
+    _is_invalid_for_mongo, _encode_for_mongo, _decode_from_mongo,\
+    ParsedInstance
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     image_urls
 from onadata.libs.utils.common_tags import (
@@ -1008,7 +1009,7 @@ def generate_osm_export(
 
 
 def _get_records(instances):
-    return [clean_keys_of_slashes(instance.get_dict())
+    return [clean_keys_of_slashes(instance)
             for instance in instances]
 
 
@@ -1078,11 +1079,15 @@ def generate_external_export(
 
     ser = parsed_url.scheme + '://' + parsed_url.netloc
 
-    instances = Instance.objects.filter(xform__user=user,
-                                        xform__id_string=id_string,
-                                        deleted_at=None)
+    instances = ParsedInstance.query_data(xform)
     if data_id:
-        instances = instances.filter(pk=data_id)
+        inst = Instance.objects.filter(xform__user=user,
+                                       xform__id_string=id_string,
+                                       deleted_at=None,
+                                       pk=data_id)
+
+        instances = [inst[0].get_dict() if inst else {}]
+
     records = _get_records(instances)
 
     status_code = 0
