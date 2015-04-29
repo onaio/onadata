@@ -161,8 +161,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             else:
                 qs = self._filtered_or_shared_qs(qs, pk)
         else:
-            tags = self.request.QUERY_PARAMS.get('tags', None)
-            not_tagged = self.request.QUERY_PARAMS.get('not_tagged', None)
+            tags = self.request.QUERY_PARAMS.get('tags')
+            not_tagged = self.request.QUERY_PARAMS.get('not_tagged')
 
             if tags and isinstance(tags, six.string_types):
                 tags = tags.split(',')
@@ -183,7 +183,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             http_status = status.HTTP_201_CREATED
 
         tags = instance.tags
-        label = kwargs.get('label', None)
+        label = kwargs.get('label')
 
         if request.method == 'GET' and label:
             data = [tag['name'] for tag in
@@ -298,8 +298,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             qs = self.filter_queryset(self.get_queryset())
             self.object_list = Instance.objects.filter(xform__in=qs,
                                                        deleted_at=None)
-            tags = self.request.QUERY_PARAMS.get('tags', None)
-            not_tagged = self.request.QUERY_PARAMS.get('not_tagged', None)
+            tags = self.request.QUERY_PARAMS.get('tags')
+            not_tagged = self.request.QUERY_PARAMS.get('not_tagged')
 
             if tags and isinstance(tags, six.string_types):
                 tags = tags.split(',')
