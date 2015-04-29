@@ -14,8 +14,9 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.logger_tools import create_instance
-from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs import permissions as role
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
@@ -433,6 +434,45 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data, [])
         for i in self.xform.instances.all():
             self.assertNotIn(u'hello', i.tags.names())
+
+    def test_data_tags(self):
+        """Test that when a tag is applied on an xform,
+        it propagates to the instance submissions
+        """
+        self._make_submissions()
+        pk = self.xform.pk
+        i = self.xform.instances.all()[0]
+        dataid = i.pk
+        view = DataViewSet.as_view({
+            'get': 'labels',
+            'post': 'labels',
+            'delete': 'labels'
+        })
+
+        # no tags
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=pk, dataid=dataid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+        # add tag "hello"
+        request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
+        response = view(request, pk=pk, dataid=dataid)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, [u'hello'])
+        self.assertIn(u'hello', Instance.objects.get(pk=dataid).tags.names())
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=pk, dataid=dataid)
+        self.assertEqual(response.data, [u'hello'])
+
+        # remove tag "hello"
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, pk=pk, dataid=dataid, label='hello')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+        self.assertNotIn(
+            u'hello', Instance.objects.get(pk=dataid).tags.names())
 
     def test_labels_action_with_params(self):
         self._make_submissions()

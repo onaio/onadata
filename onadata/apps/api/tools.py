@@ -313,8 +313,9 @@ def add_tags_to_instance(request, instance):
 
         if tags:
             for tag in tags:
-                instance.instance.tags.add(tag)
-            instance.save()
+                instance.tags.add(tag)
+    else:
+        raise exceptions.ParseError(form.errors)
 
 
 def get_media_file_response(metadata):

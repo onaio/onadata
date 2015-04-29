@@ -174,8 +174,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         instance = self.get_object()
 
         if request.method == 'POST':
-            if add_tags_to_instance(request, instance):
-                http_status = status.HTTP_201_CREATED
+            add_tags_to_instance(request, instance)
+            http_status = status.HTTP_201_CREATED
 
         tags = instance.tags
         label = kwargs.get('label', None)
@@ -189,7 +189,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             tags.remove(label)
 
             # Accepted, label does not exist hence nothing removed
-            http_status = status.HTTP_200_OK if count == tags.count() \
+            http_status = status.HTTP_200_OK if count > tags.count() \
                 else status.HTTP_404_NOT_FOUND
 
             data = list(tags.names())
