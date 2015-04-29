@@ -6,7 +6,7 @@ This endpoint provides access to submitted data in JSON format. Where:
 - ``pk`` - the form unique identifier
 - ``dataid`` - submission data unique identifier
 - ``owner`` - username of the owner(user/organization) of the data point
- 
+
 
 GET JSON List of data end points
 --------------------------------
@@ -26,10 +26,10 @@ Example
 ::
 
     curl -X GET https://ona.io/api/v1/data
-	   
+
 
 Response
-^^^^^^^^^ 
+^^^^^^^^^
 ::
 
     [
@@ -161,14 +161,14 @@ Response
             ....
         ]
 
-Paginate data of a specific form 
+Paginate data of a specific form
 -------------------------------------------
 Returns a list of json submitted data for a specific form using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
 
 Example
 ^^^^^^^^
 ::
-  
+
       curl -X GET https://ona.io/api/v1/data/328.json?page=1&page_size=4
 
 
@@ -183,7 +183,7 @@ Provides a sorted list of json submitted data for a specific form by specifing t
 Query sorted by the age field ascending.
 
 ::
-    
+
     {"age":1}
 
 Descending sort query using the age field:
@@ -191,7 +191,7 @@ Descending sort query using the age field:
 ::
 
     {"age":-1}
-  
+
 
 Example of Ascending Sort
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -270,9 +270,12 @@ Use the `query` parameter to pass in a JSON key/value query.
 
 Query submitted data of a specific form using Tags
 --------------------------------------------------
-Provides a list of json submitted data for a specific form matching specific
+Provides a list of json submitted data for a specific data/form matching specific
 tags. Use the `tags` query parameter to filter the list of forms, `tags`
 should be a comma separated list of tags.
+
+You can use the `not_tagged` query parameter to exclude data/forms that is not tagged
+with the specific comma separated list of tags.
 
 .. raw:: html
 
@@ -280,6 +283,10 @@ should be a comma separated list of tags.
   <b>GET</b> /api/v1/data?<code>tags</code>=<code>tag1,tag2</code></pre>
   <pre class="prettyprint">
   <b>GET</b> /api/v1/data/<code>{pk}</code>?<code>tags</code>=<code>tag1,tag2</code></pre>
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data?<code>not_tagged</code>=<code>tag1,tag2</code></pre>
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>?<code>not_tagged</code>=<code>tag2</code></pre>
 
 Example
 ^^^^^^^^^
@@ -403,7 +410,7 @@ Example
 Response
 ^^^^^^^^^
 ::
-  
+
     HTTP 204 No Content
 
 

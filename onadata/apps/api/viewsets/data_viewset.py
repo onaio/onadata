@@ -289,10 +289,15 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             self.object_list = Instance.objects.filter(xform__in=qs,
                                                        deleted_at=None)
             tags = self.request.QUERY_PARAMS.get('tags', None)
+            not_tagged = self.request.QUERY_PARAMS.get('not_tagged', None)
 
             if tags and isinstance(tags, six.string_types):
                 tags = tags.split(',')
                 self.object_list = self.object_list.filter(tags__name__in=tags)
+            if not_tagged and isinstance(not_tagged, six.string_types):
+                not_tagged = not_tagged.split(',')
+                self.object_list = \
+                    self.object_list.exclude(tags__name__in=not_tagged)
 
         if (export_type is None or export_type in ['json']) \
                 and hasattr(self, 'object_list'):

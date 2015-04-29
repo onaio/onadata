@@ -440,9 +440,13 @@ class TestDataViewSet(TestBase):
         it propagates to the instance submissions
         """
         self._make_submissions()
+        submission_count = self.xform.instances.count()
         pk = self.xform.pk
         i = self.xform.instances.all()[0]
         dataid = i.pk
+        data_view = DataViewSet.as_view({
+            'get': 'list',
+        })
         view = DataViewSet.as_view({
             'get': 'labels',
             'post': 'labels',
@@ -455,6 +459,16 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
+        request = self.factory.get('/', {'tags': 'hello'}, **self.extra)
+        response = data_view(request, pk=pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        request = self.factory.get('/', {'not_tagged': 'hello'}, **self.extra)
+        response = data_view(request, pk=pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), submission_count)
+
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
         response = view(request, pk=pk, dataid=dataid)
@@ -465,6 +479,16 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=pk, dataid=dataid)
         self.assertEqual(response.data, [u'hello'])
+
+        request = self.factory.get('/', {'tags': 'hello'}, **self.extra)
+        response = data_view(request, pk=pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        request = self.factory.get('/', {'not_tagged': 'hello'}, **self.extra)
+        response = data_view(request, pk=pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), submission_count - 1)
 
         # remove tag "hello"
         request = self.factory.delete('/', **self.extra)
