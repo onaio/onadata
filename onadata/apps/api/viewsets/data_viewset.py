@@ -160,6 +160,16 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     raise ParseError(_(u"Invalid pk %(pk)s" % {'pk': pk}))
             else:
                 qs = self._filtered_or_shared_qs(qs, pk)
+        else:
+            tags = self.request.QUERY_PARAMS.get('tags', None)
+            not_tagged = self.request.QUERY_PARAMS.get('not_tagged', None)
+
+            if tags and isinstance(tags, six.string_types):
+                tags = tags.split(',')
+                qs = qs.filter(tags__name__in=tags)
+            if not_tagged and isinstance(not_tagged, six.string_types):
+                not_tagged = not_tagged.split(',')
+                qs = qs.exclude(tags__name__in=not_tagged)
 
         return qs
 

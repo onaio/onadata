@@ -415,10 +415,24 @@ class TestDataViewSet(TestBase):
             'post': 'labels',
             'delete': 'labels'
         })
+        data_view = DataViewSet.as_view({
+            'get': 'list',
+        })
         # no tags
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=pk)
         self.assertEqual(response.data, [])
+
+        request = self.factory.get('/', {'tags': 'hello'}, **self.extra)
+        response = data_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        request = self.factory.get('/', {'not_tagged': 'hello'}, **self.extra)
+        response = data_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
         response = view(request, pk=pk)
@@ -426,6 +440,17 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data, [u'hello'])
         for i in self.xform.instances.all():
             self.assertIn(u'hello', i.tags.names())
+
+        request = self.factory.get('/', {'tags': 'hello'}, **self.extra)
+        response = data_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        request = self.factory.get('/', {'not_tagged': 'hello'}, **self.extra)
+        response = data_view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
         # remove tag "hello"
         request = self.factory.delete('/', data={"tags": "hello"},
                                       **self.extra)
