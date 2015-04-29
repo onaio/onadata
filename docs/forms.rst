@@ -534,6 +534,21 @@ Response
 ^^^^^^^^
 ::
 
+    HTTP 204 NO CONTENT
+
+
+Get list of forms containing data with osm files
+------------------------------------------------
+
+Use the ``instances_with__osm`` query parameter to filter the list of forms
+ that has osm file submissions. Accepted values are ``True`` and ``False``.
+
+.. raw:: html
+
+	<pre class="prettyprint">
+	<b>GET</b> /api/v1/forms?<code>instances_with_osm</code>=<code>True</code></pre>
+
+
         HTTP 200 OK
 
 Get webform/enketo link
@@ -707,7 +722,7 @@ Example
 Response
 ^^^^^^^^
 ::
-       
+
     HTTP 204 NO CONTENT
 
 Clone a form to a specific user account
