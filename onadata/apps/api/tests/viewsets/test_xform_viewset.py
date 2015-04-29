@@ -1132,7 +1132,8 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             'uuid': u'',
             'version': u'',
             'project': None,
-            'created_by': None
+            'created_by': None,
+            'instances_with_osm': False
         }
         self.assertEqual(data, XFormSerializer(None).data)
 
