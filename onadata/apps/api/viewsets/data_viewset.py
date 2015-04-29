@@ -86,7 +86,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     paginate_by_param = 'page_size'
     page_kwarg = 'page'
 
-    queryset = XForm.objects.filter().select_related()
+    queryset = XForm.objects.filter()
 
     def get_serializer_class(self):
         pk_lookup, dataid_lookup = self.lookup_fields
@@ -149,11 +149,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     def filter_queryset(self, queryset, view=None):
         qs = super(DataViewSet, self).filter_queryset(queryset)
         pk = self.kwargs.get(self.lookup_field)
-        tags = self.request.QUERY_PARAMS.get('tags', None)
-
-        if tags and isinstance(tags, six.string_types):
-            tags = tags.split(',')
-            qs = qs.filter(tags__name__in=tags).distinct()
 
         if pk:
             try:
@@ -293,6 +288,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             qs = self.filter_queryset(self.get_queryset())
             self.object_list = Instance.objects.filter(xform__in=qs,
                                                        deleted_at=None)
+            tags = self.request.QUERY_PARAMS.get('tags', None)
+
+            if tags and isinstance(tags, six.string_types):
+                tags = tags.split(',')
+                self.object_list = self.object_list.filter(tags__name__in=tags)
 
         if (export_type is None or export_type in ['json']) \
                 and hasattr(self, 'object_list'):
