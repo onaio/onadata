@@ -4,8 +4,10 @@ import requests
 
 from django.utils import timezone
 from django.test import RequestFactory
+from django_digest.test import DigestAuth
 
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
+from onadata.apps.main import tests as main_tests
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -913,6 +915,44 @@ class TestDataViewSet(TestBase):
 
         self.assertEquals(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+
+    def test_data_diff_version(self):
+        self._make_submissions()
+
+        # update the form version
+        self.xform.version = "212121211"
+        self.xform.save()
+
+        # make more submission after form update
+        surveys = ['transport_2011-07-25_19-05-36-edited']
+        main_directory = os.path.dirname(main_tests.__file__)
+        paths = [os.path.join(main_directory, 'fixtures', 'transportation',
+                              'instances_w_uuid', s, s + '.xml')
+                 for s in surveys]
+
+        auth = DigestAuth('bob', 'bob')
+        for path in paths:
+            self._make_submission(path, None, None, auth=auth)
+
+        data_view = DataViewSet.as_view({'get': 'list'})
+
+        request = self.factory.get('/', **self.extra)
+
+        response = data_view(request, pk=self.xform.pk)
+
+        self.assertEquals(len(response.data), 5)
+
+        query_str = '{"_version": "2014111"}'
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = data_view(request, pk=self.xform.pk)
+
+        self.assertEquals(len(response.data), 4)
+
+        query_str = '{"_version": "212121211"}'
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = data_view(request, pk=self.xform.pk)
+
+        self.assertEquals(len(response.data), 1)
 
 
 class TestOSM(TestAbstractViewSet):

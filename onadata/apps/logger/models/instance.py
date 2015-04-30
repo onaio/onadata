@@ -23,7 +23,8 @@ from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import safe_delete
 from onadata.libs.utils.cache_tools import IS_ORG
 from onadata.libs.utils.cache_tools import PROJ_SUB_DATE_CACHE
-from onadata.libs.utils.cache_tools import PROJ_NUM_DATASET_CACHE
+from onadata.libs.utils.cache_tools import PROJ_NUM_DATASET_CACHE,\
+    XFORM_DATA_VERSIONS
 from onadata.libs.utils.timing import calculate_duration
 
 
@@ -127,6 +128,8 @@ def update_xform_submission_count(sender, instance, created, **kwargs):
             profile.num_of_submissions += 1
             profile.save()
 
+        safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, xform.pk))
+
 
 def update_xform_submission_count_delete(sender, instance, **kwargs):
     try:
@@ -154,6 +157,7 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
             safe_delete('{}{}'.format(a, xform.project.pk))
 
         safe_delete('{}{}'.format(IS_ORG, xform.pk))
+        safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, xform.pk))
 
         if xform.instances.exclude(geom=None).count() < 1:
             xform.instances_with_geopoints = False

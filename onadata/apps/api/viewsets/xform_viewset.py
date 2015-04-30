@@ -130,6 +130,8 @@ def _set_start_end_params(request, query):
             query = json.dumps(query)
 
         return query
+    else:
+        return query
 
 
 def _generate_new_export(request, xform, query, export_type):
@@ -452,7 +454,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         xform = self.get_object()
         export_type = kwargs.get('format')
-        query = request.GET.get("query", {})
+        query = request.GET.get("query", request.QUERY_PARAMS.get("query", {}))
         token = request.GET.get('token')
         meta = request.GET.get('meta')
 
@@ -584,7 +586,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     def export_async(self, request, *args, **kwargs):
         job_uuid = request.QUERY_PARAMS.get('job_uuid')
         export_type = request.QUERY_PARAMS.get('format')
-        query = request.GET.get("query")
+        query = request.QUERY_PARAMS.get("query")
         xform = self.get_object()
 
         token = request.QUERY_PARAMS.get('token')
@@ -604,7 +606,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if job.state == 'SUCCESS':
                 export_id = job.result
                 export = Export.objects.get(id=export_id)
-                if export.is_successful:
+                if export.status == Export.SUCCESSFUL:
                     if export.export_type != Export.EXTERNAL_EXPORT:
                         export_url = reverse(
                             'xform-detail',
@@ -618,15 +620,13 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                         u'job_status': job.state,
                         u'export_url': export_url
                     }
-                else:
-                    if export.status is 0:
-                        export_status = "Pending"
-                    elif export.status is 1:
-                        export_status = "Successful"
-                    else:
-                        export_status = "Failed"
+                elif export.status == Export.PENDING:
                     resp = {
-                        'export_status': export_status
+                        'export_status': 'Pending'
+                    }
+                else:
+                    resp = {
+                        'export_status': "Failed"
                     }
             else:
                 resp = {

@@ -2,8 +2,9 @@ from django.forms import widgets
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from django.core.cache import cache
+from django.db.models import Count
 
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import XForm, Instance
 from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
@@ -16,7 +17,8 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.cache_tools import (XFORM_PERMISSIONS_CACHE,
                                             ENKETO_URL_CACHE,
                                             ENKETO_PREVIEW_URL_CACHE,
-                                            XFORM_METADATA_CACHE)
+                                            XFORM_METADATA_CACHE,
+                                            XFORM_DATA_VERSIONS)
 
 
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
@@ -46,6 +48,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         'get_instances_with_geopoints')
     num_of_submissions = serializers.SerializerMethodField(
         'get_num_of_submissions')
+    form_versions = serializers.SerializerMethodField(
+        'get_xform_versions')
 
     class Meta:
         model = XForm
@@ -162,6 +166,24 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                 '{}{}'.format(XFORM_METADATA_CACHE, obj.pk), xform_metadata)
             return xform_metadata
 
+        return []
+
+    def get_xform_versions(self, obj):
+        if obj:
+            versions = cache.get('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk))
+
+            if versions:
+                return versions
+
+            versions = Instance.objects.filter(xform=obj)\
+                .values('version')\
+                .annotate(total=Count('version'))
+
+            if versions:
+                cache.set('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk),
+                          list(versions))
+
+            return versions
         return []
 
 

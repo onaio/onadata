@@ -221,6 +221,25 @@ Response
        HTTP 202 Accepted
        {"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
 
+Export submitted data of a specific form version
+------------------------------------------------
+Use the `query` parameter to pass in a JSON key/value query.
+
+Example:
+^^^^^^^^
+Querying data with a specific version
+
+::
+
+query={"_version": "2014111"}
+
+
+Example
+^^^^^^^^
+::
+
+       curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&query={"_version": "2014111"}
+
 You can use the `job_uuid` value to check the progress of data export
 
 Check progress of exporting form data asynchronously

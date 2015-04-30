@@ -14,6 +14,7 @@ from httmock import urlmatch, HTTMock
 from mock import patch
 from rest_framework import status
 from xml.dom import minidom, Node
+from django_digest.test import DigestAuth
 
 from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -1949,3 +1950,44 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                 .count()
 
             self.assertEquals(count+1, count2)
+
+    def test_different_form_versions(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+
+            view = XFormViewSet.as_view({
+                'patch': 'partial_update',
+                'get': 'retrieve'
+            })
+
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation_version.xls")
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.patch('/', data=post_data, **self.extra)
+                response = view(request, pk=self.xform.pk)
+                self.assertEqual(response.status_code, 200)
+
+            # make more submission after form update
+            surveys = ['transport_2011-07-25_19-05-36-edited']
+            paths = [os.path.join(
+                self.main_directory, 'fixtures', 'transportation',
+                'instances_w_uuid', s, s + '.xml') for s in surveys]
+
+            auth = DigestAuth(self.profile_data['username'],
+                              self.profile_data['password1'])
+            for path in paths:
+                self._make_submission(path, None, None, auth=auth)
+
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk)
+            self.assertEqual(response.status_code, 200)
+
+            self.assertIn('form_versions', response.data)
+
+            expected = [{'total': 1, 'version': u'212121211'},
+                        {'total': 4, 'version': u'2014111'}]
+
+            self.assertEquals(expected, response.data.get('form_versions'))

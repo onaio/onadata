@@ -717,12 +717,8 @@ def generate_export(export_type, extension, username, id_string,
     xform = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
 
-    instances = xform.instances.filter(deleted_at=None)
-    if isinstance(start, datetime):
-        instances = instances.filter(date_created__gte=start)
-    if isinstance(end, datetime):
-        instances = instances.filter(date_created__lte=end)
-    records = instances.order_by('pk').values_list('json', flat=True)
+    records = ParsedInstance.query_data(xform, query=filter_query,
+                                        start=start, end=end)
 
     export_builder = ExportBuilder()
 
