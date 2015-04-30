@@ -185,6 +185,13 @@ class OSMRenderer(BaseRenderer):
 
     def render(self, data, media_type=None, renderer_context=None):
         """Combine/concatenate the list of osm files to one file"""
+        def _list(list_or_item):
+            if isinstance(list_or_item, list):
+                return list_or_item
+
+            return [item]
+
+        data = [item for item_or_list in data for item in _list(item_or_list)]
 
         return get_combined_osm(data)
 
