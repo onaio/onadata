@@ -317,12 +317,15 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         xform = self.get_object()
 
         if export_type == Attachment.OSM:
-            serializer = self.get_serializer(self.object_list, many=True)
+            page = self.paginate_queryset(self.object_list)
+            serializer = self.get_pagination_serializer(page)
 
             return Response(serializer.data)
+
         elif export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
             return super(DataViewSet, self).list(request, *args, **kwargs)
+
         elif export_type == 'geojson':
             serializer = self.get_serializer(self.object_list, many=True)
 
