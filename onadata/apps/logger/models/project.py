@@ -18,6 +18,7 @@ class Project(BaseModel):
             ('add_project_xform', "Can add xform to project"),
             ("report_project_xform", "Can make submissions to the project"),
             ('transfer_project', "Can transfer project to different owner"),
+            ('can_export_project_data', "Can export data in project"),
         )
 
     name = models.CharField(max_length=255)

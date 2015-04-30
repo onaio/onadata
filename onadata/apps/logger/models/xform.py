@@ -101,6 +101,7 @@ class XForm(BaseModel):
             ("report_xform", _("Can make submissions to the form")),
             ("move_xform", _(u"Can move form between projects")),
             ("transfer_xform", _(u"Can transfer form ownership.")),
+            ("can_export_xform_data", _(u"Can export form data")),
         )
 
     def file_name(self):

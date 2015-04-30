@@ -6,7 +6,7 @@ from django.conf import settings
 
 
 from onadata.libs.permissions import ReadOnlyRole, DataEntryRole,\
-    EditorRole, ManagerRole, OwnerRole
+    EditorRole, ManagerRole, OwnerRole, ReadOnlyRoleNoDownload
 
 
 class Command(BaseCommand):
@@ -53,7 +53,8 @@ class Command(BaseCommand):
 
         for perm_obj in objects:
             obj = perm_obj.content_object
-            ROLES = [ReadOnlyRole,
+            ROLES = [ReadOnlyRoleNoDownload,
+                     ReadOnlyRole,
                      DataEntryRole,
                      EditorRole,
                      ManagerRole,

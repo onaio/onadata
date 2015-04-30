@@ -36,6 +36,7 @@ CAN_VIEW_XFORM = 'view_xform'
 CAN_ADD_SUBMISSIONS = 'report_xform'
 CAN_TRANSFER_OWNERSHIP = 'transfer_xform'
 CAN_MOVE_TO_FOLDER = 'move_xform'
+CAN_EXPORT_XFORM = 'can_export_xform_data'
 
 # Project Permissions
 CAN_ADD_PROJECT = 'add_project'
@@ -45,6 +46,7 @@ CAN_TRANSFER_PROJECT_OWNERSHIP = 'transfer_project'
 CAN_DELETE_PROJECT = 'delete_project'
 CAN_ADD_PROJECT_XFORM = 'add_project_xform'
 CAN_ADD_SUBMISSIONS_PROJECT = 'report_project_xform'
+CAN_EXPORT_PROJECT = 'can_export_project_data'
 
 CAN_ADD_DATADICTIONARY = 'add_datadictionary'
 CAN_CHANGE_DATADICTIONARY = 'change_datadictionary'
@@ -101,12 +103,23 @@ class Role(object):
         return user.has_perms(cls.class_to_permissions[type(obj)], obj)
 
 
+class ReadOnlyRoleNoDownload(Role):
+    name = 'readonly-no-download'
+    permissions = (
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_VIEW_XFORM, XForm),
+        (CAN_VIEW_PROJECT, Project),
+    )
+
+
 class ReadOnlyRole(Role):
     name = 'readonly'
     permissions = (
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_VIEW_XFORM, XForm),
         (CAN_VIEW_PROJECT, Project),
+        (CAN_EXPORT_XFORM, XForm),
+        (CAN_EXPORT_PROJECT, Project),
     )
 
 
@@ -118,6 +131,8 @@ class DataEntryRole(Role):
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_VIEW_PROJECT, Project),
         (CAN_ADD_SUBMISSIONS_PROJECT, Project),
+        (CAN_EXPORT_XFORM, XForm),
+        (CAN_EXPORT_PROJECT, Project),
     )
 
 
@@ -131,6 +146,8 @@ class EditorRole(Role):
         (CAN_CHANGE_PROJECT, Project),
         (CAN_VIEW_PROJECT, Project),
         (CAN_ADD_SUBMISSIONS_PROJECT, Project),
+        (CAN_EXPORT_XFORM, XForm),
+        (CAN_EXPORT_PROJECT, Project),
     )
 
 
@@ -151,6 +168,8 @@ class ManagerRole(Role):
         (CAN_CHANGE_PROJECT, Project),
         (CAN_VIEW_PROJECT, Project),
         (CAN_ADD_SUBMISSIONS_PROJECT, Project),
+        (CAN_EXPORT_XFORM, XForm),
+        (CAN_EXPORT_PROJECT, Project),
     )
 
 
@@ -199,9 +218,12 @@ class OwnerRole(Role):
         (CAN_TRANSFER_PROJECT_OWNERSHIP, Project),
         (CAN_VIEW_PROJECT, Project),
         (CAN_ADD_SUBMISSIONS_PROJECT, Project),
+        (CAN_EXPORT_XFORM, XForm),
+        (CAN_EXPORT_PROJECT, Project),
     )
 
-ROLES_ORDERED = [ReadOnlyRole,
+ROLES_ORDERED = [ReadOnlyRoleNoDownload,
+                 ReadOnlyRole,
                  DataEntryRole,
                  EditorRole,
                  ManagerRole,
