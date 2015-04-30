@@ -189,7 +189,7 @@ class OSMRenderer(BaseRenderer):
             if isinstance(list_or_item, list):
                 return list_or_item
 
-            return [item]
+            return [list_or_item]
 
         data = [item for item_or_list in data for item in _list(item_or_list)]
 
