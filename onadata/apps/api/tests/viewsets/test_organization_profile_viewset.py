@@ -222,7 +222,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, [u'denoinc', u'aboy'])
+        self.assertEqual(set(response.data), set([u'denoinc', u'aboy']))
 
     def test_member_sees_orgs_added_to(self):
         self._org_create()
@@ -244,7 +244,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, [u'denoinc', u'aboy'])
+        self.assertEqual(set(response.data), set([u'denoinc', u'aboy']))
 
         self.profile_data['username'] = member
         self._login_user_and_profile()
@@ -307,7 +307,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 401)
-        self.assertNotEquals(response.data, [u'denoinc', u'aboy'])
+        self.assertNotEquals(set(response.data), set([u'denoinc', u'aboy']))
 
     def test_add_members_to_org_with_non_member_user(self):
         self._org_create()
@@ -328,7 +328,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 404)
-        self.assertNotEqual(response.data, [u'denoinc', u'aboy'])
+        self.assertNotEqual(set(response.data), set([u'denoinc', u'aboy']))
 
     def test_remove_members_from_org(self):
         self._org_create()
@@ -346,7 +346,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, [u'denoinc', newname])
+        self.assertEqual(set(response.data), set([u'denoinc', newname]))
 
         request = self.factory.delete(
             '/', json.dumps(data),
@@ -478,7 +478,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, [u'denoinc', newname])
+        self.assertEqual(set(response.data), set([u'denoinc', newname]))
 
         data = {'username': newname, 'role': 42}
         request = self.factory.put(
@@ -510,7 +510,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
                                       u'You have been add to denoinc',
                                       'noreply@ona.io',
                                       (u'aboy@org.com',))
-        self.assertEqual(response.data, [u'denoinc', u'aboy'])
+        self.assertEqual(set(response.data), set([u'denoinc', u'aboy']))
 
     @patch('onadata.apps.api.viewsets.organization_profile_viewset.send_mail')
     def test_add_members_to_org_email_custom_subj(self, mock_email):
@@ -534,7 +534,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
                                       u'You have been add to denoinc',
                                       'noreply@ona.io',
                                       (u'aboy@org.com',))
-        self.assertEqual(response.data, [u'denoinc', u'aboy'])
+        self.assertEqual(set(response.data), set([u'denoinc', u'aboy']))
 
     def test_add_members_to_org_with_role(self):
         self._org_create()
@@ -554,7 +554,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
 
-        self.assertEqual(response.data, [u'denoinc', u'aboy'])
+        self.assertEqual(set(response.data), set([u'denoinc', u'aboy']))
 
         # getting profile
         request = self.factory.get('/', **self.extra)
@@ -583,7 +583,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
 
-        self.assertEqual(response.data, [u'denoinc', u'aboy'])
+        self.assertEqual(set(response.data), set([u'denoinc', u'aboy']))
 
         # getting profile
         request = self.factory.get('/', **self.extra)
