@@ -241,6 +241,7 @@ def create_instance(username, xml_file, media_files,
                     existing_instance.xform.has_start_time:
                 # ensure we have saved the extra attachments
                 save_attachments(xform, existing_instance, media_files)
+                existing_instance.save()
                 transaction.commit()
 
                 # Ignore submission as a duplicate IFF
@@ -256,6 +257,7 @@ def create_instance(username, xml_file, media_files,
         if duplicate_instances:
             # ensure we have saved the extra attachments
             save_attachments(xform, duplicate_instances[0], media_files)
+            duplicate_instances[0].save()
 
             transaction.commit()
             raise DuplicateInstance()
