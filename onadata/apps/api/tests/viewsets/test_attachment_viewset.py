@@ -4,7 +4,9 @@ from django.utils import timezone
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.attachment_viewset import AttachmentViewSet
+from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import get_attachment_url
+from onadata.apps.logger.models.instance import Instance
 
 
 def attachment_url(attachment, suffix=None):
@@ -65,10 +67,29 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         response = self.retrieve_view(request, pk=pk)
         self.assertEqual(response.status_code, 404)
 
-    def test_attachment_pagination(self):
+    def test_attachments_added_on_duplicate_submission_has_start_time(self):
+        self.xform.has_start_time = True
+        self.xform.save()
+        count = Attachment.objects.count()
+        instance_count = Instance.objects.count()
         self._submit_transport_instance_w_attachment()
+        self.assertEqual(self.response.status_code, 201)
+        self.assertEqual(Attachment.objects.count(), count + 1)
+        self.assertEqual(Instance.objects.count(), instance_count + 1)
         self._submit_transport_instance_w_attachment(
             media_file="1335783522564.JPG")
+        self.assertEqual(self.response.status_code, 202)
+        # change in number of attachments
+        self.assertEqual(Attachment.objects.count(), count + 2)
+        # no change in number of submissions
+        self.assertEqual(Instance.objects.count(), instance_count + 1)
+
+    def test_attachment_pagination(self):
+        self._submit_transport_instance_w_attachment()
+        self.assertEqual(self.response.status_code, 201)
+        self._submit_transport_instance_w_attachment(
+            media_file="1335783522564.JPG")
+        self.assertEqual(self.response.status_code, 202)
 
         # not using pagination params
         request = self.factory.get('/', **self.extra)
