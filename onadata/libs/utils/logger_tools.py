@@ -162,13 +162,7 @@ def check_submission_permissions(request, xform):
                   'form_title': xform.title}))
 
 
-def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
-                    date_created_override):
-    if not date_created_override:
-        date_created_override = get_submission_date_from_xml(xml)
-
-    instance = _get_instance(xml, new_uuid, submitted_by, status, xform)
-
+def save_attachments(xform, instance, media_files):
     for f in media_files:
         filename, extension = os.path.splitext(f.name)
         extension = extension.replace('.', '')
@@ -182,6 +176,15 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
             instance=instance, media_file=f, mimetype=content_type,
             extension=extension
         )
+
+
+def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
+                    date_created_override):
+    if not date_created_override:
+        date_created_override = get_submission_date_from_xml(xml)
+
+    instance = _get_instance(xml, new_uuid, submitted_by, status, xform)
+    save_attachments(xform, instance, media_files)
 
     # override date created if required
     if date_created_override:
@@ -236,6 +239,10 @@ def create_instance(username, xml_file, media_files,
                 xml=xml, xform__user=xform.user)[0]
             if not existing_instance.xform or\
                     existing_instance.xform.has_start_time:
+                # ensure we have saved the extra attachments
+                save_attachments(xform, existing_instance, media_files)
+                transaction.commit()
+
                 # Ignore submission as a duplicate IFF
                 #  * a submission's XForm collects start time
                 #  * the submitted XML is an exact match with one that
@@ -247,11 +254,9 @@ def create_instance(username, xml_file, media_files,
         duplicate_instances = Instance.objects.filter(uuid=new_uuid)
 
         if duplicate_instances:
-            for f in media_files:
-                Attachment.objects.get_or_create(
-                    instance=duplicate_instances[0],
-                    media_file=f, mimetype=f.content_type)
             # ensure we have saved the extra attachments
+            save_attachments(xform, duplicate_instances[0], media_files)
+
             transaction.commit()
             raise DuplicateInstance()
 
