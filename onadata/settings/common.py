@@ -13,6 +13,7 @@ import logging
 import os
 import subprocess  # nopep8, used by included files
 import sys  # nopep8, used by included files
+import socket
 
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
@@ -496,6 +497,11 @@ except EnvironmentError:
     RESERVED_USERNAMES = []
 
 STATIC_DOC = '/static/docs/index.html'
+
+try:
+    HOSTNAME = socket.gethostname()
+except:
+    HOSTNAME = 'localhost'
 
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
