@@ -316,6 +316,9 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
 
 
 def report_exception(subject, info, exc_info=None):
+    # Add hostname to subject mail
+
+    subject = "{0} - {1}".format(subject, settings.HOSTNAME)
     if exc_info:
         cls, err = exc_info[:2]
         message = _(u"Exception in request:"

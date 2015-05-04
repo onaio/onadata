@@ -113,6 +113,9 @@ def _all_attributes(node):
 
 
 def report_exception(subject, info, exc_info=None):
+    # Add hostname to subject mail
+
+    subject = "{0} - {1}".format(subject, settings.HOSTNAME)
     if exc_info:
         cls, err = exc_info[:2]
         info += _(u"Exception in request: %(class)s: %(error)s") \
