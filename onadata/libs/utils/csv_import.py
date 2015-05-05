@@ -156,9 +156,9 @@ def submit_csv(username, xform, csv_file):
     # ignore if is multiple select question
     for col in csv_header:
         # this col is a multiple select question
-        if dd.get_survey_element(col) and \
-                dd.get_survey_element(col).get('type', None)\
-                == MULTIPLE_SELECT_TYPE:
+        survey_element = dd.get_survey_element(col)
+        if survey_element and \
+                survey_element.get('type') == MULTIPLE_SELECT_TYPE:
             # remove from the missing and additional list
             missing = [x for x in missing if not x.startswith(col)]
 
