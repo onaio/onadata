@@ -145,3 +145,15 @@ class CSVImportTestCase(TestBase):
         csv_import.submit_csv(self.user.username, self.xform, good_csv)
         self.assertEqual(Instance.objects.count(),
                          9, u'submit_csv edits #1 test Failed!')
+
+    def test_csv_with_multiple_select_in_one_column(self):
+        self.xls_file_path = os.path.join(self.fixtures_dir,
+                                          'form_with_multiple_select.xlsx')
+        self._publish_xls_file(self.xls_file_path)
+        self.xform = XForm.objects.get()
+
+        good_csv = open(os.path.join(self.fixtures_dir,
+                                     'csv_import_with_multiple_select.csv'))
+        csv_import.submit_csv(self.user.username, self.xform, good_csv)
+        self.assertEqual(Instance.objects.count(),
+                         1, u'submit_csv edits #1 test Failed!')
