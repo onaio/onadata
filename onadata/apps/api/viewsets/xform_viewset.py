@@ -611,6 +611,10 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         if request.method.upper() == 'GET':
             filename = request.QUERY_PARAMS.get('filename')
             username = request.user.username
+            if not username:
+                raise ParseError("User has to be authenticated")
+            if not filename:
+                raise ParseError("Filename MUST be provided")
             if filename and username:
                 survey_path = "%s%s" % (
                     settings.MEDIA_ROOT,
@@ -622,7 +626,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
                 return Response(survey_xml, status=200)
 
-            return Response("Filename MUST be provided", status=400)
 
     def retrieve(self, request, *args, **kwargs):
         lookup_field = self.lookup_field
