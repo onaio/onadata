@@ -98,6 +98,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         if 'first_name' in ret:
             ret['name'] = u' '.join([ret.get('first_name'),
                                      ret.get('last_name', "")])
+            ret['name'] = ret['name'].strip()
 
         return ret
 
