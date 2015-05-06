@@ -13,6 +13,7 @@ from datetime import datetime
 from django.contrib.auth.models import User
 from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
 from onadata.apps.logger.models import Instance
+from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
 
 
 def get_submission_meta_dict(xform, instance_id):
@@ -145,8 +146,23 @@ def submit_csv(username, xform, csv_file):
 
     # change to list
     missing_col = list(missing_col)
+    addition_col = list(addition_col)
     # remove all metadata columns
     missing = [col for col in missing_col if not col.startswith("_")]
+
+    # remove all metadata inside groups
+    missing = [col for col in missing if not ("/_" in col)]
+
+    # ignore if is multiple select question
+    for col in csv_header:
+        # this col is a multiple select question
+        survey_element = dd.get_survey_element(col)
+        if survey_element and \
+                survey_element.get('type') == MULTIPLE_SELECT_TYPE:
+            # remove from the missing and additional list
+            missing = [x for x in missing if not x.startswith(col)]
+
+            addition_col.remove(col)
 
     if missing:
         return {'error': u"Sorry uploaded file does not match the form. "
