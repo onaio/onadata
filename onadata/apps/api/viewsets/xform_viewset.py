@@ -587,6 +587,10 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     @list_route(methods=['POST', 'GET'])
     def survey_preview(self, request, **kwargs):
 
+        username = request.user.username
+        if not username:
+            raise ParseError("User has to be authenticated")
+
         if request.method.upper() == 'POST':
             csv_data = request.DATA.get('body')
             if csv_data:
@@ -595,7 +599,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
                 csv_file = ContentFile(csv_data)
                 csv_name = default_storage.save(
-                    upload_to_survey_draft(rand_name, request.user.username),
+                    upload_to_survey_draft(rand_name, username),
                     csv_file)
 
                 survey_path = "%s%s" % (settings.MEDIA_ROOT, csv_name)
@@ -610,9 +614,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         if request.method.upper() == 'GET':
             filename = request.QUERY_PARAMS.get('filename')
-            username = request.user.username
-            if not username:
-                raise ParseError("User has to be authenticated")
             if not filename:
                 raise ParseError("Filename MUST be provided")
             if filename and username:
