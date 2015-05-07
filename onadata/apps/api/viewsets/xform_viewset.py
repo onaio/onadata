@@ -18,8 +18,9 @@ from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
 
-from pyxform.xls2json import parse_file_to_json
+from pyxform.xls2json import parse_file_to_json, workbook_to_json
 from pyxform.builder import create_survey_element_from_dict
+from pyxform.xls2json_backends import csv_to_dict
 from rest_framework import exceptions
 from rest_framework import status
 from rest_framework.decorators import action, detail_route, list_route
@@ -95,28 +96,10 @@ def upload_to_survey_draft(filename, username):
     )
 
 
-def get_survey_dict(survey_path, default_name=None):
-    csv_file = open(survey_path)
-    try:
-        survey_dict = parse_file_to_json(
-            survey_path,
-            default_name=default_name,
-            file_object=open(survey_path))
-    except csv.Error as e:
-        newline_error = u'new-line character seen in unquoted field '\
-            u'- do you need to open the file in universal-newline '\
-            u'mode?'
-        if newline_error == unicode(e):
-            csv_file.seek(0)
-            file_obj = StringIO(
-                u'\n'.join(csv_file.read().splitlines()))
-            survey_dict = parse_file_to_json(
-                survey_path, default_name=default_name,
-                file_object=file_obj)
-
-            return survey_dict
-        else:
-            raise e
+def get_survey_dict(csv_name):
+    survey_file = default_storage.open(csv_name, 'r')
+    workbook_dict = csv_to_dict(survey_file)
+    survey_dict = workbook_to_json(workbook_dict)
 
     return survey_dict
 
@@ -596,15 +579,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if csv_data:
                 rand_name = "survey_draft_%s.csv" % ''.join(
                     random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
-
                 csv_file = ContentFile(csv_data)
                 csv_name = default_storage.save(
                     upload_to_survey_draft(rand_name, username),
                     csv_file)
 
-                survey_path = "%s%s" % (settings.MEDIA_ROOT, csv_name)
-                survey_dict = get_survey_dict(survey_path)
-
+                survey_dict = get_survey_dict(csv_name)
                 survey = create_survey_element_from_dict(survey_dict)
                 survey_xml = survey.to_xml()
 
@@ -617,11 +597,9 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if not filename:
                 raise ParseError("Filename MUST be provided")
             if filename and username:
-                survey_path = "%s%s" % (
-                    settings.MEDIA_ROOT,
-                    upload_to_survey_draft(filename, username))
+                csv_name = upload_to_survey_draft(filename, username)
+                survey_dict = get_survey_dict(csv_name)
 
-                survey_dict = get_survey_dict(survey_path)
                 survey = create_survey_element_from_dict(survey_dict)
                 survey_xml = survey.to_xml()
 
