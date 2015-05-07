@@ -1,12 +1,16 @@
+import types
+
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import six
 from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
+from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.pagination import BasePaginationSerializer
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
@@ -14,363 +18,95 @@ from rest_framework.settings import api_settings
 
 from onadata.apps.api.viewsets.xform_viewset import custom_response_handler
 from onadata.apps.api.tools import add_tags_to_instance
+from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.apps.api.permissions import XFormPermissions
-from onadata.libs.serializers.data_serializer import (
-    DataSerializer, DataListSerializer, DataInstanceSerializer)
+from onadata.libs.serializers.data_serializer import DataSerializer
+from onadata.libs.serializers.data_serializer import DataListSerializer
+from onadata.libs.serializers.data_serializer import JsonDataSerializer
+from onadata.libs.serializers.data_serializer import OSMSerializer
+from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs import filters
 from onadata.libs.utils.viewer_tools import (
     EnketoError,
     get_enketo_edit_url)
+from onadata.libs.data import parse_int
 
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
 
+class CustomPaginationSerializer(BasePaginationSerializer):
+    def to_native(self, obj):
+        ret = self._dict_class()
+        ret.fields = self._dict_class()
+        results = super(CustomPaginationSerializer, self).to_native(obj)
+
+        if results:
+            ret = results[self.results_field]
+
+        return ret
+
+
 class DataViewSet(AnonymousUserPublicFormsMixin,
                   LastModifiedMixin,
                   ModelViewSet):
-
     """
-This endpoint provides access to submitted data in JSON format. Where:
-
-* `pk` - the form unique identifier
-* `dataid` - submission data unique identifier
-* `owner` - username of the owner(user/organization) of the data point
-
-## GET JSON List of data end points
-
-Lists the data endpoints accessible to requesting user, for anonymous access
-a list of public data endpoints is returned.
-
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data
-</pre>
-
-> Example
->
->       curl -X GET https://ona.io/api/v1/data
-
-> Response
->
->        [{
->            "id": 4240,
->            "id_string": "dhis2form"
->            "title": "dhis2form"
->            "description": "dhis2form"
->            "url": "https://ona.io/api/v1/data/4240"
->         },
->            ...
->        ]
-
-## Download data in `csv` format
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data.csv</pre>
->
->       curl -O https://ona.io/api/v1/data.csv
-
-## GET JSON List of data end points filter by owner
-
-Lists the data endpoints accessible to requesting user, for the specified
-`owner` as a query parameter.
-
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data?<code>owner</code>=<code>owner_username</code>
-</pre>
-
-> Example
->
->       curl -X GET https://ona.io/api/v1/data?owner=ona
-
-## Get Submitted data for a specific form
-Provides a list of json submitted data for a specific form.
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{pk}</code></pre>
-> Example
->
->       curl -X GET https://ona.io/api/v1/data/22845
-
-> Response
->
->        [
->            {
->                "_id": 4503,
->                "_bamboo_dataset_id": "",
->                "_deleted_at": null,
->                "expense_type": "service",
->                "_xform_id_string": "exp",
->                "_geolocation": [
->                    null,
->                    null
->                ],
->                "end": "2013-01-03T10:26:25.674+03",
->                "start": "2013-01-03T10:25:17.409+03",
->                "expense_date": "2011-12-23",
->                "_status": "submitted_via_web",
->                "today": "2013-01-03",
->                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
->                "imei": "351746052013466",
->                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
->                "kind": "monthly",
->                "_submission_time": "2013-01-03T02:27:19",
->                "required": "yes",
->                "_attachments": [],
->                "item": "Rent",
->                "amount": "35000.0",
->                "deviceid": "351746052013466",
->                "subscriberid": "639027...60317"
->            },
->            {
->                ....
->                "subscriberid": "639027...60317"
->            }
->        ]
-
-## Get a single data submission for a given form
-
-Get a single specific submission json data providing `pk`
- and `dataid` as url path parameters, where:
-
-* `pk` - is the identifying number for a specific form
-* `dataid` - is the unique id of the data, the value of `_id` or `_uuid`
-
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code></pre>
-> Example
->
->       curl -X GET https://ona.io/api/v1/data/22845/4503
-
-> Response
->
->            {
->                "_id": 4503,
->                "_bamboo_dataset_id": "",
->                "_deleted_at": null,
->                "expense_type": "service",
->                "_xform_id_string": "exp",
->                "_geolocation": [
->                    null,
->                    null
->                ],
->                "end": "2013-01-03T10:26:25.674+03",
->                "start": "2013-01-03T10:25:17.409+03",
->                "expense_date": "2011-12-23",
->                "_status": "submitted_via_web",
->                "today": "2013-01-03",
->                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
->                "imei": "351746052013466",
->                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
->                "kind": "monthly",
->                "_submission_time": "2013-01-03T02:27:19",
->                "required": "yes",
->                "_attachments": [],
->                "item": "Rent",
->                "amount": "35000.0",
->                "deviceid": "351746052013466",
->                "subscriberid": "639027...60317"
->            },
->            {
->                ....
->                "subscriberid": "639027...60317"
->            }
->        ]
-
-## Query submitted data of a specific form
-Provides a list of json submitted data for a specific form. Use `query`
-parameter to apply form data specific, see
-<a href="http://docs.mongodb.org/manual/reference/operator/query/">
-http://docs.mongodb.org/manual/reference/operator/query/</a>.
-
-For more details see
-<a href="https://github.com/modilabs/formhub/wiki/Formhub-Access-Points-(API)#
-api-parameters">
-API Parameters</a>.
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":"value"}</b>
-<b>GET</b> /api/v1/data/<code>{pk}</code>?query={"field":{"op": "value"}}"</b>
-</pre>
-> Example
->
->       curl -X GET 'https://ona.io/api/v1/data/22845?query={"kind": \
-"monthly"}'
->       curl -X GET 'https://ona.io/api/v1/data/22845?query={"date": \
-{"gt$": "2014-09-29T01:02:03+0000"}}'
-
-> Response
->
->        [
->            {
->                "_id": 4503,
->                "_bamboo_dataset_id": "",
->                "_deleted_at": null,
->                "expense_type": "service",
->                "_xform_id_string": "exp",
->                "_geolocation": [
->                    null,
->                    null
->                ],
->                "end": "2013-01-03T10:26:25.674+03",
->                "start": "2013-01-03T10:25:17.409+03",
->                "expense_date": "2011-12-23",
->                "_status": "submitted_via_web",
->                "today": "2013-01-03",
->                "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
->                "imei": "351746052013466",
->                "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
->                "kind": "monthly",
->                "_submission_time": "2013-01-03T02:27:19",
->                "required": "yes",
->                "_attachments": [],
->                "item": "Rent",
->                "amount": "35000.0",
->                "deviceid": "351746052013466",
->                "subscriberid": "639027...60317"
->            },
->            {
->                ....
->                "subscriberid": "639027...60317"
->            }
->        ]
-
-## Query submitted data of a specific form using Tags
-Provides a list of json submitted data for a specific form matching specific
-tags. Use the `tags` query parameter to filter the list of forms, `tags`
-should be a comma separated list of tags.
-
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data?<code>tags</code>=<code>tag1,tag2</code></pre>
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{pk}</code>?<code>tags\
-</code>=<code>tag1,tag2</code></pre>
-
-> Example
->
->       curl -X GET https://ona.io/api/v1/data/22845?tags=monthly
-
-## Tag a submission data point
-
-A `POST` payload of parameter `tags` with a comma separated list of tags.
-
-Examples
-
-- `animal fruit denim` - space delimited, no commas
-- `animal, fruit denim` - comma delimited
-
-<pre class="prettyprint">
-<b>POST</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/labels</pre>
-
-Payload
-
-    {"tags": "tag1, tag2"}
-
-## Delete a specific tag from a submission
-
-<pre class="prettyprint">
-<b>DELETE</b> /api/v1/data/<code>{pk}</code>/<code>\
-{dataid}</code>/labels/<code>tag_name</code></pre>
-
-> Request
->
->       curl -X DELETE \
-https://ona.io/api/v1/data/28058/20/labels/tag1
-or to delete the tag "hello world"
->
->       curl -X DELETE \
-https://ona.io/api/v1/data/28058/20/labels/hello%20world
->
-> Response
->
->        HTTP 200 OK
-
-## Get list of public data endpoints
-
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data/public
-</pre>
-
-> Example
->
->       curl -X GET https://ona.io/api/v1/data/public
-
-> Response
->
->        [{
->            "id": 4240,
->            "id_string": "dhis2form"
->            "title": "dhis2form"
->            "description": "dhis2form"
->            "url": "https://ona.io/api/v1/data/4240"
->         },
->            ...
->        ]
-
-## Get enketo edit link for a submission instance
-
-<pre class="prettyprint">
-<b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/enketo
-</pre>
-
-> Example
->
->       curl -X GET https://ona.io/api/v1/data/28058/20/enketo?return_url=url
-
-> Response
->       {"url": "https://hmh2a.enketo.formhub.org"}
->
->
-
-## Delete a specific submission instance
-
-Delete a specific submission in a form
-
-<pre class="prettyprint">
-<b>DELETE</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>
-</pre>
-
-> Example
->
->       curl -X DELETE https://ona.io/api/v1/data/28058/20
-
-> Response
->
->       HTTP 204 No Content
->
->
-"""
+    This endpoint provides access to submitted data.
+    """
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
         renderers.XLSXRenderer,
         renderers.CSVRenderer,
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
-        renderers.SurveyRenderer
+        renderers.SurveyRenderer,
+        renderers.GeoJsonRenderer,
+        renderers.KMLRenderer,
+        renderers.OSMRenderer,
     ]
 
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,
-                       filters.XFormOwnerFilter)
+                       filters.XFormOwnerFilter,
+                       filters.DataFilter)
     serializer_class = DataSerializer
     permission_classes = (XFormPermissions,)
     lookup_field = 'pk'
     lookup_fields = ('pk', 'dataid')
     extra_lookup_fields = None
     public_data_endpoint = 'public'
+    pagination_serializer_class = CustomPaginationSerializer
+    paginate_by = 1000000
+    paginate_by_param = 'page_size'
+    page_kwarg = 'page'
 
-    queryset = XForm.objects.all()
+    queryset = XForm.objects.filter()
 
     def get_serializer_class(self):
         pk_lookup, dataid_lookup = self.lookup_fields
         pk = self.kwargs.get(pk_lookup)
         dataid = self.kwargs.get(dataid_lookup)
-        if pk is not None and dataid is None \
+        fmt = self.kwargs.get('format', self.request.GET.get("format"))
+        sort = self.request.GET.get("sort")
+        limit = parse_int(self.request.GET.get("limit"))
+        start = parse_int(self.request.GET.get("start"))
+        fields = self.request.GET.get("fields")
+        if fmt == Attachment.OSM:
+            serializer_class = OSMSerializer
+        elif fmt == 'geojson':
+            serializer_class = GeoJsonSerializer
+        elif pk is not None and dataid is None \
                 and pk != self.public_data_endpoint:
-            serializer_class = DataListSerializer
-        elif pk is not None and dataid is not None:
-            serializer_class = DataInstanceSerializer
+            if sort or limit or start or fields:
+                serializer_class = JsonDataSerializer
+            else:
+                serializer_class = DataListSerializer
         else:
             serializer_class = \
                 super(DataViewSet, self).get_serializer_class()
@@ -413,11 +149,6 @@ Delete a specific submission in a form
     def filter_queryset(self, queryset, view=None):
         qs = super(DataViewSet, self).filter_queryset(queryset)
         pk = self.kwargs.get(self.lookup_field)
-        tags = self.request.QUERY_PARAMS.get('tags', None)
-
-        if tags and isinstance(tags, six.string_types):
-            tags = tags.split(',')
-            qs = qs.filter(tags__name__in=tags).distinct()
 
         if pk:
             try:
@@ -429,6 +160,16 @@ Delete a specific submission in a form
                     raise ParseError(_(u"Invalid pk %(pk)s" % {'pk': pk}))
             else:
                 qs = self._filtered_or_shared_qs(qs, pk)
+        else:
+            tags = self.request.QUERY_PARAMS.get('tags')
+            not_tagged = self.request.QUERY_PARAMS.get('not_tagged')
+
+            if tags and isinstance(tags, six.string_types):
+                tags = tags.split(',')
+                qs = qs.filter(tags__name__in=tags)
+            if not_tagged and isinstance(not_tagged, six.string_types):
+                not_tagged = not_tagged.split(',')
+                qs = qs.exclude(tags__name__in=not_tagged)
 
         return qs
 
@@ -438,11 +179,11 @@ Delete a specific submission in a form
         instance = self.get_object()
 
         if request.method == 'POST':
-            if add_tags_to_instance(request, instance):
-                http_status = status.HTTP_201_CREATED
+            add_tags_to_instance(request, instance)
+            http_status = status.HTTP_201_CREATED
 
         tags = instance.tags
-        label = kwargs.get('label', None)
+        label = kwargs.get('label')
 
         if request.method == 'GET' and label:
             data = [tag['name'] for tag in
@@ -453,7 +194,7 @@ Delete a specific submission in a form
             tags.remove(label)
 
             # Accepted, label does not exist hence nothing removed
-            http_status = status.HTTP_200_OK if count == tags.count() \
+            http_status = status.HTTP_200_OK if count > tags.count() \
                 else status.HTTP_404_NOT_FOUND
 
             data = list(tags.names())
@@ -495,7 +236,7 @@ Delete a specific submission in a form
         elif isinstance(self.object, Instance):
 
             if request.user.has_perm("delete_xform", self.object.xform):
-                self.object.delete()
+                self.object.set_deleted(timezone.now())
             else:
                 raise PermissionDenied(_(u"You do not have delete "
                                          u"permissions."))
@@ -510,12 +251,19 @@ Delete a specific submission in a form
             raise ParseError(_(u"Data ID should be an integer"))
 
         try:
-            instance = Instance.objects.get(pk=data_id)
+            instance = self.get_object()
 
             if _format == 'json' or _format is None:
                 return Response(instance.json)
             elif _format == 'xml':
                 return Response(instance.xml)
+            elif _format == 'geojson':
+                return super(DataViewSet, self)\
+                    .retrieve(request, *args, **kwargs)
+            elif _format == Attachment.OSM:
+                serializer = self.get_serializer(instance)
+
+                return Response(serializer.data)
             else:
                 raise ParseError(
                     _(u"'%(_format)s' format unknown or not implemented!" %
@@ -528,8 +276,15 @@ Delete a specific submission in a form
             )
 
     def list(self, request, *args, **kwargs):
+        fields = request.GET.get("fields")
+        query = request.GET.get("query", {})
+        sort = request.GET.get("sort")
+        start = parse_int(request.GET.get("start"))
+        limit = parse_int(request.GET.get("limit"))
+        export_type = kwargs.get('format', request.GET.get("format"))
         lookup_field = self.lookup_field
         lookup = self.kwargs.get(lookup_field)
+        is_public_request = lookup == self.public_data_endpoint
 
         if lookup_field not in kwargs.keys():
             self.object_list = self.filter_queryset(self.get_queryset())
@@ -537,22 +292,70 @@ Delete a specific submission in a form
 
             return Response(serializer.data)
 
-        if lookup == self.public_data_endpoint:
+        if is_public_request:
             self.object_list = self._get_public_forms_queryset()
+        elif lookup:
+            qs = self.filter_queryset(self.get_queryset())
+            self.object_list = Instance.objects.filter(xform__in=qs,
+                                                       deleted_at=None)
+            tags = self.request.QUERY_PARAMS.get('tags')
+            not_tagged = self.request.QUERY_PARAMS.get('not_tagged')
 
+            if tags and isinstance(tags, six.string_types):
+                tags = tags.split(',')
+                self.object_list = self.object_list.filter(tags__name__in=tags)
+            if not_tagged and isinstance(not_tagged, six.string_types):
+                not_tagged = not_tagged.split(',')
+                self.object_list = \
+                    self.object_list.exclude(tags__name__in=not_tagged)
+
+        if (export_type is None or export_type in ['json']) \
+                and hasattr(self, 'object_list'):
+            return self._get_data(query, fields, sort, start, limit,
+                                  is_public_request)
+
+        xform = self.get_object()
+
+        if export_type == Attachment.OSM:
             page = self.paginate_queryset(self.object_list)
-            if page is not None:
-                serializer = self.get_pagination_serializer(page)
-            else:
-                serializer = self.get_serializer(self.object_list, many=True)
+            serializer = self.get_pagination_serializer(page)
 
             return Response(serializer.data)
 
-        xform = self.get_object()
-        query = request.GET.get("query", {})
-        export_type = kwargs.get('format')
-        if export_type is None or export_type in ['json']:
+        elif export_type is None or export_type in ['json']:
             # perform default viewset retrieve, no data export
             return super(DataViewSet, self).list(request, *args, **kwargs)
 
+        elif export_type == 'geojson':
+            serializer = self.get_serializer(self.object_list, many=True)
+
+            return Response(serializer.data)
+
         return custom_response_handler(request, xform, query, export_type)
+
+    def _get_data(self, query, fields, sort, start, limit, is_public_request):
+        try:
+            where, where_params = ParsedInstance._get_where_clause(query)
+        except ValueError as e:
+            raise ParseError(unicode(e))
+
+        if where:
+            self.object_list = self.object_list.extra(where=where,
+                                                      params=where_params)
+        if (sort or limit or start or fields) and not is_public_request:
+            if self.object_list.count():
+                xform = self.object_list[0].xform
+                self.object_list = \
+                    ParsedInstance.query_data(
+                        xform, query=query, sort=sort,
+                        start_index=start, limit=limit,
+                        fields=fields)
+
+        if not isinstance(self.object_list, types.GeneratorType):
+            page = self.paginate_queryset(self.object_list)
+            serializer = self.get_pagination_serializer(page)
+        else:
+            serializer = self.get_serializer(self.object_list, many=True)
+            page = None
+
+        return Response(serializer.data)

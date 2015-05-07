@@ -24,6 +24,7 @@ build
 .DS_Store
 .idea
 .odk
+*.iml
 .project
 .pydevproject
 .sass-cache
@@ -55,3 +56,8 @@ custom_template
 .vagrant
 Vagrantfile
 ansible
+
+# compile documentation
+docs/_build
+dev_https
+stunnel.pem

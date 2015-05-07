@@ -1,3 +1,4 @@
+import os
 import re
 import urllib2
 from urlparse import urlparse
@@ -92,8 +93,10 @@ class UserProfileFormRegister(forms.Form):
     RECAPTCHA_HTML = captcha.displayhtml(settings.RECAPTCHA_PUBLIC_KEY,
                                          use_ssl=settings.RECAPTCHA_USE_SSL)
 
-    name = forms.CharField(widget=forms.TextInput(), required=True,
-                           max_length=255)
+    first_name = forms.CharField(widget=forms.TextInput(), required=True,
+                                 max_length=255)
+    last_name = forms.CharField(widget=forms.TextInput(), required=False,
+                                max_length=255)
     city = forms.CharField(widget=forms.TextInput(), required=False,
                            max_length=255)
     country = forms.ChoiceField(widget=forms.Select(), required=False,
@@ -111,7 +114,7 @@ class UserProfileFormRegister(forms.Form):
 
     def save(self, new_user):
         new_profile = \
-            UserProfile(user=new_user, name=self.cleaned_data['name'],
+            UserProfile(user=new_user, name=self.cleaned_data['first_name'],
                         city=self.cleaned_data['city'],
                         country=self.cleaned_data['country'],
                         organization=self.cleaned_data['organization'],
@@ -124,48 +127,11 @@ class UserProfileFormRegister(forms.Form):
 # order of inheritance control order of form display
 class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
                                   UserProfileFormRegister):
-
     class Meta:
         pass
-
-    _reserved_usernames = [
-        'accounts',
-        'about',
-        'admin',
-        'clients',
-        'data',
-        'formhub',
-        'forms',
-        'maps',
-        'odk',
-        'ona',
-        'people',
-        'public',
-        'submit',
-        'submission',
-        'support',
-        'syntax',
-        'xls2xform',
-        'users',
-        'worldbank',
-        'unicef',
-        'who',
-        'wb',
-        'wfp',
-        'save',
-        'ei',
-        'modilabs',
-        'mvp',
-        'unido',
-        'unesco',
-        'savethechildren',
-        'worldvision',
-        'afsis'
-    ]
-
+    _reserved_usernames = settings.RESERVED_USERNAMES
     username = forms.CharField(widget=forms.TextInput(), max_length=30)
     email = forms.EmailField(widget=forms.TextInput())
-
     legal_usernames_re = re.compile("^\w+$")
 
     def clean(self):
@@ -257,13 +223,19 @@ class QuickConverterDropboxURL(forms.Form):
         label=ugettext_lazy('XLS URL'), required=False)
 
 
+class QuickConverterCsvFile(forms.Form):
+    csv_url = forms.URLField(
+        label=ugettext_lazy('CSV URL'), required=False)
+
+
 class QuickConverterTextXlsForm(forms.Form):
     text_xls_form = forms.CharField(
         label=ugettext_lazy('XLSForm Representation'), required=False)
 
 
 class QuickConverter(QuickConverterFile, QuickConverterURL,
-                     QuickConverterDropboxURL, QuickConverterTextXlsForm):
+                     QuickConverterDropboxURL, QuickConverterTextXlsForm,
+                     QuickConverterCsvFile):
     project = forms.IntegerField(required=False)
     validate = URLValidator()
 
@@ -300,13 +272,16 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 cleaned_xls_file = self.cleaned_data['xls_file']
 
             if not cleaned_xls_file:
-                cleaned_url = self.cleaned_data['xls_url']
-                if cleaned_url.strip() == u'':
-                    cleaned_url = self.cleaned_data['dropbox_xls_url']
+                cleaned_url = (
+                    self.cleaned_data['xls_url'].strip() or
+                    self.cleaned_data['dropbox_xls_url'] or
+                    self.cleaned_data['csv_url'])
+
                 cleaned_xls_file = urlparse(cleaned_url)
                 cleaned_xls_file = \
                     '_'.join(cleaned_xls_file.path.split('/')[-2:])
-                if cleaned_xls_file[-4:] != '.xls':
+                name, extension = os.path.splitext(cleaned_xls_file)
+                if extension not in ['.xls', '.xlsx', '.csv']:
                     cleaned_xls_file += '.xls'
                 cleaned_xls_file = \
                     upload_to(None, cleaned_xls_file, user.username)

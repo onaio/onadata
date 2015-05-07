@@ -1,9 +1,0 @@
-# remove backup script
-sudo rm /root/.backup_config
-
-# change local_settings to allow 'stage.ona.io' as host
-echo "ALLOWED_HOST = ['stage.ona.io']" >> ~/src/ona/onadata/settings/local_settings.py
-
-# change local_settings to point the aws bucket elsewhere
-
-# prefix site_name with '[STAGE]'

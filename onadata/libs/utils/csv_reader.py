@@ -5,11 +5,12 @@ import csv
 
 class CsvReader(object):
     """
-    Typical usage:
+    Typical usage::
 
         csv_reader = CsvReader(path)
         for d in csv_reader.iter_dicts():
-            Variable.objects.create(**d)
+        Variable.objects.create(**d)
+
     """
 
     def __init__(self, path):

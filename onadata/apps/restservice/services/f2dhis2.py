@@ -1,5 +1,4 @@
 import httplib2
-import requests
 
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 
@@ -13,10 +12,4 @@ class ServiceDefinition(RestServiceInterface):
         info = {"id_string": instance.xform.id_string, "uuid": instance.uuid}
         valid_url = url % info
         http = httplib2.Http()
-        resp, content = http.request(valid_url, 'GET')
-
-    def send_ziggy(self, url, ziggy_instance, uuid):
-        info = {"id_string": ziggy_instance.xform.id_string, "uuid": uuid}
-        valid_url = url % info
-        response = requests.get(valid_url)
-        return response
+        http.request(valid_url, 'GET')

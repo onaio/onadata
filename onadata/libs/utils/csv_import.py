@@ -13,6 +13,7 @@ from datetime import datetime
 from django.contrib.auth.models import User
 from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
 from onadata.apps.logger.models import Instance
+from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
 
 
 def get_submission_meta_dict(xform, instance_id):
@@ -130,9 +131,43 @@ def submit_csv(username, xform, csv_file):
     csv_file.seek(0)
 
     csv_reader = ucsv.DictReader(csv_file)
+    csv_header = csv_reader.fieldnames
+
     # check for spaces in headers
-    if any(' ' in header for header in csv_reader.fieldnames):
+    if any(' ' in header for header in csv_header):
         return {'error': u'CSV file fieldnames should not contain spaces'}
+
+    # Get the data dictionary
+    dd = xform.data_dictionary()
+    xform_header = dd.get_headers()
+
+    missing_col = set(xform_header).difference(csv_header)
+    addition_col = set(csv_header).difference(xform_header)
+
+    # change to list
+    missing_col = list(missing_col)
+    addition_col = list(addition_col)
+    # remove all metadata columns
+    missing = [col for col in missing_col if not col.startswith("_")]
+
+    # remove all metadata inside groups
+    missing = [col for col in missing if not ("/_" in col)]
+
+    # ignore if is multiple select question
+    for col in csv_header:
+        # this col is a multiple select question
+        survey_element = dd.get_survey_element(col)
+        if survey_element and \
+                survey_element.get('type') == MULTIPLE_SELECT_TYPE:
+            # remove from the missing and additional list
+            missing = [x for x in missing if not x.startswith(col)]
+
+            addition_col.remove(col)
+
+    if missing:
+        return {'error': u"Sorry uploaded file does not match the form. "
+                         u"The file is missing the column(s): "
+                         u"{0}.".format(', '.join(missing))}
 
     rollback_uuids = []
     submission_time = datetime.utcnow().isoformat()
@@ -141,6 +176,10 @@ def submit_csv(username, xform, csv_file):
     additions = inserts = 0
     try:
         for row in csv_reader:
+            # remove the additional columns
+            for index in addition_col:
+                del row[index]
+
             # fetch submission uuid before purging row metadata
             row_uuid = row.get('_uuid')
             submitted_by = row.get('_submitted_by')
@@ -203,7 +242,8 @@ def submit_csv(username, xform, csv_file):
                 try:
                     current_task.update_state(state='PROGRESS',
                                               meta={'progress': additions,
-                                                    'total': num_rows})
+                                                    'total': num_rows,
+                                                    'info': addition_col})
                 except:
                     pass
 
@@ -222,7 +262,9 @@ def submit_csv(username, xform, csv_file):
                                 xform=xform).delete()
         return {'error': str(e)}
 
-    return {'additions': additions - inserts, 'updates': inserts}
+    return {u"additions": additions - inserts, u"updates": inserts,
+            u"info": u"Additional column(s) excluded from the upload: '{0}'."
+            .format(', '.join(list(addition_col)))}
 
 
 def get_async_csv_submission_status(job_uuid):

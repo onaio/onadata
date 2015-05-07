@@ -31,7 +31,9 @@ def import_submission(request, username):
     :returns: a JSON dict with:
         'status': one of 'ACCEPTED', 'REJECTED', 'PARSING_FAILED'
         'message': Error message if not ACCEPTED.
-        'id: Unique submission ID if ACCEPTED. """
+        'id: Unique submission ID if ACCEPTED.
+
+         """
 
     return import_submission_for_form(request, username, None)
 
@@ -41,9 +43,10 @@ def import_submission(request, username):
 def import_multiple_submissions(request, username):
     ''' Process several POSTED SMS texts as XForm submissions
 
-        :param json messages: JSON list of {"identity": "x", "text": "x"}
-        :returns json list of
-            {"status": "x", "message": "x", "id": "x"} '''
+    :param json messages: JSON list of {"identity": "x", "text": "x"}
+    :returns json list of {"status": "x", "message": "x", "id": "x"}
+
+    '''
 
     return import_multiple_submissions_for_form(request, username, None)
 

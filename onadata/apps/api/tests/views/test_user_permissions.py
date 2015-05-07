@@ -15,6 +15,7 @@ from onadata.libs.serializers.xform_serializer import XFormSerializer
 
 
 class TestUserPermissions(TestAbstractViewSet):
+
     def setUp(self):
         super(self.__class__, self).setUp()
 
@@ -26,7 +27,7 @@ class TestUserPermissions(TestAbstractViewSet):
             'owner': 'http://testserver/api/v1/users/bob',
             'public': False,
             'public_data': False,
-            'description': u'transportation_2011_07_25',
+            'description': u'',
             'downloadable': True,
             'allows_sms': False,
             'encrypted': False,
