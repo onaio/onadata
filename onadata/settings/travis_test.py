@@ -18,14 +18,6 @@ DATABASES = {
 
 SECRET_KEY = 'mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j'
 
-PASSWORD_HASHERS = (
-    'django.contrib.auth.hashers.MD5PasswordHasher',
-    'django.contrib.auth.hashers.SHA1PasswordHasher',
-)
-
-if PRINT_EXCEPTION and DEBUG:
-    MIDDLEWARE_CLASSES += ('utils.middleware.ExceptionLoggingMiddleware',)
-
 if len(sys.argv) >= 2 and (sys.argv[1] == "test" or sys.argv[1] == "test_all"):
     # This trick works only when we run tests from the command line.
     TESTING_MODE = True
@@ -44,6 +36,19 @@ if TESTING_MODE:
 else:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media/')
 
-# Clear out the test database
-if TESTING_MODE:
-    MONGO_DB.instances.drop()
+PASSWORD_HASHERS = (
+    'django.contrib.auth.hashers.MD5PasswordHasher',
+)
+
+DEBUG = False
+TEMPLATE_DEBUG = DEBUG
+MIDDLEWARE_CLASSES = (
+    'django.middleware.common.CommonMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    # 'django.middleware.locale.LocaleMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.transaction.TransactionMiddleware',
+    'onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware',
+)

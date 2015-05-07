@@ -10,17 +10,21 @@ from cStringIO import StringIO
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import TransactionTestCase
+from django.test import RequestFactory
 from django.test.client import Client
 from django_digest.test import Client as DigestClient
 from django_digest.test import DigestAuth
 from django.contrib.auth import authenticate
 from django.utils import timezone
-
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from rest_framework.test import APIRequestFactory
 
 from onadata.apps.logger.models import XForm, Instance, Attachment
 from onadata.apps.logger.views import submission
 from onadata.apps.main.models import UserProfile
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.viewer.models import DataDictionary
+from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class TestBase(TransactionTestCase):
@@ -35,11 +39,7 @@ class TestBase(TransactionTestCase):
         self.maxDiff = None
         self._create_user_and_login()
         self.base_url = 'http://testserver'
-        self.factory = APIRequestFactory()
-
-    def tearDown(self):
-        # clear mongo db after each test
-        settings.MONGO_DB.instances.drop()
+        self.factory = RequestFactory()
 
     def _fixture_path(self, *args):
         return os.path.join(os.path.dirname(__file__), 'fixtures', *args)
@@ -61,7 +61,8 @@ class TestBase(TransactionTestCase):
             client = self.client
         client.logout()
 
-    def _create_user_and_login(self, username="bob", password="bob"):
+    def _create_user_and_login(self, username="bob", password="bob",
+                               factory=None):
         self.login_username = username
         self.login_password = password
         self.user = self._create_user(username, password)
@@ -71,27 +72,38 @@ class TestBase(TransactionTestCase):
         profile.require_auth = False
         profile.save()
 
-        self.client = self._login(username, password)
-        self.anon = Client()
+        if factory is None:
+            self.client = self._login(username, password)
+            self.anon = Client()
 
     def _publish_xls_file(self, path):
         if not path.startswith('/%s/' % self.user.username):
             path = os.path.join(self.this_directory, path)
-        with open(path) as xls_file:
-            post_data = {'xls_file': xls_file}
-            return self.client.post('/%s/' % self.user.username, post_data)
+        with open(path) as f:
+            xls_file = InMemoryUploadedFile(f, 'xls_file',
+                                            os.path.basename(path),
+                                            'application/vnd.ms-excel',
+                                            os.path.getsize(path), None)
+            if not hasattr(self, 'project'):
+                self.project = get_user_default_project(self.user)
+
+            DataDictionary.objects.create(
+                created_by=self.user,
+                user=self.user,
+                xls=xls_file,
+                project=self.project
+            )
 
     def _publish_xlsx_file(self):
         path = os.path.join(self.this_directory, 'fixtures', 'exp.xlsx')
         pre_count = XForm.objects.count()
-        response = TestBase._publish_xls_file(self, path)
+        TestBase._publish_xls_file(self, path)
         # make sure publishing the survey worked
-        self.assertEqual(response.status_code, 200)
         self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     def _publish_xls_file_and_set_xform(self, path):
         count = XForm.objects.count()
-        self.response = self._publish_xls_file(path)
+        self._publish_xls_file(path)
         self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.order_by('pk').reverse()[0]
 
@@ -188,6 +200,7 @@ class TestBase(TransactionTestCase):
         if forced_submission_time:
             instance = Instance.objects.order_by('-pk').all()[0]
             instance.date_created = forced_submission_time
+            instance.json = instance.get_full_dict()
             instance.save()
             instance.parsed_instance.save()
 
@@ -197,12 +210,19 @@ class TestBase(TransactionTestCase):
 
     def _make_submission_w_attachment(self, path, attachment_path):
         with open(path) as f:
-            a = open(attachment_path)
-            post_data = {'xml_submission_file': f, 'media_file': a}
+            data = {'xml_submission_file': f}
+            if attachment_path is not None:
+                if isinstance(attachment_path, list):
+                    for c in range(len(attachment_path)):
+                        data['media_file_{}'.format(c)] = open(
+                            attachment_path[c])
+                else:
+                    data['media_file'] = open(attachment_path)
+
             url = '/%s/submission' % self.user.username
             auth = DigestAuth('bob', 'bob')
             self.factory = APIRequestFactory()
-            request = self.factory.post(url, post_data)
+            request = self.factory.post(url, data)
             request.user = authenticate(username='bob',
                                         password='bob')
             self.response = submission(request,
@@ -292,3 +312,20 @@ class TestBase(TransactionTestCase):
         client = DigestClient()
         client.set_authorization('bob', 'bob', 'Digest')
         return client
+
+    def _publish_submit_geojson(self):
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "geolocation", "GeoLocationForm.xlsx")
+
+        self._publish_xls_file_and_set_xform(path)
+
+        view = XFormViewSet.as_view({'post': 'csv_import'})
+        csv_import = \
+            open(os.path.join(settings.PROJECT_ROOT, 'apps', 'main',
+                              'tests', 'fixtures', 'geolocation',
+                              'GeoLocationForm_2015_01_15_01_28_45.csv'))
+        post_data = {'csv_file': csv_import}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=self.xform.id)
+        self.assertEqual(response.status_code, 200)

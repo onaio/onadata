@@ -1,7 +1,6 @@
 import os
 
 from datetime import datetime
-import numpy as np
 
 from django import forms
 from django.conf import settings
@@ -25,15 +24,13 @@ from onadata.apps.main.forms import QuickConverter
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
-from onadata.libs.data.query import get_field_records
-from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.project_utils import set_project_perms_to_xform
 from onadata.libs.utils.user_auth import check_and_set_form_by_id
 from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
-from onadata.libs.data.statistics import _chk_asarray
 from onadata.libs.permissions import ROLES
+from onadata.libs.permissions import ManagerRole
 from onadata.libs.permissions import get_role_in_org
 
 DECIMAL_PRECISION = 2
@@ -77,10 +74,10 @@ def create_organization(name, creator):
     """
     Organization created by a user
     - create a team, OwnerTeam with full permissions to the creator
-        - Team(name='Owners', organization=organization).save()
+    - Team(name='Owners', organization=organization).save()
 
     """
-    organization = User.objects.create(username=name)
+    organization, created = User.objects.get_or_create(username__iexact=name)
     organization_profile = OrganizationProfile.objects.create(
         user=organization, creator=creator)
     return organization_profile
@@ -138,6 +135,17 @@ def get_organization_members_team(organization):
     return team
 
 
+def get_organization_owners_team(org):
+    """
+    Get the owners team of an organization
+    :param org: organization
+    :return: Owners team of the organization
+    """
+    return Team.objects.get(name="{}#{}".format(org.user.username,
+                                                Team.OWNER_TEAM_NAME),
+                            organization=org.user)
+
+
 def remove_user_from_organization(organization, user):
     """Remove a user from an organization"""
     team = get_organization_members_team(organization)
@@ -181,7 +189,8 @@ def create_organization_project(organization, project_name, created_by):
 
     project = Project.objects.create(name=project_name,
                                      organization=organization,
-                                     created_by=created_by)
+                                     created_by=created_by,
+                                     metadata='{}')
 
     return project
 
@@ -201,24 +210,49 @@ def add_team_to_project(team, project):
     return False
 
 
-def publish_xlsform(request, user, id_string=None):
-    if not request.user.has_perm('can_add_xform', user.profile):
+def publish_xlsform(request, owner, id_string=None, project=None):
+    return do_publish_xlsform(
+        request.user, request.POST, request.FILES, owner, id_string,
+        project)
+
+
+def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
+    if id_string and project:
+        xform = get_object_or_404(XForm, user=owner, id_string=id_string,
+                                  project=project)
+        if not ManagerRole.user_has_role(user, xform):
+            raise exceptions.PermissionDenied(_(
+                "{} has no manager/owner role to the form {}". format(
+                    user, xform)))
+    elif not user.has_perm('can_add_xform', owner.profile):
         raise exceptions.PermissionDenied(
             detail=_(u"User %(user)s has no permission to add xforms to "
-                     "account %(account)s" % {'user': request.user.username,
-                                              'account': user.username}))
+                     "account %(account)s" % {'user': user.username,
+                                              'account': owner.username}))
 
     def set_form():
-        form = QuickConverter(request.POST, request.FILES)
 
-        return form.publish(user, id_string=id_string, created_by=request.user)
+        if project:
+            args = dict({'project': project.pk}.items() + post.items())
+        else:
+            args = post
+        form = QuickConverter(args,  files)
+
+        return form.publish(owner, id_string=id_string, created_by=user)
 
     return publish_form(set_form)
 
 
 def publish_project_xform(request, project):
     def set_form():
-        form = QuickConverter({'project': project.pk}, request.FILES)
+        props = {
+            'project': project.pk,
+            'dropbox_xls_url': request.DATA.get('dropbox_xls_url'),
+            'xls_url': request.DATA.get('xls_url'),
+            'csv_url': request.DATA.get('csv_url')
+        }
+
+        form = QuickConverter(props, request.FILES)
 
         return form.publish(project.organization, created_by=request.user)
 
@@ -226,6 +260,10 @@ def publish_project_xform(request, project):
 
     if 'formid' in request.DATA:
         xform = get_object_or_404(XForm, pk=request.DATA.get('formid'))
+        if not ManagerRole.user_has_role(request.user, xform):
+            raise exceptions.PermissionDenied(_(
+                "{} has no manager/owner role to the form {}". format(
+                    request.user, xform)))
         xform.project = project
         xform.save()
         set_project_perms_to_xform(xform, project)
@@ -233,98 +271,6 @@ def publish_project_xform(request, project):
         xform = publish_form(set_form)
 
     return xform
-
-
-def mode(a, axis=0):
-    """
-    Adapted from
-    https://github.com/scipy/scipy/blob/master/scipy/stats/stats.py#L568
-    """
-    a, axis = _chk_asarray(a, axis)
-    scores = np.unique(np.ravel(a))       # get ALL unique values
-    testshape = list(a.shape)
-    testshape[axis] = 1
-    oldmostfreq = np.zeros(testshape)
-    oldcounts = np.zeros(testshape)
-    for score in scores:
-        template = (a == score)
-        counts = np.expand_dims(np.sum(template, axis), axis)
-        mostfrequent = np.where(counts > oldcounts, score, oldmostfreq)
-        oldcounts = np.maximum(counts, oldcounts)
-        oldmostfreq = mostfrequent
-    return mostfrequent, oldcounts
-
-
-def get_median_for_field(field, xform):
-    return np.median(get_field_records(field, xform))
-
-
-def get_median_for_numeric_fields_in_form(xform, field=None):
-    data = {}
-    for field_name in [field] if field else get_numeric_fields(xform):
-        median = get_median_for_field(field_name, xform)
-        data.update({field_name: median})
-    return data
-
-
-def get_mean_for_field(field, xform):
-    return np.mean(get_field_records(field, xform))
-
-
-def get_mean_for_numeric_fields_in_form(xform, field):
-    data = {}
-    for field_name in [field] if field else get_numeric_fields(xform):
-        mean = get_mean_for_field(field_name, xform)
-        data.update({field_name: round(mean, DECIMAL_PRECISION)})
-    return data
-
-
-def get_mode_for_field(field, xform):
-    a = np.array(get_field_records(field, xform))
-    m, count = mode(a)
-    return m
-
-
-def get_mode_for_numeric_fields_in_form(xform, field=None):
-    data = {}
-    for field_name in [field] if field else get_numeric_fields(xform):
-        mode = get_mode_for_field(field_name, xform)
-        data.update({field_name: round(mode, DECIMAL_PRECISION)})
-    return data
-
-
-def get_min_max_range_for_field(field, xform):
-    a = np.array(get_field_records(field, xform))
-    _max = np.max(a)
-    _min = np.min(a)
-    _range = _max - _min
-    return _min, _max, _range
-
-
-def get_min_max_range(xform, field=None):
-    data = {}
-    for field_name in [field] if field else get_numeric_fields(xform):
-        _min, _max, _range = get_min_max_range_for_field(field_name, xform)
-        data[field_name] = {'max': _max, 'min': _min, 'range': _range}
-    return data
-
-
-def get_all_stats(xform, field=None):
-    data = {}
-    for field_name in [field] if field else get_numeric_fields(xform):
-        _min, _max, _range = get_min_max_range_for_field(field_name, xform)
-        mode = get_mode_for_field(field_name, xform)
-        mean = get_mean_for_field(field_name, xform)
-        median = get_median_for_field(field_name, xform)
-        data[field_name] = {
-            'mean': round(mean, DECIMAL_PRECISION),
-            'median': median,
-            'mode': round(mode, DECIMAL_PRECISION),
-            'max': _max,
-            'min': _min,
-            'range': _range
-        }
-    return data
 
 
 def get_xform(formid, request, username=None):
@@ -367,8 +313,9 @@ def add_tags_to_instance(request, instance):
 
         if tags:
             for tag in tags:
-                instance.instance.tags.add(tag)
-            instance.save()
+                instance.tags.add(tag)
+    else:
+        raise exceptions.ParseError(form.errors)
 
 
 def get_media_file_response(metadata):

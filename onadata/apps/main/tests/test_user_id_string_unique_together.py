@@ -1,5 +1,6 @@
 import os
 
+from django.db import IntegrityError
 from test_base import TestBase
 from onadata.apps.logger.models import XForm
 
@@ -17,16 +18,15 @@ class TestUserIdStringUniqueTogether(TestBase):
                                 "fixtures", "gps", "gps.xls")
 
         # first time
-        response = self._publish_xls_file(xls_path)
+        self._publish_xls_file(xls_path)
         self.assertEquals(XForm.objects.count(), 1)
 
         # second time
-        response = self._publish_xls_file(xls_path)
-        self.assertIn("already exists.", response.content)
+        self.assertRaises(IntegrityError, self._publish_xls_file, xls_path)
         self.assertEquals(XForm.objects.count(), 1)
         self.client.logout()
 
         # first time
         self._create_user_and_login(username="carl", password="carl")
-        response = self._publish_xls_file(xls_path)
+        self._publish_xls_file(xls_path)
         self.assertEquals(XForm.objects.count(), 2)

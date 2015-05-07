@@ -9,11 +9,6 @@ class TestStatistics(unittest.TestCase):
         result = stats.get_mean(values)
         self.assertEqual(result, 3)
 
-    def test_get_min_max_range(self):
-        values = [1, 2, 3, 2, 5, 5]
-        result = stats.get_min_max_range(values)
-        self.assertEqual(result, (1, 5, 4,))
-
     def test_get_median(self):
         values = [1, 2, 3, 2, 5, 5]
         result = stats.get_median(values)

@@ -7,7 +7,7 @@ import xlrd
 
 from cStringIO import StringIO
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from pyxform import SurveyElementBuilder
 from pyxform.builder import create_survey_element_from_dict
@@ -15,14 +15,14 @@ from pyxform.question import Question
 from pyxform.section import RepeatingSection
 from pyxform.utils import has_external_choices
 from pyxform.xform2json import create_survey_element_from_xml
-from pyxform.xls2json import SurveyReader
+from pyxform.xls2json import parse_file_to_json
 from xml.dom import Node
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
 from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES,\
-    VERSION, DURATION
+    VERSION, DURATION, SUBMITTED_BY
 from onadata.libs.utils.export_tools import question_types_to_exclude,\
     DictOrganizer
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
@@ -183,19 +183,63 @@ class DataDictionary(XForm):
             obs.append(_dict_organizer.get_observation_from_dict(d))
         return obs
 
+    def _id_string_already_exists_in_account(self, id_string):
+        try:
+            XForm.objects.get(user=self.user, id_string=id_string)
+        except XForm.DoesNotExist:
+            return False
+
+        return True
+
+    def get_unique_id_string(self, id_string, count=0):
+        # used to generate a new id_string for new data_dictionary object if
+        # id_string already existed
+        if self._id_string_already_exists_in_account(id_string):
+            if count != 0:
+                if re.match(r'\w+_\d+$', id_string):
+                    a = id_string.split('_')
+                    id_string = "_".join(a[:-1])
+            count += 1
+            id_string = "{}_{}".format(id_string, count)
+
+            return self.get_unique_id_string(id_string, count)
+
+        return id_string
+
     def save(self, *args, **kwargs):
         if self.xls:
-            # check if version is set
-            excel_reader = SurveyReader(self.xls)
-            survey_dict = excel_reader.to_json_dict()
+            default_name = None \
+                if not self.pk else self.survey.xml_instance().tagName
+            try:
+                survey_dict = parse_file_to_json(
+                    self.xls.name, default_name=default_name,
+                    file_object=self.xls)
+            except csv.Error as e:
+                newline_error = u'new-line character seen in unquoted field '\
+                    u'- do you need to open the file in universal-newline '\
+                    u'mode?'
+                if newline_error == unicode(e):
+                    self.xls.seek(0)
+                    file_obj = StringIO(
+                        u'\n'.join(self.xls.read().splitlines()))
+                    survey_dict = parse_file_to_json(
+                        self.xls.name, default_name=default_name,
+                        file_object=file_obj)
+                else:
+                    raise e
             if has_external_choices(survey_dict):
                 self.survey_dict = survey_dict
                 self.has_external_choices = True
             survey = create_survey_element_from_dict(survey_dict)
             survey = self._check_version_set(survey)
+            # if form is being replaced, don't check for id_string uniqueness
+            if self.pk is None:
+                survey['id_string'] = self.get_unique_id_string(
+                    survey.get('id_string'))
             self.json = survey.to_json()
             self.xml = survey.to_xml()
             self.version = survey.get('version')
+            self.title = survey.get('title')
             self._mark_start_time_boolean()
             set_uuid(self)
             self._set_uuid_in_xml()
@@ -339,7 +383,8 @@ class DataDictionary(XForm):
             return '/'.join(l[2:])
 
         header_list = [shorten(xpath) for xpath in self.xpaths()]
-        header_list += [UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION]
+        header_list += [UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
+                        SUBMITTED_BY]
         if include_additional_headers:
             header_list += self._additional_headers()
         return header_list
@@ -515,3 +560,10 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
 post_save.connect(set_object_permissions, sender=DataDictionary,
                   dispatch_uid='xform_object_permissions')
+
+
+def save_project(sender, instance=None, created=False, **kwargs):
+    instance.project.save()
+
+pre_save.connect(save_project, sender=DataDictionary,
+                 dispatch_uid='save_project_datadictionary')

@@ -10,13 +10,15 @@ from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy, ugettext as _
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.models.base_model import BaseModel
+from onadata.libs.utils.cache_tools import (
+    IS_ORG, PROJ_FORMS_CACHE, safe_delete)
 
 
 XFORM_TITLE_LENGTH = 255
@@ -40,7 +42,7 @@ class XForm(BaseModel):
 
     xls = models.FileField(upload_to=upload_to, null=True)
     json = models.TextField(default=u'')
-    description = models.TextField(default=u'', null=True)
+    description = models.TextField(default=u'', null=True, blank=True)
     xml = models.TextField()
 
     user = models.ForeignKey(User, related_name='xforms', null=True)
@@ -66,6 +68,7 @@ class XForm(BaseModel):
     title = models.CharField(editable=False, max_length=XFORM_TITLE_LENGTH)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(blank=True, null=True)
     last_submission_time = models.DateTimeField(blank=True, null=True)
     has_start_time = models.BooleanField(default=False)
     uuid = models.CharField(max_length=32, default=u'')
@@ -78,8 +81,10 @@ class XForm(BaseModel):
     uuid_bind_location = 4
     bamboo_dataset = models.CharField(max_length=60, default=u'')
     instances_with_geopoints = models.BooleanField(default=False)
+    instances_with_osm = models.BooleanField(default=False)
     num_of_submissions = models.IntegerField(default=0)
-    version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True)
+    version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True,
+                               blank=True)
     project = models.ForeignKey('Project')
     created_by = models.ForeignKey(User, null=True, blank=True)
 
@@ -97,6 +102,7 @@ class XForm(BaseModel):
             ("report_xform", _("Can make submissions to the form")),
             ("move_xform", _(u"Can move form between projects")),
             ("transfer_xform", _(u"Can transfer form ownership.")),
+            ("can_export_xform_data", _(u"Can export form data")),
         )
 
     def file_name(self):
@@ -143,10 +149,6 @@ class XForm(BaseModel):
 
         self.title = title_xml
 
-    def _set_description(self):
-        self.description = self.description \
-            if self.description and self.description != '' else self.title
-
     def _set_encrypted_field(self):
         if self.json and self.json != '':
             json_dict = json.loads(self.json)
@@ -160,7 +162,6 @@ class XForm(BaseModel):
 
     def save(self, *args, **kwargs):
         self._set_title()
-        self._set_description()
         old_id_string = self.id_string
         self._set_id_string()
         self._set_encrypted_field()
@@ -175,7 +176,7 @@ class XForm(BaseModel):
         if getattr(settings, 'STRICT', True) and \
                 not re.search(r"^[\w-]+$", self.id_string):
             raise XLSFormError(_(u'In strict mode, the XForm ID must be a '
-                               'valid slug and contain no spaces.'))
+                                 'valid slug and contain no spaces.'))
 
         if not self.sms_id_string:
             try:
@@ -186,7 +187,6 @@ class XForm(BaseModel):
                                                                self.id_string)
             except:
                 self.sms_id_string = self.id_string
-
         super(XForm, self).save(*args, **kwargs)
 
     def __unicode__(self):
@@ -283,5 +283,16 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         from onadata.libs.utils.project_utils import set_project_perms_to_xform
         set_project_perms_to_xform(instance, instance.project)
 
+        # clear cache
+        safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
+        safe_delete('{}{}'.format(IS_ORG, instance.pk))
+
 post_save.connect(set_object_permissions, sender=XForm,
                   dispatch_uid='xform_object_permissions')
+
+
+def save_project(sender, instance=None, created=False, **kwargs):
+    instance.project.save()
+
+pre_save.connect(save_project, sender=XForm,
+                 dispatch_uid='save_project_xform')

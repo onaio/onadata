@@ -16,6 +16,11 @@ class TestUserSettings(TestBase):
         response = self.client.get(self.settings_url)
         self.assertEqual(response.status_code, 200)
 
+    def test_access_user_settings_non_owner(self):
+        self._create_user_and_login('alice', 'alice')
+        response = self.client.get(self.settings_url)
+        self.assertEqual(response.status_code, 404)
+
     def test_show_existing_profile_data(self):
         profile, created = UserProfile.objects.get_or_create(user=self.user)
         profile.name = "Bobby"

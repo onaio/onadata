@@ -35,17 +35,18 @@ def autodoc(url_root, username, id_string):
     doc = (u'<p>' +
            _(u"%(service)s Instructions:")
            % {'service': u'<a href="https://textit.in">'
-                         u'TextIt\'s Webhook API</a>'}
-           + u'</p><ol><li>' +
-           _(u"Sign in to TextIt.in and go to Account Page.")
-           + u'</li><li>' +
-           _(u"Tick “Incoming SMS Messages” and set Webhook URL to either:")
-           + u'<br /><span class="sms_autodoc_example">%(urla)s'
-           + u'<br />%(urlb)s</span><br />'
-           + u'</li></ol><p>' +
+                         u'TextIt\'s Webhook API</a>'} +
+           u'</p><ol><li>' +
+           _(u"Sign in to TextIt.in and go to Account Page.") +
+           u'</li><li>' +
+           _(u"Tick “Incoming SMS Messages” and set Webhook URL to either:") +
+           u'<br /><span class="sms_autodoc_example">%(urla)s' +
+           u'<br />%(urlb)s</span><br />' +
+           u'</li></ol><p>' +
            _(u"That's it. Now Send an SMS Formhub submission to your TextIt"
-             u" phone number. It will create a submission on Formhub.")
-           + u'</p>') % {'urla': urla, 'urlb': urlb}
+             u" phone number. It will create a submission on Formhub.") +
+           u'</p>') % {'urla': urla, 'urlb': urlb}
+
     return doc
 
 

@@ -1,1 +1,0 @@
-python manage.py test $1 --settings=onadata.settings.default_settings --failfast

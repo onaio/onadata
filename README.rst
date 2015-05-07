@@ -2,8 +2,8 @@ Ona Platform
 =================
 Collect, Analyze and Share Data!
 
-.. image:: https://secure.travis-ci.org/onaio/onadata.png?branch=master
-  :target: http://travis-ci.org/onaio/onadata
+.. image:: https://magnum.travis-ci.com/onaio/core.svg?token=zuW2DmA3xKoPXEdebzpS&branch=master
+  :target: https://magnum.travis-ci.com/repositories
 
 About
 -----
@@ -56,4 +56,12 @@ To compile MO files and update live translations
 
     $ django-admin.py compilemessages ;
     $ for app in {main,viewer} ; do cd onadata/apps/${app} && django-admin.py compilemessages && cd - ; done
-    
+
+Api Documentation
+-----------------
+
+.. code-block:: sh
+
+    $ cd docs
+    $ make html
+    $ python manage.py collectstatic

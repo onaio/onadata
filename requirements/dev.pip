@@ -1,3 +1,6 @@
+# include base.pip
+-r base.pip
+
 clint
 django-extensions
 django-kombu

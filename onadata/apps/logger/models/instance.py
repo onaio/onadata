@@ -1,10 +1,10 @@
 from datetime import datetime
 
 from django.contrib.gis.db import models
-from django.db.models.signals import post_save
-from django.db.models.signals import post_delete
+from django.db.models.signals import post_save, pre_save, post_delete
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import GeometryCollection, Point
+from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from jsonfield import JSONField
@@ -17,11 +17,53 @@ from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
-    UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION
+    UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, STATUS, DURATION, START, END
 from onadata.libs.utils.model_tools import set_uuid
+from onadata.libs.data.query import get_numeric_fields
+from onadata.libs.utils.cache_tools import safe_delete
+from onadata.libs.utils.cache_tools import IS_ORG
+from onadata.libs.utils.cache_tools import PROJ_SUB_DATE_CACHE
+from onadata.libs.utils.cache_tools import PROJ_NUM_DATASET_CACHE,\
+    XFORM_DATA_VERSIONS
+from onadata.libs.utils.timing import calculate_duration
+
+
+def get_attachment_url(attachment, suffix=None):
+    kwargs = {'pk': attachment.pk}
+    url = u'{}?filename={}'.format(
+        reverse('files-detail', kwargs=kwargs),
+        attachment.media_file.name
+    )
+    if suffix:
+        url += u'&suffix={}'.format(suffix)
+
+    return url
+
+
+def _get_attachments_from_instance(instance):
+    attachments = []
+    for a in instance.attachments.all():
+        attachment = dict()
+        attachment['download_url'] = get_attachment_url(a)
+        attachment['small_download_url'] = get_attachment_url(a, 'small')
+        attachment['medium_download_url'] = get_attachment_url(a, 'medium')
+        attachment['mimetype'] = a.mimetype
+        attachment['filename'] = a.media_file.name
+        attachment['instance'] = a.instance.pk
+        attachment['xform'] = instance.xform.id
+        attachment['id'] = a.id
+        attachments.append(attachment)
+
+    return attachments
+
+
+def _get_tag_or_element_type_xpath(dd, tag):
+    elems = dd.get_survey_elements_of_type(tag)
+    return elems[0].get_abbreviated_xpath() if elems else tag
 
 
 class FormInactiveError(Exception):
+
     def __unicode__(self):
         return _("Form is inactive")
 
@@ -29,8 +71,20 @@ class FormInactiveError(Exception):
         return unicode(self).encode('utf-8')
 
 
+def numeric_checker(string_value):
+    if string_value.isdigit():
+        return int(string_value)
+    else:
+        try:
+            return float(string_value)
+        except ValueError:
+            pass
+
+
 # need to establish id_string of the xform before we run get_dict since
 # we now rely on data dictionary to parse the xml
+
+
 def get_id_string_from_xml_str(xml_str):
     xml_obj = clean_and_parse_xml(xml_str)
     root_node = xml_obj.documentElement
@@ -74,6 +128,8 @@ def update_xform_submission_count(sender, instance, created, **kwargs):
             profile.num_of_submissions += 1
             profile.save()
 
+        safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, xform.pk))
+
 
 def update_xform_submission_count_delete(sender, instance, **kwargs):
     try:
@@ -96,6 +152,16 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
             if profile.num_of_submissions < 0:
                 profile.num_of_submissions = 0
             profile.save()
+
+        for a in [PROJ_NUM_DATASET_CACHE, PROJ_SUB_DATE_CACHE]:
+            safe_delete('{}{}'.format(a, xform.project.pk))
+
+        safe_delete('{}{}'.format(IS_ORG, xform.pk))
+        safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, xform.pk))
+
+        if xform.instances.exclude(geom=None).count() < 1:
+            xform.instances_with_geopoints = False
+            xform.save()
 
 
 class Instance(models.Model):
@@ -140,6 +206,28 @@ class Instance(models.Model):
         else:
             instance.set_deleted(deleted_at)
 
+    def numeric_converter(self, json_dict, numeric_fields=None):
+        if numeric_fields is None:
+            numeric_fields = get_numeric_fields(self.xform)
+        for key, value in json_dict.items():
+            if isinstance(value, basestring) and key in numeric_fields:
+                converted_value = numeric_checker(value)
+                if converted_value:
+                    json_dict[key] = converted_value
+            elif isinstance(value, dict):
+                json_dict[key] = self.numeric_converter(
+                    value, numeric_fields)
+            elif isinstance(value, list):
+                for k, v in enumerate(value):
+                    if isinstance(v, basestring) and key in numeric_fields:
+                        converted_value = numeric_checker(v)
+                        if converted_value:
+                            json_dict[key] = converted_value
+                    elif isinstance(v, dict):
+                        value[k] = self.numeric_converter(
+                            v, numeric_fields)
+        return json_dict
+
     def _check_active(self, force):
         """Check that form is active and raise exception if not.
 
@@ -170,21 +258,38 @@ class Instance(models.Model):
             self.geom = GeometryCollection(points)
 
     def _set_json(self):
-        doc = self.get_dict()
+        self.json = self.get_full_dict()
 
-        if not self.date_created:
-            now = submission_time()
-            self.date_created = now
+    def get_full_dict(self):
+        doc = self.json or {}
+        doc.update(self.get_dict())
 
-        point = self.point
-        if point:
-            doc[GEOLOCATION] = [point.y, point.x]
+        if self.id:
+            doc.update({
+                UUID: self.uuid,
+                ID: self.id,
+                BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
+                ATTACHMENTS: _get_attachments_from_instance(self),
+                STATUS: self.status,
+                TAGS: list(self.tags.names()),
+                NOTES: self.get_notes(),
+                VERSION: self.version,
+                DURATION: self.get_duration(),
+                XFORM_ID_STRING: self._parser.get_xform_id_string(),
+                GEOLOCATION: [self.point.y, self.point.x] if self.point
+                else [None, None],
+                SUBMITTED_BY: self.user.username if self.user else None
+            })
 
-        doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
-        doc[XFORM_ID_STRING] = self._parser.get_xform_id_string()
-        doc[SUBMITTED_BY] = self.user.username\
-            if self.user is not None else None
-        self.json = doc
+            if isinstance(self.deleted_at, datetime):
+                doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
+
+            if not self.date_created:
+                self.date_created = submission_time()
+
+            doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
+
+        return doc
 
     def _set_parser(self):
         if not hasattr(self, "_parser"):
@@ -210,33 +315,9 @@ class Instance(models.Model):
         """Return a python object representation of this instance's XML."""
         self._set_parser()
 
-        return self._parser.get_flat_dict_with_attributes() if flat else\
-            self._parser.to_dict()
-
-    def get_full_dict(self):
-        # TODO should we store all of these in the JSON no matter what?
-        d = self.json
-        data = {
-            UUID: self.uuid,
-            ID: self.id,
-            BAMBOO_DATASET_ID: self.xform.bamboo_dataset,
-            self.USERFORM_ID: u'%s_%s' % (
-                self.user.username,
-                self.xform.id_string),
-            ATTACHMENTS: [a.media_file.name for a in
-                          self.attachments.all()],
-            self.STATUS: self.status,
-            TAGS: list(self.tags.names()),
-            NOTES: self.get_notes(),
-            VERSION: self.version
-        }
-
-        if isinstance(self.instance.deleted_at, datetime):
-            data[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
-
-        d.update(data)
-
-        return d
+        instance_dict = self._parser.get_flat_dict_with_attributes() if flat \
+            else self._parser.to_dict()
+        return self.numeric_converter(instance_dict)
 
     def get_notes(self):
         return [note['note'] for note in self.notes.values('note')]
@@ -278,6 +359,15 @@ class Instance(models.Model):
         self.xform.submission_count(force_update=True)
         self.parsed_instance.save()
 
+    def get_duration(self):
+        data = self.get_dict()
+        dd = self.xform.data_dictionary()
+        start_name = _get_tag_or_element_type_xpath(dd, START)
+        end_name = _get_tag_or_element_type_xpath(dd, END)
+        start_time, end_time = data.get(start_name), data.get(end_name)
+
+        return calculate_duration(start_time, end_time)
+
 
 post_save.connect(update_xform_submission_count, sender=Instance,
                   dispatch_uid='update_xform_submission_count')
@@ -286,7 +376,23 @@ post_delete.connect(update_xform_submission_count_delete, sender=Instance,
                     dispatch_uid='update_xform_submission_count_delete')
 
 
+def save_project(sender, instance=None, created=False, **kwargs):
+    instance.xform.project.save()
+
+pre_save.connect(save_project, sender=Instance,
+                 dispatch_uid='save_project_instance')
+
+
+def save_full_json(sender, instance=None, created=False, **kwargs):
+    if created:
+        instance.json = instance.get_full_dict()
+        instance.save()
+
+post_save.connect(save_full_json, Instance, dispatch_uid='save_full_json')
+
+
 class InstanceHistory(models.Model):
+
     class Meta:
         app_label = 'logger'
 

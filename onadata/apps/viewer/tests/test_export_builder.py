@@ -381,7 +381,8 @@ class TestExportBuilder(TestBase):
                                 'children.info/ice_creams/chocolate', '_id',
                                 '_uuid', '_submission_time', '_index',
                                 '_parent_table_name', '_parent_index',
-                                u'_tags', '_notes', '_version']
+                                u'_tags', '_notes', '_version',
+                                '_duration', '_submitted_by']
             rows = [row for row in reader]
             actual_headers = [h.decode('utf-8') for h in rows[0]]
             self.assertEqual(sorted(actual_headers), sorted(expected_headers))
@@ -672,8 +673,8 @@ class TestExportBuilder(TestBase):
                 ]
             }
         childrens_section = export_builder.section_by_name('children')
-        match = filter(lambda x: expected_section['elements'][0]['xpath']
-                       == x['xpath'], childrens_section['elements'])[0]
+        match = filter(lambda x: expected_section['elements'][0]['xpath'] ==
+                       x['xpath'], childrens_section['elements'])[0]
         self.assertEqual(
             expected_section['elements'][0]['title'], match['title'])
 
@@ -694,8 +695,8 @@ class TestExportBuilder(TestBase):
             }
         main_section = export_builder.section_by_name('childrens_survey')
         match = filter(
-            lambda x: (expected_section['elements'][0]['xpath']
-                       == x['xpath']), main_section['elements'])[0]
+            lambda x: (expected_section['elements'][0]['xpath'] ==
+                       x['xpath']), main_section['elements'])[0]
         self.assertEqual(
             expected_section['elements'][0]['title'], match['title'])
 
@@ -723,7 +724,8 @@ class TestExportBuilder(TestBase):
             u'geo/_geolocation_precision', u'tel/tel.office',
             u'tel/tel.mobile', u'_id', u'meta/instanceID', u'_uuid',
             u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name', u'_tags', '_notes', '_version']
+            u'_parent_table_name', u'_tags', '_notes', '_version',
+            '_duration', '_submitted_by']
         column_headers = [c[0].value for c in main_sheet.columns]
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
@@ -736,7 +738,8 @@ class TestExportBuilder(TestBase):
             u'children/ice.creams/vanilla', u'children/ice.creams/strawberry',
             u'children/ice.creams/chocolate', u'_id', u'_uuid',
             u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name', u'_tags', '_notes', '_version']
+            u'_parent_table_name', u'_tags', '_notes', '_version',
+            '_duration', '_submitted_by']
         column_headers = [c[0].value for c in childrens_sheet.columns]
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
@@ -745,7 +748,8 @@ class TestExportBuilder(TestBase):
         expected_column_headers = [
             u'children/cartoons/name', u'children/cartoons/why', u'_id',
             u'_uuid', u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name', u'_tags', '_notes', '_version']
+            u'_parent_table_name', u'_tags', '_notes', '_version',
+            '_duration', '_submitted_by']
         column_headers = [c[0].value for c in cartoons_sheet.columns]
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
@@ -755,7 +759,8 @@ class TestExportBuilder(TestBase):
             u'children/cartoons/characters/name',
             u'children/cartoons/characters/good_or_evil', u'_id', u'_uuid',
             u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name', u'_tags', '_notes', '_version']
+            u'_parent_table_name', u'_tags', '_notes', '_version',
+            '_duration', '_submitted_by']
         column_headers = [c[0].value for c in characters_sheet.columns]
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
@@ -781,7 +786,8 @@ class TestExportBuilder(TestBase):
             u'geo._geolocation_precision', u'tel.tel.office',
             u'tel.tel.mobile', u'_id', u'meta.instanceID', u'_uuid',
             u'_submission_time', u'_index', u'_parent_index',
-            u'_parent_table_name', u'_tags', '_notes', '_version']
+            u'_parent_table_name', u'_tags', '_notes', '_version',
+            '_duration', '_submitted_by']
         column_headers = [c[0].value for c in main_sheet.columns]
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
@@ -999,3 +1005,9 @@ class TestExportBuilder(TestBase):
         for section in export_builder.sections:
             section_name = section['name'].replace('/', '_')
             _test_sav_file(section_name)
+
+    def test_generate_field_title_truncated_titles(self):
+        field_name = ExportBuilder.format_field_title("child/age", "/",
+                                                      remove_group_name=True)
+        expected_field_name = "age"
+        self.assertEqual(field_name, expected_field_name)

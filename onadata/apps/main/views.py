@@ -44,8 +44,6 @@ from onadata.apps.sms_support.tools import check_form_sms_compatibility,\
     is_sms_related
 from onadata.apps.sms_support.autodoc import get_autodoc_for
 from onadata.apps.sms_support.providers import providers_doc
-from onadata.libs.utils.bamboo import get_new_bamboo_dataset,\
-    delete_bamboo_dataset, ensure_rest_service
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
     publish_form
@@ -73,8 +71,8 @@ def home(request):
 
 @login_required
 def login_redirect(request):
-    return HttpResponseRedirect(reverse(profile,
-                                kwargs={'username': request.user.username}))
+    return HttpResponseRedirect(
+        reverse(profile, kwargs={'username': request.user.username}))
 
 
 @require_POST
@@ -268,6 +266,8 @@ def members_list(request):
 
 @login_required
 def profile_settings(request, username):
+    if request.user.username != username:
+        return HttpResponseNotFound("Page not found")
     content_user = check_and_set_user(request, username)
     profile, created = UserProfile.objects.get_or_create(user=content_user)
     if request.method == 'POST':
@@ -413,13 +413,17 @@ def show(request, username=None, id_string=None, uuid=None):
     return render(request, "show.html", data)
 
 
+@login_required
 @require_GET
 def api_token(request, username=None):
-    user = get_object_or_404(User, username=username)
-    data = {}
-    data['token_key'], created = Token.objects.get_or_create(user=user)
+    if request.user.username == username:
+        user = get_object_or_404(User, username=username)
+        data = {}
+        data['token_key'], created = Token.objects.get_or_create(user=user)
 
-    return render(request, "api_token.html", data)
+        return render(request, "api_token.html", data)
+
+    return HttpResponseForbidden(_(u'Permission denied.'))
 
 
 @require_http_methods(["GET", "OPTIONS"])
@@ -451,20 +455,19 @@ def api(request, username=None, id_string=None):
 
     try:
         args = {
-            'username': username,
-            'id_string': id_string,
+            'xform': xform,
             'query': request.GET.get('query'),
             'fields': request.GET.get('fields'),
             'sort': request.GET.get('sort')
         }
         if 'start' in request.GET:
-            args["start"] = int(request.GET.get('start'))
+            args["start_index"] = int(request.GET.get('start'))
         if 'limit' in request.GET:
             args["limit"] = int(request.GET.get('limit'))
         if 'count' in request.GET:
             args["count"] = True if int(request.GET.get('count')) > 0\
                 else False
-        cursor = ParsedInstance.query_mongo(**args)
+        cursor = ParsedInstance.query_data(**args)
     except ValueError as e:
         return HttpResponseBadRequest(e.__str__())
 
@@ -516,7 +519,8 @@ def edit(request, username, id_string):
 
     if username == request.user.username or\
             request.user.has_perm('logger.change_xform', xform):
-        if request.POST.get('description'):
+        if request.POST.get('description') or\
+                request.POST.get('description') == '':
             audit = {
                 'xform': xform.id_string
             }
@@ -1104,6 +1108,7 @@ def set_perm(request, username, id_string):
                     }, audit, request)
                 remove_perm('change_xform', user, xform)
                 remove_perm('view_xform', user, xform)
+                remove_perm('report_xform', user, xform)
     elif perm_type == 'link':
         current = MetaData.public_link(xform)
         if for_user == 'all':
@@ -1166,47 +1171,6 @@ def delete_data(request, username=None, id_string=None):
         response_text = ("%s(%s)" % (callback, response_text))
 
     return HttpResponse(response_text, content_type='application/json')
-
-
-@require_POST
-@is_owner
-def link_to_bamboo(request, username, id_string):
-    xform = get_object_or_404(XForm,
-                              user__username__iexact=username,
-                              id_string__iexact=id_string)
-    owner = xform.user
-    audit = {
-        'xform': xform.id_string
-    }
-
-    # try to delete the dataset first (in case it exists)
-    if xform.bamboo_dataset and delete_bamboo_dataset(xform):
-        xform.bamboo_dataset = u''
-        xform.save()
-        audit_log(
-            Actions.BAMBOO_LINK_DELETED, request.user, owner,
-            _("Bamboo link deleted on '%(id_string)s'.")
-            % {'id_string': xform.id_string}, audit, request)
-
-    # create a new one from all the data
-    dataset_id = get_new_bamboo_dataset(xform)
-
-    # update XForm
-    xform.bamboo_dataset = dataset_id
-    xform.save()
-    ensure_rest_service(xform)
-
-    audit_log(
-        Actions.BAMBOO_LINK_CREATED, request.user, owner,
-        _("Bamboo link created on '%(id_string)s'.") %
-        {
-            'id_string': xform.id_string,
-        }, audit, request)
-
-    return HttpResponseRedirect(reverse(show, kwargs={
-        'username': username,
-        'id_string': id_string
-    }))
 
 
 @require_POST
@@ -1318,7 +1282,7 @@ def activity_api(request, username):
         if 'count' in request.GET:
             query_args["count"] = True \
                 if int(request.GET.get('count')) > 0 else False
-        cursor = AuditLog.query_mongo(**query_args)
+        cursor = AuditLog.query_data(**query_args)
     except ValueError as e:
         return HttpResponseBadRequest(e.__str__())
 
@@ -1362,20 +1326,26 @@ def qrcode(request, username, id_string):
     return HttpResponse(results, content_type='text/html', status=status)
 
 
+def get_enketo_preview_url(request, username, id_string):
+    return "%(enketo_url)s?server=%(profile_url)s&id=%(id_string)s" % {
+        'enketo_url': settings.ENKETO_PREVIEW_URL,
+        'profile_url': request.build_absolute_uri(
+            reverse(profile, kwargs={'username': username})),
+        'id_string': id_string
+    }
+
+
 def enketo_preview(request, username, id_string):
     xform = get_object_or_404(
         XForm, user__username__iexact=username, id_string__iexact=id_string)
     owner = xform.user
     if not has_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
-    enekto_preview_url = \
-        "%(enketo_url)s?server=%(profile_url)s&id=%(id_string)s" % {
-            'enketo_url': settings.ENKETO_PREVIEW_URL,
-            'profile_url': request.build_absolute_uri(
-                reverse(profile, kwargs={'username': owner.username})),
-            'id_string': xform.id_string
-        }
-    return HttpResponseRedirect(enekto_preview_url)
+    enketo_preview_url = get_enketo_preview_url(request,
+                                                owner.username,
+                                                xform.id_string)
+
+    return HttpResponseRedirect(enketo_preview_url)
 
 
 @require_GET

@@ -7,6 +7,7 @@ from onadata.apps.api.models import OrganizationProfile
 from onadata.apps.api.tools import get_organization_members
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.libs.permissions import get_role_in_org
+from onadata.libs.serializers.fields.json_field import JsonField
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
@@ -16,6 +17,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
     creator = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     users = serializers.SerializerMethodField('get_org_permissions')
+    metadata = JsonField(source='metadata', required=False)
 
     class Meta:
         model = OrganizationProfile
@@ -79,5 +81,9 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         return [{
             'user': u.username,
-            'role': get_role_in_org(u, obj)
+            'role': get_role_in_org(u, obj),
+            'first_name': u.first_name,
+            'last_name': u.last_name,
+            'gravatar': u.profile.gravatar,
+            'metadata': u.profile.metadata,
         } for u in members]

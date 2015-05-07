@@ -12,23 +12,10 @@ python:
 before_install:
   - ./script/database/install_postgis onadata_test postgres 127.0.0.1
   - ./script/install/ubuntu
-  # faster pandas install
-  # https://gist.github.com/dan-blanchard/7045057
-  - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-  - chmod +x miniconda.sh
-  - ./miniconda.sh -b
-  - export PATH=/home/travis/miniconda/bin:$PATH
-  - conda update --yes conda
-  - conda create --yes -n condaenv python=2.7
-  - conda install --yes -n condaenv pip
-  - source activate condaenv
-  - sudo rm -rf /dev/shm
-  - sudo ln -s /run/shm /dev/shm
 env:
   - TESTFOLDER=onadata/apps/main
-  - TESTFOLDER="onadata/apps/api onadata/apps/logger onadata/apps/viewer onadata/apps/restservice onadata/apps/sms_support onadata/apps/stats onadata/libs"
+  - TESTFOLDER="onadata/apps/api onadata/apps/logger onadata/apps/viewer onadata/apps/restservice onadata/apps/sms_support onadata/libs"
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy pandas=0.12.0
   - pip install -r requirements/base.pip --allow-all-external
   - pip install flake8
   - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
@@ -44,7 +31,3 @@ script:
 notifications:
   email:
     - tech+travis@ona.io
-  hipchat:
-    rooms:
-      secure: cfWcsNSVAq9vs0pFrT5VKrd7Be6uE8eDPuaOBVT+sGjRKoF7UgaY+jwHK6yaO+Iv+/4aBEsMb5Sc0qp0vQ7vwP9X9THO4Y+giFolQByKO74rnMEp/cn5Hdyv8r5UsHXLYj4MtipLAuD9wkZBOWjsbYfhhDZ6zJ7ZFztvYn/Fxoc=
-  irc: 'irc.freenode.org#onatest'

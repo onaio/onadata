@@ -1,16 +1,21 @@
 import mimetypes
 import os
 import requests
+import logging
 
 from contextlib import closing
+from django.db.models.signals import post_save
 from django.core.exceptions import ValidationError
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.validators import URLValidator
-from django.db import models
+from django.db import models, IntegrityError
 from django.conf import settings
 from hashlib import md5
 from onadata.apps.logger.models import XForm
+
+from onadata.libs.utils.cache_tools import (safe_delete, XFORM_METADATA_CACHE)
+from onadata.libs.utils.common_tags import TEXTIT
 
 CHUNK_SIZE = 1024
 
@@ -40,22 +45,29 @@ def upload_to(instance, filename):
     )
 
 
+def save_metadata(metadata_obj):
+    try:
+        metadata_obj.save()
+    except IntegrityError:
+        logging.exception("MetaData object '%s' already exists" % metadata_obj)
+
+    return metadata_obj
+
+
 def unique_type_for_form(xform, data_type, data_value=None, data_file=None):
-    result = type_for_form(xform, data_type)
-    if not len(result):
-        result = MetaData(data_type=data_type, xform=xform)
-        result.save()
-    else:
-        result = result[0]
+    result, created = MetaData.objects.get_or_create(
+        xform=xform, data_type=data_type)
+
     if data_value:
         result.data_value = data_value
         result.save()
+
     if data_file:
         if result.data_value is None or result.data_value == '':
             result.data_value = data_file.name
         result.data_file = data_file
         result.data_file_type = data_file.content_type
-        result.save()
+        result = save_metadata(result)
     return result
 
 
@@ -91,9 +103,10 @@ def media_resources(media_list, download=False):
 
     @param media_list - list of MetaData objects of type `media`
     @param download - boolean, when True downloads media files when
-                      media.data_value is a valid url
+    media.data_value is a valid url
 
     return a list of MetaData objects
+
     """
     data = []
     for media in media_list:
@@ -162,6 +175,16 @@ class MetaData(models.Model):
             return True
         else:
             return False
+
+    @staticmethod
+    def enketo_url(xform, data_value=None):
+        data_type = 'enketo_url'
+        return unique_type_for_form(xform, data_type, data_value)
+
+    @staticmethod
+    def enketo_preview_url(xform, data_value=None):
+        data_type = 'enketo_preview_url'
+        return unique_type_for_form(xform, data_type, data_value)
 
     @staticmethod
     def form_license(xform, data_value=None):
@@ -267,3 +290,19 @@ class MetaData(models.Model):
         parts = self.data_value.split('|')
 
         return parts[1].replace('xls', 'templates') if len(parts) > 1 else None
+
+    @staticmethod
+    def textit(xform, data_value=None):
+        """Add a textit auth token flow uuid and default contact uuid"""
+        data_type = TEXTIT
+        return unique_type_for_form(xform, data_type, data_value)
+
+
+def clear_cached_metadata_instance_object(
+        sender, instance=None, created=False, **kwargs):
+    safe_delete('{}{}'.format(
+        XFORM_METADATA_CACHE, instance.xform.pk))
+
+
+post_save.connect(clear_cached_metadata_instance_object, sender=MetaData,
+                  dispatch_uid='clear_cached_metadata_instance_object')
