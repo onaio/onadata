@@ -577,7 +577,7 @@ class TestExports(TestBase):
         self.assertEqual(status["complete"], True)
         self.assertIsNotNone(status["filename"])
 
-    def test_direct_export_returns_newset_export_if_not_updated_since(self):
+    def test_direct_export_returns_newest_export_if_not_updated_since(self):
         self._publish_transportation_form()
         self._submit_transport_instance()
         self.assertEqual(self.response.status_code, 201)

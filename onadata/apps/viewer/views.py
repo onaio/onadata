@@ -33,7 +33,7 @@ from onadata.libs.utils.export_tools import (
     generate_export,
     should_create_new_export,
     kml_export_data,
-    newset_export_for)
+    newest_export_for)
 from onadata.libs.utils.image_tools import image_url
 from onadata.libs.utils.google import google_export_xls, redirect_uri
 from onadata.libs.utils.log import audit_log, Actions
@@ -260,7 +260,7 @@ def data_export(request, username, id_string, export_type):
         except NoRecordsFoundError:
             return HttpResponseNotFound(_("No records found to export"))
     else:
-        export = newset_export_for(xform, export_type)
+        export = newest_export_for(xform, export_type)
 
     # log download as well
     audit_log(
