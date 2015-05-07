@@ -8,6 +8,7 @@ from onadata.apps.api.tools import get_organization_members
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.apps.api.tools import _get_first_last_names
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
@@ -26,6 +27,14 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
     def restore_object(self, attrs, instance=None):
         if instance:
+            # update the user model
+            if 'name' in attrs:
+                first_name, last_name = \
+                    _get_first_last_names(attrs.get('name'))
+                instance.user.first_name = first_name
+                instance.user.last_name = last_name
+
+                instance.user.save()
             return super(OrganizationSerializer, self)\
                 .restore_object(attrs, instance)
 

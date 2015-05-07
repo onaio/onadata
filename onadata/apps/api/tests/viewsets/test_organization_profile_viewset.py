@@ -7,6 +7,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
+from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.libs.permissions import OwnerRole
 from onadata.apps.api.tools import get_organization_owners_team
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -625,3 +626,24 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 400)
+
+    def test_update_org_name(self):
+        self._org_create()
+
+        # update name
+        data = {'name': "Dennis2"}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user='denoinc')
+        self.assertEqual(response.data['name'], "Dennis2")
+        self.assertEqual(response.status_code, 200)
+
+        # check in user profile endpoint
+        view_user = UserProfileViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+
+        response = view_user(request, user='denoinc')
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['name'], "Dennis2")
