@@ -1,6 +1,7 @@
 import os
 
 from datetime import datetime
+from datetime import timedelta
 from django.utils.timezone import utc
 from django_digest.test import DigestAuth
 from mock import patch
@@ -108,3 +109,80 @@ class TestInstance(TestBase):
         """
         id_string = get_id_string_from_xml_str(submission)
         self.assertEqual(id_string, 'id_string')
+
+    def test_query_data_sort(self):
+        self._publish_transportation_form()
+        self._make_submissions()
+        latest = Instance.objects.filter(xform=self.xform).latest('pk').pk
+        oldest = Instance.objects.filter(xform=self.xform).first().pk
+
+        data = [i.get('_id') for i in ParsedInstance.query_data(
+            self.xform, sort='-pk')]
+        self.assertEqual(data[0], latest)
+        self.assertEqual(data[len(data) - 1], oldest)
+
+        # sort with a json field
+        data = [i.get('_id') for i in ParsedInstance.query_data(
+            self.xform, sort='-_id')]
+        self.assertEqual(data[0], latest)
+        self.assertEqual(data[len(data) - 1], oldest)
+
+        # mongo sort
+        data = [i.get('_id') for i in ParsedInstance.query_data(
+            self.xform, sort='{"pk": "-1"}')]
+        self.assertEqual(data[0], latest)
+        self.assertEqual(data[len(data) - 1], oldest)
+
+        # sort with a json field
+        data = [i.get('_id') for i in ParsedInstance.query_data(
+            self.xform, sort='{"_id": -1}')]
+        self.assertEqual(data[0], latest)
+        self.assertEqual(data[len(data) - 1], oldest)
+
+    def test_query_filter_by_integer(self):
+        self._publish_transportation_form()
+        self._make_submissions()
+        oldest = Instance.objects.filter(xform=self.xform).first().pk
+
+        data = [i.get('_id') for i in ParsedInstance.query_data(
+            self.xform, query='[{"_id": %s}]' % (oldest))]
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data, [oldest])
+
+        # with fields
+        data = [i.get('_id') for i in ParsedInstance.query_data(
+            self.xform, query='{"_id": %s}' % (oldest), fields='["_id"]')]
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data, [oldest])
+
+        # mongo $gt
+        data = [i.get('_id') for i in ParsedInstance.query_data(
+            self.xform, query='{"_id": {"$gt": %s}}' % (oldest),
+            fields='["_id"]')]
+        self.assertEqual(self.xform.instances.count(), 4)
+        self.assertEqual(len(data), 3)
+
+    @patch('onadata.apps.logger.models.instance.submission_time')
+    def test_query_filter_by_datetime_field(self, mock_time):
+        self._publish_transportation_form()
+        now = datetime(2014, 01, 01, tzinfo=utc)
+        times = [now, now + timedelta(seconds=1), now + timedelta(seconds=2),
+                 now + timedelta(seconds=3)]
+        mock_time.side_effect = times
+        self._make_submissions()
+
+        atime = None
+
+        for i in self.xform.instances.all().order_by('-pk'):
+            i.date_created = times.pop()
+            i.save()
+            if atime is None:
+                atime = i.date_created.strftime(MONGO_STRFTIME)
+
+        # mongo $gt
+        data = [i.get('_submission_time') for i in ParsedInstance.query_data(
+            self.xform, query='{"_submission_time": {"$lt": "%s"}}' % (atime),
+            fields='["_submission_time"]')]
+        self.assertEqual(self.xform.instances.count(), 4)
+        self.assertEqual(len(data), 3)
+        self.assertNotIn(atime, data)

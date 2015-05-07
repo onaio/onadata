@@ -12,11 +12,11 @@ from onadata.libs.utils.logger_tools import inject_instanceid
 from httmock import urlmatch, HTTMock
 
 
-@urlmatch(netloc=r'(.*\.)?enketo\.formhub\.org$')
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
 def enketo_edit_mock(url, request):
     response = requests.Response()
     response.status_code = 201
-    response._content = '{"edit_url": "https://hmh2a.enketo.formhub.org"}'
+    response._content = '{"edit_url": "https://hmh2a.enketo.ona.io"}'
     return response
 
 
@@ -40,7 +40,7 @@ class TestWebforms(TestBase):
             response = self.client.get(edit_url)
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response['location'],
-                             'https://hmh2a.enketo.formhub.org')
+                             'https://hmh2a.enketo.ona.io')
 
     def test_inject_instanceid(self):
         """

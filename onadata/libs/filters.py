@@ -9,6 +9,7 @@ from rest_framework.exceptions import ParseError
 
 
 from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.api.models import Team, OrganizationProfile
 
 
 class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
@@ -17,8 +18,25 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
         """
         Anonymous user has no object permissions, return queryset as it is.
         """
+        form_id = view.kwargs.get(view.lookup_field)
+        queryset = queryset.filter(deleted_at=None)
         if request.user.is_anonymous():
             return queryset
+
+        if form_id:
+            try:
+                int(form_id)
+            except ValueError:
+                raise ParseError(u'Invalid form ID: %s' % form_id)
+
+            # check if form is public and return it
+            try:
+                form = queryset.get(id=form_id)
+            except ObjectDoesNotExist:
+                raise Http404
+
+            if form.shared:
+                return queryset.filter(Q(id=form_id))
 
         return super(AnonDjangoObjectPermissionFilter, self)\
             .filter_queryset(request, queryset, view)
@@ -54,11 +72,19 @@ class XFormOwnerFilter(filters.BaseFilterBackend):
 
         if owner:
             kwargs = {
-                self.owner_prefix + '__username': owner
+                self.owner_prefix + '__username__iexact': owner
             }
 
             return queryset.filter(**kwargs)
 
+        return queryset
+
+
+class DataFilter(filters.DjangoObjectPermissionsFilter):
+
+    def filter_queryset(self, request, queryset, view):
+        if request.user.is_anonymous():
+            return queryset.filter(Q(shared_data=True))
         return queryset
 
 
@@ -67,6 +93,7 @@ class ProjectOwnerFilter(XFormOwnerFilter):
 
 
 class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
+    owner_prefix = 'organization'
 
     def filter_queryset(self, request, queryset, view):
         """
@@ -130,7 +157,7 @@ class XFormPermissionFilterMixin(object):
             #     raise ParseError(_(u"`xform` GET parameter required'"))
 
             xform_qs = XForm.objects.all()
-
+        xform_qs = xform_qs.filter(deleted_at=None)
         if request.user.is_anonymous():
             xforms = xform_qs.filter(shared_data=True)
         else:
@@ -165,5 +192,33 @@ class AttachmentFilter(XFormPermissionFilterMixin,
                     u"Invalid value for instance %s." % instance_id)
             instance = get_object_or_404(Instance, pk=instance_id)
             queryset = queryset.filter(instance=instance)
+
+        return queryset
+
+
+class TeamOrgFilter(filters.BaseFilterBackend):
+
+    def filter_queryset(self, request, queryset, view):
+        org = request.DATA.get('org') or request.QUERY_PARAMS.get('org')
+
+        # Get all the teams for the organization
+        if org:
+            kwargs = {
+                'organization__username__iexact': org
+            }
+
+            return Team.objects.filter(**kwargs)
+
+        return queryset
+
+
+class UserNoOrganizationsFilter(filters.BaseFilterBackend):
+
+    def filter_queryset(self, request, queryset, view):
+        if str(request.QUERY_PARAMS.get('orgs')).lower() == 'false':
+            organization_user_ids = OrganizationProfile.objects.values_list(
+                'user__id',
+                flat=True)
+            queryset = queryset.exclude(id__in=organization_user_ids)
 
         return queryset

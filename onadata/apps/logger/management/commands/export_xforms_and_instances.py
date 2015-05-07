@@ -5,9 +5,10 @@ import os
 from django.core.management.base import BaseCommand
 from django.core.serializers import serialize
 from django.utils.translation import ugettext_lazy
-
-from settings import PROJECT_ROOT
+from django.conf import settings
 from onadata.apps.logger.models import XForm, Instance
+
+PROJECT_ROOT = settings.PROJECT_ROOT
 
 
 class Command(BaseCommand):

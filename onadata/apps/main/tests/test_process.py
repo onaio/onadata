@@ -2,8 +2,12 @@ import csv
 import fnmatch
 from hashlib import md5
 import json
+from mock import patch
 import os
 import re
+import pytz
+
+from datetime import datetime
 
 from django.core.urlresolvers import reverse
 from django.conf import settings
@@ -17,13 +21,12 @@ from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME
+from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from test_base import TestBase
 
 
 uuid_regex = re.compile(
     r'(</instance>.*uuid[^//]+="\')([^\']+)(\'".*)', re.DOTALL)
-xform_instances = settings.MONGO_DB.instances
 
 
 class TestProcess(TestBase):
@@ -62,8 +65,11 @@ class TestProcess(TestBase):
         Update stuff like submission time so we can compare within out fixtures
         """
         for uuid, submission_time in self.uuid_to_submission_times.iteritems():
-            xform_instances.update(
-                {UUID: uuid}, {'$set': {SUBMISSION_TIME: submission_time}})
+            i = self.xform.instances.get(uuid=uuid)
+            i.date_created = pytz.timezone('UTC').localize(
+                datetime.strptime(submission_time, MONGO_STRFTIME))
+            i.json = i.get_full_dict()
+            i.save()
 
     def test_uuid_submit(self):
         self._publish_xls_file()
@@ -79,23 +85,49 @@ class TestProcess(TestBase):
     def test_publish_xlsx_file(self):
         self._publish_xlsx_file()
 
-    def test_google_url_upload(self):
+    @patch('urllib2.urlopen')
+    def test_google_url_upload(self, mock_urlopen):
         if self._internet_on(url="http://google.com"):
             xls_url = "https://docs.google.com/spreadsheet/pub?"\
                 "key=0AvhZpT7ZLAWmdDhISGhqSjBOSl9XdXd5SHZHUUE2RFE&output=xls"
             pre_count = XForm.objects.count()
+
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation.xls")
+
+            xls_file = open(path)
+            mock_urlopen.return_value = xls_file
+
             response = self.client.post('/%s/' % self.user.username,
                                         {'xls_url': xls_url})
+            mock_urlopen.assert_called_with(xls_url)
+            # cleanup the resources
+            xls_file.close()
             # make sure publishing the survey worked
             self.assertEqual(response.status_code, 200)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
-    def test_url_upload(self):
+    @patch('urllib2.urlopen')
+    def test_url_upload(self,  mock_urlopen):
         if self._internet_on(url="http://google.com"):
             xls_url = 'https://ona.io/examples/forms/tutorial/form.xls'
             pre_count = XForm.objects.count()
+
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation.xls")
+
+            xls_file = open(path)
+            mock_urlopen.return_value = xls_file
+
             response = self.client.post('/%s/' % self.user.username,
                                         {'xls_url': xls_url})
+
+            mock_urlopen.assert_called_with(xls_url)
+            # cleanup the resources
+            xls_file.close()
+
             # make sure publishing the survey worked
             self.assertEqual(response.status_code, 200)
             self.assertEqual(XForm.objects.count(), pre_count + 1)
@@ -154,9 +186,8 @@ class TestProcess(TestBase):
         Returns False if not strict and publish fails
         """
         pre_count = XForm.objects.count()
-        self.response = TestBase._publish_xls_file(self, xls_path)
+        TestBase._publish_xls_file(self, xls_path)
         # make sure publishing the survey worked
-        self.assertEqual(self.response.status_code, 200)
         if XForm.objects.count() != pre_count + 1:
             # print file location
             print '\nPublish Failure for file: %s' % xls_path
@@ -186,7 +217,7 @@ class TestProcess(TestBase):
             % (self.user.username, self.xform.pk)
         md5_hash = md5(self.xform.xml).hexdigest()
         expected_content = """<?xml version="1.0" encoding="utf-8"?>
-<xforms xmlns="http://openrosa.org/xforms/xformsList"><xform><formID>transportation_2011_07_25</formID><name>transportation_2011_07_25</name><majorMinorVersion></majorMinorVersion><version></version><hash>md5:%(hash)s</hash><descriptionText>transportation_2011_07_25</descriptionText><downloadUrl>%(download_url)s</downloadUrl><manifestUrl>%(manifest_url)s</manifestUrl></xform></xforms>"""  # noqa
+<xforms xmlns="http://openrosa.org/xforms/xformsList"><xform><formID>transportation_2011_07_25</formID><name>transportation_2011_07_25</name><majorMinorVersion></majorMinorVersion><version></version><hash>md5:%(hash)s</hash><descriptionText></descriptionText><downloadUrl>%(download_url)s</downloadUrl><manifestUrl>%(manifest_url)s</manifestUrl></xform></xforms>"""  # noqa
         expected_content = expected_content % {
             'download_url': self.download_url,
             'manifest_url': self.manifest_url,
@@ -355,7 +386,8 @@ class TestProcess(TestBase):
             {'meta/instanceID': 'uuid:5b2cc313-fc09-437e-8149-fcd32f695d41',
              '_uuid': '5b2cc313-fc09-437e-8149-fcd32f695d41',
              '_submission_time': '2013-02-14T15:37:21',
-             '_tags': '', '_notes': '', '_version': '2014111', '_duration': ''
+             '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
+             '_submitted_by': 'bob'
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
@@ -366,7 +398,8 @@ class TestProcess(TestBase):
              "meta/instanceID": "uuid:f3d8dc65-91a6-4d0f-9e97-802128083390",
              '_uuid': 'f3d8dc65-91a6-4d0f-9e97-802128083390',
              '_submission_time': '2013-02-14T15:37:22',
-             '_tags': '', '_notes': '', '_version': '2014111', '_duration': ''
+             '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
+             '_submitted_by': 'bob'
              },
             {"available_transportation_types_to_referral_facility/ambulance":
              "True",
@@ -374,7 +407,8 @@ class TestProcess(TestBase):
              "meta/instanceID": "uuid:9c6f3468-cfda-46e8-84c1-75458e72805d",
              '_uuid': '9c6f3468-cfda-46e8-84c1-75458e72805d',
              '_submission_time': '2013-02-14T15:37:23',
-             '_tags': '', '_notes': '', '_version': '2014111', '_duration': ''
+             '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
+             '_submitted_by': 'bob'
              },
             {"available_transportation_types_to_referral_facility/taxi":
              "True",
@@ -386,7 +420,8 @@ class TestProcess(TestBase):
              "meta/instanceID": "uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf",
              '_uuid': '9f0a1508-c3b7-4c99-be00-9b237c26bcbf',
              '_submission_time': '2013-02-14T15:37:24',
-             '_tags': '', '_notes': '', '_version': '2014111', '_duration': ''
+             '_tags': '', '_notes': '', '_version': '2014111', '_duration': '',
+             '_submitted_by': 'bob'
              }
         ]
 
@@ -460,9 +495,10 @@ class TestProcess(TestBase):
         path = os.path.join(
             self.this_directory, 'fixtures',
             'form_with_unicode_in_relevant_column.xlsx')
-        response = TestBase._publish_xls_file(self, path)
-        # make sure we get a 200 response
-        self.assertEqual(response.status_code, 200)
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            response = self.client.post('/%s/' % self.user.username, post_data)
+            self.assertEqual(response.status_code, 200)
 
     def test_metadata_file_hash(self):
         self._publish_transportation_form()
@@ -486,7 +522,7 @@ class TestProcess(TestBase):
             self.this_directory, "fixtures", "cascading_selects",
             "new_cascading_select.xls")
         file_name, file_ext = os.path.splitext(os.path.split(xls_path)[1])
-        self.response = TestBase._publish_xls_file(self, xls_path)
+        TestBase._publish_xls_file(self, xls_path)
         post_count = XForm.objects.count()
         self.assertEqual(post_count, pre_count + 1)
         xform = XForm.objects.latest('date_created')

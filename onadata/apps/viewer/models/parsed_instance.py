@@ -2,29 +2,27 @@ import base64
 import datetime
 import json
 import re
+import six
 
-from bson import json_util, ObjectId
-from celery import task
 from dateutil import parser
-from django.conf import settings
+from django.db import connection
 from django.db import models
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_save
 from django.utils.translation import ugettext as _
 
-from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models import Note
-from onadata.apps.restservice.utils import call_service
-from onadata.libs.utils.timing import calculate_duration
+from onadata.apps.logger.models.note import Note
+from onadata.apps.restservice.models import RestService
+from onadata.apps.logger.models.instance import _get_attachments_from_instance
+from onadata.apps.logger.models.instance import Instance
+from onadata.apps.restservice.task import call_service_async
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
-    NOTES, SUBMITTED_BY, VERSION, DURATION, START_TIME, END_TIME
+    NOTES, SUBMITTED_BY, VERSION, DURATION
 
-from onadata.libs.utils.decorators import apply_form_field_names
 from onadata.libs.utils.model_tools import queryset_iterator
 
 
 # this is Mongo Collection where we will store the parsed submissions
-xform_instances = settings.MONGO_DB.instances
 key_whitelist = ['$or', '$and', '$exists', '$in', '$gt', '$gte',
                  '$lt', '$lte', '$regex', '$options', '$all']
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
@@ -82,17 +80,64 @@ def _is_invalid_for_mongo(key):
         key_whitelist and (key.startswith('$') or key.count('.') > 0)
 
 
-@task
-def update_mongo_instance(record):
-    # since our dict always has an id, save will always result in an upsert op
-    # - so we dont need to worry whether its an edit or not
-    # http://api.mongodb.org/python/current/api/pymongo/collection.html#pymong\
-    # o.collection.Collection.save
-    try:
-        return xform_instances.save(record)
-    except Exception:
-        # todo: mail admins about the exception
-        pass
+def sort_from_mongo_sort_str(sort_str):
+    sort_values = []
+    if isinstance(sort_str, six.string_types):
+        if sort_str.startswith('{'):
+            sort_dict = json.loads(sort_str)
+            for k, v in sort_dict.items():
+                try:
+                    v = int(v)
+                except ValueError:
+                    pass
+                if v < 0:
+                    k = u'-{}'.format(k)
+                sort_values.append(k)
+        else:
+            sort_values.append(sort_str)
+
+    return sort_values
+
+
+def _json_order_by(sort_list):
+    _list = []
+
+    for field in sort_list:
+        _str = u" json->>%s"
+        if field.startswith('-'):
+            _str += u" DESC"
+        else:
+            _str += u" ASC"
+        _list.append(_str)
+
+    if len(_list) > 0:
+        return u"ORDER BY {}".format(u",".join(_list))
+
+    return u""
+
+
+def _json_order_by_params(sort_list):
+    params = []
+
+    for field in sort_list:
+        params.append(field.lstrip('-'))
+
+    return params
+
+
+def _json_sql_str(key, known_integers=[], known_dates=[]):
+    _json_str = u"json->%s"
+
+    if key in known_integers:
+        _json_str = u"CAST(json->>%s AS INT)"
+    elif key in known_dates:
+        _json_str = u"CAST(json->>%s AS TIMESTAMP)"
+
+    return _json_str
+
+
+def get_name_from_survey_element(element):
+    return element.get_abbreviated_xpath()
 
 
 class ParsedInstance(models.Model):
@@ -112,130 +157,178 @@ class ParsedInstance(models.Model):
         app_label = "viewer"
 
     @classmethod
-    @apply_form_field_names
-    def query_mongo(cls, username, id_string, query, fields, sort, start=0,
-                    limit=DEFAULT_LIMIT, count=False, hide_deleted=True):
-        fields_to_select = {cls.USERFORM_ID: 0}
-        # TODO: give more detailed error messages to 3rd parties
-        # using the API when json.loads fails
-        if isinstance(query, basestring):
-            query = json.loads(query, object_hook=json_util.object_hook)
-        query = query if query else {}
-        query = dict_for_mongo(query)
-        query[cls.USERFORM_ID] = u'%s_%s' % (username, id_string)
+    def query_iterator(cls, sql, fields=None, params=[], count=False):
+        cursor = connection.cursor()
+        sql_params = fields + params if fields is not None else params
 
-        # check if query contains and _id and if its a valid ObjectID
-        if '_uuid' in query and ObjectId.is_valid(query['_uuid']):
-            query['_uuid'] = ObjectId(query['_uuid'])
-
-        if hide_deleted:
-            # display only active elements
-            # join existing query with deleted_at_query on an $and
-            query = {"$and": [query, {"_deleted_at": None}]}
-
-        # fields must be a string array i.e. '["name", "age"]'
-        if isinstance(fields, basestring):
-            fields = json.loads(fields, object_hook=json_util.object_hook)
-        fields = fields if fields else []
-
-        # TODO: current mongo (2.0.4 of this writing)
-        # cant mix including and excluding fields in a single query
-        if type(fields) == list and len(fields) > 0:
-            fields_to_select = dict(
-                [(_encode_for_mongo(field), 1) for field in fields])
-        if isinstance(sort, basestring):
-            sort = json.loads(sort, object_hook=json_util.object_hook)
-        sort = sort if sort else {}
-
-        cursor = xform_instances.find(query, fields_to_select)
         if count:
-            return [{"count": cursor.count()}]
+            from_pos = sql.upper().find(' FROM')
+            if from_pos != -1:
+                sql = u"SELECT COUNT(*) " + sql[from_pos:]
 
-        if start < 0 or limit < 0:
-            raise ValueError(_("Invalid start/limit params"))
+            order_pos = sql.upper().find('ORDER BY')
+            if order_pos != -1:
+                sql = sql[:order_pos]
 
-        cursor.skip(start).limit(limit)
-        if type(sort) == dict and len(sort) == 1:
-            sort_key = sort.keys()[0]
-            # TODO: encode sort key if it has dots
-            sort_dir = int(sort[sort_key])  # -1 for desc, 1 for asc
-            cursor.sort(_encode_for_mongo(sort_key), sort_dir)
-        # set batch size
-        cursor.batch_size = cls.DEFAULT_BATCHSIZE
-        return cursor
+            sql_params = params
+            fields = [u'count']
 
-    @classmethod
-    @apply_form_field_names
-    def mongo_aggregate(cls, query, pipeline, hide_deleted=True):
-        """Perform mongo aggregate queries
-        query - is a dict which is to be passed to $match, a pipeline operator
-        pipeline - list of dicts or dict of mongodb pipeline operators,
-        http://docs.mongodb.org/manual/reference/operator/aggregation-pipeline
-        """
-        if isinstance(query, basestring):
-            query = json.loads(
-                query, object_hook=json_util.object_hook) if query else {}
-        if not (isinstance(pipeline, dict) or isinstance(pipeline, list)):
-            raise Exception(_(u"Invalid pipeline! %s" % pipeline))
-        if not isinstance(query, dict):
-            raise Exception(_(u"Invalid query! %s" % query))
-        query = dict_for_mongo(query)
-        if hide_deleted:
-            # display only active elements
-            deleted_at_query = {
-                "$or": [{"_deleted_at": {"$exists": False}},
-                        {"_deleted_at": None}]}
-            # join existing query with deleted_at_query on an $and
-            query = {"$and": [query, deleted_at_query]}
-        k = [{'$match': query}]
-        if isinstance(pipeline, list):
-            k.extend(pipeline)
+        cursor.execute(sql, [unicode(i) for i in sql_params])
+
+        if fields is None:
+            for row in cursor.fetchall():
+                yield row[0]
         else:
-            k.append(pipeline)
-        results = xform_instances.aggregate(k)
-        return results['result']
+            for row in cursor.fetchall():
+                yield dict(zip(fields, row))
 
     @classmethod
-    @apply_form_field_names
-    def query_mongo_minimal(
-            cls, query, fields, sort, start=0, limit=DEFAULT_LIMIT,
-            count=False, hide_deleted=True):
-        fields_to_select = {cls.USERFORM_ID: 0}
-        # TODO: give more detailed error messages to 3rd parties
-        # using the API when json.loads fails
-        query = json.loads(
-            query, object_hook=json_util.object_hook) if query else {}
-        query = dict_for_mongo(query)
-        if hide_deleted:
-            # display only active elements
-            # join existing query with deleted_at_query on an $and
-            query = {"$and": [query, {"_deleted_at": None}]}
-        # fields must be a string array i.e. '["name", "age"]'
-        fields = json.loads(
-            fields, object_hook=json_util.object_hook) if fields else []
-        # TODO: current mongo (2.0.4 of this writing)
-        # cant mix including and excluding fields in a single query
-        if type(fields) == list and len(fields) > 0:
-            fields_to_select = dict(
-                [(_encode_for_mongo(field), 1) for field in fields])
-        sort = json.loads(
-            sort, object_hook=json_util.object_hook) if sort else {}
-        cursor = xform_instances.find(query, fields_to_select)
-        if count:
-            return [{"count": cursor.count()}]
+    def _get_where_clause(cls, query, form_integer_fields=[]):
+        known_integers = ['_id'] + form_integer_fields
+        known_dates = ['_submission_time']
+        where = []
+        where_params = []
+        if query and isinstance(query, six.string_types):
+            query = json.loads(query)
+            or_where = []
+            or_params = []
+            if isinstance(query, list):
+                query = query[0]
 
-        if start < 0 or limit < 0:
+            if '$or' in query.keys():
+                or_dict = query.pop('$or')
+                for l in or_dict:
+                    or_where.extend([u"json->>%s = %s" for i in l.items()])
+                    [or_params.extend(i) for i in l.items()]
+
+                or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
+
+            # where = [u"json->>%s = %s" for i in query.items()] + or_where
+            for k, v in query.items():
+                if isinstance(v, dict):
+                    json_str = _json_sql_str(k, known_integers, known_dates)
+                    _v = None
+                    if '$gt' in v:
+                        where.append(u"{} > %s".format(json_str))
+                        _v = v.get('$gt')
+                    if '$gte' in v:
+                        where.append(u"{} >= %s".format(json_str))
+                        _v = v.get('$gte')
+                    if '$lt' in v:
+                        where.append(u"{} < %s".format(json_str))
+                        _v = v.get('$lt')
+                    if '$lte' in v:
+                        where.append(u"{} <= %s".format(json_str))
+                        _v = v.get('$lte')
+                    if _v is None:
+                        _v = v
+                    if k in known_dates:
+                        _v = datetime.datetime.strptime(
+                            _v[:19], MONGO_STRFTIME)
+                    where_params.extend((k, unicode(_v)))
+                else:
+                    where.append(u"json->>%s = %s")
+                    where_params.extend((k, unicode(v)))
+            where += or_where
+            # [where_params.extend((k, unicode(v))) for k, v in query.items()]
+            where_params.extend(or_params)
+
+        return where, where_params
+
+    @classmethod
+    def query_data(cls, xform, query=None, fields=None, sort=None, start=None,
+                   end=None, start_index=None, limit=None, count=None):
+        if start_index is not None and \
+                (start_index is not None and start_index < 0 or
+                 (limit is not None and limit < 0)):
             raise ValueError(_("Invalid start/limit params"))
+        if limit is not None and start_index is None:
+            start_index = 0
 
-        cursor.skip(start).limit(limit)
-        if type(sort) == dict and len(sort) == 1:
-            sort_key = sort.keys()[0]
-            # TODO: encode sort key if it has dots
-            sort_dir = int(sort[sort_key])  # -1 for desc, 1 for asc
-            cursor.sort(_encode_for_mongo(sort_key), sort_dir)
-        # set batch size
-        cursor.batch_size = cls.DEFAULT_BATCHSIZE
-        return cursor
+        instances = xform.instances.filter(deleted_at=None)
+        if isinstance(start, datetime.datetime):
+            instances = instances.filter(date_created__gte=start)
+        if isinstance(end, datetime.datetime):
+            instances = instances.filter(date_created__lte=end)
+        sort = ['id'] if sort is None else sort_from_mongo_sort_str(sort)
+
+        sql_where = u""
+        data_dictionary = xform.data_dictionary()
+        known_integers = [
+            get_name_from_survey_element(e)
+            for e in data_dictionary.get_survey_elements_of_type('integer')]
+        where, where_params = cls._get_where_clause(query, known_integers)
+
+        if fields and isinstance(fields, six.string_types):
+            fields = json.loads(fields)
+
+        if fields:
+            field_list = [u"json->%s" for i in fields]
+            sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
+
+            if where_params:
+                sql_where = u" AND " + u" AND ".join(where)
+
+            sql += u" WHERE xform_id = %s " + sql_where \
+                + u" AND deleted_at IS NULL"
+            params = [xform.pk] + where_params
+
+            # apply sorting
+            if ParsedInstance._has_json_fields(sort):
+                sql = u"{} {}".format(sql, _json_order_by(sort))
+                params = params + _json_order_by_params(sort)
+
+            if start_index is not None:
+                sql += u" OFFSET %s"
+                params += [start_index]
+            if limit is not None:
+                sql += u" LIMIT %s"
+                params += [limit]
+            records = ParsedInstance.query_iterator(sql, fields, params, count)
+        else:
+            if count:
+                return [{"count": instances.count()}]
+
+            if where_params:
+                instances = instances.extra(where=where, params=where_params)
+
+            if ParsedInstance._has_json_fields(sort):
+                # we have to do an sql query for json field order
+                records = instances.values_list('json', flat=True)
+                _sql, _params = records.query.sql_with_params()
+                sql = u"{} {}".format(_sql, _json_order_by(sort))
+                params = list(_params) + _json_order_by_params(sort)
+                records = ParsedInstance.query_iterator(sql, None, params)
+            else:
+                records = instances.order_by(*sort)\
+                    .values_list('json', flat=True)
+
+            if start_index is not None:
+                if ParsedInstance._has_json_fields(sort):
+                    _sql, _params = sql, params
+                    params = _params + [start_index]
+                else:
+                    _sql, _params = records.query.sql_with_params()
+                    params = list(_params + (start_index,))
+                # some inconsistent/weird behavior I noticed with django's
+                # queryset made me have to do a raw query
+                # records = records[start_index: limit]
+                sql = u"{} OFFSET %s".format(_sql)
+                if limit is not None:
+                    sql = u"{} LIMIT %s".format(sql)
+                    params += [limit]
+                records = ParsedInstance.query_iterator(sql, None, params)
+
+        return records
+
+    @classmethod
+    def _has_json_fields(cls, sort_list):
+        """
+        Checks if any field in sort_list is not a field in the Instance model
+        """
+        fields = Instance._meta.get_all_field_names()
+
+        return any([i for i in sort_list if i.lstrip('-') not in fields])
 
     def to_dict_for_mongo(self):
         d = self.to_dict()
@@ -256,7 +349,7 @@ class ParsedInstance(models.Model):
             SUBMITTED_BY: self.instance.user.username
             if self.instance.user else None,
             VERSION: self.instance.version,
-            DURATION: self.get_duration()
+            DURATION: self.instance.get_duration()
         }
 
         if isinstance(self.instance.deleted_at, datetime.datetime):
@@ -265,19 +358,6 @@ class ParsedInstance(models.Model):
         d.update(data)
 
         return dict_for_mongo(d)
-
-    def get_duration(self):
-        data = self.instance.get_dict()
-        _start, _end = data.get(START_TIME, ''), data.get(END_TIME, '')
-
-        return calculate_duration(_start, _end)
-
-    def update_mongo(self, async=True):
-        d = self.to_dict_for_mongo()
-        if async:
-            update_mongo_instance.apply_async((), {"record": d})
-        else:
-            update_mongo_instance(d)
 
     def to_dict(self):
         if not hasattr(self, "_dict_cache"):
@@ -329,8 +409,6 @@ class ParsedInstance(models.Model):
         self.end_time = None
         self._set_geopoint()
         super(ParsedInstance, self).save(*args, **kwargs)
-        # insert into Mongo
-        self.update_mongo(async)
 
     def add_note(self, note):
         note = Note(instance=self.instance, note=note)
@@ -345,41 +423,23 @@ class ParsedInstance(models.Model):
         note_qs = self.instance.notes.values(
             'id', 'note', 'date_created', 'date_modified')
         for note in note_qs:
-            note['date_created'] = \
-                note['date_created'].strftime(MONGO_STRFTIME)
-            note['date_modified'] = \
-                note['date_modified'].strftime(MONGO_STRFTIME)
+            note['date_created'] = note['date_created'].strftime(
+                MONGO_STRFTIME)
+            note['date_modified'] = note['date_modified'].strftime(
+                MONGO_STRFTIME)
             notes.append(note)
         return notes
-
-
-def _get_attachments_from_instance(instance):
-    attachments = []
-    for a in instance.attachments.all():
-        attachment = dict()
-        attachment['download_url'] = a.media_file.url
-        attachment['mimetype'] = a.mimetype
-        attachment['filename'] = a.media_file.name
-        attachment['instance'] = a.instance.pk
-        attachment['xform'] = instance.xform.id
-        attachment['id'] = a.id
-        attachments.append(attachment)
-
-    return attachments
-
-
-def _remove_from_mongo(sender, **kwargs):
-    instance_id = kwargs.get('instance').instance.id
-    xform_instances.remove(instance_id)
-
-pre_delete.connect(_remove_from_mongo, sender=ParsedInstance)
 
 
 def rest_service_form_submission(sender, **kwargs):
     parsed_instance = kwargs.get('instance')
     created = kwargs.get('created')
+
     if created:
-        call_service(parsed_instance)
+        # Check if any rest service is set
+        if RestService.objects.filter(xform=parsed_instance.instance.xform)\
+                .count() > 0:
+            call_service_async.delay(parsed_instance.pk)
 
 
 post_save.connect(rest_service_form_submission, sender=ParsedInstance)

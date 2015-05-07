@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.contrib import messages
+from django.core.exceptions import MultipleObjectsReturned
 from django.core.files.storage import get_storage_class
 from django.core.files import File
 from django.core.urlresolvers import reverse
@@ -31,7 +32,6 @@ from onadata.apps.logger.import_tools import import_instances_from_zip
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
-from onadata.apps.logger.models.ziggy_instance import ZiggyInstance
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.viewer_tools import enketo_url
 from onadata.libs.utils.logger_tools import (
@@ -422,8 +422,11 @@ def download_jsonform(request, username, id_string):
 @is_owner
 @require_POST
 def delete_xform(request, username, id_string):
-    xform = get_object_or_404(XForm, user__username__iexact=username,
-                              id_string__iexact=id_string)
+    try:
+        xform = get_object_or_404(XForm, user__username__iexact=username,
+                                  id_string__iexact=id_string)
+    except MultipleObjectsReturned:
+        return HttpResponse("Your account has multiple forms with same formid")
 
     # delete xform and submissions
     remove_xform(xform)
@@ -468,9 +471,9 @@ def enter_data(request, username, id_string):
     try:
         url = enketo_url(form_url, xform.id_string)
         if not url:
-            return HttpResponseRedirect(reverse('onadata.apps.main.views.show',
-                                        kwargs={'username': username,
-                                                'id_string': id_string}))
+            return HttpResponseRedirect(reverse(
+                'onadata.apps.main.views.show',
+                kwargs={'username': username, 'id_string': id_string}))
         return HttpResponseRedirect(url)
     except Exception as e:
         data = {}
@@ -489,8 +492,8 @@ def enter_data(request, username, id_string):
         return render(request, "profile.html", data)
 
     return HttpResponseRedirect(reverse('onadata.apps.main.views.show',
-                                kwargs={'username': username,
-                                        'id_string': id_string}))
+                                        kwargs={'username': username,
+                                                'id_string': id_string}))
 
 
 def edit_data(request, username, id_string, data_id):
@@ -655,44 +658,3 @@ def form_upload(request, username):
             else:
                 status = 400
     return OpenRosaResponse(content, status=status)
-
-
-@csrf_exempt
-def ziggy_submissions(request, username):
-    """
-    Accepts ziggy JSON submissions.
-        - stored in mongo, ziggy_instances
-        - ZiggyInstance Django Model
-    Copy form_instance - to create actual Instances for a specific form?
-    """
-    data = {'message': _(u"Invalid request!")}
-    status = 400
-    form_user = get_object_or_404(User, username__iexact=username)
-    if request.method == 'POST':
-        json_post = request.body
-        if json_post:
-            # save submission
-            # i.e pick entity_id, instance_id, server_version, client_version?
-            # reporter_id
-            records = ZiggyInstance.create_ziggy_instances(
-                form_user, json_post)
-
-            data = {'status': 'success',
-                    'message': _(u"Successfully processed %(records)s records"
-                                 % {'records': records})}
-            status = 201
-    else:
-        # get clientVersion and reportId
-        reporter_id = request.GET.get('reporter-id', None)
-        client_version = request.GET.get('timestamp', 0)
-        if reporter_id is not None and client_version is not None:
-            try:
-                cursor = ZiggyInstance.get_current_list(
-                    reporter_id, client_version)
-            except ValueError as e:
-                status = 400
-                data = {'message': '%s' % e}
-            else:
-                status = 200
-                data = [record for record in cursor]
-    return HttpResponse(json.dumps(data), status=status)

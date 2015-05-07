@@ -1,4 +1,5 @@
 import os
+from pyxform.errors import PyXFormError
 
 from onadata.apps.logger.models import XForm, Instance
 from test_base import TestBase
@@ -13,21 +14,28 @@ class TestInputs(TestBase):
     def test_uniqueness_of_group_names_enforced(self):
         pre_count = XForm.objects.count()
         self._create_user_and_login()
-        response = self._publish_xls_file(
+        self.assertRaisesMessage(
+            PyXFormError,
+            "There are two sections with the name group_names_must_be_unique.",
+            self._publish_xls_file,
             'fixtures/group_names_must_be_unique.xls')
-        self.assertTrue(
-            "There are two sections with the name group_names_must_be_unique."
-            in response.content)
         self.assertEqual(XForm.objects.count(), pre_count)
 
     def test_mch(self):
-        self._publish_xls_file('fixtures/bug_fixes/MCH_v1.xls')
+        msg = u"Unknown question type 'Select one from source'"
+        with self.assertRaisesMessage(PyXFormError, msg):
+            self._publish_xls_file('fixtures/bug_fixes/MCH_v1.xls')
 
     def test_erics_files(self):
         for name in ['battery_life.xls',
                      'enumerator_weekly.xls',
                      'Enumerator_Training_Practice_Survey.xls']:
-            self._publish_xls_file(os.path.join('fixtures', 'bug_fixes', name))
+            try:
+                self._publish_xls_file(os.path.join(
+                    'fixtures', 'bug_fixes', name))
+            except Exception as e:
+                self.assertEqual(u"Duplicate column header: label",
+                                 unicode(e))
 
 
 class TestSubmissionBugs(TestBase):

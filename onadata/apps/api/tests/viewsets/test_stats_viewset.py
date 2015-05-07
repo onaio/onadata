@@ -1,5 +1,6 @@
 import os
 
+from django.utils import timezone
 from django.core.files.base import ContentFile
 from django.test import RequestFactory
 from mock import patch
@@ -54,6 +55,32 @@ class TestStatsViewSet(TestBase):
             u'count': 4
         }
         self.assertDictContainsSubset(data, response.data[0])
+
+    @patch('onadata.apps.logger.models.instance.submission_time')
+    def test_submissions_stats_with_xform_in_delete_async_queue(
+            self, mock_time):
+        self._set_mock_time(mock_time)
+        self._publish_transportation_form()
+        self._make_submissions()
+        view = SubmissionStatsViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        formid = self.xform.pk
+        data = [{
+            'id': formid,
+            'id_string': u'transportation_2011_07_25',
+            'url': 'http://testserver/api/v1/stats/submissions/%s' % formid
+        }]
+        self.assertEqual(response.data, data)
+        initial_count = len(response.data)
+
+        self.xform.deleted_at = timezone.now()
+        self.xform.save()
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), initial_count - 1)
 
     def test_form_list_select_one_choices_multi_language(self):
         paths = [os.path.join(

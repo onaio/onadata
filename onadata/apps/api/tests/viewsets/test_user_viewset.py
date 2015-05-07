@@ -8,7 +8,7 @@ class TestUserViewSet(TestAbstractViewSet):
     def setUp(self):
         super(self.__class__, self).setUp()
         self.data = {'id': self.user.pk, 'username': u'bob',
-                     'first_name': u'Bob', 'last_name': u''}
+                     'first_name': u'Bob', 'last_name': u'erama'}
 
     def test_user_get(self):
         """Test authenticated user can access user info"""
@@ -51,10 +51,10 @@ class TestUserViewSet(TestAbstractViewSet):
 
     def test_get_user_using_email(self):
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com',
-                      'name': u'Alice'}
+                      'first_name': u'Alice', 'last_name': u'Kamande'}
         alice_profile = self._create_user_profile(alice_data)
         data = [{'id': alice_profile.user.pk, 'username': u'alice',
-                'first_name': u'Alice', 'last_name': u''}]
+                'first_name': u'Alice', 'last_name': u'Kamande'}]
         get_params = {
             'search': alice_profile.user.email,
         }
@@ -96,3 +96,30 @@ class TestUserViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         # empty results
         self.assertEqual(response.data, [])
+
+    def test_get_non_org_users(self):
+        self._org_create()
+
+        view = UserViewSet.as_view(
+            {'get': 'list'}
+        )
+
+        all_users_request = self.factory.get('/')
+        all_users_response = view(all_users_request)
+
+        self.assertEquals(all_users_response.status_code, 200)
+        self.assertEquals(
+            len(filter(
+                lambda user: user['username'] == 'denoinc',
+                all_users_response.data)),
+            1)
+
+        no_orgs_request = self.factory.get('/', data={'orgs': 'false'})
+        no_orgs_response = view(no_orgs_request)
+
+        self.assertEquals(no_orgs_response.status_code, 200)
+        self.assertEquals(
+            len(filter(
+                lambda user: user['username'] == 'denoinc',
+                no_orgs_response.data)),
+            0)

@@ -13,19 +13,18 @@ import logging
 import os
 import subprocess  # nopep8, used by included files
 import sys  # nopep8, used by included files
+import socket
 
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
 from django.utils.log import AdminEmailHandler
 import djcelery
-from pymongo import MongoClient
-
 
 djcelery.setup_loader()
 
 CURRENT_FILE = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.realpath(
-    os.path.join(os.path.dirname(CURRENT_FILE), '..//'))
+    os.path.join(os.path.dirname(CURRENT_FILE), '../'))
 PRINT_EXCEPTION = False
 
 TEMPLATED_EMAIL_TEMPLATE_DIR = 'templated_email/'
@@ -38,6 +37,7 @@ MANAGERS = ADMINS
 
 DEFAULT_FROM_EMAIL = 'noreply@ona.io'
 SHARE_PROJECT_SUBJECT = '{} Ona Project has been shared with you.'
+SHARE_ORG_SUBJECT = '{}, You have been added to {} organisation.'
 DEFAULT_SESSION_EXPIRY_TIME = 21600  # 6 hours
 DEFAULT_TEMP_TOKEN_EXPIRY_TIME = 21600  # 6 hours
 
@@ -53,8 +53,6 @@ TIME_ZONE = 'America/New_York'
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
-
-ugettext = lambda s: s
 
 LANGUAGES = (
     ('fr', u'Français'),
@@ -93,7 +91,7 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/static/'
 
 # Enketo URL
-ENKETO_URL = 'https://enketo.formhub.org/'
+ENKETO_URL = 'https://enketo.ona.io/'
 ENKETO_API_SURVEY_PATH = '/api_v1/survey'
 ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
 ENKETO_PREVIEW_URL = ENKETO_URL + 'webform/preview'
@@ -203,7 +201,6 @@ INSTALLED_APPS = (
     'onadata.apps.api',
     'guardian',
     'djcelery',
-    'onadata.apps.stats',
     'onadata.apps.sms_support',
     'onadata.libs',
 )
@@ -236,9 +233,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.UnicodeJSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework.renderers.JSONPRenderer',
-        'rest_framework.renderers.XMLRenderer',
         'rest_framework_csv.renderers.CSVRenderer',
     ),
 }
@@ -259,6 +254,9 @@ CORS_ORIGIN_ALLOW_ALL = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = (
     'dev.ona.io',
+)
+CORS_URLS_ALLOW_ALL_REGEX = (
+    r'^/api/v1/osm/.*$',
 )
 
 USE_THOUSAND_SEPARATOR = True
@@ -459,17 +457,6 @@ NA_REP = 'n/a'
 # specifically for site urls sent to enketo
 ENKETO_PROTOCOL = 'https'
 
-# MongoDB
-if MONGO_DATABASE.get('USER') and MONGO_DATABASE.get('PASSWORD'):
-    MONGO_CONNECTION_URL = (
-        "mongodb://%(USER)s:%(PASSWORD)s@%(HOST)s:%(PORT)s") % MONGO_DATABASE
-else:
-    MONGO_CONNECTION_URL = "mongodb://%(HOST)s:%(PORT)s" % MONGO_DATABASE
-
-MONGO_CONNECTION = MongoClient(
-    MONGO_CONNECTION_URL, safe=True, j=True, tz_aware=True)
-MONGO_DB = MONGO_CONNECTION[MONGO_DATABASE['NAME']]
-
 if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
     # site templates overrides
     TEMPLATE_DIRS = (
@@ -492,11 +479,29 @@ SUPPORTED_MEDIA_UPLOAD_TYPES = [
     'audio/x-m4a',
     'audio/mp3',
     'text/csv',
-    'application/zip'
+    'application/zip',
+    'video/mp4',
+
 ]
 
 CELERY_IMPORTS = ('onadata.libs.utils.csv_import',)
 CSV_ROW_IMPORT_ASYNC_THRESHOLD = 100
+SEND_EMAIL_ACTIVATION_API = False
+METADATA_SEPARATOR = "|"
+
+path = os.path.join(PROJECT_ROOT, "..", "extras", "reserved_accounts.txt")
+try:
+    with open(path, 'r') as f:
+        RESERVED_USERNAMES = [line.rstrip() for line in f]
+except EnvironmentError:
+    RESERVED_USERNAMES = []
+
+STATIC_DOC = '/static/docs/index.html'
+
+try:
+    HOSTNAME = socket.gethostname()
+except:
+    HOSTNAME = 'localhost'
 
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/

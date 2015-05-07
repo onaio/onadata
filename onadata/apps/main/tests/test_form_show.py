@@ -1,20 +1,25 @@
 import os
+import mock
 from unittest import skip
 
 from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
+from django.core.exceptions import MultipleObjectsReturned
 
 from onadata.apps.main.views import show, form_photos, update_xform, profile,\
     enketo_preview
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.views import download_xlsform, download_jsonform,\
     download_xform, delete_xform
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.viewer.views import export_list, map_view
 from onadata.libs.utils.logger_tools import publish_xml_form
 from onadata.libs.utils.user_auth import http_auth_string
 from onadata.libs.utils.user_auth import get_user_default_project
 from test_base import TestBase
+
+
+def raise_multiple_objects_returned_error(*args, **kwargs):
+    raise MultipleObjectsReturned
 
 
 class TestFormShow(TestBase):
@@ -159,6 +164,8 @@ class TestFormShow(TestBase):
         self.assertContains(response, 'PRIVATE')
 
     def test_show_link_if_shared_and_data(self):
+        self.xform.project.shared = True
+        self.xform.project.save()
         self.xform.shared = True
         self.xform.shared_data = True
         self.xform.save()
@@ -189,10 +196,11 @@ class TestFormShow(TestBase):
         }))
 
         # check that a form with geopoints has the map url
-        response = self._publish_xls_file(
+        count = XForm.objects.count()
+        self._publish_xls_file(
             os.path.join(
                 os.path.dirname(__file__), "fixtures", "gps", "gps.xls"))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.latest('date_created')
 
         show_url = reverse(show, kwargs={
@@ -382,6 +390,24 @@ class TestFormShow(TestBase):
             user=self.user, id_string=id_string).count() == 0
         self.assertTrue(form_deleted)
 
+    @mock.patch('onadata.apps.logger.views.get_object_or_404',
+                side_effect=raise_multiple_objects_returned_error)
+    def test_delete_xforms_with_same_id_string_in_same_account(
+            self, mock_get_object_or_404):
+        id_string = self.xform.id_string
+        xform_delete_url = reverse(delete_xform, kwargs={
+            'username': self.user.username,
+            'id_string': id_string
+        })
+        response = self.client.post(xform_delete_url)
+        form_deleted = XForm.objects.filter(
+            user=self.user, id_string=id_string).count() == 0
+        self.assertFalse(form_deleted)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.content,
+            'Your account has multiple forms with same formid')
+
     def test_non_owner_cant_delete_xform(self):
         id_string = self.xform.id_string
         form_exists = XForm.objects.filter(
@@ -398,29 +424,6 @@ class TestFormShow(TestBase):
         form_deleted = XForm.objects.filter(
             user=bob, id_string=id_string).count() == 0
         self.assertFalse(form_deleted)
-
-    def test_xform_delete_cascades_mongo_instances(self):
-        initial_mongo_count = ParsedInstance.query_mongo(
-            self.user.username, self.xform.id_string, '{}', '[]', '{}',
-            count=True)[0]["count"]
-        # submit instance
-        for i in range(len(self.surveys)):
-            self._submit_transport_instance(i)
-        # check mongo record exists
-        mongo_count = ParsedInstance.query_mongo(
-            self.user.username, self.xform.id_string, '{}', '[]', '{}',
-            count=True)[0]["count"]
-        self.assertEqual(mongo_count, initial_mongo_count + len(self.surveys))
-        # delete form
-        xform_delete_url = reverse(delete_xform, kwargs={
-            'username': self.user.username,
-            'id_string': self.xform.id_string
-        })
-        self.client.post(xform_delete_url)
-        mongo_count = ParsedInstance.query_mongo(
-            self.user.username, self.xform.id_string, '{}', '[]', '{}',
-            count=True)[0]["count"]
-        self.assertEqual(mongo_count, initial_mongo_count)
 
     def test_enketo_preview(self):
         url = reverse(

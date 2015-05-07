@@ -54,13 +54,16 @@ def resize(filename):
     path = default_storage.url(filename)
     req = requests.get(path)
     if req.status_code == 200:
-        im = StringIO(req.content)
-        image = Image.open(im)
-        conf = settings.THUMB_CONF
-        [_save_thumbnails(
-            image, filename,
-            conf[key]['size'],
-            conf[key]['suffix']) for key in settings.THUMB_ORDER]
+        try:
+            im = StringIO(req.content)
+            image = Image.open(im)
+            conf = settings.THUMB_CONF
+            [_save_thumbnails(
+                image, filename,
+                conf[key]['size'],
+                conf[key]['suffix']) for key in settings.THUMB_ORDER]
+        except IOError:
+            raise Exception("The image file couldn't be identified")
 
 
 def resize_local_env(filename):

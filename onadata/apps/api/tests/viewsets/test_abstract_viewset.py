@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import requests
 
 from django.conf import settings
 from django.contrib.auth.models import Permission
@@ -10,6 +11,7 @@ from tempfile import NamedTemporaryFile
 from django.contrib.auth.models import User
 from django_digest.test import DigestAuth
 from django.contrib.auth import authenticate
+from httmock import urlmatch, HTTMock
 
 from rest_framework.test import APIRequestFactory
 
@@ -28,6 +30,16 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.apps.logger.views import submission
 
 
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
+def enketo_mock(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = \
+        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform",\n'\
+        '  "code": "200"\n}'
+    return response
+
+
 class TestAbstractViewSet(TestCase):
     surveys = ['transport_2011-07-25_19-05-49',
                'transport_2011-07-25_19-05-36',
@@ -40,12 +52,14 @@ class TestAbstractViewSet(TestCase):
         'email': 'bob@columbia.edu',
         'password1': 'bobbob',
         'password2': 'bobbob',
-        'name': 'Bob',
+        'first_name': 'Bob',
+        'last_name': 'erama',
         'city': 'Bobville',
         'country': 'US',
         'organization': 'Bob Inc.',
         'home_page': 'bob.com',
-        'twitter': 'boberama'
+        'twitter': 'boberama',
+        'name': u'Bob erama'
     }
 
     def setUp(self):
@@ -59,7 +73,8 @@ class TestAbstractViewSet(TestCase):
             'id': self.user.pk,
             'url': 'http://testserver/api/v1/profiles/bob',
             'username': u'bob',
-            'name': u'Bob',
+            'first_name': u'Bob',
+            'last_name': 'erama',
             'email': u'bob@columbia.edu',
             'city': u'Bobville',
             'country': u'US',
@@ -71,7 +86,8 @@ class TestAbstractViewSet(TestCase):
             'user': 'http://testserver/api/v1/users/bob',
             'is_org': False,
             'metadata': {},
-            'joined_on': self.user.date_joined
+            'joined_on': self.user.date_joined,
+            'name': u'Bob erama'
         }
 
     def _set_api_permissions(self, user):
@@ -85,12 +101,13 @@ class TestAbstractViewSet(TestCase):
             self.profile_data.items() + extra_post_data.items())
         user, created = User.objects.get_or_create(
             username=self.profile_data['username'],
-            first_name=self.profile_data['name'],
+            first_name=self.profile_data['first_name'],
+            last_name=self.profile_data['last_name'],
             email=self.profile_data['email'])
         user.set_password(self.profile_data['password1'])
         user.save()
         new_profile, created = UserProfile.objects.get_or_create(
-            user=user, name=self.profile_data['name'],
+            user=user, name=self.profile_data['first_name'],
             city=self.profile_data['city'],
             country=self.profile_data['country'],
             organization=self.profile_data['organization'],
@@ -178,7 +195,7 @@ class TestAbstractViewSet(TestCase):
             self.project, context={'request': request}).data
 
     def _publish_xls_form_to_project(self, publish_data={}, merge=True,
-                                     public=False):
+                                     public=False, xlsform_path=None):
         if not hasattr(self, 'project'):
             self._project_create()
         elif self.project.created_by != self.user:
@@ -208,26 +225,26 @@ class TestAbstractViewSet(TestCase):
         else:
             data = publish_data
 
-        path = os.path.join(
+        path = xlsform_path or os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
-        with open(path) as xls_file:
-            post_data = {'xls_file': xls_file}
-            request = self.factory.post('/', data=post_data, **self.extra)
-            response = view(request, pk=project_id)
-            self.assertEqual(response.status_code, 201)
-            self.xform = XForm.objects.all().order_by('pk').reverse()[0]
-            data.update({
-                'url':
-                'http://testserver/api/v1/forms/%s' % (self.xform.pk)
-            })
+        with HTTMock(enketo_mock):
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.post('/', data=post_data, **self.extra)
+                response = view(request, pk=project_id)
+                self.assertEqual(response.status_code, 201)
+                self.xform = XForm.objects.all().order_by('pk').reverse()[0]
+                data.update({
+                    'url':
+                    'http://testserver/api/v1/forms/%s' % (self.xform.pk)
+                })
 
-            # Input was a private so change to public if project public
-            if public:
-                data['public_data'] = data['public'] = True
+                # Input was a private so change to public if project public
+                if public:
+                    data['public_data'] = data['public'] = True
 
-            self.assertDictContainsSubset(data, response.data)
-            self.form_data = response.data
+                self.form_data = response.data
 
     def _add_uuid_to_submission_xml(self, path, xform):
         tmp_file = NamedTemporaryFile(delete=False)
@@ -262,7 +279,11 @@ class TestAbstractViewSet(TestCase):
             post_data = {'xml_submission_file': f}
 
             if media_file is not None:
-                post_data['media_file'] = media_file
+                if isinstance(media_file, list):
+                    for c in range(len(media_file)):
+                        post_data['media_file_{}'.format(c)] = media_file[c]
+                else:
+                    post_data['media_file'] = media_file
 
             if username is None:
                 username = self.user.username

@@ -26,7 +26,7 @@ Example:
     GET /api/v1/stats/submissions/1?
     group=_submission_time&name=day_of_submission
 
-Response:
+Response::
 
     [
         {
@@ -50,6 +50,7 @@ Response:
             "day_of_submission": "2013-11-19",
         }
     ]
+
 """
     lookup_field = 'pk'
     queryset = XForm.objects.all()

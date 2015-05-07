@@ -2,6 +2,7 @@ import base64
 import json
 
 from django.core.urlresolvers import reverse
+from django.test import RequestFactory
 
 from onadata.apps.main.views import api
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance, \
@@ -20,7 +21,8 @@ class TestFormAPI(TestBase):
 
     def setUp(self):
         TestBase.setUp(self)
-        self._create_user_and_login()
+        self.factory = RequestFactory()
+        self._create_user_and_login(factory=self.factory)
         self._publish_transportation_form_and_submit_instance()
         self.api_url = reverse(api, kwargs={
             'username': self.user.username,
@@ -28,8 +30,9 @@ class TestFormAPI(TestBase):
         })
 
     def test_api(self):
-        # query string
-        response = self.client.get(self.api_url, {})
+        request = self.factory.get(self.api_url, {})
+        request.user = self.user
+        response = api(request, self.user.username, self.xform.id_string)
         self.assertEqual(response.status_code, 200)
         d = dict_for_mongo_without_userform_id(
             self.xform.instances.all()[0].parsed_instance)
@@ -50,9 +53,15 @@ class TestFormAPI(TestBase):
 
     def test_api_query_no_records(self):
         # query string
-        query = '{"available_transporation_types_to_referral_facility": "bicy'\
-                'cle"}'
-        data = {'query': query}
+        query = {
+            "transport/available_transporation_types_to_referral_facility":
+            "bicycle"
+        }
+        data = {'query': json.dumps(query)}
+        response = self.client.get(self.api_url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, '[]')
+        data['fields'] = '["_id"]'
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, '[]')
@@ -78,16 +87,19 @@ class TestFormAPI(TestBase):
         self.assertEqual(find_d, d)
 
     def test_api_with_query_start_limit(self):
+        for i in range(1, 3):
+            self._submit_transport_instance(i)
         # query string
-        query = '{"transport/available_transportation_types_to_referral_facil'\
-                'ity":"none"}'
-        data = {'query': query, 'start': 0, 'limit': 10}
+        data = {'start': 0, 'limit': 2}
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
-        d = dict_for_mongo_without_userform_id(
-            self.xform.instances.all()[0].parsed_instance)
-        find_d = json.loads(response.content)[0]
-        self.assertEqual(find_d, d)
+        content = json.loads(response.content)
+        self.assertEqual(len(content), 2)
+        data['fields'] = '["_id"]'
+        response = self.client.get(self.api_url, data)
+        self.assertEqual(response.status_code, 200)
+        content = json.loads(response.content)
+        self.assertEqual(len(content), 2)
 
     def test_api_with_query_invalid_start_limit(self):
         # query string
@@ -97,11 +109,21 @@ class TestFormAPI(TestBase):
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 400)
 
+        data = {'query': query, 'start': 'invalid', 'limit': 'invalid'}
+        response = self.client.get(self.api_url, data)
+        self.assertEqual(response.status_code, 400)
+
     def test_api_count(self):
         # query string
         query = '{"transport/available_transportation_types_to_referral_facil'\
                 'ity":"none"}'
         data = {'query': query, 'count': 1}
+        response = self.client.get(self.api_url, data)
+        self.assertEqual(response.status_code, 200)
+        find_d = json.loads(response.content)[0]
+        self.assertTrue('count' in find_d)
+
+        data['fields'] = '["_id"]'
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
         find_d = json.loads(response.content)[0]
@@ -115,7 +137,9 @@ class TestFormAPI(TestBase):
         columns = '["transport/available_transportation_types_to_referral_fac'\
                   'ility"]'
         data = {'query': query, 'fields': columns}
-        response = self.client.get(self.api_url, data)
+        request = self.factory.get(self.api_url, data)
+        request.user = self.user
+        response = api(request, self.user.username, self.xform.id_string)
         self.assertEqual(response.status_code, 200)
         find_d = json.loads(response.content)[0]
         self.assertTrue(
@@ -150,6 +174,13 @@ class TestFormAPI(TestBase):
             'e/frequency_to_referral_facility": "weekly"}, {"transport/loop_ov'
             'er_transport_types_frequency/ambulance/frequency_to_referral_faci'
             'lity": "daily"}]}'}
+        response = self.client.get(self.api_url, params)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(len(data), 2)
+
+        # check with fields filter
+        params['fields'] = '["_id"]'
         response = self.client.get(self.api_url, params)
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)

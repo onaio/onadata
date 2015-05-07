@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from django.utils.timezone import utc
 import os
 
 from mock import patch
@@ -18,7 +19,7 @@ class TestTools(TestBase):
 
     @patch('django.utils.timezone.now')
     def test_get_form_submissions_grouped_by_field(self, mock_time):
-        mock_time.return_value = datetime.now()
+        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
         self._make_submissions()
 
         count_key = 'count'
@@ -36,12 +37,15 @@ class TestTools(TestBase):
     @patch('onadata.apps.logger.models.instance.submission_time')
     def test_get_form_submissions_grouped_by_field_datetime_to_date(
             self, mock_time):
-        now = datetime(2014, 01, 01)
+        now = datetime(2014, 01, 01, tzinfo=utc)
         times = [now, now + timedelta(seconds=1), now + timedelta(seconds=2),
                  now + timedelta(seconds=3)]
         mock_time.side_effect = times
         self._make_submissions()
 
+        for i in self.xform.instances.all().order_by('-pk'):
+            i.date_created = times.pop()
+            i.save()
         count_key = 'count'
         fields = ['_submission_time']
 
@@ -57,7 +61,7 @@ class TestTools(TestBase):
 
     @patch('django.utils.timezone.now')
     def test_get_form_submissions_two_xforms(self, mock_time):
-        mock_time.return_value = datetime.now()
+        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
         self._make_submissions()
         self._publish_xls_file(os.path.join(
             "fixtures",
@@ -93,7 +97,7 @@ class TestTools(TestBase):
 
     @patch('django.utils.timezone.now')
     def test_get_form_submissions_xform_no_submissions(self, mock_time):
-        mock_time.return_value = datetime.now()
+        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
         self._make_submissions()
         self._publish_xls_file(os.path.join(
             "fixtures",
@@ -112,7 +116,7 @@ class TestTools(TestBase):
 
     @patch('django.utils.timezone.now')
     def test_get_form_submissions_grouped_by_field_sets_name(self, mock_time):
-        mock_time.return_value = datetime.now()
+        mock_time.return_value = datetime.utcnow().replace(tzinfo=utc)
         self._make_submissions()
 
         count_key = 'count'

@@ -5,9 +5,12 @@ from onadata.libs.serializers.fields.hyperlinked_multi_identity_field import\
     HyperlinkedMultiIdentityField
 from onadata.libs.serializers.user_serializer import UserSerializer
 from onadata.apps.api.models import OrganizationProfile, Team
+from onadata.apps.logger.models import Project
+from onadata.libs.permissions import get_team_project_default_permissions
 
 
 class TeamSerializer(serializers.Serializer):
+    teamid = serializers.Field(source='id')
     url = HyperlinkedMultiIdentityField(
         view_name='team-detail')
     name = serializers.CharField(max_length=100, source='team_name')
@@ -16,10 +19,8 @@ class TeamSerializer(serializers.Serializer):
         source='organization',
         queryset=User.objects.filter(
             pk__in=OrganizationProfile.objects.values('user')))
-    projects = serializers.HyperlinkedRelatedField(view_name='project-detail',
-                                                   source='projects',
-                                                   many=True,
-                                                   read_only=True)
+    projects = serializers.SerializerMethodField(
+        'get_organization_projects_with_default_role')
     users = serializers.SerializerMethodField('get_team_users')
 
     def get_team_users(self, obj):
@@ -30,6 +31,21 @@ class TeamSerializer(serializers.Serializer):
                 users.append(UserSerializer(instance=user).data)
 
         return users
+
+    def get_organization_projects_with_default_role(self, obj):
+        projects = []
+
+        if obj:
+            for project in Project.objects.filter(
+                    organization__id=obj.organization.id):
+                project_map = {}
+                project_map['name'] = project.name
+                project_map['projectid'] = project.pk
+                project_map['default_role'] = \
+                    get_team_project_default_permissions(obj, project)
+                projects.append(project_map)
+
+        return projects
 
     def restore_object(self, attrs, instance=None):
         org = attrs.get('organization', None)

@@ -17,11 +17,12 @@ class TestAuditLog(TestCase):
                   "Form published", audit, request)
         # function should just run without exception so we are good at this
         # point query for this log entry
-        sort = {"created_on": -1}
-        cursor = AuditLog.query_mongo(
+        sort = '-created_on'
+        cursor = AuditLog.query_data(
             account_user.username, None, None, sort, 0, 1)
-        self.assertTrue(cursor.count() > 0)
-        record = cursor.next()
+        records = [rec for rec in cursor]
+        self.assertTrue(len(records) > 0)
+        record = records[0]
         self.assertEqual(record['account'], "alice")
         self.assertEqual(record['user'], "bob")
         self.assertEqual(record['action'], Actions.FORM_PUBLISHED)

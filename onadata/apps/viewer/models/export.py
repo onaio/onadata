@@ -7,6 +7,7 @@ from django.db.models.signals import post_delete
 from django.utils.translation import ugettext as _
 
 from onadata.apps.logger.models import XForm
+from onadata.libs.utils.common_tags import OSM
 
 
 def export_delete_callback(sender, **kwargs):
@@ -33,6 +34,7 @@ class Export(models.Model):
     SAV_ZIP_EXPORT = 'sav_zip'
     SAV_EXPORT = 'sav'
     EXTERNAL_EXPORT = 'external'
+    OSM_EXPORT = OSM
 
     EXPORT_MIMES = {
         'xls': 'vnd.ms-excel',
@@ -42,7 +44,8 @@ class Export(models.Model):
         'csv_zip': 'zip',
         'sav_zip': 'zip',
         'sav': 'sav',
-        'kml': 'vnd.google-earth.kml+xml'
+        'kml': 'vnd.google-earth.kml+xml',
+        OSM: OSM
     }
 
     EXPORT_TYPES = [
@@ -55,6 +58,7 @@ class Export(models.Model):
         (SAV_ZIP_EXPORT, 'SAV ZIP'),
         (SAV_EXPORT, 'SAV'),
         (EXTERNAL_EXPORT, 'Excel'),
+        (OSM, OSM),
     ]
 
     EXPORT_TYPE_DICT = dict(export_type for export_type in EXPORT_TYPES)
