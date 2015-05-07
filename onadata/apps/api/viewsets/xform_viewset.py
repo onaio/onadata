@@ -92,6 +92,59 @@ def _get_export_type(export_type):
     return export_type
 
 
+def _create_export_async(xform, export_type, query=None, force_xlsx=False,
+                         options=None):
+        """
+        Creates async exports
+        :param xform:
+        :param export_type:
+        :param query:
+        :param force_xlsx:
+        :param options:
+        :return:
+            job_uuid generated
+        """
+        export, async_result \
+            = viewer_task.create_async_export(xform, export_type, query,
+                                              force_xlsx, options=options)
+
+        return async_result.task_id
+
+
+def _export_async_export_response(request, xform, export):
+    """
+    Checks the export status and generates the reponse
+    :param request:
+    :param xform:
+    :param export:
+    :return: response dict
+    """
+    if export.status == Export.SUCCESSFUL:
+        if export.export_type != Export.EXTERNAL_EXPORT:
+            export_url = reverse(
+                'xform-detail',
+                kwargs={'pk': xform.pk,
+                        'format': export.export_type},
+                request=request
+            )
+        else:
+            export_url = export.export_url
+        resp = {
+            u'job_status': "Success",
+            u'export_url': export_url
+        }
+    elif export.status == Export.PENDING:
+        resp = {
+            'export_status': 'Pending'
+        }
+    else:
+        resp = {
+            'export_status': "Failed"
+        }
+
+    return resp
+
+
 def _get_extension_from_export_type(export_type):
     extension = export_type
 
@@ -609,45 +662,47 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if job.state == 'SUCCESS':
                 export_id = job.result
                 export = Export.objects.get(id=export_id)
-                if export.status == Export.SUCCESSFUL:
-                    if export.export_type != Export.EXTERNAL_EXPORT:
-                        export_url = reverse(
-                            'xform-detail',
-                            kwargs={'pk': xform.pk,
-                                    'format': export.export_type},
-                            request=request
-                        )
-                    else:
-                        export_url = export.export_url
-                    resp = {
-                        u'job_status': job.state,
-                        u'export_url': export_url
-                    }
-                elif export.status == Export.PENDING:
-                    resp = {
-                        'export_status': 'Pending'
-                    }
-                else:
-                    resp = {
-                        'export_status': "Failed"
-                    }
+
+                resp = _export_async_export_response(request, xform, export)
             else:
                 resp = {
                     'job_status': job.state
                 }
 
         else:
-            export_type = _get_export_type(export_type)
-
             if export_type in external_export_types and \
                     (token is not None) or (meta is not None):
                 export_type = Export.EXTERNAL_EXPORT
-            export, async_result = viewer_task.create_async_export(
-                xform, export_type, query, False, options=options)
-            resp = {
-                u'job_uuid': async_result.task_id
-            }
-        resp_code = status.HTTP_202_ACCEPTED
+
+            # check if we need to re-generate,
+            # we always re-generate if a filter is specified and
+            # its external export. incase the template has been changed
+            if should_regenerate_export(xform, export_type, request)\
+                    or export_type == Export.EXTERNAL_EXPORT:
+
+                resp = {
+                    u'job_uuid': _create_export_async(xform, export_type,
+                                                      query, False,
+                                                      options=options)
+                }
+            else:
+                export = newset_export_for(xform, export_type)
+
+                if not export.filename:
+                    # tends to happen when using newset_export_for.
+                    resp = {
+                        u'job_uuid': _create_export_async(xform, export_type,
+                                                          query, False,
+                                                          options=options)
+                    }
+
+                    resp_code = status.HTTP_202_ACCEPTED
+                    return Response(data=resp,
+                                    status=resp_code,
+                                    content_type="application/json")
+
+                resp = _export_async_export_response(request, xform, export)
+
         return Response(data=resp,
-                        status=resp_code,
+                        status=status.HTTP_202_ACCEPTED,
                         content_type="application/json")
