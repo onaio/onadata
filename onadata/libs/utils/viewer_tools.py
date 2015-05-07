@@ -113,6 +113,9 @@ def _all_attributes(node):
 
 
 def report_exception(subject, info, exc_info=None):
+    # Add hostname to subject mail
+
+    subject = "{0} - {1}".format(subject, settings.HOSTNAME)
     if exc_info:
         cls, err = exc_info[:2]
         info += _(u"Exception in request: %(class)s: %(error)s") \
@@ -160,9 +163,11 @@ def get_client_ip(request):
 
 
 def enketo_url(form_url, id_string, instance_xml=None,
-               instance_id=None, return_url=None):
+               instance_id=None, return_url=None, **kwargs):
     if not hasattr(settings, 'ENKETO_URL')\
-            and not hasattr(settings, 'ENKETO_API_SURVEY_PATH'):
+            and not hasattr(settings, 'ENKETO_API_SURVEY_PATH')\
+            and (not hasattr(settings, 'ENKETO_API_TOKEN') or
+                 settings.ENKETO_API_TOKEN == ''):
         return False
 
     url = urljoin(settings.ENKETO_URL, settings.ENKETO_API_SURVEY_PATH)
@@ -178,6 +183,12 @@ def enketo_url(form_url, id_string, instance_xml=None,
             'instance_id': instance_id,
             'return_url': return_url
         })
+
+    if kwargs:
+        # Kwargs need to take note of xform variable paths i.e.
+        # kwargs = {'defaults[/widgets/text_widgets/my_string]': "Hey Mark"}
+        values.update(kwargs)
+
     req = requests.post(url, data=values,
                         auth=(settings.ENKETO_API_TOKEN, ''), verify=False)
     if req.status_code in [200, 201]:
@@ -201,6 +212,18 @@ def enketo_url(form_url, id_string, instance_xml=None,
     return False
 
 
+def generate_enketo_form_defaults(xform, **kwargs):
+    defaults = {}
+
+    if kwargs:
+        for name, value in kwargs.iteritems():
+            field = xform.data_dictionary().get_survey_element(name)
+            if field:
+                defaults["defaults[{}]".format(field.get_xpath())] = value
+
+    return defaults
+
+
 def create_attachments_zipfile(attachments):
     # create zip_file
     tmp = NamedTemporaryFile()
@@ -218,19 +241,24 @@ def create_attachments_zipfile(attachments):
     return tmp
 
 
-def _get_form_url(request, username, protocol='https'):
+def _get_form_url(request, username=None, protocol='https'):
     if settings.TESTING_MODE:
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME
     else:
         http_host = request.META.get('HTTP_HOST', 'ona.io')
 
-    return '%s://%s/%s' % (protocol, http_host, username)
+    url = '%s://%s' % (protocol, http_host)
+
+    if username:
+        url = "{}/{}".format(url, username)
+
+    return url
 
 
 def get_enketo_edit_url(request, instance, return_url):
     form_url = _get_form_url(request,
-                             request.user.username,
+                             instance.xform.user.username,
                              settings.ENKETO_PROTOCOL)
     url = enketo_url(
         form_url, instance.xform.id_string, instance_xml=instance.xml,

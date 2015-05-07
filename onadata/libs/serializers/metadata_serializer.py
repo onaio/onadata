@@ -14,6 +14,7 @@ METADATA_TYPES = (
     ('source', _(u"Source")),
     ('supporting_doc', _(u"Supporting Document")),
     ('external_export', _(u"External Export")),
+    ('textit', _(u"External Export"))
 )
 
 
@@ -25,9 +26,19 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
     data_file = serializers.FileField(required=False)
     data_file_type = serializers.CharField(max_length=255, required=False)
+    media_url = serializers.SerializerMethodField('get_media_url')
 
     class Meta:
         model = MetaData
+        fields = ('id', 'xform', 'data_value', 'data_type', 'data_file',
+                  'data_file_type', 'media_url', 'file_hash', 'url')
+
+    def get_media_url(self, obj):
+        if obj.data_type == "media" and getattr(obj, "data_file") \
+                and getattr(obj.data_file, "url"):
+            return obj.data_file.url
+
+        return None
 
     def validate_data_value(self, attrs, source):
         """Ensure we have a valid url if we are adding a media uri

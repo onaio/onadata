@@ -1,9 +1,9 @@
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils.translation import ugettext_lazy
 
 from onadata.apps.logger.models.instance import Instance
-from onadata.apps.viewer.models.parsed_instance import xform_instances,\
-    datetime_from_str
+from onadata.apps.viewer.models.parsed_instance import datetime_from_str
 from onadata.libs.utils.common_tags import DELETEDAT, ID
 
 
@@ -13,6 +13,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         q = {"$and": [{"_deleted_at": {"$exists": True}},
              {"_deleted_at": {"$ne": None}}]}
+        xform_instances = settings.MONGO_DB.instances
         cursor = xform_instances.find(q)
         c = 0
         for record in cursor:

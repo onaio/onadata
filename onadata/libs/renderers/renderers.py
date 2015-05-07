@@ -1,3 +1,5 @@
+import json
+
 from rest_framework import negotiation
 from django.utils.xmlutils import SimplerXMLGenerator
 
@@ -8,6 +10,8 @@ from rest_framework.renderers import BaseRenderer
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.renderers import XMLRenderer
+
+from onadata.libs.utils.osm import get_combined_osm
 
 
 class XLSRenderer(BaseRenderer):
@@ -41,12 +45,17 @@ class SAVZIPRenderer(BaseRenderer):
     charset = None
 
 
-# TODO add KML, ZIP(attachments) support
-
-
 class SurveyRenderer(BaseRenderer):
     media_type = 'application/xml'
     format = 'xml'
+    charset = 'utf-8'
+
+# TODO add ZIP(attachments) support
+
+
+class KMLRenderer(BaseRenderer):
+    media_type = 'application/xml'
+    format = 'kml'
     charset = 'utf-8'
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
@@ -158,3 +167,36 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):
 class StaticXMLRenderer(StaticHTMLRenderer):
     format = 'xml'
     media_type = 'text/xml'
+
+
+class GeoJsonRenderer(BaseRenderer):
+    media_type = 'application/json'
+    format = 'geojson'
+    charset = 'utf-8'
+
+    def render(self, data, media_type=None, renderer_context=None):
+        return json.dumps(data)
+
+
+class OSMRenderer(BaseRenderer):
+    media_type = 'text/xml'
+    format = 'osm'
+    charset = 'utf-8'
+
+    def render(self, data, media_type=None, renderer_context=None):
+        """Combine/concatenate the list of osm files to one file"""
+        def _list(list_or_item):
+            if isinstance(list_or_item, list):
+                return list_or_item
+
+            return [list_or_item]
+
+        data = [item for item_or_list in data for item in _list(item_or_list)]
+
+        return get_combined_osm(data)
+
+
+class OSMExportRenderer(BaseRenderer):
+    media_type = 'text/xml'
+    format = 'osm'
+    charset = 'utf-8'

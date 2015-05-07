@@ -5,7 +5,8 @@ from onadata.apps.api import tools
 class TestAbstractModels(TestBase):
 
     def _create_organization(self, org_name, user):
-        profile = tools.create_organization(org_name, user)
+        profile = tools.create_organization_object(org_name, user)
+        profile.save()
         self.organization = profile.user
         return self.organization
 

@@ -32,22 +32,23 @@ def autodoc(url_root, username, id_string):
     doc = (u'<p>' +
            _(u"%(service)s Instructions:")
            % {'service': u'<a href="http://smssync.ushahidi.com/">'
-                         u'Ushaidi\'s SMS Sync</a>'}
-           + u'</p><ol><li>' +
-           _(u"Download the SMS Sync App on your phone serving as a gateway.")
-           + '</li><li>' +
-           _(u"Configure the app to point to one of the following URLs")
-           + u'<br /><span class="sms_autodoc_example">%(urla)s'
-           + u'<br />%(urlb)s</span><br />' +
+                         u'Ushaidi\'s SMS Sync</a>'} +
+           u'</p><ol><li>' +
+           _(u"Download the SMS Sync App on your phone serving "
+             u"as a gateway.") + '</li><li>' +
+           _(u"Configure the app to point to one of the following URLs") +
+           u'<br /><span class="sms_autodoc_example">%(urla)s' +
+           u'<br />%(urlb)s</span><br />' +
            _(u"Optionnaly set a keyword to prevent non-formhub "
-             u"messages to be sent.")
-           + '</li><li>' +
+             u"messages to be sent.") +
+           '</li><li>' +
            _(u"In the preferences, tick the box to allow "
-             u"replies from the server.")
-           + '</li></ol><p>' +
+             u"replies from the server.") +
+           '</li></ol><p>' +
            _(u"That's it. Now Send an SMS Formhub submission to the number "
-             u"of that phone. It will create a submission on Formhub.")
-           + u'</p>') % {'urla': urla, 'urlb': urlb}
+             u"of that phone. It will create a submission on Formhub.") +
+           u'</p>') % {'urla': urla, 'urlb': urlb}
+
     return doc
 
 

@@ -15,7 +15,6 @@ from django.core.mail import mail_admins
 from django.core.servers.basehttp import FileWrapper
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
-from django.db.models.signals import pre_delete
 from django.http import HttpResponse, HttpResponseNotFound, \
     StreamingHttpResponse
 from django.shortcuts import get_object_or_404
@@ -45,10 +44,8 @@ from onadata.apps.logger.xform_instance_parser import (
     get_deprecated_uuid_from_xml,
     get_submission_date_from_xml)
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.viewer.models.parsed_instance import _remove_from_mongo,\
-    xform_instances, ParsedInstance
-from onadata.libs.utils import common_tags
-from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
+from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
@@ -60,8 +57,6 @@ DEFAULT_CONTENT_LENGTH = settings.DEFAULT_CONTENT_LENGTH
 
 uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
                         re.DOTALL)
-
-mongo_instances = settings.MONGO_DB.instances
 
 
 def _get_instance(xml, new_uuid, submitted_by, status, xform):
@@ -77,6 +72,7 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
             xml=instance.xml, xform_instance=instance, uuid=old_uuid)
         instance.xml = xml
         instance.uuid = new_uuid
+        instance.json = instance.get_full_dict()
         instance.save()
     else:
         # new submission
@@ -100,23 +96,23 @@ def get_uuid_from_submission(xml):
 
 
 def get_xform_from_submission(xml, username, uuid=None):
-        # check alternative form submission ids
-        uuid = uuid or get_uuid_from_submission(xml)
+    # check alternative form submission ids
+    uuid = uuid or get_uuid_from_submission(xml)
 
-        if not username and not uuid:
-            raise InstanceInvalidUserError()
+    if not username and not uuid:
+        raise InstanceInvalidUserError()
 
-        if uuid:
-            # try find the form by its uuid which is the ideal condition
-            if XForm.objects.filter(uuid=uuid).count() > 0:
-                xform = XForm.objects.get(uuid=uuid)
+    if uuid:
+        # try find the form by its uuid which is the ideal condition
+        if XForm.objects.filter(uuid=uuid).count() > 0:
+            xform = XForm.objects.get(uuid=uuid)
 
-                return xform
+            return xform
 
-        id_string = get_id_string_from_xml_str(xml)
+    id_string = get_id_string_from_xml_str(xml)
 
-        return get_object_or_404(XForm, id_string__iexact=id_string,
-                                 user__username=username)
+    return get_object_or_404(XForm, id_string__iexact=id_string,
+                             user__username=username)
 
 
 def _has_edit_xform_permission(xform, user):
@@ -154,8 +150,8 @@ def check_submission_permissions(request, xform):
     :returns: None.
     :raises: PermissionDenied based on the above criteria.
     """
-    if request and (xform.user.profile.require_auth or xform.require_auth
-                    or request.path == '/submission')\
+    if request and (xform.user.profile.require_auth or xform.require_auth or
+                    request.path == '/submission')\
             and xform.user != request.user\
             and not request.user.has_perm('report_xform', xform):
         raise PermissionDenied(
@@ -166,16 +162,29 @@ def check_submission_permissions(request, xform):
                   'form_title': xform.title}))
 
 
+def save_attachments(xform, instance, media_files):
+    for f in media_files:
+        filename, extension = os.path.splitext(f.name)
+        extension = extension.replace('.', '')
+        content_type = u'text/xml' \
+            if extension == Attachment.OSM else f.content_type
+        if extension == Attachment.OSM and not xform.instances_with_osm:
+            xform.instances_with_osm = True
+            xform.save()
+
+        Attachment.objects.get_or_create(
+            instance=instance, media_file=f, mimetype=content_type,
+            extension=extension
+        )
+
+
 def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
                     date_created_override):
     if not date_created_override:
         date_created_override = get_submission_date_from_xml(xml)
 
     instance = _get_instance(xml, new_uuid, submitted_by, status, xform)
-
-    for f in media_files:
-        Attachment.objects.get_or_create(
-            instance=instance, media_file=f, mimetype=f.content_type)
+    save_attachments(xform, instance, media_files)
 
     # override date created if required
     if date_created_override:
@@ -187,6 +196,7 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
         instance.save()
 
     if instance.xform is not None:
+        instance.save()
         pi, created = ParsedInstance.objects.get_or_create(
             instance=instance)
 
@@ -206,8 +216,8 @@ def create_instance(username, xml_file, media_files,
     a way for an admin to mark duplicate instances. This should
     simplify things a bit.
     Submission cases:
-        If there is a username and no uuid, submitting an old ODK form.
-        If there is a username and a uuid, submitting a new ODK form.
+    * If there is a username and no uuid, submitting an old ODK form.
+    * If there is a username and a uuid, submitting a new ODK form.
     """
     try:
         instance = None
@@ -229,6 +239,11 @@ def create_instance(username, xml_file, media_files,
                 xml=xml, xform__user=xform.user)[0]
             if not existing_instance.xform or\
                     existing_instance.xform.has_start_time:
+                # ensure we have saved the extra attachments
+                save_attachments(xform, existing_instance, media_files)
+                existing_instance.save()
+                transaction.commit()
+
                 # Ignore submission as a duplicate IFF
                 #  * a submission's XForm collects start time
                 #  * the submitted XML is an exact match with one that
@@ -240,11 +255,10 @@ def create_instance(username, xml_file, media_files,
         duplicate_instances = Instance.objects.filter(uuid=new_uuid)
 
         if duplicate_instances:
-            for f in media_files:
-                Attachment.objects.get_or_create(
-                    instance=duplicate_instances[0],
-                    media_file=f, mimetype=f.content_type)
             # ensure we have saved the extra attachments
+            save_attachments(xform, duplicate_instances[0], media_files)
+            duplicate_instances[0].save()
+
             transaction.commit()
             raise DuplicateInstance()
 
@@ -302,6 +316,9 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
 
 
 def report_exception(subject, info, exc_info=None):
+    # Add hostname to subject mail
+
+    subject = "{0} - {1}".format(subject, settings.HOSTNAME)
     if exc_info:
         cls, err = exc_info[:2]
         message = _(u"Exception in request:"
@@ -372,9 +389,15 @@ def publish_form(callback):
     try:
         return callback()
     except (PyXFormError, XLSFormError) as e:
+        msg = unicode(e)
+
+        if 'invalid xml tag' in msg:
+            msg = _(u"Invalid file name; Names must begin with a letter, "
+                    u"colon, or underscore, subsequent characters can include"
+                    u" numbers, dashes,periods and with no spacing.")
         return {
             'type': 'alert-error',
-            'text': unicode(e)
+            'text': msg
         }
     except IntegrityError as e:
         transaction.rollback()
@@ -390,6 +413,7 @@ def publish_form(callback):
         }
     except AttributeError as e:
         # form.publish returned None, not sure why...
+
         return {
             'type': 'alert-error',
             'text': unicode(e)
@@ -403,6 +427,7 @@ def publish_form(callback):
     except Exception as e:
         transaction.rollback()
         # error in the XLS file; show an error to the user
+
         return {
             'type': 'alert-error',
             'text': unicode(e)
@@ -416,7 +441,7 @@ def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
     # get or create DataDictionary based on user and id string
     if id_string:
         dd = DataDictionary.objects.get(
-            user=user, id_string=id_string)
+            user=user, id_string=id_string, project=project)
         dd.xls = xls_file
         dd.save()
 
@@ -510,8 +535,8 @@ def inject_instanceid(xml_str, uuid):
         survey_node = children.item(0)
         meta_tags = [
             n for n in survey_node.childNodes
-            if n.nodeType == Node.ELEMENT_NODE
-            and n.tagName.lower() == "meta"]
+            if n.nodeType == Node.ELEMENT_NODE and
+            n.tagName.lower() == "meta"]
         if len(meta_tags) == 0:
             meta_tag = xml.createElement("meta")
             xml.documentElement.appendChild(meta_tag)
@@ -521,8 +546,7 @@ def inject_instanceid(xml_str, uuid):
         # check if we have an instanceID tag
         uuid_tags = [
             n for n in meta_tag.childNodes
-            if n.nodeType == Node.ELEMENT_NODE
-            and n.tagName == "instanceID"]
+            if n.nodeType == Node.ELEMENT_NODE and n.tagName == "instanceID"]
         if len(uuid_tags) == 0:
             uuid_tag = xml.createElement("instanceID")
             meta_tag.appendChild(uuid_tag)
@@ -535,141 +559,13 @@ def inject_instanceid(xml_str, uuid):
     return xml_str
 
 
-def update_mongo_for_xform(xform, only_update_missing=True):
-    instance_ids = set(
-        [i.id for i in Instance.objects.only('id').filter(xform=xform)])
-    sys.stdout.write("Total no of instances: %d\n" % len(instance_ids))
-    mongo_ids = set()
-    user = xform.user
-    userform_id = "%s_%s" % (user.username, xform.id_string)
-    if only_update_missing:
-        sys.stdout.write("Only updating missing mongo instances\n")
-        mongo_ids = set(
-            [rec[common_tags.ID] for rec in mongo_instances.find(
-                {common_tags.USERFORM_ID: userform_id},
-                {common_tags.ID: 1})])
-        sys.stdout.write("Total no of mongo instances: %d\n" % len(mongo_ids))
-        # get the difference
-        instance_ids = instance_ids.difference(mongo_ids)
-    else:
-        # clear mongo records
-        mongo_instances.remove({common_tags.USERFORM_ID: userform_id})
-    # get instances
-    sys.stdout.write(
-        "Total no of instances to update: %d\n" % len(instance_ids))
-    instances = Instance.objects.only('id').in_bulk(
-        [id for id in instance_ids])
-    total = len(instances)
-    done = 0
-    for id, instance in instances.items():
-        (pi, created) = ParsedInstance.objects.get_or_create(instance=instance)
-        pi.save(async=False)
-        done += 1
-        # if 1000 records are done, flush mongo
-        if (done % 1000) == 0:
-            sys.stdout.write(
-                'Updated %d records, flushing MongoDB...\n' % done)
-        settings.MONGO_CONNECTION.admin.command({'fsync': 1})
-        progress = "\r%.2f %% done..." % ((float(done) / float(total)) * 100)
-        sys.stdout.write(progress)
-        sys.stdout.flush()
-    # flush mongo again when done
-    settings.MONGO_CONNECTION.admin.command({'fsync': 1})
-    sys.stdout.write(
-        "\nUpdated %s\n------------------------------------------\n"
-        % xform.id_string)
-
-
-def mongo_sync_status(remongo=False, update_all=False, user=None, xform=None):
-    """Check the status of records in the mysql db versus mongodb. At a
-    minimum, return a report (string) of the results.
-
-    Optionally, take action to correct the differences, based on these
-    parameters, if present and defined:
-
-    remongo    -> if True, update the records missing in mongodb
-                  (default: False)
-    update_all -> if True, update all the relevant records (default: False)
-    user       -> if specified, apply only to the forms for the given user
-                  (default: None)
-    xform      -> if specified, apply only to the given form (default: None)
-
-    """
-
-    qs = XForm.objects.only('id_string', 'user').select_related('user')
-    if user and not xform:
-        qs = qs.filter(user=user)
-    elif user and xform:
-        qs = qs.filter(user=user, id_string=xform.id_string)
-    else:
-        qs = qs.all()
-
-    total = qs.count()
-    found = 0
-    done = 0
-    total_to_remongo = 0
-    report_string = ""
-    for xform in queryset_iterator(qs, 100):
-        # get the count
-        user = xform.user
-        instance_count = Instance.objects.filter(xform=xform).count()
-        userform_id = "%s_%s" % (user.username, xform.id_string)
-        mongo_count = mongo_instances.find(
-            {common_tags.USERFORM_ID: userform_id}).count()
-
-        if instance_count != mongo_count or update_all:
-            line = "user: %s, id_string: %s\nInstance count: %d\t"\
-                   "Mongo count: %d\n---------------------------------"\
-                   "-----\n" % (
-                       user.username, xform.id_string, instance_count,
-                       mongo_count)
-            report_string += line
-            found += 1
-            total_to_remongo += (instance_count - mongo_count)
-
-            # should we remongo
-            if remongo or (remongo and update_all):
-                if update_all:
-                    sys.stdout.write(
-                        "Updating all records for %s\n--------------------"
-                        "---------------------------\n" % xform.id_string)
-                else:
-                    sys.stdout.write(
-                        "Updating missing records for %s\n----------------"
-                        "-------------------------------\n"
-                        % xform.id_string)
-                update_mongo_for_xform(
-                    xform, only_update_missing=not update_all)
-        done += 1
-        sys.stdout.write(
-            "%.2f %% done ...\r" % ((float(done) / float(total)) * 100))
-    # only show stats if we are not updating mongo, the update function
-    # will show progress
-    if not remongo:
-        line = "Total # of forms out of sync: %d\n" \
-            "Total # of records to remongo: %d\n" % (found, total_to_remongo)
-        report_string += line
-    return report_string
-
-
 def remove_xform(xform):
-    # disconnect parsed instance pre delete signal
-    pre_delete.disconnect(_remove_from_mongo, sender=ParsedInstance)
-
-    # delete instances from mongo db
-    query = {
-        ParsedInstance.USERFORM_ID:
-        "%s_%s" % (xform.user.username, xform.id_string)}
-    xform_instances.remove(query, j=True)
-
     # delete xform, and all related models
     xform.delete()
 
-    # reconnect parsed instance pre delete signal?
-    pre_delete.connect(_remove_from_mongo, sender=ParsedInstance)
-
 
 class PublishXForm(object):
+
     def __init__(self, xml_file, user):
         self.xml_file = xml_file
         self.user = user

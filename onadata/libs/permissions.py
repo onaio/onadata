@@ -8,6 +8,7 @@ from guardian.shortcuts import (
     get_users_with_perms)
 
 from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.api.models.team import Team
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
@@ -35,6 +36,7 @@ CAN_VIEW_XFORM = 'view_xform'
 CAN_ADD_SUBMISSIONS = 'report_xform'
 CAN_TRANSFER_OWNERSHIP = 'transfer_xform'
 CAN_MOVE_TO_FOLDER = 'move_xform'
+CAN_EXPORT_XFORM = 'can_export_xform_data'
 
 # Project Permissions
 CAN_ADD_PROJECT = 'add_project'
@@ -43,6 +45,8 @@ CAN_CHANGE_PROJECT = 'change_project'
 CAN_TRANSFER_PROJECT_OWNERSHIP = 'transfer_project'
 CAN_DELETE_PROJECT = 'delete_project'
 CAN_ADD_PROJECT_XFORM = 'add_project_xform'
+CAN_ADD_SUBMISSIONS_PROJECT = 'report_project_xform'
+CAN_EXPORT_PROJECT = 'can_export_project_data'
 
 CAN_ADD_DATADICTIONARY = 'add_datadictionary'
 CAN_CHANGE_DATADICTIONARY = 'change_datadictionary'
@@ -55,13 +59,17 @@ class Role(object):
     name = None
 
     @classmethod
-    def _remove_obj_permissions(self, user, obj):
+    def _remove_obj_permissions(cls, user, obj):
         content_type = ContentType.objects.get(
             model=obj.__class__.__name__.lower(),
             app_label=obj.__class__._meta.app_label
         )
-        object_permissions = user.userobjectpermission_set.filter(
-            object_pk=obj.pk, content_type=content_type)
+        if isinstance(user, Team):
+            object_permissions = user.groupobjectpermission_set.filter(
+                object_pk=obj.pk, content_type=content_type)
+        else:
+            object_permissions = user.userobjectpermission_set.filter(
+                object_pk=obj.pk, content_type=content_type)
 
         for perm in object_permissions:
             remove_perm(perm.permission.codename, user, obj)
@@ -95,12 +103,23 @@ class Role(object):
         return user.has_perms(cls.class_to_permissions[type(obj)], obj)
 
 
+class ReadOnlyRoleNoDownload(Role):
+    name = 'readonly-no-download'
+    permissions = (
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_VIEW_XFORM, XForm),
+        (CAN_VIEW_PROJECT, Project),
+    )
+
+
 class ReadOnlyRole(Role):
     name = 'readonly'
     permissions = (
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_VIEW_XFORM, XForm),
         (CAN_VIEW_PROJECT, Project),
+        (CAN_EXPORT_XFORM, XForm),
+        (CAN_EXPORT_PROJECT, Project),
     )
 
 
@@ -111,6 +130,9 @@ class DataEntryRole(Role):
         (CAN_VIEW_XFORM, XForm),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_VIEW_PROJECT, Project),
+        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
+        (CAN_EXPORT_XFORM, XForm),
+        (CAN_EXPORT_PROJECT, Project),
     )
 
 
@@ -123,6 +145,9 @@ class EditorRole(Role):
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_CHANGE_PROJECT, Project),
         (CAN_VIEW_PROJECT, Project),
+        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
+        (CAN_EXPORT_XFORM, XForm),
+        (CAN_EXPORT_PROJECT, Project),
     )
 
 
@@ -133,24 +158,30 @@ class ManagerRole(Role):
         (CAN_ADD_XFORM, XForm),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_VIEW_XFORM, XForm),
+        (CAN_DELETE_XFORM, XForm),
         (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_ADD_XFORM_TO_PROFILE, UserProfile),
         (CAN_VIEW_PROFILE, UserProfile),
+        (CAN_ADD_PROJECT, Project),
         (CAN_ADD_PROJECT_XFORM, Project),
         (CAN_CHANGE_PROJECT, Project),
-        (CAN_DELETE_PROJECT, Project),
         (CAN_VIEW_PROJECT, Project),
+        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
+        (CAN_EXPORT_XFORM, XForm),
+        (CAN_EXPORT_PROJECT, Project),
     )
 
 
 class MemberRole(Role):
+
     """This is a role for a member of an organization.
     """
     name = 'member'
 
 
 class OwnerRole(Role):
+
     """This is a role for an owner of a dataset, organization, or project.
     """
     name = 'owner'
@@ -186,9 +217,13 @@ class OwnerRole(Role):
         (CAN_DELETE_PROJECT, Project),
         (CAN_TRANSFER_PROJECT_OWNERSHIP, Project),
         (CAN_VIEW_PROJECT, Project),
+        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
+        (CAN_EXPORT_XFORM, XForm),
+        (CAN_EXPORT_PROJECT, Project),
     )
 
-ROLES_ORDERED = [ReadOnlyRole,
+ROLES_ORDERED = [ReadOnlyRoleNoDownload,
+                 ReadOnlyRole,
                  DataEntryRole,
                  EditorRole,
                  ManagerRole,
@@ -236,8 +271,18 @@ def get_object_users_with_permissions(obj, exclude=None):
 
         result = [{
             'user': user,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
             'role': get_role(permissions, obj),
+            'gravatar': user.profile.gravatar,
+            'metadata': user.profile.metadata,
             'permissions': permissions} for user, permissions in
-            users_with_perms if not is_organization(user.profile)]
+            users_with_perms]
 
     return result
+
+
+def get_team_project_default_permissions(team, project):
+    perms = get_perms(team, project)
+
+    return get_role(perms, project) or ""

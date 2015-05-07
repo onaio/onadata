@@ -1,12 +1,10 @@
 from datetime import datetime
 
-from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from onadata.apps.main.views import delete_data
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
 from onadata.apps.logger.models.instance import Instance
-from onadata.libs.utils import common_tags
 from test_base import TestBase
 
 
@@ -20,13 +18,13 @@ class TestFormAPIDelete(TestBase):
             'username': self.user.username,
             'id_string': self.xform.id_string
         })
-        self.mongo_args = {
-            'username': self.user.username, 'id_string': self.xform.id_string,
+        self.data_args = {
+            'xform': self.xform,
             'query': "{}", 'limit': 1,
-            'sort': '{"_id":-1}', 'fields': '["_id","_uuid"]'}
+            'sort': '-pk', 'fields': '["_id","_uuid"]'}
 
     def _get_data(self):
-        cursor = ParsedInstance.query_mongo(**self.mongo_args)
+        cursor = ParsedInstance.query_data(**self.data_args)
         records = list(record for record in cursor)
         return records
 
@@ -83,29 +81,6 @@ class TestFormAPIDelete(TestBase):
         self.assertTrue(isinstance(instance.deleted_at, datetime))
         self.assertNotEqual(instance.deleted_at, None)
         query = '{"_id": %s}' % instance.id
-        self.mongo_args.update({"query": query})
-        # check that query_mongo will not return the deleted record
-        after = ParsedInstance.query_mongo(**self.mongo_args)
+        self.data_args.update({"query": query})
+        after = [r for r in ParsedInstance.query_data(**self.data_args)]
         self.assertEqual(len(after), count - 1)
-
-    def test_delete_updates_mongo(self):
-        count = Instance.objects.filter(
-            xform=self.xform, deleted_at=None).count()
-        instance = Instance.objects.filter(
-            xform=self.xform).latest('date_created')
-        # delete
-        params = {'id': instance.id}
-        response = self.client.post(self.delete_url, params)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            Instance.objects.filter(
-                xform=self.xform, deleted_at=None).count(), count - 1)
-        # check that instance's deleted_at is set
-        instance = Instance.objects.get(id=instance.id)
-        self.assertTrue(isinstance(instance.deleted_at, datetime))
-        # check mongo record was marked as deleted
-        cursor = settings.MONGO_DB.instances.find(
-            {common_tags.ID: instance.id})
-        self.assertEqual(cursor.count(), 1)
-        record = cursor.next()
-        self.assertIsNotNone(record[common_tags.DELETEDAT])

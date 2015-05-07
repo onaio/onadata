@@ -1,11 +1,19 @@
 import os
+import mock
 
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.instance import Instance
+from django.db.utils import DataError
+from onadata.libs.utils.timing import calculate_duration
+
+
+def raise_data_error(a):
+    raise DataError
 
 
 class TestChartsViewSet(TestBase):
@@ -42,15 +50,14 @@ class TestChartsViewSet(TestBase):
         instance = Instance.objects.all()[0]
         _dict = instance.parsed_instance.to_dict_for_mongo()
         self.assertIn('_duration', _dict.keys())
-        self.assertEqual(_dict.get('_duration'), 24.898)
+        self.assertEqual(_dict.get('_duration'), 24.0)
         self.assertNotEqual(_dict.get('_duration'), None)
 
-        # the instance below has a valid start time and an invalid end time
-        instance = Instance.objects.all()[1]
-        _dict = instance.parsed_instance.to_dict_for_mongo()
+        _dict = instance.json
+        duration = calculate_duration(_dict.get('start_time'), 'invalid')
         self.assertIn('_duration', _dict.keys())
-        self.assertEqual(_dict.get('_duration'), '')
-        self.assertNotEqual(_dict.get('_duration'), None)
+        self.assertEqual(duration, '')
+        self.assertNotEqual(duration, None)
 
     def test_get_on_categorized_field(self):
         data = {'field_name': 'gender'}
@@ -91,6 +98,17 @@ class TestChartsViewSet(TestBase):
         self.assertEqual(response.data['field_type'], 'date')
         self.assertEqual(response.data['field_name'], 'date')
         self.assertEqual(response.data['data_type'], 'time_based')
+
+    @mock.patch('onadata.libs.data.query._execute_query',
+                side_effect=raise_data_error)
+    def test_get_on_date_field_with_invalid_data(self, mock_execute_query):
+        data = {'field_name': 'date'}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id)
+        self.assertEqual(response.status_code, 400)
 
     def test_get_on_numeric_field(self):
         data = {'field_name': 'age'}
@@ -223,6 +241,27 @@ class TestChartsViewSet(TestBase):
         self.assertEqual(response.data, [data])
 
         request = self.factory.get('/charts')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+    def test_chart_list_with_xform_in_delete_async(self):
+        self.view = ChartsViewSet.as_view({
+            'get': 'list'
+        })
+        request = self.factory.get('/charts')
+        force_authenticate(request, user=self.user)
+        response = self.view(request)
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.status_code, 200)
+        data = {'id': self.xform.pk, 'id_string': self.xform.id_string,
+                'url': 'http://testserver/api/v1/charts/%s' % self.xform.pk}
+        self.assertEqual(response.data, [data])
+
+        self.xform.deleted_at = timezone.now()
+        self.xform.save()
+        request = self.factory.get('/charts')
+        force_authenticate(request, user=self.user)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])

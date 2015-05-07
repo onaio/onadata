@@ -36,7 +36,7 @@
             <div class="input">
             <form>
                 {% csrf_token %}
-                <textarea id="description" class="input-xxlarge present" disabled="" rows="3" name="textarea">{% if xform.description %}{{ xform.description }}{% else %}{% trans "None" %}{% endif %}</textarea>
+                <textarea id="description" class="input-xxlarge present" disabled="" rows="3" name="textarea" placeholder="{% trans 'No description' %}">{{ xform.description }}</textarea>
                 {% if can_edit %}
                     <a id="description_edit" data-id="description" href="" class="btn small bind-edit">{% trans "edit" %}</a>
                     <a id="description_save" data-id="description" style="display:none" href="" class="btn small btn-primary bind-save" data-url="{% url "onadata.apps.main.views.edit" content_user.username xform.id_string %}">{% trans "save" %}</a>
@@ -214,6 +214,17 @@
                 </li>
             </ul>
           </div>
+          <div class="btn-group">
+            <a class="btn" href="{% url "onadata.apps.viewer.views.export_list" content_user.username xform.id_string 'osm' %}" rel="tooltip" data-original-title="{% trans 'OSM' %}" target="_blank"><i class="icon-download-alt"></i> <font color=#000>{% trans "OSM" %}</font></a>
+            <button class="btn dropdown-toggle" data-toggle="dropdown">
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+                <li>
+                    <input class="input-xxlarge" type="text" size="16" value="{{base_url}}{% url "onadata.apps.viewer.views.export_list" content_user.username xform.id_string 'osm' %}"/>
+                </li>
+            </ul>
+          </div>
         </div>
         <h4>{% trans "Submissions:" %} {{ xform.submission_count|intcomma }}</h4>
         <br>
@@ -353,7 +364,7 @@
         {% endif %}
         <br/>
         <div class="clearfix bordered">
-            <h3 data-toggle="collapse" class="toggler" data-target="#media_tab">{% blocktrans %}Media &nbsp;<small>jpeg/png/mp3/wav/3gp/csv/zip allowed</small>{% endblocktrans %}</h3>
+            <h3 data-toggle="collapse" class="toggler" data-target="#media_tab">{% blocktrans %}Media &nbsp;<small>jpeg/png/mp3/mp4/wav/3gp/csv/zip allowed</small>{% endblocktrans %}</h3>
             <div id='media_tab' class="collapse">
             {% for media in media_upload %}
               <p><a href="{% url "onadata.apps.main.views.download_media_data" content_user.username xform.id_string media.id %}">{{ media.data_value }}</a>
@@ -576,26 +587,6 @@
               {% trans "Delete" %}
           </a>
         </div>
-        </div>
-        <br/>
-        <div>
-            <h3>{% trans "bamboo" %}</h3>
-            {% if xform.bamboo_dataset %}
-                {% blocktrans with dataset=xform.bamboo_dataset %}bamboo dataset: <strong><a href="http://bamboo.io/datasets/{{ dataset }}/info">{{ dataset }}</a></strong>{% endblocktrans %}
-            {% else %}
-                {% blocktrans %}bamboo link is <strong>not active</strong>{% endblocktrans %}
-            {% endif %}
-            {% if xform.submission_count = 0 %}
-                <br />{% trans "bamboo requires at least one submission." %}
-            {% else %}<form action="{% url "onadata.apps.main.views.link_to_bamboo" content_user.username xform.id_string %}" method="post">
-                {% csrf_token %}
-                {% if xform.bamboo_dataset %}
-                    <input type="submit" class="btn" value="{% trans "Regenerate" %}" />
-                {% else %}
-                    <input type="submit" class="btn" value="{% trans "Activate" %}" />
-                {% endif %}
-                </form>
-            {% endif %}
         </div>
         <br />
         <div>

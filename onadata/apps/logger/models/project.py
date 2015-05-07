@@ -16,7 +16,9 @@ class Project(BaseModel):
         permissions = (
             ('view_project', "Can view project"),
             ('add_project_xform', "Can add xform to project"),
+            ("report_project_xform", "Can make submissions to the project"),
             ('transfer_project', "Can transfer project to different owner"),
+            ('can_export_project_data', "Can export data in project"),
         )
 
     name = models.CharField(max_length=255)
@@ -51,15 +53,5 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
                 assign_perm(perm.codename, instance.created_by, instance)
 
 
-def update_xform_share_settings(sender,
-                                instance=None,
-                                created=False,
-                                **kwargs):
-    if not created:
-        instance.xform_set.exclude(shared=instance.shared)\
-            .update(shared=instance.shared)
-
 post_save.connect(set_object_permissions, sender=Project,
                   dispatch_uid='set_project_object_permissions')
-post_save.connect(update_xform_share_settings, sender=Project,
-                  dispatch_uid='update_xform_share_settings')
