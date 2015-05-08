@@ -16,9 +16,8 @@ from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
 
-from pyxform.xls2json import workbook_to_json
+from pyxform.xls2json import parse_file_to_json
 from pyxform.builder import create_survey_element_from_dict
-from pyxform.xls2json_backends import csv_to_dict
 from rest_framework import exceptions
 from rest_framework import status
 from rest_framework.decorators import action, detail_route, list_route
@@ -96,8 +95,8 @@ def upload_to_survey_draft(filename, username):
 
 def get_survey_dict(csv_name):
     survey_file = default_storage.open(csv_name, 'r')
-    workbook_dict = csv_to_dict(survey_file)
-    survey_dict = workbook_to_json(workbook_dict)
+    survey_dict = parse_file_to_json(
+        survey_file.name, default_name='data', file_object=survey_file)
 
     return survey_dict
 
