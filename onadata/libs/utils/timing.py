@@ -46,6 +46,9 @@ def get_date(_object=None):
         if isinstance(_date, six.string_types):
             _date = datetime.datetime.strptime(_date[:19],
                                                '%Y-%m-%dT%H:%M:%S')
+    else:
+        # default value to avoid the UnboundLocalError
+        _date = timezone.now()
 
     return get_header_date_format(_date)
 
