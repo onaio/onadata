@@ -569,10 +569,10 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     def survey_preview(self, request, **kwargs):
 
         username = request.user.username
-        if not username:
-            raise ParseError("User has to be authenticated")
-
         if request.method.upper() == 'POST':
+            if not username:
+                raise ParseError("User has to be authenticated")
+
             csv_data = request.DATA.get('body')
             if csv_data:
                 rand_name = "survey_draft_%s.csv" % ''.join(
@@ -586,22 +586,28 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 survey = create_survey_element_from_dict(survey_dict)
                 survey_xml = survey.to_xml()
 
-                return Response({'unique_string': rand_name}, status=200)
+                return Response(
+                    {'unique_string': rand_name, 'username': username},
+                    status=200)
             else:
                 raise ParseError('Missing body')
 
         if request.method.upper() == 'GET':
             filename = request.QUERY_PARAMS.get('filename')
+            username = request.QUERY_PARAMS.get('username')
+
+            if not username:
+                raise ParseError('Username not provided')
             if not filename:
                 raise ParseError("Filename MUST be provided")
-            if filename and username:
-                csv_name = upload_to_survey_draft(filename, username)
-                survey_dict = get_survey_dict(csv_name)
 
-                survey = create_survey_element_from_dict(survey_dict)
-                survey_xml = survey.to_xml()
+            csv_name = upload_to_survey_draft(filename, username)
+            survey_dict = get_survey_dict(csv_name)
 
-                return Response(survey_xml, status=200)
+            survey = create_survey_element_from_dict(survey_dict)
+            survey_xml = survey.to_xml()
+
+            return Response(survey_xml, status=200)
 
     def retrieve(self, request, *args, **kwargs):
         lookup_field = self.lookup_field
