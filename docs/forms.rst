@@ -728,11 +728,11 @@ Response
 Preview a survey draft
 ----------------------------------
 
-This is used to retrieve an xml representation of a survey draft. You will need to make a `POST` request with the
-survey draft data in a `body` variable for a survey draft file to be created. The repsonse is a json object with
-a key (`unique_string`). The `unique_string`'s value is the name of the survey draft file created and should be
-added as a query param when making a `GET` request to the same url inorder to retrieve the xml representation of
-the survey draft.
+This endpoint used to retrieve an xml representation of a survey draft. You will need to make a `POST` request 
+with the survey draft data in a `body` variable for a survey draft file to be created. The repsonse is a json
+object with 2 keys, `unique_string` and `username`. The `unique_string`'s value is the name of the survey draft
+file created and the `username` is the user's username. Both should be added as query params when making a
+`GET` request to the same url inorder to retrieve the xml representation of the survey draft.
 
 .. raw:: html
 
@@ -754,13 +754,13 @@ Response
 .. raw:: html
 
   <pre class="prettyprint">
-  <b>GET</b> /api/v1/forms/survey_preview?filename=<code>{unique_string}</code></pre>
+  <b>GET</b> /api/v1/forms/survey_preview.xml?filename=<code>{unique_string}</code>&username=<code>{username}</code></pre>
 
 Example
 ^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/forms/survey_preview\?filename\=<unique_string>
+      curl -X GET https://ona.io/api/v1/forms/survey_preview.xml\?filename\=<unique_string>&username=<username>
 
 Response
 ^^^^^^^^
