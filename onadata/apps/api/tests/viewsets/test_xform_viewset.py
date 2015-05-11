@@ -1759,22 +1759,23 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         response = view(request)
         self.assertEqual(response.status_code, 200)
         unique_string = response.data.get('unique_string')
+        username = response.data.get('username')
         self.assertIsNotNone(unique_string)
 
         request = self.factory.get('/')
         response = view(request)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data.get('detail'),
-                         "User has to be authenticated")
+        self.assertEqual(response.data.get('detail'), "Username not provided")
 
-        request = self.factory.get('/', **self.extra)
+        data = {'username': username}
+        request = self.factory.get('/', data=data)
         response = view(request)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data.get('detail'),
                          "Filename MUST be provided")
 
-        data = {'filename': unique_string}
-        request = self.factory.get('/', data=data, **self.extra)
+        data = {'filename': unique_string, 'username': username}
+        request = self.factory.get('/', data=data)
         response = view(request)
         self.assertEqual(response.status_code, 200)
 
