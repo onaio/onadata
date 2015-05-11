@@ -2,6 +2,7 @@ import os
 
 from datetime import datetime
 
+from guardian.shortcuts import assign_perm, remove_perm
 from django import forms
 from django.conf import settings
 from django.core.files.storage import get_storage_class
@@ -155,6 +156,9 @@ def remove_user_from_organization(organization, user):
 def remove_user_from_team(team, user):
     user.groups.remove(team)
 
+    # remove the permission
+    remove_perm('view_team', user, team)
+
 
 def add_user_to_organization(organization, user):
     """Add a user to an organization"""
@@ -164,6 +168,9 @@ def add_user_to_organization(organization, user):
 
 def add_user_to_team(team, user):
     user.groups.add(team)
+
+    # give the user perms to view the team
+    assign_perm('view_team', user, team)
 
 
 def get_organization_members(organization):

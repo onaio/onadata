@@ -328,3 +328,65 @@ class TestTeamViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
 
         self.assertEqual(len(response.data.get('users')), 2)
+
+    def test_add_user_to_team_no_perms(self):
+        self._team_create()
+
+        view = TeamViewSet.as_view({
+            'post': 'members',
+            'get': 'retrieve',
+            'delete': 'members'
+        })
+
+        # add bob
+        data = {'username': self.user.username}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data,
+                         [self.user.username])
+
+        # create user alice
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        # add alice to the team
+        data = {'username': alice_profile.user.username}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data,
+                         [self.user.username, alice_profile.user.username])
+
+        # check that alice is able to access the team
+        alice_extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % alice_profile.user.auth_token}
+        request = self.factory.get(
+            '/', content_type="application/json", **alice_extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 200)
+
+        # remove alice from the team
+        data = {'username': alice_profile.user.username}
+        request = self.factory.delete(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data,
+                         [self.user.username])
+
+        # check alice cant access the team
+        request = self.factory.get(
+            '/', content_type="application/json", **alice_extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 404)
