@@ -29,9 +29,6 @@ def get_header_date_format(date_modified):
 
 
 def get_date(_object=None):
-    if _object is None:
-        return get_header_date_format(timezone.now())
-
     if hasattr(_object, "date_modified"):
         _date = _object.date_modified
     elif hasattr(_object, "instance"):
@@ -44,8 +41,10 @@ def get_date(_object=None):
         # most likely an instance json, use _submission_time
         _date = _object.get('_submission_time')
         if isinstance(_date, six.string_types):
-            _date = datetime.datetime.strptime(_date[:19],
-                                               '%Y-%m-%dT%H:%M:%S')
+            _date = datetime.datetime.strptime(_date[:19], '%Y-%m-%dT%H:%M:%S')
+    else:
+        # default value to avoid the UnboundLocalError
+        _date = timezone.now()
 
     return get_header_date_format(_date)
 
