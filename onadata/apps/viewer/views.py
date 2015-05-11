@@ -318,12 +318,15 @@ def create_export(request, username, id_string, export_type):
 
     binary_select_multiples = getattr(settings, 'BINARY_SELECT_MULTIPLES',
                                       False)
+    remove_group_name = request.POST.get("options[remove_group_name]", "false")
+
     # external export option
     meta = request.POST.get("meta")
     options = {
         'group_delimiter': group_delimiter,
         'split_select_multiples': split_select_multiples,
         'binary_select_multiples': binary_select_multiples,
+        'remove_group_name': remove_group_name,
         'meta': meta.replace(",", "") if meta else None
     }
 
