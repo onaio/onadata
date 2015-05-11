@@ -789,7 +789,7 @@ def should_create_new_export(xform, export_type):
     return False
 
 
-def newset_export_for(xform, export_type):
+def newest_export_for(xform, export_type):
     """
     Make sure you check that an export exists before calling this,
     it will a DoesNotExist exception otherwise
