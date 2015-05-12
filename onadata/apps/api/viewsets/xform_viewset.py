@@ -1,10 +1,13 @@
 import os
 import json
+import random
 
 from datetime import datetime
 
 from celery.result import AsyncResult
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -13,6 +16,8 @@ from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
 
+from pyxform.xls2json import parse_file_to_json
+from pyxform.builder import create_survey_element_from_dict
 from rest_framework import exceptions
 from rest_framework import status
 from rest_framework.decorators import action, detail_route, list_route
@@ -78,6 +83,22 @@ EXPORT_EXT = {
 
 # Supported external exports
 external_export_types = ['xls']
+
+
+def upload_to_survey_draft(filename, username):
+    return os.path.join(
+        username,
+        'survey-drafts',
+        os.path.split(filename)[1]
+    )
+
+
+def get_survey_dict(csv_name):
+    survey_file = default_storage.open(csv_name, 'r')
+    survey_dict = parse_file_to_json(
+        survey_file.name, default_name='data', file_object=survey_file)
+
+    return survey_dict
 
 
 def _get_export_type(export_type):
@@ -542,6 +563,50 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 data = {"enketo_url": url, "enketo_preview_url": preview_url}
 
         return Response(data, http_status)
+
+    @list_route(methods=['POST', 'GET'])
+    def survey_preview(self, request, **kwargs):
+
+        username = request.user.username
+        if request.method.upper() == 'POST':
+            if not username:
+                raise ParseError("User has to be authenticated")
+
+            csv_data = request.DATA.get('body')
+            if csv_data:
+                rand_name = "survey_draft_%s.csv" % ''.join(
+                    random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
+                csv_file = ContentFile(csv_data)
+                csv_name = default_storage.save(
+                    upload_to_survey_draft(rand_name, username),
+                    csv_file)
+
+                survey_dict = get_survey_dict(csv_name)
+                survey = create_survey_element_from_dict(survey_dict)
+                survey_xml = survey.to_xml()
+
+                return Response(
+                    {'unique_string': rand_name, 'username': username},
+                    status=200)
+            else:
+                raise ParseError('Missing body')
+
+        if request.method.upper() == 'GET':
+            filename = request.QUERY_PARAMS.get('filename')
+            username = request.QUERY_PARAMS.get('username')
+
+            if not username:
+                raise ParseError('Username not provided')
+            if not filename:
+                raise ParseError("Filename MUST be provided")
+
+            csv_name = upload_to_survey_draft(filename, username)
+            survey_dict = get_survey_dict(csv_name)
+
+            survey = create_survey_element_from_dict(survey_dict)
+            survey_xml = survey.to_xml()
+
+            return Response(survey_xml, status=200)
 
     def retrieve(self, request, *args, **kwargs):
         lookup_field = self.lookup_field

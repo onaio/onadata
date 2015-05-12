@@ -1735,6 +1735,50 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         self.assertEqual(response.status_code, 202)
         self.assertEquals(response.data, {'job_status': 'PENDING'})
 
+    def test_survey_preview_endpoint(self):
+        view = XFormViewSet.as_view({
+            'post': 'survey_preview',
+            'get': 'survey_preview'
+        })
+
+        request = self.factory.post('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data.get('detail'), 'Missing body')
+
+        body = u'"survey",,,,,,,,,,\n,"name","type","label","hint",' \
+            '"required","relevant","default","' \
+            'constraint","constraint_message","appearance"\n,"sdfasdfaf"' \
+            ',"geopoint","sdfasdfaf",,"false",,,,,\n,"sdfsdaf","text",' \
+            '"sdfsdaf",,"true",,,,,\n,"start","start",,,,,,,,\n,"end",' \
+            '"end",,,,,,,,\n"settings",,\n,"form_title","form_id"\n,' \
+            '"Post refactro","Post_refactro"'
+        data = {"body": body}
+        request = self.factory.post(
+            '/', data=data, **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        unique_string = response.data.get('unique_string')
+        username = response.data.get('username')
+        self.assertIsNotNone(unique_string)
+
+        request = self.factory.get('/')
+        response = view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data.get('detail'), "Username not provided")
+
+        data = {'username': username}
+        request = self.factory.get('/', data=data)
+        response = view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data.get('detail'),
+                         "Filename MUST be provided")
+
+        data = {'filename': unique_string, 'username': username}
+        request = self.factory.get('/', data=data)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.tasks.get_async_status')
     def test_delete_xform_async(self, mock_get_status):
