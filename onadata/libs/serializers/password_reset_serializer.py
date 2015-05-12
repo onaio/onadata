@@ -15,7 +15,8 @@ from urlparse import urlparse
 def get_password_reset_email(user, reset_url,
                              subject_template_name='registration/password_reset_subject.txt',  # noqa
                              email_template_name='api_password_reset_email.html',  # noqa
-                             token_generator=default_token_generator):
+                             token_generator=default_token_generator,
+                             email_subject=None):
     """Creates the subject and email body for password reset email."""
     result = urlparse(reset_url)
     site_name = domain = result.hostname
@@ -30,7 +31,9 @@ def get_password_reset_email(user, reset_url,
         'token': token_generator.make_token(user),
         'protocol': result.scheme if result.scheme != '' else 'http',
     }
-    subject = loader.render_to_string(subject_template_name, c)
+    # if subject email provided don't load the subject template
+    subject = email_subject or loader.render_to_string(subject_template_name,
+                                                       c)
     # Email subject *must not* contain newlines
     subject = ''.join(subject.splitlines())
     email = loader.render_to_string(email_template_name, c)
@@ -64,9 +67,10 @@ class PasswordResetChange(object):
 
 
 class PasswordReset(object):
-    def __init__(self, email, reset_url):
+    def __init__(self, email, reset_url, email_subject=None):
         self.email = email
         self.reset_url = reset_url
+        self.email_subject = email_subject
 
     def save(self,
              subject_template_name='registration/password_reset_subject.txt',
@@ -87,13 +91,17 @@ class PasswordReset(object):
             if not user.has_usable_password():
                 continue
             subject, email = get_password_reset_email(
-                user, reset_url, subject_template_name, email_template_name)
+                user, reset_url, subject_template_name, email_template_name,
+                email_subject=self.email_subject)
+
             send_mail(subject, email, from_email, [user.email])
 
 
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField(label=_("Email"), max_length=254)
     reset_url = serializers.URLField(label=_("Reset URL"), max_length=254)
+    email_subject = serializers.CharField(label=_("Email Subject"),
+                                          required=False, max_length=78)
 
     def validate_email(self, attrs, source):
         value = attrs[source]

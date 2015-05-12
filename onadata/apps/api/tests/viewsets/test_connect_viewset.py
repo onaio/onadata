@@ -267,3 +267,20 @@ class TestConnectViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+
+    @patch('onadata.libs.serializers.password_reset_serializer.send_mail')
+    def test_request_reset_password_custom_email_subject(self, mock_send_mail):
+        data = {'email': self.user.email,
+                'reset_url': u'http://testdomain.com/reset_form',
+                'email_subject': 'You requested for a reset password'}
+        request = self.factory.post('/', data=data)
+        response = self.view(request)
+
+        self.assertTrue(mock_send_mail.called)
+        self.assertEqual(response.status_code, 204)
+
+        mock_send_mail.called = False
+        request = self.factory.post('/')
+        response = self.view(request)
+        self.assertFalse(mock_send_mail.called)
+        self.assertEqual(response.status_code, 400)
