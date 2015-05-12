@@ -19,7 +19,7 @@ account.
 
 - ``xls_file``: the xlsform file.
 - ``xls_url``: the url to an xlsform
-- ``drop_xls_url``: the drop box url to an xlsform
+- ``dropbox_xls_url``: the drop box url to an xlsform
 - ``owner``: username to the target account (Optional)
 
 .. raw:: html
