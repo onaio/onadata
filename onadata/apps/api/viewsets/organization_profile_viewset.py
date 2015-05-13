@@ -15,7 +15,8 @@ from onadata.apps.api.tools import (get_organization_members,
                                     add_user_to_team,
                                     remove_user_from_team)
 from onadata.apps.api import permissions
-from onadata.libs.filters import OrganizationPermissionFilter
+from onadata.libs.filters import (OrganizationPermissionFilter,
+                                  OrganizationsSharedWithUserFilter)
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.permissions import ROLES, OwnerRole
@@ -140,7 +141,7 @@ class OrganizationProfileViewSet(LastModifiedMixin,
     serializer_class = OrganizationSerializer
     lookup_field = 'user'
     permission_classes = [permissions.DjangoObjectPermissionsAllowAnon]
-    filter_backends = (OrganizationPermissionFilter,)
+    filter_backends = (OrganizationPermissionFilter, OrganizationsSharedWithUserFilter)
 
     @action(methods=['DELETE', 'GET', 'POST', 'PUT'])
     def members(self, request, *args, **kwargs):
