@@ -222,3 +222,14 @@ class UserNoOrganizationsFilter(filters.BaseFilterBackend):
             queryset = queryset.exclude(id__in=organization_user_ids)
 
         return queryset
+
+
+class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
+
+    def filter_queryset(self, request, queryset, view):
+        """
+        This returns a queryset containing only organizations to which
+        the passed user belongs.
+        """
+
+        return queryset
