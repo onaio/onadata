@@ -1,6 +1,7 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.models import User
 from django.http import Http404
 from django.utils import six
 
@@ -231,5 +232,29 @@ class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
         This returns a queryset containing only organizations to which
         the passed user belongs.
         """
+
+        username = request.QUERY_PARAMS.get('shared_with')
+
+        if username:
+            try:
+                # The Team model extends the built-in Django Group model
+                # Groups a User belongs to are available as a queryset property
+                # of a User object, which this code takes advantage of
+
+                organization_user_ids = User.objects\
+                                            .get(username=username)\
+                                            .groups\
+                                            .all()\
+                                            .values_list(
+                                                'team__organization',
+                                                flat=True)\
+                                            .distinct()
+
+                filtered_queryset = queryset.filter(user_id__in=organization_user_ids)
+
+                return filtered_queryset
+
+            except ObjectDoesNotExist:
+                raise Http404
 
         return queryset
