@@ -250,7 +250,8 @@ class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
                                                 flat=True)\
                                             .distinct()
 
-                filtered_queryset = queryset.filter(user_id__in=organization_user_ids)
+                filtered_queryset = queryset.filter(
+                    user_id__in=organization_user_ids)
 
                 return filtered_queryset
 
