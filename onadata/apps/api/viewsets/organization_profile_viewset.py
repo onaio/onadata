@@ -141,7 +141,8 @@ class OrganizationProfileViewSet(LastModifiedMixin,
     serializer_class = OrganizationSerializer
     lookup_field = 'user'
     permission_classes = [permissions.DjangoObjectPermissionsAllowAnon]
-    filter_backends = (OrganizationPermissionFilter, OrganizationsSharedWithUserFilter)
+    filter_backends = (OrganizationPermissionFilter,
+                       OrganizationsSharedWithUserFilter)
 
     @action(methods=['DELETE', 'GET', 'POST', 'PUT'])
     def members(self, request, *args, **kwargs):
