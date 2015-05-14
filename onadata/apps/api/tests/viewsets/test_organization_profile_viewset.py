@@ -9,7 +9,8 @@ from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.libs.permissions import OwnerRole
-from onadata.apps.api.tools import get_organization_owners_team
+from onadata.apps.api.tools import (get_organization_owners_team,
+                                    add_user_to_organization)
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 
 
@@ -56,6 +57,39 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.company_data])
+
+    def test_orgs_list_shared_with_user(self):
+        authenticated_user = self.user
+        user_in_shared_organization, _ = User.objects.get_or_create(
+            username='the_stalked')
+
+        unshared_organization, _ = User.objects.get_or_create(
+            username='NotShared')
+        unshared_organization_profile, _ = OrganizationProfile\
+            .objects.get_or_create(
+                user=unshared_organization,
+                creator=authenticated_user)
+
+        add_user_to_organization(unshared_organization_profile,
+                                 authenticated_user)
+
+        shared_organization, _ = User.objects.get_or_create(username='Shared')
+        shared_organization_profile, _ = OrganizationProfile\
+            .objects.get_or_create(
+                user=shared_organization,
+                creator=user_in_shared_organization)
+
+        add_user_to_organization(shared_organization_profile,
+                                 authenticated_user)
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertTrue(len(response.data), 2)
+        request = self.factory.get('/',
+                                   data={'shared_with': 'the_stalked'},
+                                   **self.extra)
+        response = self.view(request)
+        self.assertEqual(len(response.data), 1)
 
     def test_orgs_list_restricted(self):
         self._org_create()
