@@ -72,7 +72,7 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
             xml=instance.xml, xform_instance=instance, uuid=old_uuid)
         instance.xml = xml
         instance.uuid = new_uuid
-        instance.json = instance.get_full_dict()
+        instance.json = instance.get_dict()
         instance.save()
     else:
         # new submission
