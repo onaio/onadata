@@ -59,6 +59,22 @@ Response
         ...
     ]
 
+List of Organizations Shared with Another User
+----------------------------------------------
+
+.. raw:: html
+
+   <pre class="prettyprint"><b>GET</b> /api/v1/orgs?shared_with={username}</pre>
+
+
+Example
+^^^^^^^
+
+::
+
+      curl -X GET https://ona.io/api/v1/orgs?shared_with=username
+
+
 Retrieve Organization Profile Information
 -----------------------------------------
 
@@ -66,12 +82,14 @@ Retrieve Organization Profile Information
 
    <pre class="prettyprint"><b>GET</b> /api/v1/orgs/{username}</pre>
 
+
 Example
 ^^^^^^^
 
 ::
 
       curl -X GET https://ona.io/api/v1/orgs/modilabs
+
 
 Response
 ^^^^^^^^
