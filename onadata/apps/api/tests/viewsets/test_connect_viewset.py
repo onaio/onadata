@@ -278,9 +278,3 @@ class TestConnectViewSet(TestAbstractViewSet):
 
         self.assertTrue(mock_send_mail.called)
         self.assertEqual(response.status_code, 204)
-
-        mock_send_mail.called = False
-        request = self.factory.post('/')
-        response = self.view(request)
-        self.assertFalse(mock_send_mail.called)
-        self.assertEqual(response.status_code, 400)
