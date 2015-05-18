@@ -7,7 +7,7 @@ from onadata.libs.permissions import CAN_ADD_XFORM_TO_PROFILE
 from onadata.libs.permissions import CAN_CHANGE_XFORM
 from onadata.apps.api.tools import get_user_profile_or_none, \
     check_inherit_permission_from_project
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import XForm, Project
 
 
 class ViewDjangoObjectPermissions(DjangoObjectPermissions):
@@ -123,6 +123,31 @@ class HasXFormObjectPermissionMixin(object):
         return False
 
 
+class HasProjectObjectPermissionMixin(object):
+    """Use Project permissions for DataView objects"""
+
+    def has_permission(self, request, view):
+        model_cls = None
+
+        # Workaround to ensure DjangoModelPermissions are not applied
+        # to the root view when using DefaultRouter.
+        if (model_cls is None and
+                getattr(view, '_ignore_model_permissions', False)):
+            return True
+
+        model_cls = Project
+        perms = self.get_required_permissions(request.method, model_cls)
+
+        if (request.user and
+                (request.user.is_authenticated() or
+                 not self.authenticated_users_only) and
+                request.user.has_perms(perms)):
+
+            return True
+
+        return False
+
+
 class MetaDataObjectPermissions(HasXFormObjectPermissionMixin,
                                 DjangoObjectPermissions):
 
@@ -163,5 +188,17 @@ class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
 
         return \
             super(UserViewSetPermissions, self).has_permission(request, view)
+
+
+class DataViewViewsetPermissions(ViewDjangoObjectPermissions,
+                                 HasProjectObjectPermissionMixin,
+                                 DjangoObjectPermissions):
+
+    def has_object_permission(self, request, view, obj):
+        view.model = Project
+
+        return super(DataViewViewsetPermissions, self).has_object_permission(
+            request, view, obj.project)
+
 
 __permissions__ = [DjangoObjectPermissions, IsAuthenticated]

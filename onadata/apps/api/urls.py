@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
+from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
@@ -227,3 +228,4 @@ router.register(r'briefcase', BriefcaseViewset, base_name='briefcase')
 router.register(r'osm', OsmViewSet, base_name='osm')
 router.register(r'restservices', RestServicesViewSet, base_name='restservices')
 router.register(r'files', MediaViewSet, base_name='files')
+router.register(r'dataview', DataViewViewSet, base_name='dataview')
