@@ -574,8 +574,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
     def result_has_error(self, result):
         return isinstance(result, dict) and \
-                result.get('type') and \
-                result.get('type') == 'alert-error'
+            result.get('type') and \
+            result.get('type') == 'alert-error'
 
     @list_route(methods=['POST', 'GET'])
     def survey_preview(self, request, **kwargs):
