@@ -1,3 +1,7 @@
+import json
+import os
+
+from django.conf import settings
 
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.apps.logger.models.data_view import DataView
@@ -11,7 +15,18 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
     def setUp(self):
         super(self.__class__, self).setUp()
-        self._publish_xls_form_to_project()
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils","fixtures",
+            "tutorial.xls")
+
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        for x in range(1, 9):
+            path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'tutorial', 'instances', 'uuid{}'.format(x), 'submission.xml')
+            self._make_submission(path)
+            x += 1
+
         self.view = DataViewViewSet.as_view({
             'post': 'create',
             'put': 'update',
@@ -46,10 +61,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.data['name'], data['name'])
         self.assertEquals(response.data['xform'], data['xform'])
         self.assertEquals(response.data['project'], data['project'])
-        self.assertEquals(response.data['columns'],
-                          ["asdasda", "asdasad"])
-        self.assertEquals(response.data['query'],
-                          [{"sadsa": "asdasd"}, {"sadsasa": "asdasdas"}])
+        self.assertEquals(response.data['columns'], json.loads(data['columns']))
+        self.assertEquals(response.data['query'], json.loads(data['query']))
         self.assertEquals(response.data['url'],
                           'http://testserver/api/v1/dataview/%s'
                           % self.data_view.pk)
@@ -169,5 +182,26 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         request = self.factory.get('/', **self.extra)
         response = self.view(request, pk=self.data_view.pk)
+
+        self.assertEquals(response.status_code, 200)
+
+    def test_dataview_data(self):
+        data = {
+            'name': "Transportation Dataview",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': '["name", "age", "gender"]',
+            'query': '[{"col":"age","filter":">","value":"0"}]'
+        }
+
+        self._create_dataview(data=data)
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk)
 
         self.assertEquals(response.status_code, 200)
