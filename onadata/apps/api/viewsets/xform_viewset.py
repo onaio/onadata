@@ -61,6 +61,7 @@ from onadata.libs.utils.common_tags import SUBMISSION_TIME
 from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newest_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
+from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
 
 from onadata.libs.utils.csv_import import get_async_csv_submission_status
@@ -463,6 +464,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
     public_forms_endpoint = 'public'
 
+    csv_name = ''
+
     def create(self, request, *args, **kwargs):
         try:
             owner = _get_owner(request)
@@ -564,9 +567,18 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(data, http_status)
 
+    def get_survey_xml(self):
+        survey_dict = get_survey_dict(self.csv_name)
+        survey = create_survey_element_from_dict(survey_dict)
+        return survey.to_xml()
+
+    def result_has_error(self, result):
+        return isinstance(result, dict) and \
+                result.get('type') and \
+                result.get('type') == 'alert-error'
+
     @list_route(methods=['POST', 'GET'])
     def survey_preview(self, request, **kwargs):
-
         username = request.user.username
         if request.method.upper() == 'POST':
             if not username:
@@ -577,13 +589,14 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 rand_name = "survey_draft_%s.csv" % ''.join(
                     random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
                 csv_file = ContentFile(csv_data)
-                csv_name = default_storage.save(
+                self.csv_name = default_storage.save(
                     upload_to_survey_draft(rand_name, username),
                     csv_file)
 
-                survey_dict = get_survey_dict(csv_name)
-                survey = create_survey_element_from_dict(survey_dict)
-                survey_xml = survey.to_xml()
+                result = publish_form(self.get_survey_xml)
+
+                if self.result_has_error(result):
+                    return Response(result.get('text'), status=400)
 
                 return Response(
                     {'unique_string': rand_name, 'username': username},
@@ -600,13 +613,14 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if not filename:
                 raise ParseError("Filename MUST be provided")
 
-            csv_name = upload_to_survey_draft(filename, username)
-            survey_dict = get_survey_dict(csv_name)
+            self.csv_name = upload_to_survey_draft(filename, username)
 
-            survey = create_survey_element_from_dict(survey_dict)
-            survey_xml = survey.to_xml()
+            result = publish_form(self.get_survey_xml)
 
-            return Response(survey_xml, status=200)
+            if self.result_has_error(result):
+                return Response(result.get('text'), status=400)
+
+            return Response(result, status=200)
 
     def retrieve(self, request, *args, **kwargs):
         lookup_field = self.lookup_field
