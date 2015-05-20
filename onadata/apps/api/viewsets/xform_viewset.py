@@ -594,7 +594,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 result = publish_form(lambda: get_survey_xml(csv_name))
 
                 if result_has_error(result):
-                    return Response(result.get('text'), status=400)
+                    raise ParseError(result.get('text'))
 
                 return Response(
                     {'unique_string': rand_name, 'username': username},
@@ -616,7 +616,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             result = publish_form(lambda: get_survey_xml(csv_name))
 
             if result_has_error(result):
-                return Response(result.get('text'), status=400)
+                raise ParseError(result.get('text'))
 
             return Response(result, status=200)
 
