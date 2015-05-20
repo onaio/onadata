@@ -348,7 +348,8 @@ def response_for_format(data, format=None):
 def should_regenerate_export(xform, export_type, request):
     return should_create_new_export(xform, export_type) or\
         'start' in request.GET or 'end' in request.GET or\
-        'query' in request.GET or 'data_id' in request.GET
+        'query' in request.GET or 'data_id' in request.GET or\
+        'remove_group_name' in request.GET
 
 
 def value_for_type(form, field, value):
