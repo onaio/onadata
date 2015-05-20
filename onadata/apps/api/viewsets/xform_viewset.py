@@ -61,6 +61,7 @@ from onadata.libs.utils.common_tags import SUBMISSION_TIME
 from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newest_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
+from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
 
 from onadata.libs.utils.csv_import import get_async_csv_submission_status
@@ -431,6 +432,16 @@ def _try_update_xlsform(request, xform, owner):
     return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
 
+def result_has_error(result):
+    return isinstance(result, dict) and result.get('type')
+
+
+def get_survey_xml(csv_name):
+    survey_dict = get_survey_dict(csv_name)
+    survey = create_survey_element_from_dict(survey_dict)
+    return survey.to_xml()
+
+
 class XFormViewSet(AnonymousUserPublicFormsMixin,
                    LabelsMixin,
                    LastModifiedMixin,
@@ -566,7 +577,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
     @list_route(methods=['POST', 'GET'])
     def survey_preview(self, request, **kwargs):
-
         username = request.user.username
         if request.method.upper() == 'POST':
             if not username:
@@ -581,9 +591,10 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                     upload_to_survey_draft(rand_name, username),
                     csv_file)
 
-                survey_dict = get_survey_dict(csv_name)
-                survey = create_survey_element_from_dict(survey_dict)
-                survey_xml = survey.to_xml()
+                result = publish_form(lambda: get_survey_xml(csv_name))
+
+                if result_has_error(result):
+                    raise ParseError(result.get('text'))
 
                 return Response(
                     {'unique_string': rand_name, 'username': username},
@@ -601,12 +612,13 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 raise ParseError("Filename MUST be provided")
 
             csv_name = upload_to_survey_draft(filename, username)
-            survey_dict = get_survey_dict(csv_name)
 
-            survey = create_survey_element_from_dict(survey_dict)
-            survey_xml = survey.to_xml()
+            result = publish_form(lambda: get_survey_xml(csv_name))
 
-            return Response(survey_xml, status=200)
+            if result_has_error(result):
+                raise ParseError(result.get('text'))
+
+            return Response(result, status=200)
 
     def retrieve(self, request, *args, **kwargs):
         lookup_field = self.lookup_field
