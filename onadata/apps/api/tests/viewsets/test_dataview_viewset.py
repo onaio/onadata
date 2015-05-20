@@ -185,14 +185,15 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
 
-    def test_dataview_data(self):
+    def test_dataview_data_filter_integer(self):
         data = {
             'name': "Transportation Dataview",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "age", "gender"]',
-            'query': '[{"col":"age","filter":">","value":"0"}]'
+            'query': '[{"col":"age","filter":">","value":"20"},'
+                     '{"col":"age","filter":"<","value":"50"}]'
         }
 
         self._create_dataview(data=data)
@@ -205,3 +206,72 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = view(request, pk=self.data_view.pk)
 
         self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response.data), 3)
+
+    def test_dataview_data_filter_date(self):
+        data = {
+            'name': "Transportation Dataview",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': '["name", "gender", "_submission_time"]',
+            'query': '[{"col":"_submission_time","filter":">=","value":"2015-01-01T00:00:00"}]'
+        }
+
+        self._create_dataview(data=data)
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response.data), 7)
+
+    def test_dataview_data_filter_string(self):
+        data = {
+            'name': "Transportation Dataview",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': '["name", "gender", "_submission_time"]',
+            'query': '[{"col":"gender","filter":"<>","value":"male"}]'
+        }
+
+        self._create_dataview(data=data)
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response.data), 1)
+
+    def test_dataview_data_filter_condition(self):
+        data = {
+            'name': "Transportation Dataview",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': '["name", "gender", "age"]',
+            'query': '[{"col":"name","filter":"=","value":"Fred", "condition":"or"},'
+                     '{"col":"name","filter":"=","value":"Kameli", "condition":"or"},'
+                     '{"col":"gender","filter":"=","value":"male"}]'
+        }
+
+        self._create_dataview(data=data)
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response.data), 2)

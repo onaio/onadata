@@ -7,6 +7,7 @@ from onadata.apps.api.permissions import DataViewViewsetPermissions
 
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
+from onadata.libs.utils.export_tools import str_to_bool
 
 
 class DataViewViewSet(ModelViewSet):
@@ -21,8 +22,13 @@ class DataViewViewSet(ModelViewSet):
     @action(methods=['GET'])
     def data(self, request, format='json', **kwargs):
         """ Get the data from the xform using this dataview """
+        start = request.GET.get("start")
+        limit = request.GET.get("limit")
+        count = request.GET.get("count")
+
         self.object = self.get_object()
-        data = DataView.query_data(self.object)
+        data = DataView.query_data(self.object, start, limit,
+                                   str_to_bool(count))
         serializer = JsonDataSerializer(data)
 
         return Response(serializer.data)

@@ -7,7 +7,7 @@ from onadata.apps.logger.models.data_view import DataView
 class DataViewSerializer(serializers.HyperlinkedModelSerializer):
 
     name = serializers.CharField(max_length=255, source='name')
-    url = serializers.HyperlinkedIdentityField(view_name='dataview-detail',
+    url = serializers.HyperlinkedIdentityField(view_name='dataviews-detail',
                                                lookup_field='pk')
     xform = serializers.HyperlinkedRelatedField(view_name='xform-detail',
                                                 source='xform',

@@ -12,7 +12,7 @@ from onadata.libs.utils.common_tags import MONGO_STRFTIME
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
-    _json_str = u"json->%s"
+    _json_str = u"json->>%s"
 
     if key in known_integers:
         _json_str = u"CAST(json->>%s AS INT)"
@@ -23,6 +23,23 @@ def _json_sql_str(key, known_integers=[], known_dates=[]):
 
 def get_name_from_survey_element(element):
     return element.get_abbreviated_xpath()
+
+def _append_where_list(comp, t_list, json_str):
+    if comp == '=':
+        t_list.append(u"{} = %s".format(json_str))
+    if comp == '>':
+        t_list.append(u"{} > %s".format(json_str))
+    if comp == '<':
+        t_list.append(u"{} < %s".format(json_str))
+    if comp == '>=':
+        t_list.append(u"{} >= %s".format(json_str))
+    if comp == '<=':
+        t_list.append(u"{} <= %s".format(json_str))
+    if comp == '<>' or filter == '!=':
+        t_list.append(u"{} <> %s".format(json_str))
+
+    return t_list
+
 
 class DataView(models.Model):
     """
@@ -39,9 +56,10 @@ class DataView(models.Model):
         app_label = 'logger'
 
     @classmethod
-    def _get_where_clause(cls, data_view, form_integer_fields=[]):
+    def _get_where_clause(cls, data_view, form_integer_fields=[],
+                          form_date_fields=[]):
         known_integers = ['_id'] + form_integer_fields
-        known_dates = ['_submission_time']
+        known_dates = ['_submission_time'] + form_date_fields
         where = []
         where_params = []
 
@@ -50,37 +68,27 @@ class DataView(models.Model):
         or_where = []
         or_params = []
 
-        #if '$or' in query.keys():
-        #    or_dict = query.pop('$or')
-        #    for l in or_dict:
-        #        or_where.extend([u"json->>%s = %s" for i in l.items()])
-        #        [or_params.extend(i) for i in l.items()]
+        for qu in query:
+            comp = qu.get('filter')
+            col = qu.get('col')
+            value = qu.get('value')
+            condi = qu.get('condition')
 
-        #    or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
-
-        # where = [u"json->>%s = %s" for i in query.items()] + or_where
-        for q in query:
-            filter = q.get('filter')
-            col = q.get('col')
-            value = q.get('value')
             json_str = _json_sql_str(col, known_integers, known_dates)
-
-            if filter == '=':
-                where.append(u"{} = %s".format(json_str))
-            if filter == '>':
-                where.append(u"{} > %s".format(json_str))
-            if filter == '<':
-                where.append(u"{} < %s".format(json_str))
-            if filter == '>=':
-                where.append(u"{} >= %s".format(json_str))
-            if filter == '<=':
-                where.append(u"{} <= %s".format(json_str))
 
             if filter in known_dates:
                 value = datetime.datetime.strptime(
                     value[:19], MONGO_STRFTIME)
 
-            where_params.extend((col, unicode(value)))
+            if condi:
+                or_where = _append_where_list(comp, or_where, json_str)
+                or_params.extend((col, unicode(value)))
+            else:
+                where = _append_where_list(comp, where, json_str)
+                where_params.extend((col, unicode(value)))
+
+        if or_where:
+            or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
 
         where += or_where
         where_params.extend(or_params)
@@ -104,6 +112,7 @@ class DataView(models.Model):
             sql_params = params
             fields = [u'count']
 
+
         cursor.execute(sql, [unicode(i) for i in sql_params])
 
         if fields is None:
@@ -113,15 +122,13 @@ class DataView(models.Model):
             for row in cursor.fetchall():
                 yield dict(zip(fields, row))
 
+
+
     @classmethod
-    def query_data(cls, data_view):
+    def query_data(cls, data_view, start_index=None, limit=None, count=None):
 
         # get the columns needed
         columns = data_view.columns
-        query = data_view.query
-
-        sql_where = ""
-        where_params = []
 
         field_list = [u"json->%s" for i in columns]
 
@@ -132,16 +139,32 @@ class DataView(models.Model):
             get_name_from_survey_element(e)
             for e in data_dictionary.get_survey_elements_of_type('integer')]
 
-        where, where_params = cls._get_where_clause(data_view, known_integers)
+        known_dates = [
+            get_name_from_survey_element(e)
+            for e in data_dictionary.get_survey_elements_of_type('date')]
+
+        where, where_params = cls._get_where_clause(data_view, known_integers,
+                                                    known_dates)
 
         sql_where = u" AND " + u" AND ".join(where)
 
         sql += u" WHERE xform_id = %s " + sql_where + u" AND deleted_at IS NULL"
         params = [data_view.xform.pk] + where_params
 
-        records =[record for record in DataView.query_iterator(sql,
-                                                               fields=columns,
-                                                               params=params)]
+        if start_index is not None:
+            sql += u" OFFSET %s"
+            params += [start_index]
+        if limit is not None:
+            sql += u" LIMIT %s"
+            params += [limit]
+
+        try:
+            records =[record for record in DataView.query_iterator(sql,
+                                                                   columns,
+                                                                   params,
+                                                                   count)]
+        except Exception as e:
+            return {"error": e.message}
 
         return records
 
