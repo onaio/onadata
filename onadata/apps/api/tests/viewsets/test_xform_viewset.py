@@ -1794,7 +1794,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
         error_message = u'[row : 2] Invalid question name [sdfasdfaf ' \
             'sdf]Names must begin with a letter, colon, or underscore.' \
             'Subsequent characters can include numbers, dashes, and periods.'
-        self.assertEqual(response.data, error_message)
+        self.assertEqual(response.data.get('detail'), error_message)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.tasks.get_async_status')
