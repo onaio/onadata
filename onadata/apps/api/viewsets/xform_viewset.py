@@ -432,6 +432,16 @@ def _try_update_xlsform(request, xform, owner):
     return Response(survey, status=status.HTTP_400_BAD_REQUEST)
 
 
+def result_has_error(result):
+    return isinstance(result, dict) and result.get('type')
+
+
+def get_survey_xml(csv_name):
+    survey_dict = get_survey_dict(csv_name)
+    survey = create_survey_element_from_dict(survey_dict)
+    return survey.to_xml()
+
+
 class XFormViewSet(AnonymousUserPublicFormsMixin,
                    LabelsMixin,
                    LastModifiedMixin,
@@ -463,8 +473,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     filter_fields = ('instances_with_osm',)
 
     public_forms_endpoint = 'public'
-
-    csv_name = ''
 
     def create(self, request, *args, **kwargs):
         try:
@@ -567,16 +575,6 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(data, http_status)
 
-    def get_survey_xml(self):
-        survey_dict = get_survey_dict(self.csv_name)
-        survey = create_survey_element_from_dict(survey_dict)
-        return survey.to_xml()
-
-    def result_has_error(self, result):
-        return isinstance(result, dict) and \
-            result.get('type') and \
-            result.get('type') == 'alert-error'
-
     @list_route(methods=['POST', 'GET'])
     def survey_preview(self, request, **kwargs):
         username = request.user.username
@@ -589,13 +587,13 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 rand_name = "survey_draft_%s.csv" % ''.join(
                     random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
                 csv_file = ContentFile(csv_data)
-                self.csv_name = default_storage.save(
+                csv_name = default_storage.save(
                     upload_to_survey_draft(rand_name, username),
                     csv_file)
 
-                result = publish_form(self.get_survey_xml)
+                result = publish_form(lambda: get_survey_xml(csv_name))
 
-                if self.result_has_error(result):
+                if result_has_error(result):
                     return Response(result.get('text'), status=400)
 
                 return Response(
@@ -613,11 +611,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if not filename:
                 raise ParseError("Filename MUST be provided")
 
-            self.csv_name = upload_to_survey_draft(filename, username)
+            csv_name = upload_to_survey_draft(filename, username)
 
-            result = publish_form(self.get_survey_xml)
+            result = publish_form(lambda: get_survey_xml(csv_name))
 
-            if self.result_has_error(result):
+            if result_has_error(result):
                 return Response(result.get('text'), status=400)
 
             return Response(result, status=200)
