@@ -16,7 +16,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
     def setUp(self):
         super(self.__class__, self).setUp()
         xlsform_path = os.path.join(
-            settings.PROJECT_ROOT, 'libs', 'tests', "utils","fixtures",
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
             "tutorial.xls")
 
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
@@ -45,8 +45,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
                 'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
                 'project':  'http://testserver/api/v1/projects/%s'
                             % self.project.pk,
-                'columns': '["asdasda", "asdasad"]',
-                'query': '[{"sadsa":"asdasd"},{"sadsasa":"asdasdas"}]'
+                'columns': '["name", "age", "gender"]',
+                'query': '[{"col":"age","filter":">","value":"20"},'
+                         '{"col":"age","filter":"<","value":"50"}]'
             }
 
         request = self.factory.post('/', data=data, **self.extra)
@@ -61,10 +62,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.data['name'], data['name'])
         self.assertEquals(response.data['xform'], data['xform'])
         self.assertEquals(response.data['project'], data['project'])
-        self.assertEquals(response.data['columns'], json.loads(data['columns']))
+        self.assertEquals(response.data['columns'],
+                          json.loads(data['columns']))
         self.assertEquals(response.data['query'], json.loads(data['query']))
         self.assertEquals(response.data['url'],
-                          'http://testserver/api/v1/dataview/%s'
+                          'http://testserver/api/v1/dataviews/%s'
                           % self.data_view.pk)
 
     def test_create_dataview(self):
@@ -84,11 +86,12 @@ class TestDataViewViewSet(TestAbstractViewSet):
                           'http://testserver/api/v1/projects/%s'
                           % self.project.pk)
         self.assertEquals(response.data['columns'],
-                          ["asdasda", "asdasad"])
+                          ["name", "age", "gender"])
         self.assertEquals(response.data['query'],
-                          [{"sadsa": "asdasd"}, {"sadsasa": "asdasdas"}])
+                          [{"col": "age", "filter": ">", "value": "20"},
+                           {"col": "age", "filter": "<", "value": "50"}])
         self.assertEquals(response.data['url'],
-                          'http://testserver/api/v1/dataview/%s'
+                          'http://testserver/api/v1/dataviews/%s'
                           % self.data_view.pk)
 
     def test_update_dataview(self):
@@ -99,8 +102,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
-            'columns': '["asdasda_u", "asdasad"]',
-            'query': '[{"sadsa":"asdasdu"},{"sadsasa":"asdasdas"}]'
+            'columns': '["name", "age", "gender"]',
+            'query': '[{"col":"age","filter":">","value":"20"}]'
         }
 
         request = self.factory.put('/', data=data, **self.extra)
@@ -110,10 +113,10 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.data['name'], 'My DataView updated')
 
         self.assertEquals(response.data['columns'],
-                          ["asdasda_u", "asdasad"])
+                          ["name", "age", "gender"])
 
         self.assertEquals(response.data['query'],
-                          [{"sadsa": "asdasdu"}, {"sadsasa": "asdasdas"}])
+                          [{"col": "age", "filter": ">", "value": "20"}])
 
     def test_patch_dataview(self):
         self._create_dataview()
@@ -150,8 +153,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
-            'columns': '["asdasda", "asdasad"]',
-            'query': '[{"sadsa":"asdasd"},{"sadsasa":"asdasdas"}]'
+            'columns': '["name", "age", "gender"]',
+            'query': '[{"col":"age","filter":">","value":"20"}]'
         }
 
         self._create_dataview(data=data)
@@ -215,7 +218,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "gender", "_submission_time"]',
-            'query': '[{"col":"_submission_time","filter":">=","value":"2015-01-01T00:00:00"}]'
+            'query': '[{"col":"_submission_time",'
+                     '"filter":">=","value":"2015-01-01T00:00:00"}]'
         }
 
         self._create_dataview(data=data)
@@ -259,8 +263,10 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "gender", "age"]',
-            'query': '[{"col":"name","filter":"=","value":"Fred", "condition":"or"},'
-                     '{"col":"name","filter":"=","value":"Kameli", "condition":"or"},'
+            'query': '[{"col":"name","filter":"=","value":"Fred",'
+                     ' "condition":"or"},'
+                     '{"col":"name","filter":"=","value":"Kameli",'
+                     ' "condition":"or"},'
                      '{"col":"gender","filter":"=","value":"male"}]'
         }
 
@@ -275,3 +281,27 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 2)
+
+    def test_dataview_invalid_filter(self):
+        data = {
+            'name': "Transportation Dataview",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': '["name", "gender", "age"]',
+            'query': '[{"col":"name","filter":"<=>","value":"Fred",'
+                     ' "condition":"or"}]'
+        }
+
+        self._create_dataview(data=data)
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertEquals(response.status_code, 400)
+        self.assertEquals(len(response.data), 1)
+        self.assertIn("error", response.data)

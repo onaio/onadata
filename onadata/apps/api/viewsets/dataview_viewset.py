@@ -1,6 +1,7 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework import status
 
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.api.permissions import DataViewViewsetPermissions
@@ -21,7 +22,7 @@ class DataViewViewSet(ModelViewSet):
 
     @action(methods=['GET'])
     def data(self, request, format='json', **kwargs):
-        """ Get the data from the xform using this dataview """
+        """ Retrieve the data from the xform using this dataview """
         start = request.GET.get("start")
         limit = request.GET.get("limit")
         count = request.GET.get("count")
@@ -29,6 +30,9 @@ class DataViewViewSet(ModelViewSet):
         self.object = self.get_object()
         data = DataView.query_data(self.object, start, limit,
                                    str_to_bool(count))
+        if 'error' in data:
+            return Response(status=status.HTTP_400_BAD_REQUEST,
+                            data=data)
         serializer = JsonDataSerializer(data)
 
         return Response(serializer.data)

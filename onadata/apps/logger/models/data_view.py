@@ -1,5 +1,3 @@
-import json
-import six
 import datetime
 
 from django.contrib.gis.db import models
@@ -21,8 +19,10 @@ def _json_sql_str(key, known_integers=[], known_dates=[]):
 
     return _json_str
 
+
 def get_name_from_survey_element(element):
     return element.get_abbreviated_xpath()
+
 
 def _append_where_list(comp, t_list, json_str):
     if comp == '=':
@@ -80,7 +80,7 @@ class DataView(models.Model):
                 value = datetime.datetime.strptime(
                     value[:19], MONGO_STRFTIME)
 
-            if condi:
+            if condi and condi.lower() == 'or':
                 or_where = _append_where_list(comp, or_where, json_str)
                 or_params.extend((col, unicode(value)))
             else:
@@ -112,7 +112,6 @@ class DataView(models.Model):
             sql_params = params
             fields = [u'count']
 
-
         cursor.execute(sql, [unicode(i) for i in sql_params])
 
         if fields is None:
@@ -121,8 +120,6 @@ class DataView(models.Model):
         else:
             for row in cursor.fetchall():
                 yield dict(zip(fields, row))
-
-
 
     @classmethod
     def query_data(cls, data_view, start_index=None, limit=None, count=None):
@@ -148,7 +145,8 @@ class DataView(models.Model):
 
         sql_where = u" AND " + u" AND ".join(where)
 
-        sql += u" WHERE xform_id = %s " + sql_where + u" AND deleted_at IS NULL"
+        sql += u" WHERE xform_id = %s " + sql_where \
+               + u" AND deleted_at IS NULL"
         params = [data_view.xform.pk] + where_params
 
         if start_index is not None:
@@ -159,13 +157,11 @@ class DataView(models.Model):
             params += [limit]
 
         try:
-            records =[record for record in DataView.query_iterator(sql,
-                                                                   columns,
-                                                                   params,
-                                                                   count)]
+            records = [record for record in DataView.query_iterator(sql,
+                                                                    columns,
+                                                                    params,
+                                                                    count)]
         except Exception as e:
-            return {"error": e.message}
+            return {"error": unicode(e)}
 
         return records
-
-

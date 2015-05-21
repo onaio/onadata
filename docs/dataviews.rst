@@ -7,9 +7,45 @@ Where:
 
 - ``pk`` - is the dataview id
 
+Definition
+^^^^^^^^^^
+- ``columns`` - Json list of columns to be included in the data
+- ``query`` - Json list of dicts with filter information.
+
+Each dict contains:
+
+- ``col`` - The column the filter will be applied to.
+- ``filter`` - The filter that will be used.
+- ``value`` - The value to filter with.
+- ``condition`` - (optional) This indicates which logical conjuction to use. Either ``AND``/``OR`` Default is ``AND``
+
+Current Supported Filters
+
+=======  ===================
+Filter    Description
+=======  ===================
+**=**     Equal to
+**>**     Greater than
+**<**     Less than
+**<=**    Less or Equal to
+**>=**    Great or Equal to
+**<>**    Not Equal to
+**!=**    Not Equal to
+=======  ===================
+
+Example:
+::
+
+    {
+        "col":"age",
+        "filter":">",
+        "value":"20",
+        "condition":"or"
+    }
+
 
 Create a new DataView
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -17,7 +53,7 @@ Create a new DataView
 	<b>POST</b> /api/v1/dataviews</pre>
 
 Example
-^^^^^^^
+-------
 ::
 
         {
@@ -29,7 +65,7 @@ Example
         }
 
 Response
-^^^^^^^^
+--------
 
 ::
 
@@ -54,7 +90,7 @@ Response
 
 
 Retrieve a DataView
----------------------
+^^^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -62,7 +98,7 @@ Retrieve a DataView
 	<b>GET</b> /api/v1/dataviews/<code>{pk}</code></pre>
 
 Response
-^^^^^^^^
+--------
 
 ::
 
@@ -86,7 +122,7 @@ Response
         }
 
 List all DataView
----------------------
+^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -94,7 +130,7 @@ List all DataView
 	<b>GET</b> /api/v1/dataviews</pre>
 
 Response
-^^^^^^^^
+--------
 
 ::
 
@@ -140,7 +176,7 @@ Response
 
 
 Update a DataView
------------------
+^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -148,7 +184,7 @@ Update a DataView
 	<b>PUT</b> /api/v1/dataviews/<code>{pk}</code></pre>
 
 Example
-^^^^^^^
+-------
 ::
 
         {
@@ -160,7 +196,7 @@ Example
         }
 
 Response
-^^^^^^^^
+--------
 
 ::
 
@@ -184,7 +220,7 @@ Response
         }
 
 Patch a DataView
------------------
+^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -192,7 +228,7 @@ Patch a DataView
 	<b>PATCH</b> /api/v1/dataviews/<code>{pk}</code></pre>
 
 Example
-^^^^^^^
+-------
 ::
 
         {
@@ -200,7 +236,7 @@ Example
         }
 
 Response
-^^^^^^^^
+--------
 
 ::
 
@@ -225,7 +261,7 @@ Response
         }
 
 Delete a DataView
------------------
+^^^^^^^^^^^^^^^^^
 
 .. raw:: html
 
@@ -233,10 +269,94 @@ Delete a DataView
 	<b>DELETE</b> /api/v1/dataviews/<code>{pk}</code></pre>
 
 Response
-^^^^^^^^
+--------
 
 ::
 
     HTTP 204 NO CONTENT
 
 
+Retrieving Data from the DataView
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/dataviews/<code>{pk}</code>/data
+    </pre>
+
+::
+
+    curl -X GET 'https://ona.io/api/v1/dataviews/1/data'
+
+
+
+Example Response
+----------------
+::
+
+
+ [
+    {"date": "2015-05-19", "gender": "male", "age": 32, "name": "Kendy"},
+    {"date": "2015-05-19", "gender": "female", "age": 41, "name": "Maasai"},
+    {"date": "2015-05-19", "gender": "male", "age": 21, "name": "Tom"}
+ ]
+Retrieving Data using limit operators
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Lists the data endpoints accesible to the requesting user based on 'start'
+and/or 'limit' query parameters. Use the start parameter to skip a number
+of records and the limit parameter to limit the number of records returned.
+
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/dataviews/<code>{pk}</code>/data?<code>start</code>=<code>start_value</code>
+    </pre>
+
+::
+
+    curl -X GET 'https://ona.io/api/v1/dataviews/2/data?start=5'
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/dataviews/<code>{pk}</code>/data?<code>start</code>=<code>start_value </code>&</code><code>limit</code>=<code>limit_value</code>
+  </pre>
+
+::
+
+	curl -X GET 'https://ona.io/api/v1/dataviews/2/data?limit=2'
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/dataviews/<code>{pk}</code>/data?<code>start</code>=<code>start_value</code>&</code><code>limit</code>=<code>limit_value</code>
+  </pre>
+
+::
+
+	 curl -X GET 'https://ona.io/api/v1/dataviews/2/data?start=3&limit=4'
+
+
+Counting the Data in the DataView
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/dataviews/<code>{pk}</code>/data?<code>count</code>=<code>true</code>
+    </pre>
+
+::
+
+    curl -X GET 'https://ona.io/api/v1/dataviews/2/data?count=true'
+
+
+Example Response
+----------------
+
+::
+
+    [
+        {"count":36}
+    ]
