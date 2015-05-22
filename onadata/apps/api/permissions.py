@@ -7,7 +7,8 @@ from onadata.libs.permissions import CAN_ADD_XFORM_TO_PROFILE
 from onadata.libs.permissions import CAN_CHANGE_XFORM
 from onadata.apps.api.tools import get_user_profile_or_none, \
     check_inherit_permission_from_project
-from onadata.apps.logger.models import XForm, Project
+from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import Project
 
 
 class ViewDjangoObjectPermissions(DjangoObjectPermissions):

@@ -37,7 +37,7 @@ Example:
 ::
 
     {
-        "col":"age",
+        "column":"age",
         "filter":">",
         "value":"20",
         "condition":"or"
@@ -278,6 +278,7 @@ Response
 
 Retrieving Data from the DataView
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Returns the data using the dataview filters
 
 .. raw:: html
 
@@ -304,7 +305,7 @@ Example Response
 Retrieving Data using limit operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Lists the data endpoints accesible to the requesting user based on 'start'
+Returns the data to the requesting user based on 'start'
 and/or 'limit' query parameters. Use the start parameter to skip a number
 of records and the limit parameter to limit the number of records returned.
 

@@ -46,8 +46,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
                 'project':  'http://testserver/api/v1/projects/%s'
                             % self.project.pk,
                 'columns': '["name", "age", "gender"]',
-                'query': '[{"col":"age","filter":">","value":"20"},'
-                         '{"col":"age","filter":"<","value":"50"}]'
+                'query': '[{"column":"age","filter":">","value":"20"},'
+                         '{"column":"age","filter":"<","value":"50"}]'
             }
 
         request = self.factory.post('/', data=data, **self.extra)
@@ -88,8 +88,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.data['columns'],
                           ["name", "age", "gender"])
         self.assertEquals(response.data['query'],
-                          [{"col": "age", "filter": ">", "value": "20"},
-                           {"col": "age", "filter": "<", "value": "50"}])
+                          [{"column": "age", "filter": ">", "value": "20"},
+                           {"column": "age", "filter": "<", "value": "50"}])
         self.assertEquals(response.data['url'],
                           'http://testserver/api/v1/dataviews/%s'
                           % self.data_view.pk)
@@ -116,7 +116,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
                           ["name", "age", "gender"])
 
         self.assertEquals(response.data['query'],
-                          [{"col": "age", "filter": ">", "value": "20"}])
+                          [{"column": "age", "filter": ">", "value": "20"}])
 
     def test_patch_dataview(self):
         self._create_dataview()
@@ -154,7 +154,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "age", "gender"]',
-            'query': '[{"col":"age","filter":">","value":"20"}]'
+            'query': '[{"column":"age","filter":">","value":"20"}]'
         }
 
         self._create_dataview(data=data)
@@ -195,8 +195,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "age", "gender"]',
-            'query': '[{"col":"age","filter":">","value":"20"},'
-                     '{"col":"age","filter":"<","value":"50"}]'
+            'query': '[{"column":"age","filter":">","value":"20"},'
+                     '{"column":"age","filter":"<","value":"50"}]'
         }
 
         self._create_dataview(data=data)
@@ -218,7 +218,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "gender", "_submission_time"]',
-            'query': '[{"col":"_submission_time",'
+            'query': '[{"column":"_submission_time",'
                      '"filter":">=","value":"2015-01-01T00:00:00"}]'
         }
 
@@ -241,7 +241,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "gender", "_submission_time"]',
-            'query': '[{"col":"gender","filter":"<>","value":"male"}]'
+            'query': '[{"column":"gender","filter":"<>","value":"male"}]'
         }
 
         self._create_dataview(data=data)
@@ -263,11 +263,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "gender", "age"]',
-            'query': '[{"col":"name","filter":"=","value":"Fred",'
+            'query': '[{"column":"name","filter":"=","value":"Fred",'
                      ' "condition":"or"},'
-                     '{"col":"name","filter":"=","value":"Kameli",'
+                     '{"column":"name","filter":"=","value":"Kameli",'
                      ' "condition":"or"},'
-                     '{"col":"gender","filter":"=","value":"male"}]'
+                     '{"column":"gender","filter":"=","value":"male"}]'
         }
 
         self._create_dataview(data=data)
@@ -289,7 +289,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "gender", "age"]',
-            'query': '[{"col":"name","filter":"<=>","value":"Fred",'
+            'query': '[{"column":"name","filter":"<=>","value":"Fred",'
                      ' "condition":"or"}]'
         }
 
@@ -305,3 +305,24 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 400)
         self.assertEquals(len(response.data), 1)
         self.assertIn("error", response.data)
+
+    def test_dataview_sql_injection(self):
+        data = {
+            'name': "Transportation Dataview",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': '["name", "gender", "age"]',
+            'query': '[{"column":"name","filter":"<=","value":"; UNION ALL SELECT schemaname FROM pg_tables"}]'
+        }
+
+        self._create_dataview(data=data)
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertEquals(response.status_code, 200)

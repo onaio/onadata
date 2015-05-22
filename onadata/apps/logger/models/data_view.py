@@ -70,11 +70,11 @@ class DataView(models.Model):
 
         for qu in query:
             comp = qu.get('filter')
-            col = qu.get('col')
+            column = qu.get('column')
             value = qu.get('value')
             condi = qu.get('condition')
 
-            json_str = _json_sql_str(col, known_integers, known_dates)
+            json_str = _json_sql_str(column, known_integers, known_dates)
 
             if filter in known_dates:
                 value = datetime.datetime.strptime(
@@ -82,10 +82,10 @@ class DataView(models.Model):
 
             if condi and condi.lower() == 'or':
                 or_where = _append_where_list(comp, or_where, json_str)
-                or_params.extend((col, unicode(value)))
+                or_params.extend((column, unicode(value)))
             else:
                 where = _append_where_list(comp, where, json_str)
-                where_params.extend((col, unicode(value)))
+                where_params.extend((column, unicode(value)))
 
         if or_where:
             or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
