@@ -1,3 +1,4 @@
+import requests
 from datetime import datetime
 from django.contrib.contenttypes.models import ContentType
 import os
@@ -28,6 +29,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
 from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
 
+from onadata.libs.utils.viewer_tools import _get_form_url, EnketoError
 from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
     DataLicenseForm, SupportDocForm, QuickConverterFile, QuickConverterURL,\
     QuickConverter, SourceForm, PermissionForm, MediaForm, MapboxLayerForm,\
@@ -1327,12 +1329,31 @@ def qrcode(request, username, id_string):
 
 
 def get_enketo_preview_url(request, username, id_string):
-    return "%(enketo_url)s?server=%(profile_url)s&id=%(id_string)s" % {
-        'enketo_url': settings.ENKETO_PREVIEW_URL,
-        'profile_url': request.build_absolute_uri(
-            reverse(profile, kwargs={'username': username})),
-        'id_string': id_string
-    }
+    form_url = _get_form_url(request, username)
+    values = {'form_id': id_string, 'server_url': form_url}
+    res = requests.post(settings.ENKETO_PREVIEW_URL,
+                        data=values,
+                        auth=(settings.ENKETO_API_TOKEN, ''),
+                        verify=False)
+
+    if res.status_code in [200, 201]:
+        try:
+            response = res.json()
+        except ValueError:
+            pass
+        else:
+            if 'preview_url' in response:
+                return response['preview_url']
+
+    try:
+        response = res.json()
+    except ValueError:
+        pass
+    else:
+        if 'message' in response:
+            raise EnketoError(response['message'])
+
+    return False
 
 
 def enketo_preview(request, username, id_string):
