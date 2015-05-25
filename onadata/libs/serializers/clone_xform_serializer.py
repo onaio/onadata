@@ -10,11 +10,13 @@ from onadata.libs.serializers.fields.xform_field import XFormField
 class CloneXFormSerializer(serializers.Serializer):
     xform = XFormField()
     username = serializers.CharField(max_length=255)
+    project_id = serializers.IntegerField(default=-1, required=False)
 
     def restore_object(self, attrs, instance=None):
         if instance is not None:
             instance.xform = attrs.get('xform', instance.xform)
             instance.username = attrs.get('username', instance.username)
+            instance.project_id = attrs.get('project_id', instance.project_id)
 
             return instance
 
