@@ -18,6 +18,7 @@ from pyxform.question import Question
 from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
 from json2xlsclient.client import Client
+from django.db.models import Q
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
@@ -29,7 +30,7 @@ from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     image_urls
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
-    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,
+    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,GROUPNAME_REMOVED_FLAG,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION)
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.osm import get_combined_osm
@@ -743,7 +744,13 @@ def generate_export(export_type, extension, username, id_string,
     # generate filename
     basename = "%s_%s" % (
         id_string, datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
-    filename = basename + "." + extension
+
+    if remove_group_name:
+        # add 'remove group name' flag to filename
+        filename = "{}-{}.{}".format(basename, GROUPNAME_REMOVED_FLAG,
+                                     extension)
+    else:
+        filename = basename + "." + extension
 
     # check filename is unique
     while not Export.is_filename_unique(xform, filename):
@@ -774,7 +781,8 @@ def generate_export(export_type, extension, username, id_string,
     export.filename = basename
     export.internal_status = Export.SUCCESSFUL
     # dont persist exports that have a filter
-    if filter_query is None and start is None and end is None:
+
+    if not filter_query and start is None and end is None:
         export.save()
     return export
 
@@ -789,15 +797,26 @@ def should_create_new_export(xform, export_type):
     return False
 
 
-def newest_export_for(xform, export_type):
+def newest_export_for(xform, export_type, remove_group_name=False):
     """
     Make sure you check that an export exists before calling this,
     it will a DoesNotExist exception otherwise
     """
     # TODO resolve circular import
     from onadata.apps.viewer.models.export import Export
-    return Export.objects.filter(xform=xform, export_type=export_type)\
-        .latest('created_on')
+    q = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
+    if remove_group_name:
+
+        export_queryset = \
+            Export.objects.filter(xform=xform, export_type=export_type)\
+                .filter(q)
+        if export_queryset:
+            return export_queryset.latest('created_on')
+        else:
+            return Export()
+    else:
+        return Export.objects.filter(xform=xform, export_type=export_type)\
+            .exclude(q).latest('created_on')
 
 
 def increment_index_in_filename(filename):

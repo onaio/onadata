@@ -57,7 +57,8 @@ from onadata.libs.utils.export_tools import generate_external_export
 from onadata.libs.utils.export_tools import generate_osm_export
 from onadata.libs.utils.export_tools import should_create_new_export
 from onadata.libs.utils.common_tags import OSM
-from onadata.libs.utils.common_tags import SUBMISSION_TIME
+from onadata.libs.utils.common_tags import SUBMISSION_TIME,\
+    GROUPNAME_REMOVED_FLAG
 from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newest_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
@@ -149,6 +150,11 @@ def _export_async_export_response(request, xform, export):
                         'format': export.export_type},
                 request=request
             )
+
+            if str_to_bool(request.QUERY_PARAMS.get('remove_group_name')):
+                # append the param to the url
+                export_url = "{}{}".format(export_url,
+                                           "?remove_group_name=true")
         else:
             export_url = export.export_url
         resp = {
@@ -202,7 +208,10 @@ def process_async_export(request, xform, export_type, query=None, token=None,
                                               options=options)
         }
     else:
-        export = newest_export_for(xform, export_type)
+        remove_group_name = options.get('remove_group_name')
+        export = newest_export_for(xform, export_type,
+                                   remove_group_name=str_to_bool(
+                                       remove_group_name))
 
         if not export.filename:
             # tends to happen when using newest_export_for.
@@ -348,8 +357,7 @@ def response_for_format(data, format=None):
 def should_regenerate_export(xform, export_type, request):
     return should_create_new_export(xform, export_type) or\
         'start' in request.GET or 'end' in request.GET or\
-        'query' in request.GET or 'data_id' in request.GET or\
-        'remove_group_name' in request.GET
+        'query' in request.GET or 'data_id' in request.GET
 
 
 def value_for_type(form, field, value):
@@ -393,12 +401,16 @@ def custom_response_handler(request, xform, query, export_type,
             (token is not None) or (meta is not None):
         export_type = Export.EXTERNAL_EXPORT
 
+    remove_group_name = request.GET.get('remove_group_name')
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
     if should_regenerate_export(xform, export_type, request):
         export = _generate_new_export(request, xform, query, export_type)
     else:
-        export = newest_export_for(xform, export_type)
+        export = newest_export_for(xform, export_type,
+                                   remove_group_name=str_to_bool(
+                                       remove_group_name))
+
         if not export.filename:
             # tends to happen when using newset_export_for.
             export = _generate_new_export(request, xform, query, export_type)
@@ -412,7 +424,9 @@ def custom_response_handler(request, xform, query, export_type,
     # xlsx if it exceeds limits
     path, ext = os.path.splitext(export.filename)
     ext = ext[1:]
-    id_string = None if request.GET.get('raw') else xform.id_string
+    id_string = None if request.GET.get('raw') else \
+        xform.id_string if not str_to_bool(remove_group_name) else "{}-{}"\
+            .format(xform.id_string,GROUPNAME_REMOVED_FLAG)
     response = response_with_mimetype_and_name(
         Export.EXPORT_MIMES[ext], id_string, extension=ext,
         file_path=export.filepath)
