@@ -103,7 +103,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "age", "gender"]',
-            'query': '[{"col":"age","filter":">","value":"20"}]'
+            'query': '[{"column":"age","filter":">","value":"20"}]'
         }
 
         request = self.factory.put('/', data=data, **self.extra)
@@ -293,18 +293,12 @@ class TestDataViewViewSet(TestAbstractViewSet):
                      ' "condition":"or"}]'
         }
 
-        self._create_dataview(data=data)
-
-        view = DataViewViewSet.as_view({
-            'get': 'data',
-        })
-
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=self.data_view.pk)
+        request = self.factory.post('/', data=data, **self.extra)
+        response = self.view(request)
 
         self.assertEquals(response.status_code, 400)
-        self.assertEquals(len(response.data), 1)
-        self.assertIn("error", response.data)
+        self.assertEquals(response.data,
+                          {'query': [u'Filter not supported']})
 
     def test_dataview_sql_injection(self):
         data = {
@@ -313,7 +307,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "gender", "age"]',
-            'query': '[{"column":"name","filter":"<=","value":"; UNION ALL SELECT schemaname FROM pg_tables"}]'
+            'query': '[{"column":"age","filter":"=",'
+                     '"value":"1;UNION ALL SELECT NULL,version()'
+                     ',NULL LIMIT 1 OFFSET 1--;"}]'
         }
 
         self._create_dataview(data=data)
@@ -325,4 +321,6 @@ class TestDataViewViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.data_view.pk)
 
-        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.data, {"error": u"Error retrieving the data"
+                          u". Check the query parameter"})

@@ -1,5 +1,6 @@
 import datetime
 
+from django.utils.translation import ugettext as _
 from django.contrib.gis.db import models
 from django.db import connection
 
@@ -7,6 +8,8 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.project import Project
 from jsonfield import JSONField
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
+
+SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
@@ -162,6 +165,8 @@ class DataView(models.Model):
                                                                     params,
                                                                     count)]
         except Exception as e:
-            return {"error": unicode(e)}
+            # Not comfortable sending the sql error to the api
+            return {"error": _(u"Error retrieving the data."
+                               u" Check the query parameter")}
 
         return records

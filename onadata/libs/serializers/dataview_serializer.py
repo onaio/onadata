@@ -1,7 +1,11 @@
+from django.core.validators import ValidationError
+from django.utils.translation import ugettext as _
+
 from rest_framework import serializers
 
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.logger.models.data_view import SUPPORTED_FILTERS
 
 
 class DataViewSerializer(serializers.HyperlinkedModelSerializer):
@@ -20,3 +24,23 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = DataView
+
+    def validate_query(self, attrs, source):
+        query = attrs.get('query')
+
+        for q in query:
+            if 'column' not in q:
+                raise ValidationError(_(u"`column` not set in query"))
+
+            if 'filter' not in q:
+                raise ValidationError(_(u"`filter` not set in query"))
+
+            if 'value' not in q:
+                raise ValidationError(_(u"`value` not set in query"))
+
+            comp = q.get('filter')
+
+            if comp not in SUPPORTED_FILTERS:
+                raise ValidationError(_(u"Filter not supported"))
+
+        return attrs
