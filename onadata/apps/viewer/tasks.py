@@ -266,7 +266,8 @@ def create_zip_export(username, id_string, export_id, query=None):
 @task()
 def create_csv_zip_export(username, id_string, export_id, query=None,
                           group_delimiter='/', split_select_multiples=True,
-                          binary_select_multiples=False):
+                          binary_select_multiples=False,
+                          remove_group_name=False):
     export = Export.objects.get(id=export_id)
     try:
         # though export is not available when for has 0 submissions, we
@@ -274,7 +275,7 @@ def create_csv_zip_export(username, id_string, export_id, query=None,
         gen_export = generate_export(
             Export.CSV_ZIP_EXPORT, 'zip', username, id_string, export_id,
             query, group_delimiter, split_select_multiples,
-            binary_select_multiples)
+            binary_select_multiples, remove_group_name=remove_group_name)
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
@@ -295,7 +296,8 @@ def create_csv_zip_export(username, id_string, export_id, query=None,
 @task()
 def create_sav_zip_export(username, id_string, export_id, query=None,
                           group_delimiter='/', split_select_multiples=True,
-                          binary_select_multiples=False):
+                          binary_select_multiples=False,
+                          remove_group_name=False):
     export = Export.objects.get(id=export_id)
     try:
         # though export is not available when for has 0 submissions, we
@@ -303,7 +305,7 @@ def create_sav_zip_export(username, id_string, export_id, query=None,
         gen_export = generate_export(
             Export.SAV_ZIP_EXPORT, 'zip', username, id_string, export_id,
             query, group_delimiter, split_select_multiples,
-            binary_select_multiples
+            binary_select_multiples, remove_group_name=remove_group_name
         )
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
