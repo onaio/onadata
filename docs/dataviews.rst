@@ -14,7 +14,7 @@ Definition
 
 Each dict contains:
 
-- ``col`` - The column the filter will be applied to.
+- ``column`` - The column the filter will be applied to.
 - ``filter`` - The filter that will be used.
 - ``value`` - The value to filter with.
 - ``condition`` - (optional) This indicates which logical conjuction to use. Either ``AND``/``OR`` Default is ``AND``
@@ -61,7 +61,7 @@ Example
             'xform': 'https://ona.io/api/v1/forms/12',
             'project':  'https://ona.io/api/v1/projects/13',
             'columns': '["name", "age", "gender"]',
-            'query': '[{"col":"age", "filter":">", "value":"20"}]'
+            'query': '[{"column":"age", "filter":">", "value":"20"}]'
         }
 
 Response
@@ -82,7 +82,7 @@ Response
             query: [
                 {
                     filter: ">",
-                    col: "age",
+                    column: "age",
                     value: "20"
                 }
             ]
@@ -115,7 +115,7 @@ Response
             query: [
                 {
                     filter: ">",
-                    col: "age",
+                    column: "age",
                     value: "20"
                 }
             ]
@@ -149,7 +149,7 @@ Response
             query: [
                 {
                     filter: ">",
-                    col: "age",
+                    column: "age",
                     value: "20"
                 }
             ]
@@ -167,7 +167,7 @@ Response
             query: [
                 {
                     filter: ">",
-                    col: "age",
+                    column: "age",
                     value: "30"
                 }
             ]
@@ -213,7 +213,7 @@ Response
             query: [
                 {
                     filter: ">",
-                    col: "age",
+                    column: "age",
                     value: "30"
                 }
             ]
@@ -254,7 +254,7 @@ Response
             query: [
                 {
                     filter: ">",
-                    col: "age",
+                    column: "age",
                     value: "30"
                 }
             ]

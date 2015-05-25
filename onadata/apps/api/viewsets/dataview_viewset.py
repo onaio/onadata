@@ -20,6 +20,14 @@ class DataViewViewSet(ModelViewSet):
     permission_classes = [DataViewViewsetPermissions]
     lookup_field = 'pk'
 
+    def get_serializer_class(self):
+        if self.action == 'data':
+            serializer_class = JsonDataSerializer
+        else:
+            serializer_class = self.serializer_class
+
+        return serializer_class
+
     @action(methods=['GET'])
     def data(self, request, format='json', **kwargs):
         """ Retrieve the data from the xform using this dataview """
@@ -33,6 +41,6 @@ class DataViewViewSet(ModelViewSet):
         if 'error' in data:
             return Response(status=status.HTTP_400_BAD_REQUEST,
                             data=data)
-        serializer = JsonDataSerializer(data)
+        serializer = self.get_serializer(data, many=True)
 
         return Response(serializer.data)
