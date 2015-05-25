@@ -1116,6 +1116,18 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.status_code, 201)
             self.assertEqual(count + 1, XForm.objects.count())
 
+            project = Project.objects.create(name=u"alice's other project",
+                                             organization=alice_profile.user,
+                                             created_by=alice_profile.user,
+                                             metadata='{}')
+
+            data['project_id'] = project.id
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertTrue(self.user.has_perm('can_add_xform', alice_profile))
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(count + 2, XForm.objects.count())
+
     def test_form_clone_shared_forms(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
