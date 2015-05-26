@@ -699,7 +699,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         self.object = self.get_object()
         data = {'xform': self.object.pk,
                 'username': request.DATA.get('username'),
-                'project_id': request.DATA.get('project_id', -1)}
+                'project': request.DATA.get('project_id', None)}
         serializer = CloneXFormSerializer(data=data)
         if serializer.is_valid():
             clone_to_user = User.objects.get(username=data['username'])
