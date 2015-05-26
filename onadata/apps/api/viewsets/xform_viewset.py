@@ -199,7 +199,8 @@ def process_async_export(request, xform, export_type, query=None, token=None,
             (token is not None) or (meta is not None):
                 export_type = Export.EXTERNAL_EXPORT
 
-    if should_regenerate_export(xform, export_type, request)\
+    remove_group_name = str_to_bool(options.get('remove_group_name'))
+    if should_regenerate_export(xform, export_type, request, remove_group_name)\
             or export_type == Export.EXTERNAL_EXPORT:
 
         resp = {
@@ -209,9 +210,7 @@ def process_async_export(request, xform, export_type, query=None, token=None,
         }
     else:
         remove_group_name = options.get('remove_group_name')
-        export = newest_export_for(xform, export_type,
-                                   remove_group_name=str_to_bool(
-                                       remove_group_name))
+        export = newest_export_for(xform, export_type, remove_group_name)
 
         if not export.filename:
             # tends to happen when using newest_export_for.
@@ -354,8 +353,10 @@ def response_for_format(data, format=None):
     return Response(formatted_data)
 
 
-def should_regenerate_export(xform, export_type, request):
-    return should_create_new_export(xform, export_type) or\
+def should_regenerate_export(xform, export_type, request,
+                             remove_group_name=False):
+    return should_create_new_export(xform, export_type,
+                                    remove_group_name=remove_group_name) or\
         'start' in request.GET or 'end' in request.GET or\
         'query' in request.GET or 'data_id' in request.GET
 
@@ -401,15 +402,14 @@ def custom_response_handler(request, xform, query, export_type,
             (token is not None) or (meta is not None):
         export_type = Export.EXTERNAL_EXPORT
 
-    remove_group_name = request.GET.get('remove_group_name')
+    remove_group_name = str_to_bool(request.GET.get('remove_group_name'))
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
-    if should_regenerate_export(xform, export_type, request):
+    if should_regenerate_export(xform, export_type, request,
+                                remove_group_name):
         export = _generate_new_export(request, xform, query, export_type)
     else:
-        export = newest_export_for(xform, export_type,
-                                   remove_group_name=str_to_bool(
-                                       remove_group_name))
+        export = newest_export_for(xform, export_type, remove_group_name)
 
         if not export.filename:
             # tends to happen when using newset_export_for.
@@ -425,8 +425,8 @@ def custom_response_handler(request, xform, query, export_type,
     path, ext = os.path.splitext(export.filename)
     ext = ext[1:]
     id_string = None if request.GET.get('raw') else \
-        xform.id_string if not str_to_bool(remove_group_name) else "{}-{}"\
-            .format(xform.id_string,GROUPNAME_REMOVED_FLAG)
+        xform.id_string if not remove_group_name else "{}-{}".format(
+            xform.id_string, GROUPNAME_REMOVED_FLAG)
     response = response_with_mimetype_and_name(
         Export.EXPORT_MIMES[ext], id_string, extension=ext,
         file_path=export.filepath)

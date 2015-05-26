@@ -30,7 +30,7 @@ from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     image_urls
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
-    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME,GROUPNAME_REMOVED_FLAG,
+    DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, GROUPNAME_REMOVED_FLAG,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION)
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.osm import get_combined_osm
@@ -787,14 +787,23 @@ def generate_export(export_type, extension, username, id_string,
     return export
 
 
-def should_create_new_export(xform, export_type):
+def should_create_new_export(xform, export_type, remove_group_name=False):
     # TODO resolve circular import
     from onadata.apps.viewer.models.export import Export
-    if Export.objects.filter(
-            xform=xform, export_type=export_type).count() == 0\
-            or Export.exports_outdated(xform, export_type=export_type):
-        return True
-    return False
+    q = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
+
+    if remove_group_name:
+        if Export.objects.filter(
+                xform=xform, export_type=export_type).filter(q).count() == 0\
+                or Export.exports_outdated(xform, export_type=export_type):
+            return True
+        return False
+    else:
+        if Export.objects.filter(
+                xform=xform, export_type=export_type).exclude(q).count() == 0\
+                or Export.exports_outdated(xform, export_type=export_type):
+            return True
+        return False
 
 
 def newest_export_for(xform, export_type, remove_group_name=False):
@@ -806,14 +815,8 @@ def newest_export_for(xform, export_type, remove_group_name=False):
     from onadata.apps.viewer.models.export import Export
     q = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
     if remove_group_name:
-
-        export_queryset = \
-            Export.objects.filter(xform=xform, export_type=export_type)\
-                .filter(q)
-        if export_queryset:
-            return export_queryset.latest('created_on')
-        else:
-            return Export()
+        return Export.objects.filter(xform=xform, export_type=export_type)\
+            .filter(q).latest('created_on')
     else:
         return Export.objects.filter(xform=xform, export_type=export_type)\
             .exclude(q).latest('created_on')

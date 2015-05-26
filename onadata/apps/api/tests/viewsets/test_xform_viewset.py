@@ -4,6 +4,7 @@ import os
 import re
 import requests
 import pytz
+import StringIO
 
 from django.db.models import Q
 from datetime import datetime
@@ -15,6 +16,7 @@ from mock import patch
 from rest_framework import status
 from xml.dom import minidom, Node
 from django_digest.test import DigestAuth
+from django.utils.dateparse import parse_datetime
 
 from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -27,6 +29,7 @@ from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.main.models import MetaData
+from onadata.libs.utils.common_tags import GROUPNAME_REMOVED_FLAG
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
@@ -112,6 +115,25 @@ def enketo_mock_with_form_defaults(url, request):
 def fixtures_path(filepath):
     return open(os.path.join(
         settings.PROJECT_ROOT, 'libs', 'tests', 'utils', 'fixtures', filepath))
+
+
+def _filename_from_disposition(self, content_disposition):
+    filename_pos = content_disposition.index('filename=')
+    self.assertTrue(filename_pos != -1)
+    return content_disposition[filename_pos + len('filename='):]
+
+
+def _get_response_content(self, response):
+    contents = u''
+    if response.streaming:
+        actual_content = StringIO.StringIO()
+        for content in response.streaming_content:
+            actual_content.write(content)
+        contents = actual_content.getvalue()
+        actual_content.close()
+    else:
+        contents = response.content
+    return contents
 
 
 class TestXFormViewSet(TestAbstractViewSet):
@@ -2053,3 +2075,158 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                         {'total': 4, 'version': u'2014111'}]
 
             self.assertEquals(expected, response.data.get('form_versions'))
+
+    def test__csv_export__with_and_without_removed_group_name(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            survey = self.surveys[0]
+            _submission_time = parse_datetime('2013-02-18 15:54:01Z')
+            self._make_submission(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'apps',
+                    'main', 'tests', 'fixtures', 'transportation',
+                    'instances', survey, survey + '.xml'),
+                forced_submission_time=_submission_time)
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            data = {'remove_group_name': True}
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = self._filename_from_disposition(content_disposition)
+            self.assertIn(GROUPNAME_REMOVED_FLAG, filename)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = self._get_response_content(response)
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation_no_group_names.csv')
+            with open(test_file_path, 'r') as test_file:
+                self.assertEqual(content, test_file.read())
+
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = self._filename_from_disposition(content_disposition)
+            self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = self._get_response_content(response)
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation.csv')
+            with open(test_file_path, 'r') as test_file:
+                self.assertEqual(content, test_file.read())
+
+    def test__csv_export__no_new_generated(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            survey = self.surveys[0]
+            _submission_time = parse_datetime('2013-02-18 15:54:01Z')
+            self._make_submission(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'apps',
+                    'main', 'tests', 'fixtures', 'transportation',
+                    'instances', survey, survey + '.xml'),
+                forced_submission_time=_submission_time)
+            count = Export.objects.all().count()
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            self.assertEquals(count+1, Export.objects.all().count())
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = self._filename_from_disposition(content_disposition)
+            self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = self._get_response_content(response)
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation.csv')
+            with open(test_file_path, 'r') as test_file:
+                self.assertEqual(content, test_file.read())
+
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            # no new export generated
+            self.assertEquals(count+1, Export.objects.all().count())
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = self._filename_from_disposition(content_disposition)
+            self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = self._get_response_content(response)
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation.csv')
+            with open(test_file_path, 'r') as test_file:
+                self.assertEqual(content, test_file.read())
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.xform_viewset.AsyncResult')
+    def test_export_csv_data_async_with_remove_group_name(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            view = XFormViewSet.as_view({
+                'get': 'export_async',
+            })
+            formid = self.xform.pk
+
+            request = self.factory.get(
+                '/', data={"format": "csv",
+                           "remove_group_name": True}, **self.extra)
+            response = view(request, pk=formid)
+            self.assertIsNotNone(response.data)
+            self.assertEqual(response.status_code, 202)
+            self.assertTrue('job_uuid' in response.data)
+            task_id = response.data.get('job_uuid')
+
+            export_pk = Export.objects.all().order_by('pk').reverse()[0].pk
+
+            # metaclass for mocking results
+            job = type('AsyncResultMock', (),
+                       {'state': 'SUCCESS', 'result': export_pk})
+            async_result.return_value = job
+
+            get_data = {'job_uuid': task_id,
+                        "remove_group_name": True}
+            request = self.factory.get('/', data=get_data, **self.extra)
+            response = view(request, pk=formid)
+
+            self.assertIn("remove_group_name=true",
+                          response.data.get('export_url'))
+
+            self.assertTrue(async_result.called)
+            self.assertEqual(response.status_code, 202)
+            export = Export.objects.get(task_id=task_id)
+            self.assertTrue(export.is_successful)
