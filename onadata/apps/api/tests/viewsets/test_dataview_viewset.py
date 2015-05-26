@@ -64,7 +64,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.data['project'], data['project'])
         self.assertEquals(response.data['columns'],
                           json.loads(data['columns']))
-        self.assertEquals(response.data['query'], json.loads(data['query']))
+        self.assertEquals(response.data['query'],
+                          json.loads(data['query']) if 'query' in data else {})
         self.assertEquals(response.data['url'],
                           'http://testserver/api/v1/dataviews/%s'
                           % self.data_view.pk)
@@ -332,19 +333,16 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
-            'columns': 'age'
+            'columns': '{"age":12}'
         }
 
-        self._create_dataview(data=data)
-
-        view = DataViewViewSet.as_view({
-            'get': 'data',
-        })
-
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=self.data_view.pk)
+        request = self.factory.post('/', data=data, **self.extra)
+        response = self.view(request)
 
         self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.data,
+                          {'columns': [u'`columns` should be'
+                                       u' a list of columns']})
 
     def test_dataview_invalid_query(self):
         data = {
@@ -353,7 +351,23 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["age"]',
-            'query': 'age=10'
+            'query': '["age"]'
+        }
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = self.view(request)
+
+        self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.data,
+                          {'query': [u'`column` not set in query']})
+
+    def test_dataview_query_not_required(self):
+        data = {
+            'name': "Transportation Dataview",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': '["age"]',
         }
 
         self._create_dataview(data=data)
@@ -365,4 +379,5 @@ class TestDataViewViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.data_view.pk)
 
-        self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response.data), 8)

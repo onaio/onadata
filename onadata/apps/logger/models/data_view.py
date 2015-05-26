@@ -53,7 +53,9 @@ class DataView(models.Model):
     project = models.ForeignKey(Project)
 
     columns = JSONField()
-    query = JSONField()
+    query = JSONField(default={}, blank=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = 'logger'
@@ -146,7 +148,9 @@ class DataView(models.Model):
         where, where_params = cls._get_where_clause(data_view, known_integers,
                                                     known_dates)
 
-        sql_where = u" AND " + u" AND ".join(where)
+        sql_where = ""
+        if where:
+            sql_where = u" AND " + u" AND ".join(where)
 
         sql += u" WHERE xform_id = %s " + sql_where \
                + u" AND deleted_at IS NULL"

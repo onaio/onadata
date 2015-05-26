@@ -20,7 +20,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
                                                   source='project',
                                                   lookup_field='pk')
     columns = JsonField(source='columns')
-    query = JsonField(source='query')
+    query = JsonField(source='query', required=False)
 
     class Meta:
         model = DataView
@@ -28,19 +28,28 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     def validate_query(self, attrs, source):
         query = attrs.get('query')
 
-        for q in query:
-            if 'column' not in q:
-                raise ValidationError(_(u"`column` not set in query"))
+        if query:
+            for q in query:
+                if 'column' not in q:
+                    raise ValidationError(_(u"`column` not set in query"))
 
-            if 'filter' not in q:
-                raise ValidationError(_(u"`filter` not set in query"))
+                if 'filter' not in q:
+                    raise ValidationError(_(u"`filter` not set in query"))
 
-            if 'value' not in q:
-                raise ValidationError(_(u"`value` not set in query"))
+                if 'value' not in q:
+                    raise ValidationError(_(u"`value` not set in query"))
 
-            comp = q.get('filter')
+                comp = q.get('filter')
 
-            if comp not in SUPPORTED_FILTERS:
-                raise ValidationError(_(u"Filter not supported"))
+                if comp not in SUPPORTED_FILTERS:
+                    raise ValidationError(_(u"Filter not supported"))
+
+        return attrs
+
+    def validate_columns(self, attrs, source):
+        columns = attrs.get('columns')
+
+        if not isinstance(columns, list):
+            raise ValidationError(_(u"`columns` should be a list of columns"))
 
         return attrs
