@@ -1116,6 +1116,21 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.status_code, 201)
             self.assertEqual(count + 1, XForm.objects.count())
 
+            data['project_id'] = 5000
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.data['project'][0],
+                             u"Project with id '5000' does not exist.")
+
+            data['project_id'] = "abc123"
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(
+                response.data['detail'],
+                u"invalid literal for int() with base 10: 'abc123'")
+
             project = Project.objects.create(name=u"alice's other project",
                                              organization=alice_profile.user,
                                              created_by=alice_profile.user,
