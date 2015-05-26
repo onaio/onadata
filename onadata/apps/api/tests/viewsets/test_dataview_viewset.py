@@ -325,3 +325,23 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.data,
                           {"detail": u"Error retrieving the data."
                                      u" Check the query parameter"})
+
+    def test_dataview_invalid_data_inputs(self):
+        data = {
+            'name': "Transportation Dataview",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': 'age'
+        }
+
+        self._create_dataview(data=data)
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertEquals(response.status_code, 400)
