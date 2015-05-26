@@ -30,7 +30,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
 from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
 
-from onadata.libs.utils.viewer_tools import _get_form_url, EnketoError
+from onadata.libs.utils.viewer_tools import get_form_url, EnketoError
 from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
     DataLicenseForm, SupportDocForm, QuickConverterFile, QuickConverterURL,\
     QuickConverter, SourceForm, PermissionForm, MediaForm, MapboxLayerForm,\
@@ -1330,7 +1330,7 @@ def qrcode(request, username, id_string):
 
 
 def get_enketo_preview_url(request, username, id_string):
-    form_url = _get_form_url(request, username)
+    form_url = get_form_url(request, username)
     values = {'form_id': id_string, 'server_url': form_url}
     preview_url = urljoin(settings.ENKETO_URL,
                           settings.ENKETO_API_SURVEY_PATH + '/preview')

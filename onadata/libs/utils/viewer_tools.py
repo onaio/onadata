@@ -245,7 +245,7 @@ def create_attachments_zipfile(attachments):
     return tmp
 
 
-def _get_form_url(request, username=None, protocol='https'):
+def get_form_url(request, username=None, protocol='https'):
     if settings.TESTING_MODE:
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME
@@ -261,9 +261,9 @@ def _get_form_url(request, username=None, protocol='https'):
 
 
 def get_enketo_edit_url(request, instance, return_url):
-    form_url = _get_form_url(request,
-                             instance.xform.user.username,
-                             settings.ENKETO_PROTOCOL)
+    form_url = get_form_url(request,
+                            instance.xform.user.username,
+                            settings.ENKETO_PROTOCOL)
     url = enketo_url(
         form_url, instance.xform.id_string, instance_xml=instance.xml,
         instance_id=instance.uuid, return_url=return_url)
