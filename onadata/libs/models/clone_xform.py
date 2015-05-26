@@ -3,15 +3,14 @@ from onadata.apps.viewer.models.data_dictionary import \
     DataDictionary, upload_to
 from django.core.files.storage import default_storage
 from onadata.apps.logger.models.xform import XForm
-from onadata.apps.logger.models.project import Project
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
 class CloneXForm(object):
-    def __init__(self, xform, username, project_id=-1):
+    def __init__(self, xform, username, project=None):
         self.xform = xform
         self.username = username
-        self.project_id = project_id
+        self.project = project
 
     @property
     def user(self):
@@ -19,10 +18,7 @@ class CloneXForm(object):
 
     def save(self, **kwargs):
         user = User.objects.get(username=self.username)
-        if self.project_id == -1:
-            project = get_user_default_project(user)
-        else:
-            project = Project.objects.get(pk=self.project_id)
+        project = self.project or get_user_default_project(user)
         xls_file_path = upload_to(None, '%s%s.xls' % (
                                   self.xform.id_string,
                                   XForm.CLONED_SUFFIX),
