@@ -14,7 +14,6 @@ import os
 import subprocess  # nopep8, used by included files
 import sys  # nopep8, used by included files
 import socket
-from urlparse import urljoin
 
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
