@@ -322,5 +322,6 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = view(request, pk=self.data_view.pk)
 
         self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.data, {"error": u"Error retrieving the data"
-                          u". Check the query parameter"})
+        self.assertEquals(response.data,
+                          {"detail": u"Error retrieving the data."
+                                     u" Check the query parameter"})

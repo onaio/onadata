@@ -1,7 +1,7 @@
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.api.permissions import DataViewViewsetPermissions
@@ -39,8 +39,8 @@ class DataViewViewSet(ModelViewSet):
         data = DataView.query_data(self.object, start, limit,
                                    str_to_bool(count))
         if 'error' in data:
-            return Response(status=status.HTTP_400_BAD_REQUEST,
-                            data=data)
+            raise ParseError(data.get('error'))
+
         serializer = self.get_serializer(data, many=True)
 
         return Response(serializer.data)
