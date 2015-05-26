@@ -1142,6 +1142,9 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertTrue(self.user.has_perm('can_add_xform', alice_profile))
             self.assertEqual(response.status_code, 201)
             self.assertEqual(count + 2, XForm.objects.count())
+            form_id = response.data['formid']
+            form = XForm.objects.get(pk=form_id)
+            self.assertEqual(form.project_id, project.id)
 
     def test_form_clone_shared_forms(self):
         with HTTMock(enketo_mock):
