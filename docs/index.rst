@@ -17,6 +17,7 @@ Data Endpoints
 
    charts
    data
+   dataviews
    stats
 
 Forms
