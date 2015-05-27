@@ -30,12 +30,22 @@ from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.apps.logger.views import submission
 
 
-@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
-def enketo_mock(url, request):
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey/preview$')
+def enketo_preview_url_mock(url, request):
     response = requests.Response()
     response.status_code = 201
     response._content = \
-        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform",\n'\
+        '{\n  "preview_url": "https:\\/\\/enketo.ona.io\\/preview/::YY8M",\n'\
+        '  "code": "201"\n}'
+    return response
+
+
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey$')
+def enketo_url_mock(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = \
+        '{\n  "url": "https:\\/\\/enketo.ona.io\\/::YY8M",\n'\
         '  "code": "200"\n}'
     return response
 
@@ -228,10 +238,12 @@ class TestAbstractViewSet(TestCase):
         path = xlsform_path or os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
-        with HTTMock(enketo_mock):
+
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             with open(path) as xls_file:
                 post_data = {'xls_file': xls_file}
-                request = self.factory.post('/', data=post_data, **self.extra)
+                request = self.factory.post(
+                    '/', data=post_data, **self.extra)
                 response = view(request, pk=project_id)
                 self.assertEqual(response.status_code, 201)
                 self.xform = XForm.objects.all().order_by('pk').reverse()[0]

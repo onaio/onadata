@@ -42,6 +42,26 @@ def enketo_mock(url, request):
     return response
 
 
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey/preview$')
+def enketo_preview_url_mock(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = \
+        '{\n  "preview_url": "https:\\/\\/enketo.ona.io\\/preview/::YY8M",\n'\
+        '  "code": "201"\n}'
+    return response
+
+
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey$')
+def enketo_url_mock(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = \
+        '{\n  "url": "https:\\/\\/enketo.ona.io\\/::YY8M",\n'\
+        '  "code": "200"\n}'
+    return response
+
+
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
 def enketo_error_mock(url, request):
     response = requests.Response()
@@ -257,7 +277,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data, [])
 
     def test_public_form_list(self):
-        with HTTMock(enketo_mock):
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()
             self.view = XFormViewSet.as_view({
                 'get': 'retrieve',
@@ -282,9 +302,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.form_data['metadata'] = [{
                 'id': preview_url.pk,
                 'xform': self.xform.pk,
-                'data_value': u'https://enketo.ona.io/webform/preview?'
-                'server=http://testserver/%s/&id=transportation_2011_07_25' %
-                self.xform.user.username,
+                'data_value': u"https://enketo.ona.io/preview/::YY8M",
                 'data_type': u'enketo_preview_url',
                 'data_file': u'',
                 'data_file_type': None,
@@ -294,7 +312,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'media_url': None
             }, {
                 'id': url.pk,
-                'data_value': u'https://dmfrm.enketo.org/webform',
+                'data_value': u"https://enketo.ona.io/::YY8M",
                 'xform': self.xform.pk,
                 'data_file': u'',
                 'data_type': u'enketo_url',
@@ -319,7 +337,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data, [])
 
     def test_form_list_other_user_access(self):
-        with HTTMock(enketo_mock):
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             """Test that a different user has no access to bob's form"""
             self._publish_xls_form_to_project()
             request = self.factory.get('/', **self.extra)
@@ -333,9 +351,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.form_data['metadata'] = [{
                 'id': preview_url.pk,
                 'xform': self.xform.pk,
-                'data_value': u'https://enketo.ona.io/webform/preview?'
-                'server=http://testserver/%s/&id=transportation_2011_07_25' %
-                self.xform.user.username,
+                'data_value': u"https://enketo.ona.io/preview/::YY8M",
                 'data_type': u'enketo_preview_url',
                 'data_file': u'',
                 'data_file_type': None,
@@ -346,7 +362,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             }, {
                 'id': url.pk,
                 'xform': self.xform.pk,
-                'data_value': u'https://dmfrm.enketo.org/webform',
+                'data_value': u"https://enketo.ona.io/::YY8M",
                 'data_type': u'enketo_url',
                 'data_file': u'',
                 'data_file_type': None,
@@ -374,12 +390,13 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data, [])
 
     def test_form_list_filter_by_user(self):
-        with HTTMock(enketo_mock):
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             # publish bob's form
             self._publish_xls_form_to_project()
 
             previous_user = self.user
-            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            alice_data = {'username': 'alice',
+                          'email': 'alice@localhost.com'}
             self._login_user_and_profile(extra_post_data=alice_data)
             self.assertEqual(self.user.username, 'alice')
             self.assertNotEqual(previous_user, self.user)
@@ -400,16 +417,17 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertNotEqual(response.get('Last-Modified'), None)
             self.assertEqual(response.status_code, 200)
             # should be both bob's and alice's form
-            resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
-                data_type='enketo_url') | Q(data_type='enketo_preview_url'))
+            resultset = MetaData.objects.filter(
+                Q(xform_id=self.xform.pk),
+                Q(data_type='enketo_url') |
+                Q(data_type='enketo_preview_url'))
             url = resultset.get(data_type='enketo_url')
             preview_url = resultset.get(data_type='enketo_preview_url')
+
             self.form_data['metadata'] = [{
                 'id': preview_url.pk,
                 'xform': self.xform.pk,
-                'data_value': u'https://enketo.ona.io/webform/preview?'
-                'server=http://testserver/%s/&id=transportation_2011_07_25' %
-                self.xform.user.username,
+                'data_value': u"https://enketo.ona.io/preview/::YY8M",
                 'data_type': u'enketo_preview_url',
                 'data_file': u'',
                 'data_file_type': None,
@@ -420,7 +438,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             }, {
                 'id': url.pk,
                 'xform': self.xform.pk,
-                'data_value': u'https://dmfrm.enketo.org/webform',
+                'data_value': u"https://enketo.ona.io/::YY8M",
                 'data_type': u'enketo_url',
                 'data_file': u'',
                 'data_file_type': None,
@@ -478,49 +496,48 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data, [])
 
     def test_form_get(self):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            view = XFormViewSet.as_view({
-                'get': 'retrieve'
-            })
-            formid = self.xform.pk
-            request = self.factory.get('/', **self.extra)
-            response = view(request, pk=formid)
-            self.assertNotEqual(response.get('Last-Modified'), None)
-            self.assertEqual(response.status_code, 200)
-            resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
-                data_type='enketo_url') | Q(data_type='enketo_preview_url'))
-            url = resultset.get(data_type='enketo_url')
-            preview_url = resultset.get(data_type='enketo_preview_url')
-            self.form_data['metadata'] = [{
-                'id': preview_url.pk,
-                'xform': self.xform.pk,
-                'data_value': u'https://enketo.ona.io/webform/preview?\
-server=http://testserver/%s/&id=transportation_2011_07_25' %
-                self.xform.user.username,
-                'data_type': u'enketo_preview_url',
-                'data_file': u'',
-                'data_file_type': None,
-                u'url': u'http://testserver/api/v1/metadata/%s' %
-                preview_url.pk,
-                'file_hash': None,
-                'media_url': None
-            }, {
-                'id': url.pk,
-                'xform': self.xform.pk,
-                'data_value': u'https://dmfrm.enketo.org/webform',
-                'data_type': u'enketo_url',
-                'data_file': u'',
-                'data_file_type': None,
-                u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
-                'file_hash': None,
-                'media_url': None
-            }]
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({
+            'get': 'retrieve'
+        })
+        formid = self.xform.pk
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.status_code, 200)
+        resultset = MetaData.objects.filter(
+            Q(xform_id=self.xform.pk),
+            Q(data_type='enketo_url') |
+            Q(data_type='enketo_preview_url'))
+        url = resultset.get(data_type='enketo_url')
+        preview_url = resultset.get(data_type='enketo_preview_url')
+        self.form_data['metadata'] = [{
+            'id': preview_url.pk,
+            'xform': self.xform.pk,
+            'data_value': u"https://enketo.ona.io/preview/::YY8M",
+            'data_type': u'enketo_preview_url',
+            'data_file': u'',
+            'data_file_type': None,
+            u'url': u'http://testserver/api/v1/metadata/%s' %
+            preview_url.pk,
+            'file_hash': None,
+            'media_url': None
+        }, {
+            'id': url.pk,
+            'xform': self.xform.pk,
+            'data_value': u"https://enketo.ona.io/::YY8M",
+            'data_type': u'enketo_url',
+            'data_file': u'',
+            'data_file_type': None,
+            u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
+            'file_hash': None,
+            'media_url': None
+        }]
 
-            self.form_data['metadata'].sort()
-            response.data['metadata'].sort()
+        self.form_data['metadata'].sort()
+        response.data['metadata'].sort()
 
-            self.assertEqual(response.data, self.form_data)
+        self.assertEqual(response.data, self.form_data)
 
     def test_form_format(self):
         with HTTMock(enketo_mock):
@@ -671,7 +688,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                 self.assertEqual(response.data, data)
 
     def test_enketo_url(self):
-        with HTTMock(enketo_mock):
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'enketo'
@@ -680,16 +697,13 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             # no tags
             request = self.factory.get('/', **self.extra)
             response = view(request, pk=formid)
-            url = "https://dmfrm.enketo.org/webform"
-            preview_url = "%(uri)s?server=%(server)s&id=%(id_string)s" % {
-                'uri': settings.ENKETO_PREVIEW_URL,
-                'server': "http://testserver/bob/",
-                'id_string': 'transportation_2011_07_25'}
+            url = u"https://enketo.ona.io/::YY8M"
+            preview_url = u"https://enketo.ona.io/preview/::YY8M"
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
     def test_enketo_url_with_default_form_params(self):
-        with HTTMock(enketo_mock_with_form_defaults):
+        with HTTMock(enketo_preview_url_mock, enketo_mock_with_form_defaults):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'enketo'
@@ -700,10 +714,7 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid)
             url = "https://dmfrm.enketo.org/webform?d[%2Fnum]=1"
-            preview_url = "%(uri)s?server=%(server)s&id=%(id_string)s" % {
-                'uri': settings.ENKETO_PREVIEW_URL,
-                'server': "http://testserver/bob/",
-                'id_string': 'transportation_2011_07_25'}
+            preview_url = u"https://enketo.ona.io/preview/::YY8M"
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
