@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 from django.core.mail import send_mail
+from django.core.validators import ValidationError
 
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
@@ -36,10 +37,14 @@ def _try_function_org_username(f, organization, username, args=None):
                 [_(u"User `%(username)s` does not exist."
                    % {'username': username})]}
     else:
-        if args:
-            f(organization, user, *args)
-        else:
-            f(organization, user)
+        try:
+            if args:
+                f(organization, user, *args)
+            else:
+                f(organization, user)
+        except ValidationError, e:
+            return [unicode(e.message), status.HTTP_400_BAD_REQUEST]
+
         status_code = status.HTTP_201_CREATED
 
     return [data, status_code]
