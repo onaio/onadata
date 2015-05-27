@@ -333,7 +333,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
-            'columns': '{"age":12}'
+            'columns': 'age'
         }
 
         request = self.factory.post('/', data=data, **self.extra)
@@ -341,8 +341,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 400)
         self.assertEquals(response.data,
-                          {'columns': [u'`columns` should be'
-                                       u' a list of columns']})
+                          {'columns': [u'No JSON object could be decoded']})
 
     def test_dataview_invalid_query(self):
         data = {
@@ -351,7 +350,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'project':  'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["age"]',
-            'query': '["age"]'
+            'query': 'age=10'
         }
 
         request = self.factory.post('/', data=data, **self.extra)
@@ -359,7 +358,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 400)
         self.assertEquals(response.data,
-                          {'query': [u'`column` not set in query']})
+                          {'query': [u'No JSON object could be decoded']})
 
     def test_dataview_query_not_required(self):
         data = {

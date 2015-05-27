@@ -1,5 +1,8 @@
-from rest_framework import serializers
 import json
+
+from rest_framework import serializers
+
+from django.core.validators import ValidationError
 
 
 class JsonField(serializers.WritableField):
@@ -12,7 +15,11 @@ class JsonField(serializers.WritableField):
 
     def from_native(self, value):
         if isinstance(value, basestring):
-            return json.loads(value)
+            try:
+                return json.loads(value)
+            except ValueError as e:
+                # invalid json
+                raise ValidationError(unicode(e))
 
         return value
 
