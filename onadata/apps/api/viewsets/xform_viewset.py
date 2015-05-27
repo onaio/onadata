@@ -150,11 +150,10 @@ def _export_async_export_response(request, xform, export):
                         'format': export.export_type},
                 request=request
             )
-
-            if str_to_bool(request.QUERY_PARAMS.get('remove_group_name')):
+            remove_group_key = "remove_group_name"
+            if str_to_bool(request.QUERY_PARAMS.get(remove_group_key)):
                 # append the param to the url
-                export_url = "{}{}".format(export_url,
-                                           "?remove_group_name=true")
+                export_url = "{}?{}=true".format(export_url, remove_group_key)
         else:
             export_url = export.export_url
         resp = {
@@ -424,9 +423,7 @@ def custom_response_handler(request, xform, query, export_type,
     # xlsx if it exceeds limits
     path, ext = os.path.splitext(export.filename)
     ext = ext[1:]
-    id_string = None if request.GET.get('raw') else \
-        xform.id_string if not remove_group_name else "{}-{}".format(
-            xform.id_string, GROUPNAME_REMOVED_FLAG)
+    id_string = _generate_filename(request, xform, remove_group_name)
     response = response_with_mimetype_and_name(
         Export.EXPORT_MIMES[ext], id_string, extension=ext,
         file_path=export.filepath)
@@ -455,6 +452,17 @@ def get_survey_xml(csv_name):
     survey_dict = get_survey_dict(csv_name)
     survey = create_survey_element_from_dict(survey_dict)
     return survey.to_xml()
+
+
+def _generate_filename(request, xform, remove_group_name=False):
+    if request.GET.get('raw'):
+        filename = None
+    else:
+        # append group name removed flag otherwise use the form id_string
+        filename = "{}-{}".format(xform.id_string, GROUPNAME_REMOVED_FLAG) \
+            if remove_group_name else xform.id_string
+
+    return filename
 
 
 class XFormViewSet(AnonymousUserPublicFormsMixin,

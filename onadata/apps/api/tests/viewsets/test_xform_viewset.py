@@ -117,13 +117,13 @@ def fixtures_path(filepath):
         settings.PROJECT_ROOT, 'libs', 'tests', 'utils', 'fixtures', filepath))
 
 
-def _filename_from_disposition(self, content_disposition):
+def _filename_from_disposition(content_disposition):
     filename_pos = content_disposition.index('filename=')
-    self.assertTrue(filename_pos != -1)
+    assert filename_pos != -1
     return content_disposition[filename_pos + len('filename='):]
 
 
-def _get_response_content(self, response):
+def _get_response_content(response):
     contents = u''
     if response.streaming:
         actual_content = StringIO.StringIO()
@@ -2100,12 +2100,12 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
-            filename = self._filename_from_disposition(content_disposition)
+            filename = _filename_from_disposition(content_disposition)
             self.assertIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = self._get_response_content(response)
+            content = _get_response_content(response)
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
                                           'transportation_no_group_names.csv')
@@ -2119,12 +2119,12 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
-            filename = self._filename_from_disposition(content_disposition)
+            filename = _filename_from_disposition(content_disposition)
             self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = self._get_response_content(response)
+            content = _get_response_content(response)
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
                                           'transportation.csv')
@@ -2157,12 +2157,12 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
-            filename = self._filename_from_disposition(content_disposition)
+            filename = _filename_from_disposition(content_disposition)
             self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = self._get_response_content(response)
+            content = _get_response_content(response)
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
                                           'transportation.csv')
@@ -2179,12 +2179,12 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
-            filename = self._filename_from_disposition(content_disposition)
+            filename = _filename_from_disposition(content_disposition)
             self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = self._get_response_content(response)
+            content = _get_response_content(response)
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
                                           'transportation.csv')
