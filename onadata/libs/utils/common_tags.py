@@ -66,3 +66,4 @@ MODE = u"mode"
 TEXTIT = u'textit'
 OSM = u'osm'
 MULTIPLE_SELECT_TYPE = u'select all that apply'
+GROUPNAME_REMOVED_FLAG = u'group-name-removed'
