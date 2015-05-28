@@ -22,6 +22,7 @@ from django.db.models import Q
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import\
     _is_invalid_for_mongo, _encode_for_mongo, _decode_from_mongo,\
@@ -532,6 +533,7 @@ class ExportBuilder(object):
                 data.get(PARENT_TABLE_NAME))
             work_sheet.append([data.get(f) for f in fields])
 
+        dataview = kwargs.get('dataview')
         wb = Workbook(optimized_write=True)
         work_sheets = {}
         # map of section_names to generated_names
@@ -547,9 +549,14 @@ class ExportBuilder(object):
         # write the headers
         for section in self.sections:
             section_name = section['name']
-            headers = [
-                element['title'] for element in
-                section['elements']] + self.EXTRA_FIELDS
+
+            if dataview:
+                headers = dataview.columns
+            else:
+                headers = [
+                    element['title'] for element in
+                    section['elements']] + self.EXTRA_FIELDS
+
             # get the worksheet
             ws = work_sheets[section_name]
             ws.append(headers)
@@ -571,9 +578,13 @@ class ExportBuilder(object):
             for section in self.sections:
                 # get data for this section and write to xls
                 section_name = section['name']
-                fields = [
-                    element['xpath'] for element in
-                    section['elements']] + self.EXTRA_FIELDS
+
+                if dataview:
+                    fields = dataview.columns
+                else:
+                    fields = [
+                        element['xpath'] for element in
+                        section['elements']] + self.EXTRA_FIELDS
 
                 ws = work_sheets[section_name]
                 # section might not exist within the output, e.g. data was
@@ -594,7 +605,7 @@ class ExportBuilder(object):
 
     def to_flat_csv_export(
             self, path, data, username, id_string, filter_query,
-            start=None, end=None):
+            start=None, end=None, dataview=None):
         # TODO resolve circular import
         from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 
@@ -603,7 +614,7 @@ class ExportBuilder(object):
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
             start, end, self.TRUNCATE_GROUP_TITLE
         )
-        csv_builder.export_to(path)
+        csv_builder.export_to(path, dataview=dataview)
 
     def to_zipped_sav(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):
@@ -702,7 +713,7 @@ def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
                     split_select_multiples=True,
                     binary_select_multiples=False, start=None, end=None,
-                    remove_group_name=False):
+                    remove_group_name=False, dataview=None):
     """
     Create appropriate export object given the export type
     """
@@ -718,7 +729,10 @@ def generate_export(export_type, extension, username, id_string,
     xform = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
 
-    records = ParsedInstance.query_data(xform, query=filter_query,
+    if dataview:
+        records = DataView.query_data(dataview)
+    else:
+        records = ParsedInstance.query_data(xform, query=filter_query,
                                         start=start, end=end)
 
     export_builder = ExportBuilder()
@@ -736,7 +750,7 @@ def generate_export(export_type, extension, username, id_string,
     try:
         func.__call__(
             temp_file.name, records, username, id_string, filter_query,
-            start=start, end=end
+            start=start, end=end, dataview=dataview
         )
     except NoRecordsFoundError:
         pass

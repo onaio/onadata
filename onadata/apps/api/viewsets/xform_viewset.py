@@ -273,7 +273,7 @@ def _set_start_end_params(request, query):
         return query
 
 
-def _generate_new_export(request, xform, query, export_type):
+def _generate_new_export(request, xform, query, export_type, dataview=None):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
@@ -302,7 +302,7 @@ def _generate_new_export(request, xform, query, export_type):
             export = generate_export(
                 export_type, extension, xform.user.username,
                 xform.id_string, None, query,
-                remove_group_name=remove_group_name
+                remove_group_name=remove_group_name, dataview=dataview
             )
         audit = {
             "xform": xform.id_string,
@@ -400,7 +400,7 @@ def log_export(request, xform, export_type):
 
 
 def custom_response_handler(request, xform, query, export_type,
-                            token=None, meta=None):
+                            token=None, meta=None, dataview=None):
     export_type = _get_export_type(export_type)
 
     if export_type in external_export_types and \
@@ -410,15 +410,22 @@ def custom_response_handler(request, xform, query, export_type,
     remove_group_name = str_to_bool(request.GET.get('remove_group_name'))
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
+<<<<<<< HEAD
     if should_regenerate_export(xform, export_type, request,
                                 remove_group_name):
         export = _generate_new_export(request, xform, query, export_type)
+=======
+    if should_regenerate_export(xform, export_type, request):
+        export = _generate_new_export(request, xform, query, export_type,
+                                      dataview=dataview)
+>>>>>>> DW: dataview exports
     else:
         export = newest_export_for(xform, export_type, remove_group_name)
 
         if not export.filename:
             # tends to happen when using newset_export_for.
-            export = _generate_new_export(request, xform, query, export_type)
+            export = _generate_new_export(request, xform, query, export_type,
+                                          dataview=dataview)
 
     log_export(request, xform, export_type)
 
