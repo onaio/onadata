@@ -183,6 +183,7 @@ def get_organization_members(organization):
 
     return team.user_set.all()
 
+
 def _get_owners(organization):
     # Get users with owners perms and not the org itself
     return [user for user in get_organization_members(organization)
