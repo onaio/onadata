@@ -31,6 +31,7 @@ from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
 from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 from onadata.apps.api.viewsets.media_viewset import MediaViewSet
+from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
 
 
 def make_routes(template_text):
@@ -231,3 +232,4 @@ router.register(r'osm', OsmViewSet, base_name='osm')
 router.register(r'restservices', RestServicesViewSet, base_name='restservices')
 router.register(r'files', MediaViewSet, base_name='files')
 router.register(r'dataviews', DataViewViewSet, base_name='dataviews')
+router.register(r'widgets', WidgetViewSet, base_name='widgets')
