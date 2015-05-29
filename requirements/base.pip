@@ -73,3 +73,6 @@ python-memcached
 
 # docs
 sphinx==1.2.3
+
+#Enumfield
+django-enumfields
