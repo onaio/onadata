@@ -735,4 +735,5 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 400)
-        self.assertEquals(response.data, u"Org cannot be without an owner")
+        self.assertEquals(response.data, u"Organization cannot be without"
+                                         u" an owner")

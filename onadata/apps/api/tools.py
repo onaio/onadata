@@ -152,7 +152,7 @@ def remove_user_from_organization(organization, user):
     """Remove a user from an organization"""
     owners = _get_owners(organization)
     if user in owners and len(owners) <= 1:
-        raise ValidationError(_("Org cannot be without an owner"))
+        raise ValidationError(_("Organization cannot be without an owner"))
     team = get_organization_members_team(organization)
     remove_user_from_team(team, user)
 
