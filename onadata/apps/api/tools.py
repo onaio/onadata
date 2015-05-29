@@ -18,6 +18,7 @@ from django.shortcuts import get_object_or_404
 from taggit.forms import TagField
 from rest_framework import exceptions
 from registration.models import RegistrationProfile
+from django.core.validators import ValidationError
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
@@ -149,6 +150,9 @@ def get_organization_owners_team(org):
 
 def remove_user_from_organization(organization, user):
     """Remove a user from an organization"""
+    owners = _get_owners(organization)
+    if user in owners and len(owners) <= 1:
+        raise ValidationError(_("Organization cannot be without an owner"))
     team = get_organization_members_team(organization)
     remove_user_from_team(team, user)
 
@@ -178,6 +182,13 @@ def get_organization_members(organization):
     team = get_organization_members_team(organization)
 
     return team.user_set.all()
+
+
+def _get_owners(organization):
+    # Get users with owners perms and not the org itself
+    return [user for user in get_organization_members(organization)
+            if get_role_in_org(user, organization) == 'owner' and
+            organization.user != user]
 
 
 def create_organization_project(organization, project_name, created_by):

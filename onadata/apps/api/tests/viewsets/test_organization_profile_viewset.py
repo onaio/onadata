@@ -681,3 +681,59 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Last-Modified'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['name'], "Dennis2")
+
+    def test_owner_not_allowed_to_be_removed(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members',
+            'delete': 'members',
+            'get': 'retrieve',
+        })
+
+        self.profile_data['username'] = "aboy"
+        aboy = self._create_user_profile().user
+
+        data = {'username': aboy.username,
+                'role': 'owner'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(set(response.data), set([u'denoinc',
+                                                  aboy.username]))
+
+        self.profile_data['username'] = "aboy2"
+        aboy2 = self._create_user_profile().user
+
+        data = {'username': aboy2.username,
+                'role': 'owner'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(set(response.data), set([u'denoinc',
+                                                  aboy.username,
+                                                  aboy2.username]))
+
+        data = {'username': aboy2.username}
+        request = self.factory.delete(
+            '/', json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data, [u'denoinc', aboy.username])
+
+        data = {'username': aboy.username}
+        request = self.factory.delete(
+            '/', json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(response.data, u"Organization cannot be without"
+                                         u" an owner")
