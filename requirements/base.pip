@@ -74,3 +74,6 @@ python-memcached
 # docs
 sphinx==1.2.3
 
+# generic relation
+-e git+https://github.com/Ian-Foote/rest-framework-generic-relations.git#egg=rest-framework-generic-relations
+

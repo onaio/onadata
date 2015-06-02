@@ -202,4 +202,21 @@ class DataViewViewsetPermissions(ViewDjangoObjectPermissions,
             request, view, obj.project)
 
 
+class WidgetViewSetPermissions(ViewDjangoObjectPermissions,
+                               HasProjectObjectPermissionMixin,
+                               DjangoObjectPermissions):
+
+    authenticated_users_only = False
+
+    def has_permission(self, request, view):
+        view.model = Project
+
+        return super(WidgetViewSetPermissions, self).has_permission(request, view)
+
+    def has_object_permission(self, request, view, obj):
+
+        return super(WidgetViewSetPermissions, self).has_object_permission(
+            request, view, obj.project)
+
+
 __permissions__ = [DjangoObjectPermissions, IsAuthenticated]
