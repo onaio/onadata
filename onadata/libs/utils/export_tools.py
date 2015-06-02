@@ -635,12 +635,9 @@ class ExportBuilder(object):
                  for item in self.EXTRA_FIELDS]
             )
             sav_file = NamedTemporaryFile(suffix=".sav")
-            try:
-                sav_writer = SavWriter(sav_file.name, varNames=var_names,
-                                       varTypes=var_types,
-                                       varLabels=var_labels, ioUtf8=True)
-            except TypeError as e:
-                raise Exception(unicode(e))
+            sav_writer = SavWriter(sav_file.name, varNames=var_names,
+                                   varTypes=var_types,
+                                   varLabels=var_labels, ioUtf8=True)
             sav_defs[section['name']] = {
                 'sav_file': sav_file, 'sav_writer': sav_writer}
 
