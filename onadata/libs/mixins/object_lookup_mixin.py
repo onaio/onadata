@@ -40,8 +40,8 @@ class ObjectLookupMixin(object):
         """
         # pk and/or slug attributes are implicit in the URL.
         if self.lookup_field == 'user':
-            lookup = self.request.DATA.get('username') or \
-                     self.kwargs.get(self.lookup_field, None)
+            lookup = self.request.DATA.get('username') or self.kwargs.get(
+                self.lookup_field, None)
         else:
             lookup = self.kwargs.get(self.lookup_field, None)
         pk = self.kwargs.get(self.pk_url_kwarg, None)
