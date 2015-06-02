@@ -15,6 +15,7 @@ from django.http import Http404, HttpResponseBadRequest, HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
+from django.db import IntegrityError
 
 from pyxform.xls2json import parse_file_to_json
 from pyxform.builder import create_survey_element_from_dict
@@ -710,7 +711,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                              "xforms to account %(account)s" %
                              {'user': request.user.username,
                               'account': data['username']}))
-            xform = serializer.save()
+            try:
+                xform = serializer.save()
+            except IntegrityError:
+                raise ParseError(
+                    'A clone with the same id_string has already been created')
             serializer = XFormSerializer(
                 xform.cloned_form, context={'request': request})
 
