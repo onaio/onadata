@@ -307,7 +307,7 @@ def create_sav_zip_export(username, id_string, export_id, query=None,
             query, group_delimiter, split_select_multiples,
             binary_select_multiples, remove_group_name=remove_group_name
         )
-    except (Exception, NoRecordsFoundError) as e:
+    except (Exception, NoRecordsFoundError, TypeError) as e:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
