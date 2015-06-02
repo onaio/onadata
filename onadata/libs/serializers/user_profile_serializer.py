@@ -151,7 +151,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             if last_name:
                 instance.user.last_name = last_name
 
-            (email or first_name or last_name) and instance.user.save()
+            if username:
+                instance.user.username = username
+
+            (email or first_name or last_name or username) and \
+                instance.user.save()
 
             return super(
                 UserProfileSerializer, self).restore_object(attrs, instance)
