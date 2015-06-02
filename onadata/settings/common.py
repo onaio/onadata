@@ -91,6 +91,7 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/static/'
 
 # Enketo URL
+ENKETO_PROTOCOL = 'https'
 ENKETO_URL = 'https://enketo.ona.io/'
 ENKETO_API_SURVEY_PATH = '/api_v1/survey'
 ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
@@ -453,9 +454,6 @@ BINARY_SELECT_MULTIPLES = False
 
 # Use 'n/a' for empty values by default on csv exports
 NA_REP = 'n/a'
-
-# specifically for site urls sent to enketo
-ENKETO_PROTOCOL = 'https'
 
 if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
     # site templates overrides
