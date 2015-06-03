@@ -4,12 +4,13 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.utils import six
+from django.contrib.contenttypes.models import ContentType
 
 from rest_framework import filters
 from rest_framework.exceptions import ParseError
 
 
-from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.logger.models import XForm, Instance, Project
 from onadata.apps.api.models import Team, OrganizationProfile
 
 
@@ -259,3 +260,11 @@ class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
                 raise Http404
 
         return queryset
+
+class WidgetFilter(filters.DjangoObjectPermissionsFilter):
+
+    def filter_queryset(self, request, queryset, view):
+        queryset.model = Project
+
+        return super(WidgetFilter, self).filter_queryset(request,queryset,
+                                                         view)

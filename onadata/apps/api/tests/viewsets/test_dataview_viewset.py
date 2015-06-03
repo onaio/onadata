@@ -35,41 +35,6 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'get': 'retrieve'
         })
 
-    def _create_dataview(self, data=None):
-
-        if data:
-            data = data
-        else:
-            data = {
-                'name': "My DataView",
-                'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-                'project':  'http://testserver/api/v1/projects/%s'
-                            % self.project.pk,
-                'columns': '["name", "age", "gender"]',
-                'query': '[{"column":"age","filter":">","value":"20"},'
-                         '{"column":"age","filter":"<","value":"50"}]'
-            }
-
-        request = self.factory.post('/', data=data, **self.extra)
-        response = self.view(request)
-
-        self.assertEquals(response.status_code, 201)
-
-        # load the created dataview
-        self.data_view = DataView.objects.filter(xform=self.xform,
-                                                 project=self.project)[0]
-
-        self.assertEquals(response.data['name'], data['name'])
-        self.assertEquals(response.data['xform'], data['xform'])
-        self.assertEquals(response.data['project'], data['project'])
-        self.assertEquals(response.data['columns'],
-                          json.loads(data['columns']))
-        self.assertEquals(response.data['query'],
-                          json.loads(data['query']) if 'query' in data else {})
-        self.assertEquals(response.data['url'],
-                          'http://testserver/api/v1/dataviews/%s'
-                          % self.data_view.pk)
-
     def test_create_dataview(self):
         self._create_dataview()
 

@@ -9,6 +9,7 @@ from onadata.apps.api.tools import get_user_profile_or_none, \
     check_inherit_permission_from_project
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Project
+from onadata.apps.logger.models import DataView
 
 
 class ViewDjangoObjectPermissions(DjangoObjectPermissions):
@@ -211,12 +212,17 @@ class WidgetViewSetPermissions(ViewDjangoObjectPermissions,
     def has_permission(self, request, view):
         view.model = Project
 
-        return super(WidgetViewSetPermissions, self).has_permission(request, view)
+        return super(WidgetViewSetPermissions, self).has_permission(request,
+                                                                    view)
 
     def has_object_permission(self, request, view, obj):
 
+        if not (isinstance(obj.content_object, XForm) or
+                    isinstance(obj.content_object, DataView)):
+            return False
+
         return super(WidgetViewSetPermissions, self).has_object_permission(
-            request, view, obj.project)
+            request, view, obj.content_object.project)
 
 
 __permissions__ = [DjangoObjectPermissions, IsAuthenticated]

@@ -22,10 +22,10 @@ class Widget(models.Model):
                                    default=CHARTS)
     view_type = models.CharField(max_length=50)
     column = models.CharField(max_length=50)
-    group_by = models.CharField(null=True, default=None, max_length=50)
+    group_by = models.CharField(null=True, default=None, max_length=50, blank=True)
 
-    title = models.CharField(null=True, default=None, max_length=50)
-    description = models.CharField(null=True, default=None, max_length=255)
+    title = models.CharField(null=True, default=None, max_length=50, blank=True)
+    description = models.CharField(null=True, default=None, max_length=255, blank=True)
     key = models.CharField(db_index=True, unique=True, max_length=32)
 
     date_created = models.DateTimeField(auto_now_add=True)
