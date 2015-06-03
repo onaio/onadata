@@ -57,6 +57,7 @@ class TestExportViewSet(TestBase):
             'get': 'list'
         })
         formid = self.xform.pk
+
         # csv
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=formid, format='csv')
@@ -79,3 +80,15 @@ class TestExportViewSet(TestBase):
         self.assertEqual(headers['Content-Type'],
                          'application/vnd.openxmlformats')
         self.assertEqual(ext, '.xlsx')
+
+        # kml
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid, format='kml')
+        self.assertEqual(response.status_code, 200)
+        headers = dict(response.items())
+        content_disposition = headers['Content-Disposition']
+        filename = self._filename_from_disposition(content_disposition)
+        basename, ext = os.path.splitext(filename)
+        self.assertEqual(headers['Content-Type'],
+                         'application/vnd.google-earth.kml+xml')
+        self.assertEqual(ext, '.kml')

@@ -153,6 +153,10 @@ msgstr ""
 msgid "Upload"
 msgstr ""
 
+#: main/templates/show.html:39
+msgid "No description"
+msgstr ""
+
 #: main/templates/dashboard.html:24
 msgid "URL"
 msgstr ""

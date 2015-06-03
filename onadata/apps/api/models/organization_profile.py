@@ -2,11 +2,16 @@ from django.db import models
 from django.contrib.auth.models import Permission
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from guardian.shortcuts import get_perms_for_model, assign_perm
 
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.models import UserProfile
+from onadata.libs.utils.cache_tools import safe_delete, IS_ORG
+
+
+def org_profile_post_delete_callback(sender, instance, **kwargs):
+    safe_delete('{}{}'.format(IS_ORG, instance.pk))
 
 
 def create_owner_team_and_permissions(sender, instance, created, **kwargs):
@@ -33,6 +38,7 @@ def create_owner_team_and_permissions(sender, instance, created, **kwargs):
 
 
 class OrganizationProfile(UserProfile):
+
     """Organization: Extends the user profile for organization specific info
 
         * What does this do?
@@ -81,3 +87,7 @@ class OrganizationProfile(UserProfile):
 post_save.connect(
     create_owner_team_and_permissions, sender=OrganizationProfile,
     dispatch_uid='create_owner_team_and_permissions')
+
+post_delete.connect(org_profile_post_delete_callback,
+                    sender=OrganizationProfile,
+                    dispatch_uid='org_profile_post_delete_callback')

@@ -1,0 +1,36 @@
+# Name of nodes to start, here we have a single node
+CELERYD_NODES="w1"
+
+# Where to chdir at start.
+CELERYD_CHDIR="/home/ubuntu/onadata"
+
+# Python interpreter from environment, if using virtualenv
+ENV_PYTHON="/home/ubuntu/.virtualenvs/onadata/bin/python"
+
+# How to call "manage.py celeryd_multi"
+CELERYD_MULTI="$ENV_PYTHON $CELERYD_CHDIR/manage.py celeryd_multi"
+
+# How to call "manage.py celeryctl"
+CELERYCTL="$ENV_PYTHON $CELERYD_CHDIR/manage.py celeryctl"
+
+# Extra arguments to celeryd
+#CELERYD_OPTS="--time-limit=300 --concurrency=1"
+
+# Name of the celery config module, don't change this.
+CELERY_CONFIG_MODULE="celeryconfig"
+
+# %n will be replaced with the nodename.
+CELERYD_LOG_FILE="/tmp/%n-ona.log"
+CELERYD_PID_FILE="/tmp/%n-ona.pid"
+
+# Workers should run as an unprivileged user.
+CELERYD_USER="ubuntu"
+CELERYD_GROUP="ubuntu"
+
+# Set any other env vars here too!
+PROJET_ENV="development"
+
+# Name of the projects settings module.
+# in this case is just settings and not the full path because it will change the dir to
+# the project folder first.
+export DJANGO_SETTINGS_MODULE="onadata.settings.common"

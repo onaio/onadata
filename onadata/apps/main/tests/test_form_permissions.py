@@ -232,3 +232,21 @@ class TestFormPermissions(TestBase):
             "\">Shared by %s</span>" % (
                 self.xform.title, self.xform.user.username)
         )
+
+    def test_remove_permissions_from_user(self):
+        user = self._create_user('alice', 'alice')
+        # Grant all permissions
+        for perm_type in ('view', 'edit', 'report'):
+            response = self.client.post(self.perm_url, {
+                'for_user': user.username, 'perm_type': perm_type})
+            self.assertEqual(response.status_code, 302)
+        self.assertEqual(user.has_perm('view_xform', self.xform), True)
+        self.assertEqual(user.has_perm('change_xform', self.xform), True)
+        self.assertEqual(user.has_perm('report_xform', self.xform), True)
+        # Revoke all permissions
+        response = self.client.post(self.perm_url, {
+            'for_user': user.username, 'perm_type': 'remove'})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(user.has_perm('view_xform', self.xform), False)
+        self.assertEqual(user.has_perm('change_xform', self.xform), False)
+        self.assertEqual(user.has_perm('report_xform', self.xform), False)

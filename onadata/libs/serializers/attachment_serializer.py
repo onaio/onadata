@@ -1,8 +1,10 @@
-from rest_framework import serializers
-from onadata.apps.logger.models.attachment import Attachment
-from onadata.libs.utils.decorators import check_obj
-from onadata.libs.utils.image_tools import image_url
 import json
+
+from rest_framework import serializers
+
+from onadata.apps.logger.models.attachment import Attachment
+from onadata.apps.logger.models.instance import get_attachment_url
+from onadata.libs.utils.decorators import check_obj
 
 
 def dict_key_for_value(_dict, value):
@@ -57,15 +59,28 @@ class AttachmentSerializer(serializers.ModelSerializer):
 
     @check_obj
     def get_download_url(self, obj):
-        return obj.media_file.url if obj.media_file.url else None
+        request = self.context.get('request')
+
+        if obj:
+            path = get_attachment_url(obj)
+
+            return request.build_absolute_uri(path) if request else path
 
     def get_small_download_url(self, obj):
+        request = self.context.get('request')
+
         if obj.mimetype.startswith('image'):
-            return image_url(obj, 'small')
+            path = get_attachment_url(obj, 'small')
+
+            return request.build_absolute_uri(path) if request else path
 
     def get_medium_download_url(self, obj):
+        request = self.context.get('request')
+
         if obj.mimetype.startswith('image'):
-            return image_url(obj, 'medium')
+            path = get_attachment_url(obj, 'medium')
+
+            return request.build_absolute_uri(path) if request else path
 
     def get_field_xpath(self, obj):
         qa_dict = obj.instance.get_dict()

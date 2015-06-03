@@ -9,7 +9,7 @@ class ServiceDefinition(RestServiceInterface):
     verbose_name = u'JSON POST'
 
     def send(self, url, parsed_instance):
-        post_data = json.dumps(parsed_instance.to_dict_for_mongo())
+        post_data = json.dumps(parsed_instance.instance.json)
         headers = {"Content-Type": "application/json"}
         http = httplib2.Http()
         resp, content = http.request(uri=url, method='POST',

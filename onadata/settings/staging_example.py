@@ -48,6 +48,3 @@ else:
 
 if PRINT_EXCEPTION and DEBUG:
     MIDDLEWARE_CLASSES += ('utils.middleware.ExceptionLoggingMiddleware',)
-# Clear out the test database
-if TESTING_MODE:
-    MONGO_DB.instances.drop()
