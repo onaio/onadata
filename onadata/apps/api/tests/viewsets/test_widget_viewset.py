@@ -121,7 +121,7 @@ class TestWidgetViewset(TestAbstractViewSet):
         }
 
         request = self.factory.put('/', data=data, **self.extra)
-        response = self.view(request, pk=self.widget.pk)
+        response = self.view(request, pk=self.xform.pk, widgetid=self.widget.pk)
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data['title'], 'My new title updated')
@@ -137,7 +137,7 @@ class TestWidgetViewset(TestAbstractViewSet):
         }
 
         request = self.factory.patch('/', data=data, **self.extra)
-        response = self.view(request, pk=self.widget.pk)
+        response = self.view(request, pk=self.xform.pk, widgetid=self.widget.pk)
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data['column'], 'today')
@@ -149,7 +149,7 @@ class TestWidgetViewset(TestAbstractViewSet):
                                       object_id=self.xform.pk).count()
 
         request = self.factory.delete('/', **self.extra)
-        response = self.view(request, pk=self.widget.pk)
+        response = self.view(request, pk=self.xform.pk, widgetid=self.widget.pk)
 
         self.assertEquals(response.status_code, 204)
 
@@ -196,6 +196,15 @@ class TestWidgetViewset(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 0)
 
+         # assign alice the perms
+        ReadOnlyRole.add(self.user, self.xform)
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response.data), 1)
+
     def test_widget_permission_get(self):
         self._create_widget()
 
@@ -203,7 +212,7 @@ class TestWidgetViewset(TestAbstractViewSet):
         self._login_user_and_profile(alice_data)
 
         request = self.factory.get('/', **self.extra)
-        response = self.view(request, pk=self.widget.pk)
+        response = self.view(request, pk=self.xform.pk, widgetid=self.widget.pk)
 
         self.assertEquals(response.status_code, 404)
 
@@ -211,6 +220,19 @@ class TestWidgetViewset(TestAbstractViewSet):
         ReadOnlyRole.add(self.user, self.project)
 
         request = self.factory.get('/', **self.extra)
-        response = self.view(request, pk=self.widget.pk)
+        response = self.view(request, pk=self.xform.pk, widgetid=self.widget.pk)
 
         self.assertEquals(response.status_code, 200)
+
+    def test_widget_data(self):
+        self._create_widget()
+
+        view = WidgetViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, widgetid=self.widget.pk)
+
+        import ipdb
+        ipdb.set_trace()

@@ -261,10 +261,15 @@ class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
 
         return queryset
 
-class WidgetFilter(filters.DjangoObjectPermissionsFilter):
+class WidgetFilter(XFormPermissionFilterMixin,
+                   filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
-        queryset.model = Project
 
-        return super(WidgetFilter, self).filter_queryset(request,queryset,
+        if view.action == 'list':
+            return self._xform_filter_queryset(request, queryset, view,
+                                               'object_id')
+
+        return super(WidgetFilter, self).filter_queryset(request, queryset,
                                                          view)
+
