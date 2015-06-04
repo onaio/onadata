@@ -775,6 +775,7 @@ Clone a form to a specific user account
 You can clone a form to a specific user account using `POST` with
 
 - `username` of the user you want to clone the form to
+- `project_id` of the specific project you want to assign the form to (optional)
 
 .. raw:: html
 
@@ -805,6 +806,39 @@ Response
         "id_string": "Birds_cloned_1",
         "sms_id_string": "Birds_cloned_1",
         "title": "Birds_cloned_1",
+        ...
+    }
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>POST</b> /api/v1/forms/<code>{pk}</code>/clone
+  </pre>
+
+Example
+^^^^^^^
+::
+
+       curl -X POST https://ona.io/api/v1/forms/123/clone -d username=alice project_id=7003
+
+Response
+^^^^^^^^
+::
+
+    HTTP 201 CREATED
+
+Response
+^^^^^^^^
+::
+
+    {
+        "url": "https://ona.io/api/v1/forms/124",
+        "formid": 124,
+        "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1e",
+        "id_string": "Birds_cloned_1",
+        "sms_id_string": "Birds_cloned_1",
+        "title": "Birds_cloned_1",
+        "project": 'https://ona.io/api/v1/projects/7000'
         ...
     }
 

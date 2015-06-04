@@ -1116,6 +1116,36 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertEqual(response.status_code, 201)
             self.assertEqual(count + 1, XForm.objects.count())
 
+            data['project_id'] = 5000
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.data['project'][0],
+                             u"Project with id '5000' does not exist.")
+
+            data['project_id'] = "abc123"
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(
+                response.data['detail'],
+                u"invalid literal for int() with base 10: 'abc123'")
+
+            project = Project.objects.create(name=u"alice's other project",
+                                             organization=alice_profile.user,
+                                             created_by=alice_profile.user,
+                                             metadata='{}')
+
+            data['project_id'] = project.id
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertTrue(self.user.has_perm('can_add_xform', alice_profile))
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(count + 2, XForm.objects.count())
+            form_id = response.data['formid']
+            form = XForm.objects.get(pk=form_id)
+            self.assertEqual(form.project_id, project.id)
+
     def test_form_clone_shared_forms(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -1140,6 +1170,32 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
             self.assertTrue(self.user.has_perm('can_add_xform', alice_profile))
             self.assertEqual(response.status_code, 201)
             self.assertEqual(count + 1, XForm.objects.count())
+
+    def test_return_error_on_clone_duplicate(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({
+                'post': 'clone'
+            })
+            alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+            alice_profile = self._create_user_profile(alice_data)
+            count = XForm.objects.count()
+
+            data = {'username': 'alice'}
+            formid = self.xform.pk
+            ManagerRole.add(self.user, alice_profile)
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertTrue(self.user.has_perm('can_add_xform', alice_profile))
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(count + 1, XForm.objects.count())
+
+            request = self.factory.post('/', data=data, **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(
+                response.data['detail'],
+                u'A clone with the same id_string has already been created')
 
     def test_xform_serializer_none(self):
         data = {
