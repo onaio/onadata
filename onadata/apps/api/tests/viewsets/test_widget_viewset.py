@@ -274,7 +274,7 @@ class TestWidgetViewset(TestAbstractViewSet):
         })
 
         request = self.factory.get('/', **self.extra)
-        response = view(request, pk=self.xform.pk, widgetid=self.data_view.pk)
+        response = view(request, pk=self.xform.pk, widgetid=self.widget.pk)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['field_type'], 'select one')
@@ -339,3 +339,27 @@ class TestWidgetViewset(TestAbstractViewSet):
         response = view(request, pk=self.xform.pk)
 
         self.assertEqual(response.status_code, 404)
+
+    def test_widget_data_public_form(self):
+        self._create_widget()
+
+        view = WidgetViewSet.as_view({
+            'get': 'list',
+        })
+        self.extra = {}
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(len(response.data), 0)
+
+        # Anonymous user can access widget in public form
+        self.xform.shared_data = True
+        self.xform.save()
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEquals(len(response.data), 1)

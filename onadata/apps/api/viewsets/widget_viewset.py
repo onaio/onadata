@@ -54,6 +54,8 @@ class WidgetViewSet(ModelViewSet):
     def data(self, request, **kwargs):
         self.object = self.get_object()
 
+        # data = Widget.query_chart(self.object)
+
         serializer = self.get_serializer(build_chart_data_from_widget(
             self.object))
 
@@ -66,6 +68,6 @@ class WidgetViewSet(ModelViewSet):
             obj = get_object_or_404(Widget, key=key)
             serializer = self.get_serializer(build_chart_data_from_widget(obj))
 
-        return Response(serializer.data)
+            return Response(serializer.data)
 
         return super(WidgetViewSet, self).list(request, *args, **kwargs)
