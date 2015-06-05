@@ -11,7 +11,8 @@ from onadata.apps.logger.models.widget import Widget
 from onadata.libs.serializers.widget_serilizer import WidgetSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.apps.api.permissions import WidgetViewSetPermissions
-from onadata.libs.utils.chart_tools import build_chart_data_for_field
+from onadata.libs.utils.chart_tools import build_chart_data_from_widget
+
 
 class WidgetViewSet(ModelViewSet):
     queryset = Widget.objects.all()
@@ -22,7 +23,7 @@ class WidgetViewSet(ModelViewSet):
     filter_backends = (filters.WidgetFilter,)
 
     def get_serializer_class(self):
-        if self.action == 'data':
+        if self.action == 'data' or 'key' in self.request.QUERY_PARAMS:
             serializer_class = JsonDataSerializer
         else:
             serializer_class = self.serializer_class
@@ -50,12 +51,21 @@ class WidgetViewSet(ModelViewSet):
         return obj
 
     @action(methods=['GET'])
-    def data(self, request, format='json', **kwargs):
+    def data(self, request, **kwargs):
         self.object = self.get_object()
 
-        data = build_chart_data_for_field(self.object.content_object,
-                                          self.object.column)
-
-        serializer = self.get_serializer(data, many=True)
+        serializer = self.get_serializer(build_chart_data_from_widget(
+            self.object))
 
         return Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
+
+        if 'key' in request.QUERY_PARAMS:
+            key = request.QUERY_PARAMS['key']
+            obj = get_object_or_404(Widget, key=key)
+            serializer = self.get_serializer(build_chart_data_from_widget(obj))
+
+        return Response(serializer.data)
+
+        return super(WidgetViewSet, self).list(request, *args, **kwargs)

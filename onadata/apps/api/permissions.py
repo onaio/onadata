@@ -212,13 +212,17 @@ class WidgetViewSetPermissions(ViewDjangoObjectPermissions,
     def has_permission(self, request, view):
         view.model = Project
 
+        # Anonymous user can access the widget
+        if 'key' in request.QUERY_PARAMS and view.action == 'list':
+            return True
+
         return super(WidgetViewSetPermissions, self).has_permission(request,
                                                                     view)
 
     def has_object_permission(self, request, view, obj):
 
-        if not (isinstance(obj.content_object, XForm) or
-                    isinstance(obj.content_object, DataView)):
+        if not (isinstance(obj.content_object, XForm)
+                or isinstance(obj.content_object, DataView)):
             return False
 
         return super(WidgetViewSetPermissions, self).has_object_permission(

@@ -18,14 +18,17 @@ class Widget(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
 
-    widget_type = models.CharField(max_length=25,choices=WIDGETS_TYPES,
+    widget_type = models.CharField(max_length=25, choices=WIDGETS_TYPES,
                                    default=CHARTS)
     view_type = models.CharField(max_length=50)
     column = models.CharField(max_length=50)
-    group_by = models.CharField(null=True, default=None, max_length=50, blank=True)
+    group_by = models.CharField(null=True, default=None, max_length=50,
+                                blank=True)
 
-    title = models.CharField(null=True, default=None, max_length=50, blank=True)
-    description = models.CharField(null=True, default=None, max_length=255, blank=True)
+    title = models.CharField(null=True, default=None, max_length=50,
+                             blank=True)
+    description = models.CharField(null=True, default=None, max_length=255,
+                                   blank=True)
     key = models.CharField(db_index=True, unique=True, max_length=32)
 
     date_created = models.DateTimeField(auto_now_add=True)
@@ -39,4 +42,3 @@ class Widget(models.Model):
         self.key = generate_uuid_for_form()
 
         super(Widget, self).save(*args, **kwargs)
-

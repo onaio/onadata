@@ -455,12 +455,13 @@ class TestAbstractViewSet(TestCase):
         else:
             data = {
                 'title': "Widget that",
-                'content_object': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+                'content_object': 'http://testserver/api/v1/forms/%s' %
+                                  self.xform.pk,
                 'description': "Test widget",
                 'widget_type': "charts",
                 'view_type': "horizontal-bar",
-                'column': "_submitted_time",
-                'group_by': "age"
+                'column': "age",
+                'group_by': "gender"
             }
         count = Widget.objects.all().count()
 
@@ -477,13 +478,10 @@ class TestAbstractViewSet(TestCase):
         self.assertEquals(response.data['content_object'],
                           data['content_object'])
         self.assertEquals(response.data['widget_type'], data['widget_type'])
-        self.assertEquals(response.data['view_type'],data['view_type'])
-        self.assertEquals(response.data['column'],data['column'])
+        self.assertEquals(response.data['view_type'], data['view_type'])
+        self.assertEquals(response.data['column'], data['column'])
         self.assertEquals(response.data['description'],
                           data['description']
                           if 'description' in data else None)
         self.assertEquals(response.data['group_by'],
                           data['group_by'] if 'group_by' in data else None)
-        #self.assertEquals(response.data['url'],
-        #                  'http://testserver/api/v1/widgets/%s'
-        #                  % self.widget.pk)

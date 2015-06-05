@@ -4,13 +4,12 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.utils import six
-from django.contrib.contenttypes.models import ContentType
 
 from rest_framework import filters
 from rest_framework.exceptions import ParseError
 
 
-from onadata.apps.logger.models import XForm, Instance, Project
+from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.api.models import Team, OrganizationProfile
 
 
@@ -261,15 +260,16 @@ class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
 
         return queryset
 
+
 class WidgetFilter(XFormPermissionFilterMixin,
                    filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
 
         if view.action == 'list':
+            # Return widgets from xform user has perms to
             return self._xform_filter_queryset(request, queryset, view,
                                                'object_id')
 
         return super(WidgetFilter, self).filter_queryset(request, queryset,
                                                          view)
-

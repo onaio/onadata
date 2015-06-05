@@ -3,6 +3,11 @@ import re
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
 from onadata.libs.utils import common_tags
 
+from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.data_view import DataView
+from rest_framework.exceptions import ParseError
+from django.db.utils import DataError
+
 
 # list of fields we can chart
 CHART_FIELDS = ['select one', 'integer', 'decimal', 'date', 'datetime',
@@ -161,3 +166,42 @@ def build_chart_data(xform, language_index=0, page=0):
 
     return [build_chart_data_for_field(xform, field, language_index)
             for field in fields]
+
+
+def build_chart_data_from_widget(widget, language_index=0):
+
+    if isinstance(widget.content_object, XForm):
+        xform = widget.content_object
+    elif isinstance(widget.content_object, DataView):
+        xform = widget.content_object.xform
+    else:
+        raise ParseError("Model not supported")
+    dd = xform.data_dictionary()
+
+    field_name = widget.column
+
+    # check if its the special _submission_time META
+    if field_name == common_tags.SUBMISSION_TIME:
+        field = common_tags.SUBMISSION_TIME
+    else:
+        # use specified field to get summary
+        fields = filter(
+            lambda f: f.name == field_name,
+            [e for e in dd.survey_elements])
+
+        if len(fields) == 0:
+            raise ParseError(
+                "Field %s does not not exist on the form" % field_name)
+
+        field = fields[0]
+    choices = dd.survey.get('choices')
+
+    if choices:
+        choices = choices.get(field_name)
+    try:
+        data = build_chart_data_for_field(
+            xform, field, language_index, choices=choices)
+    except DataError as e:
+        raise ParseError(unicode(e))
+
+    return data

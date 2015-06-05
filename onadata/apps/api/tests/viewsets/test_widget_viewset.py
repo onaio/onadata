@@ -1,3 +1,6 @@
+import os
+
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 
 from onadata.apps.logger.models.widget import Widget
@@ -6,10 +9,21 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
 from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
 from onadata.libs.permissions import ReadOnlyRole
 
+
 class TestWidgetViewset(TestAbstractViewSet):
     def setUp(self):
         super(self.__class__, self).setUp()
-        self._publish_xls_form_to_project()
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "tutorial.xls")
+
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        for x in range(1, 9):
+            path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'tutorial', 'instances', 'uuid{}'.format(x), 'submission.xml')
+            self._make_submission(path)
+            x += 1
         self._create_dataview()
 
         self.view = WidgetViewSet.as_view({
@@ -121,7 +135,8 @@ class TestWidgetViewset(TestAbstractViewSet):
         }
 
         request = self.factory.put('/', data=data, **self.extra)
-        response = self.view(request, pk=self.xform.pk, widgetid=self.widget.pk)
+        response = self.view(request, pk=self.xform.pk,
+                             widgetid=self.widget.pk)
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data['title'], 'My new title updated')
@@ -137,7 +152,8 @@ class TestWidgetViewset(TestAbstractViewSet):
         }
 
         request = self.factory.patch('/', data=data, **self.extra)
-        response = self.view(request, pk=self.xform.pk, widgetid=self.widget.pk)
+        response = self.view(request, pk=self.xform.pk,
+                             widgetid=self.widget.pk)
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data['column'], 'today')
@@ -149,7 +165,8 @@ class TestWidgetViewset(TestAbstractViewSet):
                                       object_id=self.xform.pk).count()
 
         request = self.factory.delete('/', **self.extra)
-        response = self.view(request, pk=self.xform.pk, widgetid=self.widget.pk)
+        response = self.view(request, pk=self.xform.pk,
+                             widgetid=self.widget.pk)
 
         self.assertEquals(response.status_code, 204)
 
@@ -196,7 +213,7 @@ class TestWidgetViewset(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 0)
 
-         # assign alice the perms
+        # assign alice the perms
         ReadOnlyRole.add(self.user, self.xform)
 
         request = self.factory.get('/', **self.extra)
@@ -212,15 +229,17 @@ class TestWidgetViewset(TestAbstractViewSet):
         self._login_user_and_profile(alice_data)
 
         request = self.factory.get('/', **self.extra)
-        response = self.view(request, pk=self.xform.pk, widgetid=self.widget.pk)
+        response = self.view(request, pk=self.xform.pk,
+                             widgetid=self.widget.pk)
 
         self.assertEquals(response.status_code, 404)
 
-         # assign alice the perms
+        # assign alice the perms
         ReadOnlyRole.add(self.user, self.project)
 
         request = self.factory.get('/', **self.extra)
-        response = self.view(request, pk=self.xform.pk, widgetid=self.widget.pk)
+        response = self.view(request, pk=self.xform.pk,
+                             widgetid=self.widget.pk)
 
         self.assertEquals(response.status_code, 200)
 
@@ -234,5 +253,89 @@ class TestWidgetViewset(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.xform.pk, widgetid=self.widget.pk)
 
-        import ipdb
-        ipdb.set_trace()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['field_type'], 'integer')
+        self.assertEqual(response.data['field_name'], 'age')
+        self.assertEqual(response.data['data_type'], 'numeric')
+
+    def test_widget_data_dataview(self):
+        data = {
+            'content_object': 'http://testserver/api/v1/dataviews/%s' %
+                              self.data_view.pk,
+            'widget_type': "charts",
+            'view_type': "horizontal-bar",
+            'column': "gender",
+        }
+
+        self._create_widget(data)
+
+        view = WidgetViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, widgetid=self.data_view.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['field_type'], 'select one')
+        self.assertEqual(response.data['field_name'], 'gender')
+        self.assertEqual(response.data['data_type'], 'categorized')
+
+    def test_widget_with_key(self):
+        self._create_widget()
+
+        view = WidgetViewSet.as_view({
+            'get': 'list',
+        })
+
+        data = {
+            "key": self.widget.key
+        }
+
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['field_type'], 'integer')
+        self.assertEqual(response.data['field_name'], 'age')
+        self.assertEqual(response.data['data_type'], 'numeric')
+
+    def test_widget_with_key_anon(self):
+        self._create_widget()
+
+        view = WidgetViewSet.as_view({
+            'get': 'list',
+        })
+
+        data = {
+            "key": self.widget.key
+        }
+
+        # Anonymous user can access the widget
+        self.extra = {}
+
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['field_type'], 'integer')
+        self.assertEqual(response.data['field_name'], 'age')
+        self.assertEqual(response.data['data_type'], 'numeric')
+
+    def test_widget_with_nonexistance_key(self):
+        self._create_widget()
+
+        view = WidgetViewSet.as_view({
+            'get': 'list',
+        })
+
+        data = {
+            "key": "randomkeythatdoesnotexist"
+        }
+
+        self.extra = {}
+
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 404)
