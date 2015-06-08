@@ -170,8 +170,7 @@ def enketo_url(form_url, id_string, instance_xml=None,
                  settings.ENKETO_API_TOKEN == ''):
         return False
 
-    url = urljoin(settings.ENKETO_URL,
-                  settings.ENKETO_API_SURVEY_PATH + '/offline')
+    url = urljoin(settings.ENKETO_URL, settings.ENKETO_API_SURVEY_PATH)
 
     values = {
         'form_id': id_string,
