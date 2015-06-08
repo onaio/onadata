@@ -1,4 +1,3 @@
-from django.utils.translation import ugettext as _
 from querybuilder.query import Query
 from querybuilder.fields import CountField
 from django.contrib.gis.db import models
@@ -50,7 +49,7 @@ class Widget(models.Model):
         super(Widget, self).save(*args, **kwargs)
 
     @classmethod
-    def query_chart(cls, widget):
+    def query_data(cls, widget):
 
         # get the columns needed
         column = widget.column
