@@ -124,6 +124,8 @@ class TestWidgetViewset(TestAbstractViewSet):
     def test_update_widget(self):
         self._create_widget()
 
+        key = self.widget.key
+
         data = {
             'title': 'My new title updated',
             'description': 'new description',
@@ -138,9 +140,12 @@ class TestWidgetViewset(TestAbstractViewSet):
         response = self.view(request, formid=self.xform.pk,
                              pk=self.widget.pk)
 
+        self.widget = Widget.objects.all().order_by('pk').reverse()[0]
+
+        self.assertEquals(key, self.widget.key)
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data['title'], 'My new title updated')
-
+        self.assertEquals(response.data['key'], key)
         self.assertEquals(response.data['description'],
                           "new description")
 

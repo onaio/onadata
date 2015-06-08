@@ -44,7 +44,8 @@ class Widget(models.Model):
 
     def save(self, *args, **kwargs):
 
-        self.key = generate_uuid_for_form()
+        if not self.key:
+            self.key = generate_uuid_for_form()
 
         super(Widget, self).save(*args, **kwargs)
 
