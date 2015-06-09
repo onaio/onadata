@@ -10,6 +10,7 @@ from jsonfield import JSONField
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
+DEFAULT_COLUMNS = ['_id']
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
@@ -130,7 +131,7 @@ class DataView(models.Model):
     def query_data(cls, data_view, start_index=None, limit=None, count=None):
 
         # get the columns needed
-        columns = data_view.columns
+        columns = data_view.columns + DEFAULT_COLUMNS
 
         field_list = [u"json->%s" for i in columns]
 
