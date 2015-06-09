@@ -1447,6 +1447,20 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                 self.assertEqual(response.data.get('progress'), 10)
                 self.assertEqual(response.data.get('total'), 100)
 
+    @patch(('onadata.apps.api.viewsets.xform_viewset.'
+            'get_async_csv_submission_status'))
+    def test_csv_import_status_check_invalid_returned_value(
+            self, mock_submission_status):
+        mock_submission_status.return_value = [(0, 0, {'h': 88})]
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({'get': 'csv_import'})
+            data = {'job_uuid': "12345678"}
+            request = self.factory.get('/', data=data,
+                                       **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 400)
+
     def test_update_xform_xls_file(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
