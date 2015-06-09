@@ -1460,6 +1460,9 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
                                        **self.extra)
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 400)
+            error_message = ('The instance of the result is not a basestring;'
+                             ' the job_uuid variable might be incorrect')
+            self.assertEqual(response.data['detail'], error_message)
 
     def test_update_xform_xls_file(self):
         with HTTMock(enketo_mock):
