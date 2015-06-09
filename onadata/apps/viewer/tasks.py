@@ -4,6 +4,7 @@ from celery import task
 from django.db import transaction
 from django.conf import settings
 from django.core.mail import mail_admins
+from django.shortcuts import get_object_or_404
 from requests import ConnectionError
 
 from onadata.apps.viewer.models.export import Export
@@ -93,7 +94,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
         # time we get here so lets retrieve the export object a fresh before we
         # save
         if settings.CELERY_ALWAYS_EAGER:
-            export = Export.objects.get(id=export.id)
+            export = get_object_or_404(Export, id=export.id)
         export.task_id = result.task_id
         export.save()
         return export, result
@@ -327,7 +328,7 @@ def create_sav_zip_export(username, id_string, export_id, query=None,
 @task()
 def create_external_export(username, id_string, export_id, query=None,
                            token=None, meta=None, data_id=None):
-    export = Export.objects.get(id=export_id)
+    export = get_object_or_404(Export, id=export_id)
     try:
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
