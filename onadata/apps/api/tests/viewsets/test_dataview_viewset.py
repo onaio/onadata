@@ -316,14 +316,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
                      ',NULL LIMIT 1 OFFSET 1--;"}]'
         }
 
-        self._create_dataview(data=data)
-
-        view = DataViewViewSet.as_view({
-            'get': 'data',
-        })
-
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=self.data_view.pk)
+        request = self.factory.post('/', data=data, **self.extra)
+        response = self.view(request)
 
         self.assertEquals(response.status_code, 400)
         self.assertEquals(response.data,
