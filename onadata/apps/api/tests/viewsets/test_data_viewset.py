@@ -885,7 +885,8 @@ class TestDataViewSet(TestBase):
                 u'today': '2015-01-15'
             }
         )
-        test_loc.pop('id')
+        if 'id' in test_loc:
+            test_loc.pop('id')
 
         self.assertEqual(response.data, test_loc)
 
