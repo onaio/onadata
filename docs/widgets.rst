@@ -6,7 +6,6 @@ This endpoint provides ability to persist charts.
 Where:
 
 - ``pk`` - is the widget id
-- ``formid`` - is the xform/dataview id
 
 Definition
 ^^^^^^^^^^
@@ -65,7 +64,7 @@ Retrieve a Widget
 .. raw:: html
 
 	<pre class="prettyprint">
-	<b>GET</b> /api/v1/widgets/<code>{formid}</code>/<code>{pk}</code></pre>
+	<b>GET</b> /api/v1/widgets/<code>{pk}</code></pre>
 
 Response
 --------
@@ -130,7 +129,7 @@ Update a Widget
 .. raw:: html
 
 	<pre class="prettyprint">
-	<b>PUT</b> /api/v1/widgets/<code>{formid}</code>/<code>{pk}</code></pre>
+	<b>PUT</b> /api/v1/widgets/<code>{pk}</code></pre>
 
 Example
 -------
@@ -168,7 +167,7 @@ Patch a Widget
 .. raw:: html
 
 	<pre class="prettyprint">
-	<b>PATCH</b> /api/v1/widgets/<code>{formid}</code>/<code>{pk}</code></pre>
+	<b>PATCH</b> /api/v1/widgets/<code>{pk}</code></pre>
 
 Example
 -------
@@ -201,7 +200,7 @@ Delete a Widget
 .. raw:: html
 
 	<pre class="prettyprint">
-	<b>DELETE</b> /api/v1/widgets/<code>{formid}</code>/<code>{pk}</code></pre>
+	<b>DELETE</b> /api/v1/widgets/<code>{pk}</code></pre>
 
 Response
 --------
@@ -219,7 +218,7 @@ To get the widgets data, set the data flag to true.
 .. raw:: html
 
 	<pre class="prettyprint">
-	<b>GET</b> /api/v1/widgets/<code>{formid}</code>/<code>{pk}</code>?data=<code>true</code></pre>
+	<b>GET</b> /api/v1/widgets/<code>{pk}</code>?data=<code>true</code></pre>
 
 Response
 --------
@@ -258,7 +257,45 @@ Widget Data With Valid Key
 .. raw:: html
 
 	<pre class="prettyprint">
-	<b>GET</b> /api/v1/widgets/<code>{formid}</code>/<code>{pk}</code>?key=<code>{valid widget key}</code></pre>
+	<b>GET</b> /api/v1/widgets?key=<code>{valid widget key}</code></pre>
+
+Response
+--------
+
+::
+
+       {
+              "key": "e60c148d19464365b4e9a5d88f52694b",
+              "title": "My new title updated",
+              "description": "new description",
+              "widget_type": "charts",
+              "view_type": "horizontal-bar",
+              "column": "age",
+              "group_by": null,
+              "content_object": "https://ona.io/api/v1/forms/9929",
+              "data": [
+                    {
+                      "count": 2,
+                      "age": "21"
+                    },
+                    {
+                      "count": 3,
+                      "age": "22"
+                    },
+                    {
+                      "count": 1,
+                      "age": "23"
+                    },
+               ]
+        }
+
+Filter Widget Using FormID
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+	<pre class="prettyprint">
+	<b>GET</b> /api/v1/widgets?xform=<code>{form id}</code></pre>
 
 Response
 --------

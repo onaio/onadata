@@ -16,26 +16,18 @@ class WidgetViewSet(ModelViewSet):
     serializer_class = WidgetSerializer
     permission_classes = [WidgetViewSetPermissions]
     lookup_field = 'pk'
-    lookup_fields = ('formid', 'pk')
     filter_backends = (filters.WidgetFilter,)
 
     def get_object(self, queryset=None):
 
-        formid_lookup, pk_lookup = self.lookup_fields
-        pk = self.kwargs.get(pk_lookup)
-        formid = self.kwargs.get(formid_lookup)
+        pk = self.kwargs.get('pk')
 
-        if pk is not None and formid is not None:
-            try:
-                int(formid)
-            except ValueError:
-                raise ParseError(_(u"Invalid formid %(formid)s"
-                                   % {'formid': formid}))
+        if pk is not None:
 
-            obj = get_object_or_404(Widget, pk=pk, object_id=formid)
+            obj = get_object_or_404(Widget, pk=pk)
             self.check_object_permissions(self.request, obj)
         else:
-            raise ParseError(_("Error"))
+            raise ParseError(_("'pk' required for this action"))
 
         return obj
 
@@ -46,6 +38,7 @@ class WidgetViewSet(ModelViewSet):
             obj = get_object_or_404(Widget, key=key)
 
             serializer = self.get_serializer(obj)
+
             return Response(serializer.data)
 
         return super(WidgetViewSet, self).list(request, *args, **kwargs)

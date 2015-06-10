@@ -8,7 +8,7 @@ from onadata.libs.utils.string import str2bool
 
 
 class WidgetSerializer(serializers.HyperlinkedModelSerializer):
-    widgetid = serializers.Field(source='id')
+    url = serializers.HyperlinkedIdentityField(view_name='widgets-detail')
     key = serializers.CharField(max_length=255, source='key', read_only=True)
     title = serializers.CharField(max_length=255, source='title',
                                   required=False)
@@ -34,7 +34,7 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Widget
-        fields = ('widgetid', 'key', 'title', 'description', 'widget_type',
+        fields = ('url', 'key', 'title', 'description', 'widget_type',
                   'view_type', 'column', 'group_by', 'content_object', 'data')
 
     def get_widget_data(self, obj):
@@ -49,4 +49,5 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
             data = Widget.query_data(obj)
         else:
             data = []
+
         return data
