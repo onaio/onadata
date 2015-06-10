@@ -69,8 +69,10 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             if 'error' in count:
                 raise ParseError(count.get('error'))
 
-            if count:
-                cache.set('{}{}'.format(DATAVIEW_COUNT, obj.xform.pk), count)
+            if 'count' in count[0]:
+                count = count[0].get('count')
+                cache.set('{}{}'.format(DATAVIEW_COUNT, obj.xform.pk),
+                          count)
 
-            return count
-        return []
+                return count
+        return None

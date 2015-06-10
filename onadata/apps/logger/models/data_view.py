@@ -7,10 +7,10 @@ from django.db import connection
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.project import Project
 from jsonfield import JSONField
-from onadata.libs.utils.common_tags import MONGO_STRFTIME
+from onadata.libs.utils.common_tags import (MONGO_STRFTIME, ID, GEOLOCATION)
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
-DEFAULT_COLUMNS = ['_id']
+DEFAULT_COLUMNS = [ID, GEOLOCATION]
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
