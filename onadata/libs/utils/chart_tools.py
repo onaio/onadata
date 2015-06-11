@@ -16,6 +16,7 @@ DATA_TYPE_MAP = {
     'start': 'time_based',
     'end': 'time_based',
     'today': 'time_based',
+    'calculate': 'numeric',
 }
 
 CHARTS_PER_PAGE = 20
