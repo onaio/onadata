@@ -43,7 +43,7 @@ class TestWidgetViewset(TestAbstractViewSet):
                               self.xform.pk,
             'widget_type': "charts",
             'view_type': "horizontal-bar",
-            'column': "_submitted_time",
+            'column': "_submission_time",
         }
 
         self._create_widget(data)
@@ -55,7 +55,7 @@ class TestWidgetViewset(TestAbstractViewSet):
                               self.data_view.pk,
             'widget_type': "charts",
             'view_type': "horizontal-bar",
-            'column': "_submitted_time",
+            'column': "_submission_time",
         }
 
         self._create_widget(data)
@@ -67,7 +67,7 @@ class TestWidgetViewset(TestAbstractViewSet):
                               self.project.pk,
             'widget_type': "charts",
             'view_type': "horizontal-bar",
-            'column': "_submitted_time",
+            'column': "_submission_time",
         }
 
         count = Widget.objects.all().count()
@@ -107,7 +107,7 @@ class TestWidgetViewset(TestAbstractViewSet):
                               self.xform.pk,
             'widget_type': "table",
             'view_type': "horizontal-bar",
-            'column': "_submitted_time",
+            'column': "_submission_time",
         }
 
         count = Widget.objects.all().count()
@@ -133,7 +133,7 @@ class TestWidgetViewset(TestAbstractViewSet):
                               self.xform.pk,
             'widget_type': "charts",
             'view_type': "horizontal-bar",
-            'column': "_submitted_time",
+            'column': "_submission_time",
         }
 
         request = self.factory.put('/', data=data, **self.extra)
@@ -152,14 +152,14 @@ class TestWidgetViewset(TestAbstractViewSet):
         self._create_widget()
 
         data = {
-            'column': "today",
+            'column': "_submitted_by",
         }
 
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, pk=self.widget.pk)
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.data['column'], 'today')
+        self.assertEquals(response.data['column'], '_submitted_by')
 
     def test_delete_widget(self):
         ct = ContentType.objects.get(model='xform', app_label='logger')
@@ -178,13 +178,14 @@ class TestWidgetViewset(TestAbstractViewSet):
 
     def test_list_widgets(self):
         self._create_widget()
+        self._publish_xls_form_to_project()
 
         data = {
-            'content_object': 'http://testserver/api/v1/dataviews/%s' %
-                              self.data_view.pk,
+            'content_object': 'http://testserver/api/v1/forms/%s' %
+                              self.xform.pk,
             'widget_type': "charts",
             'view_type': "horizontal-bar",
-            'column': "today",
+            'column': "_submitted_by",
         }
 
         self._create_widget(data=data)
@@ -381,7 +382,7 @@ class TestWidgetViewset(TestAbstractViewSet):
                               self.xform.pk,
             'widget_type': "charts",
             'view_type': "horizontal-bar",
-            'column': "_submitted_time",
+            'column': "_submission_time",
         }
 
         request = self.factory.put('/', data=data, **self.extra)
@@ -401,7 +402,7 @@ class TestWidgetViewset(TestAbstractViewSet):
                               self.xform.pk,
             'widget_type': "charts",
             'view_type': "horizontal-bar",
-            'column': "today",
+            'column': "_submitted_by",
         }
 
         self._create_widget(data=data)
@@ -419,3 +420,22 @@ class TestWidgetViewset(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 1)
+
+    def test_create_column_not_in_form(self):
+        data = {
+            'content_object': 'http://testserver/api/v1/forms/%s' %
+                              self.xform.pk,
+            'widget_type': "charts",
+            'view_type': "horizontal-bar",
+            'column': "doesnotexists",
+        }
+
+        count = Widget.objects.all().count()
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = self.view(request)
+
+        self.assertEquals(response.status_code, 400)
+        self.assertEquals(count, Widget.objects.all().count())
+        self.assertEquals(response.data['column'],
+                          [u"'doesnotexists' not in the form"])

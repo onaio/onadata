@@ -1,3 +1,6 @@
+from django.core.validators import ValidationError
+from django.utils.translation import ugettext as _
+
 from rest_framework import serializers
 from generic_relations.relations import GenericRelatedField
 
@@ -51,3 +54,27 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
             data = []
 
         return data
+
+    def validate_column(self, attrs, source):
+        column = attrs.get('column')
+
+        # Get the form
+        if 'content_object' in attrs or self.object:
+
+            if 'content_object' in attrs:
+                content_object = attrs.get('content_object')
+            else:
+                content_object = self.object.content_object
+
+            if isinstance(content_object, XForm):
+                xform = content_object
+            elif isinstance(content_object, DataView):
+                # must be a dataview
+                xform = content_object.xform
+
+            data_dictionary = xform.data_dictionary()
+
+            if column not in data_dictionary.get_headers():
+                raise ValidationError(_("'{}' not in the form".format(column)))
+
+        return attrs
