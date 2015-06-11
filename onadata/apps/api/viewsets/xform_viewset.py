@@ -1,7 +1,7 @@
 import os
 import json
 import random
-
+from requests import ConnectionError
 from datetime import datetime
 
 from celery.result import AsyncResult
@@ -466,6 +466,29 @@ def _generate_filename(request, xform, remove_group_name=False):
     return filename
 
 
+def get_async_response(count, job_uuid, request, xform):
+    try:
+        job = AsyncResult(job_uuid)
+        if job.state == 'SUCCESS':
+            export_id = job.result
+            export = Export.objects.get(id=export_id)
+
+            resp = _export_async_export_response(
+                request, xform, export)
+        else:
+            resp = {
+                'job_status': job.state
+            }
+    except ConnectionError, e:
+        if count > 0:
+            raise ParseError(unicode(e))
+
+        return get_async_response(
+            1, job_uuid, request, xform, export_id)
+
+    return resp
+
+
 class XFormViewSet(AnonymousUserPublicFormsMixin,
                    LabelsMixin,
                    LastModifiedMixin,
@@ -814,17 +837,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         }
 
         if job_uuid:
-            job = AsyncResult(job_uuid)
-            if job.state == 'SUCCESS':
-                export_id = job.result
-                export = Export.objects.get(id=export_id)
-
-                resp = _export_async_export_response(request, xform, export)
-            else:
-                resp = {
-                    'job_status': job.state
-                }
-
+            resp = get_async_response(0, job_uuid, request, xform)
         else:
             resp = process_async_export(request, xform, export_type, query,
                                         token, meta, options)
