@@ -41,6 +41,7 @@ from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.clone_xform_serializer import \
     CloneXFormSerializer
+from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.serializers.share_xform_serializer import (
     ShareXFormSerializer)
 from onadata.apps.api import tools as utils
@@ -466,7 +467,7 @@ def _generate_filename(request, xform, remove_group_name=False):
     return filename
 
 
-def get_async_response(count, job_uuid, request, xform):
+def get_async_response(job_uuid, request, xform, count=0):
     try:
         job = AsyncResult(job_uuid)
         if job.state == 'SUCCESS':
@@ -481,10 +482,9 @@ def get_async_response(count, job_uuid, request, xform):
             }
     except ConnectionError, e:
         if count > 0:
-            raise ParseError(unicode(e))
+            raise ServiceUnavailable(unicode(e))
 
-        return get_async_response(
-            1, job_uuid, request, xform, export_id)
+        return get_async_response(job_uuid, request, xform, count + 1)
 
     return resp
 
@@ -837,7 +837,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         }
 
         if job_uuid:
-            resp = get_async_response(0, job_uuid, request, xform)
+            resp = get_async_response(job_uuid, request, xform)
         else:
             resp = process_async_export(request, xform, export_type, query,
                                         token, meta, options)
