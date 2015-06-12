@@ -410,15 +410,10 @@ def custom_response_handler(request, xform, query, export_type,
     remove_group_name = str_to_bool(request.GET.get('remove_group_name'))
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
-<<<<<<< HEAD
-    if should_regenerate_export(xform, export_type, request,
-                                remove_group_name):
-        export = _generate_new_export(request, xform, query, export_type)
-=======
+
     if should_regenerate_export(xform, export_type, request):
         export = _generate_new_export(request, xform, query, export_type,
                                       dataview=dataview)
->>>>>>> DW: dataview exports
     else:
         export = newest_export_for(xform, export_type, remove_group_name)
 

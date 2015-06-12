@@ -713,7 +713,7 @@ def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
                     split_select_multiples=True,
                     binary_select_multiples=False, start=None, end=None,
-                    remove_group_name=False, dataview=None):
+                    remove_group_name=False, dataview_pk=None):
     """
     Create appropriate export object given the export type
     """
@@ -729,7 +729,8 @@ def generate_export(export_type, extension, username, id_string,
     xform = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
 
-    if dataview:
+    if dataview_pk:
+        dataview = DataView.objects.get(pk=dataview_pk)
         records = DataView.query_data(dataview)
     else:
         records = ParsedInstance.query_data(xform, query=filter_query,

@@ -2,6 +2,7 @@ import json
 import os
 import re
 import requests
+import StringIO
 
 from django.conf import settings
 from django.contrib.auth.models import Permission
@@ -486,3 +487,20 @@ class TestAbstractViewSet(TestCase):
         self.assertEquals(response.data['group_by'],
                           data['group_by'] if 'group_by' in data else None)
         self.assertEquals(response.data['data'], [])
+
+    def filename_from_disposition(self, content_disposition):
+        filename_pos = content_disposition.index('filename=')
+        assert filename_pos != -1
+        return content_disposition[filename_pos + len('filename='):]
+
+    def get_response_content(self, response):
+        contents = u''
+        if response.streaming:
+            actual_content = StringIO.StringIO()
+            for content in response.streaming_content:
+                actual_content.write(content)
+            contents = actual_content.getvalue()
+            actual_content.close()
+        else:
+            contents = response.content
+        return contents
