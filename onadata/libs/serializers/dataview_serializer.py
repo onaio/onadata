@@ -1,11 +1,14 @@
 from django.core.validators import ValidationError
 from django.utils.translation import ugettext as _
+from django.core.cache import cache
 
 from rest_framework import serializers
+from rest_framework.exceptions import ParseError
 
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.data_view import SUPPORTED_FILTERS
+from onadata.libs.utils.cache_tools import DATAVIEW_COUNT
 
 
 class DataViewSerializer(serializers.HyperlinkedModelSerializer):
@@ -21,6 +24,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
                                                   lookup_field='pk')
     columns = JsonField(source='columns')
     query = JsonField(source='query', required=False)
+    count = serializers.SerializerMethodField("get_data_count")
 
     class Meta:
         model = DataView
@@ -53,3 +57,22 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             raise ValidationError(_(u"`columns` should be a list of columns"))
 
         return attrs
+
+    def get_data_count(self, obj):
+        if obj:
+            count = cache.get('{}{}'.format(DATAVIEW_COUNT, obj.xform.pk))
+
+            if count:
+                return count
+
+            count = DataView.query_data(obj, count=True)
+            if 'error' in count:
+                raise ParseError(count.get('error'))
+
+            if 'count' in count[0]:
+                count = count[0].get('count')
+                cache.set('{}{}'.format(DATAVIEW_COUNT, obj.xform.pk),
+                          count)
+
+                return count
+        return None

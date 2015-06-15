@@ -211,6 +211,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 3)
+        self.assertIn("_id", response.data[0])
 
     def test_dataview_data_filter_date(self):
         data = {
@@ -234,6 +235,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 7)
+        self.assertIn("_id", response.data[0])
 
     def test_dataview_data_filter_string(self):
         data = {
@@ -282,6 +284,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 2)
+        self.assertIn("_id", response.data[0])
 
     def test_dataview_invalid_filter(self):
         data = {
@@ -313,14 +316,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
                      ',NULL LIMIT 1 OFFSET 1--;"}]'
         }
 
-        self._create_dataview(data=data)
-
-        view = DataViewViewSet.as_view({
-            'get': 'data',
-        })
-
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=self.data_view.pk)
+        request = self.factory.post('/', data=data, **self.extra)
+        response = self.view(request)
 
         self.assertEquals(response.status_code, 400)
         self.assertEquals(response.data,
@@ -380,3 +377,4 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 8)
+        self.assertIn("_id", response.data[0])
