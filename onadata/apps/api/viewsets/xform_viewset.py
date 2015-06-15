@@ -302,7 +302,7 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
             export = generate_export(
                 export_type, extension, xform.user.username,
                 xform.id_string, None, query,
-                remove_group_name=remove_group_name, dataview=dataview
+                remove_group_name=remove_group_name, dataview_pk=dataview.pk
             )
         audit = {
             "xform": xform.id_string,

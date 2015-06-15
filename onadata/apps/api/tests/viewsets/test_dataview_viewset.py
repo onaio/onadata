@@ -1,7 +1,6 @@
 import os
 
 from django.conf import settings
-from django.utils.dateparse import parse_datetime
 
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.apps.logger.models.data_view import DataView
@@ -368,6 +367,6 @@ class TestDataViewViewSet(TestAbstractViewSet):
         content = self.get_response_content(response)
         test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                       'viewer', 'tests', 'fixtures',
-                                      'transportation.csv')
+                                      'dataview.csv')
         with open(test_file_path, 'r') as test_file:
             self.assertEqual(content, test_file.read())

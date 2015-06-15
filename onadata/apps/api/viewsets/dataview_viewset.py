@@ -3,18 +3,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 from rest_framework.settings import api_settings
-from rest_framework import status
 
-from celery.result import AsyncResult
-
-from onadata.apps.api.api_export_tool import custom_response_handler
-from onadata.apps.api.api_export_tool import export_async_export_response
-from onadata.apps.api.api_export_tool import process_async_export
+from onadata.apps.api.viewsets.xform_viewset import custom_response_handler
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.api.permissions import DataViewViewsetPermissions
 from onadata.libs.renderers import renderers
 
-from onadata.apps.viewer.models.export import Export
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.utils.export_tools import str_to_bool
@@ -66,35 +60,3 @@ class DataViewViewSet(ModelViewSet):
         else:
             return custom_response_handler(request, self.object.xform, None,
                                            export_type, dataview=self.object)
-
-    @action(methods=['GET'])
-    def export_async(self, request, *args, **kwargs):
-        job_uuid = request.QUERY_PARAMS.get('job_uuid')
-        export_type = request.QUERY_PARAMS.get('format')
-        dataview = self.get_object()
-
-        remove_group_name = request.QUERY_PARAMS.get('remove_group_name')
-
-        options = {
-            'remove_group_name': remove_group_name
-        }
-
-        if job_uuid:
-            job = AsyncResult(job_uuid)
-            if job.state == 'SUCCESS':
-                export_id = job.result
-                export = Export.objects.get(id=export_id)
-
-                resp = export_async_export_response(request, xform, export)
-            else:
-                resp = {
-                    'job_status': job.state
-                }
-
-        else:
-            resp = process_async_export(request, xform, export_type, query,
-                                        token, meta, options)
-
-        return Response(data=resp,
-                        status=status.HTTP_202_ACCEPTED,
-                        content_type="application/json")

@@ -734,7 +734,7 @@ def generate_export(export_type, extension, username, id_string,
         records = DataView.query_data(dataview)
     else:
         records = ParsedInstance.query_data(xform, query=filter_query,
-                                        start=start, end=end)
+                                            start=start, end=end)
 
     export_builder = ExportBuilder()
 
