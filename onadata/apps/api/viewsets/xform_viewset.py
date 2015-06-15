@@ -299,10 +299,11 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
                 remove_group_name = \
                     str_to_bool(request.QUERY_PARAMS["remove_group_name"])
 
+            dataview_pk = dataview.pk if dataview else None
             export = generate_export(
                 export_type, extension, xform.user.username,
                 xform.id_string, None, query,
-                remove_group_name=remove_group_name, dataview_pk=dataview.pk
+                remove_group_name=remove_group_name, dataview_pk=dataview_pk
             )
         audit = {
             "xform": xform.id_string,

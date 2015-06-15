@@ -729,6 +729,7 @@ def generate_export(export_type, extension, username, id_string,
     xform = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
 
+    dataview = None
     if dataview_pk:
         dataview = DataView.objects.get(pk=dataview_pk)
         records = DataView.query_data(dataview)
