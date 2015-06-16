@@ -32,7 +32,8 @@ from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
     DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, GROUPNAME_REMOVED_FLAG,
-    SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION)
+    SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
+    DATAVIEW_EXPORT)
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.osm import get_combined_osm
 
@@ -763,10 +764,11 @@ def generate_export(export_type, extension, username, id_string,
 
     if remove_group_name:
         # add 'remove group name' flag to filename
-        filename = "{}-{}.{}".format(basename, GROUPNAME_REMOVED_FLAG,
-                                     extension)
-    else:
-        filename = basename + "." + extension
+        basename = "{}-{}".format(basename, GROUPNAME_REMOVED_FLAG)
+    if dataview:
+        basename = "{}-{}".format(basename, DATAVIEW_EXPORT)
+
+    filename = basename + "." + extension
 
     # check filename is unique
     while not Export.is_filename_unique(xform, filename):
@@ -803,39 +805,58 @@ def generate_export(export_type, extension, username, id_string,
     return export
 
 
-def should_create_new_export(xform, export_type, remove_group_name=False):
+def should_create_new_export(xform, export_type, remove_group_name=False,
+                             dataview=None):
     # TODO resolve circular import
     from onadata.apps.viewer.models.export import Export
-    q = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
+    q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
+    q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
 
+    qq = None
     if remove_group_name:
+        qq = q_remove_grp_name
+
+    if dataview:
+        qq = q_dataview
+
+    if qq:
         if Export.objects.filter(
-                xform=xform, export_type=export_type).filter(q).count() == 0\
+                xform=xform, export_type=export_type).filter(qq).count() == 0\
                 or Export.exports_outdated(xform, export_type=export_type):
             return True
         return False
     else:
+
         if Export.objects.filter(
-                xform=xform, export_type=export_type).exclude(q).count() == 0\
+                xform=xform, export_type=export_type).exclude(q_dataview).count() == 0\
                 or Export.exports_outdated(xform, export_type=export_type):
             return True
         return False
 
 
-def newest_export_for(xform, export_type, remove_group_name=False):
+def newest_export_for(xform, export_type, remove_group_name=False,
+                      dataview=None):
     """
     Make sure you check that an export exists before calling this,
     it will a DoesNotExist exception otherwise
     """
     # TODO resolve circular import
     from onadata.apps.viewer.models.export import Export
-    q = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
+    q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
+    q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
+
+    qq = None
     if remove_group_name:
+        qq = q_remove_grp_name
+
+    if dataview:
+        qq = q_dataview
+    if qq:
         return Export.objects.filter(xform=xform, export_type=export_type)\
-            .filter(q).latest('created_on')
+            .filter(qq).latest('created_on')
     else:
         return Export.objects.filter(xform=xform, export_type=export_type)\
-            .exclude(q).latest('created_on')
+            .exclude(q_dataview).latest('created_on')
 
 
 def increment_index_in_filename(filename):

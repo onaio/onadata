@@ -2,6 +2,7 @@ from django.conf.urls import patterns, include, url
 from django.conf import settings
 from django.views.generic import RedirectView
 
+from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.apps.api.urls import router
 from onadata.apps.api.urls import XFormListViewSet
 from onadata.apps.api.urls import XFormSubmissionViewSet
@@ -17,6 +18,8 @@ urlpatterns = patterns(
     # change Language
     (r'^i18n/', include('django.conf.urls.i18n')),
     url('^api/v1/', include(router.urls)),
+    url('^api/v1/dataviews/(?P<pk>[^/]+)/(?P<action>[^/]+).(?P<format>[a-z]+[0-9]*)$', DataViewViewSet,
+        name='dataviews-data'),
     url(r'^api-docs/', RedirectView.as_view(url=settings.STATIC_DOC)),
     url(r'^api/', RedirectView.as_view(url=settings.STATIC_DOC)),
     url(r'^api/v1', RedirectView.as_view(url='/api/v1/')),

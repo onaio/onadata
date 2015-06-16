@@ -140,7 +140,7 @@ def _create_export_async(xform, export_type, query=None, force_xlsx=False,
         return async_result.task_id
 
 
-def _export_async_export_response(request, xform, export):
+def _export_async_export_response(request, xform, export, dataview_pk=None):
     """
     Checks the export status and generates the reponse
     :param request:
@@ -156,6 +156,14 @@ def _export_async_export_response(request, xform, export):
                         'format': export.export_type},
                 request=request
             )
+            if dataview_pk:
+                export_url = reverse(
+                    'dataviews-data',
+                    kwargs={'pk': dataview_pk,
+                            'action': 'data',
+                            'format': export.export_type},
+                    request=request
+                )
             remove_group_key = "remove_group_name"
             if str_to_bool(request.QUERY_PARAMS.get(remove_group_key)):
                 # append the param to the url
@@ -205,7 +213,9 @@ def process_async_export(request, xform, export_type, query=None, token=None,
                 export_type = Export.EXTERNAL_EXPORT
 
     remove_group_name = str_to_bool(options.get('remove_group_name'))
-    if should_regenerate_export(xform, export_type, request, remove_group_name)\
+    dataview_pk = options.get('dataview_pk')
+    if should_regenerate_export(xform, export_type, request, remove_group_name,
+                                dataview_pk)\
             or export_type == Export.EXTERNAL_EXPORT:
 
         resp = {
@@ -215,7 +225,8 @@ def process_async_export(request, xform, export_type, query=None, token=None,
         }
     else:
         remove_group_name = options.get('remove_group_name')
-        export = newest_export_for(xform, export_type, remove_group_name)
+        export = newest_export_for(xform, export_type, remove_group_name,
+                                   dataview_pk)
 
         if not export.filename:
             # tends to happen when using newest_export_for.
@@ -225,7 +236,8 @@ def process_async_export(request, xform, export_type, query=None, token=None,
                                                   options=options)
             }
         else:
-            resp = _export_async_export_response(request, xform, export)
+            resp = _export_async_export_response(request, xform, export,
+                                                 dataview_pk=dataview_pk)
 
     return resp
 
@@ -360,9 +372,10 @@ def response_for_format(data, format=None):
 
 
 def should_regenerate_export(xform, export_type, request,
-                             remove_group_name=False):
+                             remove_group_name=False, dataview=None):
     return should_create_new_export(xform, export_type,
-                                    remove_group_name=remove_group_name) or\
+                                    remove_group_name=remove_group_name,
+                                    dataview=dataview) or\
         'start' in request.GET or 'end' in request.GET or\
         'query' in request.GET or 'data_id' in request.GET
 
@@ -412,11 +425,12 @@ def custom_response_handler(request, xform, query, export_type,
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
 
-    if should_regenerate_export(xform, export_type, request):
+    if should_regenerate_export(xform, export_type, request, dataview=dataview):
         export = _generate_new_export(request, xform, query, export_type,
                                       dataview=dataview)
     else:
-        export = newest_export_for(xform, export_type, remove_group_name)
+        export = newest_export_for(xform, export_type, remove_group_name,
+                                   dataview=dataview)
 
         if not export.filename:
             # tends to happen when using newset_export_for.
