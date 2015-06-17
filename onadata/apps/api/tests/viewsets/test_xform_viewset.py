@@ -1934,6 +1934,39 @@ server=http://testserver/%s/&id=transportation_2011_07_25' %
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.xform_viewset.AsyncResult')
+    def test_export_async_connection_error(self, async_result):
+        with HTTMock(enketo_mock):
+            from requests import ConnectionError
+            async_result.side_effect = ConnectionError(
+                'Error opening socket: a socket error occurred')
+            self._publish_xls_form_to_project()
+            view = XFormViewSet.as_view({
+                'get': 'export_async',
+            })
+            formid = self.xform.pk
+
+            format = 'xls'
+            request = self.factory.get(
+                '/', data={"format": format}, **self.extra)
+            response = view(request, pk=formid)
+            self.assertIsNotNone(response.data)
+            self.assertEqual(response.status_code, 202)
+            self.assertTrue('job_uuid' in response.data)
+            task_id = response.data.get('job_uuid')
+            get_data = {'job_uuid': task_id}
+            request = self.factory.get('/', data=get_data, **self.extra)
+            response = view(request, pk=formid)
+
+            self.assertTrue(async_result.called)
+            self.assertEqual(response.status_code, 503)
+            self.assertEqual(response.status_text, u'SERVICE UNAVAILABLE')
+            self.assertEqual(response.data['detail'],
+                             u'Error opening socket: a socket error occurred')
+            export = Export.objects.get(task_id=task_id)
+            self.assertTrue(export.is_successful)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.xform_viewset.AsyncResult')
     def test_create_xls_report_async(self, async_result):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
