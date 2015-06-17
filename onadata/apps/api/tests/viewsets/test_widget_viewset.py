@@ -439,3 +439,20 @@ class TestWidgetViewset(TestAbstractViewSet):
         self.assertEquals(count, Widget.objects.all().count())
         self.assertEquals(response.data['column'],
                           [u"'doesnotexists' not in the form"])
+
+    def test_create_widget_with_xform_no_perms(self):
+        data = {
+            'content_object': 'http://testserver/api/v1/forms/%s' %
+                              self.xform.pk,
+            'widget_type': "charts",
+            'view_type': "horizontal-bar",
+            'column': "age",
+        }
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(alice_data)
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = self.view(request)
+
+        self.assertEquals(response.status_code, 400)

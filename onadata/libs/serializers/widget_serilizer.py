@@ -3,6 +3,7 @@ from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
 from generic_relations.relations import GenericRelatedField
+from guardian.shortcuts import get_users_with_perms
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.data_view import DataView
@@ -76,5 +77,19 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
 
             if column not in data_dictionary.get_headers():
                 raise ValidationError(_("'{}' not in the form".format(column)))
+
+        return attrs
+
+    def validate_content_object(self, attrs, source):
+
+        if 'content_object' in attrs:
+            content_object = attrs.get('content_object')
+            request = self.context.get('request')
+            users = get_users_with_perms(content_object.project,
+                                         attach_perms=False,
+                                         with_group_users=False)
+
+            if request.user not in users:
+                raise ValidationError("You don't have perms")
 
         return attrs
