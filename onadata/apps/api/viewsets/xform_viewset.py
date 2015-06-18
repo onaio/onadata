@@ -64,7 +64,7 @@ from onadata.libs.utils.export_tools import generate_osm_export
 from onadata.libs.utils.export_tools import should_create_new_export
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils.common_tags import SUBMISSION_TIME,\
-    GROUPNAME_REMOVED_FLAG
+    GROUPNAME_REMOVED_FLAG, DATAVIEW_EXPORT
 from onadata.libs.utils import log
 from onadata.libs.utils.export_tools import newest_export_for
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
@@ -425,7 +425,9 @@ def custom_response_handler(request, xform, query, export_type,
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
 
-    if should_regenerate_export(xform, export_type, request, dataview=dataview):
+    if should_regenerate_export(xform, export_type, request,
+                                remove_group_name=remove_group_name,
+                                dataview=dataview):
         export = _generate_new_export(request, xform, query, export_type,
                                       dataview=dataview)
     else:
@@ -446,7 +448,9 @@ def custom_response_handler(request, xform, query, export_type,
     # xlsx if it exceeds limits
     path, ext = os.path.splitext(export.filename)
     ext = ext[1:]
-    id_string = _generate_filename(request, xform, remove_group_name)
+
+    id_string = _generate_filename(request, xform, remove_group_name,
+                                   dataview=dataview)
     response = response_with_mimetype_and_name(
         Export.EXPORT_MIMES[ext], id_string, extension=ext,
         file_path=export.filepath)
@@ -477,13 +481,18 @@ def get_survey_xml(csv_name):
     return survey.to_xml()
 
 
-def _generate_filename(request, xform, remove_group_name=False):
+def _generate_filename(request, xform, remove_group_name=False,
+                       dataview=False):
     if request.GET.get('raw'):
         filename = None
     else:
         # append group name removed flag otherwise use the form id_string
-        filename = "{}-{}".format(xform.id_string, GROUPNAME_REMOVED_FLAG) \
-            if remove_group_name else xform.id_string
+        if remove_group_name:
+            filename = "{}-{}".format(xform.id_string, GROUPNAME_REMOVED_FLAG)
+        elif dataview:
+            filename = "{}-{}".format(xform.id_string, DATAVIEW_EXPORT)
+        else:
+            filename = xform.id_string
 
     return filename
 

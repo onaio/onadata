@@ -20,7 +20,6 @@ from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.utils.export_tools import str_to_bool
 
 
-
 class DataViewViewSet(ModelViewSet):
     """
     A simple ViewSet for viewing and editing DataViews.

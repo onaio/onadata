@@ -820,18 +820,21 @@ def should_create_new_export(xform, export_type, remove_group_name=False,
         qq = q_dataview
 
     if qq:
-        if Export.objects.filter(
-                xform=xform, export_type=export_type).filter(qq).count() == 0\
+        if Export.objects.filter(xform=xform, export_type=export_type)\
+                .filter(qq).count() == 0\
                 or Export.exports_outdated(xform, export_type=export_type):
-            return True
-        return False
-    else:
 
-        if Export.objects.filter(
-                xform=xform, export_type=export_type).exclude(q_dataview).count() == 0\
-                or Export.exports_outdated(xform, export_type=export_type):
             return True
+
         return False
+
+    if Export.objects.filter(xform=xform, export_type=export_type)\
+            .exclude(q_dataview | q_remove_grp_name).count() == 0\
+            or Export.exports_outdated(xform, export_type=export_type):
+
+        return True
+
+    return False
 
 
 def newest_export_for(xform, export_type, remove_group_name=False,
@@ -851,12 +854,13 @@ def newest_export_for(xform, export_type, remove_group_name=False,
 
     if dataview:
         qq = q_dataview
+
     if qq:
         return Export.objects.filter(xform=xform, export_type=export_type)\
             .filter(qq).latest('created_on')
     else:
         return Export.objects.filter(xform=xform, export_type=export_type)\
-            .exclude(q_dataview).latest('created_on')
+            .exclude(q_dataview | q_remove_grp_name).latest('created_on')
 
 
 def increment_index_in_filename(filename):
