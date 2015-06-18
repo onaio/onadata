@@ -456,3 +456,6 @@ class TestWidgetViewset(TestAbstractViewSet):
         response = self.view(request)
 
         self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.data['content_object'],
+                          [u"You don't have permission to the"
+                          u" XForm"])

@@ -90,6 +90,7 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
                                          with_group_users=False)
 
             if request.user not in users:
-                raise ValidationError("You don't have perms")
+                raise ValidationError(_(u"You don't have permission to the"
+                                        u" XForm"))
 
         return attrs
