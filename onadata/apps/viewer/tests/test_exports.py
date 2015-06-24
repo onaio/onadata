@@ -4,11 +4,13 @@ import json
 import os
 import StringIO
 from time import sleep
+from mock import patch
 
 from django.conf import settings
 from django.core.files.storage import get_storage_class
 from django.core.urlresolvers import reverse
 from django.utils.dateparse import parse_datetime
+from django.http import Http404
 from xlrd import open_workbook
 
 from onadata.apps.main.views import delete_data
@@ -1135,6 +1137,30 @@ class TestExports(TestBase):
         response = self.client.post(create_export_url, custom_params)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Export.objects.count(), num_exports + 1)
+
+    @patch('onadata.apps.viewer.tasks.get_object_or_404')
+    def test_create_external_export_url_with_non_existing_export_id(
+            self, mock_404):
+        mock_404.side_effect = Http404('No Export matches the given query.')
+        self._publish_transportation_form()
+        self._submit_transport_instance()
+
+        server = 'http://localhost:8080/xls/23fa4c38c0054748a984ffd89021a295'
+        data_value = 'template 1 |{0}'.format(server)
+        meta = MetaData.external_export(self.xform, data_value)
+
+        custom_params = {
+            'meta': meta.id,
+        }
+        # create export
+        create_export_url = reverse(create_export, kwargs={
+            'username': self.user.username,
+            'id_string': self.xform.id_string,
+            'export_type': Export.EXTERNAL_EXPORT
+        })
+
+        response = self.client.post(create_export_url, custom_params)
+        self.assertEqual(response.status_code, 404)
 
     def test_create_external_export_without_template(self):
         self._publish_transportation_form()
