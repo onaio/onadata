@@ -1339,21 +1339,14 @@ def get_enketo_preview_url(request, username, id_string):
                         auth=(settings.ENKETO_API_TOKEN, ''),
                         verify=False)
 
-    if res.status_code in [200, 201]:
-        try:
-            response = res.json()
-        except ValueError:
-            pass
-        else:
-            if 'preview_url' in response:
-                return response['preview_url']
-
     try:
         response = res.json()
     except ValueError:
         pass
     else:
-        if 'message' in response:
+        if 'preview_url' in response:
+            return response['preview_url']
+        elif 'message' in response:
             raise EnketoError(response['message'])
 
     return False
