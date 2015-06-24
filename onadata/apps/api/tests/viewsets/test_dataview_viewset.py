@@ -1,6 +1,8 @@
 import os
 
 from django.conf import settings
+from django.test.utils import override_settings
+from mock import patch
 
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.apps.logger.models.data_view import DataView
@@ -370,3 +372,40 @@ class TestDataViewViewSet(TestAbstractViewSet):
                                       'dataview.csv')
         with open(test_file_path, 'r') as test_file:
             self.assertEqual(content, test_file.read())
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
+    def test_export_csv_dataview_data_async(self, async_result):
+        self._create_dataview()
+        self._publish_xls_form_to_project()
+
+        view = DataViewViewSet.as_view({
+            'get': 'export_async',
+        })
+
+        request = self.factory.get('/', data={"format": "csv"},
+                                   **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertIsNotNone(response.data)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertTrue('job_uuid' in response.data)
+        task_id = response.data.get('job_uuid')
+
+        export_pk = Export.objects.all().order_by('pk').reverse()[0].pk
+
+        # metaclass for mocking results
+        job = type('AsyncResultMock', (),
+                   {'state': 'SUCCESS', 'result': export_pk})
+        async_result.return_value = job
+
+        get_data = {'job_uuid': task_id}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertIn('export_url', response.data)
+
+        self.assertTrue(async_result.called)
+        self.assertEqual(response.status_code, 202)
+        export = Export.objects.get(task_id=task_id)
+        self.assertTrue(export.is_successful)

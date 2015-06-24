@@ -237,7 +237,7 @@ Querying data with a specific version
 
 ::
 
-query={"_version": "2014111"}
+        query={"_version": "2014111"}
 
 
 Example
