@@ -761,9 +761,14 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         self.object = self.get_object()
         resp = {}
         if request.method == 'GET':
-            resp.update(get_async_csv_submission_status(
-                request.QUERY_PARAMS.get('job_uuid')))
-            self.last_modified_date = timezone.now()
+            try:
+                resp.update(get_async_csv_submission_status(
+                    request.QUERY_PARAMS.get('job_uuid')))
+                self.last_modified_date = timezone.now()
+            except ValueError:
+                raise ParseError(('The instance of the result is not a '
+                                  'basestring; the job_uuid variable might '
+                                  'be incorrect'))
         else:
             csv_file = request.FILES.get('csv_file', None)
             if csv_file is None:
