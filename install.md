@@ -50,17 +50,17 @@ Replace username and db name accordingly.
     # start the onadata service
     sudo start onadata
     # check that it started ok
-    # cat /tmp/onadata.log
+    # cat /path/to/onadata.log
 
 ## Setup celery service
     sudo apt-get install rabbitmq-server
     # edit script/etc/default/celeryd-ona with correct paths and user, group
     sudo cp script/etc/default/celeryd-ona /etc/default/celeryd-ona
     # copy init script celeryd-ona
-    sudo cp script/init.d/celeryd-ona /etc/init.d/celeryd-ona
+    sudo cp script/etc/init.d/celeryd-ona /etc/init.d/celeryd-ona
     sudo chmod +x /etc/init.d/celeryd-ona
     sudo update-rc.d -f celeryd-ona defaults
-    sudo service start celeryd-ona
+    sudo service celeryd-ona start
     # confirm that the service started successfully
     cat /tmp/w1-ona.log
 
