@@ -9,23 +9,23 @@ Replace username and db name accordingly.
 
     sudo su postgres -c "psql -c \"CREATE USER onadata WITH PASSWORD 'onadata';\""
     sudo su postgres -c "psql -c \"CREATE DATABASE onadata OWNER onadata;\""
-    sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXITS postgis;\""
+    sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis;\""
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis;\""
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis_topology;\""
 
 ## Get the code
-    clone https://github.com/onaio/onadata.git onadata
-    git checkout osm
+    git clone https://github.com/onaio/onadata.git onadata
     cd onadata/
+    git checkout osm
 
 ## Create python virtual environment and activate
     mkdir ~/.virtualenvs
     virtualenv ~/.virtualenvs/onadata
     source ~/.virtualenvs/onadata/bin/activate
 
- ## Install required python packages
+## Install required python packages
     pip install -r requirements/base.pip --allow-all-external
-    pip install pip numpy pandas==0.12.0
+    pip install numpy pandas==0.12.0
 
 ## Set local_settings.py, update it accordingly
     cp script/local_settings.py local_settings.py
