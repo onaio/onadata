@@ -230,7 +230,7 @@ def add_team_to_project(team, project):
 
 def publish_xlsform(request, owner, id_string=None, project=None):
     return do_publish_xlsform(
-        request.user, request.POST, request.FILES, owner, id_string,
+        request.user, request.DATA, request.FILES, owner, id_string,
         project)
 
 
@@ -254,6 +254,7 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
             args = dict({'project': project.pk}.items() + post.items())
         else:
             args = post
+
         form = QuickConverter(args,  files)
 
         return form.publish(owner, id_string=id_string, created_by=user)

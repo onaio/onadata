@@ -1727,6 +1727,74 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEquals(self.xform.version, u"212121211")
             self.assertEquals(form_id, self.xform.pk)
 
+    @patch('urllib2.urlopen')
+    def test_update_xform_xls_url(self, mock_urlopen):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            form_id = self.xform.pk
+            count = XForm.objects.all().count()
+
+            self.assertIsNotNone(self.xform.version)
+
+            view = XFormViewSet.as_view({
+                'patch': 'partial_update',
+            })
+
+            xls_url = 'https://ona.io/examples/forms/tutorial/form.xlsx'
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation_version.xls")
+
+            xls_file = open(path)
+            mock_urlopen.return_value = xls_file
+
+            post_data = {'xls_url': xls_url}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+
+            self.assertEqual(response.status_code, 200)
+
+            self.xform.reload()
+
+            self.assertEquals(count, XForm.objects.all().count())
+            # diff versions
+            self.assertEquals(self.xform.version, u"212121211")
+            self.assertEquals(form_id, self.xform.pk)
+
+    @patch('urllib2.urlopen')
+    def test_update_xform_dropbox_url(self, mock_urlopen):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            form_id = self.xform.pk
+            count = XForm.objects.all().count()
+
+            self.assertIsNotNone(self.xform.version)
+
+            view = XFormViewSet.as_view({
+                'patch': 'partial_update',
+            })
+
+            xls_url = 'https://ona.io/examples/forms/tutorial/form.xlsx'
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation_version.xls")
+
+            xls_file = open(path)
+            mock_urlopen.return_value = xls_file
+
+            post_data = {'dropbox_xls_url': xls_url}
+            request = self.factory.patch('/', data=post_data, **self.extra)
+            response = view(request, pk=form_id)
+
+            self.assertEqual(response.status_code, 200)
+
+            self.xform.reload()
+
+            self.assertEquals(count, XForm.objects.all().count())
+            # diff versions
+            self.assertEquals(self.xform.version, u"212121211")
+            self.assertEquals(form_id, self.xform.pk)
+
     def test_update_xform_using_put(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
