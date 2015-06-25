@@ -70,7 +70,7 @@ from onadata.libs.utils.string import str2bool
 from onadata.libs.utils.csv_import import get_async_csv_submission_status
 from onadata.libs.utils.csv_import import submit_csv
 from onadata.libs.utils.csv_import import submit_csv_async
-from onadata.libs.utils.viewer_tools import _get_form_url
+from onadata.libs.utils.viewer_tools import get_form_url
 from onadata.libs.utils.export_tools import str_to_bool
 
 
@@ -599,7 +599,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     @action(methods=['GET'])
     def enketo(self, request, **kwargs):
         self.object = self.get_object()
-        form_url = _get_form_url(request, self.object.user.username)
+        form_url = get_form_url(request, self.object.user.username)
 
         data = {'message': _(u"Enketo not properly configured.")}
         http_status = status.HTTP_400_BAD_REQUEST

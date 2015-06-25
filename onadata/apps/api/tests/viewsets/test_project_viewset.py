@@ -226,9 +226,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.form_data['metadata'] = [{
             'id': preview_url.pk,
             'xform': self.xform.pk,
-            'data_value': u'https://enketo.ona.io/webform/preview?'
-            'server=http://testserver/%s/&id=transportation_2011_07_25' %
-            self.xform.user.username,
+            'data_value': u"https://enketo.ona.io/preview/::YY8M",
             'data_type': u'enketo_preview_url',
             'data_file': u'',
             'data_file_type': None,
@@ -237,7 +235,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             'media_url': None
         }, {
             'id': url.pk,
-            'data_value': u'https://dmfrm.enketo.org/webform',
+            'data_value': u"https://enketo.ona.io/::YY8M",
             'xform': self.xform.pk,
             'data_file': u'',
             'data_type': u'enketo_url',

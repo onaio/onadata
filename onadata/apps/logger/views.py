@@ -48,7 +48,7 @@ from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.user_auth import helper_auth_helper, has_permission,\
     has_edit_permission, HttpResponseNotAuthorized, add_cors_headers
 
-from onadata.libs.utils.viewer_tools import _get_form_url
+from onadata.libs.utils.viewer_tools import get_form_url
 
 
 IO_ERROR_STRINGS = [
@@ -466,7 +466,7 @@ def enter_data(request, username, id_string):
     if not has_edit_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
 
-    form_url = _get_form_url(request, username, settings.ENKETO_PROTOCOL)
+    form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL)
 
     try:
         url = enketo_url(form_url, xform.id_string)
@@ -520,7 +520,7 @@ def edit_data(request, username, id_string, data_id):
                 'username': username,
                 'id_string': id_string}
         ) + "#/" + str(instance.id))
-    form_url = _get_form_url(request, username, settings.ENKETO_PROTOCOL)
+    form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL)
 
     try:
         url = enketo_url(

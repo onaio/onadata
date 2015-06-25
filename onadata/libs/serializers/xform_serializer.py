@@ -12,7 +12,7 @@ from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
-from onadata.libs.utils.viewer_tools import _get_form_url
+from onadata.libs.utils.viewer_tools import get_form_url
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.cache_tools import (XFORM_PERMISSIONS_CACHE,
@@ -101,7 +101,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                     xform=obj, data_type="enketo_url")
             except MetaData.DoesNotExist:
                 request = self.context.get('request')
-                form_url = _get_form_url(request, obj.user.username)
+                form_url = get_form_url(request, obj.user.username)
                 url = ""
 
                 try:
