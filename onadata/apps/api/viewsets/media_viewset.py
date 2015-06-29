@@ -3,6 +3,7 @@ from django.http import Http404
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
+from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 
@@ -55,3 +56,10 @@ class MediaViewSet(viewsets.ViewSet):
             return HttpResponseRedirect(url)
 
         raise Http404()
+
+    def list(self, request, *args, **kwargs):
+        """
+            Action NOT IMPLEMENTED, only needed because of the automatic url
+            routing in /api/v1/
+        """
+        return Response(data=[])

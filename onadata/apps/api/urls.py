@@ -157,6 +157,8 @@ class MultiLookupRouter(routers.DefaultRouter):
 ## Ona JSON Rest API endpoints:
 
 """
+            _ignore_model_permissions = True
+
             def get(self, request, format=None):
                 ret = {}
                 for key, url_name in api_root_dict.items():
