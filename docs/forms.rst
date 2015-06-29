@@ -141,7 +141,13 @@ You can use ``PUT`` or ``PATCH`` http methods to update or set form data element
 If you are using ``PUT``, you have to provide the `uuid, description,
 downloadable, owner, public, public_data, title` fields. With ``PATCH`` you only need to provide at least one of the fields.
 
-- ``xls_file``: Can only be updated when there are no submissions.
+Replacing a Form
+----------------
+Provide either of the following fields:
+
+- ``xls_file`` or ``xls_url`` or ``dropbox_xls_url``
+
+Form can only be updated when there are no submissions.
 
 .. raw:: html
 
