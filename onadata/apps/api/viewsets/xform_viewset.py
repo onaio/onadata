@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
 
 from pyxform.xls2json import parse_file_to_json
 from pyxform.builder import create_survey_element_from_dict
@@ -33,6 +34,7 @@ from rest_framework.filters import DjangoFilterBackend
 
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
+from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.viewer import tasks as viewer_task
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
@@ -491,6 +493,32 @@ def get_async_response(job_uuid, request, xform, count=0):
     return resp
 
 
+def set_enketo_signed_cookies(resp, user=None, temp_token_key=None):
+    if user is not None:
+        username = user.username
+        temp_token = get_object_or_404(TempToken, user=user)
+        token = temp_token.key
+
+    elif temp_token_key is not None:
+        token = get_object_or_404(TempToken, key=temp_token_key)
+        username = token.user.username
+
+    max_age = 30 * 24 * 60 * 60 * 1000
+
+    resp.set_signed_cookie('__enketo_meta_uid',
+                           username,
+                           max_age=max_age,
+                           salt='s0m3v3rys3cr3tk3y')
+    resp.set_signed_cookie('__enketo',
+                           token,
+                           httponly=True,
+                           secure=False,
+                           max_age=max_age,
+                           salt='s0m3v3rys3cr3tk3y')
+
+    return resp
+
+
 class XFormViewSet(AnonymousUserPublicFormsMixin,
                    LabelsMixin,
                    LastModifiedMixin,
@@ -602,10 +630,13 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     def login(self, request, **kwargs):
         return_url = request.QUERY_PARAMS.get('return')
         url = urlparse(return_url)
-        redirect_url = "%s://%s%s" % (url.scheme, url.netloc, url.path)
+        redirect_url = "%s://%s%s#%s" % (
+            url.scheme, url.netloc, url.path, url.fragment)
         res_red = HttpResponseRedirect(redirect_url)
 
         token = None
+
+        # get temp-token param from zebra
         try:
             temp_token_param = filter(
                 lambda p: p.startswith('temp-token'), url.query.split('&'))[0]
@@ -613,25 +644,23 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         except IndexError:
             pass
 
-        if request.user:
-            if token is not None:
-                user = request.user
-                max_age = 30 * 24 * 60 * 60 * 1000
-
-                res_red.set_signed_cookie('__enketo_meta_uid',
-                                          user.username,
-                                          max_age=max_age,
-                                          salt='s0m3v3rys3cr3tk3y')
-                res_red.set_signed_cookie('__enketo',
-                                          token,
-                                          httponly=True,
-                                          secure=False,
-                                          max_age=max_age,
-                                          salt='s0m3v3rys3cr3tk3y')
+        # request from ona.io or stage.ona.io
+        if not request.user.is_anonymous():
+            user = request.user
+            res_red = set_enketo_signed_cookies(res_red, user=user)
 
             return res_red
 
-        return Response("You are getting this because it didn't redirect")
+        # request from zebra
+        else:
+            if token is not None:
+                temp_token = get_object_or_404(TempToken, key=token)
+                res_red = set_enketo_signed_cookies(
+                    res_red, temp_token_key=temp_token.key)
+
+                return res_red
+
+        return Response("You are getting this because there was no redirect")
 
     @action(methods=['GET'])
     def enketo(self, request, **kwargs):
