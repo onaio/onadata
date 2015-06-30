@@ -259,3 +259,17 @@ class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
                 raise Http404
 
         return queryset
+
+
+class WidgetFilter(XFormPermissionFilterMixin,
+                   filters.DjangoObjectPermissionsFilter):
+
+    def filter_queryset(self, request, queryset, view):
+
+        if view.action == 'list':
+            # Return widgets from xform user has perms to
+            return self._xform_filter_queryset(request, queryset, view,
+                                               'object_id')
+
+        return super(WidgetFilter, self).filter_queryset(request, queryset,
+                                                         view)

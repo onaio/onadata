@@ -20,12 +20,16 @@ from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
+from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
 from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.main import tests as main_tests
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Project
+from onadata.apps.logger.models.widget import Widget
+from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.apps.logger.views import submission
 
@@ -402,3 +406,83 @@ class TestAbstractViewSet(TestCase):
                                  self.profile_data['password1'],
                                  'Digest')
         return client
+
+    def _create_dataview(self, data=None):
+        view = DataViewViewSet.as_view({
+            'post': 'create'
+        })
+
+        if data:
+            data = data
+        else:
+            data = {
+                'name': "My DataView",
+                'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+                'project':  'http://testserver/api/v1/projects/%s'
+                            % self.project.pk,
+                'columns': '["name", "age", "gender"]',
+                'query': '[{"column":"age","filter":">","value":"20"},'
+                         '{"column":"age","filter":"<","value":"50"}]'
+            }
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request)
+
+        self.assertEquals(response.status_code, 201)
+
+        # load the created dataview
+        self.data_view = DataView.objects.filter(xform=self.xform,
+                                                 project=self.project)[0]
+
+        self.assertEquals(response.data['name'], data['name'])
+        self.assertEquals(response.data['xform'], data['xform'])
+        self.assertEquals(response.data['project'], data['project'])
+        self.assertEquals(response.data['columns'],
+                          json.loads(data['columns']))
+        self.assertEquals(response.data['query'],
+                          json.loads(data['query']) if 'query' in data else {})
+        self.assertEquals(response.data['url'],
+                          'http://testserver/api/v1/dataviews/%s'
+                          % self.data_view.pk)
+
+    def _create_widget(self, data=None):
+        view = WidgetViewSet.as_view({
+            'post': 'create'
+        })
+
+        if data:
+            data = data
+        else:
+            data = {
+                'title': "Widget that",
+                'content_object': 'http://testserver/api/v1/forms/%s' %
+                                  self.xform.pk,
+                'description': "Test widget",
+                'widget_type': "charts",
+                'view_type': "horizontal-bar",
+                'column': "age",
+                'group_by': "gender"
+            }
+        count = Widget.objects.all().count()
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request)
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(count+1, Widget.objects.all().count())
+
+        self.widget = Widget.objects.all().order_by('pk').reverse()[0]
+
+        self.assertEquals(response.data['title'],
+                          data['title'] if 'title' in data else None)
+        self.assertEquals(response.data['content_object'],
+                          data['content_object'])
+        self.assertEquals(response.data['widget_type'], data['widget_type'])
+        self.assertEquals(response.data['view_type'], data['view_type'])
+        self.assertEquals(response.data['column'], data['column'])
+        self.assertEquals(response.data['description'],
+                          data['description']
+                          if 'description' in data else None)
+        self.assertEquals(response.data['group_by'],
+                          data['group_by'] if 'group_by' in data else None)
+        self.assertEquals(response.data['data'], [])

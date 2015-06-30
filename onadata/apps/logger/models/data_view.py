@@ -60,6 +60,11 @@ class DataView(models.Model):
 
     class Meta:
         app_label = 'logger'
+        verbose_name = _('Data View')
+        verbose_name_plural = _('Data Views')
+
+    def __unicode__(self):
+        return getattr(self, "name", "")
 
     @classmethod
     def _get_where_clause(cls, data_view, form_integer_fields=[],
