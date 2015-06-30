@@ -1,6 +1,7 @@
 import os
 import mock
 from unittest import skip
+from httmock import HTTMock
 
 from django.core.files.base import ContentFile
 from django.core.urlresolvers import reverse
@@ -15,6 +16,8 @@ from onadata.apps.viewer.views import export_list, map_view
 from onadata.libs.utils.logger_tools import publish_xml_form
 from onadata.libs.utils.user_auth import http_auth_string
 from onadata.libs.utils.user_auth import get_user_default_project
+from onadata.apps.api.tests.viewsets.test_xform_viewset import enketo_mock,\
+    enketo_preview_url_mock
 from test_base import TestBase
 
 
@@ -426,20 +429,22 @@ class TestFormShow(TestBase):
         self.assertFalse(form_deleted)
 
     def test_enketo_preview(self):
-        url = reverse(
-            enketo_preview, kwargs={'username': self.user.username,
-                                    'id_string': self.xform.id_string})
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
+        with HTTMock(enketo_preview_url_mock):
+            url = reverse(
+                enketo_preview, kwargs={'username': self.user.username,
+                                        'id_string': self.xform.id_string})
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 302)
 
     def test_enketo_preview_works_on_shared_forms(self):
-        self.xform.shared = True
-        self.xform.save()
-        url = reverse(
-            enketo_preview, kwargs={'username': self.user.username,
-                                    'id_string': self.xform.id_string})
-        response = self.anon.get(url)
-        self.assertEqual(response.status_code, 302)
+        with HTTMock(enketo_mock):
+            self.xform.shared = True
+            self.xform.save()
+            url = reverse(
+                enketo_preview, kwargs={'username': self.user.username,
+                                        'id_string': self.xform.id_string})
+            response = self.anon.get(url)
+            self.assertEqual(response.status_code, 302)
 
     # TODO PLD disabling this test
     @skip('Insensitivity is not enforced upon creation of id_strings.')
