@@ -812,16 +812,16 @@ def should_create_new_export(xform, export_type, remove_group_name=False,
     q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
     q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
 
-    qq = None
+    filter_query = None
     if remove_group_name:
-        qq = q_remove_grp_name
+        filter_query = q_remove_grp_name
 
     if dataview:
-        qq = q_dataview
+        filter_query = q_dataview
 
-    if qq:
+    if filter_query:
         if Export.objects.filter(xform=xform, export_type=export_type)\
-                .filter(qq).count() == 0\
+                .filter(filter_query).count() == 0\
                 or Export.exports_outdated(xform, export_type=export_type):
 
             return True
@@ -848,16 +848,16 @@ def newest_export_for(xform, export_type, remove_group_name=False,
     q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
     q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
 
-    qq = None
+    filter_query = None
     if remove_group_name:
-        qq = q_remove_grp_name
+        filter_query = q_remove_grp_name
 
     if dataview:
-        qq = q_dataview
+        filter_query = q_dataview
 
-    if qq:
+    if filter_query:
         return Export.objects.filter(xform=xform, export_type=export_type)\
-            .filter(qq).latest('created_on')
+            .filter(filter_query).latest('created_on')
     else:
         return Export.objects.filter(xform=xform, export_type=export_type)\
             .exclude(q_dataview | q_remove_grp_name).latest('created_on')
