@@ -1,6 +1,3 @@
-from urlparse import urlparse
-from django.contrib.auth.models import User
-
 from django.utils.translation import ugettext as _
 from django_digest import HttpDigestAuthenticator
 from rest_framework.authentication import get_authorization_header
