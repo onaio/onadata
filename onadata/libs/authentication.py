@@ -26,34 +26,6 @@ def expired(time_token_created):
     return True if time_diff > token_expiry_time else False
 
 
-def enketo_temp_token_authentication(request):
-    return_url = request.QUERY_PARAMS.get('return')
-    url = urlparse(return_url)
-
-    try:
-        temp_token_param = filter(
-            lambda p: p.startswith('temp-token'), url.query.split('&'))[0]
-        temp_token = temp_token_param.split('=')[1]
-        if temp_token and TempToken.objects.get(key=temp_token) \
-                is not None:
-            tta = TempTokenAuthentication()
-            user, token = tta.authenticate_credentials(key=temp_token)
-            if user:
-                return user, token
-
-    except IndexError:
-        token = request.get_signed_cookie(
-            '__enketo', salt='s0m3v3rys3cr3tk3y')
-        username = request.get_signed_cookie(
-            '__enketo_meta_uid', salt='s0m3v3rys3cr3tk3y')
-
-        user = User.objects.get(username=username)
-        if token and user:
-            return user, token
-
-    return None
-
-
 class DigestAuthentication(BaseAuthentication):
 
     def __init__(self):
