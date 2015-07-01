@@ -503,7 +503,6 @@ def set_enketo_signed_cookies(resp, user=None, temp_token_key=None):
         username = token.user.username
 
     max_age = 30 * 24 * 60 * 60 * 1000
-
     resp.set_signed_cookie('__enketo_meta_uid',
                            username,
                            max_age=max_age,
