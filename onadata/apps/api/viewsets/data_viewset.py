@@ -298,7 +298,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                   {'data_id': data_id})
             )
 
-    @etag(etag_func=calculate_etag)
     def list(self, request, *args, **kwargs):
         fields = request.GET.get("fields")
         query = request.GET.get("query", {})
