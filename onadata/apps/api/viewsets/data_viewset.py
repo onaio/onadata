@@ -1,5 +1,4 @@
 import types
-import uuid
 
 from django.db.models import Q
 from django.http import Http404
@@ -8,7 +7,6 @@ from django.utils import six
 from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
-from django.core.cache import cache
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -17,7 +15,6 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.settings import api_settings
-from rest_framework_extensions.etag.decorators import etag
 
 from onadata.apps.api.viewsets.xform_viewset import custom_response_handler
 from onadata.apps.api.tools import add_tags_to_instance
@@ -29,6 +26,7 @@ from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import DataSerializer
 from onadata.libs.serializers.data_serializer import DataListSerializer
@@ -40,29 +38,8 @@ from onadata.libs.utils.viewer_tools import (
     EnketoError,
     get_enketo_edit_url)
 from onadata.libs.data import parse_int
-from onadata.libs.utils.cache_tools import XFORM_DATA
-
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
-
-def calculate_etag(view_instance, view_method,
-                   request, args, kwargs):
-    """
-        Checks for the etag in the cache or generates a new one
-    """
-    if 'pk' in kwargs:
-        pk = kwargs.get('pk')
-        # form_id is present check key in cache
-        etag = cache.get('{}{}'.format(XFORM_DATA, pk))
-
-        if etag:
-            return etag
-
-        etag = uuid.uuid4().hex
-
-        cache.set('{}{}'.format(XFORM_DATA, pk), etag)
-
-    return etag
 
 
 class CustomPaginationSerializer(BasePaginationSerializer):
@@ -78,7 +55,7 @@ class CustomPaginationSerializer(BasePaginationSerializer):
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin,
-                  LastModifiedMixin,
+                  LastModifiedMixin, ETagsMixin,
                   ModelViewSet):
     """
     This endpoint provides access to submitted data.

@@ -1,6 +1,5 @@
 import types
 from onadata.libs.utils.timing import last_modified_header, get_date
-import hashlib
 
 
 class LastModifiedMixin(object):
@@ -17,7 +16,7 @@ class LastModifiedMixin(object):
                 obj = None
                 if hasattr(self, 'object_list'):
                     if not isinstance(self.object_list, types.GeneratorType):
-                        obj = self.object_list.latest('date_modified')
+                        obj = self.object_list.last()
 
                 if hasattr(self, 'object'):
                     obj = self.object
