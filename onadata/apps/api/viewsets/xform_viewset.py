@@ -494,24 +494,24 @@ def get_async_response(job_uuid, request, xform, count=0):
 
 
 def set_enketo_signed_cookies(resp, user=None, temp_token_key=None):
-    if user is not None:
+    if user:
         username = user.username
         temp_token = get_object_or_404(TempToken, user=user)
-        token = temp_token.key
-    elif temp_token_key is not None:
-        token = get_object_or_404(TempToken, key=temp_token_key)
-        username = token.user.username
+    else:
+        # assume temp_token_key is not None
+        temp_token = get_object_or_404(TempToken, key=temp_token_key)
+        username = temp_token.user.username
 
     max_age = 30 * 24 * 60 * 60 * 1000
     resp.set_signed_cookie('__enketo_meta_uid',
                            username,
                            max_age=max_age,
-                           salt='s0m3v3rys3cr3tk3y')
+                           salt=settings.ENKETO_API_SALT)
     resp.set_signed_cookie('__enketo',
-                           token,
+                           temp_token.key,
                            httponly=True,
                            secure=False,
-                           salt='s0m3v3rys3cr3tk3y')
+                           salt=settings.ENKETO_API_SALT)
 
     return resp
 
@@ -631,33 +631,35 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         if '_/#' in return_url:  # offline url
             redirect_url = "%s://%s%s#%s" % (
                 url.scheme, url.netloc, url.path, url.fragment)
-        elif '/::' in return_url:  # non-offline url
+        else:  # should contain '/::' in return_url, non-offline url
             redirect_url = "%s://%s%s" % (url.scheme, url.netloc, url.path)
 
-        res_red = HttpResponseRedirect(redirect_url)
-
-        try:
-            # get temp-token param from url - probably zebra via enketo
-            temp_token_param = filter(
-                lambda p: p.startswith('temp-token'), url.query.split('&'))[0]
-            token = temp_token_param.split('=')[1]
-        except IndexError:
-            pass
+        response_redirect = HttpResponseRedirect(redirect_url)
 
         if not request.user.is_anonymous():
             user = request.user
-            res_red = set_enketo_signed_cookies(res_red, user=user)
-            return res_red
+            response_redirect = set_enketo_signed_cookies(response_redirect,
+                                                          user=user)
+            return response_redirect
         else:
-            if token is not None:
+            try:
+                # get temp-token param from url - probably zebra via enketo
+                temp_token_param = filter(
+                    lambda p: p.startswith('temp-token'),
+                    url.query.split('&'))[0]
+                token = temp_token_param.split('=')[1]
+            except IndexError:
+                pass
+
+            if token:
                 # if the requesting user is not authenticated but the token
                 # has been retrieve from the url - probably zebra via enketo
                 # express - use the token to create signed cookies which will
                 # be used by subsequent enketo calls to authenticate the user
                 temp_token = get_object_or_404(TempToken, key=token)
-                res_red = set_enketo_signed_cookies(
-                    res_red, temp_token_key=temp_token.key)
-                return res_red
+                response_redirect = set_enketo_signed_cookies(
+                    response_redirect, temp_token_key=temp_token.key)
+                return response_redirect
 
         return Response("You are getting this because there was no redirect")
 
