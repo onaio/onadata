@@ -626,12 +626,15 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     @list_route(methods=['GET'])
     def login(self, request, **kwargs):
         return_url = request.QUERY_PARAMS.get('return')
-        url = urlparse(return_url)
-        redirect_url = "%s://%s%s#%s" % (
-            url.scheme, url.netloc, url.path, url.fragment)
-        res_red = HttpResponseRedirect(redirect_url)
-
         token = None
+        url = urlparse(return_url)
+        if '_/#' in return_url:  # offline url
+            redirect_url = "%s://%s%s#%s" % (
+                url.scheme, url.netloc, url.path, url.fragment)
+        elif '/::' in return_url:  # non-offline url
+            redirect_url = "%s://%s%s" % (url.scheme, url.netloc, url.path)
+
+        res_red = HttpResponseRedirect(redirect_url)
 
         try:
             # get temp-token param from url - probably zebra via enketo
