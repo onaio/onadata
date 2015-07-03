@@ -26,6 +26,7 @@ from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import DataSerializer
 from onadata.libs.serializers.data_serializer import DataListSerializer
@@ -37,7 +38,6 @@ from onadata.libs.utils.viewer_tools import (
     EnketoError,
     get_enketo_edit_url)
 from onadata.libs.data import parse_int
-
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
@@ -55,7 +55,7 @@ class CustomPaginationSerializer(BasePaginationSerializer):
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin,
-                  LastModifiedMixin,
+                  LastModifiedMixin, ETagsMixin,
                   ModelViewSet):
     """
     This endpoint provides access to submitted data.

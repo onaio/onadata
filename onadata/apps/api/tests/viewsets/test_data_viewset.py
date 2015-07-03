@@ -1044,6 +1044,41 @@ class TestDataViewSet(TestBase):
 
         self.assertEquals(len(response.data), 1)
 
+    def test_etag_on_response(self):
+        self._make_submissions()
+
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+
+        self.assertEquals(response.status_code, 200)
+
+        self.assertIsNotNone(response.get('ETag'))
+        etag_hash = response.get('ETag')
+
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+
+        self.assertEquals(response.status_code, 200)
+
+        self.assertEquals(etag_hash, response.get('ETag'))
+
+        # delete one submission
+        inst = Instance.objects.filter(xform=self.xform)
+        inst[0].delete()
+
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        response = view(request, pk=formid)
+
+        self.assertEquals(response.status_code, 200)
+
+        self.assertNotEquals(etag_hash, response.get('ETag'))
+
 
 class TestOSM(TestAbstractViewSet):
 
