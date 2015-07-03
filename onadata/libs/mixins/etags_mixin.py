@@ -5,7 +5,6 @@ class ETagsMixin(object):
 
     def finalize_response(self, request, response, *args, **kwargs):
         if request.method == 'GET' and not response.streaming:
-
             m = hashlib.md5()
             m.update(str(response.data))
             hash_value = m.hexdigest()
