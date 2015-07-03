@@ -20,4 +20,3 @@ ENKETO_PREVIEW_URL_CACHE = 'xfs-get_enketo_preview_url'
 XFORM_METADATA_CACHE = 'xfs-get_xform_metadata'
 XFORM_DATA_VERSIONS = 'xfs-get_xform_data_versions'
 DATAVIEW_COUNT = 'dvs-get_data_count'
-
