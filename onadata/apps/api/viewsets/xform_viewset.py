@@ -506,11 +506,13 @@ def set_enketo_signed_cookies(resp, user=None, temp_token_key=None):
     resp.set_signed_cookie('__enketo_meta_uid',
                            username,
                            max_age=max_age,
+                           domain='.ona.io',
                            salt=settings.ENKETO_API_SALT)
     resp.set_signed_cookie('__enketo',
                            temp_token.key,
                            httponly=True,
                            secure=False,
+                           domain='.ona.io',
                            salt=settings.ENKETO_API_SALT)
 
     return resp
