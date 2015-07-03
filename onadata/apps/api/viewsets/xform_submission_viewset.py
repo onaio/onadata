@@ -20,6 +20,7 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
+from onadata.libs.authentication import EnketoTempTokenAuthentication
 from onadata.libs.mixins.openrosa_headers_mixin import OpenRosaHeadersMixin
 from onadata.libs.renderers.renderers import TemplateXMLRenderer
 from onadata.libs.serializers.data_serializer import SubmissionSerializer
@@ -81,7 +82,8 @@ class XFormSubmissionViewSet(OpenRosaHeadersMixin, mixins.CreateModelMixin,
 
     authentication_classes = (DigestAuthentication,
                               BasicAuthentication,
-                              TokenAuthentication)
+                              TokenAuthentication,
+                              EnketoTempTokenAuthentication)
     filter_backends = (filters.AnonDjangoObjectPermissionFilter,)
     model = Instance
     permission_classes = (permissions.AllowAny,)

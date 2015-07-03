@@ -17,6 +17,7 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
+from onadata.libs.authentication import EnketoTempTokenAuthentication
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation
 from onadata.libs.renderers.renderers import XFormListRenderer
 from onadata.libs.renderers.renderers import XFormManifestRenderer
@@ -29,7 +30,8 @@ DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 
 
 class XFormListViewSet(viewsets.ReadOnlyModelViewSet):
-    authentication_classes = (DigestAuthentication,)
+    authentication_classes = (DigestAuthentication,
+                              EnketoTempTokenAuthentication,)
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.XFormListObjectPermissionFilter,)
     queryset = XForm.objects.filter(downloadable=True, deleted_at=None)

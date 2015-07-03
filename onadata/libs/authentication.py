@@ -80,3 +80,20 @@ class TempTokenAuthentication(TokenAuthentication):
 
     def authenticate_header(self, request):
         return 'TempToken'
+
+
+class EnketoTempTokenAuthentication(TokenAuthentication):
+    model = TempToken
+
+    def authenticate(self, request):
+        try:
+            token = request.get_signed_cookie(
+                '__enketo', salt='s0m3v3rys3cr3tk3y')
+            temp_token = self.model.objects.get(key=token)
+            if temp_token:
+                return temp_token.user, token
+            raise exceptions.AuthenticationFailed('No such token')
+        except KeyError:
+            pass
+
+        return None

@@ -2,6 +2,8 @@ import os
 import json
 import random
 from requests import ConnectionError
+from urlparse import urlparse
+
 from datetime import datetime
 
 from celery.result import AsyncResult
@@ -16,6 +18,7 @@ from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
 
 from pyxform.xls2json import parse_file_to_json
 from pyxform.builder import create_survey_element_from_dict
@@ -31,6 +34,7 @@ from rest_framework.filters import DjangoFilterBackend
 
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
+from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.viewer import tasks as viewer_task
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
@@ -489,6 +493,31 @@ def get_async_response(job_uuid, request, xform, count=0):
     return resp
 
 
+def set_enketo_signed_cookies(resp, user=None, temp_token_key=None):
+    if user:
+        username = user.username
+        temp_token = get_object_or_404(TempToken, user=user)
+    else:
+        # assume temp_token_key is not None
+        temp_token = get_object_or_404(TempToken, key=temp_token_key)
+        username = temp_token.user.username
+
+    max_age = 30 * 24 * 60 * 60 * 1000
+    resp.set_signed_cookie('__enketo_meta_uid',
+                           username,
+                           max_age=max_age,
+                           domain='.ona.io',
+                           salt=settings.ENKETO_API_SALT)
+    resp.set_signed_cookie('__enketo',
+                           temp_token.key,
+                           httponly=True,
+                           secure=False,
+                           domain='.ona.io',
+                           salt=settings.ENKETO_API_SALT)
+
+    return resp
+
+
 class XFormViewSet(AnonymousUserPublicFormsMixin,
                    LabelsMixin,
                    LastModifiedMixin,
@@ -595,6 +624,46 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         response['Content-Disposition'] = 'attachment; filename=' + filename
 
         return response
+
+    @list_route(methods=['GET'])
+    def login(self, request, **kwargs):
+        return_url = request.QUERY_PARAMS.get('return')
+        token = None
+        url = urlparse(return_url)
+        if '_/#' in return_url:  # offline url
+            redirect_url = "%s://%s%s#%s" % (
+                url.scheme, url.netloc, url.path, url.fragment)
+        else:  # should contain '/::' in return_url, non-offline url
+            redirect_url = "%s://%s%s" % (url.scheme, url.netloc, url.path)
+
+        response_redirect = HttpResponseRedirect(redirect_url)
+
+        if not request.user.is_anonymous():
+            user = request.user
+            response_redirect = set_enketo_signed_cookies(response_redirect,
+                                                          user=user)
+            return response_redirect
+        else:
+            try:
+                # get temp-token param from url - probably zebra via enketo
+                temp_token_param = filter(
+                    lambda p: p.startswith('temp-token'),
+                    url.query.split('&'))[0]
+                token = temp_token_param.split('=')[1]
+            except IndexError:
+                pass
+
+            if token:
+                # if the requesting user is not authenticated but the token
+                # has been retrieve from the url - probably zebra via enketo
+                # express - use the token to create signed cookies which will
+                # be used by subsequent enketo calls to authenticate the user
+                temp_token = get_object_or_404(TempToken, key=token)
+                response_redirect = set_enketo_signed_cookies(
+                    response_redirect, temp_token_key=temp_token.key)
+                return response_redirect
+
+        return Response("You are getting this because there was no redirect")
 
     @action(methods=['GET'])
     def enketo(self, request, **kwargs):
