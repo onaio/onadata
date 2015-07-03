@@ -7,10 +7,9 @@ from rest_framework.exceptions import ParseError
 from rest_framework.settings import api_settings
 from rest_framework import status
 
-from onadata.apps.api.viewsets.xform_viewset import custom_response_handler
-from onadata.apps.api.viewsets.xform_viewset import \
-    _export_async_export_response
-from onadata.apps.api.viewsets.xform_viewset import process_async_export
+from onadata.libs.utils.api_export_tools import custom_response_handler
+from onadata.libs.utils.api_export_tools import export_async_export_response
+from onadata.libs.utils.api_export_tools import process_async_export
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.api.permissions import DataViewViewsetPermissions
 from onadata.libs.renderers import renderers
@@ -87,8 +86,8 @@ class DataViewViewSet(ModelViewSet):
                 export_id = job.result
                 export = Export.objects.get(id=export_id)
 
-                resp = _export_async_export_response(request, xform, export,
-                                                     dataview_pk=dataview.pk)
+                resp = export_async_export_response(request, xform, export,
+                                                    dataview_pk=dataview.pk)
             else:
                 resp = {
                     'job_status': job.state

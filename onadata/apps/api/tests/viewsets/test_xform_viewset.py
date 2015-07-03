@@ -2002,7 +2002,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEquals(response.data, {'job_status': 'PENDING'})
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch('onadata.apps.api.viewsets.xform_viewset.AsyncResult')
+    @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_export_form_data_async(self, async_result):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -2029,7 +2029,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertTrue(export.is_successful)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch('onadata.apps.api.viewsets.xform_viewset.AsyncResult')
+    @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_export_async_connection_error(self, async_result):
         with HTTMock(enketo_mock):
             from requests import ConnectionError
@@ -2062,7 +2062,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertTrue(export.is_successful)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch('onadata.apps.api.viewsets.xform_viewset.AsyncResult')
+    @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_create_xls_report_async(self, async_result):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -2103,7 +2103,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 202)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch('onadata.apps.api.viewsets.xform_viewset.AsyncResult')
+    @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_create_xls_report_async_with_data_id(self, async_result):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -2379,7 +2379,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(content, test_file.read())
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch('onadata.apps.api.viewsets.xform_viewset.AsyncResult')
+    @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_export_csv_data_async_with_remove_group_name(self, async_result):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
