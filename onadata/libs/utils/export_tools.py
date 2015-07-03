@@ -550,13 +550,7 @@ class ExportBuilder(object):
         # write the headers
         for section in self.sections:
             section_name = section['name']
-
-            if dataview:
-                headers = dataview.columns
-            else:
-                headers = [
-                    element['title'] for element in
-                    section['elements']] + self.EXTRA_FIELDS
+            headers = self.get_fields(dataview, section, 'title')
 
             # get the worksheet
             ws = work_sheets[section_name]
@@ -579,13 +573,7 @@ class ExportBuilder(object):
             for section in self.sections:
                 # get data for this section and write to xls
                 section_name = section['name']
-
-                if dataview:
-                    fields = dataview.columns
-                else:
-                    fields = [
-                        element['xpath'] for element in
-                        section['elements']] + self.EXTRA_FIELDS
+                fields = self.get_fields(dataview, section, 'xpath')
 
                 ws = work_sheets[section_name]
                 # section might not exist within the output, e.g. data was
@@ -704,6 +692,13 @@ class ExportBuilder(object):
         # close files when we are done
         for section_name, sav_def in sav_defs.iteritems():
             sav_def['sav_file'].close()
+
+    def get_fields(self, dataview, section, key):
+        if dataview:
+            return dataview.columns
+        else:
+            return [element[key] for element in
+                    section['elements']] + self.EXTRA_FIELDS
 
 
 def dict_to_flat_export(d, parent_index=0):
