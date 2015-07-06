@@ -297,11 +297,12 @@ Example Response
 ::
 
 
- [
-    {"date": "2015-05-19", "gender": "male", "age": 32, "name": "Kendy"},
-    {"date": "2015-05-19", "gender": "female", "age": 41, "name": "Maasai"},
-    {"date": "2015-05-19", "gender": "male", "age": 21, "name": "Tom"}
- ]
+        [
+                {"date": "2015-05-19", "gender": "male", "age": 32, "name": "Kendy"},
+                {"date": "2015-05-19", "gender": "female", "age": 41, "name": "Maasai"},
+                {"date": "2015-05-19", "gender": "male", "age": 21, "name": "Tom"}
+        ]
+
 Retrieving Data using limit operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -361,3 +362,73 @@ Example Response
     [
         {"count":36}
     ]
+
+
+Export Dataview Data Asynchronously
+-----------------------------------
+
+.. raw:: html
+
+	<pre class="prettyprint">
+	<b>GET</b> /api/v1/dataviews/<code>{pk}</code>/export_async
+	</pre>
+
+Example
+^^^^^^^^
+::
+
+       curl -X GET https://ona.io/api/v1/dataviews/28058/export_async?format=xls
+
+Response
+^^^^^^^^
+::
+
+       HTTP 202 Accepted
+       {"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
+
+
+Check progress of exporting form data asynchronously
+-----------------------------------------------------
+.. raw:: html
+
+	<pre class="prettyprint">
+	<b>GET</b> /api/v1/dataviews/<code>{pk}</code>/export_async?job_uuid=UUID
+	</pre>
+
+Example
+^^^^^^^^
+::
+
+       curl -X GET https://ona.io/api/v1/dataviews/28058/export_async?job_uuid=d1559e9e-5bab-480d-9804-e32111e8b2b8
+
+Response
+^^^^^^^^
+If the job is done:
+
+::
+
+       HTTP 202 Accepted
+       {
+           "job_status": "SUCCESS",
+           "export_url": "https://ona.io/api/v1/dataviews/28058/data.xls"
+       }
+
+Export Dataview Data Synchronously
+-----------------------------------
+
+.. raw:: html
+
+	<pre class="prettyprint">
+	<b>GET</b> /api/v1/dataviews/<code>{pk}</code>/data.{format}
+	</pre>
+
+Example
+^^^^^^^^
+::
+
+       curl -X GET https://ona.io/api/v1/dataviews/28058/data.xls
+
+Response
+^^^^^^^^
+
+File is downloaded

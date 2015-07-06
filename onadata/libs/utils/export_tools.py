@@ -22,6 +22,7 @@ from django.db.models import Q
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import\
     _is_invalid_for_mongo, _encode_for_mongo, _decode_from_mongo,\
@@ -31,7 +32,8 @@ from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
 from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
     DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, GROUPNAME_REMOVED_FLAG,
-    SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION)
+    SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
+    DATAVIEW_EXPORT)
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.osm import get_combined_osm
 
@@ -532,6 +534,7 @@ class ExportBuilder(object):
                 data.get(PARENT_TABLE_NAME))
             work_sheet.append([data.get(f) for f in fields])
 
+        dataview = kwargs.get('dataview')
         wb = Workbook(optimized_write=True)
         work_sheets = {}
         # map of section_names to generated_names
@@ -547,9 +550,8 @@ class ExportBuilder(object):
         # write the headers
         for section in self.sections:
             section_name = section['name']
-            headers = [
-                element['title'] for element in
-                section['elements']] + self.EXTRA_FIELDS
+            headers = self.get_fields(dataview, section, 'title')
+
             # get the worksheet
             ws = work_sheets[section_name]
             ws.append(headers)
@@ -571,9 +573,7 @@ class ExportBuilder(object):
             for section in self.sections:
                 # get data for this section and write to xls
                 section_name = section['name']
-                fields = [
-                    element['xpath'] for element in
-                    section['elements']] + self.EXTRA_FIELDS
+                fields = self.get_fields(dataview, section, 'xpath')
 
                 ws = work_sheets[section_name]
                 # section might not exist within the output, e.g. data was
@@ -594,7 +594,7 @@ class ExportBuilder(object):
 
     def to_flat_csv_export(
             self, path, data, username, id_string, filter_query,
-            start=None, end=None):
+            start=None, end=None, dataview=None):
         # TODO resolve circular import
         from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 
@@ -603,7 +603,7 @@ class ExportBuilder(object):
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
             start, end, self.TRUNCATE_GROUP_TITLE
         )
-        csv_builder.export_to(path)
+        csv_builder.export_to(path, dataview=dataview)
 
     def to_zipped_sav(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):
@@ -693,6 +693,13 @@ class ExportBuilder(object):
         for section_name, sav_def in sav_defs.iteritems():
             sav_def['sav_file'].close()
 
+    def get_fields(self, dataview, section, key):
+        if dataview:
+            return dataview.columns
+        else:
+            return [element[key] for element in
+                    section['elements']] + self.EXTRA_FIELDS
+
 
 def dict_to_flat_export(d, parent_index=0):
     pass
@@ -702,7 +709,7 @@ def generate_export(export_type, extension, username, id_string,
                     export_id=None, filter_query=None, group_delimiter='/',
                     split_select_multiples=True,
                     binary_select_multiples=False, start=None, end=None,
-                    remove_group_name=False):
+                    remove_group_name=False, dataview_pk=None):
     """
     Create appropriate export object given the export type
     """
@@ -718,8 +725,13 @@ def generate_export(export_type, extension, username, id_string,
     xform = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
 
-    records = ParsedInstance.query_data(xform, query=filter_query,
-                                        start=start, end=end)
+    dataview = None
+    if dataview_pk:
+        dataview = DataView.objects.get(pk=dataview_pk)
+        records = DataView.query_data(dataview)
+    else:
+        records = ParsedInstance.query_data(xform, query=filter_query,
+                                            start=start, end=end)
 
     export_builder = ExportBuilder()
 
@@ -736,7 +748,7 @@ def generate_export(export_type, extension, username, id_string,
     try:
         func.__call__(
             temp_file.name, records, username, id_string, filter_query,
-            start=start, end=end
+            start=start, end=end, dataview=dataview
         )
     except NoRecordsFoundError:
         pass
@@ -747,10 +759,11 @@ def generate_export(export_type, extension, username, id_string,
 
     if remove_group_name:
         # add 'remove group name' flag to filename
-        filename = "{}-{}.{}".format(basename, GROUPNAME_REMOVED_FLAG,
-                                     extension)
-    else:
-        filename = basename + "." + extension
+        basename = "{}-{}".format(basename, GROUPNAME_REMOVED_FLAG)
+    if dataview:
+        basename = "{}-{}".format(basename, DATAVIEW_EXPORT)
+
+    filename = basename + "." + extension
 
     # check filename is unique
     while not Export.is_filename_unique(xform, filename):
@@ -787,39 +800,62 @@ def generate_export(export_type, extension, username, id_string,
     return export
 
 
-def should_create_new_export(xform, export_type, remove_group_name=False):
+def should_create_new_export(xform, export_type, remove_group_name=False,
+                             dataview=None):
     # TODO resolve circular import
     from onadata.apps.viewer.models.export import Export
-    q = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
+    q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
+    q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
 
+    filter_query = None
     if remove_group_name:
-        if Export.objects.filter(
-                xform=xform, export_type=export_type).filter(q).count() == 0\
+        filter_query = q_remove_grp_name
+
+    if dataview:
+        filter_query = q_dataview
+
+    if filter_query:
+        if Export.objects.filter(xform=xform, export_type=export_type)\
+                .filter(filter_query).count() == 0\
                 or Export.exports_outdated(xform, export_type=export_type):
+
             return True
-        return False
-    else:
-        if Export.objects.filter(
-                xform=xform, export_type=export_type).exclude(q).count() == 0\
-                or Export.exports_outdated(xform, export_type=export_type):
-            return True
+
         return False
 
+    if Export.objects.filter(xform=xform, export_type=export_type)\
+            .exclude(q_dataview | q_remove_grp_name).count() == 0\
+            or Export.exports_outdated(xform, export_type=export_type):
 
-def newest_export_for(xform, export_type, remove_group_name=False):
+        return True
+
+    return False
+
+
+def newest_export_for(xform, export_type, remove_group_name=False,
+                      dataview=None):
     """
     Make sure you check that an export exists before calling this,
     it will a DoesNotExist exception otherwise
     """
     # TODO resolve circular import
     from onadata.apps.viewer.models.export import Export
-    q = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
+    q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
+    q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
+
+    filter_query = None
     if remove_group_name:
+        filter_query = q_remove_grp_name
+
+    if dataview:
+        filter_query = q_dataview
+
+    if filter_query:
         return Export.objects.filter(xform=xform, export_type=export_type)\
-            .filter(q).latest('created_on')
+            .filter(filter_query).latest('created_on')
     else:
         return Export.objects.filter(xform=xform, export_type=export_type)\
-            .exclude(q).latest('created_on')
+            .exclude(q_dataview | q_remove_grp_name).latest('created_on')
 
 
 def increment_index_in_filename(filename):

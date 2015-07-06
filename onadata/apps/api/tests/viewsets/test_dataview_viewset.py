@@ -1,12 +1,14 @@
 import os
 
 from django.conf import settings
+from django.test.utils import override_settings
+from mock import patch
 
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
-
+from onadata.apps.viewer.models.export import Export
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 
 
@@ -342,3 +344,68 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 8)
         self.assertIn("_id", response.data[0])
+
+    def test_csv_export_dataview(self):
+        self._create_dataview()
+        count = Export.objects.all().count()
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk, format='csv')
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEquals(count+1, Export.objects.all().count())
+
+        headers = dict(response.items())
+        self.assertEqual(headers['Content-Type'], 'application/csv')
+        content_disposition = headers['Content-Disposition']
+        filename = self.filename_from_disposition(content_disposition)
+        basename, ext = os.path.splitext(filename)
+        self.assertEqual(ext, '.csv')
+
+        content = self.get_response_content(response)
+        test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                      'viewer', 'tests', 'fixtures',
+                                      'dataview.csv')
+        with open(test_file_path, 'r') as test_file:
+            self.assertEqual(content, test_file.read())
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
+    def test_export_csv_dataview_data_async(self, async_result):
+        self._create_dataview()
+        self._publish_xls_form_to_project()
+
+        view = DataViewViewSet.as_view({
+            'get': 'export_async',
+        })
+
+        request = self.factory.get('/', data={"format": "csv"},
+                                   **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertIsNotNone(response.data)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertTrue('job_uuid' in response.data)
+        task_id = response.data.get('job_uuid')
+
+        export_pk = Export.objects.all().order_by('pk').reverse()[0].pk
+
+        # metaclass for mocking results
+        job = type('AsyncResultMock', (),
+                   {'state': 'SUCCESS', 'result': export_pk})
+        async_result.return_value = job
+
+        get_data = {'job_uuid': task_id}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+
+        self.assertIn('export_url', response.data)
+
+        self.assertTrue(async_result.called)
+        self.assertEqual(response.status_code, 202)
+        export = Export.objects.get(task_id=task_id)
+        self.assertTrue(export.is_successful)
