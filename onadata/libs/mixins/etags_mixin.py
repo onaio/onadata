@@ -8,7 +8,8 @@ class ETagsMixin(object):
             m = hashlib.md5()
             m.update(str(response.data))
             hash_value = m.hexdigest()
-            self.headers.update({'ETag': hash_value})
+            value = "W/{}".format(hash_value)
+            self.headers.update({'ETag': value})
 
         return super(ETagsMixin, self).finalize_response(
             request, response, *args, **kwargs)
