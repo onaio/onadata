@@ -1,10 +1,10 @@
 import os
 import random
 
-from requests import ConnectionError
 from urlparse import urlparse
 from datetime import datetime
 
+from django.http import HttpResponseRedirect
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
