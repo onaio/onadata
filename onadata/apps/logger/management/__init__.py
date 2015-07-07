@@ -1,6 +1,6 @@
-from south.signals import post_migrate
 from django.conf import settings
 from django.db.models import get_app, get_models
+from django.db.models.signals import post_migrate
 from django.contrib.auth.management import create_permissions
 
 
