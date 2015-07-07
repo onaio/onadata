@@ -58,10 +58,11 @@ class TempTokenAuthentication(TokenAuthentication):
             return None
 
         if len(auth) == 1:
-            m = 'Invalid token header. No credentials provided.'
+            m = _(u'Invalid token header. No credentials provided.')
             raise exceptions.AuthenticationFailed(m)
         elif len(auth) > 2:
-            m = 'Invalid token header. Token string should not contain spaces.'
+            m = _(u'Invalid token header. '
+                  'Token string should not contain spaces.')
             raise exceptions.AuthenticationFailed(m)
 
         return self.authenticate_credentials(auth[1])
@@ -70,13 +71,14 @@ class TempTokenAuthentication(TokenAuthentication):
         try:
             token = self.model.objects.get(key=key)
         except self.model.DoesNotExist:
-            raise exceptions.AuthenticationFailed('Invalid token')
+            raise exceptions.AuthenticationFailed(_(u'Invalid token'))
 
         if not token.user.is_active:
-            raise exceptions.AuthenticationFailed('User inactive or deleted')
+            raise exceptions.AuthenticationFailed(
+                _(u'User inactive or deleted'))
 
         if expired(token.created):
-            raise exceptions.AuthenticationFailed('Token expired')
+            raise exceptions.AuthenticationFailed(_(u'Token expired'))
 
         return (token.user, token)
 
@@ -94,10 +96,10 @@ class EnketoTempTokenAuthentication(TokenAuthentication):
             temp_token = self.model.objects.get(key=token)
             if temp_token:
                 return temp_token.user, token
-            raise exceptions.AuthenticationFailed('No such token')
+            raise exceptions.AuthenticationFailed(_(u'No such token'))
         except BadSignature as e:
-            raise exceptions.AuthenticationFailed('Bad Signature: %s' % e)
+            raise exceptions.AuthenticationFailed(_(u'Bad Signature: %s' % e))
         except KeyError:
-            raise exceptions.AuthenticationFailed('No such token')
+            raise exceptions.AuthenticationFailed(_(u'No such token'))
 
         return None
