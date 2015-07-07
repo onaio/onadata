@@ -1,13 +1,15 @@
+from django.conf import settings
+from django.core.signing import BadSignature
+from django.utils import timezone
 from django.utils.translation import ugettext as _
 from django_digest import HttpDigestAuthenticator
+from rest_framework import exceptions
 from rest_framework.authentication import get_authorization_header
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework import exceptions
+
 from onadata.apps.api.models.temp_token import TempToken
-from django.utils import timezone
-from django.conf import settings
 
 
 def expired(time_token_created):
@@ -93,7 +95,9 @@ class EnketoTempTokenAuthentication(TokenAuthentication):
             if temp_token:
                 return temp_token.user, token
             raise exceptions.AuthenticationFailed('No such token')
+        except BadSignature as e:
+            raise exceptions.AuthenticationFailed('Bad Signature: %s' % e)
         except KeyError:
-            pass
+            raise exceptions.AuthenticationFailed('No such token')
 
         return None
