@@ -1,7 +1,7 @@
 pytz==2014.7
 simplejson
 
-Django>=1.6,<1.7
+Django>=1.7,<1.8
 django-guardian==1.2.4
 django-registration-redux==1.1
 django-templated-email==0.4.9
@@ -16,7 +16,6 @@ psycopg2==2.5.4
 pymongo==2.7.2
 lxml==3.4.0
 -e git+https://github.com/onaio/pyxform.git@onaio#egg=pyxform
-South==1.0
 django-reversion==1.8.4
 xlrd==0.9.3
 xlwt==0.7.5
@@ -52,7 +51,7 @@ unicodecsv==0.9.4
 dpath==1.2-70
 
 # tagging
-django-taggit==0.12.1
+django-taggit==0.12.3
 
 # oath2 support
 django-oauth-toolkit==0.7.2
