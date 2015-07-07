@@ -100,6 +100,6 @@ class EnketoTempTokenAuthentication(TokenAuthentication):
         except BadSignature as e:
             raise exceptions.AuthenticationFailed(_(u'Bad Signature: %s' % e))
         except KeyError:
-            raise exceptions.AuthenticationFailed(_(u'No such token'))
+            pass
 
         return None
