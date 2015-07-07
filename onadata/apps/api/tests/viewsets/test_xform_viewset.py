@@ -168,7 +168,7 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_instances_with_geopoints_true_for_instances_with_geopoints(self):
         with HTTMock(enketo_mock):
             xls_file_path = os.path.join(
-                settings.PROJECT_ROOT, "libs", "data", "tests", "fixtures",
+                settings.PROJECT_ROOT, "apps", "logger", "fixtures",
                 "tutorial", "tutorial.xls")
 
             self._publish_xls_form_to_project(xlsform_path=xls_file_path)
