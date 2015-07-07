@@ -18,7 +18,6 @@ env:
 install:
   - pip install -r requirements/base.pip --allow-all-external
   - pip install flake8
-  - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
   # make ~/tmp dir writable for npm downloads
   - mkdir -p "$HOME/tmp"
