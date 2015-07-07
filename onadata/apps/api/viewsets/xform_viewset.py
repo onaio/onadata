@@ -156,6 +156,12 @@ def set_enketo_signed_cookies(resp, user=None, temp_token_key=None):
 
 
 def parse_webform_return_url(return_url, request):
+    """
+    Given a webform url and request containing authentication information
+    extract authentication data encoded in the url and validate using either
+    this data or data in the request. Construct a proper return URL, which has
+    stripped the authentication data, to return the user.
+    """
     token = None
     url = urlparse(return_url)
 
@@ -188,12 +194,11 @@ def parse_webform_return_url(return_url, request):
         except IndexError:
             pass
 
+        # if the requesting user is not authenticated but the token has been
+        # retrieve from the url - probably zebra via enketo express - use the
+        # token to create signed cookies which will be used by subsequent
+        # enketo calls to authenticate the user
         if token:
-            # if the requesting user is not authenticated but the token has
-            # been retrieve from the url - probably zebra via
-            # enketo express - use the token to create signed cookies
-            # which will be used by subsequent enketo calls to
-            # authenticate the user
             temp_token = get_object_or_404(TempToken, key=token)
             response_redirect = set_enketo_signed_cookies(
                 response_redirect, temp_token_key=temp_token.key)
