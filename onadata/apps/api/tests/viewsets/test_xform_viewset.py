@@ -826,7 +826,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             TempToken(key=temp_token, user=self.user).save()
 
             return_url = u"https://enketo.ona.io/_/#YY8M"
-            url = u"%s?temp-token=%s" % (return_url, temp_token)
+            url = u"https://enketo.ona.io/_/?temp-token=%s#YY8M" % temp_token
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
             response = view(request, pk=formid)

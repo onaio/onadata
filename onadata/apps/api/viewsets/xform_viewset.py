@@ -165,12 +165,9 @@ def parse_webform_return_url(return_url, request):
     token = None
     url = urlparse(return_url)
 
-    if '_/#' in return_url:  # offline url
-        # "query parameters" in a fragment are part of the fragment
-        fragment = url.fragment.split('?')[0]
-
+    if '/_/' in return_url:  # offline url
         redirect_url = "%s://%s%s#%s" % (
-            url.scheme, url.netloc, url.path, fragment)
+            url.scheme, url.netloc, url.path, url.fragment)
     elif '/::' in return_url:  # non-offline url
         redirect_url = "%s://%s%s" % (url.scheme, url.netloc, url.path)
     else:
@@ -189,7 +186,7 @@ def parse_webform_return_url(return_url, request):
             # get temp-token param from url - probably zebra via enketo
             temp_token_param = filter(
                 lambda p: p.startswith('temp-token'),
-                url.query.split('&') + url.fragment.split('?'))[0]
+                url.query.split('&'))[0]
             token = temp_token_param.split('=')[1]
         except IndexError:
             pass
