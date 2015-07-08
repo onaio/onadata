@@ -682,7 +682,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             with HTTMock(enketo_error_mock):
                 response = view(request, pk=formid)
-                data = {'message': u"Enketo not properly configured."}
+                data = {
+                    'message':
+                    u"Enketo error: no account exists for this OpenRosa server"
+                }
 
                 self.assertEqual(
                     response.status_code, status.HTTP_400_BAD_REQUEST)
