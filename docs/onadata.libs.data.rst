@@ -1,20 +1,8 @@
 onadata.libs.data package
 =========================
 
-Subpackages
------------
-
-
 Submodules
 ----------
-
-onadata.libs.data.db module
----------------------------
-
-.. automodule:: onadata.libs.data.db
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 onadata.libs.data.query module
 ------------------------------

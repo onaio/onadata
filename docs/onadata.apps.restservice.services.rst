@@ -28,6 +28,14 @@ onadata.apps.restservice.services.generic_xml module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.restservice.services.textit module
+-----------------------------------------------
+
+.. automodule:: onadata.apps.restservice.services.textit
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

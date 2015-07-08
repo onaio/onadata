@@ -1,15 +1,16 @@
 onadata.libs.utils package
 ==========================
 
-Subpackages
------------
-
-.. toctree::
-
-    onadata.libs.utils.nose_plugins
-
 Submodules
 ----------
+
+onadata.libs.utils.api_export_tools module
+------------------------------------------
+
+.. automodule:: onadata.libs.utils.api_export_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 onadata.libs.utils.audit module
 -------------------------------
@@ -68,7 +69,7 @@ onadata.libs.utils.country_field module
     :show-inheritance:
 
 onadata.libs.utils.csv_builder module
-----------------------------------------------
+-------------------------------------
 
 .. automodule:: onadata.libs.utils.csv_builder
     :members:
