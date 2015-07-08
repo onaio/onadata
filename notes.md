@@ -5,3 +5,4 @@
 Might be worthing looking into:
 - prefetch_related - https://docs.djangoproject.com/en/1.7/ref/models/querysets/#django.db.models.query.QuerySet.prefetch_related
 - custom lookups - https://docs.djangoproject.com/en/1.7/howto/custom-lookups/
+- Django Guardian: User.get_all_permissions
