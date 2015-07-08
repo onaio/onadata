@@ -726,7 +726,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data, [u'denoinc', aboy.username])
+        for user in [u'denoinc', aboy.username]:
+            self.assertIn(user, response.data)
 
         data = {'username': aboy.username}
         request = self.factory.delete(
