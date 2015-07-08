@@ -96,6 +96,6 @@ class TestFormErrors(TestBase):
         msg = u"The name 'tutorial ' is an invalid xml tag. Names must begin"\
             u" with a letter, colon, or underscore, subsequent characters "\
             u"can include numbers, dashes, and periods"
-        with self.assertRaisesMessage(PyXFormError, msg):
-            self._publish_xls_file(xls_path)
+        self.assertRaisesMessage(
+            PyXFormError, msg, self._publish_xls_file, xls_path)
         self.assertEquals(XForm.objects.count(), count)
