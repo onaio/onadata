@@ -3,6 +3,7 @@ import datetime
 import os
 import shutil
 import tempfile
+import xlrd
 import zipfile
 
 from django.conf import settings
@@ -708,16 +709,16 @@ class TestExportBuilder(TestBase):
         filename = xls_file.name
         export_builder.to_xls_export(filename, self.data)
         xls_file.seek(0)
-        wb = load_workbook(filename)
+        wb = xlrd.open_workbook(filename)
         # check that we have childrens_survey, children, children_cartoons
         # and children_cartoons_characters sheets
         expected_sheet_names = ['childrens_survey', 'children',
                                 'children_cartoons',
                                 'children_cartoons_characters']
-        self.assertEqual(wb.get_sheet_names(), expected_sheet_names)
+        self.assertEqual(wb.sheet_names(), expected_sheet_names)
 
         # check header columns
-        main_sheet = wb.get_sheet_by_name('childrens_survey')
+        main_sheet = wb.sheet_by_name('childrens_survey')
         expected_column_headers = [
             u'name', u'age', u'geo/geolocation', u'geo/_geolocation_latitude',
             u'geo/_geolocation_longitude', u'geo/_geolocation_altitude',
@@ -726,11 +727,11 @@ class TestExportBuilder(TestBase):
             u'_submission_time', u'_index', u'_parent_index',
             u'_parent_table_name', u'_tags', '_notes', '_version',
             '_duration', '_submitted_by']
-        column_headers = [c[0].value for c in main_sheet.columns]
+        column_headers = main_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
 
-        childrens_sheet = wb.get_sheet_by_name('children')
+        childrens_sheet = wb.sheet_by_name('children')
         expected_column_headers = [
             u'children/name', u'children/age', u'children/fav_colors',
             u'children/fav_colors/red', u'children/fav_colors/blue',
@@ -740,28 +741,28 @@ class TestExportBuilder(TestBase):
             u'_submission_time', u'_index', u'_parent_index',
             u'_parent_table_name', u'_tags', '_notes', '_version',
             '_duration', '_submitted_by']
-        column_headers = [c[0].value for c in childrens_sheet.columns]
+        column_headers = childrens_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
 
-        cartoons_sheet = wb.get_sheet_by_name('children_cartoons')
+        cartoons_sheet = wb.sheet_by_name('children_cartoons')
         expected_column_headers = [
             u'children/cartoons/name', u'children/cartoons/why', u'_id',
             u'_uuid', u'_submission_time', u'_index', u'_parent_index',
             u'_parent_table_name', u'_tags', '_notes', '_version',
             '_duration', '_submitted_by']
-        column_headers = [c[0].value for c in cartoons_sheet.columns]
+        column_headers = cartoons_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
 
-        characters_sheet = wb.get_sheet_by_name('children_cartoons_characters')
+        characters_sheet = wb.sheet_by_name('children_cartoons_characters')
         expected_column_headers = [
             u'children/cartoons/characters/name',
             u'children/cartoons/characters/good_or_evil', u'_id', u'_uuid',
             u'_submission_time', u'_index', u'_parent_index',
             u'_parent_table_name', u'_tags', '_notes', '_version',
             '_duration', '_submitted_by']
-        column_headers = [c[0].value for c in characters_sheet.columns]
+        column_headers = characters_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
 
@@ -776,10 +777,10 @@ class TestExportBuilder(TestBase):
         filename = xls_file.name
         export_builder.to_xls_export(filename, self.data)
         xls_file.seek(0)
-        wb = load_workbook(filename)
+        wb = xlrd.open_workbook(filename)
 
         # check header columns
-        main_sheet = wb.get_sheet_by_name('childrens_survey')
+        main_sheet = wb.sheet_by_name('childrens_survey')
         expected_column_headers = [
             u'name', u'age', u'geo.geolocation', u'geo._geolocation_latitude',
             u'geo._geolocation_longitude', u'geo._geolocation_altitude',
@@ -788,7 +789,7 @@ class TestExportBuilder(TestBase):
             u'_submission_time', u'_index', u'_parent_index',
             u'_parent_table_name', u'_tags', '_notes', '_version',
             '_duration', '_submitted_by']
-        column_headers = [c[0].value for c in main_sheet.columns]
+        column_headers = main_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
         xls_file.close()
@@ -825,14 +826,14 @@ class TestExportBuilder(TestBase):
         filename = xls_file.name
         export_builder.to_xls_export(filename, self.data)
         xls_file.seek(0)
-        wb = load_workbook(filename)
+        wb = xlrd.open_workbook(filename)
         # check that we have childrens_survey, children, children_cartoons
         # and children_cartoons_characters sheets
         expected_sheet_names = ['childrens_survey_with_a_very_lo',
                                 'childrens_survey_with_a_very_l1',
                                 'childrens_survey_with_a_very_l2',
                                 'childrens_survey_with_a_very_l3']
-        self.assertEqual(wb.get_sheet_names(), expected_sheet_names)
+        self.assertEqual(wb.sheet_names(), expected_sheet_names)
         xls_file.close()
 
     def test_child_record_parent_table_is_updated_when_sheet_is_renamed(self):
