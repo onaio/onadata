@@ -1358,9 +1358,13 @@ def enketo_preview(request, username, id_string):
     owner = xform.user
     if not has_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
-    enketo_preview_url = get_enketo_preview_url(request,
-                                                owner.username,
-                                                xform.id_string)
+
+    try:
+        enketo_preview_url = get_enketo_preview_url(request,
+                                                    owner.username,
+                                                    xform.id_string)
+    except EnketoError as e:
+        return HttpResponse(e)
 
     return HttpResponseRedirect(enketo_preview_url)
 
