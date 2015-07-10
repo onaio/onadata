@@ -1,24 +1,33 @@
+from django.db.utils import DataError
+from django.http import Http404
 from django.http import HttpResponseBadRequest
 from celery.result import AsyncResult
 
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
-from rest_framework.settings import api_settings
 from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.exceptions import ParseError
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
+from rest_framework.settings import api_settings
+from rest_framework.viewsets import ModelViewSet
 
+from onadata.apps.api.permissions import DataViewViewsetPermissions
+from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.viewer.models.export import Export
+from onadata.libs.renderers import renderers
+from onadata.libs.serializers.dataview_serializer import DataViewSerializer
+from onadata.libs.serializers.data_serializer import JsonDataSerializer
+from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.api_export_tools import export_async_export_response
 from onadata.libs.utils.api_export_tools import process_async_export
-from onadata.apps.logger.models.data_view import DataView
-from onadata.apps.api.permissions import DataViewViewsetPermissions
-from onadata.libs.renderers import renderers
-from onadata.apps.viewer.models.export import Export
-from onadata.libs.serializers.dataview_serializer import DataViewSerializer
-from onadata.libs.serializers.data_serializer import JsonDataSerializer
-from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.api_export_tools import response_for_format
+from onadata.libs.utils.chart_tools import build_chart_data_for_field
+from onadata.libs.utils.export_tools import str_to_bool
+
+
+def get_form_field_chart_url(url, field):
+    return u'%s?field_name=%s' % (url, field)
 
 
 class DataViewViewSet(ModelViewSet):
@@ -116,3 +125,69 @@ class DataViewViewSet(ModelViewSet):
         response['Content-Disposition'] = 'attachment; filename=' + filename
 
         return response
+
+    @action(methods=['GET'])
+    def charts(self, request, *args, **kwargs):
+        dataview = self.get_object()
+        xform = dataview.xform
+        serializer = self.get_serializer(dataview)
+        # serializer = DataViewChartSerializer(xform,
+        #                                      context={'request': request})
+        dd = xform.data_dictionary()
+
+        field_name = request.QUERY_PARAMS.get('field_name')
+        fields = request.QUERY_PARAMS.get('fields')
+        fmt = kwargs.get('format', 'json')
+
+        if field_name and field_name in dataview.columns:
+            # check if its the special _submission_time META
+            if field_name == common_tags.SUBMISSION_TIME:
+                field = common_tags.SUBMISSION_TIME
+            else:
+                # use specified field to get summary
+                fields = filter(
+                    lambda f: f.name == field_name,
+                    [e for e in dd.survey_elements])
+
+                if len(fields) == 0:
+                    raise Http404(
+                        "Field %s does not not exist on the form" % field_name)
+
+                field = fields[0]
+            choices = dd.survey.get('choices')
+
+            if choices:
+                choices = choices.get(field_name)
+
+            try:
+                data = build_chart_data_for_field(
+                    xform, field, choices=choices)
+            except DataError as e:
+                raise ParseError(unicode(e))
+
+            if request.accepted_renderer.format == 'json':
+                xform = xform.pk
+            elif request.accepted_renderer.format == 'html' and 'data' in data:
+                for item in data['data']:
+                    if isinstance(item[field_name], list):
+                        item[field_name] = u', '.join(item[field_name])
+
+            data.update({
+                'xform': xform
+            })
+
+            return Response(data, template_name='chart_detail.html')
+
+        if fmt != 'json' and field_name is None:
+            raise ParseError("Not supported")
+
+        data = serializer.data
+        data["fields"] = {}
+        for field in dd.survey_elements:
+            if field.name in dataview.columns:
+                url = reverse('dataviews-charts', kwargs={'pk': dataview.pk},
+                              request=request, format=fmt)
+                field_url = get_form_field_chart_url(url, field.name)
+                data["fields"][field.name] = field_url
+
+        return Response(data)

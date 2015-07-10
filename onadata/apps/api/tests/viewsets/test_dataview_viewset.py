@@ -431,3 +431,20 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 202)
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
+
+    def test_get_charts_data(self):
+        self._create_dataview()
+        self.view = DataViewViewSet.as_view({
+            'get': 'charts',
+        })
+        request = self.factory.get('/charts', **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+        data = {'field_name': 'age'}
+        request = self.factory.get('/charts', data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+        # self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.data['field_type'], 'integer')
+        self.assertEqual(response.data['field_name'], 'age')
+        self.assertEqual(response.data['data_type'], 'numeric')
