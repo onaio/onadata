@@ -1,3 +1,4 @@
+from django.http import HttpResponseBadRequest
 from celery.result import AsyncResult
 
 from rest_framework.viewsets import ModelViewSet
@@ -17,6 +18,7 @@ from onadata.apps.viewer.models.export import Export
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.utils.export_tools import str_to_bool
+from onadata.libs.utils.api_export_tools import response_for_format
 
 
 class DataViewViewSet(ModelViewSet):
@@ -100,3 +102,17 @@ class DataViewViewSet(ModelViewSet):
         return Response(data=resp,
                         status=status.HTTP_202_ACCEPTED,
                         content_type="application/json")
+
+    @action(methods=['GET'])
+    def form(self, request, format='json', **kwargs):
+        dataview = self.get_object()
+        xform = dataview.xform
+        if format not in ['json', 'xml', 'xls']:
+            return HttpResponseBadRequest('400 BAD REQUEST',
+                                          content_type='application/json',
+                                          status=400)
+        filename = xform.id_string + "." + format
+        response = response_for_format(xform, format=format)
+        response['Content-Disposition'] = 'attachment; filename=' + filename
+
+        return response
