@@ -39,6 +39,28 @@ class TestDataViewViewSet(TestAbstractViewSet):
     def test_create_dataview(self):
         self._create_dataview()
 
+    def test_get_dataview_form_definition(self):
+        self._create_dataview()
+
+        data = {
+            "name": "tutorial",
+            "title": "tutorial",
+            "default_language": "default",
+            "id_string": "tutorial",
+            "type": "survey",
+        }
+        self.view = DataViewViewSet.as_view({
+            'get': 'form',
+        })
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEquals(response.status_code, 200)
+
+        # JSON format
+        response = self.view(request, pk=self.data_view.pk, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertDictContainsSubset(data, response.data)
+
     def test_get_dataview(self):
         self._create_dataview()
 
