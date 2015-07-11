@@ -1,5 +1,3 @@
-from django.db.utils import DataError
-from django.http import Http404
 from django.http import HttpResponseBadRequest
 from celery.result import AsyncResult
 
@@ -17,12 +15,11 @@ from onadata.apps.viewer.models.export import Export
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
-from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.api_export_tools import export_async_export_response
 from onadata.libs.utils.api_export_tools import process_async_export
 from onadata.libs.utils.api_export_tools import response_for_format
-from onadata.libs.utils.chart_tools import build_chart_data_for_field
+from onadata.libs.utils.chart_tools import get_chart_data_for_field
 from onadata.libs.utils.export_tools import str_to_bool
 
 
@@ -136,46 +133,14 @@ class DataViewViewSet(ModelViewSet):
         dd = xform.data_dictionary()
 
         field_name = request.QUERY_PARAMS.get('field_name')
-        fields = request.QUERY_PARAMS.get('fields')
-        fmt = kwargs.get('format', 'json')
+        fmt = kwargs.get('format', request.accepted_renderer.format)
 
         if field_name and field_name in dataview.columns:
-            # check if its the special _submission_time META
-            if field_name == common_tags.SUBMISSION_TIME:
-                field = common_tags.SUBMISSION_TIME
-            else:
-                # use specified field to get summary
-                fields = filter(
-                    lambda f: f.name == field_name,
-                    [e for e in dd.survey_elements])
-
-                if len(fields) == 0:
-                    raise Http404(
-                        "Field %s does not not exist on the form" % field_name)
-
-                field = fields[0]
-            choices = dd.survey.get('choices')
-
-            if choices:
-                choices = choices.get(field_name)
-
-            try:
-                data = build_chart_data_for_field(
-                    xform, field, choices=choices)
-            except DataError as e:
-                raise ParseError(unicode(e))
-
-            if request.accepted_renderer.format == 'json':
-                xform = xform.pk
-            elif request.accepted_renderer.format == 'html' and 'data' in data:
-                for item in data['data']:
-                    if isinstance(item[field_name], list):
-                        item[field_name] = u', '.join(item[field_name])
-
-            data.update({
-                'xform': xform
-            })
-
+            data = get_chart_data_for_field(
+                field_name,
+                xform,
+                fmt
+            )
             return Response(data, template_name='chart_detail.html')
 
         if fmt != 'json' and field_name is None:

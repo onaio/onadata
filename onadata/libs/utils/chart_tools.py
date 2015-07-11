@@ -1,12 +1,14 @@
 import re
 
+from django.db.utils import DataError
+from django.http import Http404
+
 from onadata.libs.data.query import get_form_submissions_grouped_by_field
 from onadata.libs.utils import common_tags
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.data_view import DataView
 from rest_framework.exceptions import ParseError
-from django.db.utils import DataError
 
 
 # list of fields we can chart
@@ -203,5 +205,50 @@ def build_chart_data_from_widget(widget, language_index=0):
             xform, field, language_index, choices=choices)
     except DataError as e:
         raise ParseError(unicode(e))
+
+    return data
+
+
+def get_chart_data_for_field(field_name, xform, accepted_format):
+    """
+    Get chart data for a given xlsform field.
+    """
+    data = {}
+    dd = xform.data_dictionary()
+    # check if its the special _submission_time META
+    if field_name == common_tags.SUBMISSION_TIME:
+        field = common_tags.SUBMISSION_TIME
+    else:
+        # use specified field to get summary
+        fields = filter(
+            lambda f: f.name == field_name,
+            [e for e in dd.survey_elements])
+
+        if len(fields) == 0:
+            raise Http404(
+                "Field %s does not not exist on the form" % field_name)
+
+        field = fields[0]
+    choices = dd.survey.get('choices')
+
+    if choices:
+        choices = choices.get(field_name)
+
+    try:
+        data = build_chart_data_for_field(
+            xform, field, choices=choices)
+    except DataError as e:
+        raise ParseError(unicode(e))
+    else:
+        if accepted_format == 'json':
+            xform = xform.pk
+        elif accepted_format == 'html' and 'data' in data:
+            for item in data['data']:
+                if isinstance(item[field_name], list):
+                    item[field_name] = u', '.join(item[field_name])
+
+        data.update({
+            'xform': xform
+        })
 
     return data

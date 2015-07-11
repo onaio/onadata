@@ -1,5 +1,3 @@
-from django.http import Http404
-from django.db.utils import DataError
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import viewsets
 from rest_framework.exceptions import ParseError
@@ -15,8 +13,7 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.chart_serializer import (
     ChartSerializer, FieldsChartSerializer)
-from onadata.libs.utils import common_tags
-from onadata.libs.utils.chart_tools import build_chart_data_for_field
+from onadata.libs.utils.chart_tools import get_chart_data_for_field
 
 
 def get_form_field_chart_url(url, field):
@@ -86,41 +83,11 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin,
             return Response(serializer.data)
 
         if field_name:
-            # check if its the special _submission_time META
-            if field_name == common_tags.SUBMISSION_TIME:
-                field = common_tags.SUBMISSION_TIME
-            else:
-                # use specified field to get summary
-                fields = filter(
-                    lambda f: f.name == field_name,
-                    [e for e in dd.survey_elements])
-
-                if len(fields) == 0:
-                    raise Http404(
-                        "Field %s does not not exist on the form" % field_name)
-
-                field = fields[0]
-            choices = dd.survey.get('choices')
-
-            if choices:
-                choices = choices.get(field_name)
-
-            try:
-                data = build_chart_data_for_field(
-                    xform, field, choices=choices)
-            except DataError as e:
-                raise ParseError(unicode(e))
-
-            if request.accepted_renderer.format == 'json':
-                xform = xform.pk
-            elif request.accepted_renderer.format == 'html' and 'data' in data:
-                for item in data['data']:
-                    if isinstance(item[field_name], list):
-                        item[field_name] = u', '.join(item[field_name])
-
-            data.update({
-                'xform': xform
-            })
+            data = get_chart_data_for_field(
+                field_name,
+                xform,
+                fmt
+            )
 
             return Response(data, template_name='chart_detail.html')
 
