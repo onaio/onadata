@@ -462,7 +462,7 @@ Response
             }
 
 Get a chart for a specific field in a dataview
---------------------------------------------
+----------------------------------------------
 
 - ``field_name`` - a field name in the dataview
 - ``format`` - ``json``
@@ -483,27 +483,3 @@ Response
 
  - ``html`` format response is a html, javascript and css to the chart
  - ``json`` format response is the ``JSON`` data that can be passed to a charting library
-
-Get a chart data for all fields in a form
-------------------------------------------
-
-The only field ommitted is instanceID since it is unique for every record.
-
-- ``fields`` - is a comma separated list of fields to be included in the response. If ``fields=all`` then all the fields of the form  will be returned.
-
-.. raw:: html
-
-    <pre class="prettyprint">
-    <b>GET</b>/api/v1/dataviews/<code>{dataview_id}</code>/charts.<code>{format}</code>?fields=all</code>
-    </pre>
-
-Example
-^^^^^^^
-::
-
-       curl -X GET https://ona.io/api/v1/dataviews/4240/charts.json?fields=all
-
-Response
-^^^^^^^^^
-
- - `json` format response is the `JSON` data for each field that can be passed to a charting library
