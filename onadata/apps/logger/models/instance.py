@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from django.contrib.gis.db import models
+from django.db import transaction
 from django.db.models.signals import post_save, pre_save, post_delete
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import GeometryCollection, Point
@@ -111,6 +112,7 @@ def submission_time():
     return timezone.now()
 
 
+@transaction.atomic()
 def update_xform_submission_count(sender, instance, created, **kwargs):
     if created:
         xform = XForm.objects.select_related().select_for_update()\

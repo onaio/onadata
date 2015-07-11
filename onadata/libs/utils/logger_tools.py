@@ -206,7 +206,6 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
     return instance
 
 
-@transaction.commit_manually
 def create_instance(username, xml_file, media_files,
                     status=u'submitted_via_web', uuid=None,
                     date_created_override=None, request=None):
@@ -219,58 +218,51 @@ def create_instance(username, xml_file, media_files,
     * If there is a username and no uuid, submitting an old ODK form.
     * If there is a username and a uuid, submitting a new ODK form.
     """
-    try:
-        instance = None
-        submitted_by = request.user \
-            if request and request.user.is_authenticated() else None
+    instance = None
+    submitted_by = request.user \
+        if request and request.user.is_authenticated() else None
 
-        if username:
-            username = username.lower()
+    if username:
+        username = username.lower()
 
-        xml = xml_file.read()
-        xform = get_xform_from_submission(xml, username, uuid)
-        check_submission_permissions(request, xform)
+    xml = xml_file.read()
+    xform = get_xform_from_submission(xml, username, uuid)
+    check_submission_permissions(request, xform)
 
-        existing_instance_count = Instance.objects.filter(
-            xml=xml, xform__user=xform.user).count()
+    existing_instance_count = Instance.objects.filter(
+        xml=xml, xform__user=xform.user).count()
 
-        if existing_instance_count > 0:
-            existing_instance = Instance.objects.filter(
-                xml=xml, xform__user=xform.user)[0]
-            if not existing_instance.xform or\
-                    existing_instance.xform.has_start_time:
-                # ensure we have saved the extra attachments
-                save_attachments(xform, existing_instance, media_files)
-                existing_instance.save()
-                transaction.commit()
-
-                # Ignore submission as a duplicate IFF
-                #  * a submission's XForm collects start time
-                #  * the submitted XML is an exact match with one that
-                #    has already been submitted for that user.
-                raise DuplicateInstance()
-
-        # get new and depracated uuid's
-        new_uuid = get_uuid_from_xml(xml)
-        duplicate_instances = Instance.objects.filter(uuid=new_uuid)
-
-        if duplicate_instances:
+    if existing_instance_count > 0:
+        existing_instance = Instance.objects.filter(
+            xml=xml, xform__user=xform.user)[0]
+        if not existing_instance.xform or\
+                existing_instance.xform.has_start_time:
             # ensure we have saved the extra attachments
+            save_attachments(xform, existing_instance, media_files)
+            existing_instance.save()
+            transaction.commit()
+
+            # Ignore submission as a duplicate IFF
+            #  * a submission's XForm collects start time
+            #  * the submitted XML is an exact match with one that
+            #    has already been submitted for that user.
+            return DuplicateInstance()
+
+    # get new and depracated uuid's
+    new_uuid = get_uuid_from_xml(xml)
+    duplicate_instances = Instance.objects.filter(uuid=new_uuid)
+
+    if duplicate_instances:
+        # ensure we have saved the extra attachments
+        with transaction.atomic():
             save_attachments(xform, duplicate_instances[0], media_files)
             duplicate_instances[0].save()
 
-            transaction.commit()
-            raise DuplicateInstance()
+        return DuplicateInstance()
 
-        instance = save_submission(xform, xml, media_files, new_uuid,
-                                   submitted_by, status, date_created_override)
-        # commit all changes
-        transaction.commit()
-
-        return instance
-    except Exception:
-        transaction.rollback()
-        raise
+    instance = save_submission(xform, xml, media_files, new_uuid,
+                               submitted_by, status, date_created_override)
+    return instance
 
 
 def safe_create_instance(username, xml_file, media_files, uuid, request):
@@ -311,6 +303,12 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseBadRequest(_(u"File likely corrupted during "
                                              u"transmission, please try later."
                                              ))
+    if isinstance(instance, DuplicateInstance):
+        response = OpenRosaResponse(_(u"Duplicate submission"))
+        response.status_code = 202
+        response['Location'] = request.build_absolute_uri(request.path)
+        error = response
+        instance = None
 
     return [error, instance]
 
