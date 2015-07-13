@@ -52,6 +52,14 @@ onadata.libs.models.signals module
     :undoc-members:
     :show-inheritance:
 
+onadata.libs.models.textit_service module
+-----------------------------------------
+
+.. automodule:: onadata.libs.models.textit_service
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

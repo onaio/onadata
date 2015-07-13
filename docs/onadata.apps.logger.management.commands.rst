@@ -124,6 +124,14 @@ onadata.apps.logger.management.commands.set_xform_surveys_with_geopoints module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.logger.management.commands.set_xform_surveys_with_osm module
+-------------------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.management.commands.set_xform_surveys_with_osm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.logger.management.commands.sync_deleted_instances_fix module
 -------------------------------------------------------------------------
 

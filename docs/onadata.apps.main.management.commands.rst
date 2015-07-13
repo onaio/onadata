@@ -44,6 +44,14 @@ onadata.apps.main.management.commands.set_media_file_hash module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.main.management.commands.update_enketo_urls module
+---------------------------------------------------------------
+
+.. automodule:: onadata.apps.main.management.commands.update_enketo_urls
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

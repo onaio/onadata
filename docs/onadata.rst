@@ -8,7 +8,7 @@ Subpackages
 
     onadata.apps
     onadata.libs
-    
+
 Module contents
 ---------------
 

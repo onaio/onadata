@@ -11,6 +11,9 @@ def generate_qrcode(message, stream=None,
     if stream is None:
         stream = StringIO.StringIO()
 
+    if isinstance(message, unicode):
+        message = message.encode()
+
     img = barcode('qrcode', message,
                   options=dict(version=9, eclevel=eclevel),
                   margin=margin, data_mode=data_mode, scale=scale)

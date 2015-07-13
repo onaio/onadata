@@ -12,6 +12,14 @@ onadata.apps.logger.models.attachment module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.logger.models.data_view module
+-------------------------------------------
+
+.. automodule:: onadata.apps.logger.models.data_view
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.logger.models.instance module
 ------------------------------------------
 
@@ -44,6 +52,14 @@ onadata.apps.logger.models.survey_type module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.logger.models.widget module
+----------------------------------------
+
+.. automodule:: onadata.apps.logger.models.widget
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.logger.models.xform module
 ---------------------------------------
 
@@ -51,6 +67,7 @@ onadata.apps.logger.models.xform module
     :members:
     :undoc-members:
     :show-inheritance:
+
 
 Module contents
 ---------------

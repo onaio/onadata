@@ -1,26 +1,24 @@
-pytz==2014.7
+pytz==2015.4
 simplejson
-
-Django>=1.6,<1.7
-django-guardian==1.2.4
+Django>=1.7,<1.8
+django-guardian==1.2.5
 django-registration-redux==1.1
 django-templated-email==0.4.9
 gdata==2.0.18
-httplib2==0.9
+httplib2>=0.9,<1
 mock==1.0.1
-httmock==1.2.2
+httmock==1.2.3
 modilabs-python-utils==0.1.5
-Pillow==2.5.3
+Pillow==2.9
 poster==0.8.1
-psycopg2==2.5.4
+psycopg2==2.6.1
 pymongo==2.7.2
-lxml==3.4.0
+lxml==3.4.4
 -e git+https://github.com/onaio/pyxform.git@onaio#egg=pyxform
-South==1.0
-django-reversion==1.8.4
+django-reversion==1.8.7
 xlrd==0.9.3
 xlwt==0.7.5
-openpyxl==2.0.5
+openpyxl==2.2.5
 celery==3.1.15
 django-celery==3.1.16
 librabbitmq==1.6.1
@@ -28,10 +26,10 @@ librabbitmq==1.6.1
 python-digest==1.7
 django-digest==1.13
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
-python-dateutil==2.2
+python-dateutil==2.4.2
 
-requests==2.4.1
-elaphe==0.5.6
+requests==2.7.0
+elaphe==0.6.0
 
 # sms support
 dict2xml==1.3
@@ -43,19 +41,19 @@ djangorestframework-gis==0.7
 
 # cors
 -e git+https://github.com/onaio/django-cors-headers.git@allow-all-for-url#egg=cors-headers
-Markdown==2.5
-django-filter==0.7
+Markdown==2.6.2
+django-filter==0.10.0
 
 # captcha
 recaptcha-client==1.0.6
-unicodecsv==0.9.4
-dpath==1.2-70
+unicodecsv==0.13
+dpath==1.4
 
 # tagging
-django-taggit==0.12.1
+django-taggit==0.12.3
 
 # oath2 support
-django-oauth-toolkit==0.7.2
+django-oauth-toolkit==0.8.2
 
 # spss
 savReaderWriter
@@ -65,14 +63,14 @@ jsonfield<1.0
 django-db-readonly==0.3.3
 
 # memcached support
-pylibmc==1.3.0
+pylibmc==1.5.0
 kombu
 billiard
 geojson
 python-memcached
 
 # docs
-sphinx==1.2.3
+sphinx==1.3.1
 
 # generic relation
 -e git+https://github.com/Ian-Foote/rest-framework-generic-relations.git#egg=rest-framework-generic-relations

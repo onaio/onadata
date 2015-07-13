@@ -5,11 +5,13 @@ from rest_framework import serializers
 
 from onadata.apps.main.models.meta_data import MetaData
 
+CSV_CONTENT_TYPE = 'text/csv'
+MEDIA_TYPE = 'media'
 METADATA_TYPES = (
     ('data_license', _(u"Data License")),
     ('form_license', _(u"Form License")),
     ('mapbox_layer', _(u"Mapbox Layer")),
-    ('media', _(u"Media")),
+    (MEDIA_TYPE, _(u"Media")),
     ('public_link', _(u"Public Link")),
     ('source', _(u"Source")),
     ('supporting_doc', _(u"Supporting Document")),
@@ -34,7 +36,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                   'data_file_type', 'media_url', 'file_hash', 'url')
 
     def get_media_url(self, obj):
-        if obj.data_type == "media" and getattr(obj, "data_file") \
+        if obj.data_type == MEDIA_TYPE and getattr(obj, "data_file") \
                 and getattr(obj.data_file, "url"):
             return obj.data_file.url
 
@@ -61,6 +63,14 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         xform = attrs.get('xform')
         data_value = data_file.name if data_file else attrs.get('data_value')
         data_file_type = data_file.content_type if data_file else None
+
+        # not exactly sure what changed in the requests.FILES for django 1.7
+        # csv files uploaded in windows do not have the text/csv content_type
+        # this works around that
+        if data_type == MEDIA_TYPE and data_file \
+                and data_file.name.lower().endswith('.csv') \
+                and data_file_type != CSV_CONTENT_TYPE:
+            data_file_type = CSV_CONTENT_TYPE
 
         if instance:
             return super(MetaDataSerializer, self).restore_object(

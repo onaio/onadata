@@ -1,29 +1,41 @@
 language: python
+sudo: false
 addons:
   postgresql: 9.3
+  apt:
+    packages:
+      - libjpeg-dev
+      - zlib1g-dev
+      - python-software-properties
+      - ghostscript
+      - libxslt1-dev
+      - binutils
+      - libproj-dev
+      - libgdal1-dev
+      - gdal-bin
+      - postgresql-9.3-postgis-2.1
+      - postgresql-9.3-postgis-scripts
+      - memcached
+      - libmemcached-dev
 cache:
   apt: true
   directories:
     - $HOME/.pip-cache/
-services:
-  - mongodb
 python:
   - '2.7'
 before_install:
   - ./script/database/install_postgis onadata_test postgres 127.0.0.1
-  - ./script/install/ubuntu
 env:
   - TESTFOLDER=onadata/apps/main
   - TESTFOLDER="onadata/apps/api onadata/apps/logger onadata/apps/viewer onadata/apps/restservice onadata/apps/sms_support onadata/libs"
 install:
   - pip install -r requirements/base.pip --allow-all-external
   - pip install flake8
-  - python manage.py syncdb --noinput --settings=onadata.settings.travis_test
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
   # make ~/tmp dir writable for npm downloads
   - mkdir -p "$HOME/tmp"
-  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then sudo chmod a+w $HOME/tmp ; fi
-  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then sudo npm install ; fi
+  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then chmod a+w $HOME/tmp ; fi
+  - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then  npm install ; fi
   - if [[ "$TESTFOLDER" == onadata/apps/api* ]] ; then bower install --force-latest ; fi
 script:
   - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test

@@ -20,6 +20,14 @@ onadata.libs.mixins.anonymous_user_public_forms_mixin module
     :undoc-members:
     :show-inheritance:
 
+onadata.libs.mixins.etags_mixin module
+--------------------------------------
+
+.. automodule:: onadata.libs.mixins.etags_mixin
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.libs.mixins.labels_mixin module
 ---------------------------------------
 

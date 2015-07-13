@@ -221,8 +221,8 @@ class WidgetViewSetPermissions(ViewDjangoObjectPermissions,
 
     def has_object_permission(self, request, view, obj):
 
-        if not (isinstance(obj.content_object, XForm)
-                or isinstance(obj.content_object, DataView)):
+        if not (isinstance(obj.content_object, XForm) or
+                isinstance(obj.content_object, DataView)):
             return False
 
         return super(WidgetViewSetPermissions, self).has_object_permission(
