@@ -49,6 +49,15 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         for perm in get_perms_for_model(Project):
             assign_perm(perm.codename, instance.organization, instance)
 
+            # cyclic
+            from onadata.apps.api.models.team import Team
+            owners = Team.objects.filter(
+                name="{}#{}".format(instance.organization.username,
+                                    Team.OWNER_TEAM_NAME),
+                organization=instance.organization)
+            if owners:
+                assign_perm(perm.codename, owners[0], instance)
+
             if instance.created_by:
                 assign_perm(perm.codename, instance.created_by, instance)
 

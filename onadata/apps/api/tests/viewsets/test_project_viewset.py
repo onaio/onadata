@@ -23,6 +23,8 @@ from django.db.models import Q
 from onadata.apps.main.models import MetaData
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api import tools
+from onadata.apps.api.viewsets.organization_profile_viewset import\
+    OrganizationProfileViewSet
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
@@ -1247,3 +1249,94 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEquals(response.data['teams'][2]['role'], 'editor')
         self.assertEquals(response.data['teams'][2]['users'],
                           [chuck_profile.user.username])
+
+    def test_project_accesible_by_admin_created_by_diff_admin(self):
+        self._org_create()
+
+        # user 1
+        chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
+        chuck_profile = self._create_user_profile(chuck_data)
+
+        # user 2
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members',
+        })
+
+        # save the org creator
+        bob = self.user
+
+        data = {"username": alice_profile.user.username,
+                "role": OwnerRole.name}
+        # create admin 1
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request, user='denoinc')
+
+        self.assertEquals(201, response.status_code)
+        data = {"username": chuck_profile.user.username,
+                "role": OwnerRole.name}
+        # create admin 2
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request, user='denoinc')
+
+        self.assertEquals(201, response.status_code)
+
+        # admin 2 creates a project
+        self.user = chuck_profile.user
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        data = {
+            'name': u'demo',
+            'owner':
+            'http://testserver/api/v1/users/%s' %
+            self.organization.user.username,
+            'metadata': {'description': 'Some description',
+                         'location': 'Naivasha, Kenya',
+                         'category': 'governance'},
+            'public': False
+        }
+        self._project_create(project_data=data)
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        # admin 1 tries to access project created by admin 2
+        self.user = alice_profile.user
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        request = self.factory.get('/', **self.extra)
+
+        response = view(request, pk=self.project.pk)
+
+        self.assertEquals(200, response.status_code)
+
+        self.user = bob
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % bob.auth_token}
+
+        # remove from admin org
+        data = {"username": alice_profile.user.username}
+        view = OrganizationProfileViewSet.as_view({
+            'delete': 'members'
+        })
+
+        request = self.factory.delete('/', data=data, **self.extra)
+        response = view(request, user='denoinc')
+        self.assertEquals(201, response.status_code)
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        self.user = alice_profile.user
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        request = self.factory.get('/', **self.extra)
+
+        response = view(request, pk=self.project.pk)
+
+        # user cant access the project removed from org
+        self.assertEquals(404, response.status_code)
