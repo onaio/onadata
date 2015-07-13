@@ -74,29 +74,6 @@ class TestTeamViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.team_data)
 
-    def _team_create(self):
-        self._org_create()
-        data = {
-            'name': u'dreamteam',
-            'organization': self.company_data['org']
-        }
-        request = self.factory.post(
-            '/', data=json.dumps(data),
-            content_type="application/json", **self.extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 201)
-        self.owner_team = Team.objects.get(
-            organization=self.organization.user,
-            name='%s#Owners' % (self.organization.user.username))
-        team = Team.objects.get(
-            organization=self.organization.user,
-            name='%s#%s' % (self.organization.user.username, data['name']))
-        data['url'] = 'http://testserver/api/v1/teams/%s' % team.pk
-        data['teamid'] = team.id
-        self.assertDictContainsSubset(data, response.data)
-        self.team_data = response.data
-        self.team = team
-
     def test_teams_create(self):
         self._team_create()
 

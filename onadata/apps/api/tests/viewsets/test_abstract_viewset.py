@@ -33,6 +33,8 @@ from onadata.apps.logger.models.widget import Widget
 from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.apps.logger.views import submission
+from onadata.apps.api.models import Team
+from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey/preview$')
@@ -504,3 +506,32 @@ class TestAbstractViewSet(TestCase):
         else:
             contents = response.content
         return contents
+
+    def _team_create(self):
+        self._org_create()
+
+        view = TeamViewSet.as_view({
+            'get': 'list',
+            'post': 'create'
+        })
+
+        data = {
+            'name': u'dreamteam',
+            'organization': self.company_data['org']
+        }
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+        self.owner_team = Team.objects.get(
+            organization=self.organization.user,
+            name='%s#Owners' % (self.organization.user.username))
+        team = Team.objects.get(
+            organization=self.organization.user,
+            name='%s#%s' % (self.organization.user.username, data['name']))
+        data['url'] = 'http://testserver/api/v1/teams/%s' % team.pk
+        data['teamid'] = team.id
+        self.assertDictContainsSubset(data, response.data)
+        self.team_data = response.data
+        self.team = team

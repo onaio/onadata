@@ -21,6 +21,8 @@ from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
 from django.db.models import Q
 from onadata.apps.main.models import MetaData
+from onadata.apps.api.viewsets.team_viewset import TeamViewSet
+from onadata.apps.api import tools
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
@@ -1204,3 +1206,44 @@ class TestProjectViewSet(TestAbstractViewSet):
                 self.assertEquals(user.get('role'), 'readonly-no-download')
             elif user.get('user') == 'tom':
                 self.assertEquals(user.get('role'), 'readonly')
+
+    def test_team_users_in_a_project(self):
+        self._team_create()
+        project = Project.objects.create(name="Test Project",
+                                         organization=self.team.organization,
+                                         created_by=self.user,
+                                         metadata='{}')
+
+        chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
+        chuck_profile = self._create_user_profile(chuck_data)
+        user_chuck = chuck_profile.user
+
+        view = TeamViewSet.as_view({
+            'post': 'share'})
+
+        self.assertFalse(EditorRole.user_has_role(user_chuck,
+                                                  project))
+        data = {'role': EditorRole.name,
+                'project': project.pk}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 204)
+        tools.add_user_to_team(self.team, user_chuck)
+        self.assertTrue(EditorRole.user_has_role(user_chuck, project))
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        request = self.factory.get('/', **self.extra)
+
+        response = view(request, pk=project.pk)
+
+        self.assertIsNotNone(response.data['teams'])
+        self.assertEquals(3, len(response.data['teams']))
+        self.assertEquals(response.data['teams'][2]['role'], 'editor')
+        self.assertEquals(response.data['teams'][2]['users'],
+                          [chuck_profile.user.username])
