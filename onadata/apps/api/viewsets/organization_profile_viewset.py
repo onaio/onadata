@@ -19,7 +19,7 @@ from onadata.apps.api import permissions
 from onadata.libs.filters import (OrganizationPermissionFilter,
                                   OrganizationsSharedWithUserFilter)
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.permissions import ROLES, OwnerRole
 from onadata.libs.serializers.organization_serializer import(
@@ -138,7 +138,7 @@ def _check_set_role(request, organization, username, required=False):
 
 
 class OrganizationProfileViewSet(CacheControlMixin,
-                                 LastModifiedMixin,
+                                 ETagsMixin,
                                  ObjectLookupMixin,
                                  ModelViewSet):
     """

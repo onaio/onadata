@@ -12,7 +12,7 @@ from onadata.libs.filters import (
     TagFilter)
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
 from onadata.libs.serializers.project_serializer import ProjectSerializer
@@ -30,7 +30,7 @@ from onadata.settings.common import (
 
 
 class ProjectViewSet(CacheControlMixin,
-                     LastModifiedMixin, LabelsMixin, ModelViewSet):
+                     ETagsMixin, LabelsMixin, ModelViewSet):
     """
     List, Retrieve, Update, Create Project and Project Forms.
     """

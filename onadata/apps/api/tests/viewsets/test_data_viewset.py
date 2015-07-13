@@ -70,7 +70,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         formid = self.xform.pk
         data = _data_list(formid)
@@ -93,7 +93,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
 
@@ -102,7 +102,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         initial_count = len(response.data)
 
@@ -111,7 +111,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         response = view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(len(response.data), initial_count - 1)
 
     def test_numeric_types_are_rendered_as_required(self):
@@ -341,7 +341,7 @@ class TestDataViewSet(TestBase):
         formid = "INVALID"
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.get('Cache-Control'), None)
         data = {u'detail': u'Invalid form ID: INVALID'}
         self.assertEqual(response.data, data)
 
@@ -363,7 +363,7 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.get('Cache-Control'), None)
 
     def test_data_with_query_parameter(self):
         self._make_submissions()
@@ -591,7 +591,7 @@ class TestDataViewSet(TestBase):
 
         response = view(request, pk=formid, dataid=dataid)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.get('Cache-Control'), None)
         # add data check
         self.assertEqual(
             response.data,

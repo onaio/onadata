@@ -47,7 +47,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get('/', **self.extra)
         response = self.retrieve_view(request, pk=pk)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, dict))
         self.assertEqual(response.data, data)
@@ -57,7 +57,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         ext = filename[filename.rindex('.') + 1:]
         request = self.factory.get('/', **self.extra)
         response = self.retrieve_view(request, pk=pk, format=ext)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'image/jpeg')
 
@@ -94,7 +94,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         # not using pagination params
         request = self.factory.get('/', **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 2)
@@ -103,7 +103,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         request = self.factory.get(
             '/', data={"page": 1, "page_size": 1}, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 1)
@@ -128,7 +128,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
             '/', data={"page": "invalid", "page_size": "invalid"},
             **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
         self.assertEqual(len(response.data), 2)
@@ -180,7 +180,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
         request = self.factory.get('/', **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
 
@@ -189,7 +189,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
 
         request = self.factory.get('/', **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
         initial_count = len(response.data)
@@ -209,7 +209,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
 
@@ -222,7 +222,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.get('Cache-Control'), None)
 
     def test_list_view_filter_by_instance(self):
         self._submit_transport_instance_w_attachment()
@@ -232,7 +232,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, list))
 
@@ -245,7 +245,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data, **self.extra)
         response = self.list_view(request)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.get('Cache-Control'), None)
 
     def test_direct_image_link(self):
         self._submit_transport_instance_w_attachment()
@@ -255,7 +255,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get('/', data, **self.extra)
         response = self.retrieve_view(request, pk=self.attachment.pk)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, basestring))
         self.assertEqual(response.data, attachment_url(self.attachment))
@@ -281,7 +281,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         }
         request = self.factory.get('/', data, **self.extra)
         response = self.retrieve_view(request, pk=self.attachment.pk)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(isinstance(response.data, basestring))
         self.assertEqual(response.data, attachment_url(self.attachment))

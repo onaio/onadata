@@ -37,7 +37,7 @@ from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.clone_xform_serializer import \
@@ -205,8 +205,8 @@ def parse_webform_return_url(return_url, request):
 
 class XFormViewSet(AnonymousUserPublicFormsMixin,
                    CacheControlMixin,
+                   ETagsMixin,
                    LabelsMixin,
-                   LastModifiedMixin,
                    ModelViewSet):
     """
     Publish XLSForms, List, Retrieve Published Forms.

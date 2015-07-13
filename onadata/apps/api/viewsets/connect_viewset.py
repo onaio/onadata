@@ -10,7 +10,8 @@ from django.utils.translation import ugettext as _
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.password_reset_serializer import \
     PasswordResetSerializer, PasswordResetChangeSerializer
 from onadata.libs.serializers.project_serializer import ProjectSerializer
@@ -21,7 +22,8 @@ from onadata.settings.common import DEFAULT_SESSION_EXPIRY_TIME
 from onadata.apps.api.models.temp_token import TempToken
 
 
-class ConnectViewSet(LastModifiedMixin,
+class ConnectViewSet(CacheControlMixin,
+                     ETagsMixin,
                      ObjectLookupMixin,
                      viewsets.GenericViewSet):
     """

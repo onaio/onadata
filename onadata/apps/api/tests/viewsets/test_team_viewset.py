@@ -58,7 +58,7 @@ class TestTeamViewSet(TestAbstractViewSet):
                        'first_name': u'Dennis',
                        'last_name': u''}]
         }
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [owner_team, member_team,
                                          self.team_data])
@@ -70,7 +70,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.team.pk)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.team_data)
 
@@ -255,7 +255,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         get_data = {'org': 'denoinc'}
         request = self.factory.get('/', data=get_data, **self.extra)
         response = view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
 
@@ -301,7 +301,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=project.pk)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
 
         self.assertEqual(len(response.data.get('users')), 2)

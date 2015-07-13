@@ -444,7 +444,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         request = self.factory.get('/charts', data, **self.extra)
         response = self.view(request, pk=self.data_view.pk)
         self.assertEqual(response.status_code, 200)
-        # self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'integer')
         self.assertEqual(response.data['field_name'], 'age')
         self.assertEqual(response.data['data_type'], 'numeric')

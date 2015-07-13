@@ -212,14 +212,14 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             response = view(request, pk=formid)
             num_of_submissions = response.data.get('num_of_submissions')
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
 
             self.xform.num_of_submissions = num_of_submissions - 1
             self.xform.save()
             request = self.factory.get('/', **self.extra)
             response = view(request, pk=formid)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.data.get('num_of_submissions'),
                              num_of_submissions)
@@ -229,7 +229,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self._publish_xls_form_to_project()
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
 
     def test_submission_count_for_today_in_form_list(self):
@@ -237,7 +237,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self._publish_xls_form_to_project()
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             self.assertIn(
                 'submission_count_for_today', response.data[0].keys())
@@ -263,7 +263,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.data[0]['submission_count_for_today'], 1)
             self.assertEqual(response.data[0]['num_of_submissions'], 1)
@@ -274,7 +274,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/')
             response = self.view(request)
             self.assertEqual(response.status_code, 200)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data, [])
 
     def test_public_form_list(self):
@@ -286,14 +286,14 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             response = self.view(request, pk='public')
             self.assertEqual(response.status_code, 200)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data, [])
 
             # public shared form
             self.xform.shared = True
             self.xform.save()
             response = self.view(request, pk='public')
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             self.form_data['public'] = True
             resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
@@ -334,7 +334,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.xform.save()
             response = self.view(request, pk='public')
             self.assertEqual(response.status_code, 200)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data, [])
 
     def test_form_list_other_user_access(self):
@@ -343,7 +343,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self._publish_xls_form_to_project()
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
                 data_type='enketo_url') | Q(data_type='enketo_preview_url'))
@@ -386,7 +386,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
             self.assertEqual(response.status_code, 200)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             # should be empty
             self.assertEqual(response.data, [])
 
@@ -415,7 +415,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             # should be both bob's and alice's form
             resultset = MetaData.objects.filter(
@@ -462,7 +462,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get(
                 '/', data={'owner': 'bob'}, **self.extra)
             response = self.view(request)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             bobs_form_data['metadata'].sort()
             response.data[0]['metadata'].sort()
@@ -472,7 +472,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get(
                 '/', data={'owner': 'BoB'}, **self.extra)
             response = self.view(request)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             bobs_form_data['metadata'].sort()
             response.data[0]['metadata'].sort()
@@ -482,7 +482,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get(
                 '/', data={'owner': 'alice'}, **self.extra)
             response = self.view(request)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             self.form_data['metadata'].sort()
             response.data[0]['metadata'].sort()
@@ -493,7 +493,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 '/', data={'owner': 'noone'}, **self.extra)
             response = self.view(request)
             self.assertEqual(response.status_code, 200)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data, [])
 
     def test_form_get(self):
@@ -504,7 +504,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         formid = self.xform.pk
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=formid)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         resultset = MetaData.objects.filter(
             Q(xform_id=self.xform.pk),
@@ -559,14 +559,14 @@ class TestXFormViewSet(TestAbstractViewSet):
             # test for unsupported format
             response = view(request, pk=formid, format='csvzip')
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
 
             # test for supported formats
 
             # JSON format
             response = view(request, pk=formid, format='json')
             self.assertEqual(response.status_code, 200)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertDictContainsSubset(data, response.data)
 
             # test correct file name
@@ -577,7 +577,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             # XML format
             response = view(request, pk=formid, format='xml')
             self.assertEqual(response.status_code, 200)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             response_doc = minidom.parseString(response.data)
 
             # test correct file name
@@ -588,7 +588,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             # XLS format
             response = view(request, pk=formid, format='xls')
             self.assertEqual(response.status_code, 200)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
 
             # test correct file name
             self.assertEqual(response.get('Content-Disposition'),
@@ -652,7 +652,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.form_data = XFormSerializer(
                 self.xform, context={'request': request}).data
             response = list_view(request, pk=formid)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.data, [self.form_data])
 
@@ -660,7 +660,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 '/', data={"tags": "goodbye"}, **self.extra)
             response = list_view(request, pk=formid)
             self.assertEqual(response.status_code, 200)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data, [])
 
             # remove tag "hello"
@@ -668,7 +668,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                                           **self.extra)
             response = view(request, pk=formid, label='hello')
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data, [])
 
     def test_enketo_url_no_account(self):
@@ -738,7 +738,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             response = self.view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 200)
-            self.assertNotEqual(response.get('Last-Modified'), None)
+            self.assertNotEqual(response.get('Cache-Control'), None)
 
             enketo_url = response.data.get('enketo_url')
             enketo_preview_url = response.data.get('enketo_preview_url')
@@ -981,7 +981,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data.get('message'), error_msg)
 
     def test_publish_invalid_xls_form(self):
@@ -996,7 +996,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
             error_msg = 'In strict mode, the XForm ID must be a valid slug'\
                 ' and contain no spaces.'
             self.assertEqual(response.data.get('text'), error_msg)
@@ -1013,7 +1013,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request)
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
             error_msg = (
                 'There should be a choices sheet in this xlsform. Please '
                 'ensure that the choices sheet name is all in small caps.')
@@ -1065,7 +1065,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.patch('/', data=data, **self.extra)
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data.get('owner')[0], error_msg)
 
     def test_set_form_private(self):
@@ -1179,13 +1179,13 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.post('/', data=data, **self.extra)
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
 
             data = {'username': 'mjomba'}
             request = self.factory.post('/', data=data, **self.extra)
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
 
             data = {'username': 'alice'}
             request = self.factory.post('/', data=data, **self.extra)
@@ -1405,7 +1405,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 format='xls')
 
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
             data = json.loads(response.data)
             self.assertTrue(
                 data.get('error').startswith(
@@ -1422,7 +1422,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.data.get('additions'), 9)
             self.assertEqual(response.data.get('updates'), 0)
 
@@ -1497,7 +1497,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.post('/', data=post_data, **self.extra)
             response = view(request, pk=self.xform.id)
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
             self.assertIsNotNone(response.data.get('error'))
 
     def test_csv_import_fail_invalid_field_post(self):
@@ -1509,7 +1509,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=self.xform.id)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.get('Cache-Control'), None)
         self.assertIsNotNone(response.data.get('error'))
 
     def test_csv_import_status_check(self):
@@ -1528,7 +1528,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=self.xform.id)
 
                 self.assertEqual(response.status_code, 200)
-                self.assertIsNotNone(response.get('Last-Modified'))
+                self.assertIsNotNone(response.get('Cache-Control'))
                 self.assertEqual(response.data.get('progress'), 10)
                 self.assertEqual(response.data.get('total'), 100)
 
@@ -1727,7 +1727,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=form_id)
 
                 self.assertEqual(response.status_code, 400)
-                self.assertEqual(response.get('Last-Modified'), None)
+                self.assertEqual(response.get('Cache-Control'), None)
 
             self.xform.reload()
             new_version = self.xform.version
@@ -1760,7 +1760,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response = view(request, pk=form_id)
 
                 self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.get('Last-Modified'), None)
+                self.assertEqual(response.get('Cache-Control'), None)
 
             self.xform.reload()
 
@@ -1930,7 +1930,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=form_id)
 
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
             self.assertEquals(response.data,
                               {'title': [u'This field is required.']})
 

@@ -7,13 +7,13 @@ from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.stats_serializer import (
     StatsSerializer, StatsInstanceSerializer)
 
 
 class StatsViewSet(CacheControlMixin,
-                   LastModifiedMixin,
+                   ETagsMixin,
                    AnonymousUserPublicFormsMixin,
                    viewsets.ReadOnlyModelViewSet):
 

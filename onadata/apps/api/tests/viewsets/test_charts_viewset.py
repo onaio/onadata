@@ -69,7 +69,7 @@ class TestChartsViewSet(TestBase):
             format='html'
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'select one')
         self.assertEqual(response.data['field_name'], 'gender')
         self.assertEqual(response.data['data_type'], 'categorized')
@@ -94,7 +94,7 @@ class TestChartsViewSet(TestBase):
             request,
             pk=self.xform.id)
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'date')
         self.assertEqual(response.data['field_name'], 'date')
         self.assertEqual(response.data['data_type'], 'time_based')
@@ -119,7 +119,7 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'integer')
         self.assertEqual(response.data['field_name'], 'age')
         self.assertEqual(response.data['data_type'], 'numeric')
@@ -133,7 +133,7 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'select one')
         self.assertEqual(response.data['field_name'], 'gender')
         self.assertEqual(response.data['data_type'], 'categorized')
@@ -148,7 +148,7 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'select all that apply')
         self.assertEqual(response.data['field_name'], field_name)
         self.assertEqual(response.data['data_type'], 'categorized')
@@ -167,7 +167,7 @@ class TestChartsViewSet(TestBase):
             format='html'
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'select all that apply')
         self.assertEqual(response.data['field_name'], field_name)
         self.assertEqual(response.data['data_type'], 'categorized')
@@ -184,7 +184,7 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertIn('age', response.data)
         self.assertIn('date', response.data)
         self.assertIn('gender', response.data)
@@ -201,7 +201,7 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
 
         self.assertNotIn('gender', response.data)
 
@@ -234,7 +234,7 @@ class TestChartsViewSet(TestBase):
         request = self.factory.get('/charts')
         force_authenticate(request, user=self.user)
         response = self.view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         data = {'id': self.xform.pk, 'id_string': self.xform.id_string,
                 'url': 'http://testserver/api/v1/charts/%s' % self.xform.pk}
@@ -252,7 +252,7 @@ class TestChartsViewSet(TestBase):
         request = self.factory.get('/charts')
         force_authenticate(request, user=self.user)
         response = self.view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         data = {'id': self.xform.pk, 'id_string': self.xform.id_string,
                 'url': 'http://testserver/api/v1/charts/%s' % self.xform.pk}

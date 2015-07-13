@@ -10,7 +10,7 @@ from rest_framework.permissions import DjangoObjectPermissions
 
 from onadata.libs.filters import TeamOrgFilter
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.libs.serializers.share_team_project_serializer import (
     ShareTeamProjectSerializer, RemoveTeamFromProjectSerializer)
@@ -18,7 +18,7 @@ from onadata.apps.api.models import Team
 from onadata.apps.api.tools import add_user_to_team, remove_user_from_team
 
 
-class TeamViewSet(CacheControlMixin, LastModifiedMixin, ModelViewSet):
+class TeamViewSet(CacheControlMixin, ETagsMixin, ModelViewSet):
     """
     This endpoint allows you to create, update and view team information.
     """

@@ -14,6 +14,7 @@ from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.renderers import renderers
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.utils.api_export_tools import custom_response_handler
@@ -28,7 +29,7 @@ def get_form_field_chart_url(url, field):
     return u'%s?field_name=%s' % (url, field)
 
 
-class DataViewViewSet(CacheControlMixin, ModelViewSet):
+class DataViewViewSet(CacheControlMixin, ETagsMixin, ModelViewSet):
     """
     A simple ViewSet for viewing and editing DataViews.
     """

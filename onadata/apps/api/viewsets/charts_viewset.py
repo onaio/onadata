@@ -11,7 +11,7 @@ from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.chart_serializer import (
     ChartSerializer, FieldsChartSerializer)
 from onadata.libs.utils.chart_tools import get_chart_data_for_field
@@ -51,8 +51,8 @@ class ChartBrowsableAPIRenderer(BrowsableAPIRenderer):
 
 
 class ChartsViewSet(AnonymousUserPublicFormsMixin,
-                    LastModifiedMixin,
                     CacheControlMixin,
+                    ETagsMixin,
                     viewsets.ReadOnlyModelViewSet):
 
     filter_backends = (filters.AnonDjangoObjectPermissionFilter, )

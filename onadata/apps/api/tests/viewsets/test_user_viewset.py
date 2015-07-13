@@ -17,14 +17,14 @@ class TestUserViewSet(TestAbstractViewSet):
         # users list
         view = UserViewSet.as_view({'get': 'list'})
         response = view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.data])
 
         # user with username bob
         view = UserViewSet.as_view({'get': 'retrieve'})
         response = view(request, username='bob')
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.data)
 

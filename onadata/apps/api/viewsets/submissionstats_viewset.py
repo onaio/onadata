@@ -6,12 +6,14 @@ from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.stats_serializer import (
     SubmissionStatsSerializer, SubmissionStatsInstanceSerializer)
 
 
 class SubmissionStatsViewSet(AnonymousUserPublicFormsMixin,
                              CacheControlMixin,
+                             ETagsMixin,
                              viewsets.ReadOnlyModelViewSet):
 
     """

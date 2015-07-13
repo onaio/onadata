@@ -77,7 +77,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._project_create()
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.project_data])
         self.assertIn('created_by', response.data[0].keys())
@@ -93,7 +93,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                       'metadata', 'permissions']
         user_props.sort()
 
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.project_data)
         res_user_props = response.data['users'][0].keys()
@@ -114,7 +114,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # no tags
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=project_id)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data, [])
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
@@ -129,13 +129,13 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
         response = list_view(request, pk=project_id)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.project_data])
 
         request = self.factory.get('/', data={"tags": "goodbye"}, **self.extra)
         response = list_view(request, pk=project_id)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
 
@@ -143,7 +143,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.delete('/', **self.extra)
         response = view(request, pk=project_id, label='hello')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data, [])
 
     def test_projects_create(self):
@@ -221,7 +221,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
             data_type='enketo_url') | Q(data_type='enketo_preview_url'))
@@ -400,7 +400,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             response = view(request, pk=projectid)
 
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
             self.assertFalse(mock_send_mail.called)
 
             role_class._remove_obj_permissions(alice_profile.user,
@@ -450,7 +450,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             response = view(request, pk=projectid)
 
             self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.get('Last-Modified'), None)
+            self.assertEqual(response.get('Cache-Control'), None)
             self.assertFalse(mock_send_mail.called)
 
             role_class._remove_obj_permissions(alice_profile.user,
@@ -630,7 +630,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.project.reload()
 
         self.assertEqual(response.status_code, 204)
-        self.assertEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.get('Cache-Control'), None)
         self.assertEqual(len(self.project.user_stars.all()), 1)
         self.assertEqual(self.project.user_stars.all()[0], self.user)
 
@@ -746,7 +746,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         response = view(request, owner=self.user.username)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.get('Last-Modified'), None)
+        self.assertEqual(response.get('Cache-Control'), None)
         projects = Project.objects.all()
         self.assertEqual(len(projects), 1)
 

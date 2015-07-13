@@ -8,12 +8,16 @@ from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api import permissions
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.view_permission_mixin import ViewPermissionMixin
 from onadata.libs.serializers.note_serializer import NoteSerializer
 from onadata.apps.logger.models import Note
 
 
-class NoteViewSet(CacheControlMixin, ViewPermissionMixin, ModelViewSet):
+class NoteViewSet(CacheControlMixin,
+                  ETagsMixin,
+                  ViewPermissionMixin,
+                  ModelViewSet):
     """## Add Notes to a submission
 
 A `POST` payload of parameters:

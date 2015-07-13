@@ -26,7 +26,6 @@ from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import DataSerializer
@@ -56,7 +55,7 @@ class CustomPaginationSerializer(BasePaginationSerializer):
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin,
-                  LastModifiedMixin, ETagsMixin, CacheControlMixin,
+                  ETagsMixin, CacheControlMixin,
                   ModelViewSet):
     """
     This endpoint provides access to submitted data.

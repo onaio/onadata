@@ -39,7 +39,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self._org_create()
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.company_data])
 
@@ -54,7 +54,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self._org_create()
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.company_data])
 
@@ -105,7 +105,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request)
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data, [])
 
     def test_orgs_get(self):
@@ -120,7 +120,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             response.data, {'detail': 'Expected URL keyword argument `user`.'})
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', response.data.keys())
@@ -140,7 +140,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(previous_user,  self.user)
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', response.data.keys())
@@ -155,7 +155,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/')
         response = view(request, user='denoinc')
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', response.data.keys())
@@ -214,7 +214,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data, [u'denoinc'])
 
     def test_add_members_to_org_username_required(self):
@@ -678,7 +678,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
 
         response = view_user(request, user='denoinc')
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['name'], "Dennis2")
 

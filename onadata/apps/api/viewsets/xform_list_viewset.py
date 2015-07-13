@@ -19,6 +19,7 @@ from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.authentication import EnketoTempTokenAuthentication
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation
 from onadata.libs.renderers.renderers import XFormListRenderer
 from onadata.libs.renderers.renderers import XFormManifestRenderer
@@ -30,7 +31,8 @@ from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
 DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 
 
-class XFormListViewSet(CacheControlMixin, viewsets.ReadOnlyModelViewSet):
+class XFormListViewSet(CacheControlMixin, ETagsMixin,
+                       viewsets.ReadOnlyModelViewSet):
     authentication_classes = (DigestAuthentication,
                               EnketoTempTokenAuthentication,)
     content_negotiation_class = MediaFileContentNegotiation

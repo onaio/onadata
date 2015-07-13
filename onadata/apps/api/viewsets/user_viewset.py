@@ -5,12 +5,13 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework import filters
 
 from onadata.libs.filters import UserNoOrganizationsFilter
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.user_serializer import UserSerializer
 from onadata.apps.api import permissions
 
 
-class UserViewSet(LastModifiedMixin, ReadOnlyModelViewSet):
+class UserViewSet(CacheControlMixin, ETagsMixin, ReadOnlyModelViewSet):
     """
     This endpoint allows you to list and retrieve user's first and last names.
     """
