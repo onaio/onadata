@@ -6,12 +6,13 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
 
 from onadata.libs import filters
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.apps.logger.models.widget import Widget
 from onadata.libs.serializers.widget_serilizer import WidgetSerializer
 from onadata.apps.api.permissions import WidgetViewSetPermissions
 
 
-class WidgetViewSet(ModelViewSet):
+class WidgetViewSet(CacheControlMixin, ModelViewSet):
     queryset = Widget.objects.all()
     serializer_class = WidgetSerializer
     permission_classes = [WidgetViewSetPermissions]

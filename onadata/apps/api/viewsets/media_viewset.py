@@ -8,10 +8,11 @@ from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 
 from onadata.apps.logger.models import Attachment
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.utils.image_tools import image_url
 
 
-class MediaViewSet(viewsets.ViewSet):
+class MediaViewSet(CacheControlMixin, viewsets.ViewSet):
     """A view to redirect to actual attachments url"""
     permission_classes = (AllowAny, )
 

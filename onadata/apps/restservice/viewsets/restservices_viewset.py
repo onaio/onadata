@@ -7,11 +7,12 @@ from onadata.apps.restservice.models import RestService
 from onadata.libs import filters
 from onadata.libs.serializers.restservices_serializer import \
     RestServiceSerializer
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.utils.common_tags import TEXTIT
 
 
-class RestServicesViewSet(LastModifiedMixin, ModelViewSet):
+class RestServicesViewSet(CacheControlMixin, LastModifiedMixin, ModelViewSet):
     """
     This endpoint provides access to form rest services.
     """

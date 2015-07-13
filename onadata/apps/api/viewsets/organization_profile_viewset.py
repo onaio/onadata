@@ -18,6 +18,7 @@ from onadata.apps.api.tools import (get_organization_members,
 from onadata.apps.api import permissions
 from onadata.libs.filters import (OrganizationPermissionFilter,
                                   OrganizationsSharedWithUserFilter)
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.permissions import ROLES, OwnerRole
@@ -136,7 +137,8 @@ def _check_set_role(request, organization, username, required=False):
             else (status.HTTP_201_CREATED, [])
 
 
-class OrganizationProfileViewSet(LastModifiedMixin,
+class OrganizationProfileViewSet(CacheControlMixin,
+                                 LastModifiedMixin,
                                  ObjectLookupMixin,
                                  ModelViewSet):
     """

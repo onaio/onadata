@@ -11,6 +11,7 @@ from onadata.libs.filters import (
     ProjectOwnerFilter,
     TagFilter)
 from onadata.libs.mixins.labels_mixin import LabelsMixin
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
@@ -28,7 +29,8 @@ from onadata.settings.common import (
     SHARE_PROJECT_SUBJECT)
 
 
-class ProjectViewSet(LastModifiedMixin, LabelsMixin, ModelViewSet):
+class ProjectViewSet(CacheControlMixin,
+                     LastModifiedMixin, LabelsMixin, ModelViewSet):
     """
     List, Retrieve, Update, Create Project and Project Forms.
     """

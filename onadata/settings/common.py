@@ -502,6 +502,8 @@ try:
 except:
     HOSTNAME = 'localhost'
 
+CACHE_MIXIN_SECONDS = 60
+
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:

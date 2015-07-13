@@ -1053,6 +1053,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
 
         self.assertEquals(response.status_code, 200)
+        self.assertNotEqual(response.get('Cache-Control'), None)
 
         self.assertIsNotNone(response.get('ETag'))
         etag_hash = response.get('ETag')
