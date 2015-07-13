@@ -70,7 +70,6 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             ext = self.data_value[self.data_value.rindex('.') + 1:]
             request = self.factory.get('/', **self.extra)
             response = self.view(request, pk=self.metadata.pk, format=ext)
-            self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'image/png')
 
