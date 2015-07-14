@@ -1313,6 +1313,20 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertEquals(200, response.status_code)
 
+        # assert admin can add colaborators
+        tompoo_data = {'username': 'tompoo', 'email': 'tompoo@localhost.com'}
+        self._create_user_profile(tompoo_data)
+
+        data = {'username': 'tompoo', 'role': ReadOnlyRole.name}
+        request = self.factory.put('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'put': 'share'
+        })
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 204)
+
         self.user = bob
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % bob.auth_token}

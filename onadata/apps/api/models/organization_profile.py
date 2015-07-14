@@ -11,6 +11,8 @@ from onadata.libs.utils.cache_tools import safe_delete, IS_ORG
 
 
 def org_profile_post_delete_callback(sender, instance, **kwargs):
+    # delete the org_user too
+    instance.user.delete()
     safe_delete('{}{}'.format(IS_ORG, instance.pk))
 
 

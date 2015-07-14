@@ -738,3 +738,20 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertEquals(response.data, u"Organization cannot be without"
                                          u" an owner")
+
+    def test_orgs_delete(self):
+        self._org_create()
+        self.assertTrue(self.organization.user.is_active)
+
+        view = OrganizationProfileViewSet.as_view({
+            'delete': 'destroy'
+        })
+
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, user='denoinc')
+
+        self.assertEquals(204, response.status_code)
+
+        self.assertEquals(0, OrganizationProfile.objects.filter(
+            user__username='denoinc').count())
+        self.assertEquals(0, User.objects.filter(username='denoinc').count())
