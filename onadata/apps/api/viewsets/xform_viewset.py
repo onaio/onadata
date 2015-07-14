@@ -262,6 +262,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         resp_code = status.HTTP_400_BAD_REQUEST
 
         if request.method == 'GET':
+            self.etag_data = '{}'.format(timezone.now())
             survey = tasks.get_async_status(
                 request.QUERY_PARAMS.get('job_uuid'))
 
@@ -305,6 +306,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             return HttpResponseBadRequest('400 BAD REQUEST',
                                           content_type='application/json',
                                           status=400)
+        self.etag_data = '{}'.format(form.date_modified)
         filename = form.id_string + "." + format
         response = response_for_format(form, format=format)
         response['Content-Disposition'] = 'attachment; filename=' + filename
@@ -391,6 +393,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
             if result_has_error(result):
                 raise ParseError(result.get('text'))
+
+            self.etag_data = result
 
             return Response(result, status=200)
 
@@ -548,6 +552,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             job_uuid = request.QUERY_PARAMS.get('job_uuid')
             resp = tasks.get_async_status(job_uuid)
             resp_code = status.HTTP_202_ACCEPTED
+            self.etag_data = '{}'.format(timezone.now())
+
         return Response(data=resp, status=resp_code)
 
     @action(methods=['GET'])
@@ -574,6 +580,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         else:
             resp = process_async_export(request, xform, export_type, query,
                                         token, meta, options)
+
+        self.etag_data = '{}'.format(timezone.now())
 
         return Response(data=resp,
                         status=status.HTTP_202_ACCEPTED,
