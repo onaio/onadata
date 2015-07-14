@@ -14,7 +14,9 @@ class CacheControlMixin(object):
             if hasattr(settings, 'CACHE_MIXIN_SECONDS'):
                 max_age = settings.CACHE_MIXIN_SECONDS
 
-            self.headers.update({'Cache-Control': max_age})
+            self.headers.update({
+                'Cache-Control': 'max-age={}'.format(max_age)
+            })
 
         return super(CacheControlMixin, self).finalize_response(
             request, response, *args, **kwargs)
