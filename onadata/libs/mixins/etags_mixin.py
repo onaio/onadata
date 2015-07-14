@@ -25,9 +25,15 @@ class ETagsMixin(object):
                 if not isinstance(self.object_list, types.GeneratorType):
                     obj = self.object_list.last()
                     if isinstance(obj, (XForm, Instance)):
-                        etag_value = self.object_list\
-                            .order_by('-date_modified')\
-                            .values_list('date_modified', flat=True).first()
+                        object_list = self.object_list
+
+                        if object_list.query.can_filter():
+                            object_list = \
+                                object_list.order_by('-date_modified')
+
+                        etag_value = object_list\
+                            .values_list('date_modified', flat=True)\
+                            .first()
             elif hasattr(self, 'object'):
                 if isinstance(self.object, (XForm, Instance)):
                     etag_value = self.object.date_modified
