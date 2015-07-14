@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from jsonfield import JSONField
 from taggit.managers import TaggableManager
+from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
 
 from onadata.libs.models.base_model import BaseModel
 
@@ -48,6 +49,12 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
     if created:
         for perm in get_perms_for_model(Project):
             assign_perm(perm.codename, instance.organization, instance)
+
+            owners = instance.organization.team_set\
+                .filter(name="{}#{}".format(instance.organization.username,
+                        OWNER_TEAM_NAME), organization=instance.organization)
+            if owners:
+                assign_perm(perm.codename, owners[0], instance)
 
             if instance.created_by:
                 assign_perm(perm.codename, instance.created_by, instance)

@@ -21,6 +21,10 @@ from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
 from django.db.models import Q
 from onadata.apps.main.models import MetaData
+from onadata.apps.api.viewsets.team_viewset import TeamViewSet
+from onadata.apps.api import tools
+from onadata.apps.api.viewsets.organization_profile_viewset import\
+    OrganizationProfileViewSet
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
@@ -1204,3 +1208,149 @@ class TestProjectViewSet(TestAbstractViewSet):
                 self.assertEquals(user.get('role'), 'readonly-no-download')
             elif user.get('user') == 'tom':
                 self.assertEquals(user.get('role'), 'readonly')
+
+    def test_team_users_in_a_project(self):
+        self._team_create()
+        project = Project.objects.create(name="Test Project",
+                                         organization=self.team.organization,
+                                         created_by=self.user,
+                                         metadata='{}')
+
+        chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
+        chuck_profile = self._create_user_profile(chuck_data)
+        user_chuck = chuck_profile.user
+
+        view = TeamViewSet.as_view({
+            'post': 'share'})
+
+        self.assertFalse(EditorRole.user_has_role(user_chuck,
+                                                  project))
+        data = {'role': EditorRole.name,
+                'project': project.pk}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 204)
+        tools.add_user_to_team(self.team, user_chuck)
+        self.assertTrue(EditorRole.user_has_role(user_chuck, project))
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        request = self.factory.get('/', **self.extra)
+
+        response = view(request, pk=project.pk)
+
+        self.assertIsNotNone(response.data['teams'])
+        self.assertEquals(3, len(response.data['teams']))
+        self.assertEquals(response.data['teams'][2]['role'], 'editor')
+        self.assertEquals(response.data['teams'][2]['users'],
+                          [chuck_profile.user.username])
+
+    def test_project_accesible_by_admin_created_by_diff_admin(self):
+        self._org_create()
+
+        # user 1
+        chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
+        chuck_profile = self._create_user_profile(chuck_data)
+
+        # user 2
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members',
+        })
+
+        # save the org creator
+        bob = self.user
+
+        data = {"username": alice_profile.user.username,
+                "role": OwnerRole.name}
+        # create admin 1
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request, user='denoinc')
+
+        self.assertEquals(201, response.status_code)
+        data = {"username": chuck_profile.user.username,
+                "role": OwnerRole.name}
+        # create admin 2
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request, user='denoinc')
+
+        self.assertEquals(201, response.status_code)
+
+        # admin 2 creates a project
+        self.user = chuck_profile.user
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        data = {
+            'name': u'demo',
+            'owner':
+            'http://testserver/api/v1/users/%s' %
+            self.organization.user.username,
+            'metadata': {'description': 'Some description',
+                         'location': 'Naivasha, Kenya',
+                         'category': 'governance'},
+            'public': False
+        }
+        self._project_create(project_data=data)
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        # admin 1 tries to access project created by admin 2
+        self.user = alice_profile.user
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        request = self.factory.get('/', **self.extra)
+
+        response = view(request, pk=self.project.pk)
+
+        self.assertEquals(200, response.status_code)
+
+        # assert admin can add colaborators
+        tompoo_data = {'username': 'tompoo', 'email': 'tompoo@localhost.com'}
+        self._create_user_profile(tompoo_data)
+
+        data = {'username': 'tompoo', 'role': ReadOnlyRole.name}
+        request = self.factory.put('/', data=data, **self.extra)
+
+        view = ProjectViewSet.as_view({
+            'put': 'share'
+        })
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(response.status_code, 204)
+
+        self.user = bob
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % bob.auth_token}
+
+        # remove from admin org
+        data = {"username": alice_profile.user.username}
+        view = OrganizationProfileViewSet.as_view({
+            'delete': 'members'
+        })
+
+        request = self.factory.delete('/', data=data, **self.extra)
+        response = view(request, user='denoinc')
+        self.assertEquals(201, response.status_code)
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        self.user = alice_profile.user
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        request = self.factory.get('/', **self.extra)
+
+        response = view(request, pk=self.project.pk)
+
+        # user cant access the project removed from org
+        self.assertEquals(404, response.status_code)

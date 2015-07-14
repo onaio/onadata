@@ -12,7 +12,9 @@ from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE, PROJ_PERM_CACHE,
-    PROJ_SUB_DATE_CACHE, safe_delete)
+    PROJ_SUB_DATE_CACHE, safe_delete, PROJ_TEAM_USERS_CACHE)
+from onadata.apps.api.models import Team
+from onadata.libs.permissions import get_team_project_default_permissions
 
 
 def set_owners_permission(user, project):
@@ -43,6 +45,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     num_datasets = serializers.SerializerMethodField('get_num_datasets')
     last_submission_date = serializers.SerializerMethodField(
         'get_last_submission_date')
+    teams = serializers.SerializerMethodField('get_team_users')
 
     class Meta:
         model = Project
@@ -165,3 +168,30 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             return True
 
         return False
+
+    def get_team_users(self, obj):
+        if obj:
+            teams_users = cache.get('{}{}'.format(
+                PROJ_TEAM_USERS_CACHE, obj.pk))
+            if teams_users:
+                return teams_users
+
+            teams_users = []
+            teams = Team.objects.filter(organization=obj.organization)
+
+            for team in teams:
+                users = []
+                for user in team.user_set.all():
+                    users.append(user.username)
+
+                teams_users.append({
+                    "name": team.name,
+                    "role": get_team_project_default_permissions(team, obj),
+                    "users": users
+                })
+
+            cache.set('{}{}'.format(PROJ_TEAM_USERS_CACHE, obj.pk),
+                      teams_users)
+            return teams_users
+
+        return []
