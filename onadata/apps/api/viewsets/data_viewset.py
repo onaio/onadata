@@ -251,7 +251,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             raise ParseError(_(u"Data ID should be an integer"))
 
         try:
-            instance = self.get_object()
+            self.object = instance = self.get_object()
 
             if _format == 'json' or _format is None:
                 return Response(instance.json)
