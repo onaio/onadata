@@ -205,23 +205,27 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+        self.assertIsNotNone(response.get('ETag'))
 
         request = self.factory.get('/', data={"start": "1", "limit": 2},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        self.assertIsNotNone(response.get('ETag'))
 
         request = self.factory.get('/', data={"limit": "3"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
+        self.assertIsNotNone(response.get('ETag'))
 
         request = self.factory.get(
             '/', data={"start": "1", "limit": "2"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        self.assertIsNotNone(response.get('ETag'))
 
         # invalid start is ignored, all data is returned
         request = self.factory.get('/', data={"start": "invalid"},
@@ -229,6 +233,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+        self.assertIsNotNone(response.get('ETag'))
 
         # invalid limit is ignored, all data is returned
         request = self.factory.get('/', data={"limit": "invalid"},
@@ -236,6 +241,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+        self.assertIsNotNone(response.get('ETag'))
 
     def test_data_anon(self):
         self._make_submissions()

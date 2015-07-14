@@ -346,7 +346,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if where:
             self.object_list = self.object_list.extra(where=where,
                                                       params=where_params)
-        if (sort or limit or start or fields) and not is_public_request:
+        if (start and limit or limit) and (not sort and not fields):
+            start = start if start is not None else 0
+            limit = limit if start is None or start == 0 else limit + 1
+            self.object_list = \
+                self.object_list.order_by('-date_modified')[start: limit]
+        elif (sort or limit or start or fields) and not is_public_request:
             if self.object_list.count():
                 xform = self.object_list[0].xform
                 self.object_list = \
