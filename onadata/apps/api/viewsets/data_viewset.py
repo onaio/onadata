@@ -176,7 +176,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
     def labels(self, request, *args, **kwargs):
         http_status = status.HTTP_400_BAD_REQUEST
-        instance = self.get_object()
+        self.object = instance = self.get_object()
 
         if request.method == 'POST':
             add_tags_to_instance(request, instance)
@@ -204,6 +204,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if request.method == 'GET':
             http_status = status.HTTP_200_OK
 
+        self.etag_data = data
+
         return Response(data, status=http_status)
 
     @action(methods=['GET'])
@@ -225,6 +227,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     data['detail'] = "{}".format(e)
             else:
                 raise PermissionDenied(_(u"You do not have edit permissions."))
+
+        self.etag_data = data
 
         return Response(data=data)
 
