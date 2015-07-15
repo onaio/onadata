@@ -100,12 +100,15 @@ class ProjectViewSet(CacheControlMixin,
     @action(methods=['DELETE', 'GET', 'POST'])
     def star(self, request, *args, **kwargs):
         user = request.user
-        project = get_object_or_404(Project, pk=kwargs.get('pk'))
+        self.object = project = get_object_or_404(Project,
+                                                  pk=kwargs.get('pk'))
 
         if request.method == 'DELETE':
             project.user_stars.remove(user)
+            project.save()
         elif request.method == 'POST':
             project.user_stars.add(user)
+            project.save()
         elif request.method == 'GET':
             users = project.user_stars.values('pk')
             user_profiles = UserProfile.objects.filter(user__in=users)
