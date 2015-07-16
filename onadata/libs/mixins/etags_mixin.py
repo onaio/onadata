@@ -4,6 +4,7 @@ from django.utils.timezone import now
 from hashlib import md5
 
 from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
 
 
@@ -24,7 +25,7 @@ class ETagsMixin(object):
             elif hasattr(self, 'object_list'):
                 if not isinstance(self.object_list, types.GeneratorType):
                     obj = self.object_list.last()
-                    if isinstance(obj, (XForm, Instance)):
+                    if isinstance(obj, (XForm, Instance, Project)):
                         object_list = self.object_list
 
                         if object_list.query.can_filter():
@@ -35,7 +36,7 @@ class ETagsMixin(object):
                             .values_list('date_modified', flat=True)\
                             .first()
             elif hasattr(self, 'object'):
-                if isinstance(self.object, (XForm, Instance)):
+                if isinstance(self.object, (XForm, Instance, Project)):
                     etag_value = self.object.date_modified
 
             hash_value = md5(
