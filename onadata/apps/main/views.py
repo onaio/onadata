@@ -4,6 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 import os
 import json
 from bson import json_util
+from urlparse import urljoin
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -1331,7 +1332,12 @@ def qrcode(request, username, id_string):
 def get_enketo_preview_url(request, username, id_string):
     form_url = get_form_url(request, username)
     values = {'form_id': id_string, 'server_url': form_url}
-    res = requests.post(settings.ENKETO_PREVIEW_URL,
+    preview_url = urljoin(settings.ENKETO_URL,
+                          settings.ENKETO_API_SURVEY_PATH + '/preview')
+    if settings.ENKETO_OFFLINE:
+        preview_url = settings.ENKETO_PREVIEW_URL
+
+    res = requests.post(preview_url,
                         data=values,
                         auth=(settings.ENKETO_API_TOKEN, ''),
                         verify=False)
