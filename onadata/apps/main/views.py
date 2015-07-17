@@ -1332,9 +1332,7 @@ def qrcode(request, username, id_string):
 def get_enketo_preview_url(request, username, id_string):
     form_url = get_form_url(request, username)
     values = {'form_id': id_string, 'server_url': form_url}
-    preview_url = urljoin(settings.ENKETO_URL,
-                          settings.ENKETO_API_SURVEY_PATH + '/preview')
-    res = requests.post(preview_url,
+    res = requests.post(settings.ENKETO_PREVIEW_URL,
                         data=values,
                         auth=(settings.ENKETO_API_TOKEN, ''),
                         verify=False)
