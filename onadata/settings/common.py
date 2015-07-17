@@ -14,6 +14,7 @@ import os
 import subprocess  # nopep8, used by included files
 import sys  # nopep8, used by included files
 import socket
+from urlparse import urljoin
 
 from celery.signals import after_setup_logger
 from django.core.exceptions import SuspiciousOperation
@@ -95,9 +96,8 @@ ENKETO_PROTOCOL = 'https'
 ENKETO_URL = 'https://enketo.ona.io/'
 ENKETO_API_SURVEY_PATH = '/api_v1/survey'
 ENKETO_API_INSTANCE_PATH = '/api_v1/instance'
-ENKETO_PREVIEW_URL = ENKETO_URL + 'webform/preview'
+ENKETO_PREVIEW_URL = urljoin(ENKETO_URL, ENKETO_API_SURVEY_PATH + '/preview')
 ENKETO_API_TOKEN = ''
-ENKETO_OFFLINE = False
 ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v1/instance/iframe"
 ENKETO_API_SALT = 's0m3v3rys3cr3tk3y'
 
