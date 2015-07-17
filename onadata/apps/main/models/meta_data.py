@@ -304,5 +304,12 @@ def clear_cached_metadata_instance_object(
         XFORM_METADATA_CACHE, instance.xform.pk))
 
 
+def update_attached_xform(sender, instance=None, created=False, **kwargs):
+    if instance:
+        instance.xform.save()
+
+
 post_save.connect(clear_cached_metadata_instance_object, sender=MetaData,
                   dispatch_uid='clear_cached_metadata_instance_object')
+post_save.connect(update_attached_xform, sender=MetaData,
+                  dispatch_uid='update_attached_xform')

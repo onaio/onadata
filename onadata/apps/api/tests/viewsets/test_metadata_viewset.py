@@ -35,9 +35,13 @@ class TestMetaDataViewSet(TestAbstractViewSet):
                                     self.data_value, self.path)
 
     def test_forms_endpoint_with_metadata(self):
+        date_modified = self.xform.date_modified
         for data_type in ['supporting_doc', 'media', 'source']:
             self._add_form_metadata(self.xform, data_type,
                                     self.data_value, self.path)
+            self.xform.reload()
+            self.assertNotEqual(date_modified, self.xform.date_modified)
+
         # /forms
         view = XFormViewSet.as_view({
             'get': 'retrieve'
