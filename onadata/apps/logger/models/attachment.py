@@ -22,6 +22,9 @@ class Attachment(models.Model):
         max_length=50, null=False, blank=True, default='')
     extension = models.CharField(max_length=10, null=False, blank=False,
                                  default=u"non", db_index=True)
+    date_created = models.DateTimeField(null=True, auto_now_add=True)
+    date_modified = models.DateTimeField(null=True, auto_now=True)
+    deleted_at = models.DateTimeField(null=True, default=None)
 
     class Meta:
         app_label = 'logger'
