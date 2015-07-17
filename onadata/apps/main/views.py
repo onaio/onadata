@@ -4,7 +4,6 @@ from django.contrib.contenttypes.models import ContentType
 import os
 import json
 from bson import json_util
-from urlparse import urljoin
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
