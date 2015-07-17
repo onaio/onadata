@@ -128,6 +128,9 @@ class MetaData(models.Model):
     data_file = models.FileField(upload_to=upload_to, blank=True, null=True)
     data_file_type = models.CharField(max_length=255, blank=True, null=True)
     file_hash = models.CharField(max_length=50, blank=True, null=True)
+    date_created = models.DateTimeField(null=True, auto_now_add=True)
+    date_modified = models.DateTimeField(null=True, auto_now=True)
+    deleted_at = models.DateTimeField(null=True, default=None)
 
     class Meta:
         app_label = 'main'
