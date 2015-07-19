@@ -1,3 +1,5 @@
+import json
+
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 from django.core.mail import send_mail
@@ -187,5 +189,6 @@ class OrganizationProfileViewSet(CacheControlMixin,
         if status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED]:
             members = get_organization_members(organization)
             data = [u.username for u in members]
+            self.etag_data = json.dumps(data)
 
         return Response(data, status=status_code)
