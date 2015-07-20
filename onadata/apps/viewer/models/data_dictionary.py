@@ -207,7 +207,9 @@ class DataDictionary(XForm):
         return id_string
 
     def save(self, *args, **kwargs):
-        if self.xls:
+        skip_xls_read = kwargs.get('skip_xls_read')
+
+        if self.xls and not skip_xls_read:
             default_name = None \
                 if not self.pk else self.survey.xml_instance().tagName
             try:
@@ -243,6 +245,10 @@ class DataDictionary(XForm):
             self._mark_start_time_boolean()
             set_uuid(self)
             self._set_uuid_in_xml()
+
+        if 'skip_xls_read' in kwargs:
+            del kwargs['skip_xls_read']
+
         super(DataDictionary, self).save(*args, **kwargs)
 
     def file_name(self):

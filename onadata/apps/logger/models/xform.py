@@ -187,6 +187,10 @@ class XForm(BaseModel):
                                                                self.id_string)
             except:
                 self.sms_id_string = self.id_string
+
+        if 'skip_xls_read' in kwargs:
+            del kwargs['skip_xls_read']
+
         super(XForm, self).save(*args, **kwargs)
 
     def __unicode__(self):

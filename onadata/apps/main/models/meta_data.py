@@ -309,7 +309,7 @@ def clear_cached_metadata_instance_object(
 
 def update_attached_xform(sender, instance=None, created=False, **kwargs):
     if instance:
-        instance.xform.save()
+        instance.xform.save(skip_xls_read=True)
 
 
 post_save.connect(clear_cached_metadata_instance_object, sender=MetaData,
