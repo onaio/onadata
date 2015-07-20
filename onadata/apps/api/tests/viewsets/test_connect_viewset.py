@@ -171,6 +171,8 @@ class TestConnectViewSet(TestAbstractViewSet):
         request.user = self.user
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
+        del self.project_data['date_modified']
+        del response.data[0]['date_modified']
         self.assertEqual(response.data, [self.project_data])
 
     def test_user_list_with_digest(self):
