@@ -1,3 +1,4 @@
+import json
 import types
 
 from django.utils.timezone import now
@@ -17,6 +18,29 @@ MODELS_WITH_DATE_MODIFIED = (XForm, Instance, Project, Attachment, MetaData,
                              Note, UserProfile, Team)
 
 
+def get_etag_value(obj, object_list):
+    etag_value = '{}'.format(now())
+
+    if isinstance(obj, MODELS_WITH_DATE_MODIFIED):
+        object_list = object_list
+
+        if object_list.query.can_filter():
+            object_list = \
+                object_list.order_by('-date_modified')
+
+        etag_value = json.dumps([
+            '{}'.format(o) for o in object_list.values_list(
+                'date_modified', flat=True)
+        ])
+    elif obj:
+        etag_value = json.dumps([
+            '{}'.format(o) for o in object_list.values_list(
+                'pk', flat=True)
+            ])
+
+    return etag_value
+
+
 class ETagsMixin(object):
     """
     Applies the Etag on GET responses with status code 200, 201, 202
@@ -34,16 +58,7 @@ class ETagsMixin(object):
             elif hasattr(self, 'object_list'):
                 if not isinstance(self.object_list, types.GeneratorType):
                     obj = self.object_list.last()
-                    if isinstance(obj, MODELS_WITH_DATE_MODIFIED):
-                        object_list = self.object_list
-
-                        if object_list.query.can_filter():
-                            object_list = \
-                                object_list.order_by('-date_modified')
-
-                        etag_value = object_list\
-                            .values_list('date_modified', flat=True)\
-                            .first()
+                    etag_value = get_etag_value(obj, self.object_list)
             elif hasattr(self, 'object'):
                 if isinstance(self.object, MODELS_WITH_DATE_MODIFIED):
                     etag_value = self.object.date_modified
