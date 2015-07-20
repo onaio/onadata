@@ -1125,6 +1125,12 @@ class TestXFormViewSet(TestAbstractViewSet):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             self.xform.save()
+            request = self.factory.get('/', **self.extra)
+            response = self.view(request)
+            self.assertEqual(response.status_code, 200)
+            etag_value = response.get('Etag')
+            self.assertNotEqual(etag_value, None)
+
             view = XFormViewSet.as_view({
                 'delete': 'destroy'
             })
@@ -1135,6 +1141,13 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 204)
             with self.assertRaises(XForm.DoesNotExist):
                 self.xform.reload()
+
+            request = self.factory.get('/', **self.extra)
+            response = self.view(request)
+            self.assertEqual(response.status_code, 200)
+            etag_value2 = response.get('Etag')
+            self.assertNotEqual(etag_value2, None)
+            self.assertNotEqual(etag_value2, etag_value)
 
     def test_form_share_endpoint(self):
         with HTTMock(enketo_mock):
