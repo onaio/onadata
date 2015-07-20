@@ -10,6 +10,8 @@ from onadata.libs.filters import (
     AnonUserProjectFilter,
     ProjectOwnerFilter,
     TagFilter)
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
@@ -29,7 +31,8 @@ from onadata.settings.common import (
     SHARE_PROJECT_SUBJECT)
 
 
-class ProjectViewSet(CacheControlMixin,
+class ProjectViewSet(AuthenticateHeaderMixin,
+                     CacheControlMixin,
                      ETagsMixin, LabelsMixin, ModelViewSet):
     """
     List, Retrieve, Update, Create Project and Project Forms.

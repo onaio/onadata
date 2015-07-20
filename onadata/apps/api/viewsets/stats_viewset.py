@@ -6,13 +6,16 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.stats_serializer import (
     StatsSerializer, StatsInstanceSerializer)
 
 
-class StatsViewSet(CacheControlMixin,
+class StatsViewSet(AuthenticateHeaderMixin,
+                   CacheControlMixin,
                    ETagsMixin,
                    AnonymousUserPublicFormsMixin,
                    viewsets.ReadOnlyModelViewSet):

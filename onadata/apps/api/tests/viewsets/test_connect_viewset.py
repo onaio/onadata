@@ -65,6 +65,12 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
 
+        self.extra = {'HTTP_AUTHORIZATION': 'Token invalidtoken'}
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response['www-authenticate'], "Token")
+
     def test_get_profile(self):
         request = self.factory.get('/', **self.extra)
         request.session = self.client.session
@@ -99,6 +105,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'], 'Invalid token')
+        self.assertEqual(response['www-authenticate'], "TempToken")
 
     def test_using_expired_temp_token(self):
         request = self.factory.get('/', **self.extra)
@@ -147,6 +154,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
                          'Invalid token')
+        self.assertEqual(response['www-authenticate'], "TempToken")
 
     def test_get_starred_projects(self):
         self._project_create()

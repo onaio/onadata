@@ -13,6 +13,8 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.libs.renderers import renderers
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.data_serializer import OSMSerializer
@@ -22,7 +24,8 @@ from onadata.libs.serializers.data_serializer import OSMSiteMapSerializer
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
 
-class OsmViewSet(CacheControlMixin, ETagsMixin, ReadOnlyModelViewSet):
+class OsmViewSet(AuthenticateHeaderMixin,
+                 CacheControlMixin, ETagsMixin, ReadOnlyModelViewSet):
 
     """
 This endpoint provides public access to OSM submitted data in OSM format.

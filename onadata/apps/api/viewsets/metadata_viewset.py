@@ -7,13 +7,16 @@ from onadata.apps.api.tools import get_media_file_response
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs import filters
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
     MediaFileRenderer
 
 
-class MetaDataViewSet(CacheControlMixin,
+class MetaDataViewSet(AuthenticateHeaderMixin,
+                      CacheControlMixin,
                       ETagsMixin,
                       viewsets.ModelViewSet):
     """
