@@ -338,8 +338,9 @@ class TestTeamViewSet(TestAbstractViewSet):
         response = view(request, pk=self.team.pk)
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data,
-                         [self.user.username, alice_profile.user.username])
+        self.assertEqual(sorted(response.data),
+                         sorted([self.user.username,
+                                 alice_profile.user.username]))
 
         # check that alice is able to access the team
         alice_extra = {
