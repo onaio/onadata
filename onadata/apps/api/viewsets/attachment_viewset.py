@@ -12,6 +12,8 @@ from onadata.apps.api.permissions import AttachmentObjectPermissions
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs import filters
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
@@ -34,7 +36,7 @@ def get_attachment_data(attachment, suffix):
     return data
 
 
-class AttachmentViewSet(CacheControlMixin, ETagsMixin,
+class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
                         viewsets.ReadOnlyModelViewSet):
     """
     List attachments of viewsets.

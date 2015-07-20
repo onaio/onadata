@@ -21,6 +21,8 @@ from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
 from onadata.libs.authentication import EnketoTempTokenAuthentication
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
 from onadata.libs.mixins.openrosa_headers_mixin import OpenRosaHeadersMixin
 from onadata.libs.renderers.renderers import TemplateXMLRenderer
 from onadata.libs.serializers.data_serializer import SubmissionSerializer
@@ -77,7 +79,8 @@ def create_instance_from_json(username, request):
     return safe_create_instance(username, xml_file, [], None, request)
 
 
-class XFormSubmissionViewSet(OpenRosaHeadersMixin, mixins.CreateModelMixin,
+class XFormSubmissionViewSet(AuthenticateHeaderMixin,
+                             OpenRosaHeadersMixin, mixins.CreateModelMixin,
                              viewsets.GenericViewSet):
 
     authentication_classes = (DigestAuthentication,

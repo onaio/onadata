@@ -8,12 +8,15 @@ from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 
 from onadata.apps.logger.models import Attachment
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.utils.image_tools import image_url
 
 
-class MediaViewSet(CacheControlMixin, ETagsMixin, viewsets.ViewSet):
+class MediaViewSet(AuthenticateHeaderMixin,
+                   CacheControlMixin, ETagsMixin, viewsets.ViewSet):
     """A view to redirect to actual attachments url"""
     permission_classes = (AllowAny, )
 
@@ -25,7 +28,7 @@ class MediaViewSet(CacheControlMixin, ETagsMixin, viewsets.ViewSet):
         query param filename: the filename of the associated attachment is
             required and has to match
         query param suffix: (optional) - specify small | medium | large to
-            retuurn resized images.
+            return resized images.
 
         return HttpResponseRedirect: redirects to final image url
         """

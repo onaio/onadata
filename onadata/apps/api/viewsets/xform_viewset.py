@@ -35,6 +35,8 @@ from onadata.apps.api.models.temp_token import TempToken
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
 from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
@@ -204,6 +206,7 @@ def parse_webform_return_url(return_url, request):
 
 
 class XFormViewSet(AnonymousUserPublicFormsMixin,
+                   AuthenticateHeaderMixin,
                    CacheControlMixin,
                    ETagsMixin,
                    LabelsMixin,

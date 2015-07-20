@@ -10,6 +10,8 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
@@ -44,7 +46,8 @@ def check_if_key_exists(k, expected_dict):
     return False
 
 
-class UserProfileViewSet(ETagsMixin, CacheControlMixin,
+class UserProfileViewSet(AuthenticateHeaderMixin,
+                         CacheControlMixin, ETagsMixin,
                          ObjectLookupMixin, ModelViewSet):
     """
     List, Retrieve, Update, Create/Register users.
