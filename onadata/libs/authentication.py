@@ -94,11 +94,12 @@ class EnketoTempTokenAuthentication(TokenAuthentication):
             token = request.get_signed_cookie(
                 '__enketo', salt='s0m3v3rys3cr3tk3y')
             temp_token = self.model.objects.get(key=token)
-            if temp_token:
-                return temp_token.user, token
-            raise exceptions.AuthenticationFailed(_(u'No such token'))
+
+            return temp_token.user, token
         except BadSignature as e:
             raise exceptions.AuthenticationFailed(_(u'Bad Signature: %s' % e))
+        except self.model.DoesNotExist:
+            raise exceptions.AuthenticationFailed(_(u'Invalid token'))
         except KeyError:
             pass
 
