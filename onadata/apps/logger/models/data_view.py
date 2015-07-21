@@ -28,18 +28,10 @@ def get_name_from_survey_element(element):
     return element.get_abbreviated_xpath()
 
 
-def _append_where_list(comp, t_list, json_str):
-    if comp == '=':
-        t_list.append(u"{} = %s".format(json_str))
-    if comp == '>':
-        t_list.append(u"{} > %s".format(json_str))
-    if comp == '<':
-        t_list.append(u"{} < %s".format(json_str))
-    if comp == '>=':
-        t_list.append(u"{} >= %s".format(json_str))
-    if comp == '<=':
-        t_list.append(u"{} <= %s".format(json_str))
-    if comp == '<>' or filter == '!=':
+def append_where_list(comp, t_list, json_str):
+    if comp in ['=', '>', '<', '>=', '<=']:
+        t_list.append(u"{} {} %s".format(json_str, comp))
+    elif comp in ['<>', '!=']:
         t_list.append(u"{} <> %s".format(json_str))
 
     return t_list
@@ -87,15 +79,15 @@ class DataView(models.Model):
 
             json_str = _json_sql_str(column, known_integers, known_dates)
 
-            if filter in known_dates:
+            if comp in known_dates:
                 value = datetime.datetime.strptime(
                     value[:19], MONGO_STRFTIME)
 
             if condi and condi.lower() == 'or':
-                or_where = _append_where_list(comp, or_where, json_str)
+                or_where = append_where_list(comp, or_where, json_str)
                 or_params.extend((column, unicode(value)))
             else:
-                where = _append_where_list(comp, where, json_str)
+                where = append_where_list(comp, where, json_str)
                 where_params.extend((column, unicode(value)))
 
         if or_where:
