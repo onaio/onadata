@@ -53,69 +53,62 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         lookup_field='username',
         read_only=True)
     metadata = JsonField(source='metadata', required=False)
-    starred = serializers.SerializerMethodField('is_starred_project')
-    users = serializers.SerializerMethodField('get_project_permissions')
-    forms = serializers.SerializerMethodField('get_project_forms')
+    starred = serializers.SerializerMethodField()
+    users = serializers.SerializerMethodField()
+    forms = serializers.SerializerMethodField()
     public = BooleanField(
         source='shared', widget=widgets.CheckboxInput())
     tags = TagListSerializer(read_only=True)
-    num_datasets = serializers.SerializerMethodField('get_num_datasets')
-    last_submission_date = serializers.SerializerMethodField(
-        'get_last_submission_date')
-    teams = serializers.SerializerMethodField('get_team_users')
-    data_views = serializers.SerializerMethodField('get_linked_dataviews')
+    num_datasets = serializers.SerializerMethodField()
+    last_submission_date = serializers.SerializerMethodField()
+    teams = serializers.SerializerMethodField()
+    data_views = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
         exclude = ('shared', 'organization', 'user_stars')
 
-    def restore_object(self, attrs, instance=None):
-        if instance:
-            metadata = JsonField.to_json(attrs.get('metadata'))
-            owner = attrs.get('organization')
+    def update(self, instance, validated_data):
+        metadata = JsonField.to_json(validated_data.get('metadata'))
+        owner = validated_data.get('organization')
 
-            if self.partial and metadata:
-                if not isinstance(instance.metadata, dict):
-                    instance.metadata = {}
+        if self.partial and metadata:
+            if not isinstance(instance.metadata, dict):
+                instance.metadata = {}
 
-                instance.metadata.update(metadata)
-                attrs['metadata'] = instance.metadata
+            instance.metadata.update(metadata)
+            validated_data['metadata'] = instance.metadata
 
-            if self.partial and owner:
-                # give the new owner permissions
-                set_owners_permission(owner, instance)
+        if self.partial and owner:
+            # give the new owner permissions
+            set_owners_permission(owner, instance)
 
-                if is_organization(owner.profile):
-                    owners_team = get_organization_owners_team(owner.profile)
-                    members_team = get_organization_members_team(owner.profile)
-                    OwnerRole.add(owners_team, instance)
-                    ReadOnlyRole.add(members_team, instance)
+            if is_organization(owner.profile):
+                owners_team = get_organization_owners_team(owner.profile)
+                members_team = get_organization_members_team(owner.profile)
+                OwnerRole.add(owners_team, instance)
+                ReadOnlyRole.add(members_team, instance)
 
-                # clear cache
-                safe_delete('{}{}'.format(PROJ_PERM_CACHE, self.object.pk))
+            # clear cache
+            safe_delete('{}{}'.format(PROJ_PERM_CACHE, self.object.pk))
 
-            return super(ProjectSerializer, self).restore_object(
-                attrs, instance)
+        return super(ProjectSerializer, self).update(instance, validated_data)
 
-        if 'request' in self.context:
-            created_by = self.context['request'].user
+    def create(self, validated_data):
+        created_by = self.context['request'].user
+        project = Project.objects.create(
+            name=validated_data.get('name'),
+            organization=validated_data.get('organization'),
+            created_by=created_by,
+            metadata=validated_data.get('metadata')
+        )
 
-            return Project(
-                name=attrs.get('name'),
-                organization=attrs.get('organization'),
-                created_by=created_by,
-                shared=attrs.get('shared'),
-                metadata=attrs.get('metadata'),)
+        project.xform_set.exclude(shared=project.shared)\
+            .update(shared=project.shared, shared_data=project.shared)
 
-        return attrs
+        return project
 
-    def save_object(self, obj, **kwargs):
-        super(ProjectSerializer, self).save_object(obj, **kwargs)
-
-        obj.xform_set.exclude(shared=obj.shared)\
-            .update(shared=obj.shared, shared_data=obj.shared)
-
-    def get_project_permissions(self, obj):
+    def get_users(self, obj):
         if obj:
             users = cache.get('{}{}'.format(PROJ_PERM_CACHE, obj.pk))
             if users:
@@ -152,7 +145,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     @profile("get_project_forms.prof")
     @check_obj
-    def get_project_forms(self, obj):
+    def get_forms(self, obj):
         if obj:
             forms = cache.get('{}{}'.format(PROJ_FORMS_CACHE, obj.pk))
             if forms:
@@ -219,7 +212,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         return None
 
-    def is_starred_project(self, obj):
+    def get_starred(self, obj):
         request = self.context['request']
         user = request.user
         user_stars = obj.user_stars.all()
@@ -228,7 +221,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         return False
 
-    def get_team_users(self, obj):
+    def get_teams(self, obj):
         def get_team_permissions(team, obj):
             return [
                 p.permission.codename
