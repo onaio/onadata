@@ -1,7 +1,6 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.core.validators import ValidationError
 from django.template import loader
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode
@@ -43,12 +42,12 @@ def get_password_reset_email(user, reset_url,
 
 def get_user_from_uid(uid):
     if uid is None:
-        raise ValidationError(_("uid is required!"))
+        raise serializers.ValidationError(_("uid is required!"))
     try:
         uid = urlsafe_base64_decode(uid)
         user = User.objects.get(pk=uid)
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        raise ValidationError(_(u"Invalid uid %s") % uid)
+        raise serializers.ValidationError(_(u"Invalid uid %s") % uid)
 
     return user
 
@@ -103,18 +102,21 @@ class PasswordResetSerializer(serializers.Serializer):
     email_subject = serializers.CharField(label=_("Email Subject"),
                                           required=False, max_length=78)
 
-    def validate_email(self, attrs, source):
-        value = attrs[source]
+    def validate_email(self, value):
         users = User.objects.filter(email__iexact=value)
 
         if users.count() == 0:
-            raise ValidationError(_(u"User '%(value)s' does not exist.")
-                                  % {"value": value})
+            raise serializers.ValidationError(_(
+                u"User '%(value)s' does not exist." % {"value": value}
+            ))
 
-        return attrs
+        return value
 
-    def restore_object(self, attrs, instance=None):
-        return PasswordReset(**attrs)
+    def create(self, validated_data):
+        instance = PasswordReset(**validated_data)
+        instance.save()
+
+        return instance
 
 
 class PasswordResetChangeSerializer(serializers.Serializer):
@@ -127,14 +129,17 @@ class PasswordResetChangeSerializer(serializers.Serializer):
 
         return attrs
 
-    def validate_token(self, attrs, source, *args, **kwargs):
+    def validate(self, attrs):
         user = get_user_from_uid(attrs.get('uid'))
-        value = attrs[source]
+        token = attrs.get('token')
 
-        if not default_token_generator.check_token(user, value):
-            raise ValidationError(_("Invalid token: %s") % value)
+        if not default_token_generator.check_token(user, token):
+            raise serializers.ValidationError(_("Invalid token: %s") % token)
 
         return attrs
 
-    def restore_object(self, attrs, instance=None):
-        return PasswordResetChange(**attrs)
+    def create(self, validated_data, instance=None):
+        instance = PasswordResetChange(**validated_data)
+        instance.save()
+
+        return instance

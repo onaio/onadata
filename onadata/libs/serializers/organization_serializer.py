@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from onadata.apps.api import tools
@@ -23,69 +24,54 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         model = OrganizationProfile
         exclude = ('created_by', 'is_organization', 'organization')
 
-    def restore_object(self, attrs, instance=None):
-        if instance:
-            # update the user model
-            if 'name' in attrs:
-                first_name, last_name = \
-                    _get_first_last_names(attrs.get('name'))
-                instance.user.first_name = first_name
-                instance.user.last_name = last_name
+    def update(self, instance, validated_data):
+        # update the user model
+        if 'name' in validated_data:
+            first_name, last_name = \
+                _get_first_last_names(validated_data.get('name'))
+            instance.user.first_name = first_name
+            instance.user.last_name = last_name
+            instance.user.save()
 
-                try:
-                    instance.user.clean_fields(exclude=["password"])
-                    instance.user.save()
-                except ValidationError as e:
-                    self.errors.update(e.message_dict)
+        return super(OrganizationSerializer, self).update(
+            instance, validated_data
+        )
 
-            return super(OrganizationSerializer, self)\
-                .restore_object(attrs, instance)
-
-        org = attrs.get('user.username', None)
-        org_name = attrs.get('name', None)
-        org_exists = False
+    def create(self, validated_data):
+        org = validated_data.get('user.username', None)
+        org_name = validated_data.get('name', None)
         creator = None
-
-        try:
-            User.objects.get(username=org)
-        except User.DoesNotExist:
-            pass
-        else:
-            self.errors['org'] = u'Organization %s already exists.' % org
-            org_exists = True
 
         if 'request' in self.context:
             creator = self.context['request'].user
 
-        if org and org_name and creator and not org_exists:
-            attrs['organization'] = org_name
-            orgprofile = tools.create_organization_object(org, creator, attrs)
+        validated_data['organization'] = org_name
 
-            return orgprofile
+        org = tools.create_organization_object(org, creator, validated_data)
+        org.save()
 
-        if not org:
-            self.errors['org'] = u'org is required!'
-
-        if not org_name:
-            self.errors['name'] = u'name is required!'
-
-        return attrs
+        return org
 
     def validate_org(self, value):
         org = value.lower() if isinstance(value, basestring) else value
+
         if org in RegistrationFormUserProfile._reserved_usernames:
-            raise serializers.ValidationError(
-                u"%s is a reserved name, please choose another" % org)
+            raise serializers.ValidationError(_(
+                u"%s is a reserved name, please choose another" % org
+            ))
         elif not RegistrationFormUserProfile.legal_usernames_re.search(org):
-            raise serializers.ValidationError(
-                u'organization may only contain alpha-numeric characters and '
-                u'underscores')
+            raise serializers.ValidationError(_(
+                u"Organization may only contain alpha-numeric characters and "
+                u"underscores"
+            ))
         try:
             User.objects.get(username=org)
         except User.DoesNotExist:
             return org
 
-        raise serializers.ValidationError(u'%s already exists' % org)
+        raise serializers.ValidationError(_(
+            u"Organization %s already exists." % org
+        ))
 
     def get_org_members(self, obj):
         members = get_organization_members(obj) if obj else []
