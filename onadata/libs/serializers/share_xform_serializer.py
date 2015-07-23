@@ -1,4 +1,3 @@
-from django.core.validators import ValidationError
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 
@@ -13,33 +12,36 @@ class ShareXFormSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=255)
     role = serializers.CharField(max_length=50)
 
-    def restore_object(self, attrs, instance=None):
-        if instance is not None:
-            instance.xform = attrs.get('xform', instance.xform)
-            instance.username = attrs.get('username', instance.username)
-            instance.role = attrs.get('role', instance.role)
+    def update(self, instance, validated_data):
+        instance.xform = validated_data.get('xform', instance.xform)
+        instance.username = validated_data.get('username', instance.username)
+        instance.role = validated_data.get('role', instance.role)
+        instance.save()
 
-            return instance
+        return instance
 
-        return ShareXForm(**attrs)
+    def create(self, validated_data):
+        instance = ShareXForm(**validated_data)
+        instance.save()
 
-    def validate_username(self, attrs, source):
+        return instance
+
+    def validate_username(self, value):
         """Check that the username exists"""
-        value = attrs[source]
         try:
             User.objects.get(username=value)
         except User.DoesNotExist:
-            raise ValidationError(_(u"User '%(value)s' does not exist."
-                                    % {"value": value}))
+            raise serializers.ValidationError(_(
+                u"User '%(value)s' does not exist." % {"value": value}
+            ))
 
-        return attrs
+        return value
 
-    def validate_role(self, attrs, source):
+    def validate_role(self, value):
         """check that the role exists"""
-        value = attrs[source]
-
         if value not in ROLES:
-            raise ValidationError(_(u"Unknown role '%(role)s'."
-                                    % {"role": value}))
+            raise serializers.ValidationError(_(
+                u"Unknown role '%(role)s'." % {"role": value}
+            ))
 
-        return attrs
+        return value

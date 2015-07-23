@@ -16,6 +16,7 @@ class ShareTeamProjectSerializer(serializers.Serializer):
         instance.team = validated_data.get('team', instance.team)
         instance.project = validated_data.get('project', instance.project)
         instance.role = validated_data.get('role', instance.role)
+        instance.save()
 
         return instance
 
