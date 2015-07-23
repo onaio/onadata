@@ -21,7 +21,7 @@ class FieldsChartSerializer(serializers.ModelSerializer):
     class Meta:
         model = XForm
 
-    def to_native(self, obj):
+    def to_representation(self, obj):
         data = {}
         request = self.context.get('request')
 
