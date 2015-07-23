@@ -23,7 +23,7 @@ from pyxform.xls2json import parse_file_to_json
 from pyxform.builder import create_survey_element_from_dict
 from rest_framework import exceptions
 from rest_framework import status
-from rest_framework.decorators import action, detail_route, list_route
+from rest_framework.decorators import detail_route, list_route
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
@@ -313,7 +313,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(data=resp, status=resp_code, headers=headers)
 
-    @action(methods=['GET'])
+    @detail_route()
     def form(self, request, format='json', **kwargs):
         form = self.get_object()
         if format not in ['json', 'xml', 'xls']:
@@ -339,7 +339,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return HttpResponseForbidden("Authentication failure, cannot redirect")
 
-    @action(methods=['GET'])
+    @detail_route()
     def enketo(self, request, **kwargs):
         self.object = self.get_object()
         form_url = get_form_url(request, self.object.user.username)
@@ -444,7 +444,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                                        token,
                                        meta)
 
-    @action(methods=['POST'])
+    @detail_route(methods=['POST'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
 
@@ -463,7 +463,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['POST'])
+    @detail_route(methods=['POST'])
     def clone(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = {'xform': self.object.pk,
@@ -549,7 +549,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         return super(XFormViewSet, self).partial_update(request, *args,
                                                         **kwargs)
 
-    @action(methods=['DELETE', 'GET'])
+    @detail_route(methods=['DELETE', 'GET'])
     def delete_async(self, request, *args, **kwargs):
         if request.method == 'DELETE':
             time_async_triggered = datetime.now()
@@ -570,7 +570,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(data=resp, status=resp_code)
 
-    @action(methods=['GET'])
+    @detail_route(methods=['GET'])
     def export_async(self, request, *args, **kwargs):
         job_uuid = request.QUERY_PARAMS.get('job_uuid')
         export_type = request.QUERY_PARAMS.get('format')

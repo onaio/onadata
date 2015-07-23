@@ -4,7 +4,7 @@ from django.db.models.signals import post_save, post_delete
 from celery.result import AsyncResult
 
 from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -65,7 +65,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         return serializer_class
 
-    @action(methods=['GET'])
+    @detail_route(methods=['GET'])
     def data(self, request, format='json', **kwargs):
         """ Retrieve the data from the xform using this dataview """
         start = request.GET.get("start")
@@ -88,7 +88,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
             return custom_response_handler(request, self.object.xform, None,
                                            export_type, dataview=self.object)
 
-    @action(methods=['GET'])
+    @detail_route(methods=['GET'])
     def export_async(self, request, *args, **kwargs):
         job_uuid = request.QUERY_PARAMS.get('job_uuid')
         export_type = request.QUERY_PARAMS.get('format')
@@ -123,7 +123,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
                         status=status.HTTP_202_ACCEPTED,
                         content_type="application/json")
 
-    @action(methods=['GET'])
+    @detail_route(methods=['GET'])
     def form(self, request, format='json', **kwargs):
         dataview = self.get_object()
         xform = dataview.xform
@@ -137,7 +137,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         return response
 
-    @action(methods=['GET'])
+    @detail_route(methods=['GET'])
     def charts(self, request, *args, **kwargs):
         dataview = self.get_object()
         xform = dataview.xform

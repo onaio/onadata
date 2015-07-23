@@ -5,7 +5,7 @@ from django.utils.translation import ugettext as _
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import AllowAny
-from rest_framework.renderers import UnicodeJSONRenderer
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
@@ -82,7 +82,7 @@ The `.osm` file format concatenates all the files for a form or individual
 """
     renderer_classes = [
         renderers.OSMRenderer,
-        UnicodeJSONRenderer,
+        JSONRenderer,
     ]
 
     serializer_class = OSMSerializer

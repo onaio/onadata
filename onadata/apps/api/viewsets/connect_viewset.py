@@ -1,6 +1,6 @@
 from rest_framework import status
 from rest_framework import viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import detail_route
 from rest_framework.decorators import list_route
 from rest_framework.response import Response
 from rest_framework.exceptions import ParseError
@@ -55,7 +55,7 @@ class ConnectViewSet(AuthenticateHeaderMixin,
 
         return Response(serializer.data)
 
-    @action(methods=['GET'])
+    @detail_route(methods=['GET'])
     def starred(self, request, *args, **kwargs):
         """Return projects starred for this user."""
         user_profile = self.get_object()

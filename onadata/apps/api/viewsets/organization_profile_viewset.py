@@ -8,7 +8,7 @@ from django.core.validators import ValidationError
 
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.decorators import action
+from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -170,7 +170,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     filter_backends = (OrganizationPermissionFilter,
                        OrganizationsSharedWithUserFilter)
 
-    @action(methods=['DELETE', 'GET', 'POST', 'PUT'])
+    @detail_route(methods=['DELETE', 'GET', 'POST', 'PUT'])
     def members(self, request, *args, **kwargs):
         organization = self.get_object()
         status_code = status.HTTP_200_OK

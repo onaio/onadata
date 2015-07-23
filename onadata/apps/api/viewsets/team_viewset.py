@@ -3,7 +3,7 @@ from django.utils.translation import ugettext as _
 
 from rest_framework import filters
 from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import DjangoObjectPermissions
@@ -38,7 +38,7 @@ class TeamViewSet(AuthenticateHeaderMixin,
     filter_backends = (filters.DjangoObjectPermissionsFilter,
                        TeamOrgFilter)
 
-    @action(methods=['DELETE', 'GET', 'POST'])
+    @detail_route(methods=['DELETE', 'GET', 'POST'])
     def members(self, request, *args, **kwargs):
         team = self.get_object()
         data = {}
@@ -71,7 +71,7 @@ class TeamViewSet(AuthenticateHeaderMixin,
 
         return Response(data, status=status_code)
 
-    @action(methods=['POST'])
+    @detail_route(methods=['POST'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = dict(request.DATA.items() + [('team', self.object.pk)])

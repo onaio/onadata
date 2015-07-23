@@ -9,7 +9,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 
 from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework.decorators import detail_route
 from rest_framework.pagination import BasePaginationSerializer
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -180,7 +180,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         return qs
 
-    @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
+    @detail_route(methods=['GET', 'POST', 'DELETE'],
+                  extra_lookup_fields=['label', ])
     def labels(self, request, *args, **kwargs):
         http_status = status.HTTP_400_BAD_REQUEST
         self.object = instance = self.get_object()
@@ -215,7 +216,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         return Response(data, status=http_status)
 
-    @action(methods=['GET'])
+    @detail_route(methods=['GET'])
     def enketo(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = {}

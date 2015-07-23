@@ -4,7 +4,7 @@ from django.conf import settings
 
 from rest_framework import serializers
 from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ParseError
 from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
@@ -104,7 +104,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
 
         return obj
 
-    @action(methods=['POST'])
+    @detail_route(methods=['POST'])
     def change_password(self, request, *args, **kwargs):
         user_profile = self.get_object()
         current_password = request.DATA.get('current_password', None)
