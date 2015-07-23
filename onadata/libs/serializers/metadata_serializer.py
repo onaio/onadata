@@ -29,11 +29,14 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     data_file = serializers.FileField(required=False)
     data_file_type = serializers.CharField(max_length=255, required=False)
     media_url = serializers.SerializerMethodField('get_media_url')
+    date_created = serializers.IntegerField(source='date_created',
+                                            read_only=True)
 
     class Meta:
         model = MetaData
         fields = ('id', 'xform', 'data_value', 'data_type', 'data_file',
-                  'data_file_type', 'media_url', 'file_hash', 'url')
+                  'data_file_type', 'media_url', 'file_hash', 'url',
+                  'date_created')
 
     def get_media_url(self, obj):
         if obj.data_type == MEDIA_TYPE and getattr(obj, "data_file") \
