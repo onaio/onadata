@@ -14,11 +14,10 @@ class DataSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = XForm
         fields = ('id', 'id_string', 'title', 'description', 'url')
-        lookup_field = 'pk'
 
 
 class JsonDataSerializer(serializers.Serializer):
-    def to_native(self, obj):
+    def to_representation(self, obj):
         return obj
 
 
@@ -26,7 +25,7 @@ class DataListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instance
 
-    def to_native(self, obj):
+    def to_representation(self, obj):
         data = {}
         if obj:
             if obj.json.get('_id') is None:
@@ -39,7 +38,7 @@ class DataListSerializer(serializers.ModelSerializer):
 
 class SubmissionSerializer(serializers.Serializer):
 
-    def to_native(self, obj):
+    def to_representation(self, obj):
         if obj is None:
             return super(SubmissionSerializer, self).to_native(obj)
 
@@ -54,7 +53,7 @@ class SubmissionSerializer(serializers.Serializer):
 
 
 class OSMSerializer(serializers.Serializer):
-    def to_native(self, obj):
+    def to_representation(self, obj):
         """
         Return a list of osm file objects from attachments.
         """
@@ -88,7 +87,7 @@ class OSMSerializer(serializers.Serializer):
 
 
 class OSMSiteMapSerializer(serializers.Serializer):
-    def to_native(self, obj):
+    def to_representation(self, obj):
         """
         Return a list of osm file objects from attachments.
         """
