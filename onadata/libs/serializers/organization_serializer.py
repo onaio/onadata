@@ -1,5 +1,4 @@
 from django.contrib.auth.models import User
-from django.core.validators import ValidationError
 from rest_framework import serializers
 
 from onadata.apps.api import tools
@@ -17,12 +16,11 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         view_name='user-detail', lookup_field='username', read_only=True)
     creator = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
-    users = serializers.SerializerMethodField('get_org_permissions')
+    users = serializers.SerializerMethodField('get_org_members')
     metadata = JsonField(source='metadata', required=False)
 
     class Meta:
         model = OrganizationProfile
-        lookup_field = 'user'
         exclude = ('created_by', 'is_organization', 'organization')
 
     def restore_object(self, attrs, instance=None):
@@ -73,24 +71,23 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         return attrs
 
-    def validate_org(self, attrs, source):
-        org = attrs[source].lower()
+    def validate_org(self, value):
+        org = value.lower() if isinstance(value, basestring) else value
         if org in RegistrationFormUserProfile._reserved_usernames:
-            raise ValidationError(
+            raise serializers.ValidationError(
                 u"%s is a reserved name, please choose another" % org)
         elif not RegistrationFormUserProfile.legal_usernames_re.search(org):
-            raise ValidationError(
+            raise serializers.ValidationError(
                 u'organization may only contain alpha-numeric characters and '
                 u'underscores')
         try:
             User.objects.get(username=org)
         except User.DoesNotExist:
-            attrs[source] = org
+            return org
 
-            return attrs
-        raise ValidationError(u'%s already exists' % org)
+        raise serializers.ValidationError(u'%s already exists' % org)
 
-    def get_org_permissions(self, obj):
+    def get_org_members(self, obj):
         members = get_organization_members(obj) if obj else []
 
         return [{
