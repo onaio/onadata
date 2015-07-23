@@ -12,7 +12,7 @@ from onadata.libs.utils.cache_tools import DATAVIEW_COUNT
 
 
 class DataViewSerializer(serializers.HyperlinkedModelSerializer):
-
+    dataviewid = serializers.Field(source='id')
     name = serializers.CharField(max_length=255, source='name')
     url = serializers.HyperlinkedIdentityField(view_name='dataviews-detail',
                                                lookup_field='pk')
