@@ -2504,3 +2504,41 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 202)
             export = Export.objects.get(task_id=task_id)
             self.assertTrue(export.is_successful)
+
+    def test_xform_linked_dataviews(self):
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "tutorial.xls")
+
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        for x in range(1, 9):
+            path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'tutorial', 'instances', 'uuid{}'.format(x), 'submission.xml')
+            self._make_submission(path)
+            x += 1
+
+        self._create_dataview()
+
+        data = {
+            'name': "My DataView",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': '["name", "age", "gender"]',
+            'query': '[{"column":"age","filter":">","value":"50"}]'
+        }
+
+        self._create_dataview(data=data)
+
+        view = XFormViewSet.as_view({
+            'get': 'retrieve',
+        })
+
+        formid = self.xform.pk
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('data_views', response.data)
+        self.assertEquals(2, len(response.data['data_views']))
