@@ -38,9 +38,9 @@ elaphe==0.6.0
 dict2xml==1.3
 
 # api support
-djangorestframework==2.4.3
-djangorestframework-csv==1.3.3
-djangorestframework-gis==0.7
+djangorestframework==3.0
+djangorestframework-csv==1.3.4
+djangorestframework-gis==0.8.2
 
 # cors
 -e git+https://github.com/onaio/django-cors-headers.git@allow-all-for-url#egg=cors-headers
