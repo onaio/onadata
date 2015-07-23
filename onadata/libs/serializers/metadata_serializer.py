@@ -24,11 +24,11 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     id = serializers.IntegerField(source='pk', read_only=True)
     xform = serializers.PrimaryKeyRelatedField()
     data_value = serializers.CharField(max_length=255,
-                                       required=False)
+                                       required=True)
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
     data_file = serializers.FileField(required=False)
     data_file_type = serializers.CharField(max_length=255, required=False)
-    media_url = serializers.SerializerMethodField('get_media_url')
+    media_url = serializers.SerializerMethodField()
     date_created = serializers.IntegerField(source='date_created',
                                             read_only=True)
 
@@ -45,18 +45,21 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         return None
 
-    def validate_data_value(self, attrs, source):
+    def validate(self, attrs):
         """Ensure we have a valid url if we are adding a media uri
         instead of a media file
         """
-        value = attrs.get(source)
+        value = attrs.get('data_value')
         media = attrs.get('data_type')
         data_file = attrs.get('data_file')
 
         if media == 'media' and data_file is None:
-            URLValidator(message=_(u"Invalid url %s." % value))(value)
-        if value is None:
-            raise ValidationError(u"This field is required.")
+            try:
+                URLValidator()(value)
+            except ValidationError:
+                raise serializers.ValidationError(_(
+                    u"Invalid url %s." % value
+                ))
 
         return attrs
 
