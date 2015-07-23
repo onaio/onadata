@@ -13,17 +13,17 @@ class TeamSerializer(serializers.Serializer):
     teamid = serializers.Field(source='id')
     url = HyperlinkedMultiIdentityField(
         view_name='team-detail')
-    name = serializers.CharField(max_length=100, source='team_name')
+    name = serializers.CharField(max_length=100, source='team_name',
+                                 required=True)
     organization = serializers.SlugRelatedField(
         slug_field='username',
         source='organization',
         queryset=User.objects.filter(
             pk__in=OrganizationProfile.objects.values('user')))
-    projects = serializers.SerializerMethodField(
-        'get_organization_projects_with_default_role')
-    users = serializers.SerializerMethodField('get_team_users')
+    projects = serializers.SerializerMethodField()
+    users = serializers.SerializerMethodField()
 
-    def get_team_users(self, obj):
+    def get_users(self, obj):
         users = []
 
         if obj:
@@ -32,7 +32,8 @@ class TeamSerializer(serializers.Serializer):
 
         return users
 
-    def get_organization_projects_with_default_role(self, obj):
+    def get_projects(self, obj):
+        """Organization Projects with default role"""
         projects = []
 
         if obj:
@@ -47,25 +48,27 @@ class TeamSerializer(serializers.Serializer):
 
         return projects
 
-    def restore_object(self, attrs, instance=None):
-        org = attrs.get('organization', None)
-        projects = attrs.get('projects', [])
-        team_name = attrs.get('team_name', None)
+    def update(self, instance, validated_data):
+        org = validated_data.get('organization', None)
+        projects = validated_data.get('projects', [])
+
+        instance.organization = org if org else instance.organization
+        instance.name = validated_data.get('team_name', instance.name)
+        instance.projects.clear()
+
+        for project in projects:
+            instance.projects.add(project)
+
+        instance.save()
+
+        return instance
+
+    def create(self, validated_data):
+        org = validated_data.get('organization', None)
+        team_name = validated_data.get('team_name', None)
         request = self.context.get('request')
         created_by = request.user
 
-        if instance:
-            instance.organization = org if org else instance.organization
-            instance.name = attrs.get('team_name', instance.name)
-            instance.projects.clear()
-
-            for project in projects:
-                instance.projects.add(project)
-
-            return instance
-
-        if not team_name:
-            self.errors['name'] = u'A team name is required'
-            return attrs
-
-        return Team(organization=org, name=team_name, created_by=created_by)
+        return Team.objects.create(
+            organization=org, name=team_name, created_by=created_by
+        )
