@@ -26,14 +26,13 @@ class SubmissionStatsSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = XForm
         fields = ('id', 'id_string', 'url')
-        lookup_field = 'pk'
 
 
 class SubmissionStatsInstanceSerializer(serializers.Serializer):
-    def to_native(self, obj):
+    def to_representation(self, obj):
         if obj is None:
-            return \
-                super(SubmissionStatsInstanceSerializer, self).to_native(obj)
+            return super(SubmissionStatsInstanceSerializer, self)\
+                .to_representation(obj)
 
         request = self.context.get('request')
         field = request.QUERY_PARAMS.get('group')
@@ -68,13 +67,12 @@ class StatsSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = XForm
         fields = ('id', 'id_string', 'url')
-        lookup_field = 'pk'
 
 
 class StatsInstanceSerializer(serializers.Serializer):
-    def to_native(self, obj):
+    def to_representation(self, obj):
         if obj is None:
-            return super(StatsInstanceSerializer, self).to_native(obj)
+            return super(StatsInstanceSerializer, self).to_representation(obj)
 
         request = self.context.get('request')
         method = request.QUERY_PARAMS.get('method', None)
