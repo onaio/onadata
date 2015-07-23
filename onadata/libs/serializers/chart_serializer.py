@@ -13,7 +13,6 @@ class ChartSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = XForm
         fields = ('id', 'id_string', 'url')
-        lookup_field = 'pk'
 
 
 class FieldsChartSerializer(serializers.ModelSerializer):

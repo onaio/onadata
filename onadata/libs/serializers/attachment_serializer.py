@@ -37,7 +37,7 @@ def get_path(data, question_name, path_list):
     return None
 
 
-class AttachmentSerializer(serializers.ModelSerializer):
+class AttachmentSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name='attachment-detail',
                                                lookup_field='pk')
     field_xpath = serializers.SerializerMethodField()
@@ -52,7 +52,6 @@ class AttachmentSerializer(serializers.ModelSerializer):
         fields = ('url', 'filename', 'mimetype', 'field_xpath', 'id', 'xform',
                   'instance', 'download_url', 'small_download_url',
                   'medium_download_url')
-        lookup_field = 'pk'
         model = Attachment
 
     @check_obj
