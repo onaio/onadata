@@ -10,6 +10,7 @@ from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
+from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
 from onadata.libs.utils.viewer_tools import get_form_url
@@ -19,7 +20,8 @@ from onadata.libs.utils.cache_tools import (XFORM_PERMISSIONS_CACHE,
                                             ENKETO_URL_CACHE,
                                             ENKETO_PREVIEW_URL_CACHE,
                                             XFORM_METADATA_CACHE,
-                                            XFORM_DATA_VERSIONS)
+                                            XFORM_DATA_VERSIONS,
+                                            XFORM_LINKED_DATAVIEWS)
 
 
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
@@ -51,6 +53,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         'get_num_of_submissions')
     form_versions = serializers.SerializerMethodField(
         'get_xform_versions')
+    data_views = serializers.SerializerMethodField(
+        'get_linked_dataviews')
 
     class Meta:
         model = XForm
@@ -185,6 +189,24 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                           list(versions))
 
             return versions
+        return []
+
+    def get_linked_dataviews(self, obj):
+        if obj:
+            data_views = cache.get(
+                '{}{}'.format(XFORM_LINKED_DATAVIEWS, obj.pk))
+            if data_views:
+                return data_views
+
+            data_views = DataViewSerializer(
+                obj.dataview_set.all(),
+                many=True,
+                context=self.context).data
+
+            cache.set(
+                '{}{}'.format(XFORM_LINKED_DATAVIEWS, obj.pk), data_views)
+
+            return data_views
         return []
 
 

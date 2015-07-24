@@ -68,6 +68,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = self.view(request, pk=self.data_view.pk)
 
         self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data['dataviewid'], self.data_view.pk)
         self.assertEquals(response.data['name'], 'My DataView')
         self.assertEquals(response.data['xform'],
                           'http://testserver/api/v1/forms/%s' % self.xform.pk)
