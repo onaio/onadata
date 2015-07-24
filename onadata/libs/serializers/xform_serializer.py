@@ -61,7 +61,7 @@ def _set_cache(cache_key, cache_data, obj):
 
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
     formid = serializers.Field(source='id')
-    metadata = serializers.SerializerMethodField('get_xform_metadata')
+    metadata = serializers.SerializerMethodField()
     owner = serializers.HyperlinkedRelatedField(view_name='user-detail',
                                                 source='user',
                                                 lookup_field='username')
@@ -70,25 +70,19 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                                                      lookup_field='username')
     public = BooleanField(source='shared', widget=widgets.CheckboxInput())
     public_data = BooleanField(source='shared_data')
-    require_auth = BooleanField(source='require_auth',
-                                widget=widgets.CheckboxInput())
-    submission_count_for_today = serializers.Field(
-        source='submission_count_for_today')
+    require_auth = BooleanField()
+    submission_count_for_today = serializers.Field()
     tags = TagListSerializer(read_only=True)
-    title = serializers.CharField(max_length=255, source='title')
+    title = serializers.CharField(max_length=255)
     url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
                                                lookup_field='pk')
-    users = serializers.SerializerMethodField('get_xform_permissions')
-    enketo_url = serializers.SerializerMethodField('get_enketo_url')
-    enketo_preview_url = serializers.SerializerMethodField(
-        'get_enketo_preview_url')
-    instances_with_geopoints = serializers.SerializerMethodField(
-        'get_instances_with_geopoints')
-    num_of_submissions = serializers.Field()
-    form_versions = serializers.SerializerMethodField(
-        'get_xform_versions')
-    data_views = serializers.SerializerMethodField(
-        'get_linked_dataviews')
+    users = serializers.SerializerMethodField()
+    enketo_url = serializers.SerializerMethodField()
+    enketo_preview_url = serializers.SerializerMethodField()
+    instances_with_geopoints = serializers.SerializerMethodField()
+    num_of_submissions = serializers.SerializerMethodField()
+    form_versions = serializers.SerializerMethodField()
+    data_views = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
@@ -115,7 +109,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
         return obj.instances_with_geopoints
 
-    def get_xform_permissions(self, obj):
+    def get_users(self, obj):
+        xform_perms = []
         if obj:
             xform_perms = cache.get(
                 '{}{}'.format(XFORM_PERMISSIONS_CACHE, obj.pk))
@@ -125,9 +120,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             xform_perms = get_object_users_with_permissions(obj)
             cache.set(
                 '{}{}'.format(XFORM_PERMISSIONS_CACHE, obj.pk), xform_perms)
-            return xform_perms
 
-        return []
+        return xform_perms
 
     def get_enketo_url(self, obj):
         if obj:
@@ -160,7 +154,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
         return None
 
-    def get_xform_metadata(self, obj):
+    def get_metadata(self, obj):
+        xform_metadata = []
         if obj:
             xform_metadata = cache.get(
                 '{}{}'.format(XFORM_METADATA_CACHE, obj.pk))
@@ -173,11 +168,11 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                 context=self.context).data
             cache.set(
                 '{}{}'.format(XFORM_METADATA_CACHE, obj.pk), xform_metadata)
-            return xform_metadata
 
-        return []
+        return xform_metadata
 
-    def get_xform_versions(self, obj):
+    def get_form_versions(self, obj):
+        versions = []
         if obj:
             versions = cache.get('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk))
 
@@ -192,10 +187,9 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                 cache.set('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk),
                           list(versions))
 
-            return versions
-        return []
+        return versions
 
-    def get_linked_dataviews(self, obj):
+    def get_data_views(self, obj):
         if obj:
             data_views = cache.get(
                 '{}{}'.format(XFORM_LINKED_DATAVIEWS, obj.pk))
@@ -218,8 +212,8 @@ class XFormListSerializer(serializers.Serializer):
     formID = serializers.Field(source='id_string')
     name = serializers.Field(source='title')
     majorMinorVersion = serializers.SerializerMethodField('get_version')
-    version = serializers.SerializerMethodField('get_version')
-    hash = serializers.SerializerMethodField('get_hash')
+    version = serializers.SerializerMethodField()
+    hash = serializers.SerializerMethodField()
     descriptionText = serializers.Field(source='description')
     downloadUrl = serializers.SerializerMethodField('get_url')
     manifestUrl = serializers.SerializerMethodField('get_manifest_url')
@@ -248,7 +242,7 @@ class XFormListSerializer(serializers.Serializer):
 
 class XFormManifestSerializer(serializers.Serializer):
     filename = serializers.Field(source='data_value')
-    hash = serializers.SerializerMethodField('get_hash')
+    hash = serializers.SerializerMethodField()
     downloadUrl = serializers.SerializerMethodField('get_url')
 
     @check_obj
