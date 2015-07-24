@@ -1,7 +1,6 @@
 import logging
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.forms import widgets
 from requests.exceptions import ConnectionError
 from rest_framework import serializers
 from rest_framework.reverse import reverse
@@ -72,7 +71,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         view_name='user-detail', lookup_field='username',
         queryset=User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
     )
-    public = BooleanField(source='shared', widget=widgets.CheckboxInput())
+    public = BooleanField(source='shared')
     public_data = BooleanField(source='shared_data')
     require_auth = BooleanField()
     submission_count_for_today = serializers.Field()

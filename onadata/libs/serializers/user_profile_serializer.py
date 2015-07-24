@@ -3,7 +3,6 @@ import six
 import re
 
 from django.conf import settings
-from django.forms import widgets
 from django.core.cache import cache
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
@@ -55,8 +54,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     website = serializers.Field(source='home_page', required=False)
     twitter = serializers.Field(required=False)
     gravatar = serializers.ReadOnlyField(source='gravatar')
-    password = serializers.Field(
-        source='user.password', widget=widgets.PasswordInput(), required=False)
+    password = serializers.Field(source='user.password', required=False)
     user = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     metadata = JsonField(required=False)
@@ -244,8 +242,7 @@ class UserProfileWithTokenSerializer(UserProfileSerializer):
     email = serializers.Field(source='user.email')
     website = serializers.Field(source='home_page', required=False)
     gravatar = serializers.ReadOnlyField()
-    password = serializers.Field(
-        source='user.password', widget=widgets.PasswordInput(), required=False)
+    password = serializers.Field(source='user.password', required=False)
     user = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     api_token = serializers.SerializerMethodField()

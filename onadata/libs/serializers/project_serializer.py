@@ -1,4 +1,3 @@
-from django.forms import widgets
 from rest_framework import serializers
 from django.core.cache import cache
 
@@ -56,8 +55,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     starred = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
     forms = serializers.SerializerMethodField()
-    public = BooleanField(
-        source='shared', widget=widgets.CheckboxInput())
+    public = BooleanField(source='shared')
     tags = TagListSerializer(read_only=True)
     num_datasets = serializers.SerializerMethodField()
     last_submission_date = serializers.SerializerMethodField()
