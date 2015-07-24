@@ -10,6 +10,8 @@ CSV_CONTENT_TYPE = 'text/csv'
 MEDIA_TYPE = 'media'
 METADATA_TYPES = (
     ('data_license', _(u"Data License")),
+    ('enketo_preview_url', _(u"Enketo Preview URL")),
+    ('enketo_url', _(u"Enketo URL")),
     ('form_license', _(u"Form License")),
     ('mapbox_layer', _(u"Mapbox Layer")),
     (MEDIA_TYPE, _(u"Media")),
