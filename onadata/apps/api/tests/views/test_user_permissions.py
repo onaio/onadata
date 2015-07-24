@@ -81,7 +81,7 @@ class TestUserPermissions(TestAbstractViewSet):
 
         request = self.factory.put('/', data=data, **self.extra)
         response = view(request, pk=self.xform.id)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
         self.assertFalse(self.xform.shared)
 
         role.ManagerRole.add(self.user, self.xform)
