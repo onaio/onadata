@@ -12,7 +12,7 @@ from onadata.apps.api.tools import _get_first_last_names
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
-    org = serializers.WritableField(source='user.username')
+    org = serializers.Field(source='user.username')
     user = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     creator = serializers.HyperlinkedRelatedField(

@@ -5,7 +5,7 @@ class BooleanField(serializers.BooleanField):
     TRUE_VALUES = ('true', 't', 'True', '1')
     FALSE_VALUES = ('false', 'f', 'False', '0')
 
-    def from_native(self, value):
+    def to_internal_value(self, value):
         if value in self.TRUE_VALUES:
             return True
 

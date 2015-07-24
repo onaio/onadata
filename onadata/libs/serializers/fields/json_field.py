@@ -2,24 +2,22 @@ import json
 
 from rest_framework import serializers
 
-from django.core.validators import ValidationError
 
+class JsonField(serializers.Field):
 
-class JsonField(serializers.WritableField):
-
-    def to_native(self, value):
+    def to_representation(self, value):
         if isinstance(value, basestring):
             return json.loads(value)
 
         return value
 
-    def from_native(self, value):
+    def to_internal_value(self, value):
         if isinstance(value, basestring):
             try:
                 return json.loads(value)
             except ValueError as e:
                 # invalid json
-                raise ValidationError(unicode(e))
+                raise serializers.ValidationError(unicode(e))
 
         return value
 
@@ -27,4 +25,5 @@ class JsonField(serializers.WritableField):
     def to_json(cls, data):
         if isinstance(data, basestring):
             return json.loads(data)
+
         return data
