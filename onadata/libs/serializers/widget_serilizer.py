@@ -1,13 +1,22 @@
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
-from generic_relations.relations import GenericRelatedField
 from guardian.shortcuts import get_users_with_perms
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.widget import Widget
 from onadata.libs.utils.string import str2bool
+
+
+class GenericRelatedField(serializers.RelatedField):
+    def to_representation(self, value):
+        if isinstance(value, XForm):
+            return value.url
+        elif isinstance(value, DataView):
+            return value.url
+
+        raise Exception(_(u"Uknown tyoe for content_object"))
 
 
 class WidgetSerializer(serializers.HyperlinkedModelSerializer):
@@ -21,12 +30,7 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
     column = serializers.CharField(max_length=50)
     group_by = serializers.CharField(max_length=50, required=False)
 
-    content_object = GenericRelatedField({
-        XForm: serializers.HyperlinkedRelatedField(view_name='xform-detail',
-                                                   lookup_field='pk'),
-        DataView: serializers.HyperlinkedRelatedField(
-            view_name='dataviews-detail', lookup_field='pk'),
-    })
+    content_object = GenericRelatedField(queryset=[])
 
     data = serializers.SerializerMethodField()
 
