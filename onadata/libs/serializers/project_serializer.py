@@ -41,7 +41,7 @@ class ProjectXFormSerializer(XFormSerializer):
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
-    projectid = serializers.Field(source='id')
+    projectid = serializers.ReadOnlyField(source='id')
     url = serializers.HyperlinkedIdentityField(
         view_name='project-detail', lookup_field='pk')
     owner = serializers.HyperlinkedRelatedField(
@@ -54,7 +54,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         lookup_field='username',
         read_only=True
     )
-    metadata = JsonField(source='metadata', required=False)
+    metadata = JsonField(required=False)
     starred = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
     forms = serializers.SerializerMethodField()
