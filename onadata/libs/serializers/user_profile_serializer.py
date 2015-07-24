@@ -7,7 +7,7 @@ from django.forms import widgets
 from django.core.cache import cache
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
-from django.core.validators import ValidationError
+from django.utils.translation import ugettext as _
 from registration.models import RegistrationProfile
 from rest_framework import serializers
 from onadata.apps.api.models.temp_token import TempToken
@@ -19,6 +19,9 @@ from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.permissions import CAN_VIEW_PROFILE, is_organization
 from onadata.libs.authentication import expired
 from onadata.libs.utils.cache_tools import IS_ORG
+
+RESERVED_NAMES = RegistrationFormUserProfile._reserved_usernames
+LEGAL_USERNAMES_REGEX = RegistrationFormUserProfile.legal_usernames_re
 
 
 def _get_first_last_names(name, limit=30):
@@ -43,24 +46,22 @@ def _get_first_last_names(name, limit=30):
 
 
 class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
-    is_org = serializers.SerializerMethodField('is_organization')
-    username = serializers.WritableField(source='user.username')
+    is_org = serializers.SerializerMethodField()
+    username = serializers.Field(source='user.username')
     name = serializers.CharField(required=False)
-    first_name = serializers.WritableField(source='user.first_name',
-                                           required=False)
-    last_name = serializers.WritableField(source='user.last_name',
-                                          required=False)
+    first_name = serializers.Field(source='user.first_name', required=False)
+    last_name = serializers.Field(source='user.last_name', required=False)
     email = serializers.EmailField(source='user.email')
-    website = serializers.WritableField(source='home_page', required=False)
-    twitter = serializers.WritableField(required=False)
-    gravatar = serializers.Field(source='gravatar')
-    password = serializers.WritableField(
+    website = serializers.Field(source='home_page', required=False)
+    twitter = serializers.Field(required=False)
+    gravatar = serializers.ReadOnlyField(source='gravatar')
+    password = serializers.Field(
         source='user.password', widget=widgets.PasswordInput(), required=False)
     user = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
-    metadata = JsonField(source='metadata', required=False)
-    id = serializers.Field(source='user.id')
-    joined_on = serializers.Field(source='user.date_joined')
+    metadata = JsonField(required=False)
+    id = serializers.ReadOnlyField(source='user.id')
+    joined_on = serializers.ReadOnlyField(source='user.date_joined')
 
     class Meta:
         model = UserProfile
@@ -68,9 +69,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                   'last_name', 'email', 'city', 'country', 'organization',
                   'website', 'twitter', 'gravatar', 'require_auth', 'user',
                   'metadata', 'joined_on', 'name')
-        lookup_field = 'user'
 
-    def is_organization(self, obj):
+    def get_is_org(self, obj):
         if obj:
             is_org = cache.get('{}{}'.format(IS_ORG, obj.pk))
             if is_org:
@@ -80,11 +80,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         cache.set('{}{}'.format(IS_ORG, obj.pk), is_org)
         return is_org
 
-    def to_native(self, obj):
+    def to_representation(self, obj):
         """
         Serialize objects -> primitives.
         """
-        ret = super(UserProfileSerializer, self).to_native(obj)
+        ret = super(UserProfileSerializer, self).to_representation(obj)
         if 'password' in ret:
             del ret['password']
 
@@ -102,7 +102,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
         return ret
 
-    def restore_object(self, attrs, instance=None):
+    def _get_params(self, attrs):
         params = copy.deepcopy(attrs)
         username = attrs.get('user.username', None)
         password = attrs.get('user.password', None)
@@ -133,148 +133,129 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             params['first_name'] = first_name
             params['last_name'] = last_name
 
-        if instance:
-            form = UserProfileForm(params, instance=instance)
+        return params
 
-            # form.is_valid affects instance object for partial updates [PATCH]
-            # so only use it for full updates [PUT], i.e shallow copy effect
-            if not self.partial and form.is_valid():
-                instance = form.save()
+    def update(self, instance, validated_data):
+        params = self._get_params(validated_data)
+        form = UserProfileForm(params, instance=instance)
 
-            # get user
-            if email:
-                instance.user.email = email
+        # form.is_valid affects instance object for partial updates [PATCH]
+        # so only use it for full updates [PUT], i.e shallow copy effect
+        if not self.partial and form.is_valid():
+            instance = form.save()
 
-            if first_name:
-                instance.user.first_name = first_name
+        # get user
+        instance.user.email = params.get('email', instance.user.email)
 
-            if last_name:
-                instance.user.last_name = last_name
+        instance.user.first_name = params.get('first_name',
+                                              instance.user.first_name)
 
-            if username:
-                instance.user.username = username
+        instance.user.last_name = params.get('last_name',
+                                             instance.user.last_name)
 
-            if email or first_name or last_name or username:
-                try:
-                    instance.user.clean_fields()
-                    instance.user.save()
-                except ValidationError as e:
-                    self.errors.update(e.message_dict)
+        instance.user.username = params.get('username', instance.user.username)
 
-            return super(
-                UserProfileSerializer, self).restore_object(attrs, instance)
+        instance.user.save()
 
+        return super(UserProfileSerializer, self).update(instance, params)
+
+    def create(self, validated_data):
+        params = self._get_params(validated_data)
         form = RegistrationFormUserProfile(params)
         # does not require captcha
         form.REGISTRATION_REQUIRE_CAPTCHA = False
 
-        if form.is_valid():
+        site = Site.objects.get(pk=settings.SITE_ID)
+        new_user = RegistrationProfile.objects.create_inactive_user(
+            username=params.get('username'),
+            password=params.get('password'),
+            email=params.get('email'),
+            site=site,
+            send_email=settings.SEND_EMAIL_ACTIVATION_API)
+        new_user.is_active = True
+        new_user.first_name = params.get('first_name')
+        new_user.last_name = params.get('last_name')
+        new_user.save()
 
-            site = Site.objects.get(pk=settings.SITE_ID)
-            new_user = RegistrationProfile.objects.create_inactive_user(
-                username=username,
-                password=password,
-                email=email,
-                site=site,
-                send_email=settings.SEND_EMAIL_ACTIVATION_API)
-            new_user.is_active = True
-            new_user.first_name = first_name
-            new_user.last_name = last_name
-            new_user.save()
+        created_by = self.context['request'].user
+        created_by = None if created_by.is_anonymous() else created_by
+        profile = UserProfile(
+            user=new_user, name=params.get('first_name'),
+            created_by=created_by,
+            city=params.get('city', u''),
+            country=params.get('country', u''),
+            organization=params.get('organization', u''),
+            home_page=params.get('home_page', u''),
+            twitter=params.get('twitter', u'')
+        )
+        profile.save()
 
-            created_by = self.context['request'].user
-            created_by = None if created_by.is_anonymous() else created_by
-            profile = UserProfile(
-                user=new_user, name=first_name,
-                created_by=created_by,
-                city=attrs.get('city', u''),
-                country=attrs.get('country', u''),
-                organization=attrs.get('organization', u''),
-                home_page=attrs.get('home_page', u''),
-                twitter=attrs.get('twitter', u''))
+        return profile
 
-            return profile
+    def validate_username(self, value):
+        username = value.lower() if isinstance(value, basestring) else value
 
-        else:
-            self.errors.update(form.errors)
-
-        return attrs
-
-    def validate_username(self, attrs, source):
-        request_method = self.context['request'].method
-
-        if request_method == 'PATCH' and source not in attrs:
-            return attrs
-
-        current_username = self.object.user.username if self.object else None
-        username = attrs[source].lower()
-        is_edit = current_username is not None and current_username != username
-        form = RegistrationFormUserProfile
-
-        if username in form._reserved_usernames and is_edit:
-            raise ValidationError(
-                u"%s is a reserved name, please choose another" % username)
-        elif not form.legal_usernames_re.search(username):
-            raise ValidationError(
-                u'username may only contain alpha-numeric characters and '
-                u'underscores')
+        if username in RESERVED_NAMES:
+            raise serializers.ValidationError(_(
+                u"%s is a reserved name, please choose another" % username
+            ))
+        elif not LEGAL_USERNAMES_REGEX.search(username):
+            raise serializers.ValidationError(_(
+                u"username may only contain alpha-numeric characters and "
+                u"underscores"
+            ))
         try:
             User.objects.get(username=username)
         except User.DoesNotExist:
-            attrs[source] = username
-        else:
-            if not current_username or is_edit:
-                raise ValidationError(u'%s already exists' % username)
+            value = username
 
-        return attrs
+        return value
 
-    def validate_name(self, attrs, source):
+    def validate_email(self, value):
+
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(_(
+                u"This email address is already in use. "
+            ))
+
+        return value
+
+    def validate_twitter(self, value):
+        if isinstance(value, basestring) and len(value) > 0:
+            match = re.search(r"^[A-Za-z0-9_]{1,15}$", value)
+            if not match:
+                raise serializers.ValidationError(_(
+                    u"Invalid twitter username {}".format(value)
+                ))
+
+        return value
+
+    def validate(self, attrs):
         if (attrs.get('name') is None) and\
                 (attrs.get('user.first_name') is None):
-            raise ValidationError(
+            raise serializers.ValidationError(
                 u"Either name or first_name should be provided")
 
         return attrs
 
-    def validate_email(self, attrs, source):
-        request_method = self.context['request'].method
-        if request_method == 'PUT' and source in attrs:
-            return attrs
-
-        if User.objects.filter(email=attrs.get('user.email')).exists():
-            raise ValidationError("This email address is already in use. ")
-        return attrs
-
-    def validate_twitter(self, attrs, source):
-        if isinstance(attrs.get('twitter'), basestring):
-            if attrs.get('twitter'):
-                match = re.search(
-                    r"^[A-Za-z0-9_]{1,15}$", attrs.get('twitter'))
-                if not match:
-                    raise ValidationError("Invalid twitter username")
-        else:
-            attrs['twitter'] = ''
-        return attrs
-
 
 class UserProfileWithTokenSerializer(UserProfileSerializer):
-    username = serializers.WritableField(source='user.username')
-    email = serializers.WritableField(source='user.email')
-    website = serializers.WritableField(source='home_page', required=False)
-    gravatar = serializers.Field(source='gravatar')
-    password = serializers.WritableField(
+    username = serializers.Field(source='user.username')
+    email = serializers.Field(source='user.email')
+    website = serializers.Field(source='home_page', required=False)
+    gravatar = serializers.ReadOnlyField()
+    password = serializers.Field(
         source='user.password', widget=widgets.PasswordInput(), required=False)
     user = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
-    api_token = serializers.SerializerMethodField('get_api_token')
-    temp_token = serializers.SerializerMethodField('get_temp_token')
+    api_token = serializers.SerializerMethodField()
+    temp_token = serializers.SerializerMethodField()
 
     class Meta:
         model = UserProfile
         fields = ('url', 'username', 'name', 'password', 'email', 'city',
                   'country', 'organization', 'website', 'twitter', 'gravatar',
                   'require_auth', 'user', 'api_token', 'temp_token')
-        lookup_field = 'user'
 
     def get_api_token(self, object):
         return object.user.auth_token.key
