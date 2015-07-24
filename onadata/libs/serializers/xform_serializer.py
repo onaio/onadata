@@ -1,4 +1,6 @@
 import logging
+from django.conf import settings
+from django.contrib.auth.models import User
 from django.forms import widgets
 from requests.exceptions import ConnectionError
 from rest_framework import serializers
@@ -62,12 +64,14 @@ def _set_cache(cache_key, cache_data, obj):
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
     formid = serializers.Field(source='id')
     metadata = serializers.SerializerMethodField()
-    owner = serializers.HyperlinkedRelatedField(view_name='user-detail',
-                                                source='user',
-                                                lookup_field='username')
-    created_by = serializers.HyperlinkedRelatedField(view_name='user-detail',
-                                                     source='created_by',
-                                                     lookup_field='username')
+    owner = serializers.HyperlinkedRelatedField(
+        view_name='user-detail', source='user', lookup_field='username',
+        queryset=User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
+    )
+    created_by = serializers.HyperlinkedRelatedField(
+        view_name='user-detail', lookup_field='username',
+        queryset=User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
+    )
     public = BooleanField(source='shared', widget=widgets.CheckboxInput())
     public_data = BooleanField(source='shared_data')
     require_auth = BooleanField()
