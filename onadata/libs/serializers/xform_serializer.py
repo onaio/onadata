@@ -61,7 +61,7 @@ def _set_cache(cache_key, cache_data, obj):
 
 
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
-    formid = serializers.Field(source='id')
+    formid = serializers.ReadOnlyField(source='id')
     metadata = serializers.SerializerMethodField()
     owner = serializers.HyperlinkedRelatedField(
         view_name='user-detail', source='user', lookup_field='username',
@@ -74,7 +74,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     public = BooleanField(source='shared')
     public_data = BooleanField(source='shared_data')
     require_auth = BooleanField()
-    submission_count_for_today = serializers.Field()
+    submission_count_for_today = serializers.ReadOnlyField()
     tags = TagListSerializer(read_only=True)
     title = serializers.CharField(max_length=255)
     url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
@@ -92,7 +92,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         read_only_fields = (
             'json', 'xml', 'date_created', 'date_modified', 'encrypted',
             'bamboo_dataset', 'last_submission_time')
-        exclude = ('id', 'json', 'xml', 'xls', 'user', 'has_start_time',
+        exclude = ('json', 'xml', 'xls', 'user', 'has_start_time',
                    'shared', 'shared_data', 'deleted_at')
 
     def _get_metadata(self, obj, key):
@@ -165,10 +165,11 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             if xform_metadata:
                 return xform_metadata
 
-            xform_metadata = MetaDataSerializer(
+            xform_metadata = list(MetaDataSerializer(
                 obj.metadata_set.all(),
                 many=True,
-                context=self.context).data
+                context=self.context
+            ).data)
             cache.set(
                 '{}{}'.format(XFORM_METADATA_CACHE, obj.pk), xform_metadata)
 

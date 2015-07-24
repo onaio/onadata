@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.cache import cache
 
 from onadata.apps.logger.models import Project
@@ -43,14 +45,15 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='project-detail', lookup_field='pk')
     owner = serializers.HyperlinkedRelatedField(
-        view_name='user-detail',
-        source='organization',
-        lookup_field='username')
+        view_name='user-detail', source='organization',
+        lookup_field='username',
+        queryset=User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
+    )
     created_by = serializers.HyperlinkedRelatedField(
         view_name='user-detail',
-        source='created_by',
         lookup_field='username',
-        read_only=True)
+        read_only=True
+    )
     metadata = JsonField(source='metadata', required=False)
     starred = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()

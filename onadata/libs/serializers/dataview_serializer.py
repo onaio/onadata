@@ -7,6 +7,8 @@ from rest_framework.exceptions import ParseError
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.data_view import SUPPORTED_FILTERS
+from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.project import Project
 from onadata.libs.utils.cache_tools import DATAVIEW_COUNT
 
 
@@ -15,12 +17,14 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     name = serializers.CharField(max_length=255, source='name')
     url = serializers.HyperlinkedIdentityField(view_name='dataviews-detail',
                                                lookup_field='pk')
-    xform = serializers.HyperlinkedRelatedField(view_name='xform-detail',
-                                                source='xform',
-                                                lookup_field='pk')
-    project = serializers.HyperlinkedRelatedField(view_name='project-detail',
-                                                  source='project',
-                                                  lookup_field='pk')
+    xform = serializers.HyperlinkedRelatedField(
+        view_name='xform-detail', lookup_field='pk',
+        queryset=XForm.objects.all()
+    )
+    project = serializers.HyperlinkedRelatedField(
+        view_name='project-detail', lookup_field='pk',
+        queryset=Project.objects.all()
+    )
     columns = JsonField(source='columns')
     query = JsonField(source='query', required=False)
     count = serializers.SerializerMethodField("get_data_count")

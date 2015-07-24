@@ -17,8 +17,8 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         view_name='user-detail', lookup_field='username', read_only=True)
     creator = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
-    users = serializers.SerializerMethodField('get_org_members')
-    metadata = JsonField(source='metadata', required=False)
+    users = serializers.SerializerMethodField()
+    metadata = JsonField(required=False)
 
     class Meta:
         model = OrganizationProfile
@@ -73,7 +73,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
             u"Organization %s already exists." % org
         ))
 
-    def get_org_members(self, obj):
+    def get_users(self, obj):
         members = get_organization_members(obj) if obj else []
 
         return [{
