@@ -60,6 +60,12 @@ def _set_cache(cache_key, cache_data, obj):
     return cache_data
 
 
+def user_to_username(item):
+    item['user'] = item['user'].username
+
+    return item
+
+
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
     formid = serializers.ReadOnlyField(source='id')
     metadata = serializers.SerializerMethodField()
@@ -120,7 +126,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             if xform_perms:
                 return xform_perms
 
-            xform_perms = get_object_users_with_permissions(obj)
+            xform_perms = map(user_to_username,
+                              get_object_users_with_permissions(obj))
             cache.set(
                 '{}{}'.format(XFORM_PERMISSIONS_CACHE, obj.pk), xform_perms)
 
