@@ -10,7 +10,7 @@ from jsonfield import JSONField
 from onadata.libs.utils.common_tags import (MONGO_STRFTIME, ID, GEOLOCATION)
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
-DEFAULT_COLUMNS = [ID, GEOLOCATION]
+DEFAULT_COLUMNS = [ID]
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
@@ -47,6 +47,7 @@ class DataView(models.Model):
 
     columns = JSONField()
     query = JSONField(default={}, blank=True)
+    instances_with_geopoints = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
@@ -57,6 +58,32 @@ class DataView(models.Model):
 
     def __unicode__(self):
         return getattr(self, "name", "")
+
+    def has_geo_columnn_n_data(self):
+        """
+        Check if the data set from the data view has geo location data
+        :return: boolean True if present
+        """
+        # Defaults to false
+        has_geo_column = False
+
+        # Check if geolocation column selected
+        if GEOLOCATION in self.columns:
+            data = DataView.query_data(self)
+
+            # Go over the whole data checking for the point
+            # Returns True when the first point has the points
+            for d in data:
+                if d[GEOLOCATION][0] is not None:
+                    has_geo_column = True
+                    break
+
+        return has_geo_column
+
+    def save(self, *args, **kwargs):
+
+        self.instances_with_geopoints = self.has_geo_columnn_n_data()
+        return super(DataView, self).save(*args, **kwargs)
 
     @classmethod
     def _get_where_clause(cls, data_view, form_integer_fields=[],

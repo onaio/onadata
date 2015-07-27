@@ -449,3 +449,83 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['field_type'], 'integer')
         self.assertEqual(response.data['field_name'], 'age')
         self.assertEqual(response.data['data_type'], 'numeric')
+
+    def test_geopoint_dataview(self):
+        # Dataview with geolocation column selected.
+        # -> instances_with_geopoints= True
+        data = {
+            'name': "My DataView1",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': '["name", "age", "gender", "_geolocation"]',
+            'query': '[{"column":"age","filter":">","value":"20"}]'
+        }
+        self._create_dataview(data)
+
+        self.assertTrue(self.data_view.instances_with_geopoints)
+
+        # Dataview with geolocation column NOT selected
+        # -> instances_with_geopoints= False
+        data = {
+            'name': "My DataView2",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': '["name", "age", "gender"]',
+            'query': '[{"column":"age","filter":">","value":"20"}]'
+        }
+        self._create_dataview(data)
+
+        self.assertFalse(self.data_view.instances_with_geopoints)
+
+        # Dataview with geolocation column selected but no data with
+        # the points -> instances_with_geopoints= False
+        data = {
+            'name': "My DataView3",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': '["name", "age", "gender", "_geolocation"]',
+            'query': '[{"column":"age","filter":"=","value":"87"}]'
+        }
+        self._create_dataview(data)
+
+        self.assertFalse(self.data_view.instances_with_geopoints)
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data['dataviewid'], self.data_view.pk)
+        self.assertEquals(response.data['name'], 'My DataView3')
+        self.assertEquals(response.data['instances_with_geopoints'], False)
+
+    def test_geopoint_submission_dataview(self):
+        # instances_with_geopoints should be updated when a new submission
+        # with geopoints
+        data = {
+            'name': "My DataView3",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            'columns': '["name", "age", "gender", "_geolocation"]',
+            'query': '[{"column":"age","filter":">=","value":"87"}]'
+        }
+        self._create_dataview(data)
+
+        self.assertFalse(self.data_view.instances_with_geopoints)
+
+        # make submission with geopoint
+        path = os.path.join(settings.PROJECT_ROOT, 'libs', 'tests', "utils",
+                            'fixtures', 'tutorial', 'instances',
+                            'uuid{}'.format(9), 'submission.xml')
+        self._make_submission(path)
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data['dataviewid'], self.data_view.pk)
+        self.assertEquals(response.data['name'], 'My DataView3')
+        self.assertEquals(response.data['instances_with_geopoints'], True)
