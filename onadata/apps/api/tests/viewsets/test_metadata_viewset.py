@@ -98,7 +98,8 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             'media_url': u'http://localhost:8000/media/%s/formid-media/'
             '1335783522563.jpg' % self.user.username,
             'file_hash': u'md5:2ca0d22073a9b6b4ebe51368b08da60c',
-            'url': 'http://testserver/api/v1/metadata/%s' % self.metadata.pk
+            'url': 'http://testserver/api/v1/metadata/%s' % self.metadata.pk,
+            'date_created': self.metadata.date_created
         }
         request = self.factory.get('/', **self.extra)
         response = self.view(request, pk=self.metadata.pk)
