@@ -12,7 +12,9 @@ from onadata.apps.api.tools import _get_first_last_names
 
 
 class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
-    org = serializers.Field(source='user.username')
+    url = serializers.HyperlinkedIdentityField(
+        view_name='organizationprofile-detail', lookup_field='user')
+    org = serializers.CharField(source='user.username', max_length=30)
     user = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     creator = serializers.HyperlinkedRelatedField(
@@ -38,7 +40,10 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         )
 
     def create(self, validated_data):
-        org = validated_data.get('user.username', None)
+        org = validated_data.get('user')
+        if org:
+            org = org.get('username')
+
         org_name = validated_data.get('name', None)
         creator = None
 
@@ -47,10 +52,11 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
 
         validated_data['organization'] = org_name
 
-        org = tools.create_organization_object(org, creator, validated_data)
-        org.save()
+        profile = tools.create_organization_object(org, creator,
+                                                   validated_data)
+        profile.save()
 
-        return org
+        return profile
 
     def validate_org(self, value):
         org = value.lower() if isinstance(value, basestring) else value
