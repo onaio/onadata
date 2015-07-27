@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import get_attachment_url
+from onadata.apps.logger.models.instance import Instance
 from onadata.libs.utils.decorators import check_obj
 
 
@@ -44,9 +45,10 @@ class AttachmentSerializer(serializers.HyperlinkedModelSerializer):
     download_url = serializers.SerializerMethodField()
     small_download_url = serializers.SerializerMethodField()
     medium_download_url = serializers.SerializerMethodField()
-    xform = serializers.Field(source='instance.xform.pk')
-    instance = serializers.Field(source='instance.pk')
-    filename = serializers.Field(source='media_file.name')
+    xform = serializers.ReadOnlyField(source='instance.xform.pk')
+    instance = serializers.PrimaryKeyRelatedField(
+        queryset=Instance.objects.all())
+    filename = serializers.ReadOnlyField(source='media_file.name')
 
     class Meta:
         fields = ('url', 'filename', 'mimetype', 'field_xpath', 'id', 'xform',
