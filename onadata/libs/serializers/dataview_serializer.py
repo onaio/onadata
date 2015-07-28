@@ -25,6 +25,8 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     columns = JsonField(source='columns')
     query = JsonField(source='query', required=False)
     count = serializers.SerializerMethodField("get_data_count")
+    instances_with_geopoints = \
+        serializers.SerializerMethodField('check_instances_with_geopoints')
 
     class Meta:
         model = DataView
@@ -76,3 +78,13 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
 
                 return count
         return None
+
+    def check_instances_with_geopoints(self, obj):
+
+        if obj:
+            check_geo = obj.has_geo_columnn_n_data()
+            if obj.instances_with_geopoints != check_geo:
+                obj.instances_with_geopoints = check_geo
+                obj.save()
+            return obj.instances_with_geopoints
+        return False

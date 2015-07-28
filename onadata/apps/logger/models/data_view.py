@@ -10,7 +10,7 @@ from jsonfield import JSONField
 from onadata.libs.utils.common_tags import (MONGO_STRFTIME, ID, GEOLOCATION)
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
-DEFAULT_COLUMNS = [ID, GEOLOCATION]
+DEFAULT_COLUMNS = [ID]
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
@@ -47,6 +47,7 @@ class DataView(models.Model):
 
     columns = JSONField()
     query = JSONField(default={}, blank=True)
+    instances_with_geopoints = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
@@ -57,6 +58,32 @@ class DataView(models.Model):
 
     def __unicode__(self):
         return getattr(self, "name", "")
+
+    def has_geo_columnn_n_data(self):
+        """
+        Check if the data set from the data view has geo location data
+        :return: boolean True if present
+        """
+
+        # Get the form geo xpaths
+        xform = self.xform
+        data_dictionary = xform.data_dictionary()
+        geo_xpaths = data_dictionary.geopoint_xpaths()
+
+        set_geom = set(geo_xpaths)
+        set_columns = set(self.columns)
+
+        geo_column_selected = set_geom.intersection(set_columns)
+
+        # Check if geolocation column selected
+        if geo_column_selected:
+            return True
+        return False
+
+    def save(self, *args, **kwargs):
+
+        self.instances_with_geopoints = self.has_geo_columnn_n_data()
+        return super(DataView, self).save(*args, **kwargs)
 
     @classmethod
     def _get_where_clause(cls, data_view, form_integer_fields=[],
@@ -127,8 +154,11 @@ class DataView(models.Model):
     @classmethod
     def query_data(cls, data_view, start_index=None, limit=None, count=None):
 
+        additional_columns = [GEOLOCATION] \
+            if data_view.instances_with_geopoints else []
+
         # get the columns needed
-        columns = data_view.columns + DEFAULT_COLUMNS
+        columns = data_view.columns + DEFAULT_COLUMNS + additional_columns
 
         field_list = [u"json->%s" for i in columns]
 
