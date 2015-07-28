@@ -64,21 +64,21 @@ class DataView(models.Model):
         Check if the data set from the data view has geo location data
         :return: boolean True if present
         """
-        # Defaults to false
-        has_geo_column = False
+
+        # Get the form geo xpaths
+        xform = self.xform
+        data_dictionary = xform.data_dictionary()
+        geo_xpaths = data_dictionary.geopoint_xpaths()
+
+        set_geom = set(geo_xpaths)
+        set_columns = set(self.columns)
+
+        geo_column_selected = set_geom.intersection(set_columns)
 
         # Check if geolocation column selected
-        if GEOLOCATION in self.columns:
-            data = DataView.query_data(self)
-
-            # Go over the whole data checking for the point
-            # Returns True when the first point has the points
-            for d in data:
-                if d[GEOLOCATION][0] is not None:
-                    has_geo_column = True
-                    break
-
-        return has_geo_column
+        if geo_column_selected:
+            return True
+        return False
 
     def save(self, *args, **kwargs):
 
@@ -154,8 +154,11 @@ class DataView(models.Model):
     @classmethod
     def query_data(cls, data_view, start_index=None, limit=None, count=None):
 
+        additional_columns = [GEOLOCATION] \
+            if data_view.instances_with_geopoints else []
+
         # get the columns needed
-        columns = data_view.columns + DEFAULT_COLUMNS
+        columns = data_view.columns + DEFAULT_COLUMNS + additional_columns
 
         field_list = [u"json->%s" for i in columns]
 
