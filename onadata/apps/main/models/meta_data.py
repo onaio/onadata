@@ -4,7 +4,7 @@ import requests
 import logging
 
 from contextlib import closing
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.core.exceptions import ValidationError
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -316,3 +316,5 @@ post_save.connect(clear_cached_metadata_instance_object, sender=MetaData,
                   dispatch_uid='clear_cached_metadata_instance_object')
 post_save.connect(update_attached_xform, sender=MetaData,
                   dispatch_uid='update_attached_xform')
+post_delete.connect(clear_cached_metadata_instance_object, sender=MetaData,
+                    dispatch_uid='clear_cached_metadata_instance_delete')
