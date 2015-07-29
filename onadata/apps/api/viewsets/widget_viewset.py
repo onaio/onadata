@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
+from django.contrib.contenttypes.models import ContentType
 
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
@@ -33,14 +34,14 @@ class WidgetViewSet(AuthenticateHeaderMixin,
             except ValueError:
                 raise ParseError(
                     u"Invalid value for dataview %s." % dataviewid)
+
             dataview = get_object_or_404(DataView, pk=dataviewid)
-            dataview_qs = Widget.objects.filter(content_type_id=dataview.pk,
-                                                content_type=DataView)
+            dataview_ct = ContentType.objects.get_for_model(dataview)
+            dataview_qs = Widget.objects.filter(object_id=dataview.pk,
+                                                content_type=dataview_ct)
+            return super(WidgetViewSet, self).filter_queryset(dataview_qs)
 
-
-        qs = super(WidgetViewSet, self).filter_queryset(dataview_qs)
-
-        return qs
+        return super(WidgetViewSet, self).filter_queryset(queryset)
 
     def get_object(self, queryset=None):
 

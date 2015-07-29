@@ -465,8 +465,8 @@ class TestWidgetViewset(TestAbstractViewSet):
         self._publish_xls_form_to_project()
 
         data = {
-            'content_object': 'http://testserver/api/v1/forms/%s' %
-                              self.xform.pk,
+            'content_object': 'http://testserver/api/v1/dataviews/%s' %
+                              self.data_view.pk,
             'widget_type': "charts",
             'view_type': "horizontal-bar",
             'column': "_submitted_by",
@@ -496,4 +496,15 @@ class TestWidgetViewset(TestAbstractViewSet):
         response = view(request)
 
         self.assertEquals(response.status_code, 200)
-        self.assertEquals(len(response.data), 1)
+        self.assertEquals(len(response.data), 2)
+
+        data = {
+            "dataview": "so_invalid"
+        }
+
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request)
+
+        self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.data['detail'],
+                          u"Invalid value for dataview %s." % "so_invalid")
