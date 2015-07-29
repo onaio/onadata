@@ -39,7 +39,7 @@ class WidgetViewSet(AuthenticateHeaderMixin,
             dataview_ct = ContentType.objects.get_for_model(dataview)
             dataview_qs = Widget.objects.filter(object_id=dataview.pk,
                                                 content_type=dataview_ct)
-            return super(WidgetViewSet, self).filter_queryset(dataview_qs)
+            return dataview_qs
 
         return super(WidgetViewSet, self).filter_queryset(queryset)
 
