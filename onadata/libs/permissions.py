@@ -247,8 +247,12 @@ def get_role_in_org(user, organization):
         return get_role(perms, organization) or MemberRole.name
 
 
-def get_object_users_with_permissions(obj, exclude=None):
-    """Returns users, roles and permissions for a object.
+def get_object_users_with_permissions(obj, username=False):
+    """
+    Returns users, roles and permissions for an object.
+
+    :param obj: object, the object to check permissions on
+    :param username: bool, when True set username instead of a User object
     """
     result = []
 
@@ -257,7 +261,7 @@ def get_object_users_with_permissions(obj, exclude=None):
             obj, attach_perms=True, with_group_users=False).items()
 
         result = [{
-            'user': user,
+            'user': user.username if username else user,
             'first_name': user.first_name,
             'last_name': user.last_name,
             'role': get_role(permissions, obj),
