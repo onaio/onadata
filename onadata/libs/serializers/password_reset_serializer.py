@@ -131,10 +131,10 @@ class PasswordResetChangeSerializer(serializers.Serializer):
     new_password = serializers.CharField(min_length=4, max_length=128)
     token = serializers.CharField(max_length=128)
 
-    def validate_uid(self, attrs, source):
-        get_user_from_uid(attrs['uid'])
+    def validate_uid(self, value):
+        get_user_from_uid(value)
 
-        return attrs
+        return value
 
     def validate(self, attrs):
         user = get_user_from_uid(attrs.get('uid'))
