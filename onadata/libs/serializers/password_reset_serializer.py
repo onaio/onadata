@@ -100,7 +100,8 @@ class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField(label=_("Email"), max_length=254)
     reset_url = serializers.URLField(label=_("Reset URL"), max_length=254)
     email_subject = serializers.CharField(label=_("Email Subject"),
-                                          required=False, max_length=78)
+                                          required=False, max_length=78,
+                                          allow_blank=True)
 
     def validate_email(self, value):
         users = User.objects.filter(email__iexact=value)
@@ -109,6 +110,12 @@ class PasswordResetSerializer(serializers.Serializer):
             raise serializers.ValidationError(_(
                 u"User '%(value)s' does not exist." % {"value": value}
             ))
+
+        return value
+
+    def validate_email_subject(self, value):
+        if len(value) == 0:
+            return None
 
         return value
 

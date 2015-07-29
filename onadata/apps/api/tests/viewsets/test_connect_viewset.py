@@ -245,8 +245,17 @@ class TestConnectViewSet(TestAbstractViewSet):
                 'reset_url': u'http://testdomain.com/reset_form'}
         request = self.factory.post('/', data=data)
         response = self.view(request)
+        self.assertEqual(response.status_code, 204, response.data)
         self.assertTrue(mock_send_mail.called)
-        self.assertEqual(response.status_code, 204)
+
+        data['email_subject'] = 'X' * 100
+        request = self.factory.post('/', data=data)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data['email_subject'][0],
+            u'Ensure this field has no more than 78 characters.'
+        )
 
         mock_send_mail.called = False
         request = self.factory.post('/')
