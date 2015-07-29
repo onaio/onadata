@@ -78,7 +78,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         temp_token = TempToken.objects.get(user__username='bob')
         self.data['temp_token'] = temp_token.key
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, self.data)
+        self.assertEqual(dict(response.data), self.data)
 
     def test_using_valid_temp_token(self):
         request = self.factory.get('/', **self.extra)
@@ -181,7 +181,8 @@ class TestConnectViewSet(TestAbstractViewSet):
             self.project, context={'request': request}).data
         del self.project_data['date_modified']
         del response.data[0]['date_modified']
-        self.assertEqual(response.data, [self.project_data])
+        self.assertEqual(len(response.data), 1)
+        self.assertDictEqual(dict(response.data[0]), dict(self.project_data))
 
     def test_user_list_with_digest(self):
         view = ConnectViewSet.as_view(

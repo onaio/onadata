@@ -237,12 +237,14 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return attrs
 
 
-class UserProfileWithTokenSerializer(UserProfileSerializer):
-    username = serializers.Field(source='user.username')
-    email = serializers.Field(source='user.email')
-    website = serializers.Field(source='home_page', required=False)
+class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='userprofile-detail',
+        lookup_field='user')
+    username = serializers.CharField(source='user.username')
+    email = serializers.CharField(source='user.email')
+    website = serializers.CharField(source='home_page', required=False)
     gravatar = serializers.ReadOnlyField()
-    password = serializers.Field(source='user.password', required=False)
     user = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     api_token = serializers.SerializerMethodField()
@@ -250,7 +252,7 @@ class UserProfileWithTokenSerializer(UserProfileSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ('url', 'username', 'name', 'password', 'email', 'city',
+        fields = ('url', 'username', 'name', 'email', 'city',
                   'country', 'organization', 'website', 'twitter', 'gravatar',
                   'require_auth', 'user', 'api_token', 'temp_token')
 
