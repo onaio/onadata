@@ -11,6 +11,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.apps.logger.models.widget import Widget
+from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.serializers.widget_serilizer import WidgetSerializer
 from onadata.apps.api.permissions import WidgetViewSetPermissions
 
@@ -22,6 +23,24 @@ class WidgetViewSet(AuthenticateHeaderMixin,
     permission_classes = [WidgetViewSetPermissions]
     lookup_field = 'pk'
     filter_backends = (filters.WidgetFilter,)
+
+    def filter_queryset(self, queryset):
+        dataviewid = self.request.QUERY_PARAMS.get('dataview')
+
+        if dataviewid:
+            try:
+                int(dataviewid)
+            except ValueError:
+                raise ParseError(
+                    u"Invalid value for dataview %s." % dataviewid)
+            dataview = get_object_or_404(DataView, pk=dataviewid)
+            dataview_qs = Widget.objects.filter(content_type_id=dataview.pk,
+                                                content_type=DataView)
+
+
+        qs = super(WidgetViewSet, self).filter_queryset(dataview_qs)
+
+        return qs
 
     def get_object(self, queryset=None):
 

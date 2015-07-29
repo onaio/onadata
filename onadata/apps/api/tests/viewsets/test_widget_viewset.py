@@ -459,3 +459,41 @@ class TestWidgetViewset(TestAbstractViewSet):
         self.assertEquals(response.data['content_object'],
                           [u"You don't have permission to the"
                           u" XForm"])
+
+    def test_filter_widgets_by_dataview(self):
+        self._create_widget()
+        self._publish_xls_form_to_project()
+
+        data = {
+            'content_object': 'http://testserver/api/v1/forms/%s' %
+                              self.xform.pk,
+            'widget_type': "charts",
+            'view_type': "horizontal-bar",
+            'column': "_submitted_by",
+        }
+
+        self._create_widget(data=data)
+
+        data = {
+            'content_object': 'http://testserver/api/v1/dataviews/%s' %
+                              self.data_view.pk,
+            'widget_type': "charts",
+            'view_type': "horizontal-bar",
+            'column': "_submission_time",
+        }
+
+        self._create_widget(data)
+
+        view = WidgetViewSet.as_view({
+            'get': 'list',
+        })
+
+        data = {
+            "dataview": self.data_view.pk
+        }
+
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response.data), 1)
