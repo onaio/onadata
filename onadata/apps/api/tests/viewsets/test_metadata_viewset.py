@@ -92,8 +92,8 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             'xform': self.xform.pk,
             'data_value': u'1335783522563.jpg',
             'data_type': u'media',
-            'data_file':
-            u'%s/formid-media/1335783522563.jpg' % self.user.username,
+            'data_file': u'http://localhost:8000/media/%s/formid-media/'
+            '1335783522563.jpg' % self.user.username,
             'data_file_type': u'image/jpeg',
             'media_url': u'http://localhost:8000/media/%s/formid-media/'
             '1335783522563.jpg' % self.user.username,
@@ -104,7 +104,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request, pk=self.metadata.pk)
         self.assertEqual(response.status_code, 200)
-        self.assertDictEqual(response.data, data)
+        self.assertDictEqual(dict(response.data), data)
 
     def test_add_mapbox_layer(self):
         data_type = 'mapbox_layer'
