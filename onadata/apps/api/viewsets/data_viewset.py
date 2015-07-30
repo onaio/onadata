@@ -7,6 +7,7 @@ from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 
+from rest_framework import serializers
 from rest_framework import status
 from rest_framework.decorators import detail_route
 from rest_framework.generics import get_object_or_404
@@ -32,7 +33,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import DataSerializer
-from onadata.libs.serializers.data_serializer import DataListSerializer
+from onadata.libs.serializers.data_serializer import DataInstanceSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
@@ -58,9 +59,11 @@ class CustomPaginationSerializer(BasePaginationSerializer):
 
     @property
     def data(self):
-        super(CustomPaginationSerializer, self).data
+        # hack: use Serializer class data
 
-        return ReturnList(self._data, serializer=self)
+        ret = super(serializers.Serializer, self).data
+
+        return ReturnList(ret, serializer=self)
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin,
@@ -117,7 +120,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             if sort or limit or start or fields:
                 serializer_class = JsonDataSerializer
             else:
-                serializer_class = DataListSerializer
+                serializer_class = DataInstanceSerializer
         else:
             serializer_class = \
                 super(DataViewSet, self).get_serializer_class()

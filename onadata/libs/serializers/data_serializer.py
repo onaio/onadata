@@ -1,10 +1,13 @@
 from django.utils.translation import ugettext as _
+
 from rest_framework import serializers
+from rest_framework.compat import OrderedDict
 from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
+from onadata.libs.serializers.fields.json_field import JsonField
 
 
 class DataSerializer(serializers.HyperlinkedModelSerializer):
@@ -21,19 +24,19 @@ class JsonDataSerializer(serializers.Serializer):
         return obj
 
 
-class DataListSerializer(serializers.ModelSerializer):
+class DataInstanceSerializer(serializers.ModelSerializer):
+    json = JsonField()
+
     class Meta:
         model = Instance
+        fields = ('json', )
 
-    def to_representation(self, obj):
-        data = {}
-        if obj:
-            if obj.json.get('_id') is None:
-                data = obj.get_full_dict()
-            else:
-                data = obj.json
+    def to_representation(self, instance):
+        ret = super(DataInstanceSerializer, self).to_representation(instance)
+        if 'json' in ret:
+            ret = OrderedDict(ret['json'])
 
-        return data
+        return ret
 
 
 class SubmissionSerializer(serializers.Serializer):
