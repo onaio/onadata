@@ -45,16 +45,22 @@ def _get_first_last_names(name, limit=30):
 
 
 class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='userprofile-detail', lookup_field='user')
     is_org = serializers.SerializerMethodField()
-    username = serializers.Field(source='user.username')
+    username = serializers.CharField(source='user.username')
     name = serializers.CharField(required=False)
-    first_name = serializers.Field(source='user.first_name', required=False)
-    last_name = serializers.Field(source='user.last_name', required=False)
+    first_name = serializers.CharField(source='user.first_name',
+                                       required=False, allow_blank=True)
+    last_name = serializers.CharField(source='user.last_name',
+                                      required=False, allow_blank=True)
     email = serializers.EmailField(source='user.email')
-    website = serializers.Field(source='home_page', required=False)
-    twitter = serializers.Field(required=False)
-    gravatar = serializers.ReadOnlyField(source='gravatar')
-    password = serializers.Field(source='user.password', required=False)
+    website = serializers.CharField(source='home_page', required=False,
+                                    allow_blank=True)
+    twitter = serializers.CharField(required=False, allow_blank=True)
+    gravatar = serializers.ReadOnlyField()
+    password = serializers.CharField(source='user.password', allow_blank=True,
+                                     required=False)
     user = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username', read_only=True)
     metadata = JsonField(required=False)
