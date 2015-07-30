@@ -21,6 +21,7 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
         view_name='user-detail', lookup_field='username', read_only=True)
     users = serializers.SerializerMethodField()
     metadata = JsonField(required=False)
+    name = serializers.CharField(max_length=255)
 
     class Meta:
         model = OrganizationProfile

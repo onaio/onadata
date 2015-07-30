@@ -193,8 +193,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
         response = self.view(request)
-        self.assertContains(response, '{"name": "name is required!"}',
-                            status_code=400)
+        self.assertEqual(response.data, {'name': [u'This field is required.']})
 
     def test_org_create_with_anonymous_user(self):
         data = {
@@ -426,7 +425,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
-        self.assertIn("%s already exists" % data['org'], response.data['org'])
+        self.assertIn("Organization %s already exists." % data['org'],
+                      response.data['org'])
 
     def test_publish_xls_form_to_organization_project(self):
         self._org_create()
