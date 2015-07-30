@@ -14,7 +14,7 @@ from onadata.libs.utils.cache_tools import DATAVIEW_COUNT
 
 class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     dataviewid = serializers.Field(source='id')
-    name = serializers.CharField(max_length=255, source='name')
+    name = serializers.CharField(max_length=255)
     url = serializers.HyperlinkedIdentityField(view_name='dataviews-detail',
                                                lookup_field='pk')
     xform = serializers.HyperlinkedRelatedField(
@@ -25,20 +25,17 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
         view_name='project-detail', lookup_field='pk',
         queryset=Project.objects.all()
     )
-    columns = JsonField(source='columns')
-    query = JsonField(source='query', required=False)
-    count = serializers.SerializerMethodField("get_data_count")
-    instances_with_geopoints = \
-        serializers.SerializerMethodField('check_instances_with_geopoints')
+    columns = JsonField()
+    query = JsonField(required=False)
+    count = serializers.SerializerMethodField()
+    instances_with_geopoints = serializers.SerializerMethodField()
 
     class Meta:
         model = DataView
 
-    def validate_query(self, attrs, source):
-        query = attrs.get('query')
-
-        if query:
-            for q in query:
+    def validate_query(self, value):
+        if value:
+            for q in value:
                 if 'column' not in q:
                     raise serializers.ValidationError(_(
                         u"`column` not set in query"
@@ -61,19 +58,17 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
                         u"Filter not supported"
                     ))
 
-        return attrs
+        return value
 
-    def validate_columns(self, attrs, source):
-        columns = attrs.get('columns')
-
-        if not isinstance(columns, list):
+    def validate_columns(self, value):
+        if not isinstance(value, list):
             raise serializers.ValidationError(_(
                 u"`columns` should be a list of columns"
             ))
 
-        return attrs
+        return value
 
-    def get_data_count(self, obj):
+    def get_count(self, obj):
         if obj:
             count = cache.get('{}{}'.format(DATAVIEW_COUNT, obj.xform.pk))
 
@@ -90,14 +85,17 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
                           count)
 
                 return count
+
         return None
 
-    def check_instances_with_geopoints(self, obj):
+    def get_instances_with_geopoints(self, obj):
 
         if obj:
             check_geo = obj.has_geo_columnn_n_data()
             if obj.instances_with_geopoints != check_geo:
                 obj.instances_with_geopoints = check_geo
                 obj.save()
-            return obj.instances_with_geopoints
+
+                return obj.instances_with_geopoints
+
         return False
