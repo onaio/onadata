@@ -30,7 +30,8 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                                        required=True)
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
     data_file = serializers.FileField(required=False)
-    data_file_type = serializers.CharField(max_length=255, required=False)
+    data_file_type = serializers.CharField(max_length=255, required=False,
+                                           allow_blank=True)
     media_url = serializers.SerializerMethodField()
     date_created = serializers.IntegerField(source='date_created',
                                             read_only=True)
@@ -60,9 +61,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             try:
                 URLValidator()(value)
             except ValidationError:
-                raise serializers.ValidationError(_(
-                    u"Invalid url %s." % value
-                ))
+                raise serializers.ValidationError({
+                    'data_value': _(u"Invalid url %s." % value)
+                })
 
         return attrs
 
