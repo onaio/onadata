@@ -1005,6 +1005,8 @@ class TestDataViewSet(TestBase):
             response = view(request, pk=projectid)
 
             self.assertEqual(response.status_code, 200)
+            self.xform.reload()
+            self.assertEqual(self.xform.shared, True)
 
             # anonymous user
             view = DataViewSet.as_view({'get': 'list'})

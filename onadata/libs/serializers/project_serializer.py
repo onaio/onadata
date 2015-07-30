@@ -93,7 +93,13 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             # clear cache
             safe_delete('{}{}'.format(PROJ_PERM_CACHE, self.object.pk))
 
-        return super(ProjectSerializer, self).update(instance, validated_data)
+        project = super(ProjectSerializer, self)\
+            .update(instance, validated_data)
+
+        project.xform_set.exclude(shared=project.shared)\
+            .update(shared=project.shared, shared_data=project.shared)
+
+        return instance
 
     def create(self, validated_data):
         created_by = self.context['request'].user
