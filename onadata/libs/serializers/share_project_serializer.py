@@ -3,7 +3,6 @@ from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
 from onadata.libs.models.share_project import ShareProject
-from onadata.apps.logger.models import Project
 from onadata.libs.permissions import get_object_users_with_permissions
 from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import OwnerRole
@@ -85,9 +84,7 @@ class RemoveUserFromProjectSerializer(ShareProjectSerializer):
         return instance
 
     def create(self, validated_data):
-        project = Project.objects.get(pk=self.init_data.get('project'))
-        self.init_data['project'] = project
-        instance = ShareProject(**self.init_data)
+        instance = ShareProject(**validated_data)
         instance.save()
 
         return instance
@@ -105,6 +102,8 @@ class RemoveUserFromProjectSerializer(ShareProjectSerializer):
             )
 
             if count <= 1:
-                raise serializers.ValidationError(_(
-                    u"Project requires at least one owner"
-                ))
+                raise serializers.ValidationError({
+                    'remove': _(u"Project requires at least one owner")
+                })
+
+        return attrs
