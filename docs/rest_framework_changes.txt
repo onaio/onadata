@@ -1,0 +1,14 @@
+Django Rest Framwork 3.0 Changes
+================================
+    * UnicodeJSONRenderer removed
+    * @action to @detail_route or @list_route decorators
+    * WritableField to <Type>Field
+    % Field to ReadOnlyField?
+    * from_native(self, value) to to_internal_value(self, data)
+    * to_native(self, data) to to_representation(self, value)
+    * removed restore_object, use create and update methods
+    * use serializers.ValidationError
+    * validate_<field> changed return type and arguments
+    * Optional argument to SerializerMethodField
+    * lookup_field is deprecated for HyperLinkedModelSerializers
+    * Relational field must provide a `queryset` argument, or set read_only=`True`
