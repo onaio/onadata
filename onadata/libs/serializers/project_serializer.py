@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.utils.translation import ugettext as _
 
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
@@ -68,6 +69,18 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Project
         exclude = ('shared', 'organization', 'user_stars')
+
+    def validate(self, attrs):
+        name = attrs.get('name')
+        organization = attrs.get('organization')
+        if not self.instance and \
+                Project.objects.filter(name__iexact=name,
+                                       organization=organization):
+            raise serializers.ValidationError({
+                'name': _(u"Project {} already exists.".format(name))
+            })
+
+        return attrs
 
     def update(self, instance, validated_data):
         metadata = JsonField.to_json(validated_data.get('metadata'))
