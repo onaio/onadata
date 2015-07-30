@@ -91,7 +91,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 ReadOnlyRole.add(members_team, instance)
 
             # clear cache
-            safe_delete('{}{}'.format(PROJ_PERM_CACHE, self.object.pk))
+            safe_delete('{}{}'.format(PROJ_PERM_CACHE, instance.pk))
 
         project = super(ProjectSerializer, self)\
             .update(instance, validated_data)

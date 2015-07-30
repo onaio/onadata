@@ -101,7 +101,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
             if email_msg:
                 # send out email message.
-                user = serializer.object.user
+                user = serializer.instance.user
                 send_mail(SHARE_PROJECT_SUBJECT.format(self.object.name),
                           email_msg,
                           DEFAULT_FROM_EMAIL,
