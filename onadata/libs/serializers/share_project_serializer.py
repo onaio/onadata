@@ -43,9 +43,9 @@ class ShareProjectSerializer(serializers.Serializer):
         # check if the user is the owner of the project
         if user and project:
             if user == project.organization:
-                raise serializers.ValidationError(_(
-                    u"Cannot share project with the owner"
-                ))
+                raise serializers.ValidationError({
+                    'username': _(u"Cannot share project with the owner")
+                })
 
         return attrs
 
