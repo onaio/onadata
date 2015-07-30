@@ -31,6 +31,7 @@ from onadata.libs.permissions import (
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.main.models import MetaData
 from onadata.libs.utils.common_tags import GROUPNAME_REMOVED_FLAG
+from onadata.libs.utils.cache_tools import (safe_delete, ENKETO_URL_CACHE)
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
@@ -2550,3 +2551,29 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIn('data_views', response.data)
         self.assertEquals(2, len(response.data['data_views']))
+
+    def test_multitple_enketo_urls(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            # an extra obj to induce multiple object exception
+            meta = MetaData(xform=self.xform, data_type="enketo_url",
+                            data_value="http://localtest/enketo_url2")
+            meta.save()
+
+            count = MetaData.objects.filter(xform=self.xform,
+                                            data_type="enketo_url").count()
+            self.assertEquals(2, count)
+
+            # delete cache
+            safe_delete('{}{}'.format(ENKETO_URL_CACHE, self.xform.pk))
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve',
+            })
+            formid = self.xform.pk
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=formid)
+
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('enketo_url', response.data)
