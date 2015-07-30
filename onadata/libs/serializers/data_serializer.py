@@ -40,7 +40,7 @@ class SubmissionSerializer(serializers.Serializer):
 
     def to_representation(self, obj):
         if obj is None:
-            return super(SubmissionSerializer, self).to_native(obj)
+            return super(SubmissionSerializer, self).to_representation(obj)
 
         return {
             'message': _("Successful submission."),
@@ -58,7 +58,7 @@ class OSMSerializer(serializers.Serializer):
         Return a list of osm file objects from attachments.
         """
         if obj is None:
-            return super(OSMSerializer, self).to_native(obj)
+            return super(OSMSerializer, self).to_representation(obj)
 
         attachments = Attachment.objects.filter(extension=Attachment.OSM)
         if isinstance(obj, Instance):
@@ -73,15 +73,15 @@ class OSMSerializer(serializers.Serializer):
         """
         Returns the serialized data on the serializer.
         """
-        if self._data is None:
-            obj = self.object
-
-            if self.many:
-                self._data = []
-                for item in obj:
-                    self._data.extend(self.to_native(item))
+        if not hasattr(self, '_data'):
+            if self.instance is not None and \
+                    not getattr(self, '_errors', None):
+                self._data = self.to_representation(self.instance)
+            elif hasattr(self, '_validated_data') and \
+                    not getattr(self, '_errors', None):
+                self._data = self.to_representation(self.validated_data)
             else:
-                self._data = self.to_native(obj)
+                self._data = self.get_initial()
 
         return self._data
 
@@ -92,7 +92,7 @@ class OSMSiteMapSerializer(serializers.Serializer):
         Return a list of osm file objects from attachments.
         """
         if obj is None:
-            return super(OSMSiteMapSerializer, self).to_native(obj)
+            return super(OSMSiteMapSerializer, self).to_representation(obj)
 
         id_string = obj.get('instance__xform__id_string')
         pk = obj.get('instance__xform')

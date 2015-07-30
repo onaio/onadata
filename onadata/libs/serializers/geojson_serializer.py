@@ -86,7 +86,7 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
         fields = ('id', 'xform')
 
     def to_representation(self, obj):
-        ret = super(GeoJsonSerializer, self).to_native(obj)
+        ret = super(GeoJsonSerializer, self).to_representation(obj)
         request = self.context.get('request')
 
         if obj and ret and 'properties' in ret and request is not None:
@@ -115,7 +115,7 @@ class GeoJsonListSerializer(GeoJsonSerializer):
     def to_representation(self, obj):
 
         if obj is None:
-            return super(GeoJsonSerializer, self).to_native(obj)
+            return super(GeoJsonSerializer, self).to_representation(obj)
 
         geo_field = None
         fields = None
@@ -134,7 +134,7 @@ class GeoJsonListSerializer(GeoJsonSerializer):
 
         if not geo_field:
             return geojson.FeatureCollection(
-                [super(GeoJsonListSerializer, self).to_native(
+                [super(GeoJsonListSerializer, self).to_representation(
                     {'instance': ret, 'fields': obj.get('fields')})
                  for ret in instances])
 
