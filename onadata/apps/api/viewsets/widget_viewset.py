@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
+from django.contrib.contenttypes.models import ContentType
 
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
@@ -11,6 +12,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.apps.logger.models.widget import Widget
+from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.serializers.widget_serilizer import WidgetSerializer
 from onadata.apps.api.permissions import WidgetViewSetPermissions
 
@@ -22,6 +24,24 @@ class WidgetViewSet(AuthenticateHeaderMixin,
     permission_classes = [WidgetViewSetPermissions]
     lookup_field = 'pk'
     filter_backends = (filters.WidgetFilter,)
+
+    def filter_queryset(self, queryset):
+        dataviewid = self.request.QUERY_PARAMS.get('dataview')
+
+        if dataviewid:
+            try:
+                int(dataviewid)
+            except ValueError:
+                raise ParseError(
+                    u"Invalid value for dataview %s." % dataviewid)
+
+            dataview = get_object_or_404(DataView, pk=dataviewid)
+            dataview_ct = ContentType.objects.get_for_model(dataview)
+            dataview_qs = Widget.objects.filter(object_id=dataview.pk,
+                                                content_type=dataview_ct)
+            return dataview_qs
+
+        return super(WidgetViewSet, self).filter_queryset(queryset)
 
     def get_object(self, queryset=None):
 
