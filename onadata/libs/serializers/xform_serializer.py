@@ -190,9 +190,9 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             if versions:
                 return versions
 
-            versions = Instance.objects.filter(xform=obj)\
-                .values('version')\
-                .annotate(total=Count('version'))
+            versions = list(Instance.objects.filter(xform=obj)
+                            .values('version')
+                            .annotate(total=Count('version')))
 
             if versions:
                 cache.set('{}{}'.format(XFORM_DATA_VERSIONS, obj.pk),
