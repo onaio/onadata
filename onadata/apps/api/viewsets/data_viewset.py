@@ -2,7 +2,6 @@ import types
 
 from django.db.models import Q
 from django.http import Http404
-from django.shortcuts import get_object_or_404
 from django.utils import six
 from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
@@ -10,11 +9,13 @@ from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.decorators import detail_route
+from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import BasePaginationSerializer
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.settings import api_settings
+from rest_framework.utils.serializer_helpers import ReturnList
 
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.apps.api.tools import add_tags_to_instance
@@ -48,15 +49,18 @@ BaseViewset = get_baseviewset_class()
 
 
 class CustomPaginationSerializer(BasePaginationSerializer):
-    def to_native(self, obj):
-        ret = self._dict_class()
-        ret.fields = self._dict_class()
-        results = super(CustomPaginationSerializer, self).to_native(obj)
-
-        if results:
-            ret = results[self.results_field]
+    def to_representation(self, data):
+        ret = super(CustomPaginationSerializer, self).to_representation(data)
+        if 'results' in ret:
+            return ret['results']
 
         return ret
+
+    @property
+    def data(self):
+        super(CustomPaginationSerializer, self).data
+
+        return ReturnList(self._data, serializer=self)
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin,
@@ -121,7 +125,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         return serializer_class
 
     def get_object(self, queryset=None):
-        obj = super(DataViewSet, self).get_object(queryset)
+        obj = super(DataViewSet, self).get_object()
         pk_lookup, dataid_lookup = self.lookup_fields
         pk = self.kwargs.get(pk_lookup)
         dataid = self.kwargs.get(dataid_lookup)
