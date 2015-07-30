@@ -24,6 +24,38 @@ from onadata.libs.utils.cache_tools import (XFORM_PERMISSIONS_CACHE,
                                             XFORM_LINKED_DATAVIEWS)
 
 
+def _create_enketo_url(request, xform):
+    """
+    Generates enketo url for a form
+    :param request:
+    :param xform:
+    :return: enketo url
+    """
+    form_url = get_form_url(request, xform.user.username)
+    url = ""
+
+    try:
+        url = enketo_url(form_url, xform.id_string)
+        MetaData.enketo_url(xform, url)
+    except (EnketoError, ConnectionError):
+        pass
+
+    return url
+
+
+def _set_cache(cache_key, cache_data, obj):
+    """
+    Utility function that set the specified info to the provided cache key
+    :param cache_key:
+    :param cache_data:
+    :param obj:
+    :return: Data that has been cached
+    """
+
+    cache.set('{}{}'.format(cache_key, obj.pk), cache_data)
+    return cache_data
+
+
 class XFormSerializer(serializers.HyperlinkedModelSerializer):
     formid = serializers.Field(source='id')
     metadata = serializers.SerializerMethodField('get_xform_metadata')
@@ -103,23 +135,18 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             try:
                 metadata = MetaData.objects.get(
                     xform=obj, data_type="enketo_url")
+            except MetaData.MultipleObjectsReturned:
+                # delete the multiple objects and generate a new one
+                MetaData.objects.filter(xform=obj, data_type="enketo_url")\
+                    .delete()
+                url = _create_enketo_url(self.context.get('request'), obj)
+                return _set_cache(ENKETO_URL_CACHE, url, obj)
+
             except MetaData.DoesNotExist:
-                request = self.context.get('request')
-                form_url = get_form_url(request, obj.user.username)
-                url = ""
+                url = _create_enketo_url(self.context.get('request'), obj)
+                return _set_cache(ENKETO_URL_CACHE, url, obj)
 
-                try:
-                    url = enketo_url(form_url, obj.id_string)
-                    MetaData.enketo_url(obj, url)
-                except (EnketoError, ConnectionError):
-                    pass
-
-                cache.set('{}{}'.format(ENKETO_URL_CACHE, obj.pk), url)
-                return url
-
-            _enketo_url = metadata.data_value
-            cache.set('{}{}'.format(ENKETO_URL_CACHE, obj.pk), _enketo_url)
-            return _enketo_url
+            return _set_cache(ENKETO_URL_CACHE, metadata.data_value, obj)
 
         return None
 
