@@ -208,8 +208,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return username
 
     def validate_email(self, value):
+        users = User.objects.filter(email=value)
+        if self.instance:
+            users = users.exclude(pk=self.instance.user.pk)
 
-        if not self.instance and User.objects.filter(email=value).exists():
+        if users:
             raise serializers.ValidationError(_(
                 u"This email address is already in use. "
             ))
