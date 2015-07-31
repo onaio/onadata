@@ -199,16 +199,17 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 u"username may only contain alpha-numeric characters and "
                 u"underscores"
             ))
-        try:
-            User.objects.get(username=username)
-        except User.DoesNotExist:
-            value = username
+        if not self.instance and \
+                User.objects.filter(username=username).exists():
+            raise serializers.ValidationError(_(
+                u"%s already exists" % username
+            ))
 
-        return value
+        return username
 
     def validate_email(self, value):
 
-        if User.objects.filter(email=value).exists():
+        if not self.instance and User.objects.filter(email=value).exists():
             raise serializers.ValidationError(_(
                 u"This email address is already in use. "
             ))

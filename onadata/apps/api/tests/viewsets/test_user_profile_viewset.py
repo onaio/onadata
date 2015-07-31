@@ -471,9 +471,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
 
         response = self.view(request, user='deno')
-
         self.assertEqual(response.status_code, 200)
-
         self.assertEqual(response.data['first_name'], data['first_name'])
 
         first_name = u'Henry'
