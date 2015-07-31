@@ -199,8 +199,10 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 u"username may only contain alpha-numeric characters and "
                 u"underscores"
             ))
-        if not self.instance and \
-                User.objects.filter(username=username).exists():
+        users = User.objects.filter(username=username)
+        if self.instance:
+            users = users.exclude(pk=self.instance.user.pk)
+        if users.exists():
             raise serializers.ValidationError(_(
                 u"%s already exists" % username
             ))
@@ -212,7 +214,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         if self.instance:
             users = users.exclude(pk=self.instance.user.pk)
 
-        if users:
+        if users.exists():
             raise serializers.ValidationError(_(
                 u"This email address is already in use. "
             ))
