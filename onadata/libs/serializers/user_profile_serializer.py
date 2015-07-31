@@ -11,7 +11,6 @@ from registration.models import RegistrationProfile
 from rest_framework import serializers
 from onadata.apps.api.models.temp_token import TempToken
 
-from onadata.apps.main.forms import UserProfileForm
 from onadata.apps.main.forms import RegistrationFormUserProfile
 from onadata.apps.main.models import UserProfile
 from onadata.libs.serializers.fields.json_field import JsonField
@@ -108,27 +107,29 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
 
     def _get_params(self, attrs):
         params = copy.deepcopy(attrs)
-        username = attrs.get('user.username', None)
-        password = attrs.get('user.password', None)
-        first_name = attrs.get('user.first_name', None)
-        last_name = attrs.get('user.last_name', None)
-        email = attrs.get('user.email', None)
-        name = attrs.get('name', None)
+        name = params.get('name', None)
+        user = params.pop('user', None)
+        if user:
+            username = user.pop('username', None)
+            password = user.pop('password', None)
+            first_name = user.pop('first_name', None)
+            last_name = user.pop('last_name', None)
+            email = user.pop('email', None)
 
-        if username:
-            params['username'] = username
+            if username:
+                params['username'] = username
 
-        if email:
-            params['email'] = email
+            if email:
+                params['email'] = email
 
-        if password:
-            params.update({'password1': password, 'password2': password})
+            if password:
+                params.update({'password1': password, 'password2': password})
 
-        if first_name:
-            params['first_name'] = first_name
+            if first_name:
+                params['first_name'] = first_name
 
-        if last_name:
-            params['last_name'] = last_name
+            if last_name:
+                params['last_name'] = last_name
 
         # For backward compatibility, Users who still use only name
         if name:
@@ -140,14 +141,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return params
 
     def update(self, instance, validated_data):
-        params = self._get_params(validated_data)
-        form = UserProfileForm(params, instance=instance)
-
-        # form.is_valid affects instance object for partial updates [PATCH]
-        # so only use it for full updates [PUT], i.e shallow copy effect
-        if not self.partial and form.is_valid():
-            instance = form.save()
-
+        params = validated_data
         # get user
         instance.user.email = params.get('email', instance.user.email)
 
@@ -164,10 +158,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return super(UserProfileSerializer, self).update(instance, params)
 
     def create(self, validated_data):
-        params = self._get_params(validated_data)
-        form = RegistrationFormUserProfile(params)
-        # does not require captcha
-        form.REGISTRATION_REQUIRE_CAPTCHA = False
+        params = validated_data
 
         site = Site.objects.get(pk=settings.SITE_ID)
         new_user = RegistrationProfile.objects.create_inactive_user(
@@ -235,12 +226,14 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         return value
 
     def validate(self, attrs):
-        if (attrs.get('name') is None) and\
-                (attrs.get('user.first_name') is None):
-            raise serializers.ValidationError(
-                u"Either name or first_name should be provided")
+        params = self._get_params(attrs)
+        if not self.instance and params.get('name') is None and \
+                params.get('first_name') is None:
+            raise serializers.ValidationError({
+                'name': _(u"Either name or first_name should be provided")
+            })
 
-        return attrs
+        return params
 
 
 class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
