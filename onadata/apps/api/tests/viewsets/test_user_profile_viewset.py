@@ -448,8 +448,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data['twitter'],
-                         [u'Invalid twitter username'])
+        self.assertEqual(
+            response.data['twitter'],
+            [u'Invalid twitter username {}'.format(data['twitter'])]
+        )
 
         user = User.objects.get(username='deno')
         self.assertTrue(user.is_active)
