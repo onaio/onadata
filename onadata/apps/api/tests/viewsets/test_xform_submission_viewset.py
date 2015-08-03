@@ -201,8 +201,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             auth = DigestAuth('bob', 'bobbob')
             request.META.update(auth(request.META, response))
             response = self.view(request)
-            self.assertContains(response, 'error": "Improperly',
-                                status_code=400)
+            self.assertContains(response, 'Improperly', status_code=400)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(
                 response.has_header('X-OpenRosa-Accept-Content-Length'))
@@ -228,7 +227,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             auth = DigestAuth('bob', 'bobbob')
             request.META.update(auth(request.META, response))
             response = self.view(request)
-            self.assertContains(response, 'error": "Received empty submission',
+            self.assertContains(response, 'Received empty submission',
                                 status_code=400)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(
