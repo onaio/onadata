@@ -77,9 +77,10 @@ class TestWidgetViewset(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 400)
         self.assertEquals(count, Widget.objects.all().count())
-        self.assertEquals(response.data['content_object'],
-                          [u"Could not determine a valid serializer for value"
-                           u" u'%s'." % data['content_object']])
+        self.assertEquals(
+            response.data['content_object'],
+            [u"`%s` is not a valid relation." % data['content_object']]
+        )
 
     def test_create_without_required_field(self):
 
@@ -98,7 +99,7 @@ class TestWidgetViewset(TestAbstractViewSet):
         self.assertEquals(response.status_code, 400)
         self.assertEquals(count, Widget.objects.all().count())
         self.assertEquals(response.data['column'],
-                          [u"This field is required."])
+                          [u"This field may not be blank."])
 
     def test_create_unsupported_widget_type(self):
 
@@ -118,8 +119,8 @@ class TestWidgetViewset(TestAbstractViewSet):
         self.assertEquals(response.status_code, 400)
         self.assertEquals(count, Widget.objects.all().count())
         self.assertEquals(response.data['widget_type'],
-                          [u"Select a valid choice. %s is not one of the"
-                           u" available choices." % data['widget_type']])
+                          [u"`%s` is not a valid choice."
+                           % data['widget_type']])
 
     def test_update_widget(self):
         self._create_widget()
@@ -438,7 +439,7 @@ class TestWidgetViewset(TestAbstractViewSet):
         self.assertEquals(response.status_code, 400)
         self.assertEquals(count, Widget.objects.all().count())
         self.assertEquals(response.data['column'],
-                          [u"'doesnotexists' not in the form"])
+                          [u"'doesnotexists' not in the form."])
 
     def test_create_widget_with_xform_no_perms(self):
         data = {
@@ -457,8 +458,7 @@ class TestWidgetViewset(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 400)
         self.assertEquals(response.data['content_object'],
-                          [u"You don't have permission to the"
-                          u" XForm"])
+                          [u"You don't have permission to the XForm."])
 
     def test_filter_widgets_by_dataview(self):
         self._create_widget()
