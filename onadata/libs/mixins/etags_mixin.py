@@ -59,8 +59,7 @@ class ETagsMixin(object):
             ).hexdigest()
             value = "W/{}".format(hash_value)
 
-            if etag_value:
-                self.headers.update({'ETag': value})
+            self.headers.update({'ETag': value})
 
         return super(ETagsMixin, self).finalize_response(
             request, response, *args, **kwargs)
