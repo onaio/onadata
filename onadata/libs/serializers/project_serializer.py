@@ -10,7 +10,6 @@ from onadata.libs.permissions import OwnerRole
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs.permissions import is_organization
 from onadata.libs.permissions import get_role
-from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -59,7 +58,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     starred = serializers.SerializerMethodField()
     users = serializers.SerializerMethodField()
     forms = serializers.SerializerMethodField()
-    public = BooleanField(source='shared')
+    public = serializers.BooleanField(source='shared')
     tags = TagListSerializer(read_only=True)
     num_datasets = serializers.SerializerMethodField()
     last_submission_date = serializers.SerializerMethodField()

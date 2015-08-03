@@ -9,7 +9,6 @@ from django.db.models import Count
 
 from onadata.apps.logger.models import XForm, Instance
 from onadata.libs.permissions import get_object_users_with_permissions
-from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
@@ -77,9 +76,9 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         view_name='user-detail', lookup_field='username',
         queryset=User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
     )
-    public = BooleanField(source='shared')
-    public_data = BooleanField(source='shared_data')
-    require_auth = BooleanField()
+    public = serializers.BooleanField(source='shared')
+    public_data = serializers.BooleanField(source='shared_data')
+    require_auth = serializers.BooleanField()
     submission_count_for_today = serializers.ReadOnlyField()
     tags = TagListSerializer(read_only=True)
     title = serializers.CharField(max_length=255)
