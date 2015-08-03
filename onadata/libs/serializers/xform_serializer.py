@@ -220,12 +220,12 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class XFormListSerializer(serializers.Serializer):
-    formID = serializers.Field(source='id_string')
-    name = serializers.Field(source='title')
+    formID = serializers.ReadOnlyField(source='id_string')
+    name = serializers.ReadOnlyField(source='title')
     majorMinorVersion = serializers.SerializerMethodField('get_version')
     version = serializers.SerializerMethodField()
     hash = serializers.SerializerMethodField()
-    descriptionText = serializers.Field(source='description')
+    descriptionText = serializers.ReadOnlyField(source='description')
     downloadUrl = serializers.SerializerMethodField('get_url')
     manifestUrl = serializers.SerializerMethodField('get_manifest_url')
 
@@ -252,7 +252,7 @@ class XFormListSerializer(serializers.Serializer):
 
 
 class XFormManifestSerializer(serializers.Serializer):
-    filename = serializers.Field(source='data_value')
+    filename = serializers.ReadOnlyField(source='data_value')
     hash = serializers.SerializerMethodField()
     downloadUrl = serializers.SerializerMethodField('get_url')
 
