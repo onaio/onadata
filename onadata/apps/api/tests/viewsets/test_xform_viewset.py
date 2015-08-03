@@ -332,7 +332,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'xform': self.xform.pk,
                 'data_value': u"https://enketo.ona.io/preview/::YY8M",
                 'data_type': u'enketo_preview_url',
-                'data_file': u'',
+                'data_file': None,
                 'data_file_type': None,
                 u'url': u'http://testserver/api/v1/metadata/%s' %
                 preview_url.pk,
@@ -343,7 +343,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'id': url.pk,
                 'data_value': u"https://enketo.ona.io/::YY8M",
                 'xform': self.xform.pk,
-                'data_file': u'',
+                'data_file': None,
                 'data_type': u'enketo_url',
                 u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
                 'data_file_type': None,
@@ -383,7 +383,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'xform': self.xform.pk,
                 'data_value': u"https://enketo.ona.io/preview/::YY8M",
                 'data_type': u'enketo_preview_url',
-                'data_file': u'',
+                'data_file': None,
                 'data_file_type': None,
                 u'url': u'http://testserver/api/v1/metadata/%s' %
                 preview_url.pk,
@@ -395,7 +395,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'xform': self.xform.pk,
                 'data_value': u"https://enketo.ona.io/::YY8M",
                 'data_type': u'enketo_url',
-                'data_file': u'',
+                'data_file': None,
                 'data_file_type': None,
                 u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
                 'file_hash': None,
@@ -461,7 +461,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'xform': self.xform.pk,
                 'data_value': u"https://enketo.ona.io/preview/::YY8M",
                 'data_type': u'enketo_preview_url',
-                'data_file': u'',
+                'data_file': None,
                 'data_file_type': None,
                 u'url': u'http://testserver/api/v1/metadata/%s' %
                 preview_url.pk,
@@ -473,7 +473,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'xform': self.xform.pk,
                 'data_value': u"https://enketo.ona.io/::YY8M",
                 'data_type': u'enketo_url',
-                'data_file': u'',
+                'data_file': None,
                 'data_file_type': None,
                 u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
                 'file_hash': None,
@@ -1264,7 +1264,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             title = u'مرحب'
             description = 'DESCRIPTION'
             username = 'Anon'
-            error_msg = 'Invalid hyperlink - object does not exist.'
+            error_msg = 'Invalid hyperlink - Object does not exist.'
             data = {'public': True, 'description': description, 'title': title,
                     'downloadable': True,
                     'owner': 'http://testserver/api/v1/users/%s' % username}
@@ -1450,8 +1450,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             data = {'username': 'alice'}
             request = self.factory.post('/', data=data, **self.extra)
             response = view(request, pk=formid)
-            self.assertFalse(self.user.has_perm('can_add_xform',
-                             alice_profile))
+            self.assertFalse(
+                self.user.has_perm('can_add_xform', alice_profile)
+            )
             self.assertEqual(response.status_code, 403)
 
             ManagerRole.add(self.user, alice_profile)
@@ -1473,8 +1474,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 400)
             self.assertEqual(
-                response.data['detail'],
-                u"invalid literal for int() with base 10: 'abc123'")
+                response.data['project'],
+                [u"invalid literal for int() with base 10: 'abc123'"])
 
             project = Project.objects.create(name=u"alice's other project",
                                              organization=alice_profile.user,
