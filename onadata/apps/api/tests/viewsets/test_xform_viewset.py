@@ -1311,8 +1311,8 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.xform.reload()
             self.assertFalse(self.xform.__getattribute__(key))
-            shared = [u"'String' value must be either True or False."]
-            self.assertEqual(response.data, {'shared': shared})
+            shared = [u"`String` is not a valid boolean."]
+            self.assertEqual(response.data, {'public': shared})
 
     def test_set_form_bad_key(self):
         with HTTMock(enketo_mock):
@@ -2152,7 +2152,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'public_data': False,
                 'project': 'http://testserver/api/v1/projects/{0}'.format(
                     self.xform.project.pk),
-                'title': 'Transport Form'
+                'title': 'Transport Form',
+                'version': self.xform.version
             }
             request = self.factory.put('/', data=post_data, **self.extra)
             response = view(request, pk=form_id)
@@ -2193,7 +2194,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get('Cache-Control'), None)
             self.assertEquals(response.data,
-                              {'title': [u'This field is required.']})
+                              {'title': [u'This field may not be blank.']})
 
     def test_public_xform_accessible_by_authenticated_users(self):
         with HTTMock(enketo_mock):
