@@ -1,6 +1,7 @@
 from django.utils.translation import ugettext as _
 from rest_framework import exceptions
 from rest_framework import serializers
+from rest_framework.utils.serializer_helpers import ReturnList
 
 from onadata.libs.data.statistics import\
     get_median_for_numeric_fields_in_form,\
@@ -58,6 +59,12 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
                         record[name] = label
 
         return data
+
+    @property
+    def data(self):
+        ret = super(serializers.Serializer, self).data
+
+        return ReturnList(ret, serializer=self)
 
 
 class StatsSerializer(serializers.HyperlinkedModelSerializer):
