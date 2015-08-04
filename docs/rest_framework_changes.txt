@@ -12,3 +12,5 @@ Django Rest Framwork 3.0 Changes
     * Optional argument to SerializerMethodField
     * lookup_field is deprecated for HyperLinkedModelSerializers
     * Relational field must provide a `queryset` argument, or set read_only=`True`
+    * The pre_save and post_save hooks no longer exist, but are replaced with perform_create(self, serializer) and perform_update(self, serializer).
+    * The pre_delete and post_delete hooks no longer exist, and are replaced with .perform_destroy(self, instance)

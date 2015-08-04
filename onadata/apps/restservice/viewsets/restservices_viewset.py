@@ -2,7 +2,6 @@ from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api.permissions import MetaDataObjectPermissions
 from onadata.libs.serializers.textit_serializer import TextItSerializer
-from onadata.apps.main.models import MetaData
 from onadata.apps.restservice.models import RestService
 from onadata.libs import filters
 from onadata.libs.serializers.restservices_serializer import \
@@ -36,8 +35,3 @@ class RestServicesViewSet(AuthenticateHeaderMixin,
             return TextItSerializer
 
         return super(RestServicesViewSet, self).get_serializer_class()
-
-    def post_delete(self, obj):
-        if obj.name == TEXTIT:
-            MetaData.objects.filter(
-                xform=obj.xform, data_type=obj.name).delete()
