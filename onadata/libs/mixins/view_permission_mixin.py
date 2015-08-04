@@ -1,4 +1,3 @@
-from django.core.exceptions import ImproperlyConfigured
 from guardian.shortcuts import get_objects_for_user
 
 
@@ -9,19 +8,17 @@ class ViewPermissionMixin(object):
         Get the list of items for this view
         based on user's view_%(model_name)s permissions.
         """
-        self.model = self.model if self.model is not None else \
-            self.queryset.model if self.queryset is not None else None
-        if self.request is not None and self.model is not None:
-            kwargs = {
-                'app_label': self.model._meta.app_label,
-                'model_name': self.model._meta.module_name
-            }
-            perms = ['%(app_label)s.view_%(model_name)s' % kwargs]
-            return get_objects_for_user(self.request.user, perms, self.model,
-                                        with_superuser=False)
+        assert self.queryset is not None, (
+            "'%s' should either include a `queryset` attribute, "
+            "or override the `get_queryset()` method."
+            % self.__class__.__name__
+        )
+        model = self.queryset.model
 
-        if self.model is not None:
-            return self.model._default_manager.all()
+        kwargs = {
+            'app_label': model._meta.app_label,
+            'model_name': model._meta.model_name
+        }
+        perms = ['%(app_label)s.view_%(model_name)s' % kwargs]
 
-        raise ImproperlyConfigured("'%s' must define 'queryset' or 'model'"
-                                   % self.__class__.__name__)
+        return get_objects_for_user(self.request.user, perms, model)
