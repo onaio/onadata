@@ -9,6 +9,6 @@ class TestOrganizationSerializer(TransactionTestCase):
     def setUp(self):
         self.serializer = OrganizationSerializer()
 
-    def test_get_org_permissions_none(self):
-        perms = self.serializer.get_org_permissions(None)
+    def test_get_users_none(self):
+        perms = self.serializer.get_users(None)
         self.assertEqual(perms, [])

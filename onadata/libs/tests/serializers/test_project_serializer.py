@@ -14,8 +14,8 @@ class TestProjectSerializer(TestAbstractViewSet):
         self.factory = APIRequestFactory()
         self._login_user_and_profile()
 
-    def test_get_project_permissions_none(self):
-        perms = self.serializer.get_project_permissions(None)
+    def test_get_users_none(self):
+        perms = self.serializer.get_users(None)
         self.assertEqual(perms, [])
 
     def test_project_serializer_restore_object(self):
