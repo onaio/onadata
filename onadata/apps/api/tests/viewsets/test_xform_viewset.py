@@ -45,6 +45,30 @@ def xls_url_no_extension_mock(url, request):
     return response
 
 
+@urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
+def xls_url_no_extension_mock_content_disposition_attr_jumbled_v1(
+        url, request):
+    response = requests.Response()
+    response.status_code = 200
+    response._content = "success"
+    response.headers['content-disposition'] = 'attachment; filename*=UTF-8\'\'transportation_different_id_string.xlsx; filename="transportation_different_id_string.xlsx"'  # noqa
+    response.headers['content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'  # noqa
+
+    return response
+
+
+@urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
+def xls_url_no_extension_mock_content_disposition_attr_jumbled_v2(
+        url, request):
+    response = requests.Response()
+    response.status_code = 200
+    response._content = "success"
+    response.headers['content-disposition'] = 'filename*=UTF-8\'\'transportation_different_id_string.xlsx; attachment; filename="transportation_different_id_string.xlsx"'  # noqa
+    response.headers['content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'  # noqa
+
+    return response
+
+
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
 def enketo_mock(url, request):
     response = requests.Response()
@@ -927,6 +951,58 @@ class TestXFormViewSet(TestAbstractViewSet):
     @patch('urllib2.urlopen')
     def test_publish_xlsform_using_url_with_no_extension(self, mock_urlopen):
         with HTTMock(enketo_mock, xls_url_no_extension_mock):
+            view = XFormViewSet.as_view({
+                'post': 'create'
+            })
+
+            xls_url = 'https://ona.io/examples/forms/tutorial/form'
+            pre_count = XForm.objects.count()
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation_different_id_string.xlsx")
+
+            xls_file = open(path)
+            mock_urlopen.return_value = xls_file
+
+            post_data = {'xls_url': xls_url}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(XForm.objects.count(), pre_count + 1)
+
+    @patch('urllib2.urlopen')
+    def test_publish_xlsform_using_url_content_disposition_attr_jumbled_v1(
+            self, mock_urlopen):
+        with HTTMock(
+                enketo_mock,
+                xls_url_no_extension_mock_content_disposition_attr_jumbled_v1):
+            view = XFormViewSet.as_view({
+                'post': 'create'
+            })
+
+            xls_url = 'https://ona.io/examples/forms/tutorial/form'
+            pre_count = XForm.objects.count()
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation_different_id_string.xlsx")
+
+            xls_file = open(path)
+            mock_urlopen.return_value = xls_file
+
+            post_data = {'xls_url': xls_url}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+
+            self.assertEqual(response.status_code, 201)
+            self.assertEqual(XForm.objects.count(), pre_count + 1)
+
+    @patch('urllib2.urlopen')
+    def test_publish_xlsform_using_url_content_disposition_attr_jumbled_v2(
+            self, mock_urlopen):
+        with HTTMock(
+                enketo_mock,
+                xls_url_no_extension_mock_content_disposition_attr_jumbled_v2):
             view = XFormViewSet.as_view({
                 'post': 'create'
             })
