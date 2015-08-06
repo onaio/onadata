@@ -1,6 +1,7 @@
 import os
 import re
 import urllib2
+import requests
 from urlparse import urlparse
 
 from django import forms
@@ -46,6 +47,32 @@ PERM_CHOICES = (
     ('report', ugettext_lazy('Can submit to')),
     ('remove', ugettext_lazy('Remove permissions')),
 )
+
+VALID_XLSFORM_CONTENT_TYPES = [
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/csv',
+    'application/vnd.ms-excel'
+]
+
+VALID_FILE_EXTENSIONS = ['.xls', '.xlsx', '.csv']
+
+
+def get_filename(response):
+    # the value of 'content-disposition' contains the filename and has the
+    # following format:
+    # 'attachment; filename="ActApp_Survey_System.xlsx"; filename*=UTF-8\'\'ActApp_Survey_System.xlsx' # noqa
+    cleaned_xls_file = ""
+    content = response.headers.get('content-disposition').split('; ')
+    counter = [a for a in content if a.startswith('filename=')]
+    if len(counter) >= 1:
+        filename_key_val = counter[0]
+        filename = filename_key_val.split('=')[1].replace("\"", "")
+        name, extension = os.path.splitext(filename)
+
+        if extension in VALID_FILE_EXTENSIONS:
+            cleaned_xls_file = filename
+
+    return cleaned_xls_file
 
 
 class DataLicenseForm(forms.Form):
@@ -281,8 +308,14 @@ class QuickConverter(QuickConverterFile, QuickConverterURL,
                 cleaned_xls_file = \
                     '_'.join(cleaned_xls_file.path.split('/')[-2:])
                 name, extension = os.path.splitext(cleaned_xls_file)
-                if extension not in ['.xls', '.xlsx', '.csv']:
-                    cleaned_xls_file += '.xls'
+
+                if extension not in VALID_FILE_EXTENSIONS:
+                    r = requests.get(cleaned_url)
+                    if r.headers.get('content-type') in \
+                            VALID_XLSFORM_CONTENT_TYPES and \
+                            r.status_code < 400:
+                        cleaned_xls_file = get_filename(r)
+
                 cleaned_xls_file = \
                     upload_to(None, cleaned_xls_file, user.username)
                 self.validate(cleaned_url)
