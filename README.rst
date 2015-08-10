@@ -12,7 +12,7 @@ Ona is derived from the excellent `formhub <http://github.com/SEL-Columbia/formh
 
 Installation
 ------------
-Please read the `Installation and Deployment Guide <https://github.com/SEL-Columbia/formhub/wiki/Installation-and-Deployment>`_.
+Please read the `Installation and Deployment Guide <install.md>`_.
 
 Contributing
 ------------
