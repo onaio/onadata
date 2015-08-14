@@ -274,6 +274,7 @@ def get_object_users_with_permissions(obj, exclude=None):
             'first_name': user.first_name,
             'last_name': user.last_name,
             'role': get_role(permissions, obj),
+            'is_org': is_organization(user.profile),
             'gravatar': user.profile.gravatar,
             'metadata': user.profile.metadata,
             'permissions': permissions} for user, permissions in
