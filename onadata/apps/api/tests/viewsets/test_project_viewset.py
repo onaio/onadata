@@ -90,7 +90,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
         user_props = ['user', 'first_name', 'last_name', 'role', 'gravatar',
-                      'metadata', 'permissions']
+                      'is_org', 'metadata', 'permissions']
         user_props.sort()
 
         self.assertNotEqual(response.get('Cache-Control'), None)

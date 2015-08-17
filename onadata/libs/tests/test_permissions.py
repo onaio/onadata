@@ -93,6 +93,12 @@ class TestPermissions(TestBase):
         self.assertTrue(org_user in [d['user'] for d in users_with_perms])
         self.assertIn('first_name', users_with_perms[0].keys())
         self.assertIn('last_name', users_with_perms[0].keys())
+        self.assertIn('user', users_with_perms[0].keys())
+        self.assertIn('role', users_with_perms[0].keys())
+        self.assertIn('gravatar', users_with_perms[0].keys())
+        self.assertIn('metadata', users_with_perms[0].keys())
+        self.assertIn('permissions', users_with_perms[0].keys())
+        self.assertIn('is_org', users_with_perms[0].keys())
 
     def test_readonly_no_downloads_has_role(self):
         self._publish_transportation_form()
