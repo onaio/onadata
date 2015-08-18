@@ -1,4 +1,6 @@
 import json
+import importlib
+from django.conf import settings
 
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
@@ -141,6 +143,27 @@ def _check_set_role(request, organization, username, required=False):
             else (status.HTTP_201_CREATED, [])
 
 
+def load_class(full_class_string):
+    """
+    dynamically load a class from a string
+    """
+
+    class_data = full_class_string.split(".")
+    module_path = ".".join(class_data[:-1])
+    class_str = class_data[-1]
+
+    module = importlib.import_module(module_path)
+    # Finally, we retrieve the Class
+    return getattr(module, class_str)
+
+
+def serializer_from_settings():
+    if settings.ORG_PROFILE_SERIALIZER:
+        return load_class(settings.ORG_PROFILE_SERIALIZER)
+
+    return OrganizationSerializer
+
+
 class OrganizationProfileViewSet(AuthenticateHeaderMixin,
                                  CacheControlMixin,
                                  ETagsMixin,
@@ -150,7 +173,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     List, Retrieve, Update, Create/Register Organizations.
     """
     queryset = OrganizationProfile.objects.all()
-    serializer_class = OrganizationSerializer
+    serializer_class = serializer_from_settings()
     lookup_field = 'user'
     permission_classes = [permissions.DjangoObjectPermissionsAllowAnon]
     filter_backends = (OrganizationPermissionFilter,

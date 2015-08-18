@@ -1,4 +1,5 @@
 import json
+import importlib
 
 from django.conf import settings
 
@@ -46,6 +47,27 @@ def check_if_key_exists(k, expected_dict):
     return False
 
 
+def load_class(full_class_string):
+    """
+    dynamically load a class from a string
+    """
+
+    class_data = full_class_string.split(".")
+    module_path = ".".join(class_data[:-1])
+    class_str = class_data[-1]
+
+    module = importlib.import_module(module_path)
+    # Finally, we retrieve the Class
+    return getattr(module, class_str)
+
+
+def serializer_from_settings():
+    if settings.PROFILE_SERIALIZER:
+        return load_class(settings.PROFILE_SERIALIZER)
+
+    return UserProfileSerializer
+
+
 class UserProfileViewSet(AuthenticateHeaderMixin,
                          CacheControlMixin, ETagsMixin,
                          ObjectLookupMixin, ModelViewSet):
@@ -54,7 +76,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
     """
     queryset = UserProfile.objects.select_related().exclude(
         user__pk=settings.ANONYMOUS_USER_ID)
-    serializer_class = UserProfileSerializer
+    serializer_class = serializer_from_settings()
     lookup_field = 'user'
     permission_classes = [UserProfilePermissions]
     ordering = ('user__username', )
