@@ -1,0 +1,2 @@
+# pricing
+-e git+git@github.com:onaio/pricing.git@31_enrich_user_profiles#egg=pricing
