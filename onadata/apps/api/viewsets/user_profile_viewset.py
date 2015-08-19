@@ -1,5 +1,4 @@
 import json
-import importlib
 
 from django.conf import settings
 
@@ -20,6 +19,7 @@ from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.permissions import UserProfilePermissions
+from onadata.apps.api.tools import load_class
 
 
 def replace_key_value(k, v, expected_dict):
@@ -45,20 +45,6 @@ def check_if_key_exists(k, expected_dict):
                 if isinstance(c, dict):
                     return check_if_key_exists(k, c)
     return False
-
-
-def load_class(full_class_string):
-    """
-    dynamically load a class from a string
-    """
-
-    class_data = full_class_string.split(".")
-    module_path = ".".join(class_data[:-1])
-    class_str = class_data[-1]
-
-    module = importlib.import_module(module_path)
-    # Finally, we retrieve the Class
-    return getattr(module, class_str)
 
 
 def serializer_from_settings():

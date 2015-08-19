@@ -1,5 +1,4 @@
 import json
-import importlib
 from django.conf import settings
 
 from django.contrib.auth.models import User
@@ -31,6 +30,7 @@ from onadata.libs.permissions import ROLES, OwnerRole
 from onadata.libs.serializers.organization_serializer import(
     OrganizationSerializer)
 from onadata.settings.common import (DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT)
+from onadata.apps.api.tools import load_class
 
 
 def _try_function_org_username(f, organization, username, args=None):
@@ -141,20 +141,6 @@ def _check_set_role(request, organization, username, required=False):
 
         return (status.HTTP_200_OK, []) if request.method == 'PUT' \
             else (status.HTTP_201_CREATED, [])
-
-
-def load_class(full_class_string):
-    """
-    dynamically load a class from a string
-    """
-
-    class_data = full_class_string.split(".")
-    module_path = ".".join(class_data[:-1])
-    class_str = class_data[-1]
-
-    module = importlib.import_module(module_path)
-    # Finally, we retrieve the Class
-    return getattr(module, class_str)
 
 
 def serializer_from_settings():
