@@ -35,6 +35,7 @@ from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
 from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import ManagerRole
 from onadata.libs.permissions import get_role_in_org
+from onadata.libs.baseviewset import DefaultBaseViewset
 
 DECIMAL_PRECISION = 2
 
@@ -404,3 +405,8 @@ def load_class(full_class_string):
     module = importlib.import_module(module_path)
     # Finally, we retrieve the Class
     return getattr(module, class_str)
+
+
+def get_baseviewset_class():
+    return load_class(settings.BASE_VIEWSET) \
+        if settings.BASE_VIEWSET else DefaultBaseViewset

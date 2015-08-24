@@ -19,7 +19,10 @@ from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
 from onadata.apps.main.models import UserProfile
 from onadata.apps.api.permissions import UserProfilePermissions
-from onadata.apps.api.tools import load_class
+from onadata.apps.api.tools import load_class, get_baseviewset_class
+
+
+BaseViewset = get_baseviewset_class()
 
 
 def replace_key_value(k, v, expected_dict):
@@ -56,7 +59,7 @@ def serializer_from_settings():
 
 class UserProfileViewSet(AuthenticateHeaderMixin,
                          CacheControlMixin, ETagsMixin,
-                         ObjectLookupMixin, ModelViewSet):
+                         ObjectLookupMixin, BaseViewset, ModelViewSet):
     """
     List, Retrieve, Update, Create/Register users.
     """
