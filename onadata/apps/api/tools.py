@@ -408,5 +408,10 @@ def load_class(full_class_string):
 
 
 def get_baseviewset_class():
+    """
+    Checks the setting if the default viewset is implementded otherwise loads
+    the default in onadata
+    :return: the default baseviewset
+    """
     return load_class(settings.BASE_VIEWSET) \
         if settings.BASE_VIEWSET else DefaultBaseViewset

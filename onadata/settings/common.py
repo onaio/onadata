@@ -493,6 +493,7 @@ PROFILE_SERIALIZER = \
     "onadata.libs.serializers.user_profile_serializer.UserProfileSerializer"
 ORG_PROFILE_SERIALIZER = \
     "onadata.libs.serializers.organization_serializer.OrganizationSerializer"
+BASE_VIEWSET = "onadata.libs.baseviewset.DefaultBaseViewset"
 
 path = os.path.join(PROJECT_ROOT, "..", "extras", "reserved_accounts.txt")
 try:
