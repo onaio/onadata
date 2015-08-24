@@ -922,6 +922,80 @@ class TestXFormViewSet(TestAbstractViewSet):
                     MetaData.objects.get(
                         xform=xform, data_type="enketo_preview_url"))
 
+    def test_publish_xlsforms_with_same_id_string(self):
+        with HTTMock(enketo_mock):
+            counter = XForm.objects.count()
+            view = XFormViewSet.as_view({
+                'post': 'create'
+            })
+            data = {
+                'owner': 'http://testserver/api/v1/users/bob',
+                'public': False,
+                'public_data': False,
+                'description': u'',
+                'downloadable': True,
+                'allows_sms': False,
+                'encrypted': False,
+                'sms_id_string': u'transportation_2011_07_25',
+                'id_string': u'transportation_2011_07_25',
+                'title': u'transportation_2011_07_25',
+                'bamboo_dataset': u''
+            }
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation.xls")
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.post('/', data=post_data, **self.extra)
+                response = view(request)
+                self.assertEqual(response.status_code, 201)
+                xform = self.user.xforms.all()[0]
+                data.update({
+                    'url':
+                    'http://testserver/api/v1/forms/%s' % xform.pk
+                })
+
+                self.assertDictContainsSubset(data, response.data)
+                self.assertTrue(OwnerRole.user_has_role(self.user, xform))
+                self.assertEquals("owner", response.data['users'][0]['role'])
+
+                self.assertIsNotNone(
+                    MetaData.objects.get(xform=xform, data_type="enketo_url"))
+                self.assertIsNotNone(
+                    MetaData.objects.get(
+                        xform=xform, data_type="enketo_preview_url"))
+
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation_copy.xls")
+
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.post('/', data=post_data, **self.extra)
+                response = view(request)
+                self.assertEqual(response.status_code, 201)
+                xform = self.user.xforms.all()[0]
+                data.update({
+                    'url': 'http://testserver/api/v1/forms/%s' % xform.pk,
+                    'id_string': u'Transportation_2011_07_25_1',
+                    'title': u'Transportation_2011_07_25',
+                    'sms_id_string': u'Transportation_2011_07_25'
+                })
+
+                self.assertDictContainsSubset(data, response.data)
+                self.assertTrue(OwnerRole.user_has_role(self.user, xform))
+                self.assertEquals("owner", response.data['users'][0]['role'])
+
+                self.assertIsNotNone(
+                    MetaData.objects.get(xform=xform, data_type="enketo_url"))
+                self.assertIsNotNone(
+                    MetaData.objects.get(
+                        xform=xform, data_type="enketo_preview_url"))
+
+            xform = XForm.objects.get(id_string='transportation_2011_07_25')
+            self.assertIsInstance(xform, XForm)
+            self.assertEqual(counter + 2, XForm.objects.count())
+
     @patch('urllib2.urlopen')
     def test_publish_xlsform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
