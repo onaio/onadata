@@ -54,8 +54,7 @@ def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
     :rtype: string
     """
     return (u'<?xml version="1.0" ?>'
-            '<{0} id="{1}" instanceID="uuid:{2}" submissionDate="{3}" '
-            'xmlns="http://opendatakit.org/submissions">{4}'
+            '<{0} id="{1}" instanceID="uuid:{2}" submissionDate="{3}">{4}'
             '</{0}>'.format(
                 json.loads(xform.json).get('name', xform.id_string),
                 xform.id_string, instance_id, submission_date,
@@ -149,6 +148,11 @@ def submit_csv(username, xform, csv_file):
     addition_col = list(addition_col)
     # remove all metadata columns
     missing = [col for col in missing_col if not col.startswith("_")]
+
+    # remove all meta/instanceid columns
+
+    while 'meta/instanceID' in missing:
+        missing.remove('meta/instanceID')
 
     # remove all metadata inside groups
     missing = [col for col in missing if not ("/_" in col)]
