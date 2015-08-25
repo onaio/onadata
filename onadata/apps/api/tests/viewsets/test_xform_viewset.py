@@ -906,7 +906,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
                 self.assertEqual(response.status_code, 201)
-                xform = self.user.xforms.all()[0]
+                xform = self.user.xforms.get(
+                    id_string='transportation_2011_07_25')
                 data.update({
                     'url':
                     'http://testserver/api/v1/forms/%s' % xform.pk
@@ -974,7 +975,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 request = self.factory.post('/', data=post_data, **self.extra)
                 response = view(request)
                 self.assertEqual(response.status_code, 201)
-                xform = self.user.xforms.all()[0]
+                xform = self.user.xforms.get(
+                    id_string='Transportation_2011_07_25_1')
                 data.update({
                     'url': 'http://testserver/api/v1/forms/%s' % xform.pk,
                     'id_string': u'Transportation_2011_07_25_1',
