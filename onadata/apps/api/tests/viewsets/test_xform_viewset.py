@@ -6,6 +6,7 @@ import requests
 import pytz
 import StringIO
 
+import jwt
 from django.db.models import Q
 from datetime import datetime
 from django.utils import timezone
@@ -21,7 +22,6 @@ from django.utils.dateparse import parse_datetime
 from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
-from onadata.apps.api.models.temp_token import TempToken
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
@@ -841,46 +841,58 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             # do not store temp token
 
-            url = u"https://enketo.ona.io/::YY8M?temp-token=%s" % temp_token
+            url = u"https://enketo.ona.io/::YY8M?jwt=%s" % temp_token
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
             response = view(request, pk=formid)
-            self.assertEqual(response.status_code, 404)
 
-    def test_login_enketo_online_url(self):
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.data.get('message'),
+                             'Not enough segments')
+
+    def test_login_enketo_offline_url_using_jwt(self):
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'login'
             })
             formid = self.xform.pk
-            temp_token = 'abc'
 
-            # store temp token
-            TempToken(key=temp_token, user=self.user).save()
+            payload = {
+                'api-token': self.user.auth_token.key,
+            }
 
-            return_url = u"https://enketo.ona.io/::YY8M"
-            url = u"%s?temp-token=%s" % (return_url, temp_token)
+            encoded_payload = jwt.encode(
+                payload, settings.JWT_SECRET_KEY,
+                algorithm=settings.JWT_ALGORITHM)
+
+            return_url = u"https://enketo.ona.io/_/#YY8M"
+            url = u"https://enketo.ona.io/_/?jwt=%s#YY8M" % encoded_payload
+
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.get('Location'), return_url)
 
-    def test_login_enketo_offline_url(self):
+    def test_login_enketo_online_url_using_jwt(self):
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
                 'get': 'login'
             })
             formid = self.xform.pk
-            temp_token = 'abc'
 
-            # store temp token
-            TempToken(key=temp_token, user=self.user).save()
+            payload = {
+                'api-token': self.user.auth_token.key,
+            }
 
-            return_url = u"https://enketo.ona.io/_/#YY8M"
-            url = u"https://enketo.ona.io/_/?temp-token=%s#YY8M" % temp_token
+            encoded_payload = jwt.encode(
+                payload, settings.JWT_SECRET_KEY,
+                algorithm=settings.JWT_ALGORITHM)
+
+            return_url = u"https://enketo.ona.io/::YY8M"
+            url = u"%s?jwt=%s" % (return_url, encoded_payload)
             query_data = {'return': url}
             request = self.factory.get('/', data=query_data)
             response = view(request, pk=formid)
