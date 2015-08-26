@@ -142,13 +142,13 @@ def set_enketo_signed_cookies(resp, username=None, jwt=None):
     resp.set_signed_cookie('__enketo_meta_uid',
                            username,
                            max_age=max_age,
-                           # domain='.ona.io',
+                           domain='.ona.io',
                            salt=settings.ENKETO_API_SALT)
     resp.set_signed_cookie('__enketo',
                            jwt,
                            httponly=True,
                            secure=False,
-                           # domain='.ona.io',
+                           domain='.ona.io',
                            salt=settings.ENKETO_API_SALT)
 
     return resp
@@ -190,9 +190,13 @@ def parse_webform_return_url(return_url, request):
     # enketo calls to authenticate the user
     if _jwt:
         if request.user.is_anonymous():
-            jwt_payload = jwt.decode(_jwt,
-                                     settings.JWT_SECRET_KEY,
-                                     algorithms=[settings.JWT_ALGORITHM])
+            try:
+                jwt_payload = jwt.decode(_jwt,
+                                         settings.JWT_SECRET_KEY,
+                                         algorithms=[settings.JWT_ALGORITHM])
+            except jwt.DecodeError, e:
+                return Response({'message': e.message},
+                                status=status.HTTP_400_BAD_REQUEST)
             api_token = get_object_or_404(
                 Token, key=jwt_payload.get('api-token'))
             username = api_token.user.username
