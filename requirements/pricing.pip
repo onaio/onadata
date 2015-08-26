@@ -1,2 +1,2 @@
 # pricing
--e git+git@github.com:onaio/pricing.git@31_enrich_user_profiles#egg=pricing
+-e git+git@github.com:onaio/pricing.git@47-api-usage-hard-limit#egg=pricing
