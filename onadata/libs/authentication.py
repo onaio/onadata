@@ -1,13 +1,16 @@
+import jwt
 from django.conf import settings
 from django.core.signing import BadSignature
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from django_digest import HttpDigestAuthenticator
+from django.shortcuts import get_object_or_404
 from rest_framework import exceptions
 from rest_framework.authentication import get_authorization_header
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.authtoken.models import Token
 
 from onadata.apps.api.models.temp_token import TempToken
 
@@ -86,16 +89,20 @@ class TempTokenAuthentication(TokenAuthentication):
         return 'TempToken'
 
 
-class EnketoTempTokenAuthentication(TokenAuthentication):
-    model = TempToken
+class EnketoTokenAuthentication(TokenAuthentication):
+    model = Token
 
     def authenticate(self, request):
         try:
-            token = request.get_signed_cookie(
+            _jwt = request.get_signed_cookie(
                 '__enketo', salt='s0m3v3rys3cr3tk3y')
-            temp_token = self.model.objects.get(key=token)
+            jwt_payload = jwt.decode(_jwt,
+                                     settings.JWT_SECRET_KEY,
+                                     algorithms=[settings.JWT_ALGORITHM])
+            api_token = get_object_or_404(
+                Token, key=jwt_payload.get('api-token'))
 
-            return temp_token.user, token
+            return api_token.user, api_token
         except BadSignature as e:
             raise exceptions.AuthenticationFailed(_(u'Bad Signature: %s' % e))
         except self.model.DoesNotExist:
