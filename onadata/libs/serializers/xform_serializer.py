@@ -169,7 +169,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                                                          obj.user.username,
                                                          obj.id_string)
                     MetaData.enketo_preview_url(obj, preview_url)
-                except EnketoError:
+                except (EnketoError, ConnectionError):
                     pass
 
                 cache.set('{}{}'.format(ENKETO_PREVIEW_URL_CACHE, obj.pk),
