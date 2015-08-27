@@ -200,6 +200,8 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.view = XFormViewSet.as_view({
             'get': 'list',
         })
+        self.JWT_SECRET_KEY = 'thesecretkey'
+        self.JWT_ALGORITHM = 'HS256'
 
     def test_instances_with_geopoints_true_for_instances_with_geopoints(self):
         with HTTMock(enketo_mock):
@@ -830,7 +832,10 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response.content,
                 "Authentication failure, cannot redirect")
 
-    def test_login_enketo_online_url_bad_token(self):
+    @patch('onadata.apps.api.viewsets.xform_viewset.settings')
+    def test_login_enketo_online_url_bad_token(self, mock_settings):
+        mock_settings.JWT_SECRET_KEY = self.JWT_SECRET_KEY
+        mock_settings.JWT_ALGORITHM = self.JWT_ALGORITHM
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
@@ -850,7 +855,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data.get('message'),
                              'Not enough segments')
 
-    def test_login_enketo_offline_url_using_jwt(self):
+    @patch('onadata.apps.api.viewsets.xform_viewset.settings')
+    def test_login_enketo_offline_url_using_jwt(self, mock_settings):
+        mock_settings.JWT_SECRET_KEY = self.JWT_SECRET_KEY
+        mock_settings.JWT_ALGORITHM = self.JWT_ALGORITHM
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
@@ -863,8 +871,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             }
 
             encoded_payload = jwt.encode(
-                payload, settings.JWT_SECRET_KEY,
-                algorithm=settings.JWT_ALGORITHM)
+                payload, self.JWT_SECRET_KEY,
+                algorithm=self.JWT_ALGORITHM)
 
             return_url = u"https://enketo.ona.io/_/#YY8M"
             url = u"https://enketo.ona.io/_/?jwt=%s#YY8M" % encoded_payload
@@ -875,7 +883,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.get('Location'), return_url)
 
-    def test_login_enketo_online_url_using_jwt(self):
+    @patch('onadata.apps.api.viewsets.xform_viewset.settings')
+    def test_login_enketo_online_url_using_jwt(self, mock_settings):
+        mock_settings.JWT_SECRET_KEY = self.JWT_SECRET_KEY
+        mock_settings.JWT_ALGORITHM = self.JWT_ALGORITHM
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
@@ -888,8 +899,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             }
 
             encoded_payload = jwt.encode(
-                payload, settings.JWT_SECRET_KEY,
-                algorithm=settings.JWT_ALGORITHM)
+                payload, self.JWT_SECRET_KEY,
+                algorithm=self.JWT_ALGORITHM)
 
             return_url = u"https://enketo.ona.io/::YY8M"
             url = u"%s?jwt=%s" % (return_url, encoded_payload)
