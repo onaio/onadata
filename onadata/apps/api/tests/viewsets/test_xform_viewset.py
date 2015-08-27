@@ -268,6 +268,13 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
 
+    def test_form_list_without_enketo_connection(self):
+        self._publish_xls_form_to_project()
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+
     def test_submission_count_for_today_in_form_list(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()

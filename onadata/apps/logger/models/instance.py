@@ -249,7 +249,10 @@ class Instance(models.Model):
 
         if len(geo_xpaths):
             for xpath in geo_xpaths:
-                geometry = [float(s) for s in doc.get(xpath, u'').split()]
+                try:
+                    geometry = [float(s) for s in doc.get(xpath, u'').split()]
+                except ValueError:
+                    return
 
                 if len(geometry):
                     lat, lng = geometry[0:2]
