@@ -143,13 +143,13 @@ def set_enketo_signed_cookies(resp, username=None, jwt=None):
     resp.set_signed_cookie('__enketo_meta_uid',
                            username,
                            max_age=max_age,
-                           domain='.ona.io',
+                           # domain='.ona.io',
                            salt=settings.ENKETO_API_SALT)
     resp.set_signed_cookie('__enketo',
                            jwt,
                            httponly=True,
                            secure=False,
-                           domain='.ona.io',
+                           # domain='.ona.io',
                            salt=settings.ENKETO_API_SALT)
 
     return resp
@@ -574,8 +574,13 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         meta = request.QUERY_PARAMS.get('meta')
         data_id = request.QUERY_PARAMS.get('data_id')
         remove_group_name = request.QUERY_PARAMS.get('remove_group_name')
+        group_delimiter = request.QUERY_PARAMS.get("group_delimiter", '/')
+        split_select_multiples = request.QUERY_PARAMS.get(
+            "dont_split_select_multiples", "no") == "no"
 
         options = {
+            'split_select_multiples': split_select_multiples,
+            'group_delimiter': group_delimiter,
             'meta': meta,
             'token': token,
             'data_id': data_id,
