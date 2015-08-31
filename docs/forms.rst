@@ -288,6 +288,35 @@ Example
      curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&remove_group_name=true
 
 
+CSV and XLS exports with either '.' or '/' group delimiter in header names
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+To generate csv or xls export that has either '.' or '/' in header names, you
+can set `group_delimiter` param to either '.' or '/'. The default group delimeter
+is `/`.
+
+Example
+^^^^^^^
+
+::
+
+     curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&group_delimiter=.
+
+
+
+CSV and XLS exports with option to split multiple select fields
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+To generate csv or xls export whose mutliple select fields are not split you
+can set `dont_split_select_multiples` param to either 'yes'. The default value
+of `dont_split_select_multiples` is `no`
+
+Example
+^^^^^^^
+
+::
+
+     curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&dont_split_select_multiples=yes
+
+
 Delete an XLS form asynchronously
 -----------------------------------
 .. raw:: html
