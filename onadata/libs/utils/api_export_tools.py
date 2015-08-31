@@ -70,18 +70,22 @@ def should_regenerate_export(xform, export_type, request,
 def custom_response_handler(request, xform, query, export_type,
                             token=None, meta=None, dataview=None):
     export_type = _get_export_type(export_type)
-
     if export_type in external_export_types and \
             (token is not None) or (meta is not None):
         export_type = Export.EXTERNAL_EXPORT
 
     remove_group_name = str_to_bool(request.GET.get('remove_group_name'))
+    group_delimiter = request.GET.get('group_delimiter')
+    split_select_multiples = request.GET.get(
+            "dont_split_select_multiples", "no") == "no"
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
 
     if should_regenerate_export(xform, export_type, request,
                                 remove_group_name=remove_group_name,
-                                dataview=dataview):
+                                dataview=dataview) \
+            or group_delimiter in ['.', '/'] \
+            or split_select_multiples in [True, False]:
         export = _generate_new_export(request, xform, query, export_type,
                                       dataview=dataview)
     else:
@@ -133,16 +137,26 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
                 xform.id_string, export_id=None, filter_query=None)
         else:
             remove_group_name = False
+            group_delimiter = '/'
+            split_select_multiples = True
 
             if "remove_group_name" in request.QUERY_PARAMS:
                 remove_group_name = \
                     str_to_bool(request.QUERY_PARAMS["remove_group_name"])
+            if 'group_delimiter' in request.QUERY_PARAMS and \
+                    request.QUERY_PARAMS.get('group_delimiter') in ['.', '/']:
+                group_delimiter = request.QUERY_PARAMS["group_delimiter"]
+            if 'dont_split_select_multiples' in request.QUERY_PARAMS:
+                split_select_multiples = request.QUERY_PARAMS.get(
+                    "dont_split_select_multiples", "no") == "no"
 
             dataview_pk = dataview.pk if dataview else None
             export = generate_export(
                 export_type, extension, xform.user.username,
                 xform.id_string, None, query,
-                remove_group_name=remove_group_name, dataview_pk=dataview_pk
+                remove_group_name=remove_group_name, dataview_pk=dataview_pk,
+                group_delimiter=group_delimiter,
+                split_select_multiples=split_select_multiples
             )
         audit = {
             "xform": xform.id_string,
@@ -305,6 +319,7 @@ def process_async_export(request, xform, export_type, query=None, token=None,
         3. Always regenerate external exports.
             (External exports uses templates and the template might have
              changed)
+        4. When group delimiter is not None and is either '.' or '/'
     :param request:
     :param xform:
     :param export_type:
@@ -322,10 +337,12 @@ def process_async_export(request, xform, export_type, query=None, token=None,
                 export_type = Export.EXTERNAL_EXPORT
 
     remove_group_name = str_to_bool(options.get('remove_group_name'))
+    group_delimiter = options.get('group_delimiter')
     dataview_pk = options.get('dataview_pk')
     if should_regenerate_export(xform, export_type, request, remove_group_name,
                                 dataview_pk)\
-            or export_type == Export.EXTERNAL_EXPORT:
+            or export_type == Export.EXTERNAL_EXPORT \
+            or group_delimiter in ['.', '/']:
 
         resp = {
             u'job_uuid': _create_export_async(xform, export_type,
