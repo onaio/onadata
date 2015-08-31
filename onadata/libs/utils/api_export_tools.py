@@ -77,7 +77,7 @@ def custom_response_handler(request, xform, query, export_type,
     remove_group_name = str_to_bool(request.GET.get('remove_group_name'))
     group_delimiter = request.GET.get('group_delimiter')
     split_select_multiples = request.GET.get(
-            "dont_split_select_multiples", "no") == "no"
+        "dont_split_select_multiples", "no") == "no"
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
 
