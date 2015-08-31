@@ -2575,6 +2575,114 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertEquals(expected, response.data.get('form_versions'))
 
+    def test__csv_export__with_and_without_group_delimiter(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            survey = self.surveys[0]
+            _submission_time = parse_datetime('2013-02-18 15:54:01Z')
+            self._make_submission(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'apps',
+                    'main', 'tests', 'fixtures', 'transportation',
+                    'instances', survey, survey + '.xml'),
+                forced_submission_time=_submission_time)
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            data = {'remove_group_name': False}
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = _filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = _get_response_content(response)
+            content_header_row_with_slashes = content.split('\n')[0]
+
+            data = {'remove_group_name': False, 'group_delimiter': '.'}
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = _filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = _get_response_content(response)
+            content_header_row_with_dots = content.split('\n')[0]
+            self.assertEqual(content_header_row_with_dots,
+                             content_header_row_with_slashes.replace("/", "."))
+
+    def test__csv_export__with_and_dont_split_select_multiples(self):
+        with HTTMock(enketo_mock):
+            xlsform_path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "sample_accent.xlsx")
+            self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+            _submission_time = parse_datetime('2013-02-18 15:54:01Z')
+            for a in range(1, 4):
+                self._make_submission(
+                    os.path.join(
+                        settings.PROJECT_ROOT, 'apps',
+                        'main', 'tests', 'fixtures', 'sample_accent_instances',
+                        'instance_%s.xml' % a),
+                    forced_submission_time=_submission_time)
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            data = {'remove_group_name': False,
+                    'dont_split_select_multiples': 'yes'}
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = _filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = _get_response_content(response)
+            content_header_row_select_multiple_split = content.split('\n')[0]
+            before_multiples_select_split = len(
+                content_header_row_select_multiple_split.split(','))
+
+            data = {'remove_group_name': False}
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = _filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = _get_response_content(response)
+            content_header_row_select_multiple_not_split = \
+                content.split('\n')[0]
+            after_multiples_select_split = len(
+                content_header_row_select_multiple_not_split.split(','))
+
+            self.assertNotEqual(
+                before_multiples_select_split, after_multiples_select_split)
+            self.assertGreater(after_multiples_select_split,
+                               before_multiples_select_split)
+
     def test__csv_export__with_and_without_removed_group_name(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
