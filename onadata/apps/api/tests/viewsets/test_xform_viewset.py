@@ -2660,7 +2660,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             before_multiples_select_split = len(
                 content_header_row_select_multiple_split.split(','))
 
-            data = {'remove_group_name': False}
+            data = {'remove_group_name': False,
+                    'dont_split_select_multiples': 'no'}
             request = self.factory.get('/', data=data, **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
