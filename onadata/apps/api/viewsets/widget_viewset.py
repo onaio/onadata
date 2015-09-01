@@ -15,10 +15,13 @@ from onadata.apps.logger.models.widget import Widget
 from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.serializers.widget_serilizer import WidgetSerializer
 from onadata.apps.api.permissions import WidgetViewSetPermissions
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
 class WidgetViewSet(AuthenticateHeaderMixin,
-                    CacheControlMixin, ETagsMixin, ModelViewSet):
+                    CacheControlMixin, ETagsMixin, BaseViewset, ModelViewSet):
     queryset = Widget.objects.all()
     serializer_class = WidgetSerializer
     permission_classes = [WidgetViewSetPermissions]
