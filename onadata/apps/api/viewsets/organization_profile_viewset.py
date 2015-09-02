@@ -31,6 +31,10 @@ from onadata.libs.serializers.organization_serializer import(
     OrganizationSerializer)
 from onadata.settings.common import (DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT)
 from onadata.apps.api.tools import load_class
+from onadata.apps.api.tools import get_baseviewset_class
+
+
+BaseViewset = get_baseviewset_class()
 
 
 def _try_function_org_username(f, organization, username, args=None):
@@ -154,6 +158,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
                                  CacheControlMixin,
                                  ETagsMixin,
                                  ObjectLookupMixin,
+                                 BaseViewset,
                                  ModelViewSet):
     """
     List, Retrieve, Update, Create/Register Organizations.
