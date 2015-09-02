@@ -178,7 +178,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
             _enketo_preview_url = metadata.data_value
             cache.set(
-                '{}{}'.format(ENKETO_URL_CACHE, obj.pk), _enketo_preview_url)
+                '{}{}'.format(
+                    ENKETO_PREVIEW_URL_CACHE, obj.pk), _enketo_preview_url)
             return _enketo_preview_url
 
         return None
