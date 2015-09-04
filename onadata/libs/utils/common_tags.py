@@ -69,3 +69,5 @@ MULTIPLE_SELECT_TYPE = u'select all that apply'
 GROUPNAME_REMOVED_FLAG = u'group-name-removed'
 DATAVIEW_EXPORT = U'dataview'
 OWNER_TEAM_NAME = "Owners"
+
+API_TOKEN = 'api-token'

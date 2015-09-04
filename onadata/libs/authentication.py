@@ -13,6 +13,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.authtoken.models import Token
 
 from onadata.apps.api.models.temp_token import TempToken
+from onadata.libs.utils.common_tags import API_TOKEN
 
 
 def expired(time_token_created):
@@ -100,7 +101,7 @@ class EnketoTokenAuthentication(TokenAuthentication):
                                      settings.JWT_SECRET_KEY,
                                      algorithms=[settings.JWT_ALGORITHM])
             api_token = get_object_or_404(
-                Token, key=jwt_payload.get('api-token'))
+                Token, key=jwt_payload.get(API_TOKEN))
 
             return api_token.user, api_token
         except BadSignature as e:

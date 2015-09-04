@@ -56,6 +56,7 @@ from onadata.libs.utils.viewer_tools import (
     generate_enketo_form_defaults)
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
+from onadata.libs.utils.common_tags import API_TOKEN
 
 from onadata.libs.utils.csv_import import get_async_csv_submission_status
 from onadata.libs.utils.csv_import import submit_csv
@@ -161,15 +162,14 @@ def parse_webform_return_url(return_url, request):
     this data or data in the request. Construct a proper return URL, which has
     stripped the authentication data, to return the user.
     """
-    _jwt = None
+    jwt_param = None
     url = urlparse(return_url)
     try:
         # get jwt from url - probably zebra via enketo
         jwt_param = filter(
             lambda p: p.startswith('jwt'),
             url.query.split('&'))
-        if jwt_param:
-            _jwt = jwt_param[0].split('=')[1]
+        jwt_param = jwt_param and jwt_param[0].split('=')[1]
     except IndexError:
         pass
 
@@ -185,26 +185,26 @@ def parse_webform_return_url(return_url, request):
     response_redirect = HttpResponseRedirect(redirect_url)
 
     # if the requesting user is not authenticated but the token has been
-    # retrieve from the url - probably zebra via enketo express - use the
+    # retrieved from the url - probably zebra via enketo express - use the
     # token to create signed cookies which will be used by subsequent
     # enketo calls to authenticate the user
-    if _jwt:
+    if jwt_param:
         if request.user.is_anonymous():
             try:
-                jwt_payload = jwt.decode(_jwt,
+                jwt_payload = jwt.decode(jwt_param,
                                          settings.JWT_SECRET_KEY,
                                          algorithms=[settings.JWT_ALGORITHM])
             except jwt.DecodeError, e:
                 return Response({'message': e.message},
                                 status=status.HTTP_400_BAD_REQUEST)
             api_token = get_object_or_404(
-                Token, key=jwt_payload.get('api-token'))
+                Token, key=jwt_payload.get(API_TOKEN))
             username = api_token.user.username
         else:
             username = request.user.username
 
         response_redirect = set_enketo_signed_cookies(
-            response_redirect, username=username, jwt=_jwt)
+            response_redirect, username=username, jwt=jwt_param)
 
         return response_redirect
 
