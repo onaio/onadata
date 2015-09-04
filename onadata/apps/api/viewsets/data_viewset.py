@@ -40,6 +40,7 @@ from onadata.libs.utils.viewer_tools import (
     EnketoError,
     get_enketo_edit_url)
 from onadata.libs.data import parse_int
+from onadata.apps.api.permissions import ConnectViewsetPermissions
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
@@ -371,3 +372,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             page = None
 
         return Response(serializer.data)
+
+
+class AuthenticatedDataViewSet(DataViewSet):
+    permission_classes = (ConnectViewsetPermissions,)

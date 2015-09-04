@@ -12,4 +12,4 @@ class TestOnaApi(TestAbstractViewSet):
         request = self.factory.get('/')
         response = view(request)
 
-        self.assertEquals(len(response.data), 23)
+        self.assertEquals(len(response.data), 24)
