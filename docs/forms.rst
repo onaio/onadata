@@ -289,7 +289,7 @@ Example
 
 
 CSV and XLS exports with either '.' or '/' group delimiter in header names
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 To generate csv or xls export that has either '.' or '/' in header names, you
 can set `group_delimiter` param to either '.' or '/'. The default group delimeter
 is `/`.
