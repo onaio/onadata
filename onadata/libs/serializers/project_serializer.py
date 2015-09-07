@@ -10,16 +10,49 @@ from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.utils.decorators import check_obj
+from onadata.libs.utils.dataview import get_dataview_count
 from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE, PROJ_PERM_CACHE,
     PROJ_SUB_DATE_CACHE, safe_delete, PROJ_TEAM_USERS_CACHE)
 from onadata.apps.api.models import Team
 from onadata.libs.permissions import get_team_project_default_permissions
+from onadata.libs.utils.cache_tools import ENKETO_URL_CACHE
+from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.logger.models import DataView
 
 
 def set_owners_permission(user, project):
     """Give the user owner permission"""
     OwnerRole.add(user, project)
+
+
+def get_enketo_url(pk):
+    enketo_url = cache.get(
+        '{}{}'.format(ENKETO_URL_CACHE, pk))
+    if enketo_url:
+        return enketo_url
+
+    enketo_url = ''
+    try:
+        metadata = MetaData.objects.get(
+            xform__pk=pk, data_type="enketo_url")
+        enketo_url = metadata.data_value
+    except MetaData.MultipleObjectsReturned:
+        pass
+    except MetaData.DoesNotExist:
+        pass
+
+    return enketo_url
+
+
+def get_dataviews(pk):
+    dataviews = DataView.objects.filter(xform__pk=pk)
+    dataviews = [{'dataviewid': dataview.id,
+                  'name': dataview.name,
+                  'date_created': dataview.date_created,
+                  'count': get_dataview_count(dataview)}
+                 for dataview in dataviews]
+    return dataviews
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
@@ -110,9 +143,16 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             if forms:
                 return forms
 
-            xforms_details = obj.xform_set.values('pk', 'title')
+            xforms_details = obj.xform_set.values(
+                'pk', 'title', 'num_of_submissions', 'date_created')
 
-            forms = [{'name': form['title'], 'id':form['pk']}
+            forms = [{'name': form['title'],
+                      'id':form['pk'],
+                      'num_of_submissions':form['num_of_submissions'],
+                      'date_created':form['date_created'],
+                      'enketo_url': get_enketo_url(form['pk']),
+                      'dataviews': get_dataviews(form['pk'])
+                      }
                      for form in xforms_details]
             cache.set('{}{}'.format(PROJ_FORMS_CACHE, obj.pk), forms)
             return forms
