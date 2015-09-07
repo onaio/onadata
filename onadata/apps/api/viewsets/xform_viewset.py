@@ -66,6 +66,7 @@ from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.api_export_tools import process_async_export
 from onadata.libs.utils.api_export_tools import get_async_response
 from onadata.libs.utils.api_export_tools import response_for_format
+from onadata.libs.utils.export_tools import parse_request_export_options
 
 
 def upload_to_survey_draft(filename, username):
@@ -573,19 +574,21 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         token = request.QUERY_PARAMS.get('token')
         meta = request.QUERY_PARAMS.get('meta')
         data_id = request.QUERY_PARAMS.get('data_id')
-        remove_group_name = request.QUERY_PARAMS.get('remove_group_name')
-        group_delimiter = request.QUERY_PARAMS.get("group_delimiter", '/')
-        split_select_multiples = request.QUERY_PARAMS.get(
-            "dont_split_select_multiples", "no") == "no"
+        remove_group_name, group_delimiter, dont_split_select_multiples =\
+            parse_request_export_options(request)
 
         options = {
-            'split_select_multiples': split_select_multiples,
-            'group_delimiter': group_delimiter,
             'meta': meta,
             'token': token,
             'data_id': data_id,
             'remove_group_name': remove_group_name
         }
+
+        if group_delimiter:
+            options['group_delimiter'] = group_delimiter
+        if dont_split_select_multiples:
+            options['dont_split_select_multiples'] =\
+                dont_split_select_multiples
 
         if job_uuid:
             resp = get_async_response(job_uuid, request, xform)
