@@ -61,3 +61,6 @@ ansible
 docs/_build
 dev_https
 stunnel.pem
+
+# profiling temp files
+profile

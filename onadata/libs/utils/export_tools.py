@@ -45,6 +45,8 @@ QUESTION_TYPES_TO_EXCLUDE = [
 MULTIPLE_SELECT_BIND_TYPE = u"select"
 GEOPOINT_BIND_TYPE = u"geopoint"
 
+DEFAULT_GROUP_DELIMITER = '/'
+
 
 def encode_if_str(row, key, encode_dates=False):
     val = row.get(key)
@@ -1204,30 +1206,31 @@ def upload_template_for_external_export(server, file_obj):
 
 
 def parse_request_export_options(request):
+    """
+    Parse export options in the request object into values returned in a
+    list. The list represents a boolean for whether the group name should be
+    removed, the group delimiter, and a boolean for whether select multiples
+    should be split.
+    """
     boolean_list = ['true', 'false']
     params = request.QUERY_PARAMS
     remove_group_name = params.get('remove_group_name') and \
         params.get('remove_group_name').lower()
-    dont_split_select_multiples = params.get('dont_split_select_multiples') \
-        and params.get('dont_split_select_multiples').lower()
+    do_not_split_select_multiples = params.get(
+        'do_not_split_select_multiples')
 
     if remove_group_name in boolean_list:
         remove_group_name = str_to_bool(remove_group_name)
     else:
         remove_group_name = str_to_bool('false')
 
-    if params.get("group_delimiter") in ['.', '/']:
+    if params.get("group_delimiter") in ['.', DEFAULT_GROUP_DELIMITER]:
         group_delimiter = params.get("group_delimiter")
     else:
-        group_delimiter = '/'
-
-    if dont_split_select_multiples in boolean_list:
-        dont_split_select_multiples = str_to_bool(dont_split_select_multiples)
-    else:
-        dont_split_select_multiples = str_to_bool('true')
+        group_delimiter = DEFAULT_GROUP_DELIMITER
 
     return (
         remove_group_name,
         group_delimiter,
-        dont_split_select_multiples,
+        not do_not_split_select_multiples,
     )

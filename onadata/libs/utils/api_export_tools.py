@@ -15,7 +15,8 @@ from rest_framework.reverse import reverse
 from celery.result import AsyncResult
 
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.utils.export_tools import should_create_new_export
+from onadata.libs.utils.export_tools import DEFAULT_GROUP_DELIMITER,\
+    should_create_new_export
 from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import log
@@ -60,14 +61,16 @@ def _get_export_type(export_type):
 
 
 def should_regenerate_export(xform, export_type, request,
-                             remove_group_name=False, dataview=None):
+                             remove_group_name=False,
+                             group_delimiter=DEFAULT_GROUP_DELIMITER,
+                             split_select_multiples=True, dataview=None):
     return should_create_new_export(xform, export_type,
                                     remove_group_name=remove_group_name,
                                     dataview=dataview) or\
         'start' in request.GET or 'end' in request.GET or\
         'query' in request.GET or 'data_id' in request.GET or\
-        'group_delimiter' in request.GET or\
-        'dont_split_select_multiples' in request.GET
+        group_delimiter != DEFAULT_GROUP_DELIMITER or\
+        not split_select_multiples
 
 
 def custom_response_handler(request, xform, query, export_type,
@@ -77,7 +80,7 @@ def custom_response_handler(request, xform, query, export_type,
             (token is not None) or (meta is not None):
         export_type = Export.EXTERNAL_EXPORT
 
-    remove_group_name, group_delimiter, dont_split_select_multiples =\
+    remove_group_name, group_delimiter, split_select_multiples =\
         parse_request_export_options(request)
 
     # check if we need to re-generate,
@@ -85,7 +88,8 @@ def custom_response_handler(request, xform, query, export_type,
 
     if should_regenerate_export(
             xform, export_type, request, remove_group_name=remove_group_name,
-            dataview=dataview):
+            dataview=dataview, group_delimiter=group_delimiter,
+            split_select_multiples=split_select_multiples):
         export = _generate_new_export(request, xform, query, export_type,
                                       dataview=dataview)
     else:
@@ -327,8 +331,12 @@ def process_async_export(request, xform, export_type, query=None, token=None,
     remove_group_name = options.get('remove_group_name')
 
     dataview_pk = options.get('dataview_pk')
-    if should_regenerate_export(xform, export_type, request, remove_group_name,
-                                dataview_pk)\
+    if should_regenerate_export(
+            xform, export_type, request,
+            remove_group_name=remove_group_name,
+            dataview=dataview_pk,
+            group_delimiter=options['group_delimiter'],
+            split_select_multiples=options['split_select_multiples'])\
             or export_type == Export.EXTERNAL_EXPORT:
         resp = {
             u'job_uuid': _create_export_async(xform, export_type,
