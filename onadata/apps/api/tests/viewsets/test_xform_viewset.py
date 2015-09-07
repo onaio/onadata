@@ -2623,7 +2623,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(content_header_row_with_dots,
                              content_header_row_with_slashes.replace("/", "."))
 
-    def test__csv_export__with_and_dont_split_select_multiples(self):
+    def test__csv_export__with_and_without_dont_split_select_multiples(self):
         with HTTMock(enketo_mock):
             xlsform_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
@@ -2643,7 +2643,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             })
 
             data = {'remove_group_name': False,
-                    'dont_split_select_multiples': 'yes'}
+                    'dont_split_select_multiples': False}
             request = self.factory.get('/', data=data, **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
@@ -2661,7 +2661,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 content_header_row_select_multiple_split.split(','))
 
             data = {'remove_group_name': False,
-                    'dont_split_select_multiples': 'no'}
+                    'dont_split_select_multiples': True}
             request = self.factory.get('/', data=data, **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
