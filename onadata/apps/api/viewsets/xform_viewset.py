@@ -1,6 +1,7 @@
 import os
 import random
 
+import jwt
 from urlparse import urlparse
 from datetime import datetime
 
@@ -28,10 +29,10 @@ from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.filters import DjangoFilterBackend
+from rest_framework.authtoken.models import Token
 
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
-from onadata.apps.api.models.temp_token import TempToken
 from onadata.libs import filters
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -55,6 +56,7 @@ from onadata.libs.utils.viewer_tools import (
     generate_enketo_form_defaults)
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
+from onadata.libs.utils.common_tags import API_TOKEN
 
 from onadata.libs.utils.csv_import import get_async_csv_submission_status
 from onadata.libs.utils.csv_import import submit_csv
@@ -133,14 +135,9 @@ def get_survey_xml(csv_name):
     return survey.to_xml()
 
 
-def set_enketo_signed_cookies(resp, user=None, temp_token_key=None):
-    if user:
-        username = user.username
-        temp_token = get_object_or_404(TempToken, user=user)
-    else:
-        # assume temp_token_key is not None
-        temp_token = get_object_or_404(TempToken, key=temp_token_key)
-        username = temp_token.user.username
+def set_enketo_signed_cookies(resp, username=None, jwt=None):
+    if not username and not jwt:
+        return
 
     max_age = 30 * 24 * 60 * 60 * 1000
     resp.set_signed_cookie('__enketo_meta_uid',
@@ -149,7 +146,7 @@ def set_enketo_signed_cookies(resp, user=None, temp_token_key=None):
                            domain='.ona.io',
                            salt=settings.ENKETO_API_SALT)
     resp.set_signed_cookie('__enketo',
-                           temp_token.key,
+                           jwt,
                            httponly=True,
                            secure=False,
                            domain='.ona.io',
@@ -165,8 +162,16 @@ def parse_webform_return_url(return_url, request):
     this data or data in the request. Construct a proper return URL, which has
     stripped the authentication data, to return the user.
     """
-    token = None
+    jwt_param = None
     url = urlparse(return_url)
+    try:
+        # get jwt from url - probably zebra via enketo
+        jwt_param = filter(
+            lambda p: p.startswith('jwt'),
+            url.query.split('&'))
+        jwt_param = jwt_param and jwt_param[0].split('=')[1]
+    except IndexError:
+        pass
 
     if '/_/' in return_url:  # offline url
         redirect_url = "%s://%s%s#%s" % (
@@ -179,30 +184,29 @@ def parse_webform_return_url(return_url, request):
 
     response_redirect = HttpResponseRedirect(redirect_url)
 
-    if not request.user.is_anonymous():
-        user = request.user
-        response_redirect = set_enketo_signed_cookies(
-            response_redirect, user=user)
-        return response_redirect
-    else:
-        try:
-            # get temp-token param from url - probably zebra via enketo
-            temp_token_param = filter(
-                lambda p: p.startswith('temp-token'),
-                url.query.split('&'))[0]
-            token = temp_token_param.split('=')[1]
-        except IndexError:
-            pass
+    # if the requesting user is not authenticated but the token has been
+    # retrieved from the url - probably zebra via enketo express - use the
+    # token to create signed cookies which will be used by subsequent
+    # enketo calls to authenticate the user
+    if jwt_param:
+        if request.user.is_anonymous():
+            try:
+                jwt_payload = jwt.decode(jwt_param,
+                                         settings.JWT_SECRET_KEY,
+                                         algorithms=[settings.JWT_ALGORITHM])
+            except jwt.DecodeError, e:
+                return Response({'message': e.message},
+                                status=status.HTTP_400_BAD_REQUEST)
+            api_token = get_object_or_404(
+                Token, key=jwt_payload.get(API_TOKEN))
+            username = api_token.user.username
+        else:
+            username = request.user.username
 
-        # if the requesting user is not authenticated but the token has been
-        # retrieve from the url - probably zebra via enketo express - use the
-        # token to create signed cookies which will be used by subsequent
-        # enketo calls to authenticate the user
-        if token:
-            temp_token = get_object_or_404(TempToken, key=token)
-            response_redirect = set_enketo_signed_cookies(
-                response_redirect, temp_token_key=temp_token.key)
-            return response_redirect
+        response_redirect = set_enketo_signed_cookies(
+            response_redirect, username=username, jwt=jwt_param)
+
+        return response_redirect
 
 
 class XFormViewSet(AnonymousUserPublicFormsMixin,

@@ -17,7 +17,7 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
 from onadata.libs.authentication import DigestAuthentication
-from onadata.libs.authentication import EnketoTempTokenAuthentication
+from onadata.libs.authentication import EnketoTokenAuthentication
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation
@@ -34,7 +34,7 @@ DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 class XFormListViewSet(CacheControlMixin, ETagsMixin,
                        viewsets.ReadOnlyModelViewSet):
     authentication_classes = (DigestAuthentication,
-                              EnketoTempTokenAuthentication,)
+                              EnketoTokenAuthentication,)
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.XFormListObjectPermissionFilter,)
     queryset = XForm.objects.filter(downloadable=True, deleted_at=None)

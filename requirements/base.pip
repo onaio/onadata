@@ -28,6 +28,9 @@ django-digest==1.13
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
 python-dateutil==2.4.2
 
+# jwt
+PyJWT==1.1.0
+
 requests==2.7.0
 elaphe==0.6.0
 
