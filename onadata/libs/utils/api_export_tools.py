@@ -26,6 +26,7 @@ from onadata.libs.utils.export_tools import generate_export
 from onadata.libs.utils.export_tools import generate_kml_export
 from onadata.libs.utils.export_tools import generate_external_export
 from onadata.libs.utils.export_tools import generate_osm_export
+from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.utils.common_tags import SUBMISSION_TIME,\
@@ -59,12 +60,15 @@ def _get_export_type(export_type):
 
 
 def should_regenerate_export(xform, export_type, request,
-                             remove_group_name=False, dataview=None):
+                             remove_group_name=False, dataview=None,
+                             group_delimiter=None,
+                             dont_split_select_multiples=None):
     return should_create_new_export(xform, export_type,
                                     remove_group_name=remove_group_name,
                                     dataview=dataview) or\
         'start' in request.GET or 'end' in request.GET or\
-        'query' in request.GET or 'data_id' in request.GET
+        'query' in request.GET or 'data_id' in request.GET or\
+        group_delimiter or dont_split_select_multiples
 
 
 def custom_response_handler(request, xform, query, export_type,
@@ -74,21 +78,16 @@ def custom_response_handler(request, xform, query, export_type,
             (token is not None) or (meta is not None):
         export_type = Export.EXTERNAL_EXPORT
 
-    split_select_multiples = None
-    remove_group_name = str_to_bool(request.GET.get('remove_group_name'))
-    group_delimiter = request.GET.get('group_delimiter')
-    if request.GET.get("dont_split_select_multiples"):
-        split_select_multiples = request.GET.get(
-            "dont_split_select_multiples", "no") == "no"
+    remove_group_name, group_delimiter, dont_split_select_multiples =\
+        parse_request_export_options(request)
 
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
 
-    if should_regenerate_export(xform, export_type, request,
-                                remove_group_name=remove_group_name,
-                                dataview=dataview) \
-            or group_delimiter in ['.', '/'] \
-            or split_select_multiples in [True, False]:
+    if should_regenerate_export(
+            xform, export_type, request, remove_group_name=remove_group_name,
+            dataview=dataview, group_delimiter=group_delimiter,
+            dont_split_select_multiples=dont_split_select_multiples):
         export = _generate_new_export(request, xform, query, export_type,
                                       dataview=dataview)
     else:
@@ -139,19 +138,8 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
                 export_type, extension, xform.user.username,
                 xform.id_string, export_id=None, filter_query=None)
         else:
-            remove_group_name = False
-            group_delimiter = '/'
-            split_select_multiples = True
-
-            if "remove_group_name" in request.QUERY_PARAMS:
-                remove_group_name = \
-                    str_to_bool(request.QUERY_PARAMS["remove_group_name"])
-            if 'group_delimiter' in request.QUERY_PARAMS and \
-                    request.QUERY_PARAMS.get('group_delimiter') in ['.', '/']:
-                group_delimiter = request.QUERY_PARAMS["group_delimiter"]
-            if 'dont_split_select_multiples' in request.QUERY_PARAMS:
-                split_select_multiples = request.QUERY_PARAMS.get(
-                    "dont_split_select_multiples", "no") == "no"
+            remove_group_name, group_delimiter, split_select_multiples =\
+                parse_request_export_options(request)
 
             dataview_pk = dataview.pk if dataview else None
             export = generate_export(
@@ -322,7 +310,6 @@ def process_async_export(request, xform, export_type, query=None, token=None,
         3. Always regenerate external exports.
             (External exports uses templates and the template might have
              changed)
-        4. When group delimiter is not None and is either '.' or '/'
     :param request:
     :param xform:
     :param export_type:
@@ -339,21 +326,21 @@ def process_async_export(request, xform, export_type, query=None, token=None,
             (token is not None) or (meta is not None):
                 export_type = Export.EXTERNAL_EXPORT
 
-    remove_group_name = str_to_bool(options.get('remove_group_name'))
+    remove_group_name = options.get('remove_group_name')
     group_delimiter = options.get('group_delimiter')
+    dont_split_select_multiples = options.get('dont_split_select_multiples')
+
     dataview_pk = options.get('dataview_pk')
     if should_regenerate_export(xform, export_type, request, remove_group_name,
-                                dataview_pk)\
-            or export_type == Export.EXTERNAL_EXPORT \
-            or group_delimiter in ['.', '/']:
-
+                                dataview_pk, group_delimiter,
+                                dont_split_select_multiples)\
+            or export_type == Export.EXTERNAL_EXPORT:
         resp = {
             u'job_uuid': _create_export_async(xform, export_type,
                                               query, False,
                                               options=options)
         }
     else:
-        remove_group_name = options.get('remove_group_name')
         export = newest_export_for(xform, export_type, remove_group_name,
                                    dataview_pk)
 
