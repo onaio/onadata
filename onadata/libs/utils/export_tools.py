@@ -1201,3 +1201,33 @@ def upload_template_for_external_export(server, file_obj):
         status_code = 500
 
     return str(status_code) + '|' + response
+
+
+def parse_request_export_options(request):
+    boolean_list = ['true', 'false']
+    params = request.QUERY_PARAMS
+    remove_group_name = params.get('remove_group_name') and \
+        params.get('remove_group_name').lower()
+    dont_split_select_multiples = params.get('dont_split_select_multiples') \
+        and params.get('dont_split_select_multiples').lower()
+
+    if remove_group_name in boolean_list:
+        remove_group_name = str_to_bool(remove_group_name)
+    else:
+        remove_group_name = str_to_bool('false')
+
+    if params.get("group_delimiter") in ['.', '/']:
+        group_delimiter = params.get("group_delimiter")
+    else:
+        group_delimiter = '/'
+
+    if dont_split_select_multiples in boolean_list:
+        dont_split_select_multiples = str_to_bool(dont_split_select_multiples)
+    else:
+        dont_split_select_multiples = str_to_bool('true')
+
+    return (
+        remove_group_name,
+        group_delimiter,
+        dont_split_select_multiples,
+    )
