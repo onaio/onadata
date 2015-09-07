@@ -306,15 +306,15 @@ Example
 CSV and XLS exports with option to split multiple select fields
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 To generate csv or xls export whose mutliple select fields are not split you
-can set `dont_split_select_multiples` param to either 'yes'. The default value
-of `dont_split_select_multiples` is `no`
+can set `dont_split_select_multiples` param to either 'true'. The default value
+of `dont_split_select_multiples` is `false`
 
 Example
 ^^^^^^^
 
 ::
 
-     curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&dont_split_select_multiples=yes
+     curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&dont_split_select_multiples=true
 
 
 Delete an XLS form asynchronously
