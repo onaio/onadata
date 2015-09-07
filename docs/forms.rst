@@ -306,8 +306,8 @@ Example
 CSV and XLS exports with option to split multiple select fields
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 To generate csv or xls export whose mutliple select fields are not split you
-can set `dont_split_select_multiples` param to either 'true'. The default value
-of `dont_split_select_multiples` is `false`
+can set `dont_split_select_multiples` param to 'false'. The default value
+of `dont_split_select_multiples` is `true`
 
 Example
 ^^^^^^^
