@@ -1210,6 +1210,7 @@ def parse_request_export_options(request):
         params.get('remove_group_name').lower()
     dont_split_select_multiples = params.get('dont_split_select_multiples') \
         and params.get('dont_split_select_multiples').lower()
+
     if remove_group_name in boolean_list:
         remove_group_name = str_to_bool(remove_group_name)
     else:
@@ -1223,7 +1224,7 @@ def parse_request_export_options(request):
     if dont_split_select_multiples in boolean_list:
         dont_split_select_multiples = str_to_bool(dont_split_select_multiples)
     else:
-        dont_split_select_multiples = None
+        dont_split_select_multiples = str_to_bool('true')
 
     return (
         remove_group_name,

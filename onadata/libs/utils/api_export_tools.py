@@ -60,15 +60,14 @@ def _get_export_type(export_type):
 
 
 def should_regenerate_export(xform, export_type, request,
-                             remove_group_name=False, dataview=None,
-                             group_delimiter=None,
-                             dont_split_select_multiples=None):
+                             remove_group_name=False, dataview=None):
     return should_create_new_export(xform, export_type,
                                     remove_group_name=remove_group_name,
                                     dataview=dataview) or\
         'start' in request.GET or 'end' in request.GET or\
         'query' in request.GET or 'data_id' in request.GET or\
-        group_delimiter or dont_split_select_multiples
+        'group_delimiter' in request.GET or\
+        'dont_split_select_multiples' in request.GET
 
 
 def custom_response_handler(request, xform, query, export_type,
@@ -86,8 +85,7 @@ def custom_response_handler(request, xform, query, export_type,
 
     if should_regenerate_export(
             xform, export_type, request, remove_group_name=remove_group_name,
-            dataview=dataview, group_delimiter=group_delimiter,
-            dont_split_select_multiples=dont_split_select_multiples):
+            dataview=dataview):
         export = _generate_new_export(request, xform, query, export_type,
                                       dataview=dataview)
     else:
@@ -327,13 +325,10 @@ def process_async_export(request, xform, export_type, query=None, token=None,
                 export_type = Export.EXTERNAL_EXPORT
 
     remove_group_name = options.get('remove_group_name')
-    group_delimiter = options.get('group_delimiter')
-    dont_split_select_multiples = options.get('dont_split_select_multiples')
 
     dataview_pk = options.get('dataview_pk')
     if should_regenerate_export(xform, export_type, request, remove_group_name,
-                                dataview_pk, group_delimiter,
-                                dont_split_select_multiples)\
+                                dataview_pk)\
             or export_type == Export.EXTERNAL_EXPORT:
         resp = {
             u'job_uuid': _create_export_async(xform, export_type,

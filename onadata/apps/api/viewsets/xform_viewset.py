@@ -574,21 +574,17 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         token = request.QUERY_PARAMS.get('token')
         meta = request.QUERY_PARAMS.get('meta')
         data_id = request.QUERY_PARAMS.get('data_id')
-        remove_group_name, group_delimiter, dont_split_select_multiples =\
+        remove_group_name, group_delimiter, split_select_multiples =\
             parse_request_export_options(request)
 
         options = {
             'meta': meta,
             'token': token,
             'data_id': data_id,
-            'remove_group_name': remove_group_name
+            'remove_group_name': remove_group_name,
+            'group_delimiter': group_delimiter,
+            'split_select_multiples': split_select_multiples
         }
-
-        if group_delimiter:
-            options['group_delimiter'] = group_delimiter
-        if dont_split_select_multiples:
-            options['dont_split_select_multiples'] =\
-                dont_split_select_multiples
 
         if job_uuid:
             resp = get_async_response(job_uuid, request, xform)
