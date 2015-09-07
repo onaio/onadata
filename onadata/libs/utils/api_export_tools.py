@@ -335,8 +335,8 @@ def process_async_export(request, xform, export_type, query=None, token=None,
             xform, export_type, request,
             remove_group_name=remove_group_name,
             dataview=dataview_pk,
-            group_delimiter=options['group_delimiter'],
-            split_select_multiples=options['split_select_multiples'])\
+            group_delimiter=options.get('group_delimiter'),
+            split_select_multiples=options.get('split_select_multiples'))\
             or export_type == Export.EXTERNAL_EXPORT:
         resp = {
             u'job_uuid': _create_export_async(xform, export_type,
