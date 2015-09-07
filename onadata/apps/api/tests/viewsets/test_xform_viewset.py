@@ -2623,7 +2623,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(content_header_row_with_dots,
                              content_header_row_with_slashes.replace("/", "."))
 
-    def test__csv_export__with_and_without_dont_split_select_multiples(self):
+    def test__csv_export__with_and_without_do_not_split_select_multiples(self):
         with HTTMock(enketo_mock):
             xlsform_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
@@ -2642,8 +2642,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'get': 'retrieve'
             })
 
-            data = {'remove_group_name': False,
-                    'dont_split_select_multiples': False}
+            data = {'remove_group_name': False}
             request = self.factory.get('/', data=data, **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
@@ -2657,11 +2656,11 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             content = _get_response_content(response)
             content_header_row_select_multiple_split = content.split('\n')[0]
-            before_multiples_select_split = len(
+            multiples_select_split = len(
                 content_header_row_select_multiple_split.split(','))
 
             data = {'remove_group_name': False,
-                    'dont_split_select_multiples': True}
+                    'do_not_split_select_multiples': True}
             request = self.factory.get('/', data=data, **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
@@ -2676,13 +2675,13 @@ class TestXFormViewSet(TestAbstractViewSet):
             content = _get_response_content(response)
             content_header_row_select_multiple_not_split = \
                 content.split('\n')[0]
-            after_multiples_select_split = len(
+            no_multiples_select_split = len(
                 content_header_row_select_multiple_not_split.split(','))
 
             self.assertNotEqual(
-                before_multiples_select_split, after_multiples_select_split)
-            self.assertGreater(after_multiples_select_split,
-                               before_multiples_select_split)
+                multiples_select_split, no_multiples_select_split)
+            self.assertGreater(multiples_select_split,
+                               no_multiples_select_split)
 
     def test__csv_export__with_and_without_removed_group_name(self):
         with HTTMock(enketo_mock):
