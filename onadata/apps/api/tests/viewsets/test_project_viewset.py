@@ -100,6 +100,25 @@ class TestProjectViewSet(TestAbstractViewSet):
         res_user_props.sort()
         self.assertEqual(res_user_props, user_props)
 
+    def test_none_empty_dataview_property_in_returned_json(self):
+        self._publish_xls_form_to_project()
+        self._create_dataview()
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertGreater(len(response.data.get('forms')), 0)
+        self.assertGreater(
+            len(response.data.get('forms')[0].get('dataviews')), 0)
+
+        data_view_obj_keys = response.data.get(
+            'forms')[0].get('dataviews')[0].keys()
+        self.assertEqual(['count', 'dataviewid', 'date_created', 'name'],
+                         sorted(data_view_obj_keys))
+        self.assertEqual(response.status_code, 200)
+
     def test_projects_tags(self):
         self._project_create()
         view = ProjectViewSet.as_view({
