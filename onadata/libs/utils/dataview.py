@@ -6,6 +6,9 @@ from onadata.libs.utils.cache_tools import DATAVIEW_COUNT
 
 
 def get_dataview_count(dataview):
+    """
+    Returns a count of DataViews based on `dataview` argument
+    """
     count = cache.get('{}{}'.format(DATAVIEW_COUNT, dataview.xform.pk))
 
     if count:
