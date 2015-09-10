@@ -2,12 +2,14 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from guardian.models import UserObjectPermissionBase
+from guardian.models import GroupObjectPermissionBase
 from guardian.shortcuts import assign_perm, get_perms_for_model
 from jsonfield import JSONField
 from taggit.managers import TaggableManager
-from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
 
 from onadata.libs.models.base_model import BaseModel
+from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
 
 
 class Project(BaseModel):
@@ -62,3 +64,13 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
 
 post_save.connect(set_object_permissions, sender=Project,
                   dispatch_uid='set_project_object_permissions')
+
+
+class ProjectUserObjectPermission(UserObjectPermissionBase):
+    """Guardian model to create direct foreign keys."""
+    content_object = models.ForeignKey(Project)
+
+
+class ProjectGroupObjectPermission(GroupObjectPermissionBase):
+    """Guardian model to create direct foreign keys."""
+    content_object = models.ForeignKey(Project)
