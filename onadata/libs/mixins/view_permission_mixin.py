@@ -17,7 +17,8 @@ class ViewPermissionMixin(object):
                 'model_name': self.model._meta.module_name
             }
             perms = ['%(app_label)s.view_%(model_name)s' % kwargs]
-            return get_objects_for_user(self.request.user, perms, self.model)
+            return get_objects_for_user(self.request.user, perms, self.model,
+                                        with_superuser=False)
 
         if self.model is not None:
             return self.model._default_manager.all()
