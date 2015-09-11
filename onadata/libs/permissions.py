@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-from django.contrib.contenttypes.models import ContentType
 from guardian.shortcuts import (
     assign_perm,
     remove_perm,
@@ -8,7 +7,6 @@ from guardian.shortcuts import (
     get_users_with_perms)
 
 from onadata.apps.api.models import OrganizationProfile
-from onadata.apps.api.models.team import Team
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
@@ -60,19 +58,8 @@ class Role(object):
 
     @classmethod
     def _remove_obj_permissions(cls, user, obj):
-        content_type = ContentType.objects.get(
-            model=obj.__class__.__name__.lower(),
-            app_label=obj.__class__._meta.app_label
-        )
-        if isinstance(user, Team):
-            object_permissions = user.groupobjectpermission_set.filter(
-                object_pk=obj.pk, content_type=content_type)
-        else:
-            object_permissions = user.userobjectpermission_set.filter(
-                object_pk=obj.pk, content_type=content_type)
-
-        for perm in object_permissions:
-            remove_perm(perm.permission.codename, user, obj)
+        for perm in get_perms(user, obj):
+            remove_perm(perm, user, obj)
 
     @classmethod
     def add(cls, user, obj):
