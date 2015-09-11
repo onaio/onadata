@@ -117,17 +117,11 @@ class TestInstance(TestBase):
         oldest = Instance.objects.filter(xform=self.xform).first().pk
 
         data = [i.get('_id') for i in ParsedInstance.query_data(
-            self.xform, sort='-pk')]
-        self.assertEqual(data[0], latest)
-        self.assertEqual(data[len(data) - 1], oldest)
-
-        # sort with a json field
-        data = [i.get('_id') for i in ParsedInstance.query_data(
             self.xform, sort='-_id')]
         self.assertEqual(data[0], latest)
         self.assertEqual(data[len(data) - 1], oldest)
 
-        # mongo sort
+        # sort with a json field
         data = [i.get('_id') for i in ParsedInstance.query_data(
             self.xform, sort='{"pk": "-1"}')]
         self.assertEqual(data[0], latest)
