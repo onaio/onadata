@@ -1,5 +1,5 @@
 from django.contrib.auth.models import Permission
-from django.contrib.contenttypes.models import ContentType
+from guardian.shortcuts import get_perms
 
 from onadata.apps.api import tools
 from onadata.apps.logger.models.project import Project
@@ -68,23 +68,13 @@ class TestTeam(TestAbstractModels):
                                          created_by=user_deno,
                                          metadata='{}')
 
-        # confirm that the team has no permissions
-        self.assertFalse(team.groupobjectpermission_set.all())
+        # confirm that the team has no permissions on project
+        self.assertFalse(get_perms(team, project))
         # set DataEntryRole role of project on team
         DataEntryRole.add(team, project)
 
-        content_type = ContentType.objects.get(
-            model=project.__class__.__name__.lower(),
-            app_label=project.__class__._meta.app_label)
-
-        object_permissions = team.groupobjectpermission_set.filter(
-            object_pk=project.pk, content_type=content_type)
-
-        permission_names = sorted(
-            [p.permission.codename for p in object_permissions])
         self.assertEqual([CAN_EXPORT_PROJECT, CAN_ADD_SUBMISSIONS_PROJECT,
-                          CAN_VIEW_PROJECT],
-                         permission_names)
+                          CAN_VIEW_PROJECT], sorted(get_perms(team, project)))
 
         self.assertEqual(get_team_project_default_permissions(team, project),
                          DataEntryRole.name)
