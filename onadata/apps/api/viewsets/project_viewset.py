@@ -29,6 +29,8 @@ from onadata.apps.main.models import UserProfile
 from onadata.settings.common import (
     DEFAULT_FROM_EMAIL,
     SHARE_PROJECT_SUBJECT)
+from onadata.apps.api.models import Team
+from onadata.libs.permissions import OwnerRole, ReadOnlyRole
 from onadata.apps.api.tools import get_baseviewset_class
 
 
@@ -141,3 +143,17 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         serializer = self.get_serializer(self.object_list, many=True)
 
         return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        owner_url = request.DATA.get('owner').split('/')
+        owner = owner_url[len(owner_url) - 1]
+
+        teams = Team.objects.filter(organization__username=owner)
+        project = self.get_object()
+        for a in teams:
+            if a.name.split("#")[1] == 'Owners':
+                OwnerRole.add(a, project)
+            elif a.name.split("#")[1] == 'members':
+                ReadOnlyRole.add(a, project)
+        return super(ProjectViewSet, self).partial_update(
+            request, *args, **kwargs)
