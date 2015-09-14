@@ -63,7 +63,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             dataviews = get_dataviews([self.xform.pk])
             self.assertGreater(len(dataviews), 0)
 
-            data_view_obj_keys = dataviews[1][0].keys()
+            data_view_obj_keys = dataviews[self.xform.pk][0].keys()
             self.assertEqual(['count', 'dataviewid', 'date_created', 'name'],
                              sorted(data_view_obj_keys))
 
