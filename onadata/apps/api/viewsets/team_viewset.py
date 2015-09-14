@@ -18,10 +18,15 @@ from onadata.libs.serializers.share_team_project_serializer import (
     ShareTeamProjectSerializer, RemoveTeamFromProjectSerializer)
 from onadata.apps.api.models import Team
 from onadata.apps.api.tools import add_user_to_team, remove_user_from_team
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
 class TeamViewSet(AuthenticateHeaderMixin,
-                  CacheControlMixin, ETagsMixin, ModelViewSet):
+                  CacheControlMixin, ETagsMixin,
+                  BaseViewset,
+                  ModelViewSet):
     """
     This endpoint allows you to create, update and view team information.
     """

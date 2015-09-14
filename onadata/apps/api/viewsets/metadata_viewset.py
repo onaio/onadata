@@ -13,11 +13,15 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
     MediaFileRenderer
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
 class MetaDataViewSet(AuthenticateHeaderMixin,
                       CacheControlMixin,
                       ETagsMixin,
+                      BaseViewset,
                       viewsets.ModelViewSet):
     """
     This endpoint provides access to form metadata.

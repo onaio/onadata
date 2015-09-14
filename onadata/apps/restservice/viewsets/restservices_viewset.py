@@ -12,10 +12,15 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.utils.common_tags import TEXTIT
+from onadata.apps.api.tools import load_class, get_baseviewset_class
+
+
+BaseViewset = get_baseviewset_class()
 
 
 class RestServicesViewSet(AuthenticateHeaderMixin,
-                          CacheControlMixin, LastModifiedMixin, ModelViewSet):
+                          CacheControlMixin, LastModifiedMixin, BaseViewset,
+                          ModelViewSet):
     """
     This endpoint provides access to form rest services.
     """

@@ -19,13 +19,17 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.data_serializer import OSMSiteMapSerializer
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 
 
 class OsmViewSet(AuthenticateHeaderMixin,
-                 CacheControlMixin, ETagsMixin, ReadOnlyModelViewSet):
+                 CacheControlMixin, ETagsMixin, BaseViewset,
+                 ReadOnlyModelViewSet):
 
     """
 This endpoint provides public access to OSM submitted data in OSM format.
