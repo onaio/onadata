@@ -16,7 +16,6 @@ Replace username and db name accordingly.
 ## Get the code
     git clone https://github.com/onaio/onadata.git onadata
     cd onadata/
-    git checkout osm
 
 ## Create python virtual environment and activate
     mkdir ~/.virtualenvs
