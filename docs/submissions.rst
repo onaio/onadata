@@ -4,10 +4,10 @@ Form Submissions
 Implements OpenRosa Api |FormSubmissionAPI|
 
 .. |FormSubmissionAPI| raw:: html
-    
+
     <a href="https://bitbucket.org/javarosa/javarosa/wiki/FormSubmissionAPI"
     target="_blank">here</a>
- 
+
 
 Submit an XML XForm submission
 -------------------------------
@@ -35,7 +35,10 @@ Example
 ^^^^^^^^
 ::
 
-	       curl -X POST -d '{"id": "[form ID]", "submission": [the JSON]} http://localhost:8000/api/v1/submissions -u user:pass -H "Content-Type: application/json"
+    curl -X POST -d '{"id": "[id_string]", "submission": [the JSON]} http://localhost:8000/api/v1/submissions -u user:pass -H "Content-Type: application/json"
+
+.. note:: The ``[id_string]`` here is in the name of your form as exposed in the Ona UI and the ``id_string`` as per the `Forms API <forms.html#get-form-information>`_.
+
 
 Here is some example JSON, it would replace `[the JSON]` above:
 ::
