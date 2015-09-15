@@ -45,14 +45,17 @@ def get_owner(owner_url):
     """
     This functions gets the owner of a project from the provided url
     """
-    split_url = urlparse(owner_url)
-    pattern = r'/api/v1/users/\w+'
+    try:
+        split_url = urlparse(owner_url)
+        pattern = r'/api/v1/users/\w+'
 
-    if split_url.path:
-        split_path = split_url.path.split("/")
-        if re.match(pattern, split_url.path) and len(split_path) == 5:
-            owner = split_path[(len(split_path) - 1)]
-            return owner
+        if split_url.path:
+            split_path = split_url.path.split("/")
+            if re.match(pattern, split_url.path) and len(split_path) == 5:
+                owner = split_path[(len(split_path) - 1)]
+                return owner
+    except AttributeError:
+        pass
 
     return None
 
@@ -165,19 +168,21 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         return Response(serializer.data)
 
     def partial_update(self, request, *args, **kwargs):
-        owner = get_owner(request.DATA.get('owner'))
-
+        owner = request.DATA.get('owner')
         if owner:
-            project = self.get_object()
-            try:
-                org_profile = OrganizationProfile.objects.get(
-                    user__username=owner)
-                owners_team = get_organization_owners_team(org_profile)
-                members_team = get_organization_members_team(org_profile)
-                OwnerRole.add(owners_team, project)
-                ReadOnlyRole.add(members_team, project)
-            except OrganizationProfile.DoesNotExist:
-                pass
+            owner = get_owner(owner)
+
+            if owner:
+                project = self.get_object()
+                try:
+                    org_profile = OrganizationProfile.objects.get(
+                        user__username=owner)
+                    owners_team = get_organization_owners_team(org_profile)
+                    members_team = get_organization_members_team(org_profile)
+                    OwnerRole.add(owners_team, project)
+                    ReadOnlyRole.add(members_team, project)
+                except OrganizationProfile.DoesNotExist:
+                    pass
 
         return super(ProjectViewSet, self).partial_update(
             request, *args, **kwargs)
