@@ -1,3 +1,5 @@
+import re
+from urlparse import urlparse
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
 
@@ -29,12 +31,30 @@ from onadata.apps.main.models import UserProfile
 from onadata.settings.common import (
     DEFAULT_FROM_EMAIL,
     SHARE_PROJECT_SUBJECT)
-from onadata.apps.api.models import Team
 from onadata.libs.permissions import OwnerRole, ReadOnlyRole
+from onadata.apps.api.models import OrganizationProfile
+from onadata.apps.api.tools import (
+    get_organization_members_team, get_organization_owners_team)
 from onadata.apps.api.tools import get_baseviewset_class
 
 
 BaseViewset = get_baseviewset_class()
+
+
+def get_owner(owner_url):
+    """
+    This functions gets the owner of a project from the provided url
+    """
+    split_url = urlparse(owner_url)
+    pattern = r'/api/v1/users/\w+'
+
+    if split_url.path:
+        split_path = split_url.path.split("/")
+        if re.match(pattern, split_url.path) and len(split_path) == 5:
+            owner = split_path[(len(split_path) - 1)]
+            return owner
+
+    return None
 
 
 class ProjectViewSet(AuthenticateHeaderMixin,
@@ -145,15 +165,19 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         return Response(serializer.data)
 
     def partial_update(self, request, *args, **kwargs):
-        owner_url = request.DATA.get('owner').split('/')
-        owner = owner_url[len(owner_url) - 1]
+        owner = get_owner(request.DATA.get('owner'))
 
-        teams = Team.objects.filter(organization__username=owner)
-        project = self.get_object()
-        for a in teams:
-            if a.name.split("#")[1] == 'Owners':
-                OwnerRole.add(a, project)
-            elif a.name.split("#")[1] == 'members':
-                ReadOnlyRole.add(a, project)
+        if owner:
+            project = self.get_object()
+            try:
+                org_profile = OrganizationProfile.objects.get(
+                    user__username=owner)
+                owners_team = get_organization_owners_team(org_profile)
+                members_team = get_organization_members_team(org_profile)
+                OwnerRole.add(owners_team, project)
+                ReadOnlyRole.add(members_team, project)
+            except OrganizationProfile.DoesNotExist:
+                pass
+
         return super(ProjectViewSet, self).partial_update(
             request, *args, **kwargs)
