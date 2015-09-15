@@ -6,7 +6,7 @@ from django.core.cache import cache
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import Project
 from onadata.libs.permissions import get_object_users_with_permissions,\
-    OwnerRole
+    OwnerRole, ReadOnlyRole, is_organization
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
@@ -19,6 +19,8 @@ from onadata.apps.api.models import Team
 from onadata.libs.permissions import get_team_project_default_permissions
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.logger.models import DataView
+from onadata.apps.api.tools import (
+    get_organization_members_team, get_organization_owners_team)
 
 
 def set_owners_permission(user, project):
@@ -97,6 +99,12 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             if self.partial and owner:
                 # give the new owner permissions
                 set_owners_permission(owner, instance)
+
+                if is_organization(owner.profile):
+                    owners_team = get_organization_owners_team(owner.profile)
+                    members_team = get_organization_members_team(owner.profile)
+                    OwnerRole.add(owners_team, instance)
+                    ReadOnlyRole.add(members_team, instance)
 
                 # clear cache
                 safe_delete('{}{}'.format(PROJ_PERM_CACHE, self.object.pk))
