@@ -81,18 +81,18 @@ class TestProjectViewSet(TestAbstractViewSet):
 
     def test_get_owner(self):
         # pass the wrong url to get_owner and assert that it's None
-        url = 'http://testserver/v1/users/bob'
-        owner = get_owner(url)
+        owner = get_owner('http://testserver/v1/users/bob')
+        self.assertFalse(owner)
+
+        owner = get_owner(None)
         self.assertFalse(owner)
 
         # pass the right url with extra slug
-        url = 'http://testserver/api/v1/users/bob/william'
-        owner = get_owner(url)
+        owner = get_owner('http://testserver/api/v1/users/bob/william')
         self.assertFalse(owner)
 
         # pass the right url and assert you get the right owner
-        url = 'http://testserver/api/v1/users/bob'
-        owner = get_owner(url)
+        owner = get_owner('http://testserver/api/v1/users/bob')
         self.assertIsNotNone(owner)
         self.assertEqual(owner, 'bob')
 
