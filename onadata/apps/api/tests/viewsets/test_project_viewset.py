@@ -1142,6 +1142,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         }
         request = self.factory.patch('/', data=data_patch, **self.extra)
         response = view(request, pk=projectid)
+        for a in response.data.get('teams'):
+            self.assertIsNotNone(a.get('role'))
 
         self.assertEqual(response.status_code, 200)
         project = Project.objects.get(pk=projectid)
