@@ -13,8 +13,7 @@ from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import DataView
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
-from onadata.apps.api.viewsets.project_viewset import (
-    ProjectViewSet, get_owner)
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole,
     ReadOnlyRoleNoDownload)
@@ -78,23 +77,6 @@ class TestProjectViewSet(TestAbstractViewSet):
             dataview_count = get_dataview_count(dataview)
             self.assertTrue(dataview_count)
             self.assertEqual(dataview_count, 3)
-
-    def test_get_owner(self):
-        # pass the wrong url to get_owner and assert that it's None
-        owner = get_owner('http://testserver/v1/users/bob')
-        self.assertFalse(owner)
-
-        owner = get_owner(None)
-        self.assertFalse(owner)
-
-        # pass the right url with extra slug
-        owner = get_owner('http://testserver/api/v1/users/bob/william')
-        self.assertFalse(owner)
-
-        # pass the right url and assert you get the right owner
-        owner = get_owner('http://testserver/api/v1/users/bob')
-        self.assertIsNotNone(owner)
-        self.assertEqual(owner, 'bob')
 
     @patch('urllib2.urlopen')
     def test_publish_xlsform_using_url_upload(self,  mock_urlopen):
