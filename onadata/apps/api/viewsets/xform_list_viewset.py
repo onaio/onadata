@@ -25,7 +25,7 @@ from onadata.libs.renderers.renderers import XFormListRenderer
 from onadata.libs.renderers.renderers import XFormManifestRenderer
 from onadata.libs.serializers.xform_serializer import XFormListSerializer
 from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
-from onadata.apps.api.tools import load_class, get_baseviewset_class
+from onadata.apps.api.tools import get_baseviewset_class
 
 
 BaseViewset = get_baseviewset_class()
