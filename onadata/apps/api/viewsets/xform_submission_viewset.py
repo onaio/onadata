@@ -27,6 +27,9 @@ from onadata.libs.mixins.openrosa_headers_mixin import OpenRosaHeadersMixin
 from onadata.libs.renderers.renderers import TemplateXMLRenderer
 from onadata.libs.serializers.data_serializer import SubmissionSerializer
 from onadata.libs.utils.logger_tools import dict2xform, safe_create_instance
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
 # 10,000,000 bytes
@@ -81,6 +84,7 @@ def create_instance_from_json(username, request):
 
 class XFormSubmissionViewSet(AuthenticateHeaderMixin,
                              OpenRosaHeadersMixin, mixins.CreateModelMixin,
+                             BaseViewset,
                              viewsets.GenericViewSet):
 
     authentication_classes = (DigestAuthentication,

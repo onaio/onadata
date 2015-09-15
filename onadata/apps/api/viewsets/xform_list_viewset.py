@@ -25,13 +25,17 @@ from onadata.libs.renderers.renderers import XFormListRenderer
 from onadata.libs.renderers.renderers import XFormManifestRenderer
 from onadata.libs.serializers.xform_serializer import XFormListSerializer
 from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
+from onadata.apps.api.tools import get_baseviewset_class
+
+
+BaseViewset = get_baseviewset_class()
 
 
 # 10,000,000 bytes
 DEFAULT_CONTENT_LENGTH = getattr(settings, 'DEFAULT_CONTENT_LENGTH', 10000000)
 
 
-class XFormListViewSet(CacheControlMixin, ETagsMixin,
+class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
                        viewsets.ReadOnlyModelViewSet):
     authentication_classes = (DigestAuthentication,
                               EnketoTokenAuthentication,)

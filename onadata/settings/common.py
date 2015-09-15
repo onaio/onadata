@@ -489,6 +489,12 @@ CSV_ROW_IMPORT_ASYNC_THRESHOLD = 100
 SEND_EMAIL_ACTIVATION_API = False
 METADATA_SEPARATOR = "|"
 
+PROFILE_SERIALIZER = \
+    "onadata.libs.serializers.user_profile_serializer.UserProfileSerializer"
+ORG_PROFILE_SERIALIZER = \
+    "onadata.libs.serializers.organization_serializer.OrganizationSerializer"
+BASE_VIEWSET = "onadata.libs.baseviewset.DefaultBaseViewset"
+
 path = os.path.join(PROJECT_ROOT, "..", "extras", "reserved_accounts.txt")
 try:
     with open(path, 'r') as f:

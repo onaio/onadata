@@ -12,12 +12,16 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.stats_serializer import (
     StatsSerializer, StatsInstanceSerializer)
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
 class StatsViewSet(AuthenticateHeaderMixin,
                    CacheControlMixin,
                    ETagsMixin,
                    AnonymousUserPublicFormsMixin,
+                   BaseViewset,
                    viewsets.ReadOnlyModelViewSet):
 
     lookup_field = 'pk'
