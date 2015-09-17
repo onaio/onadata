@@ -14,8 +14,8 @@ from onadata.apps.logger.models import XForm
 
 
 def find_field_by_name(dd, field_name):
-        return filter(
-            lambda f: f.name == field_name, [e for e in dd.survey_elements])[0]
+    return filter(
+        lambda f: f.name == field_name, [e for e in dd.survey_elements])[0]
 
 
 class TestChartTools(TestBase):
@@ -171,18 +171,36 @@ class TestChartTools(TestBase):
     def mock_get_abbreviated_xpath(self):
         return 'informed_consent/pas_denfants_elig/date'
 
-    def test_get_choice_label(self):
+    def test_get_choice_label_with_single_select(self):
         choices = [{'control': {},
                     'name': 'Western Rural',
-                    'choice_filter': '',
                     'label': 'Western Rural'},
                    {'control': {},
                     'name': 'Western Urban',
-                    'choice_filter': '',
                     'label': 'Western Urban'}]
         string = 'Western Rural'
 
         self.assertEqual(get_choice_label(choices, string), [string])
+
+    def test_get_choice_label_for_multi_select(self):
+        pam = "PAM"
+        croix_rouge = "Croix Rouge"
+
+        choices = [{'control': {},
+                    'name': '1',
+                    'label': pam},
+                   {'control': {},
+                    'name': '2',
+                    'label': croix_rouge},
+                   {'control': {},
+                    'name': '3',
+                    'label': 'OXFAM'},
+                   {'control': {},
+                    'name': '4',
+                    'label': 'Administration Locale'}]
+        string = '1 2'
+
+        self.assertEqual(get_choice_label(choices, string), [pam, croix_rouge])
 
 
 class TestChartUtilFunctions(unittest.TestCase):
