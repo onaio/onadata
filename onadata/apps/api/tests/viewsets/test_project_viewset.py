@@ -10,7 +10,6 @@ from django.conf import settings
 
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
-from onadata.apps.logger.models import DataView
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
@@ -110,21 +109,35 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
+
         self.assertGreater(len(response.data.get('forms')), 0)
         self.assertGreater(
-            len(response.data.get('forms')[0].get('dataviews')), 0)
+            len(response.data.get('forms')[0].get('data_views')), 0)
 
         form_obj_keys = response.data.get('forms')[0].keys()
         data_view_obj_keys = response.data.get(
-            'forms')[0].get('dataviews')[0].keys()
-        self.assertEqual(['dataviews',
+            'forms')[0].get('data_views')[0].keys()
+        self.assertEqual(['data_views',
                           'date_created',
+                          'enketo_preview_url',
                           'enketo_url',
-                          'id',
+                          'formid',
+                          'last_submission_time',
                           'name',
-                          'num_of_submissions'],
+                          'num_of_submissions',
+                          'url'],
                          sorted(form_obj_keys))
-        self.assertEqual(['count', 'dataviewid', 'date_created', 'name'],
+        self.assertEqual(['columns',
+                          'count',
+                          'dataviewid',
+                          'date_created',
+                          'date_modified',
+                          'instances_with_geopoints',
+                          'name',
+                          'project',
+                          'query',
+                          'url',
+                          'xform'],
                          sorted(data_view_obj_keys))
         self.assertEqual(response.status_code, 200)
 
