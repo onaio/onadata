@@ -10,15 +10,13 @@ from django.conf import settings
 
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
-from onadata.apps.logger.models import DataView
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole,
     ReadOnlyRoleNoDownload)
-from onadata.libs.serializers.project_serializer import (
-    ProjectSerializer, get_enketo_urls, get_dataviews)
+from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
 from django.db.models import Q
@@ -27,7 +25,6 @@ from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api import tools
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
-from onadata.libs.utils.dataview import get_dataview_count
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
@@ -48,35 +45,6 @@ class TestProjectViewSet(TestAbstractViewSet):
             'get': 'list',
             'post': 'create'
         })
-
-    def test_get_enketo_urls(self):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            enketo_urls = get_enketo_urls([self.xform.pk])
-            self.assertGreater(len(enketo_urls), 0)
-
-    def test_get_dataviews(self):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            self._create_dataview()
-
-            dataviews = get_dataviews([self.xform.pk])
-            self.assertGreater(len(dataviews), 0)
-
-            data_view_obj_keys = dataviews[self.xform.pk][0].keys()
-            self.assertEqual(['count', 'dataviewid', 'date_created', 'name'],
-                             sorted(data_view_obj_keys))
-
-    @patch('onadata.libs.utils.dataview.DataView')
-    def test_get_dataview_count(self, mock_dataview):
-        mock_dataview.query_data.return_value = [{u'count': 3}]
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            self._create_dataview()
-            dataview = DataView.objects.filter(xform__pk=self.xform.pk)[0]
-            dataview_count = get_dataview_count(dataview)
-            self.assertTrue(dataview_count)
-            self.assertEqual(dataview_count, 3)
 
     @patch('urllib2.urlopen')
     def test_publish_xlsform_using_url_upload(self,  mock_urlopen):
@@ -141,21 +109,35 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
+
         self.assertGreater(len(response.data.get('forms')), 0)
         self.assertGreater(
-            len(response.data.get('forms')[0].get('dataviews')), 0)
+            len(response.data.get('forms')[0].get('data_views')), 0)
 
         form_obj_keys = response.data.get('forms')[0].keys()
         data_view_obj_keys = response.data.get(
-            'forms')[0].get('dataviews')[0].keys()
-        self.assertEqual(['dataviews',
+            'forms')[0].get('data_views')[0].keys()
+        self.assertEqual(['data_views',
                           'date_created',
+                          'enketo_preview_url',
                           'enketo_url',
-                          'id',
+                          'formid',
+                          'last_submission_time',
                           'name',
-                          'num_of_submissions'],
+                          'num_of_submissions',
+                          'url'],
                          sorted(form_obj_keys))
-        self.assertEqual(['count', 'dataviewid', 'date_created', 'name'],
+        self.assertEqual(['columns',
+                          'count',
+                          'dataviewid',
+                          'date_created',
+                          'date_modified',
+                          'instances_with_geopoints',
+                          'name',
+                          'project',
+                          'query',
+                          'url',
+                          'xform'],
                          sorted(data_view_obj_keys))
         self.assertEqual(response.status_code, 200)
 
