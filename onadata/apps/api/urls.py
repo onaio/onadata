@@ -1,5 +1,6 @@
 from django.conf.urls import url
 from django.conf import settings
+from django.contrib import admin
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import routers
@@ -33,6 +34,9 @@ from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 from onadata.apps.api.viewsets.media_viewset import MediaViewSet
 from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
+
+
+admin.autodiscover()
 
 
 def make_routes(template_text):
