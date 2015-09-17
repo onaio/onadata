@@ -67,6 +67,9 @@ def get_choice_label(choices, string):
             if choice['name'] == string:
                 labels.append(choice['label'])
                 break
+    elif not choices:
+        labels = [string]
+
     return labels
 
 
