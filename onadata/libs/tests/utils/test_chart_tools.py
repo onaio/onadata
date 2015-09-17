@@ -4,8 +4,12 @@ import os
 import unittest
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.chart_tools import build_chart_data_for_field,\
-    build_chart_data, utc_time_string_for_javascript, calculate_ranges
+from onadata.libs.utils.chart_tools import (
+    build_chart_data_for_field,
+    build_chart_data,
+    calculate_ranges,
+    get_choice_label,
+    utc_time_string_for_javascript)
 from onadata.apps.logger.models import XForm
 
 
@@ -166,6 +170,19 @@ class TestChartTools(TestBase):
 
     def mock_get_abbreviated_xpath(self):
         return 'informed_consent/pas_denfants_elig/date'
+
+    def test_get_choice_label(self):
+        choices = [{'control': {},
+                    'name': 'Western Rural',
+                    'choice_filter': '',
+                    'label': 'Western Rural'},
+                   {'control': {},
+                    'name': 'Western Urban',
+                    'choice_filter': '',
+                    'label': 'Western Urban'}]
+        string = 'Western Rural'
+
+        self.assertEqual(get_choice_label(choices, string), [string])
 
 
 class TestChartUtilFunctions(unittest.TestCase):

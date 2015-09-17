@@ -63,11 +63,10 @@ def get_choice_label(choices, string):
     labels = []
 
     if string and choices:
-        for name in string.split(' '):
-            for choice in choices:
-                if choice['name'] == name:
-                    labels.append(choice['label'])
-                    break
+        for choice in choices:
+            if choice['name'] == string:
+                labels.append(choice['label'])
+                break
     return labels
 
 
