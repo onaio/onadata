@@ -202,6 +202,31 @@ class TestChartTools(TestBase):
 
         self.assertEqual(get_choice_label(choices, string), [pam, croix_rouge])
 
+    def test_get_choice_label_for_multi_select_with_spaces(self):
+        """
+        Select Multiple Fields with names with spaces will NEVER match
+        their labels
+        """
+        pam = "PAM"
+        croix_rouge = "Croix Rouge"
+        both = "Sam Bla"
+
+        choices = [{'control': {},
+                    'name': pam,
+                    'label': pam},
+                   {'control': {},
+                    'name': croix_rouge,
+                    'label': croix_rouge},
+                   {'control': {},
+                    'name': both,
+                    'label': both},
+                   {'control': {},
+                    'name': 'Administration Locale',
+                    'label': 'Administration Locale'}]
+        string = "{} {}".format(both, pam)
+
+        self.assertNotIn(both, get_choice_label(choices, string))
+
 
 class TestChartUtilFunctions(unittest.TestCase):
 
