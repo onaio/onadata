@@ -119,6 +119,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             'forms')[0].get('data_views')[0].keys()
         self.assertEqual(['data_views',
                           'date_created',
+                          'downloadable',
                           'enketo_preview_url',
                           'enketo_url',
                           'formid',
