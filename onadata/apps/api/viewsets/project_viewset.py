@@ -33,6 +33,8 @@ from onadata.settings.common import (
     DEFAULT_FROM_EMAIL,
     SHARE_PROJECT_SUBJECT)
 from onadata.apps.api.tools import get_baseviewset_class
+from django.core.signals import request_started, request_finished
+from onadata.libs.utils.profiler import profile
 
 
 BaseViewset = get_baseviewset_class()
@@ -138,9 +140,12 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @profile("project_viewset_list.prof")
     def list(self, request, *args, **kwargs):
-
+        global object_list_time
+        global serializer_time
         owner = request.QUERY_PARAMS.get('owner')
+        object_list_start_time = time.time()
 
         if owner:
             kwargs = {'organization__username__iexact': owner}
@@ -149,7 +154,11 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         else:
             self.object_list = self.filter_queryset(self.get_queryset())
 
+        object_list_time = time.time() - object_list_start_time
+
+        serializer_start = time.time()
         serializer = self.get_serializer(self.object_list, many=True)
+        serializer_time = time.time() - serializer_start
 
         return Response(serializer.data)
 
@@ -191,7 +200,6 @@ def finished(sender, **kwargs):
 
     except NameError:
         pass
-
 
 request_started.connect(started)
 request_finished.connect(finished)
