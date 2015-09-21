@@ -126,6 +126,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             forms = [{'name': form['title'],
                       'formid':form['formid'],
                       'num_of_submissions':form['num_of_submissions'],
+                      'downloadable':form['downloadable'],
                       'last_submission_time':form['last_submission_time'],
                       'date_created':form['date_created'],
                       'url': form['url'],
