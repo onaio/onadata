@@ -45,6 +45,7 @@ project_viewset_profiler = logging.getLogger('profiler_logger')
 class ProjectViewSet(AuthenticateHeaderMixin,
                      CacheControlMixin,
                      ETagsMixin, LabelsMixin, BaseViewset, ModelViewSet):
+
     """
     List, Retrieve, Update, Create Project and Project Forms.
     """
