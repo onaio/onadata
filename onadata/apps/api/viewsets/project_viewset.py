@@ -1,3 +1,6 @@
+import time
+import logging
+
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
 
@@ -33,6 +36,8 @@ from onadata.apps.api.tools import get_baseviewset_class
 
 
 BaseViewset = get_baseviewset_class()
+
+project_viewset_profiler = logging.getLogger('profiler_logger')
 
 
 class ProjectViewSet(AuthenticateHeaderMixin,
@@ -147,3 +152,46 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         serializer = self.get_serializer(self.object_list, many=True)
 
         return Response(serializer.data)
+
+    def dispatch(self, request, *args, **kwargs):
+        global render_time
+        global dispatch_time
+
+        dispatch_start = time.time()
+        ret = super(ProjectViewSet, self).dispatch(request, *args, **kwargs)
+
+        render_start = time.time()
+        ret.render()
+        render_time = time.time() - render_start
+
+        dispatch_time = time.time() - dispatch_start
+
+        return ret
+
+
+def started(sender, **kwargs):
+    global started
+    started = time.time()
+
+
+def finished(sender, **kwargs):
+    try:
+        total = time.time() - started
+        api_view_time = dispatch_time - (render_time + serializer_time)
+        request_response_time = total - dispatch_time
+
+        output = "Get Project list              | %.4fs\n" % object_list_time
+        output += "Serialization                 | %.4fs\n" % serializer_time
+        output += "Django request/response       | %.4fs\n" %\
+            request_response_time
+        output += "API view                      | %.4fs\n" % api_view_time
+        output += "Response rendering            | %.4fs\n" % render_time
+
+        project_viewset_profiler.debug(output)
+
+    except NameError:
+        pass
+
+
+request_started.connect(started)
+request_finished.connect(finished)
