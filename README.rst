@@ -66,3 +66,10 @@ Api Documentation
     $ cd docs
     $ make html
     $ python manage.py collectstatic
+
+Django Debug Toolbar
+--------------------
+
+* `$ pip install django-debug-toolbar`
+* Use/see `onadata/settings/debug_toolbar_settings/py`
+* Access api endpoint on the browser and use `.debug` as the format extension e.g `/api/v1/projects.debug`
