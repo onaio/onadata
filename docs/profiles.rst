@@ -4,7 +4,7 @@ Profiles
 Register a new User
 -------------------
 
-``username, email, firstname`` Are required fields. \ ``username`` may
+``username, email, first_name, last_name, and password`` Are required fields. \ ``username`` may
 contain alphanumeric, \_, @, +, . and - characters
 
 .. raw:: html
@@ -21,6 +21,7 @@ Example
            "first_name": "Demo",
            "last_name": "User",
            "email": "demo@localhost.com",
+           "password": "shhhh",
            "city": "Kisumu",
            "country": "KE",
            ...
