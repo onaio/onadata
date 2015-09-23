@@ -190,7 +190,8 @@ def finished(sender, **kwargs):
         api_view_time = dispatch_time - (render_time + serializer_time)
         request_response_time = total - dispatch_time
 
-        output = "Get Project list              | %.4fs\n" % object_list_time
+        output = "\n"
+        output += "Get Project list              | %.4fs\n" % object_list_time
         output += "Serialization                 | %.4fs\n" % serializer_time
         output += "Django request/response       | %.4fs\n" %\
             request_response_time
