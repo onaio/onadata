@@ -4,6 +4,7 @@ from django.core.cache import cache
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import Project
+from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import get_object_users_with_permissions,\
     OwnerRole, ReadOnlyRole, is_organization
 from onadata.libs.serializers.fields.boolean_field import BooleanField
@@ -23,6 +24,18 @@ from onadata.apps.api.tools import (
 def set_owners_permission(user, project):
     """Give the user owner permission"""
     OwnerRole.add(user, project)
+
+
+class ProjectXFormSerializer(XFormSerializer):
+    name = serializers.Field(source='title')
+
+    class Meta:
+        model = XForm
+        fields = (
+            'name', 'formid', 'num_of_submissions', 'downloadable',
+            'last_submission_time', 'date_created', 'url', 'enketo_url',
+            'enketo_preview_url', 'data_views'
+        )
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
