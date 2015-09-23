@@ -1,6 +1,7 @@
 from django.forms import widgets
 from rest_framework import serializers
 from django.core.cache import cache
+from django.db.models import Prefetch
 
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import Project
@@ -131,10 +132,13 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             forms = cache.get('{}{}'.format(PROJ_FORMS_CACHE, obj.pk))
             if forms:
                 return forms
+            xforms = obj.xform_set.prefetch_related(
+                Prefetch('metadata_set')
+            )
 
             request = self.context.get('request')
-            serializer = XFormSerializer(
-                obj.xform_set.all(), context={'request': request}, many=True)
+            serializer = XFormSerializer(xforms, context={'request': request},
+                                         many=True)
 
             forms = [{'name': form['title'],
                       'formid':form['formid'],
