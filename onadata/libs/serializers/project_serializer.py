@@ -164,7 +164,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             if count:
                 return count
 
-            count = obj.xform_set.count()
+            count = len(obj.xform_set.all())
             cache.set('{}{}'.format(PROJ_NUM_DATASET_CACHE, obj.pk), count)
             return count
 
