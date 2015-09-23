@@ -41,7 +41,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     """
     List, Retrieve, Update, Create Project and Project Forms.
     """
-    queryset = Project.objects.all()
+    queryset = Project.objects.all().select_related('users', 'xforms')
     serializer_class = ProjectSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
