@@ -28,6 +28,9 @@ def profile(log_file):
         log_file = os.path.join(PROFILE_LOG_BASE, log_file)
 
     def _outer(f):
+        if not settings.PROFILE_API_ACTION_FUNCTION:
+            return f
+
         def _inner(*args, **kwargs):
             # Add a timestamp to the profile output when the callable
             # is actually called.
