@@ -158,30 +158,13 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             if _enketo_preview_url:
                 return _enketo_preview_url
 
-            try:
-                metadata = MetaData.objects.get(
-                    xform=obj, data_type="enketo_preview_url")
-            except MetaData.DoesNotExist:
-                request = self.context.get('request')
-                preview_url = ""
+            url = self._get_metadata(obj, 'enketo_preview_url')
+            if url is None:
+                url = get_enketo_preview_url(self.context.get('request'),
+                                             obj.user.username, obj.id_string)
+                MetaData.enketo_preview_url(obj, url)
 
-                try:
-                    preview_url = get_enketo_preview_url(request,
-                                                         obj.user.username,
-                                                         obj.id_string)
-                    MetaData.enketo_preview_url(obj, preview_url)
-                except (EnketoError, ConnectionError):
-                    pass
-
-                cache.set('{}{}'.format(ENKETO_PREVIEW_URL_CACHE, obj.pk),
-                          preview_url)
-                return preview_url
-
-            _enketo_preview_url = metadata.data_value
-            cache.set(
-                '{}{}'.format(
-                    ENKETO_PREVIEW_URL_CACHE, obj.pk), _enketo_preview_url)
-            return _enketo_preview_url
+            return _set_cache(ENKETO_PREVIEW_URL_CACHE, url, obj)
 
         return None
 
