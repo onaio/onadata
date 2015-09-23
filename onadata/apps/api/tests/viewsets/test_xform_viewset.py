@@ -216,6 +216,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 "tutorial", "instances", "tutorial_2012-06-27_11-27-53.xml")
 
             self._make_submission(xml_submission_file_path)
+            self.xform.reload()
 
             view = XFormViewSet.as_view({
                 'get': 'retrieve',
@@ -227,7 +228,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertTrue(response.data.get('instances_with_geopoints'))
 
             self.xform.instances_with_geopoints = False
-            self.xform.save()
+            self.xform.save(update_fields=['instances_with_geopoints'])
             request = self.factory.get('/', **self.extra)
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 200)
