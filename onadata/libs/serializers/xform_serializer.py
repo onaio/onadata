@@ -104,10 +104,11 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         return obj.num_of_submissions
 
     def get_instances_with_geopoints(self, obj):
-        if not obj.instances_with_geopoints and obj.instances.exclude(
-                geom=None).count() > 0:
-            obj.instances_with_geopoints = True
-            obj.save()
+        if not obj.instances_with_geopoints and obj.num_of_submissions:
+            has_geo = obj.instances.exclude(geom=None).count() > 0
+            if has_geo:
+                obj.instances_with_geopoints = has_geo
+                obj.save(update_fields=['instances_with_geopoints'])
 
         return obj.instances_with_geopoints
 
