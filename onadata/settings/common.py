@@ -188,7 +188,6 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.admindocs',
     'django.contrib.gis',
-    'debug_toolbar',
     'registration',
     'django_nose',
     'django_digest',
@@ -239,7 +238,6 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.UnicodeJSONRenderer',
         'rest_framework.renderers.JSONPRenderer',
         'rest_framework_csv.renderers.CSVRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
     ),
 }
 
