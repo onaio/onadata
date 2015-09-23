@@ -394,6 +394,10 @@ LOGGING = {
     }
 }
 
+# PROFILE_API_ACTION_FUNCTION is used to toggle profiling a viewset's action
+PROFILE_API_ACTION_FUNCTION = False
+PROFILE_LOG_BASE = '/tmp/'
+
 
 def configure_logging(logger, **kwargs):
     admin_email_handler = AdminEmailHandler()
