@@ -4,24 +4,15 @@ import types
 from django.utils.timezone import now
 from hashlib import md5
 
-from onadata.apps.api.models import Team
-from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models import Instance
-from onadata.apps.logger.models import Note
-from onadata.apps.logger.models import Project
-from onadata.apps.logger.models import XForm
-from onadata.apps.main.models import MetaData
-from onadata.apps.main.models import UserProfile
-
-
-MODELS_WITH_DATE_MODIFIED = (XForm, Instance, Project, Attachment, MetaData,
-                             Note, UserProfile, Team)
+MODELS_WITH_DATE_MODIFIED = ('XForm', 'Instance', 'Project', 'Attachment',
+                             'MetaData', 'Note', 'OrganizationProfile',
+                             'UserProfile', 'Team')
 
 
 def get_etag_value(obj, object_list):
     etag_value = '{}'.format(now())
 
-    if isinstance(obj, MODELS_WITH_DATE_MODIFIED):
+    if object_list.model.__name__ in MODELS_WITH_DATE_MODIFIED:
         object_list = object_list
 
         if object_list.query.can_filter():
@@ -56,11 +47,11 @@ class ETagsMixin(object):
             if hasattr(self, 'etag_data') and self.etag_data:
                 etag_value = str(self.etag_data)
             elif hasattr(self, 'object_list'):
-                if not isinstance(self.object_list, types.GeneratorType):
-                    obj = self.object_list.last()
+                if not isinstance(self.object_list, types.GeneratorType) and \
+                        len(self.object_list):
                     etag_value = get_etag_value(obj, self.object_list)
             elif hasattr(self, 'object'):
-                if isinstance(self.object, MODELS_WITH_DATE_MODIFIED):
+                if self.object.__class__.__name__ in MODELS_WITH_DATE_MODIFIED:
                     etag_value = self.object.date_modified
 
             hash_value = md5(
