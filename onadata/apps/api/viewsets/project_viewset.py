@@ -45,10 +45,15 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     """
     queryset = Project.objects.all().select_related()\
         .prefetch_related('xform_set')\
-        .prefetch_related(Prefetch(
-            'projectuserobjectpermission_set',
-            queryset=ProjectUserObjectPermission.objects.select_related(),
-        ))
+        .prefetch_related('tags')\
+        .prefetch_related(
+            Prefetch(
+                'projectuserobjectpermission_set',
+                queryset=ProjectUserObjectPermission.objects.select_related(
+                    'user__profile__organizationprofile', 'permission'
+                )
+            )
+        )
     serializer_class = ProjectSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
