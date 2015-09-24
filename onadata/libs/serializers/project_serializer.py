@@ -132,26 +132,18 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             forms = cache.get('{}{}'.format(PROJ_FORMS_CACHE, obj.pk))
             if forms:
                 return forms
-            xforms = obj.xform_set.prefetch_related(
-                Prefetch('metadata_set')
-            )
+            xforms = obj.xform_set.select_related('users', 'dataview_set',
+                                                  'metadata_set')\
+                .prefetch_related(
+                    Prefetch('metadata_set'), 'dataview_set', 'user'
+                )
 
             request = self.context.get('request')
-            serializer = XFormSerializer(xforms, context={'request': request},
-                                         many=True)
+            serializer = ProjectXFormSerializer(
+                xforms, context={'request': request}, many=True
+            )
+            forms = serializer.data
 
-            forms = [{'name': form['title'],
-                      'formid':form['formid'],
-                      'num_of_submissions':form['num_of_submissions'],
-                      'downloadable':form['downloadable'],
-                      'last_submission_time':form['last_submission_time'],
-                      'date_created':form['date_created'],
-                      'url': form['url'],
-                      'enketo_url': form['enketo_url'],
-                      'enketo_preview_url': form['enketo_preview_url'],
-                      'data_views': form['data_views']
-                      }
-                     for form in serializer.data]
             cache.set('{}{}'.format(PROJ_FORMS_CACHE, obj.pk), forms)
             return forms
 
