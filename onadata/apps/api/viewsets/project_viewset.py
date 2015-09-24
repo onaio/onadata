@@ -43,7 +43,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     """
     List, Retrieve, Update, Create Project and Project Forms.
     """
-    queryset = Project.objects.all().select_related('users', 'xform_set')\
+    queryset = Project.objects.all().select_related()\
         .prefetch_related('xform_set')\
         .prefetch_related(Prefetch(
             'projectuserobjectpermission_set',
