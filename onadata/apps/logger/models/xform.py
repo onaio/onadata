@@ -161,6 +161,10 @@ class XForm(BaseModel):
         super(XForm, self).save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
+        if 'update_fields' in kwargs:
+            kwargs['update_fields'] = list(set(list(
+                kwargs['update_fields']) + ['date_modified']
+            ))
         self._set_title()
         old_id_string = self.id_string
         self._set_id_string()

@@ -96,6 +96,14 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         exclude = ('id', 'json', 'xml', 'xls', 'user', 'has_start_time',
                    'shared', 'shared_data', 'deleted_at')
 
+    def _get_metadata(self, obj, key):
+        if key:
+            for m in obj.metadata_set.all():
+                if m.data_type == key:
+                    return m.data_value
+        else:
+            return obj.metadata_set.all()
+
     def get_num_of_submissions(self, obj):
         if obj.num_of_submissions != obj.instances.filter(
                 deleted_at__isnull=True).count():
@@ -104,10 +112,11 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         return obj.num_of_submissions
 
     def get_instances_with_geopoints(self, obj):
-        if not obj.instances_with_geopoints and obj.instances.exclude(
-                geom=None).count() > 0:
-            obj.instances_with_geopoints = True
-            obj.save()
+        if not obj.instances_with_geopoints and obj.num_of_submissions:
+            has_geo = obj.instances.exclude(geom=None).count() > 0
+            if has_geo:
+                obj.instances_with_geopoints = has_geo
+                obj.save(update_fields=['instances_with_geopoints'])
 
         return obj.instances_with_geopoints
 
@@ -127,26 +136,15 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_enketo_url(self, obj):
         if obj:
-            _enketo_url = cache.get(
-                '{}{}'.format(ENKETO_URL_CACHE, obj.pk))
+            _enketo_url = cache.get('{}{}'.format(ENKETO_URL_CACHE, obj.pk))
             if _enketo_url:
                 return _enketo_url
 
-            try:
-                metadata = MetaData.objects.get(
-                    xform=obj, data_type="enketo_url")
-            except MetaData.MultipleObjectsReturned:
-                # delete the multiple objects and generate a new one
-                MetaData.objects.filter(xform=obj, data_type="enketo_url")\
-                    .delete()
+            url = self._get_metadata(obj, 'enketo_url')
+            if url is None:
                 url = _create_enketo_url(self.context.get('request'), obj)
-                return _set_cache(ENKETO_URL_CACHE, url, obj)
 
-            except MetaData.DoesNotExist:
-                url = _create_enketo_url(self.context.get('request'), obj)
-                return _set_cache(ENKETO_URL_CACHE, url, obj)
-
-            return _set_cache(ENKETO_URL_CACHE, metadata.data_value, obj)
+            return _set_cache(ENKETO_URL_CACHE, url, obj)
 
         return None
 
@@ -157,30 +155,13 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             if _enketo_preview_url:
                 return _enketo_preview_url
 
-            try:
-                metadata = MetaData.objects.get(
-                    xform=obj, data_type="enketo_preview_url")
-            except MetaData.DoesNotExist:
-                request = self.context.get('request')
-                preview_url = ""
+            url = self._get_metadata(obj, 'enketo_preview_url')
+            if url is None:
+                url = get_enketo_preview_url(self.context.get('request'),
+                                             obj.user.username, obj.id_string)
+                MetaData.enketo_preview_url(obj, url)
 
-                try:
-                    preview_url = get_enketo_preview_url(request,
-                                                         obj.user.username,
-                                                         obj.id_string)
-                    MetaData.enketo_preview_url(obj, preview_url)
-                except (EnketoError, ConnectionError):
-                    pass
-
-                cache.set('{}{}'.format(ENKETO_PREVIEW_URL_CACHE, obj.pk),
-                          preview_url)
-                return preview_url
-
-            _enketo_preview_url = metadata.data_value
-            cache.set(
-                '{}{}'.format(
-                    ENKETO_PREVIEW_URL_CACHE, obj.pk), _enketo_preview_url)
-            return _enketo_preview_url
+            return _set_cache(ENKETO_PREVIEW_URL_CACHE, url, obj)
 
         return None
 
