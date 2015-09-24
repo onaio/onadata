@@ -6,8 +6,10 @@ from django.db.models import Prefetch
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
-from onadata.libs.permissions import get_object_users_with_permissions,\
-    OwnerRole, ReadOnlyRole, is_organization
+from onadata.libs.permissions import OwnerRole
+from onadata.libs.permissions import ReadOnlyRole
+from onadata.libs.permissions import is_organization
+from onadata.libs.permissions import get_role
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
@@ -118,11 +120,34 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             users = cache.get('{}{}'.format(PROJ_PERM_CACHE, obj.pk))
             if users:
                 return users
+            perms = obj.projectuserobjectpermission_set.all()\
+                .select_related().order_by('user_id', 'permission__codename')
+            data = {}
+            for perm in perms:
+                if perm.user_id not in data:
+                    user = perm.user
+                    data[perm.user_id] = {}
+                    data[perm.user_id]['permissions'] = []
+                    data[perm.user_id]['is_org'] = is_organization(
+                        user.profile
+                    )
+                    data[perm.user_id]['gravator'] = user.profile.gravatar
+                    data[perm.user_id]['metadata'] = user.profile.metadata
+                    data[perm.user_id]['first_name'] = user.first_name
+                    data[perm.user_id]['last_name'] = user.last_name
+                    data[perm.user_id]['user'] = user.username
+                data[perm.user_id]['permissions'].append(
+                    perm.permission.codename
+                )
 
-            user = get_object_users_with_permissions(obj)
-            cache.set('{}{}'.format(PROJ_PERM_CACHE, obj.pk), user)
+            results = []
+            for k, v in data.items():
+                v['role'] = get_role(v['permissions'], obj)
+                results.append(v)
 
-            return user
+            cache.set('{}{}'.format(PROJ_PERM_CACHE, obj.pk), results)
+
+            return results
 
         return []
 
