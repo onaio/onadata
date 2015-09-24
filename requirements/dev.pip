@@ -13,3 +13,4 @@ ipython
 shell_command
 statsd
 twill
+django-debug-toolbar

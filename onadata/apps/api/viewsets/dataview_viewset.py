@@ -25,6 +25,9 @@ from onadata.libs.utils.api_export_tools import process_async_export
 from onadata.libs.utils.api_export_tools import response_for_format
 from onadata.libs.utils.chart_tools import get_chart_data_for_field
 from onadata.libs.utils.export_tools import str_to_bool
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
 def get_form_field_chart_url(url, field):
@@ -32,7 +35,8 @@ def get_form_field_chart_url(url, field):
 
 
 class DataViewViewSet(AuthenticateHeaderMixin,
-                      CacheControlMixin, ETagsMixin, ModelViewSet):
+                      CacheControlMixin, ETagsMixin, BaseViewset,
+                      ModelViewSet):
     """
     A simple ViewSet for viewing and editing DataViews.
     """

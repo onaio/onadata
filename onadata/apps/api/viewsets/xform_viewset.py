@@ -67,6 +67,10 @@ from onadata.libs.utils.api_export_tools import process_async_export
 from onadata.libs.utils.api_export_tools import get_async_response
 from onadata.libs.utils.api_export_tools import response_for_format
 from onadata.libs.utils.export_tools import parse_request_export_options
+from onadata.apps.api.tools import get_baseviewset_class
+
+
+BaseViewset = get_baseviewset_class()
 
 
 def upload_to_survey_draft(filename, username):
@@ -215,6 +219,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                    CacheControlMixin,
                    ETagsMixin,
                    LabelsMixin,
+                   BaseViewset,
                    ModelViewSet):
     """
     Publish XLSForms, List, Retrieve Published Forms.

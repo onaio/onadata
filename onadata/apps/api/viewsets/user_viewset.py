@@ -11,10 +11,15 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.user_serializer import UserSerializer
 from onadata.apps.api import permissions
+from onadata.apps.api.tools import get_baseviewset_class
+
+
+BaseViewset = get_baseviewset_class()
 
 
 class UserViewSet(AuthenticateHeaderMixin,
-                  CacheControlMixin, ETagsMixin, ReadOnlyModelViewSet):
+                  CacheControlMixin, ETagsMixin, BaseViewset,
+                  ReadOnlyModelViewSet):
     """
     This endpoint allows you to list and retrieve user's first and last names.
     """

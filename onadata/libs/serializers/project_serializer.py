@@ -5,16 +5,19 @@ from django.core.cache import cache
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import Project
 from onadata.libs.permissions import get_object_users_with_permissions,\
-    OwnerRole
+    OwnerRole, ReadOnlyRole, is_organization
 from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
+from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE, PROJ_PERM_CACHE,
     PROJ_SUB_DATE_CACHE, safe_delete, PROJ_TEAM_USERS_CACHE)
 from onadata.apps.api.models import Team
 from onadata.libs.permissions import get_team_project_default_permissions
+from onadata.apps.api.tools import (
+    get_organization_members_team, get_organization_owners_team)
 
 
 def set_owners_permission(user, project):
@@ -67,6 +70,12 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 # give the new owner permissions
                 set_owners_permission(owner, instance)
 
+                if is_organization(owner.profile):
+                    owners_team = get_organization_owners_team(owner.profile)
+                    members_team = get_organization_members_team(owner.profile)
+                    OwnerRole.add(owners_team, instance)
+                    ReadOnlyRole.add(members_team, instance)
+
                 # clear cache
                 safe_delete('{}{}'.format(PROJ_PERM_CACHE, self.object.pk))
 
@@ -110,10 +119,22 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             if forms:
                 return forms
 
-            xforms_details = obj.xform_set.values('pk', 'title')
+            request = self.context.get('request')
+            serializer = XFormSerializer(
+                obj.xform_set.all(), context={'request': request}, many=True)
 
-            forms = [{'name': form['title'], 'id':form['pk']}
-                     for form in xforms_details]
+            forms = [{'name': form['title'],
+                      'formid':form['formid'],
+                      'num_of_submissions':form['num_of_submissions'],
+                      'downloadable':form['downloadable'],
+                      'last_submission_time':form['last_submission_time'],
+                      'date_created':form['date_created'],
+                      'url': form['url'],
+                      'enketo_url': form['enketo_url'],
+                      'enketo_preview_url': form['enketo_preview_url'],
+                      'data_views': form['data_views']
+                      }
+                     for form in serializer.data]
             cache.set('{}{}'.format(PROJ_FORMS_CACHE, obj.pk), forms)
             return forms
 

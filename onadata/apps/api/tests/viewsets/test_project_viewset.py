@@ -100,6 +100,48 @@ class TestProjectViewSet(TestAbstractViewSet):
         res_user_props.sort()
         self.assertEqual(res_user_props, user_props)
 
+    def test_none_empty_forms_and_dataview_properties_in_returned_json(self):
+        self._publish_xls_form_to_project()
+        self._create_dataview()
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertGreater(len(response.data.get('forms')), 0)
+        self.assertGreater(
+            len(response.data.get('forms')[0].get('data_views')), 0)
+
+        form_obj_keys = response.data.get('forms')[0].keys()
+        data_view_obj_keys = response.data.get(
+            'forms')[0].get('data_views')[0].keys()
+        self.assertEqual(['data_views',
+                          'date_created',
+                          'downloadable',
+                          'enketo_preview_url',
+                          'enketo_url',
+                          'formid',
+                          'last_submission_time',
+                          'name',
+                          'num_of_submissions',
+                          'url'],
+                         sorted(form_obj_keys))
+        self.assertEqual(['columns',
+                          'count',
+                          'dataviewid',
+                          'date_created',
+                          'date_modified',
+                          'instances_with_geopoints',
+                          'name',
+                          'project',
+                          'query',
+                          'url',
+                          'xform'],
+                         sorted(data_view_obj_keys))
+        self.assertEqual(response.status_code, 200)
+
     def test_projects_tags(self):
         self._project_create()
         view = ProjectViewSet.as_view({
@@ -1083,6 +1125,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         }
         request = self.factory.patch('/', data=data_patch, **self.extra)
         response = view(request, pk=projectid)
+        for a in response.data.get('teams'):
+            self.assertIsNotNone(a.get('role'))
 
         self.assertEqual(response.status_code, 200)
         project = Project.objects.get(pk=projectid)

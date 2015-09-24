@@ -1,4 +1,5 @@
 import os
+import importlib
 
 from datetime import datetime
 
@@ -34,6 +35,7 @@ from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
 from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import ManagerRole
 from onadata.libs.permissions import get_role_in_org
+from onadata.libs.baseviewset import DefaultBaseViewset
 
 DECIMAL_PRECISION = 2
 
@@ -389,3 +391,27 @@ def _set_xform_permission(role, user, xform):
 
     if role_class:
         role_class.add(user, xform)
+
+
+def load_class(full_class_string):
+    """
+    dynamically load a class from a string
+    """
+
+    class_data = full_class_string.split(".")
+    module_path = ".".join(class_data[:-1])
+    class_str = class_data[-1]
+
+    module = importlib.import_module(module_path)
+    # Finally, we retrieve the Class
+    return getattr(module, class_str)
+
+
+def get_baseviewset_class():
+    """
+    Checks the setting if the default viewset is implementded otherwise loads
+    the default in onadata
+    :return: the default baseviewset
+    """
+    return load_class(settings.BASE_VIEWSET) \
+        if settings.BASE_VIEWSET else DefaultBaseViewset

@@ -11,12 +11,16 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.stats_serializer import (
     SubmissionStatsSerializer, SubmissionStatsInstanceSerializer)
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
 class SubmissionStatsViewSet(AnonymousUserPublicFormsMixin,
                              AuthenticateHeaderMixin,
                              CacheControlMixin,
                              ETagsMixin,
+                             BaseViewset,
                              viewsets.ReadOnlyModelViewSet):
 
     """

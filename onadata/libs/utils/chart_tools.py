@@ -59,15 +59,38 @@ def utc_time_string_for_javascript(date_string):
     return "{}+{}".format(date_time, tz)
 
 
+def find_choice_label(choices, string):
+    for choice in choices:
+        if choice['name'] == string:
+            return choice['label']
+
+
 def get_choice_label(choices, string):
+    """
+    `string` is the name value found in the choices sheet.
+
+    Select one names should not contain spaces but some do and this conflicts
+    with Select Multiple fields which use spaces to distinguish multiple
+    choices.
+
+    A temporal fix to this is to search the choices list for both the
+    full-string and the split keys.
+    """
     labels = []
 
     if string and choices:
-        for name in string.split(' '):
-            for choice in choices:
-                if choice['name'] == name:
-                    labels.append(choice['label'])
-                    break
+        label = find_choice_label(choices, string)
+
+        if label:
+            labels.append(label)
+        else:
+            # the unsplit string doesn't exist as a key in choices.
+            for name in string.split(" "):
+                labels.append(find_choice_label(choices, name))
+
+    elif not choices:
+        labels = [string]
+
     return labels
 
 
@@ -113,6 +136,7 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None):
 
     # replace truncated field names in the result set with the field name key
     field_name = field_name.encode('utf-8')
+
     for item in result:
         if field_name != truncated_name:
             item[field_name] = item[truncated_name]

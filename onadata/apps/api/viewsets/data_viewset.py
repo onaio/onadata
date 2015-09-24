@@ -41,8 +41,10 @@ from onadata.libs.utils.viewer_tools import (
     get_enketo_edit_url)
 from onadata.libs.data import parse_int
 from onadata.apps.api.permissions import ConnectViewsetPermissions
+from onadata.apps.api.tools import get_baseviewset_class
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
+BaseViewset = get_baseviewset_class()
 
 
 class CustomPaginationSerializer(BasePaginationSerializer):
@@ -60,6 +62,7 @@ class CustomPaginationSerializer(BasePaginationSerializer):
 class DataViewSet(AnonymousUserPublicFormsMixin,
                   AuthenticateHeaderMixin,
                   ETagsMixin, CacheControlMixin,
+                  BaseViewset,
                   ModelViewSet):
     """
     This endpoint provides access to submitted data.

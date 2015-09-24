@@ -1,4 +1,5 @@
 import json
+from django.conf import settings
 
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
@@ -29,6 +30,11 @@ from onadata.libs.permissions import ROLES, OwnerRole
 from onadata.libs.serializers.organization_serializer import(
     OrganizationSerializer)
 from onadata.settings.common import (DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT)
+from onadata.apps.api.tools import load_class
+from onadata.apps.api.tools import get_baseviewset_class
+
+
+BaseViewset = get_baseviewset_class()
 
 
 def _try_function_org_username(f, organization, username, args=None):
@@ -141,16 +147,24 @@ def _check_set_role(request, organization, username, required=False):
             else (status.HTTP_201_CREATED, [])
 
 
+def serializer_from_settings():
+    if settings.ORG_PROFILE_SERIALIZER:
+        return load_class(settings.ORG_PROFILE_SERIALIZER)
+
+    return OrganizationSerializer
+
+
 class OrganizationProfileViewSet(AuthenticateHeaderMixin,
                                  CacheControlMixin,
                                  ETagsMixin,
                                  ObjectLookupMixin,
+                                 BaseViewset,
                                  ModelViewSet):
     """
     List, Retrieve, Update, Create/Register Organizations.
     """
     queryset = OrganizationProfile.objects.all()
-    serializer_class = OrganizationSerializer
+    serializer_class = serializer_from_settings()
     lookup_field = 'user'
     permission_classes = [permissions.DjangoObjectPermissionsAllowAnon]
     filter_backends = (OrganizationPermissionFilter,

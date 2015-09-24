@@ -29,11 +29,15 @@ from onadata.apps.main.models import UserProfile
 from onadata.settings.common import (
     DEFAULT_FROM_EMAIL,
     SHARE_PROJECT_SUBJECT)
+from onadata.apps.api.tools import get_baseviewset_class
+
+
+BaseViewset = get_baseviewset_class()
 
 
 class ProjectViewSet(AuthenticateHeaderMixin,
                      CacheControlMixin,
-                     ETagsMixin, LabelsMixin, ModelViewSet):
+                     ETagsMixin, LabelsMixin, BaseViewset, ModelViewSet):
     """
     List, Retrieve, Update, Create Project and Project Forms.
     """

@@ -14,12 +14,16 @@ from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.view_permission_mixin import ViewPermissionMixin
 from onadata.libs.serializers.note_serializer import NoteSerializer
 from onadata.apps.logger.models import Note
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
 class NoteViewSet(AuthenticateHeaderMixin,
                   CacheControlMixin,
                   ETagsMixin,
                   ViewPermissionMixin,
+                  BaseViewset,
                   ModelViewSet):
     """## Add Notes to a submission
 

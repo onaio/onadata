@@ -7,6 +7,7 @@ from rest_framework.compat import StringIO
 from rest_framework.compat import six
 from rest_framework.compat import smart_text
 from rest_framework.renderers import BaseRenderer
+from rest_framework.renderers import UnicodeJSONRenderer as JSONRenderer
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.renderers import XMLRenderer
@@ -202,3 +203,21 @@ class OSMExportRenderer(BaseRenderer):
     media_type = 'text/xml'
     format = 'osm'
     charset = 'utf-8'
+
+
+class DebugToolbarRenderer(TemplateHTMLRenderer):
+    media_type = 'text/html'
+    charset = 'utf-8'
+    format = 'debug'
+    template_name = 'debug.html'
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        data = {
+            'debug_data': JSONRenderer().render(
+                data, renderer_context=renderer_context
+            )
+        }
+
+        return super(DebugToolbarRenderer, self).render(
+            data, accepted_media_type, renderer_context
+        )
