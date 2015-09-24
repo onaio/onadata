@@ -10,6 +10,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
+from onadata.libs.serializers.xform_serializer import XFormSerializer
 
 
 class TestDataViewViewSet(TestAbstractViewSet):
@@ -90,7 +91,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "My DataView updated",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
+            'project': 'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "age", "gender"]',
             'query': '[{"column":"age","filter":">","value":"20"}]'
@@ -133,7 +134,29 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         after_count = DataView.objects.filter(xform=self.xform,
                                               project=self.project).count()
-        self.assertEquals(count-1, after_count)
+
+        self.assertEquals(count - 1, after_count)
+
+    def test_deleted_dataview_not_in_forms_list(self):
+        self._create_dataview()
+
+        get_form_request = self.factory.get('/', **self.extra)
+
+        xform_serializer = XFormSerializer(
+            self.xform,
+            context={'request': get_form_request})
+
+        self.assertIsNotNone(xform_serializer.data['data_views'])
+
+        request = self.factory.delete('/', **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEquals(response.status_code, 204)
+
+        xform_serializer = XFormSerializer(
+            self.xform,
+            context={'request': get_form_request})
+
+        self.assertEquals(xform_serializer.data['data_views'], [])
 
     def test_list_dataview(self):
         self._create_dataview()
@@ -141,7 +164,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "My DataView2",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
+            'project': 'http://testserver/api/v1/projects/%s'
                         % self.project.pk,
             'columns': '["name", "age", "gender"]',
             'query': '[{"column":"age","filter":">","value":"20"}]'
