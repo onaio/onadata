@@ -5,6 +5,7 @@ import requests
 from django.utils import timezone
 from django.test import RequestFactory
 from django_digest.test import DigestAuth
+from httmock import urlmatch, HTTMock
 
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.main import tests as main_tests
@@ -20,8 +21,9 @@ from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs import permissions as role
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
-from httmock import urlmatch, HTTMock
 from onadata.apps.logger.models.instance import get_attachment_url
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
+    enketo_preview_url_mock
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
@@ -984,33 +986,34 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
         formid = self.xform.pk
-        response = view(request, pk=formid)
-        self.assertEquals(response.status_code, 200)
-        self.assertEqual(len(response.data), 4)
-        # get project id
-        projectid = self.xform.project.pk
+        with HTTMock(enketo_preview_url_mock, enketo_mock):
+            response = view(request, pk=formid)
+            self.assertEquals(response.status_code, 200)
+            self.assertEqual(len(response.data), 4)
+            # get project id
+            projectid = self.xform.project.pk
 
-        view = ProjectViewSet.as_view({
-            'put': 'update'
-        })
+            view = ProjectViewSet.as_view({
+                'put': 'update'
+            })
 
-        data = {'shared': True,
-                'name': 'test project',
-                'owner': 'http://testserver/api/v1/users/%s'
-                % self.user.username}
-        request = self.factory.put('/', data=data, **self.extra)
-        response = view(request, pk=projectid)
+            data = {'shared': True,
+                    'name': 'test project',
+                    'owner': 'http://testserver/api/v1/users/%s'
+                    % self.user.username}
+            request = self.factory.put('/', data=data, **self.extra)
+            response = view(request, pk=projectid)
 
-        self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
 
-        # anonymous user
-        view = DataViewSet.as_view({'get': 'list'})
-        request = self.factory.get('/')
-        formid = self.xform.pk
-        response = view(request, pk=formid)
+            # anonymous user
+            view = DataViewSet.as_view({'get': 'list'})
+            request = self.factory.get('/')
+            formid = self.xform.pk
+            response = view(request, pk=formid)
 
-        self.assertEquals(response.status_code, 200)
-        self.assertEqual(len(response.data), 4)
+            self.assertEquals(response.status_code, 200)
+            self.assertEqual(len(response.data), 4)
 
     def test_data_diff_version(self):
         self._make_submissions()
