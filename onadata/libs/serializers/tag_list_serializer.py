@@ -15,6 +15,6 @@ class TagListSerializer(serializers.WritableField):
             return super(TagListSerializer, self).to_native(obj)
 
         if type(obj) is not list:
-            return list(obj.values_list('name', flat=True))
+            return [tag.name for tag in obj.all()]
 
         return obj
