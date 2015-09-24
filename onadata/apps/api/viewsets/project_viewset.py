@@ -48,7 +48,6 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         .prefetch_related(Prefetch(
             'projectuserobjectpermission_set',
             queryset=ProjectUserObjectPermission.objects.select_related(),
-            to_attr='perms'
         ))
     serializer_class = ProjectSerializer
     lookup_field = 'pk'

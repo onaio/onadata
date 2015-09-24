@@ -121,7 +121,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             if users:
                 return users
             data = {}
-            for perm in obj.perms:
+            for perm in obj.projectuserobjectpermission_set.all():
                 if perm.user_id not in data:
                     user = perm.user
                     data[perm.user_id] = {}
