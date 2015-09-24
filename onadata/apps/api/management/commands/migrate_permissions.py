@@ -21,6 +21,9 @@ class Command(BaseCommand):
         users = User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)\
             .order_by('username')
         for user in queryset_iterator(users):
+            self.stdout.write(
+                "Processing: {} - {}".format(user.pk, user.username)
+            )
             for uop in user.userobjectpermission_set.filter(content_type=ct)\
                     .select_related('permission', 'content_type')\
                     .prefetch_related('permission', 'content_type'):
@@ -32,3 +35,5 @@ class Command(BaseCommand):
                     ).save()
                 except IntegrityError:
                     continue
+                except ValueError:
+                    pass
