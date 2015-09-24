@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
+from django.db.models import Prefetch
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -24,6 +25,7 @@ from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.logger.models import Project
+from onadata.apps.logger.models.project import ProjectUserObjectPermission
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.models import UserProfile
 from onadata.settings.common import (
@@ -42,7 +44,12 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     List, Retrieve, Update, Create Project and Project Forms.
     """
     queryset = Project.objects.all().select_related('users', 'xform_set')\
-        .prefetch_related('xform_set')
+        .prefetch_related('xform_set')\
+        .prefetch_related(Prefetch(
+            'projectuserobjectpermission_set',
+            queryset=ProjectUserObjectPermission.objects.select_related(),
+            to_attr='perms'
+        ))
     serializer_class = ProjectSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None

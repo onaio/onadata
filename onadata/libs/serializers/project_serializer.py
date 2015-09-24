@@ -120,10 +120,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             users = cache.get('{}{}'.format(PROJ_PERM_CACHE, obj.pk))
             if users:
                 return users
-            perms = obj.projectuserobjectpermission_set.all()\
-                .select_related().order_by('user_id', 'permission__codename')
             data = {}
-            for perm in perms:
+            for perm in obj.perms:
                 if perm.user_id not in data:
                     user = perm.user
                     data[perm.user_id] = {}
