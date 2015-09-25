@@ -8,6 +8,26 @@ project_viewset_profiler = logging.getLogger('profiler_logger')
 
 
 class ProfilerMixin(object):
+
+    def get_serializer(self, instance=None, data=None, files=None, many=False,
+                       partial=False, allow_add_remove=False):
+        serializer_class = self.get_serializer_class()
+        context = self.get_serializer_context()
+
+        if settings.PROFILE_API_ACTION_FUNCTION:
+            global serializer_time
+            serializer_start = time.time()
+
+            serializer = serializer_class(
+                instance, data=data, files=files, many=many, partial=partial,
+                allow_add_remove=allow_add_remove, context=context)
+            serializer_time = time.time() - serializer_start
+            return serializer
+
+        return serializer_class(
+            instance, data=data, files=files, many=many, partial=partial,
+            allow_add_remove=allow_add_remove, context=context)
+
     def dispatch(self, request, *args, **kwargs):
         global render_time
         global dispatch_time
@@ -22,14 +42,6 @@ class ProfilerMixin(object):
         dispatch_time = time.time() - dispatch_start
 
         return ret
-
-    def get_list_serialization_time(self, **kwargs):
-        if hasattr(self, 'get_serializer') and hasattr(self, 'object_list'):
-            global serializer_time
-            serializer_start = time.time()
-            serializer = self.get_serializer(self.object_list, **kwargs)
-            serializer_time = time.time() - serializer_start
-            return serializer
 
 
 def started(sender, **kwargs):
