@@ -37,6 +37,10 @@ def enketo_mock(url, request):
     return response
 
 
+def get_latest_tags(project):
+    return [tag.name for tag in project.reload().tags.all()]
+
+
 class TestProjectViewSet(TestAbstractViewSet):
 
     def setUp(self):
@@ -158,11 +162,13 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=project_id)
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data, [])
+        self.assertEqual(get_latest_tags(self.project), [])
         # add tag "hello"
         request = self.factory.post('/', data={"tags": "hello"}, **self.extra)
         response = view(request, pk=project_id)
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data, [u'hello'])
+        self.assertEqual(get_latest_tags(self.project), [u'hello'])
 
         # check filter by tag
         request = self.factory.get('/', data={"tags": "hello"}, **self.extra)
@@ -184,9 +190,10 @@ class TestProjectViewSet(TestAbstractViewSet):
         # remove tag "hello"
         request = self.factory.delete('/', **self.extra)
         response = view(request, pk=project_id, label='hello')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 202)
         self.assertEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data, [])
+        self.assertEqual(get_latest_tags(self.project), [])
 
     def test_projects_create(self):
         self._project_create()
