@@ -139,7 +139,6 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
     def test_deleted_dataview_not_in_forms_list(self):
         self._create_dataview()
-
         get_form_request = self.factory.get('/', **self.extra)
 
         xform_serializer = XFormSerializer(

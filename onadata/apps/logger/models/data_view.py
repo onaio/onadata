@@ -3,11 +3,14 @@ import datetime
 from django.utils.translation import ugettext as _
 from django.contrib.gis.db import models
 from django.db import connection
+from django.db.models.signals import post_delete
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.project import Project
 from jsonfield import JSONField
 from onadata.libs.utils.common_tags import (MONGO_STRFTIME, ID, GEOLOCATION)
+from onadata.libs.utils.cache_tools import (safe_delete,
+                                            XFORM_LINKED_DATAVIEWS)
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 DEFAULT_COLUMNS = [ID]
@@ -202,3 +205,12 @@ class DataView(models.Model):
                                u" Check the query parameter")}
 
         return records
+
+
+# Post delete handler for clearing the dataview cache
+def clear_cache(sender, instance, **kwargs):
+    # clear cache
+    safe_delete('{}{}'.format(XFORM_LINKED_DATAVIEWS, instance.xform.pk))
+
+post_delete.connect(clear_cache, sender=DataView,
+                    dispatch_uid='clear_xform_cache')
