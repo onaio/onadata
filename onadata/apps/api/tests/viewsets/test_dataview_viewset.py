@@ -92,7 +92,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'name': "My DataView updated",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
             'project': 'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+                       % self.project.pk,
             'columns': '["name", "age", "gender"]',
             'query': '[{"column":"age","filter":">","value":"20"}]'
         }
@@ -164,7 +164,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
             'name': "My DataView2",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
             'project': 'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+                       % self.project.pk,
             'columns': '["name", "age", "gender"]',
             'query': '[{"column":"age","filter":">","value":"20"}]'
         }
@@ -204,8 +204,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "Transportation Dataview",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': '["name", "age", "gender"]',
             'query': '[{"column":"age","filter":">","value":"20"},'
                      '{"column":"age","filter":"<","value":"50"}]'
@@ -228,8 +228,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "Transportation Dataview",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': '["name", "gender", "_submission_time"]',
             'query': '[{"column":"_submission_time",'
                      '"filter":">=","value":"2015-01-01T00:00:00"}]'
@@ -252,8 +252,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "Transportation Dataview",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': '["name", "gender", "_submission_time"]',
             'query': '[{"column":"gender","filter":"<>","value":"male"}]'
         }
@@ -274,8 +274,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "Transportation Dataview",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': '["name", "gender", "age"]',
             'query': '[{"column":"name","filter":"=","value":"Fred",'
                      ' "condition":"or"},'
@@ -301,8 +301,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "Transportation Dataview",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': '["name", "gender", "age"]',
             'query': '[{"column":"name","filter":"<=>","value":"Fred",'
                      ' "condition":"or"}]'
@@ -319,8 +319,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "Transportation Dataview",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': '["name", "gender", "age"]',
             'query': '[{"column":"age","filter":"=",'
                      '"value":"1;UNION ALL SELECT NULL,version()'
@@ -339,8 +339,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "Transportation Dataview",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': 'age'
         }
 
@@ -355,8 +355,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "Transportation Dataview",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': '["age"]',
             'query': 'age=10'
         }
@@ -372,8 +372,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "Transportation Dataview",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': '["age"]',
         }
 
@@ -402,7 +402,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = view(request, pk=self.data_view.pk, format='csv')
         self.assertEqual(response.status_code, 200)
 
-        self.assertEquals(count+1, Export.objects.all().count())
+        self.assertEquals(count + 1, Export.objects.all().count())
 
         headers = dict(response.items())
         self.assertEqual(headers['Content-Type'], 'application/csv')
@@ -478,8 +478,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "My DataView1",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': '["name", "age", "gender", "location"]',
             'query': '[{"column":"age","filter":">","value":"20"}]'
         }
@@ -492,8 +492,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "My DataView2",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': '["name", "age", "gender"]',
             'query': '[{"column":"age","filter":">","value":"20"}]'
         }
@@ -524,8 +524,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "My DataView3",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': '["name", "age", "gender", "location"]',
             'query': '[{"column":"age","filter":">=","value":"87"}]'
         }
