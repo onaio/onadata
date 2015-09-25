@@ -1,6 +1,5 @@
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
-from django.conf import settings
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -31,7 +30,6 @@ from onadata.settings.common import (
     DEFAULT_FROM_EMAIL,
     SHARE_PROJECT_SUBJECT)
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.libs.utils.profiler import profile
 from onadata.libs.mixins.profiler_mixin import ProfilerMixin
 
 
@@ -138,7 +136,6 @@ class ProjectViewSet(AuthenticateHeaderMixin,
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @profile("project_viewset_list.prof")
     def list(self, request, *args, **kwargs):
         owner = request.QUERY_PARAMS.get('owner')
 
@@ -149,10 +146,6 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         else:
             self.object_list = self.filter_queryset(self.get_queryset())
 
-        if settings.PROFILE_API_ACTION_FUNCTION and hasattr(
-                self, 'get_list_serialization_time'):
-            serializer = self.get_list_serialization_time(many=True)
-        else:
-            serializer = self.get_serializer(self.object_list, many=True)
+        serializer = self.get_serializer(self.object_list, many=True)
 
         return Response(serializer.data)
