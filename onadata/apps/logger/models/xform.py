@@ -308,7 +308,8 @@ pre_save.connect(save_project, sender=XForm,
 
 
 def xform_post_delete_callback(sender, instance, **kwargs):
-    safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.pk))
+    if instance.project:
+        safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
 
 
 post_delete.connect(xform_post_delete_callback,
