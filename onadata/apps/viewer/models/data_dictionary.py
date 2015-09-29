@@ -531,8 +531,9 @@ class DataDictionary(XForm):
 
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
-    # clear cache
-    safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
+    if instance.project:
+        # clear cache
+        safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
 
     # seems the super is not called, have to get xform from here
     xform = XForm.objects.get(pk=instance.pk)

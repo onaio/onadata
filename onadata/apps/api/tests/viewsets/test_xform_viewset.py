@@ -11,6 +11,7 @@ from django.db.models import Q
 from datetime import datetime
 from django.utils import timezone
 from django.conf import settings
+from django.core.cache import cache
 from django.test.utils import override_settings
 from httmock import urlmatch, HTTMock
 from mock import patch
@@ -31,7 +32,10 @@ from onadata.libs.permissions import (
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.main.models import MetaData
 from onadata.libs.utils.common_tags import GROUPNAME_REMOVED_FLAG
-from onadata.libs.utils.cache_tools import (safe_delete, ENKETO_URL_CACHE)
+from onadata.libs.utils.cache_tools import (
+    safe_delete,
+    ENKETO_URL_CACHE,
+    PROJ_FORMS_CACHE)
 
 
 @urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
@@ -1351,12 +1355,22 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_form_delete(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
+
             self.xform.save()
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
             self.assertEqual(response.status_code, 200)
             etag_value = response.get('Etag')
             self.assertNotEqual(etag_value, None)
+
+            # set project XForm cache
+            cache.set('{}{}'.format(PROJ_FORMS_CACHE, self.xform.project.pk),
+                      ["forms"])
+
+            self.assertNotEqual(
+                cache.get('{}{}'.format(PROJ_FORMS_CACHE,
+                                        self.xform.project.pk)),
+                None)
 
             view = XFormViewSet.as_view({
                 'delete': 'destroy'
@@ -1366,6 +1380,13 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             self.assertEqual(response.data, None)
             self.assertEqual(response.status_code, 204)
+
+            # test project XForm cache is emptied
+            self.assertEqual(
+                cache.get('{}{}'.format(PROJ_FORMS_CACHE,
+                                        self.xform.project.pk)),
+                None)
+
             with self.assertRaises(XForm.DoesNotExist):
                 self.xform.reload()
 
