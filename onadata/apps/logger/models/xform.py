@@ -281,6 +281,10 @@ post_delete.connect(update_profile_num_submissions, sender=XForm,
 
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
+    # clear cache
+    safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
+    safe_delete('{}{}'.format(IS_ORG, instance.pk))
+
     if created:
         from onadata.libs.permissions import OwnerRole
         OwnerRole.add(instance.user, instance)
@@ -291,9 +295,6 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
         from onadata.libs.utils.project_utils import set_project_perms_to_xform
         set_project_perms_to_xform(instance, instance.project)
 
-        # clear cache
-        safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
-        safe_delete('{}{}'.format(IS_ORG, instance.pk))
 
 post_save.connect(set_object_permissions, sender=XForm,
                   dispatch_uid='xform_object_permissions')
@@ -304,3 +305,13 @@ def save_project(sender, instance=None, created=False, **kwargs):
 
 pre_save.connect(save_project, sender=XForm,
                  dispatch_uid='save_project_xform')
+
+
+def xform_post_delete_callback(sender, instance, **kwargs):
+    if instance.project:
+        safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
+
+
+post_delete.connect(xform_post_delete_callback,
+                    sender=XForm,
+                    dispatch_uid='xform_post_delete_callback')
