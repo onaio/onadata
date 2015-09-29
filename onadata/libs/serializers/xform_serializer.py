@@ -81,8 +81,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         'get_enketo_preview_url')
     instances_with_geopoints = serializers.SerializerMethodField(
         'get_instances_with_geopoints')
-    num_of_submissions = serializers.SerializerMethodField(
-        'get_num_of_submissions')
+    num_of_submissions = serializers.Field()
     form_versions = serializers.SerializerMethodField(
         'get_xform_versions')
     data_views = serializers.SerializerMethodField(
@@ -103,13 +102,6 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                     return m.data_value
         else:
             return obj.metadata_set.all()
-
-    def get_num_of_submissions(self, obj):
-        if obj.num_of_submissions != obj.instances.filter(
-                deleted_at__isnull=True).count():
-            obj.submission_count(force_update=True)
-
-        return obj.num_of_submissions
 
     def get_instances_with_geopoints(self, obj):
         if not obj.instances_with_geopoints and obj.num_of_submissions:
