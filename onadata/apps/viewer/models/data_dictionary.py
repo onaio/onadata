@@ -26,6 +26,7 @@ from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES,\
 from onadata.libs.utils.export_tools import question_types_to_exclude,\
     DictOrganizer
 from onadata.libs.utils.model_tools import queryset_iterator, set_uuid
+from onadata.libs.utils.cache_tools import PROJ_FORMS_CACHE, safe_delete
 
 
 # adopted from pyxform.utils.sheet_to_csv
@@ -530,6 +531,9 @@ class DataDictionary(XForm):
 
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
+    # clear cache
+    safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
+
     # seems the super is not called, have to get xform from here
     xform = XForm.objects.get(pk=instance.pk)
 
