@@ -937,6 +937,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation.xls")
+
             with open(path) as xls_file:
                 post_data = {'xls_file': xls_file}
                 request = self.factory.post('/', data=post_data, **self.extra)
@@ -1352,6 +1353,27 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertFalse(self.xform.shared)
             self.assertFalse(response.data['public'])
 
+    def test_form_add_project_cache(self):
+        with HTTMock(enketo_mock):
+            self._project_create()
+
+            # set project XForm cache
+            cache.set('{}{}'.format(PROJ_FORMS_CACHE, self.project.pk),
+                      ["forms"])
+
+            self.assertNotEqual(
+                cache.get('{}{}'.format(PROJ_FORMS_CACHE,
+                                        self.project.pk)),
+                None)
+
+            self._publish_xls_form_to_project()
+
+            # test project XForm cache is empty
+            self.assertEqual(
+                cache.get('{}{}'.format(PROJ_FORMS_CACHE,
+                                        self.project.pk)),
+                None)
+
     def test_form_delete(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -1364,12 +1386,12 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertNotEqual(etag_value, None)
 
             # set project XForm cache
-            cache.set('{}{}'.format(PROJ_FORMS_CACHE, self.xform.project.pk),
+            cache.set('{}{}'.format(PROJ_FORMS_CACHE, self.project.pk),
                       ["forms"])
 
             self.assertNotEqual(
                 cache.get('{}{}'.format(PROJ_FORMS_CACHE,
-                                        self.xform.project.pk)),
+                                        self.project.pk)),
                 None)
 
             view = XFormViewSet.as_view({
@@ -1384,7 +1406,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             # test project XForm cache is emptied
             self.assertEqual(
                 cache.get('{}{}'.format(PROJ_FORMS_CACHE,
-                                        self.xform.project.pk)),
+                                        self.project.pk)),
                 None)
 
             with self.assertRaises(XForm.DoesNotExist):
