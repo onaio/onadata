@@ -245,6 +245,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
     def test_num_datasets(self):
         self._publish_xls_form_to_project()
+        self.project.reload()
         request = self.factory.post('/', data={}, **self.extra)
         request.user = self.user
         self.project_data = ProjectSerializer(
