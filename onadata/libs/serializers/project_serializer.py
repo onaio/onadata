@@ -151,14 +151,15 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             forms = cache.get('{}{}'.format(PROJ_FORMS_CACHE, obj.pk))
             if forms:
                 return forms
-
+            xforms = obj.xforms_prefetch \
+                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.all()
             request = self.context.get('request')
             serializer = ProjectXFormSerializer(
-                obj.xforms_prefetch, context={'request': request}, many=True
+                xforms, context={'request': request}, many=True
             )
             forms = serializer.data
-
             cache.set('{}{}'.format(PROJ_FORMS_CACHE, obj.pk), forms)
+
             return forms
 
         return []
@@ -174,7 +175,9 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             if count:
                 return count
 
-            count = len(obj.xforms_prefetch)
+            xforms = obj.xforms_prefetch \
+                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.all()
+            count = len(xforms)
             cache.set('{}{}'.format(PROJ_NUM_DATASET_CACHE, obj.pk), count)
             return count
 
@@ -193,7 +196,9 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             if last_submission_date:
                 return last_submission_date
             dates = []
-            for x in obj.xforms_prefetch:
+            xforms = obj.xforms_prefetch \
+                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.all()
+            for x in xforms:
                 if x.last_submission_time is not None:
                     dates.append(x.last_submission_time)
             dates.sort()
