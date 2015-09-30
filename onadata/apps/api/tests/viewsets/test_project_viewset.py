@@ -173,13 +173,14 @@ class TestProjectViewSet(TestAbstractViewSet):
         # check filter by tag
         request = self.factory.get('/', data={"tags": "hello"}, **self.extra)
 
+        self.project.reload()
         request.user = self.user
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
         response = list_view(request, pk=project_id)
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [self.project_data])
+        self.assertEqual(response.data[0], self.project_data)
 
         request = self.factory.get('/', data={"tags": "goodbye"}, **self.extra)
         response = list_view(request, pk=project_id)
@@ -190,7 +191,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # remove tag "hello"
         request = self.factory.delete('/', **self.extra)
         response = view(request, pk=project_id, label='hello')
-        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data, [])
         self.assertEqual(get_latest_tags(self.project), [])

@@ -136,6 +136,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
             results = []
             for k, v in data.items():
+                v['permissions'].sort()
                 v['role'] = get_role(v['permissions'], obj)
                 results.append(v)
 
