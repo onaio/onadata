@@ -1,9 +1,7 @@
 from django.forms import widgets
 from rest_framework import serializers
 from django.core.cache import cache
-from django.db.models import Prefetch
 
-from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import OwnerRole
@@ -18,8 +16,6 @@ from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE, PROJ_PERM_CACHE,
     PROJ_SUB_DATE_CACHE, safe_delete, PROJ_TEAM_USERS_CACHE)
-from onadata.apps.api.models import Team
-from onadata.libs.permissions import get_team_project_default_permissions
 from onadata.apps.api.tools import (
     get_organization_members_team, get_organization_owners_team)
 
@@ -140,6 +136,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
             results = []
             for k, v in data.items():
+                v['permissions'].sort()
                 v['role'] = get_role(v['permissions'], obj)
                 results.append(v)
 
@@ -155,19 +152,15 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             forms = cache.get('{}{}'.format(PROJ_FORMS_CACHE, obj.pk))
             if forms:
                 return forms
-            xforms = obj.xform_set.select_related('users', 'dataview_set',
-                                                  'metadata_set')\
-                .prefetch_related(
-                    Prefetch('metadata_set'), 'dataview_set', 'user'
-                )
-
+            xforms = obj.xforms_prefetch \
+                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.all()
             request = self.context.get('request')
             serializer = ProjectXFormSerializer(
                 xforms, context={'request': request}, many=True
             )
             forms = serializer.data
-
             cache.set('{}{}'.format(PROJ_FORMS_CACHE, obj.pk), forms)
+
             return forms
 
         return []
@@ -183,7 +176,9 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             if count:
                 return count
 
-            count = len(obj.xform_set.all())
+            xforms = obj.xforms_prefetch \
+                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.all()
+            count = len(xforms)
             cache.set('{}{}'.format(PROJ_NUM_DATASET_CACHE, obj.pk), count)
             return count
 
@@ -197,19 +192,24 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         :param obj: The project to find the last submission date for.
         """
         if obj:
-            last_submission = cache.get('{}{}'.format(
+            last_submission_date = cache.get('{}{}'.format(
                 PROJ_SUB_DATE_CACHE, obj.pk))
-            if last_submission:
-                return last_submission
+            if last_submission_date:
+                return last_submission_date
+            dates = []
+            xforms = obj.xforms_prefetch \
+                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.all()
+            for x in xforms:
+                if x.last_submission_time is not None:
+                    dates.append(x.last_submission_time)
+            dates.sort()
+            dates.reverse()
+            last_submission_date = dates[0] if len(dates) else None
 
-            xform_ids = obj.xform_set.values_list('pk', flat=True)
-            last_submission = Instance.objects.\
-                order_by('-date_created').\
-                filter(xform_id__in=xform_ids).values_list('date_created',
-                                                           flat=True)
             cache.set('{}{}'.format(PROJ_SUB_DATE_CACHE, obj.pk),
-                      last_submission and last_submission[0])
-            return last_submission and last_submission[0]
+                      last_submission_date)
+
+            return last_submission_date
 
         return None
 
@@ -223,6 +223,13 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         return False
 
     def get_team_users(self, obj):
+        def get_team_permissions(team, obj):
+            return [
+                p.permission.codename
+                for p in obj.projectgroupobjectpermission_set.all()
+                if p.group.pk == team.pk
+            ]
+
         if obj:
             teams_users = cache.get('{}{}'.format(
                 PROJ_TEAM_USERS_CACHE, obj.pk))
@@ -230,16 +237,17 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 return teams_users
 
             teams_users = []
-            teams = Team.objects.filter(organization=obj.organization)
+            teams = obj.organization.team_set.all()
 
             for team in teams:
                 users = []
                 for user in team.user_set.all():
                     users.append(user.username)
+                perms = get_team_permissions(team, obj)
 
                 teams_users.append({
                     "name": team.name,
-                    "role": get_team_project_default_permissions(team, obj),
+                    "role": get_role(perms, obj),
                     "users": users
                 })
 

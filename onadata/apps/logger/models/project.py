@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Prefetch
 from django.db.models.signals import post_save
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -10,6 +11,43 @@ from taggit.managers import TaggableManager
 
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.common_tags import OWNER_TEAM_NAME
+
+
+class PrefetchManager(models.Manager):
+    def get_queryset(self):
+        from onadata.apps.logger.models.xform import XForm
+        from onadata.apps.api.models.team import Team
+        return super(PrefetchManager, self).get_queryset().select_related(
+            'created_by', 'organization'
+        ).prefetch_related(
+            Prefetch('xform_set', queryset=XForm.objects.all()
+                     .select_related('user', 'dataview_set', 'metadata_set')
+                     .prefetch_related('user')
+                     .prefetch_related('dataview_set')
+                     .prefetch_related('metadata_set')
+                     .only('id', 'user', 'project', 'title', 'date_created',
+                           'last_submission_time', 'num_of_submissions',
+                           'downloadable'),
+                     to_attr='xforms_prefetch')
+        ).prefetch_related('tags')\
+            .prefetch_related(Prefetch(
+                'projectuserobjectpermission_set',
+                queryset=ProjectUserObjectPermission.objects.select_related(
+                    'user__profile__organizationprofile',
+                    'permission'
+                )
+            ))\
+            .prefetch_related(Prefetch(
+                'projectgroupobjectpermission_set',
+                queryset=ProjectGroupObjectPermission.objects.select_related(
+                    'group',
+                    'permission'
+                )
+            )).prefetch_related('user_stars')\
+            .prefetch_related(Prefetch(
+                'organization__team_set',
+                queryset=Team.objects.all().prefetch_related('user_set')
+            ))
 
 
 class Project(BaseModel):
@@ -33,7 +71,9 @@ class Project(BaseModel):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
+    objects = models.Manager()
     tags = TaggableManager(related_name='project_tags')
+    prefetched = PrefetchManager()
 
     def __unicode__(self):
         return u'%s|%s' % (self.organization, self.name)

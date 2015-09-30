@@ -201,7 +201,7 @@ class TestAbstractViewSet(TestCase):
             content_type="application/json", **self.extra)
         response = view(request, owner=self.user.username)
         self.assertEqual(response.status_code, 201)
-        self.project = Project.objects.filter(
+        self.project = Project.prefetched.filter(
             name=data['name'], created_by=self.user)[0]
         data['url'] = 'http://testserver/api/v1/projects/%s'\
             % self.project.pk
