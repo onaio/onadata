@@ -1,6 +1,5 @@
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
-from django.db.models import Prefetch
 
 from rest_framework import status
 from rest_framework.decorators import action
@@ -23,11 +22,8 @@ from onadata.libs.serializers.share_project_serializer import\
     ShareProjectSerializer, RemoveUserFromProjectSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.apps.api import tools as utils
-from onadata.apps.api.models import Team
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.logger.models import Project
-from onadata.apps.logger.models.project import ProjectUserObjectPermission
-from onadata.apps.logger.models.project import ProjectGroupObjectPermission
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.models import UserProfile
 from onadata.settings.common import (
@@ -45,37 +41,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     """
     List, Retrieve, Update, Create Project and Project Forms.
     """
-    queryset = Project.objects.all().select_related(
-        'created_by', 'organization'
-    ).prefetch_related(
-        Prefetch('xform_set', queryset=XForm.objects.all()
-                 .select_related('user', 'dataview_set', 'metadata_set')
-                 .prefetch_related('user')
-                 .prefetch_related('dataview_set')
-                 .prefetch_related('metadata_set')
-                 .only('id', 'user', 'project', 'title', 'date_created',
-                       'last_submission_time', 'num_of_submissions',
-                       'downloadable'),
-                 to_attr='xforms_prefetch')
-    ).prefetch_related('tags')\
-        .prefetch_related(Prefetch(
-            'projectuserobjectpermission_set',
-            queryset=ProjectUserObjectPermission.objects.select_related(
-                'user__profile__organizationprofile',
-                'permission'
-            )
-        ))\
-        .prefetch_related(Prefetch(
-            'projectgroupobjectpermission_set',
-            queryset=ProjectGroupObjectPermission.objects.select_related(
-                'group',
-                'permission'
-            )
-        )).prefetch_related('user_stars')\
-        .prefetch_related(Prefetch(
-            'organization__team_set',
-            queryset=Team.objects.all().prefetch_related('user_set')
-        ))
+    queryset = Project.prefetched.all()
     serializer_class = ProjectSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
