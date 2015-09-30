@@ -224,12 +224,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_team_users(self, obj):
         def get_team_permissions(team, obj):
-            permissions = []
-            for p in obj.projectgroupobjectpermission_set.all():
-                if p.group.pk == team.pk:
-                    permissions.append(p.permission.codename)
-
-            return permissions
+            return [
+                p.permission.codename
+                for p in obj.projectgroupobjectpermission_set.all()
+                if p.group.pk == team.pk
+            ]
 
         if obj:
             teams_users = cache.get('{}{}'.format(
