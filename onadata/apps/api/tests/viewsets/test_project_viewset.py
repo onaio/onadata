@@ -256,6 +256,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._make_submissions()
         request = self.factory.post('/', data={}, **self.extra)
         request.user = self.user
+        self.project.reload()
         self.project_data = ProjectSerializer(
             self.project, context={'request': request}).data
         date_created = self.xform.instances.order_by(
