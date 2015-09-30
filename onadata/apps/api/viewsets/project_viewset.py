@@ -41,7 +41,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     """
     List, Retrieve, Update, Create Project and Project Forms.
     """
-    queryset = Project.prefetched.all()
+    queryset = Project.objects.all().select_related()
     serializer_class = ProjectSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
@@ -49,6 +49,12 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     filter_backends = (AnonUserProjectFilter,
                        ProjectOwnerFilter,
                        TagFilter)
+
+    def get_queryset(self):
+        if self.request.method.upper() in ['GET', 'OPTIONS']:
+            self.queryset = Project.prefetched.all()
+
+        return super(ProjectViewSet, self).get_queryset()
 
     @action(methods=['POST', 'GET'])
     def forms(self, request, **kwargs):
