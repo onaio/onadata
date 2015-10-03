@@ -26,6 +26,10 @@ Replace username and db name accordingly.
     pip install -r requirements/base.pip --allow-all-external
     pip install numpy pandas==0.12.0
 
+## Install Amazon python packages
+    pip install -r requirements/s3.pip --allow-all-external
+    pip install -r requirements/ses.pip --allow-all-external
+
 ## Set local_settings.py, update it accordingly
     cp script/local_settings.py local_settings.py
 
@@ -72,4 +76,3 @@ Replace username and db name accordingly.
     # remove default nginx server config
     sudo unlink /etc/nginx/sites-enabled/default
     sudo service nginx restart
-

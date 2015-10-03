@@ -6,9 +6,9 @@ from onadata.settings.common import *  # noqa
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'DB_NAME',
-        'USER': 'DB_USER',
-        'PASSWORD': 'DB_PASSWORD',
+        'NAME': 'onadata',
+        'USER': 'onadata',
+        'PASSWORD': 'onadata',
         'HOST': '127.0.0.1',
         'OPTIONS': {
             # note: this option obsolete starting with django 1.6
@@ -70,6 +70,24 @@ CORS_ORIGIN_WHITELIST = (
     'localhost:8000'
 )
 
+#AWS SES Settings
+#EMAIL_BACKEND = 'django_ses.SESBackend'
+#AWS_ACCESS_KEY_ID = 'KEY ID'
+#AWS_SECRET_ACCESS_KEY = 'SECRET KEY'
+#AWS_SES_REGION_NAME = 'us-east-1'
+#AWS_SES_REGION_ENDPOINT = 'REGION ENDPOINT'
+#DEFAULT_FROM_EMAIL = 'EMAIL ADDRESS'
+#SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Uncomment the following three lines if you are using
+# an AWS S3 Bucket as the default file store, and define
+# your bucket name in the AWS_STORAGE_BUCKET_NAME variable.
+# This it is optional, but strongly recommended.
+
+#DEFAULT_FILE_STORAGE = 'storages.backends.s3boto.S3BotoStorage'
+#AWS_STORAGE_BUCKET_NAME = 'BUCKET NAME' # use your S3 Bucket name here
+#AWS_DEFAULT_ACL = 'private'
+
 # Google credentials
 # GOOGLE_SITE_VERIFICATION = ''
 # GOOGLE_ANALYTICS_PROPERTY_ID = ''
@@ -79,12 +97,12 @@ CORS_ORIGIN_WHITELIST = (
 TESTING_MODE = False
 
 # Enketo settings
-# ENKETO_URL = '127.0.0.1:8005'
-# ENKETO_PREVIEW_URL = ENKETO_URL + 'webform/preview'
-# ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + 'api_v2/instance/iframe'
-# ENKETO_API_TOKEN = 'enketo_api_token'
-# ENKETO_API_SURVEY_PATH = '/api_v2/survey'
-# ENKETO_PROTOCOL = 'http'
+#ENKETO_URL = 'https://enketo.org/'
+#ENKETO_PREVIEW_URL = ENKETO_URL + 'webform/preview'
+#ENKETO_API_INSTANCE_IFRAME_URL = ENKETO_URL + "api_v2/instance/iframe"
+#ENKETO_API_TOKEN = 'API KEY' # use your Enketo API key here
+#ENKETO_API_SURVEY_PATH = '/api_v2/survey'
+#ENKETO_PROTOCOL = 'http'
 
 CORS_EXPOSE_HEADERS = (
     'Content-Type', 'Location', 'WWW-Authenticate', 'Content-Language',
@@ -92,3 +110,17 @@ CORS_EXPOSE_HEADERS = (
 
 MEDIA_URL = "http://DOMAIN NAME OR SERVER IP HERE/media/"
 MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'media/')
+
+MIDDLEWARE_CLASSES = (
+        'onadata.libs.profiling.sql.SqlTimingMiddleware',
+        'django.middleware.common.CommonMiddleware',
+        'django.contrib.sessions.middleware.SessionMiddleware',
+        # 'django.middleware.locale.LocaleMiddleware',
+        'onadata.libs.utils.middleware.LocaleMiddlewareWithTweaks',
+        'django.middleware.csrf.CsrfViewMiddleware',
+        'corsheaders.middleware.CorsMiddleware',
+        'django.contrib.auth.middleware.AuthenticationMiddleware',
+        'django.contrib.messages.middleware.MessageMiddleware',
+        'django.middleware.transaction.TransactionMiddleware',
+        'onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware',
+        'readonly.middleware.DatabaseReadOnlyMiddleware', )
