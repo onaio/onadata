@@ -165,8 +165,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
     @patch('onadata.apps.restservice.task.get_object_or_404')
     @patch('httplib2.Http')
     def test_textit_flow_without_parsed_instances(
-            self, mock_http, mock_call_service_async):
-        mock_call_service_async.side_effect = Http404(
+            self, mock_http, mock_get_object_or_404):
+        mock_get_object_or_404.side_effect = Http404(
             'ParsedInstance matching query does not exist.')
         rest = RestService(name="textit",
                            service_url="https://server.io",
@@ -180,4 +180,4 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertFalse(mock_http.called)
         self._make_submissions()
 
-        self.assertTrue(mock_call_service_async.called)
+        self.assertTrue(mock_get_object_or_404.called)
