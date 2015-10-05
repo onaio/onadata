@@ -232,7 +232,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
         renderers.SurveyRenderer,
-        renderers.OSMExportRenderer
+        renderers.OSMExportRenderer,
+        renderers.ZipRenderer
     ]
     queryset = XForm.objects.select_related()
     serializer_class = XFormSerializer

@@ -221,3 +221,8 @@ class DebugToolbarRenderer(TemplateHTMLRenderer):
         return super(DebugToolbarRenderer, self).render(
             data, accepted_media_type, renderer_context
         )
+
+class ZipRenderer(BaseRenderer):
+    media_type = 'application/octet-stream'
+    format = 'zip'
+    charset = None

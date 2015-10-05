@@ -44,6 +44,7 @@ EXPORT_EXT = {
     'savzip': Export.SAV_ZIP_EXPORT,
     'uuid': Export.EXTERNAL_EXPORT,
     'kml': Export.KML_EXPORT,
+    'zip': Export.ZIP_EXPORT,
     OSM: Export.OSM_EXPORT
 }
 
