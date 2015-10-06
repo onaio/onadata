@@ -1,9 +1,11 @@
+import logging
 from django.forms import widgets
 from requests.exceptions import ConnectionError
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 from django.core.cache import cache
 from django.db.models import Count
+from django.db import IntegrityError
 
 from onadata.apps.logger.models import XForm, Instance
 from onadata.libs.permissions import get_object_users_with_permissions
@@ -39,6 +41,11 @@ def _create_enketo_url(request, xform):
         MetaData.enketo_url(xform, url)
     except (EnketoError, ConnectionError):
         pass
+    except IntegrityError:
+        logging.exception(
+            ("Enketo metaData object with xform '%s' and url '%s'"
+             " already exists" % (xform, url))
+        )
 
     return url
 
