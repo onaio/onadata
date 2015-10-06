@@ -1,5 +1,6 @@
 from mock import patch
 
+from django.http import Http404
 from django.test.utils import override_settings
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -159,3 +160,24 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         self.assertTrue(mock_http.called)
         self.assertEquals(mock_http.call_count, 4)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.restservice.task.get_object_or_404')
+    @patch('httplib2.Http')
+    def test_textit_flow_without_parsed_instances(
+            self, mock_http, mock_get_object_or_404):
+        mock_get_object_or_404.side_effect = Http404(
+            'ParsedInstance matching query does not exist.')
+        rest = RestService(name="textit",
+                           service_url="https://server.io",
+                           xform=self.xform)
+        rest.save()
+
+        MetaData.textit(self.xform,
+                        data_value='{}|{}|{}'.format("sadsdfhsdf",
+                                                     "sdfskhfskdjhfs",
+                                                     "ksadaskjdajsda"))
+        self.assertFalse(mock_http.called)
+        self._make_submissions()
+
+        self.assertTrue(mock_get_object_or_404.called)
