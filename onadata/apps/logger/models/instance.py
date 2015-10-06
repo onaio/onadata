@@ -171,6 +171,10 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
 
 
 class Instance(models.Model):
+    """
+    Model representing a single submission to an XForm
+    """
+
     json = JSONField(default={}, null=False)
     xml = models.TextField()
     user = models.ForeignKey(User, related_name='instances', null=True)

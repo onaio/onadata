@@ -18,6 +18,10 @@ def export_delete_callback(sender, **kwargs):
 
 
 class Export(models.Model):
+    """
+    Class representing a data export from an XForm
+    """
+
     class ExportTypeError(Exception):
         def __unicode__(self):
             return _(u"Invalid export type specified")
