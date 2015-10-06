@@ -1,5 +1,5 @@
 
-Attachements and Media
+Attachments and Media
 **********************
 
 Lists attachments of all xforms
