@@ -1,9 +1,9 @@
 
 Attachments and Media
-**********************
+*********************
 
 Lists attachments of all xforms
---------------------------------
+-------------------------------
 ::
 
 	GET /api/v1/media/
@@ -35,11 +35,11 @@ Response
     ]
 
 Paginate attachment
--------------------------------------------
+-------------------
 Returns a list of attachments using page number and the number of items per page. Use the ``page`` parameter to specify page number and ``page_size`` parameter is used to set the custom page size.
 
 Example
-^^^^^^^^
+^^^^^^^
 ::
   
       curl -X GET https://ona.io/api/v1/media.json?page=1&page_size=4
@@ -57,7 +57,7 @@ Example
       curl -X GET https://ona.io/api/v1/media/1
 
 Response
-^^^^^^^^^
+^^^^^^^^
 
 ::
 
@@ -74,7 +74,7 @@ Response
     }
 
 Retrieve an attachment file
-----------------------------
+---------------------------
 
 .. raw:: html
 
@@ -92,21 +92,21 @@ content type of the file the file would be returned e.g
     <pre class="prettyprint">GET /api/v1/media/<code>{pk}</code> Accept: image/png </pre>
     
 Example
-^^^^^^^^
+^^^^^^^
 
 ::
 
     curl -X GET https://ona.io/api/v1/media/1 -H "Accept: image/png" -o a.png
 
 Lists attachments of a specific xform
---------------------------------------
+-------------------------------------
 
 .. raw:: html
 
     <pre class="prettyprint">GET /api/v1/media/?xform=<code>{xform}</code></pre>
     
 Example
-^^^^^^^^
+^^^^^^^
 ::
 
      curl -X GET https://ona.io/api/v1/media?xform=1
@@ -131,7 +131,7 @@ Response
     ]
 
 Lists attachments of a specific instance
-------------------------------------------
+----------------------------------------
 
 .. raw:: html
 
@@ -139,14 +139,14 @@ Lists attachments of a specific instance
  
 
 Example
-^^^^^^^^
+^^^^^^^
 
 ::
 
      curl -X GET https://ona.io/api/v1/media?instance=1
 
 Response
-^^^^^^^^^
+^^^^^^^^
 ::
 
 
@@ -180,7 +180,7 @@ Example
     curl -X GET https://ona.io/api/v1/media/1\?filename=doe/attachments/1408520136827.jpg
 
 Response
-^^^^^^^^^
+^^^^^^^^
 ::
 
         http://ona.io/api/v1/media/1.jpg
