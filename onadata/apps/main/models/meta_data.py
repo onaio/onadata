@@ -55,12 +55,9 @@ def save_metadata(metadata_obj):
 
 
 def unique_type_for_form(xform, data_type, data_value=None, data_file=None):
-    result, created = MetaData.objects.get_or_create(
-        xform=xform, data_type=data_type)
-
-    if data_value:
-        result.data_value = data_value
-        result.save()
+    defaults = {'data_value': data_value} if data_value else {}
+    result, created = MetaData.objects.update_or_create(
+        xform=xform, data_type=data_type, defaults=defaults)
 
     if data_file:
         if result.data_value is None or result.data_value == '':
