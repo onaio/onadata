@@ -399,14 +399,6 @@ def configure_logging(logger, **kwargs):
 
 after_setup_logger.connect(configure_logging)
 
-MONGO_DATABASE = {
-    'HOST': 'localhost',
-    'PORT': 27017,
-    'NAME': 'formhub',
-    'USER': '',
-    'PASSWORD': ''
-}
-
 GOOGLE_STEP2_URI = 'http://ona.io/gwelcome'
 GOOGLE_CLIENT_ID = '617113120802.onadata.apps.googleusercontent.com'
 GOOGLE_CLIENT_SECRET = '9reM29qpGFPyI8TBuB54Z4fk'
