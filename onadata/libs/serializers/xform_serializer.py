@@ -1,3 +1,4 @@
+import logging
 from django.forms import widgets
 from requests.exceptions import ConnectionError
 from rest_framework import serializers
@@ -37,8 +38,10 @@ def _create_enketo_url(request, xform):
     try:
         url = enketo_url(form_url, xform.id_string)
         MetaData.enketo_url(xform, url)
-    except (EnketoError, ConnectionError):
-        pass
+    except ConnectionError, e:
+        logging.exception("Connection Error: %s" % e.message)
+    except EnketoError, e:
+        logging.exception("Enketo Error: %s" % e.message)
 
     return url
 

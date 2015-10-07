@@ -1,5 +1,5 @@
 from test_base import TestBase
-from onadata.apps.main.models.meta_data import MetaData
+from onadata.apps.main.models.meta_data import MetaData, unique_type_for_form
 
 
 class TestMetaData(TestBase):
@@ -29,3 +29,19 @@ class TestMetaData(TestBase):
         MetaData.enketo_url(self.xform, enketo_url)
         self.assertEquals(count, len(MetaData.objects.filter(
             xform=self.xform, data_type='enketo_url')))
+
+    def test_unique_type_for_form(self):
+        metadata = unique_type_for_form(
+            xform=self.xform, data_type='enketo_url',
+            data_value="https://dmfrm.enketo.org/webform")
+
+        self.assertIsInstance(metadata, MetaData)
+
+        metadata_1 = unique_type_for_form(
+            xform=self.xform, data_type='enketo_url',
+            data_value="https://dmerm.enketo.org/webform")
+
+        self.assertIsInstance(metadata_1, MetaData)
+        self.assertNotEqual(metadata.data_value, metadata_1.data_value)
+        self.assertEqual(metadata.data_type, metadata_1.data_type)
+        self.assertEqual(metadata.xform, metadata_1.xform)
