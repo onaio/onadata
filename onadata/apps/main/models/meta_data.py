@@ -55,6 +55,11 @@ def save_metadata(metadata_obj):
 
 
 def unique_type_for_form(xform, data_type, data_value=None, data_file=None):
+    """
+    This function ensures that each metadata object has unique xform and
+    data_type fields (like a composite key in relational db) then returns
+    the metadata object
+    """
     defaults = {'data_value': data_value} if data_value else {}
     result, created = MetaData.objects.update_or_create(
         xform=xform, data_type=data_type, defaults=defaults)
