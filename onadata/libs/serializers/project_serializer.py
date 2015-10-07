@@ -64,7 +64,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Project
-        exclude = ('organization', 'user_stars')
+        exclude = ('shared', 'organization', 'user_stars')
 
     def restore_object(self, attrs, instance=None):
         if instance:
@@ -101,6 +101,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                 name=attrs.get('name'),
                 organization=attrs.get('organization'),
                 created_by=created_by,
+                shared=attrs.get('shared'),
                 metadata=attrs.get('metadata'),)
 
         return attrs
