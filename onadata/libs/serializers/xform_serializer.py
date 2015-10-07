@@ -39,13 +39,10 @@ def _create_enketo_url(request, xform):
     try:
         url = enketo_url(form_url, xform.id_string)
         MetaData.enketo_url(xform, url)
-    except (EnketoError, ConnectionError):
-        pass
-    except IntegrityError:
-        logging.exception(
-            ("Enketo metaData object with xform '%s' and url '%s'"
-             " already exists" % (xform, url))
-        )
+    except ConnectionError, e:
+        logging.exception("Connection Error: %s" % e.message)
+    except EnketoError, e:
+        logging.exception("Enketo Error: %s" % e.message)
 
     return url
 
