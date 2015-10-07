@@ -59,7 +59,7 @@ parameter ``xform`` with the `formid` as the value.
 .. raw:: html
 
 	<pre class="prettyprint">
-	GET /api/v1/metdata?<code>xform=formid</code></pre>
+	GET /api/v1/metadata?<code>xform=formid</code></pre>
 
 ::
 
