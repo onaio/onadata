@@ -1,4 +1,5 @@
 /data
+/src
 error.log
 load_script.logs
 load_script.pid
