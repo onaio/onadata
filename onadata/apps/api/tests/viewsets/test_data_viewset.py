@@ -997,7 +997,7 @@ class TestDataViewSet(TestBase):
                 'put': 'update'
             })
 
-            data = {'shared': True,
+            data = {'public': True,
                     'name': 'test project',
                     'owner': 'http://testserver/api/v1/users/%s'
                     % self.user.username}
