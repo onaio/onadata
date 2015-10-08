@@ -53,13 +53,6 @@ TIME_ZONE = 'Africa/Lagos'
 
 TOUCHFORMS_URL = 'http://localhost:9000/'
 
-MONGO_DATABASE = {
-    'HOST': 'localhost',
-    'PORT': 27017,
-    'NAME': 'formhub',
-    'USER': '',
-    'PASSWORD': ''
-}
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'mlfs33^s1l4xf6a36$0#j%dd*sisfo6HOktYXB9y'
 

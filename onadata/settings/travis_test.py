@@ -27,7 +27,6 @@ else:
 if TESTING_MODE:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'test_media/')
     subprocess.call(["rm", "-r", MEDIA_ROOT])
-    MONGO_DATABASE['NAME'] = "formhub_test"
     # need to have CELERY_ALWAYS_EAGER True and BROKER_BACKEND as memory
     # to run tasks immediately while testing
     CELERY_ALWAYS_EAGER = True
