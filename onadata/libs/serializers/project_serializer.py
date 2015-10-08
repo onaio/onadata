@@ -18,6 +18,7 @@ from onadata.libs.utils.cache_tools import (
     PROJ_SUB_DATE_CACHE, safe_delete, PROJ_TEAM_USERS_CACHE)
 from onadata.apps.api.tools import (
     get_organization_members_team, get_organization_owners_team)
+from onadata.libs.utils.profiler import profile
 
 
 def set_owners_permission(user, project):
@@ -147,6 +148,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         return []
 
+    @profile("get_project_forms.prof")
     @check_obj
     def get_project_forms(self, obj):
         if obj:

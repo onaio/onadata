@@ -312,6 +312,9 @@ LOGGING = {
         'simple': {
             'format': '%(levelname)s %(message)s'
         },
+        'profiler': {
+            'format': '%(levelname)s %(asctime)s %(message)s'
+        },
         'sql': {
             'format': '%(levelname)s %(process)d %(thread)d' +
                       ' %(time)s seconds %(message)s %(sql)s'
@@ -390,6 +393,10 @@ LOGGING = {
         # }
     }
 }
+
+# PROFILE_API_ACTION_FUNCTION is used to toggle profiling a viewset's action
+PROFILE_API_ACTION_FUNCTION = False
+PROFILE_LOG_BASE = '/tmp/'
 
 
 def configure_logging(logger, **kwargs):

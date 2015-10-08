@@ -30,6 +30,7 @@ from onadata.settings.common import (
     DEFAULT_FROM_EMAIL,
     SHARE_PROJECT_SUBJECT)
 from onadata.apps.api.tools import get_baseviewset_class
+from onadata.libs.mixins.profiler_mixin import ProfilerMixin
 
 
 BaseViewset = get_baseviewset_class()
@@ -37,7 +38,9 @@ BaseViewset = get_baseviewset_class()
 
 class ProjectViewSet(AuthenticateHeaderMixin,
                      CacheControlMixin,
-                     ETagsMixin, LabelsMixin, BaseViewset, ModelViewSet):
+                     ETagsMixin, LabelsMixin, ProfilerMixin,
+                     BaseViewset, ModelViewSet):
+
     """
     List, Retrieve, Update, Create Project and Project Forms.
     """
@@ -134,7 +137,6 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, *args, **kwargs):
-
         owner = request.QUERY_PARAMS.get('owner')
 
         if owner:
