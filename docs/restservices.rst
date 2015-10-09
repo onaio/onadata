@@ -1,11 +1,15 @@
 RestServices
 ************
 
-This endpoint enable one to setup a rest service for a form.
+This endpoint enables one to setup a rest service for a form.
 
 - ``pk`` - primary key for the metadata
 - ``formid`` - the form id for a form
 
+.. note::
+    Instances are sent to services asynchronously in the background. It is
+    possible that an instance is never forwarded to the service if the
+    instance is deleted before the background service task processes it.
 
 Permissions
 -----------
