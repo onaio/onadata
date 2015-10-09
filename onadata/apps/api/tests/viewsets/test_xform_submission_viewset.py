@@ -133,6 +133,59 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertEqual(response['Location'],
                              'http://testserver/submission')
 
+    def test_post_submission_authenticated_bad_json_list(self):
+        path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            '..',
+            'fixtures',
+            'transport_submission.json')
+        with open(path) as f:
+            data = json.loads(f.read())
+            request = self.factory.post('/submission', [data], format='json')
+            response = self.view(request)
+            self.assertEqual(response.status_code, 401)
+
+            auth = DigestAuth('bob', 'bobbob')
+            request.META.update(auth(request.META, response))
+            response = self.view(request)
+            self.assertContains(response, 'Incorrect format',
+                                status_code=400)
+            self.assertTrue(response.has_header('X-OpenRosa-Version'))
+            self.assertTrue(
+                response.has_header('X-OpenRosa-Accept-Content-Length'))
+            self.assertTrue(response.has_header('Date'))
+            self.assertEqual(response['Content-Type'],
+                             'application/json')
+            self.assertEqual(response['Location'],
+                             'http://testserver/submission')
+
+    def test_post_submission_authenticated_bad_json_submission_list(self):
+        path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            '..',
+            'fixtures',
+            'transport_submission.json')
+        with open(path) as f:
+            data = json.loads(f.read())
+            data['submission'] = [data['submission']]
+            request = self.factory.post('/submission', data, format='json')
+            response = self.view(request)
+            self.assertEqual(response.status_code, 401)
+
+            auth = DigestAuth('bob', 'bobbob')
+            request.META.update(auth(request.META, response))
+            response = self.view(request)
+            self.assertContains(response, 'Incorrect format',
+                                status_code=400)
+            self.assertTrue(response.has_header('X-OpenRosa-Version'))
+            self.assertTrue(
+                response.has_header('X-OpenRosa-Accept-Content-Length'))
+            self.assertTrue(response.has_header('Date'))
+            self.assertEqual(response['Content-Type'],
+                             'application/json')
+            self.assertEqual(response['Location'],
+                             'http://testserver/submission')
+
     def test_post_submission_authenticated_json_with_geo(self):
         path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),

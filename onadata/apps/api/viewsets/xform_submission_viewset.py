@@ -127,8 +127,13 @@ class XFormSubmissionViewSet(AuthenticateHeaderMixin,
 
         is_json_request = is_json(request)
 
-        error, instance = (create_instance_from_json if is_json_request else
-                           create_instance_from_xml)(username, request)
+        try:
+            create_fn = create_instance_from_json if is_json_request else\
+                create_instance_from_xml
+            error, instance = create_fn(username, request)
+        except AttributeError:
+            error = _(u'Incorrect format, see format details here, '
+                      u'https://api.ona.io/static/docs/submissions.html')
 
         if error or not instance:
             return self.error_response(error, is_json_request, request)
