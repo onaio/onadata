@@ -124,8 +124,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(['data_views',
                           'date_created',
                           'downloadable',
-                          'enketo_preview_url',
-                          'enketo_url',
                           'formid',
                           'last_submission_time',
                           'name',
