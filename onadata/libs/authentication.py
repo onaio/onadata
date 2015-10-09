@@ -1,6 +1,7 @@
 import jwt
 from django.conf import settings
 from django.core.signing import BadSignature
+from django.db import DataError
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from django_digest import HttpDigestAuthenticator
@@ -40,11 +41,14 @@ class DigestAuthentication(BaseAuthentication):
         if not auth or auth[0].lower() != b'digest':
             return None
 
-        if self.authenticator.authenticate(request):
-            return request.user, None
-        else:
-            raise AuthenticationFailed(
-                _(u"Invalid username/password"))
+        try:
+            if self.authenticator.authenticate(request):
+                return request.user, None
+            else:
+                raise AuthenticationFailed(
+                    _(u"Invalid username/password"))
+        except (ValueError, DataError) as e:
+            raise AuthenticationFailed(e.message)
 
     def authenticate_header(self, request):
         response = self.authenticator.build_challenge_response()
