@@ -104,6 +104,22 @@ class TestProjectViewSet(TestAbstractViewSet):
         res_user_props.sort()
         self.assertEqual(res_user_props, user_props)
 
+    def test_project_get_deleted_form(self):
+        self._publish_xls_form_to_project()
+
+        # set the xform in this project to deleted
+        self.xform.deleted_at = self.xform.date_created
+        self.xform.save()
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEqual(len(response.data.get('forms')), 0)
+        self.assertEqual(response.status_code, 200)
+
     def test_none_empty_forms_and_dataview_properties_in_returned_json(self):
         self._publish_xls_form_to_project()
         self._create_dataview()
@@ -124,8 +140,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(['data_views',
                           'date_created',
                           'downloadable',
-                          'enketo_preview_url',
-                          'enketo_url',
                           'formid',
                           'last_submission_time',
                           'name',

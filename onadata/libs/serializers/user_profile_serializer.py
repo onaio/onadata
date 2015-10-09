@@ -154,8 +154,12 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             if username:
                 instance.user.username = username
 
-            (email or first_name or last_name or username) and \
-                instance.user.save()
+            if email or first_name or last_name or username:
+                try:
+                    instance.user.clean_fields()
+                    instance.user.save()
+                except ValidationError as e:
+                    self.errors.update(e.message_dict)
 
             return super(
                 UserProfileSerializer, self).restore_object(attrs, instance)

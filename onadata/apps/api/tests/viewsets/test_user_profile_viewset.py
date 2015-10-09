@@ -186,6 +186,36 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(profile.metadata, metadata)
         self.assertEqual(profile.user.username, username)
 
+    def test_partial_updates_empty_metadata(self):
+        profile = UserProfile.objects.get(user=self.user)
+        profile.metadata = None
+        profile.save()
+        metadata = {u"zebra": {u"key1": "value1", u"key2": "value2"}}
+        json_metadata = json.dumps(metadata)
+        data = {
+            'metadata': json_metadata,
+            'overwrite': 'false'
+        }
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(profile.metadata, metadata)
+
+    def test_partial_updates_too_long(self):
+        # the max field length for username is 30 in django
+        username = 'a' * 31
+        data = {'username': username}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {'username':
+             [u'Ensure this value has at most 30 characters (it has 31).']})
+        self.assertNotEqual(profile.user.username, username)
+
     def test_partial_update_metadata_field(self):
         metadata = {u"zebra": {u"key1": "value1", u"key2": "value2"}}
         json_metadata = json.dumps(metadata)

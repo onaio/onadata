@@ -33,8 +33,7 @@ class ProjectXFormSerializer(XFormSerializer):
         model = XForm
         fields = (
             'name', 'formid', 'num_of_submissions', 'downloadable',
-            'last_submission_time', 'date_created', 'url', 'enketo_url',
-            'enketo_preview_url', 'data_views'
+            'last_submission_time', 'date_created', 'url', 'data_views'
         )
 
 
@@ -156,7 +155,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             if forms:
                 return forms
             xforms = obj.xforms_prefetch \
-                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.all()
+                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.filter(
+                    deleted_at__isnull=True)
             request = self.context.get('request')
             serializer = ProjectXFormSerializer(
                 xforms, context={'request': request}, many=True
