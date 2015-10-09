@@ -186,6 +186,22 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(profile.metadata, metadata)
         self.assertEqual(profile.user.username, username)
 
+    def test_partial_updates_empty_metadata(self):
+        profile = UserProfile.objects.get(user=self.user)
+        profile.metadata = None
+        profile.save()
+        metadata = {u"zebra": {u"key1": "value1", u"key2": "value2"}}
+        json_metadata = json.dumps(metadata)
+        data = {
+            'metadata': json_metadata,
+            'overwrite': 'false'
+        }
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(profile.metadata, metadata)
+
     def test_partial_update_metadata_field(self):
         metadata = {u"zebra": {u"key1": "value1", u"key2": "value2"}}
         json_metadata = json.dumps(metadata)

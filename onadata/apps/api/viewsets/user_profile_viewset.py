@@ -121,7 +121,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
 
     def partial_update(self, request, *args, **kwargs):
         profile = self.get_object()
-        metadata = profile.metadata
+        metadata = profile.metadata or {}
         if request.DATA.get('overwrite') == 'false':
             if isinstance(request.DATA.get('metadata'), basestring):
                 metadata_items = json.loads(
