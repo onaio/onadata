@@ -20,7 +20,8 @@ class PrefetchManager(models.Manager):
         return super(PrefetchManager, self).get_queryset().select_related(
             'created_by', 'organization'
         ).prefetch_related(
-            Prefetch('xform_set', queryset=XForm.objects.all()
+            Prefetch('xform_set',
+                     queryset=XForm.objects.filter(deleted_at__isnull=True)
                      .select_related('user', 'dataview_set', 'metadata_set')
                      .prefetch_related('user')
                      .prefetch_related('dataview_set')

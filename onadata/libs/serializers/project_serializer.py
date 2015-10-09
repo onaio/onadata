@@ -155,7 +155,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             if forms:
                 return forms
             xforms = obj.xforms_prefetch \
-                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.all()
+                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.filter(
+                    deleted_at__isnull=True)
             request = self.context.get('request')
             serializer = ProjectXFormSerializer(
                 xforms, context={'request': request}, many=True
