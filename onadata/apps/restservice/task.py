@@ -10,7 +10,7 @@ def call_service_async(instance_pk):
     try:
         instance = ParsedInstance.objects.get(pk=instance_pk)
         call_service(instance)
-    except ParsedInstance.DoesNotExists:
+    except ParsedInstance.DoesNotExist:
         # if the instance has already been removed we do not send it to the
         # service
         pass
