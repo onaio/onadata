@@ -18,7 +18,11 @@ from taggit.managers import TaggableManager
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.cache_tools import (
-    IS_ORG, PROJ_FORMS_CACHE, safe_delete)
+    IS_ORG,
+    PROJ_FORMS_CACHE,
+    PROJ_NUM_DATASET_CACHE,
+    PROJ_SUB_DATE_CACHE,
+    safe_delete)
 
 
 XFORM_TITLE_LENGTH = 255
@@ -310,6 +314,8 @@ pre_save.connect(save_project, sender=XForm,
 def xform_post_delete_callback(sender, instance, **kwargs):
     if instance.project:
         safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
+        safe_delete('{}{}'.format(PROJ_SUB_DATE_CACHE, instance.project.pk))
+        safe_delete('{}{}'.format(PROJ_NUM_DATASET_CACHE, instance.project.pk))
 
 
 post_delete.connect(xform_post_delete_callback,
