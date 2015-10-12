@@ -12,10 +12,12 @@ from onadata.libs.serializers.fields.boolean_field import BooleanField
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE, PROJ_PERM_CACHE,
-    PROJ_SUB_DATE_CACHE, safe_delete, PROJ_TEAM_USERS_CACHE)
+    PROJ_SUB_DATE_CACHE, safe_delete, PROJ_TEAM_USERS_CACHE,
+    PROJECT_LINKED_DATAVIEWS)
 from onadata.apps.api.tools import (
     get_organization_members_team, get_organization_owners_team)
 from onadata.libs.utils.profiler import profile
@@ -33,7 +35,7 @@ class ProjectXFormSerializer(XFormSerializer):
         model = XForm
         fields = (
             'name', 'formid', 'num_of_submissions', 'downloadable',
-            'last_submission_time', 'date_created', 'url', 'data_views'
+            'last_submission_time', 'date_created', 'url'
         )
 
 
@@ -61,6 +63,8 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     last_submission_date = serializers.SerializerMethodField(
         'get_last_submission_date')
     teams = serializers.SerializerMethodField('get_team_users')
+    data_views = serializers.SerializerMethodField(
+        'get_linked_dataviews')
 
     class Meta:
         model = Project
@@ -258,4 +262,22 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                       teams_users)
             return teams_users
 
+        return []
+
+    def get_linked_dataviews(self, obj):
+        if obj:
+            data_views = cache.get(
+                '{}{}'.format(PROJECT_LINKED_DATAVIEWS, obj.pk))
+            if data_views:
+                return data_views
+
+            data_views = DataViewSerializer(
+                obj.dataview_set.all(),
+                many=True,
+                context=self.context).data
+
+            cache.set(
+                '{}{}'.format(PROJECT_LINKED_DATAVIEWS, obj.pk), data_views)
+
+            return data_views
         return []
