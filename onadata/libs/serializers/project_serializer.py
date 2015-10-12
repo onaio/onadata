@@ -63,8 +63,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     last_submission_date = serializers.SerializerMethodField(
         'get_last_submission_date')
     teams = serializers.SerializerMethodField('get_team_users')
-    data_views = serializers.SerializerMethodField(
-        'get_linked_dataviews')
+    data_views = serializers.SerializerMethodField('get_linked_dataviews')
 
     class Meta:
         model = Project
@@ -271,8 +270,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             if data_views:
                 return data_views
 
+            data_views_obj = obj.dataview_prefetch if \
+                hasattr(obj, 'dataview_prefetch') else obj.dataview_set.all()
+
             data_views = DataViewSerializer(
-                obj.dataview_set.all(),
+                data_views_obj,
                 many=True,
                 context=self.context).data
 
