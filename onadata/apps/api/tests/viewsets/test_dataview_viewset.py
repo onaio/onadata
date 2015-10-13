@@ -2,6 +2,7 @@ import os
 
 from django.conf import settings
 from django.test.utils import override_settings
+from django.core.cache import cache
 from mock import patch
 
 from onadata.libs.permissions import ReadOnlyRole
@@ -9,8 +10,10 @@ from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.viewer.models.export import Export
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.utils.cache_tools import PROJECT_LINKED_DATAVIEWS
 
 
 class TestDataViewViewSet(TestAbstractViewSet):
@@ -557,3 +560,45 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertIn("location", response.data[0])
         self.assertIn("_geolocation", response.data[0])
+
+    def test_dataview_project_cache_cleared(self):
+        self._create_dataview()
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEquals(response.status_code, 200)
+
+        cached_dataviews = cache.get('{}{}'.format(PROJECT_LINKED_DATAVIEWS,
+                                                   self.project.pk))
+
+        self.assertIsNotNone(cached_dataviews)
+
+        # update the dataview
+        self.data_view.name = "updated name"
+        self.data_view.save()
+
+        updated_cache = cache.get('{}{}'.format(PROJECT_LINKED_DATAVIEWS,
+                                                self.project.pk))
+
+        self.assertIsNone(updated_cache)
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        self.assertEquals(response.status_code, 200)
+
+        cached_dataviews = cache.get('{}{}'.format(PROJECT_LINKED_DATAVIEWS,
+                                                   self.project.pk))
+
+        self.assertIsNotNone(cached_dataviews)
+
+        self.data_view.delete()
+
+        updated_cache = cache.get('{}{}'.format(PROJECT_LINKED_DATAVIEWS,
+                                                self.project.pk))
+        self.assertIsNone(updated_cache)

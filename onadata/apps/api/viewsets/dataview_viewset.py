@@ -1,4 +1,6 @@
 from django.http import HttpResponseBadRequest
+from django.db.models.signals import post_save, post_delete
+
 from celery.result import AsyncResult
 
 from rest_framework import status
@@ -26,6 +28,9 @@ from onadata.libs.utils.api_export_tools import response_for_format
 from onadata.libs.utils.chart_tools import get_chart_data_for_field
 from onadata.libs.utils.export_tools import str_to_bool
 from onadata.apps.api.tools import get_baseviewset_class
+from onadata.libs.utils.cache_tools import (
+    PROJECT_LINKED_DATAVIEWS,
+    safe_delete)
 
 BaseViewset = get_baseviewset_class()
 
@@ -165,3 +170,22 @@ class DataViewViewSet(AuthenticateHeaderMixin,
                 data["fields"][field.name] = field_url
 
         return Response(data)
+
+
+def dataview_post_save_callback(sender, instance=None, created=False,
+                                **kwargs):
+    safe_delete('{}{}'.format(PROJECT_LINKED_DATAVIEWS, instance.project.pk))
+
+
+def dataview_post_delete_callback(sender, instance, **kwargs):
+    if instance.project:
+        safe_delete('{}{}'.format(PROJECT_LINKED_DATAVIEWS,
+                                  instance.project.pk))
+
+post_save.connect(dataview_post_save_callback,
+                  sender=DataView,
+                  dispatch_uid='dataview_post_save_callback')
+
+post_delete.connect(dataview_post_delete_callback,
+                    sender=DataView,
+                    dispatch_uid='dataview_post_delete_callback')
