@@ -132,13 +132,11 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.assertGreater(len(response.data.get('forms')), 0)
         self.assertGreater(
-            len(response.data.get('forms')[0].get('data_views')), 0)
+            len(response.data.get('data_views')), 0)
 
         form_obj_keys = response.data.get('forms')[0].keys()
-        data_view_obj_keys = response.data.get(
-            'forms')[0].get('data_views')[0].keys()
-        self.assertEqual(['data_views',
-                          'date_created',
+        data_view_obj_keys = response.data.get('data_views')[0].keys()
+        self.assertEqual(['date_created',
                           'downloadable',
                           'formid',
                           'last_submission_time',
