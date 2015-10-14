@@ -14,6 +14,7 @@ from django.contrib.auth.models import User
 from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
 from onadata.apps.logger.models import Instance
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
+from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
 
 
 def get_submission_meta_dict(xform, instance_id):
@@ -53,6 +54,7 @@ def dict2xmlsubmission(submission_dict, xform, instance_id, submission_date):
     :return: An xml submission string
     :rtype: string
     """
+
     return (u'<?xml version="1.0" ?>'
             '<{0} id="{1}" instanceID="uuid:{2}" submissionDate="{3}">{4}'
             '</{0}>'.format(
@@ -168,6 +170,8 @@ def submit_csv(username, xform, csv_file):
 
             addition_col.remove(col)
 
+    # remove headers for repeats that might be missing from csv
+    missing = [m for m in missing if m.find('[') == -1]
     if missing:
         return {'error': u"Sorry uploaded file does not match the form. "
                          u"The file is missing the column(s): "
@@ -201,6 +205,9 @@ def submit_csv(username, xform, csv_file):
                     location_key, location_prop = key.rsplit(u'.', 1)
                     location_data.setdefault(location_key, {}).update(
                         {location_prop: row.get(key, '0')})
+                # remove 'n/a' values
+                if not key.startswith('_') and row[key] == 'n/a':
+                    del row[key]
 
             # collect all location K-V pairs into single geopoint field(s)
             # in location_data dict
@@ -211,8 +218,8 @@ def submit_csv(username, xform, csv_file):
                       '%(altitude)s %(precision)s') % defaultdict(
                           lambda: '', location_data.get(location_key))})
 
-            row = dict_pathkeys_to_nested_dicts(row)
-            location_data = dict_pathkeys_to_nested_dicts(location_data)
+            row = csv_dict_to_nested_dict(row)
+            location_data = csv_dict_to_nested_dict(location_data)
 
             row = dict_merge(row, location_data)
 
