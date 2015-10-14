@@ -8,7 +8,7 @@ def list_to_dict(items, value):
     bracket_index = key.find('[')
     if bracket_index > 0:
         value = [value]
-        key = key[:bracket_index]
+        # key = key[:bracket_index]
 
     result[key] = value
 
@@ -24,15 +24,40 @@ def merge_list_of_dicts(list_of_dicts):
     for d in list_of_dicts:
         for k, v in d.items():
             if isinstance(v, list):
-                if k in result:
-                    result[k] = [merge_list_of_dicts(result[k] + v)]
-                else:
-                    result[k] = [merge_list_of_dicts(v)]
+                rs = merge_list_of_dicts(result[k] + v if k in result else v)
+                result[k] = rs if isinstance(rs, list) else [rs]
             else:
                 if k in result:
-                    result[k] = merge_list_of_dicts([result[k], v])
+                    if isinstance(v, dict):
+                        result[k] = merge_list_of_dicts([result[k], v])
+                    else:
+                        result = [result, d]
                 else:
                     result[k] = v
+
+    return result
+
+
+def remove_indices_from_dict(obj):
+    if not isinstance(obj, dict):
+        raise ValueError(u"Expecting a dict, found: {}".format(type(obj)))
+
+    result = {}
+    for key, val in obj.items():
+        bracket_index = key.find('[')
+        key = key[:bracket_index] if bracket_index > -1 else key
+        val = remove_indices_from_dict(val) if isinstance(val, dict) else val
+        if isinstance(val, list):
+            _val = []
+            for row in val:
+                if isinstance(row, dict):
+                    row = remove_indices_from_dict(row)
+                _val.append(row)
+            val = _val
+        if key in result:
+            result[key].extend(val)
+        else:
+            result[key] = val
 
     return result
 
@@ -52,7 +77,9 @@ def csv_dict_to_nested_dict(a):
 
         results.append(result)
 
-    return merge_list_of_dicts(results)
+    merged_dict = merge_list_of_dicts(results)
+
+    return remove_indices_from_dict(merged_dict)
 
 
 class TestDictTools(TestCase):
@@ -157,11 +184,118 @@ class TestDictTools(TestCase):
             'repeat': [{
                 'gender': 'female',
             }, {
-                'gender': 'female',
+                'gender': 'male',
             }]
         }
-        import ipdb
-        ipdb.set_trace()
+        c = csv_dict_to_nested_dict(a)
+
+        self.assertDictEqual(c, b)
+
+        a = {
+            'repeat[1]/gender': 'female',
+            'repeat[1]/age': 10,
+            'repeat[2]/gender': 'male'
+        }
+        b = {
+            'repeat': [{
+                'gender': 'female',
+                'age': 10
+            }, {
+                'gender': 'male',
+            }]
+        }
+        c = csv_dict_to_nested_dict(a)
+
+        self.assertDictEqual(c, b)
+
+        a = {
+            'group/repeat[1]/gender': 'female',
+            'group/repeat[1]/age': 10,
+            'repeat[1]/gender': 'male'
+        }
+        b = {
+            'group': {
+                'repeat': [{
+                    'gender': 'female',
+                    'age': 10
+                }]
+            },
+            'repeat': [{
+                'gender': 'male',
+            }]
+        }
+        c = csv_dict_to_nested_dict(a)
+
+        self.assertDictEqual(c, b)
+
+        a = {
+            'group/repeat[1]/gender': 'female',
+            'group/repeat[1]/age': 10,
+            'group/repeat[2]/gender': 'male'
+        }
+        b = {
+            'group': {
+                'repeat': [{
+                    'gender': 'female',
+                    'age': 10
+                }, {
+                    'gender': 'male',
+                }]
+            }
+        }
+        c = csv_dict_to_nested_dict(a)
+
+        self.assertDictEqual(c, b)
+
+        a = {
+            'repeata[1]/repeat[1]/groupb/gender': 'female',
+            'repeata[1]/repeat[1]/groupb/age': 10,
+            'repeata[1]/repeat[2]/groupb/gender': 'male',
+            'repeata[2]/repeat[1]/groupb/gender': 'male'
+        }
+        b = {
+            'repeata': [{
+                'repeat': [{
+                    'groupb': {
+                        'gender': 'female',
+                        'age': 10
+                    }
+                }, {
+                    'groupb': {
+                        'gender': 'male',
+                    }
+                }]
+            }, {
+                'repeat': [{
+                    'groupb': {
+                        'gender': 'male',
+                    }
+                }]
+            }]
+        }
+        c = csv_dict_to_nested_dict(a)
+
+        self.assertDictEqual(c, b)
+
+        a = {
+            'group/repeat[1]/groupb/gender': 'female',
+            'group/repeat[1]/groupb/age': 10,
+            'group/repeat[2]/groupb/gender': 'male'
+        }
+        b = {
+            'group': {
+                'repeat': [{
+                    'groupb': {
+                        'gender': 'female',
+                        'age': 10
+                    }
+                }, {
+                    'groupb': {
+                        'gender': 'male',
+                    }
+                }]
+            }
+        }
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
