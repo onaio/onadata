@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from dict2xml import dict2xml
+
 
 def list_to_dict(items, value):
     key = items.pop()
@@ -8,7 +10,6 @@ def list_to_dict(items, value):
     bracket_index = key.find('[')
     if bracket_index > 0:
         value = [value]
-        # key = key[:bracket_index]
 
     result[key] = value
 
@@ -91,24 +92,64 @@ class TestDictTools(TestCase):
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<repeat>
+  <gender>female</gender>
+</repeat>
+            """.strip()
+        )
 
         a = {'group/repeat[1]/gender': 'female'}
         b = {'group': {'repeat': [{'gender': 'female'}]}}
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<group>
+  <repeat>
+    <gender>female</gender>
+  </repeat>
+</group>
+            """.strip()
+        )
 
         a = {'group/repeat[1]/groupb/gender': 'female'}
         b = {'group': {'repeat': [{'groupb': {'gender': 'female'}}]}}
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<group>
+  <repeat>
+    <groupb>
+      <gender>female</gender>
+    </groupb>
+  </repeat>
+</group>
+            """.strip()
+        )
 
         a = {'repeata[1]/repeatb[1]/gender': 'female'}
         b = {'repeata': [{'repeatb': [{'gender': 'female'}]}]}
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<repeata>
+  <repeatb>
+    <gender>female</gender>
+  </repeatb>
+</repeata>
+            """.strip()
+        )
 
         a = {
             'repeat[1]/gender': 'female',
@@ -123,6 +164,15 @@ class TestDictTools(TestCase):
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<repeat>
+  <age>10</age>
+  <gender>female</gender>
+</repeat>
+            """.strip()
+        )
 
         a = {
             'group/repeat[1]/gender': 'female',
@@ -139,6 +189,17 @@ class TestDictTools(TestCase):
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<group>
+  <repeat>
+    <age>10</age>
+    <gender>female</gender>
+  </repeat>
+</group>
+            """.strip()
+        )
 
         a = {
             'group/repeat[1]/groupb/gender': 'female',
@@ -157,6 +218,19 @@ class TestDictTools(TestCase):
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<group>
+  <repeat>
+    <groupb>
+      <age>10</age>
+      <gender>female</gender>
+    </groupb>
+  </repeat>
+</group>
+            """.strip()
+        )
 
         a = {
             'repeata[1]/repeatb[1]/gender': 'female',
@@ -175,6 +249,18 @@ class TestDictTools(TestCase):
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<repeata>
+  <repeatb>
+    <age>10</age>
+    <gender>female</gender>
+    <name>Swan</name>
+  </repeatb>
+</repeata>
+            """.strip()
+        )
 
         a = {
             'repeat[1]/gender': 'female',
@@ -190,6 +276,17 @@ class TestDictTools(TestCase):
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<repeat>
+  <gender>female</gender>
+</repeat>
+<repeat>
+  <gender>male</gender>
+</repeat>
+            """.strip()
+        )
 
         a = {
             'repeat[1]/gender': 'female',
@@ -207,6 +304,18 @@ class TestDictTools(TestCase):
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<repeat>
+  <age>10</age>
+  <gender>female</gender>
+</repeat>
+<repeat>
+  <gender>male</gender>
+</repeat>
+            """.strip()
+        )
 
         a = {
             'group/repeat[1]/gender': 'female',
@@ -227,6 +336,20 @@ class TestDictTools(TestCase):
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<group>
+  <repeat>
+    <age>10</age>
+    <gender>female</gender>
+  </repeat>
+</group>
+<repeat>
+  <gender>male</gender>
+</repeat>
+            """.strip()
+        )
 
         a = {
             'group/repeat[1]/gender': 'female',
@@ -246,6 +369,20 @@ class TestDictTools(TestCase):
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<group>
+  <repeat>
+    <age>10</age>
+    <gender>female</gender>
+  </repeat>
+  <repeat>
+    <gender>male</gender>
+  </repeat>
+</group>
+            """.strip()
+        )
 
         a = {
             'repeata[1]/repeat[1]/groupb/gender': 'female',
@@ -276,6 +413,31 @@ class TestDictTools(TestCase):
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<repeata>
+  <repeat>
+    <groupb>
+      <age>10</age>
+      <gender>female</gender>
+    </groupb>
+  </repeat>
+  <repeat>
+    <groupb>
+      <gender>male</gender>
+    </groupb>
+  </repeat>
+</repeata>
+<repeata>
+  <repeat>
+    <groupb>
+      <gender>male</gender>
+    </groupb>
+  </repeat>
+</repeata>
+            """.strip()
+        )
 
         a = {
             'group/repeat[1]/groupb/gender': 'female',
@@ -299,3 +461,21 @@ class TestDictTools(TestCase):
         c = csv_dict_to_nested_dict(a)
 
         self.assertDictEqual(c, b)
+        self.assertEqual(
+            dict2xml(c),
+            """
+<group>
+  <repeat>
+    <groupb>
+      <age>10</age>
+      <gender>female</gender>
+    </groupb>
+  </repeat>
+  <repeat>
+    <groupb>
+      <gender>male</gender>
+    </groupb>
+  </repeat>
+</group>
+            """.strip()
+        )
