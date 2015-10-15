@@ -15,6 +15,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy, ugettext as _
 from taggit.managers import TaggableManager
 
+from guardian.models import UserObjectPermissionBase
+from guardian.models import GroupObjectPermissionBase
+
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.cache_tools import (
@@ -321,3 +324,13 @@ def xform_post_delete_callback(sender, instance, **kwargs):
 post_delete.connect(xform_post_delete_callback,
                     sender=XForm,
                     dispatch_uid='xform_post_delete_callback')
+
+
+class XFormUserObjectPermission(UserObjectPermissionBase):
+    """Guardian model to create direct foreign keys."""
+    content_object = models.ForeignKey(XForm)
+
+
+class XFormGroupObjectPermission(GroupObjectPermissionBase):
+    """Guardian model to create direct foreign keys."""
+    content_object = models.ForeignKey(XForm)
