@@ -4,19 +4,63 @@ from django.contrib.contenttypes.models import ContentType
 from django.db.utils import IntegrityError
 from django.utils.translation import gettext as _
 from django.conf import settings
+from optparse import make_option
+from django.db.models.loading import get_model
+from guardian.models import UserObjectPermissionBase
 
-from onadata.apps.logger.models.project import Project
-from onadata.apps.logger.models.project import ProjectUserObjectPermission
 from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):
     help = _(u"Migrate permissions")
+    option_list = BaseCommand.option_list + (
+        make_option('--model', '-m',
+                    action='store_true',
+                    dest='app_model',
+                    default=False,
+                    help='The model the permission belong too.'
+                         ' (app.model format)'),
+        make_option('--perm-table', '-p',
+                    action='store_true',
+                    dest='perms_tbl',
+                    default=False,
+                    help='The new model permission are stored in'
+                         ' (app.model format)'),
+        )
 
     def handle(self, *args, **options):
         self.stdout.write("Migrate permissions started", ending='\n')
-        ct = ContentType.objects.get(name=Project.__name__.lower(),
-                                     app_label=Project._meta.app_label)
+
+        if len(args) < 2:
+            self.stdout.write("This command takes two argument -m and -p "
+                              "Example: "
+                              "-m logger.Team "
+                              "-p logger.TeamUserObjectPermission")
+            exit()
+
+        if options['app_model']:
+            app_model = args[0]
+        else:
+            self.stdout.write("-m , should be set as the first argument")
+            exit()
+
+        if options['perms_tbl']:
+            perms_tbl = args[1]
+        else:
+            self.stdout.write("-p , should be set as the second argument")
+            exit()
+
+        model = get_model(app_model)
+        perms_model = get_model(perms_tbl)
+
+        if not issubclass(perms_model, UserObjectPermissionBase):
+            self.stdout.write("-p , should be a model of a class that is "
+                              "a subclass of UserObjectPermissionBase")
+            exit()
+
+        ct = ContentType.objects.get(model=model.__name__.lower(),
+                                     app_label=model._meta.app_label)
+
         # Get all the users
         users = User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)\
             .order_by('username')
@@ -28,7 +72,7 @@ class Command(BaseCommand):
                     .select_related('permission', 'content_type')\
                     .prefetch_related('permission', 'content_type'):
                 try:
-                    ProjectUserObjectPermission(
+                    perms_model(
                         content_object=uop.content_object,
                         user=user,
                         permission=uop.permission
