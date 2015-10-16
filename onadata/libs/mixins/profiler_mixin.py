@@ -9,7 +9,7 @@ project_viewset_profiler = logging.getLogger('profiler_logger')
 
 class ProfilerMixin(object):
 
-    def get_serializer(self, instance=None, data=None, files=None, many=False,
+    def get_serializer(self, instance=None, data=None, many=False,
                        partial=False, allow_add_remove=False):
         serializer_class = self.get_serializer_class()
         context = self.get_serializer_context()
@@ -19,14 +19,14 @@ class ProfilerMixin(object):
             serializer_start = time.time()
 
             serializer = serializer_class(
-                instance, data=data, files=files, many=many, partial=partial,
-                allow_add_remove=allow_add_remove, context=context)
+                instance, data=data, many=many, partial=partial,
+                context=context)
             serializer_time = time.time() - serializer_start
             return serializer
 
         return serializer_class(
-            instance, data=data, files=files, many=many, partial=partial,
-            allow_add_remove=allow_add_remove, context=context)
+            instance, data=data, many=many, partial=partial,
+            context=context)
 
     def dispatch(self, request, *args, **kwargs):
         global render_time
