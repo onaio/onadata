@@ -18,18 +18,6 @@ class TestProjectSerializer(TestAbstractViewSet):
         perms = self.serializer.get_users(None)
         self.assertEqual(perms, [])
 
-    def test_project_serializer_restore_object(self):
-        attrs = {'shared': True,
-                 'organization': self.user,
-                 'name': 'some bla',
-                 'metadata': {'category': 'general'}}
-
-        request = self.factory.get('/', **self.extra)
-        request.user = self.user
-        self.serializer.context['request'] = request
-        project = self.serializer.restore_object(attrs)
-        self.assertTrue(project.shared)
-
     def test_get_project_forms(self):
         # create a project with a form
         self._publish_xls_form_to_project()
