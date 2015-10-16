@@ -24,7 +24,7 @@ METADATA_TYPES = (
 
 
 class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
-    id = serializers.IntegerField(source='pk', read_only=True)
+    id = serializers.ReadOnlyField()
     xform = serializers.PrimaryKeyRelatedField(queryset=XForm.objects.all())
     data_value = serializers.CharField(max_length=255,
                                        required=True)
@@ -33,8 +33,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     data_file_type = serializers.CharField(max_length=255, required=False,
                                            allow_blank=True)
     media_url = serializers.SerializerMethodField()
-    date_created = serializers.IntegerField(source='date_created',
-                                            read_only=True)
+    date_created = serializers.ReadOnlyField()
 
     class Meta:
         model = MetaData
