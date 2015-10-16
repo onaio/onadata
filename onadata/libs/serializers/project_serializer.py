@@ -12,7 +12,6 @@ from onadata.libs.permissions import is_organization
 from onadata.libs.permissions import get_role
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
-from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.cache_tools import (
@@ -29,8 +28,11 @@ def set_owners_permission(user, project):
     OwnerRole.add(user, project)
 
 
-class ProjectXFormSerializer(XFormSerializer):
-    name = serializers.Field(source='title')
+class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
+                                               lookup_field='pk')
+    formid = serializers.ReadOnlyField(source='id')
+    name = serializers.ReadOnlyField(source='title')
 
     class Meta:
         model = XForm
