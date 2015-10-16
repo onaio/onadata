@@ -7,7 +7,7 @@ from rest_framework.compat import StringIO
 from rest_framework.compat import six
 from rest_framework.compat import smart_text
 from rest_framework.renderers import BaseRenderer
-from rest_framework.renderers import UnicodeJSONRenderer as JSONRenderer
+from rest_framework.renderers import JSONRenderer
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework.renderers import XMLRenderer
