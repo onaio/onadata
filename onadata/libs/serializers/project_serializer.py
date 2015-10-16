@@ -275,7 +275,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
 
         return []
 
-    def get_linked_dataviews(self, obj):
+    def get_data_views(self, obj):
         if obj:
             data_views = cache.get(
                 '{}{}'.format(PROJECT_LINKED_DATAVIEWS, obj.pk))
