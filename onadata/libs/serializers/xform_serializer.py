@@ -202,8 +202,8 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_data_views(self, obj):
         if obj:
-            data_views = cache.get(
-                '{}{}'.format(XFORM_LINKED_DATAVIEWS, obj.pk))
+            key = '{}{}'.format(XFORM_LINKED_DATAVIEWS, obj.pk)
+            data_views = cache.get(key)
             if data_views:
                 return data_views
 
@@ -212,8 +212,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                 many=True,
                 context=self.context).data
 
-            cache.set(
-                '{}{}'.format(XFORM_LINKED_DATAVIEWS, obj.pk), data_views)
+            cache.set(key, list(data_views))
 
             return data_views
         return []

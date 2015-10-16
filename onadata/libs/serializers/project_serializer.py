@@ -176,7 +176,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             serializer = ProjectXFormSerializer(
                 xforms, context={'request': request}, many=True
             )
-            forms = serializer.data
+            forms = list(serializer.data)
             cache.set('{}{}'.format(PROJ_FORMS_CACHE, obj.pk), forms)
 
             return forms
@@ -285,10 +285,11 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             data_views_obj = obj.dataview_prefetch if \
                 hasattr(obj, 'dataview_prefetch') else obj.dataview_set.all()
 
-            data_views = DataViewSerializer(
+            serializer = DataViewSerializer(
                 data_views_obj,
                 many=True,
-                context=self.context).data
+                context=self.context)
+            data_views = list(serializer.data)
 
             cache.set(
                 '{}{}'.format(PROJECT_LINKED_DATAVIEWS, obj.pk), data_views)
