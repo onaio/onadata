@@ -89,7 +89,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     enketo_url = serializers.SerializerMethodField()
     enketo_preview_url = serializers.SerializerMethodField()
     instances_with_geopoints = serializers.SerializerMethodField()
-    num_of_submissions = serializers.SerializerMethodField()
+    num_of_submissions = serializers.ReadOnlyField()
     form_versions = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
 
