@@ -35,6 +35,16 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.metadata, metadata)
 
+    def test_partial_updates_invalid(self):
+        self._org_create()
+        data = {'name': "a" * 31}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data['first_name'],
+            [u'Ensure this value has at most 30 characters (it has 31).'])
+
     def test_orgs_list(self):
         self._org_create()
         request = self.factory.get('/', **self.extra)

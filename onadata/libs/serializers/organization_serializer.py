@@ -34,7 +34,12 @@ class OrganizationSerializer(serializers.HyperlinkedModelSerializer):
                 instance.user.first_name = first_name
                 instance.user.last_name = last_name
 
-                instance.user.save()
+                try:
+                    instance.user.clean_fields(exclude=["password"])
+                    instance.user.save()
+                except ValidationError as e:
+                    self.errors.update(e.message_dict)
+
             return super(OrganizationSerializer, self)\
                 .restore_object(attrs, instance)
 
