@@ -96,6 +96,6 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
                 obj.instances_with_geopoints = check_geo
                 obj.save()
 
-                return obj.instances_with_geopoints
+            return obj.instances_with_geopoints
 
         return False
