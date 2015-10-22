@@ -1392,9 +1392,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', **self.extra)
             response = self.view(request)
             self.assertEqual(response.status_code, 200)
-            etag_value2 = response.get('Etag')
-            # zero records
-            self.assertIsNone(etag_value2)
+            self.assertEqual(len(response.data), 0)
 
     def test_form_share_endpoint(self):
         with HTTMock(enketo_mock):
