@@ -213,7 +213,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(
             response.data,
             {'username':
-             [u'Ensure this value has at most 30 characters (it has 31).']})
+             [u'Ensure this field has no more than 30 characters.']})
         self.assertNotEqual(profile.user.username, username)
 
     def test_partial_update_metadata_field(self):

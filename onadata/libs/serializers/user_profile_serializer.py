@@ -47,7 +47,8 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(
         view_name='userprofile-detail', lookup_field='user')
     is_org = serializers.SerializerMethodField()
-    username = serializers.CharField(source='user.username')
+    username = serializers.CharField(source='user.username', min_length=3,
+                                     max_length=30)
     name = serializers.CharField(required=False)
     first_name = serializers.CharField(source='user.first_name',
                                        required=False, allow_blank=True)
