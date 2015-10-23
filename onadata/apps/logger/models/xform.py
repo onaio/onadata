@@ -271,7 +271,7 @@ class XForm(BaseModel):
 
 
 def update_profile_num_submissions(sender, instance, **kwargs):
-    profile_qs = User.profile.get_query_set()
+    profile_qs = User.profile.get_queryset()
     try:
         profile = profile_qs.select_for_update()\
             .get(pk=instance.user.profile.pk)
