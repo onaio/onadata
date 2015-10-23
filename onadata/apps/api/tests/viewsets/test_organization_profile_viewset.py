@@ -42,8 +42,8 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = self.view(request, user='denoinc')
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
-            response.data['first_name'],
-            [u'Ensure this value has at most 30 characters (it has 31).'])
+            response.data['name'],
+            [u'Ensure this field has no more than 30 characters.'])
 
     def test_orgs_list(self):
         self._org_create()
