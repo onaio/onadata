@@ -5,8 +5,9 @@ import re
 import requests
 import pytz
 import StringIO
-
 import jwt
+
+from collections import OrderedDict
 from django.db.models import Q
 from datetime import datetime
 from django.utils import timezone
@@ -546,30 +547,30 @@ class TestXFormViewSet(TestAbstractViewSet):
                 Q(data_type='enketo_preview_url'))
             url = resultset.get(data_type='enketo_url')
             preview_url = resultset.get(data_type='enketo_preview_url')
-            self.form_data['metadata'] = [{
-                'id': preview_url.pk,
-                'xform': self.xform.pk,
-                'data_value': u"https://enketo.ona.io/preview/::YY8M",
-                'data_type': u'enketo_preview_url',
-                'data_file': u'',
-                'data_file_type': None,
-                u'url': u'http://testserver/api/v1/metadata/%s' %
-                preview_url.pk,
-                'file_hash': None,
-                'media_url': None,
-                'date_created': preview_url.date_created
-            }, {
-                'id': url.pk,
-                'xform': self.xform.pk,
-                'data_value': u"https://enketo.ona.io/::YY8M",
-                'data_type': u'enketo_url',
-                'data_file': u'',
-                'data_file_type': None,
-                u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
-                'file_hash': None,
-                'media_url': None,
-                'date_created': url.date_created
-            }]
+            self.form_data['metadata'] = [OrderedDict([
+                ('id', preview_url.pk),
+                ('xform', self.xform.pk),
+                ('data_value', u"https://enketo.ona.io/preview/::YY8M"),
+                ('data_type', 'enketo_preview_url'),
+                ('data_file', None),
+                ('data_file_type', None),
+                ('media_url', None),
+                ('file_hash', None),
+                ('url', 'http://testserver/api/v1/metadata/%s' %
+                 preview_url.pk),
+                ('date_created', preview_url.date_created)
+            ]), OrderedDict([
+                ('id', url.pk),
+                ('xform', self.xform.pk),
+                ('data_value', u"https://enketo.ona.io/::YY8M"),
+                ('data_type', 'enketo_url'),
+                ('data_file', None),
+                ('data_file_type', None),
+                ('media_url', None),
+                ('file_hash', None),
+                ('url', 'http://testserver/api/v1/metadata/%s' % url.pk),
+                ('date_created', url.date_created)
+            ])]
 
             self.form_data['metadata'].sort()
             response.data['metadata'].sort()
