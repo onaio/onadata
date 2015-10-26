@@ -460,6 +460,16 @@ def api(request, username=None, id_string=None):
             'fields': request.GET.get('fields'),
             'sort': request.GET.get('sort')
         }
+        if 'page' in request.GET:
+            page = int(request.GET.get('page'))
+            page_size = request.GET.get('page_size', 'limit')
+            if page_size:
+                page_size = int(page_size)
+            else:
+                page_size = 100
+            start_index = page * page_size
+            args["start_index"] = start_index
+            args["limit"] = page_size
         if 'start' in request.GET:
             args["start_index"] = int(request.GET.get('start'))
         if 'limit' in request.GET:
@@ -479,6 +489,7 @@ def api(request, username=None, id_string=None):
         response_text = ("%s(%s)" % (callback, response_text))
 
     response = HttpResponse(response_text, content_type='application/json')
+    response['X-total'] = xform.num_of_submissions
     add_cors_headers(response)
 
     return response
