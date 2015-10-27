@@ -237,7 +237,10 @@ class ParsedInstance(models.Model):
                 #    (k, unicode(v))) for k, v in query.items()]
                 where_params.extend(or_params)
 
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError) as e:
+            if query.startswith('{'):
+                raise e
+
             where = [u"json::text like %s"]
             where_params = ["%%{}%%".format(query)]
 
