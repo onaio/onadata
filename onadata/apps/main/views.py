@@ -1,6 +1,5 @@
 import requests
 from datetime import datetime
-from django.contrib.contenttypes.models import ContentType
 import os
 import json
 from bson import json_util
@@ -221,9 +220,8 @@ def profile(request, username):
             .select_related('user', 'instances')
         user_xforms = xforms
         # forms shared with user
-        xfct = ContentType.objects.get(app_label='logger', model='xform')
-        xfs = content_user.userobjectpermission_set.filter(content_type=xfct)
-        shared_forms_pks = list(set([xf.object_pk for xf in xfs]))
+        xfs = content_user.xformuserobjectpermission_set.all()
+        shared_forms_pks = list(set([xf.content_object.pk for xf in xfs]))
         forms_shared_with = XForm.objects.filter(
             pk__in=shared_forms_pks).exclude(user=content_user)\
             .select_related('user')

@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db.models.signals import post_save, post_delete
 from guardian.shortcuts import get_perms_for_model, assign_perm
+from guardian.models import UserObjectPermissionBase
+from guardian.models import GroupObjectPermissionBase
 
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.models import UserProfile
@@ -93,3 +95,13 @@ post_save.connect(
 post_delete.connect(org_profile_post_delete_callback,
                     sender=OrganizationProfile,
                     dispatch_uid='org_profile_post_delete_callback')
+
+
+class OrgProfileUserObjectPermission(UserObjectPermissionBase):
+    """Guardian model to create direct foreign keys."""
+    content_object = models.ForeignKey(OrganizationProfile)
+
+
+class OrgProfileGroupObjectPermission(GroupObjectPermissionBase):
+    """Guardian model to create direct foreign keys."""
+    content_object = models.ForeignKey(OrganizationProfile)

@@ -4,6 +4,8 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy
 from guardian.shortcuts import get_perms_for_model, assign_perm
+from guardian.models import UserObjectPermissionBase
+from guardian.models import GroupObjectPermissionBase
 from rest_framework.authtoken.models import Token
 from jsonfield import JSONField
 from onadata.libs.utils.country_field import COUNTRIES
@@ -76,3 +78,13 @@ def set_object_permissions(sender, instance=None, created=False, **kwargs):
                 assign_perm(perm.codename, instance.created_by, instance)
 post_save.connect(set_object_permissions, sender=UserProfile,
                   dispatch_uid='set_object_permissions')
+
+
+class UserProfileUserObjectPermission(UserObjectPermissionBase):
+    """Guardian model to create direct foreign keys."""
+    content_object = models.ForeignKey(UserProfile)
+
+
+class UserProfileGroupObjectPermission(GroupObjectPermissionBase):
+    """Guardian model to create direct foreign keys."""
+    content_object = models.ForeignKey(UserProfile)
