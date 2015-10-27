@@ -17,14 +17,14 @@ class Command(BaseCommand):
                 try:
                     if xform.user != project.organization:
                         self.stdout.write(
-                        "Processing: {} - {}".format(xform.id_string,
-                                                     xform.user.username)
-                    )
+                            "Processing: {} - {}".format(xform.id_string,
+                                                         xform.user.username)
+                        )
                         xform.user = project.organization
                         xform.save()
                 except:
                     self.stdout.write(
                         "Error processing: {} - {}".format(xform.id_string,
-                                                     xform.user.username)
+                                                           xform.user.username)
                     )
                     pass
