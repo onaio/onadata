@@ -453,13 +453,16 @@ def api(request, username=None, id_string=None):
     if not xform:
         return HttpResponseForbidden(_(u'Not shared.'))
 
+    query = request.GET.get('query')
+
     try:
         args = {
             'xform': xform,
-            'query': request.GET.get('query'),
+            'query': query,
             'fields': request.GET.get('fields'),
             'sort': request.GET.get('sort')
         }
+
         if 'page' in request.GET:
             page = int(request.GET.get('page'))
             page_size = request.GET.get('page_size', 'limit')
@@ -489,7 +492,8 @@ def api(request, username=None, id_string=None):
         response_text = ("%s(%s)" % (callback, response_text))
 
     response = HttpResponse(response_text, content_type='application/json')
-    response['X-total'] = xform.num_of_submissions
+    response['X-total'] = xform.num_of_submissions if query is None else \
+        len(records)
     add_cors_headers(response)
 
     return response

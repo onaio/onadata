@@ -194,15 +194,17 @@
 
                 // Initialize a client-side filter to filter on the client
                 // mode pageable collection"s cache.
-                // var filter = new Backgrid.Extension.ClientSideFilter({
-                //     collection: this.data.fullCollection
-                // });
 
-                // // Render the filter
-                // this.$el.prepend(filter.render().$el);
+                var filter = new Backgrid.Extension.ServerSideFilter({
+                    collection: this.data,
+                    name: "query"
+                });
 
-                // // Add some space to the filter and move it to the right
-                // filter.$el.css({float: "right", margin: "20px"});
+                // Render the filter
+                this.$el.prepend(filter.render().$el);
+
+                // Add some space to the filter and move it to the right
+                filter.$el.css({float: "right", margin: "20px"});
 
                 // catch the `switched` event
                 dataLangSwitcher.on("switch", function (language) {
