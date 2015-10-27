@@ -188,50 +188,58 @@ class ParsedInstance(models.Model):
         known_dates = ['_submission_time']
         where = []
         where_params = []
-        if query and isinstance(query, six.string_types):
-            query = json.loads(query)
-            or_where = []
-            or_params = []
-            if isinstance(query, list):
-                query = query[0]
 
-            if '$or' in query.keys():
-                or_dict = query.pop('$or')
-                for l in or_dict:
-                    or_where.extend([u"json->>%s = %s" for i in l.items()])
-                    [or_params.extend(i) for i in l.items()]
+        try:
+            if query and isinstance(query, six.string_types):
+                query = json.loads(query)
+                or_where = []
+                or_params = []
+                if isinstance(query, list):
+                    query = query[0]
 
-                or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
+                if '$or' in query.keys():
+                    or_dict = query.pop('$or')
+                    for l in or_dict:
+                        or_where.extend([u"json->>%s = %s" for i in l.items()])
+                        [or_params.extend(i) for i in l.items()]
 
-            # where = [u"json->>%s = %s" for i in query.items()] + or_where
-            for k, v in query.items():
-                if isinstance(v, dict):
-                    json_str = _json_sql_str(k, known_integers, known_dates)
-                    _v = None
-                    if '$gt' in v:
-                        where.append(u"{} > %s".format(json_str))
-                        _v = v.get('$gt')
-                    if '$gte' in v:
-                        where.append(u"{} >= %s".format(json_str))
-                        _v = v.get('$gte')
-                    if '$lt' in v:
-                        where.append(u"{} < %s".format(json_str))
-                        _v = v.get('$lt')
-                    if '$lte' in v:
-                        where.append(u"{} <= %s".format(json_str))
-                        _v = v.get('$lte')
-                    if _v is None:
-                        _v = v
-                    if k in known_dates:
-                        _v = datetime.datetime.strptime(
-                            _v[:19], MONGO_STRFTIME)
-                    where_params.extend((k, unicode(_v)))
-                else:
-                    where.append(u"json->>%s = %s")
-                    where_params.extend((k, unicode(v)))
-            where += or_where
-            # [where_params.extend((k, unicode(v))) for k, v in query.items()]
-            where_params.extend(or_params)
+                    or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
+
+                # where = [u"json->>%s = %s" for i in query.items()] + or_where
+                for k, v in query.items():
+                    if isinstance(v, dict):
+                        json_str = _json_sql_str(
+                            k, known_integers, known_dates)
+                        _v = None
+                        if '$gt' in v:
+                            where.append(u"{} > %s".format(json_str))
+                            _v = v.get('$gt')
+                        if '$gte' in v:
+                            where.append(u"{} >= %s".format(json_str))
+                            _v = v.get('$gte')
+                        if '$lt' in v:
+                            where.append(u"{} < %s".format(json_str))
+                            _v = v.get('$lt')
+                        if '$lte' in v:
+                            where.append(u"{} <= %s".format(json_str))
+                            _v = v.get('$lte')
+                        if _v is None:
+                            _v = v
+                        if k in known_dates:
+                            _v = datetime.datetime.strptime(
+                                _v[:19], MONGO_STRFTIME)
+                        where_params.extend((k, unicode(_v)))
+                    else:
+                        where.append(u"json->>%s = %s")
+                        where_params.extend((k, unicode(v)))
+                where += or_where
+                # [where_params.extend(
+                #    (k, unicode(v))) for k, v in query.items()]
+                where_params.extend(or_params)
+
+        except (ValueError, AttributeError):
+            where = [u"json::text like %s"]
+            where_params = ["%%{}%%".format(query)]
 
         return where, where_params
 
@@ -286,8 +294,6 @@ class ParsedInstance(models.Model):
                 params += [limit]
             records = ParsedInstance.query_iterator(sql, fields, params, count)
         else:
-            if count:
-                return [{"count": instances.count()}]
 
             if where_params:
                 instances = instances.extra(where=where, params=where_params)
@@ -302,6 +308,9 @@ class ParsedInstance(models.Model):
             else:
                 records = instances.order_by(*sort)\
                     .values_list('json', flat=True)
+
+            if count:
+                return [{"count": records.count()}]
 
             if start_index is not None:
                 if ParsedInstance._has_json_fields(sort):

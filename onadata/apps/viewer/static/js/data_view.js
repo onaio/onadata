@@ -25,13 +25,10 @@
         state: {
             pageSize: 50
         },
-        mode: "server", // page entirely on the client side,
+        mode: "server", // page entirely on the server side,
         model: FH.Data,
         queryParams: {
-            currentPage: "start",
             pageSize: "limit"
-            // totalPages: null,
-            // totalRecords: null
         },
         parseState: function (resp, queryParams, state, options) {
             return {totalRecords: parseInt(options.xhr.getResponseHeader("X-total"))};

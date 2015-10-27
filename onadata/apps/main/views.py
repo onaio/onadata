@@ -454,6 +454,7 @@ def api(request, username=None, id_string=None):
         return HttpResponseForbidden(_(u'Not shared.'))
 
     query = request.GET.get('query')
+    total_records = xform.num_of_submissions
 
     try:
         args = {
@@ -465,14 +466,19 @@ def api(request, username=None, id_string=None):
 
         if 'page' in request.GET:
             page = int(request.GET.get('page'))
-            page_size = request.GET.get('page_size', 'limit')
+            page_size = request.GET.get('page_size', request.GET.get('limit'))
             if page_size:
                 page_size = int(page_size)
             else:
                 page_size = 100
-            start_index = page * page_size
+
+            start_index = (page - 1) * page_size
             args["start_index"] = start_index
             args["limit"] = page_size
+        if query:
+            count_args = args.copy()
+            count_args['count'] = True
+            total_records = ParsedInstance.query_data(**count_args)[0]['count']
         if 'start' in request.GET:
             args["start_index"] = int(request.GET.get('start'))
         if 'limit' in request.GET:
@@ -480,6 +486,7 @@ def api(request, username=None, id_string=None):
         if 'count' in request.GET:
             args["count"] = True if int(request.GET.get('count')) > 0\
                 else False
+
         cursor = ParsedInstance.query_data(**args)
     except ValueError as e:
         return HttpResponseBadRequest(e.__str__())
@@ -492,8 +499,7 @@ def api(request, username=None, id_string=None):
         response_text = ("%s(%s)" % (callback, response_text))
 
     response = HttpResponse(response_text, content_type='application/json')
-    response['X-total'] = xform.num_of_submissions if query is None else \
-        len(records)
+    response['X-total'] = total_records
     add_cors_headers(response)
 
     return response
