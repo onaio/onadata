@@ -67,9 +67,8 @@ class TestFormAPI(TestBase):
         self.assertEqual(response.content, '[]')
 
     def test_handle_bad_json(self):
-        response = self.client.get(self.api_url, {'query': 'bad'})
+        response = self.client.get(self.api_url, {'query': '{bad'})
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(True, 'JSON' in response.content)
 
     def test_api_jsonp(self):
         # query string
