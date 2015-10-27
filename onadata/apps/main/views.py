@@ -478,7 +478,11 @@ def api(request, username=None, id_string=None):
         if query:
             count_args = args.copy()
             count_args['count'] = True
-            total_records = ParsedInstance.query_data(**count_args)[0]['count']
+            count_results = [
+                i for i in ParsedInstance.query_data(**count_args)
+            ]
+            total_records = count_results[0].get('count', total_records)\
+                if len(count_results) else total_records
         if 'start' in request.GET:
             args["start_index"] = int(request.GET.get('start'))
         if 'limit' in request.GET:
