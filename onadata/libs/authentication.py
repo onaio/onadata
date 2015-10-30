@@ -100,7 +100,7 @@ class EnketoTokenAuthentication(TokenAuthentication):
     def authenticate(self, request):
         try:
             _jwt = request.get_signed_cookie(
-                '__enketo', salt='s0m3v3rys3cr3tk3y')
+                '__enketo', salt=settings.ENKETO_API_SALT)
             jwt_payload = jwt.decode(_jwt,
                                      settings.JWT_SECRET_KEY,
                                      algorithms=[settings.JWT_ALGORITHM])
