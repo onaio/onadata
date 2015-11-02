@@ -5,6 +5,7 @@ import re
 import six
 
 from dateutil import parser
+from django.conf import settings
 from django.db import connection
 from django.db import models
 from django.db.models.signals import post_save
@@ -143,8 +144,8 @@ def get_name_from_survey_element(element):
 class ParsedInstance(models.Model):
     USERFORM_ID = u'_userform_id'
     STATUS = u'_status'
-    DEFAULT_LIMIT = 30000
-    DEFAULT_BATCHSIZE = 1000
+    DEFAULT_LIMIT = settings.PARSED_INSTANCE_DEFAULT_LIMIT
+    DEFAULT_BATCHSIZE = settings.PARSED_INSTANCE_DEFAULT_BATCHSIZE
 
     instance = models.OneToOneField(Instance, related_name="parsed_instance")
     start_time = models.DateTimeField(null=True)
