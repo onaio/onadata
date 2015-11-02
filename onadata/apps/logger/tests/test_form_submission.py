@@ -274,14 +274,14 @@ class TestFormSubmission(TestBase):
         cursor = ParsedInstance.query_data(**query_args)
         self.assertEqual(cursor[0]['count'], num_data_instances + 1)
         # edited submission
-        xml_submission_file_path = os.path.join(
+        xml_edit_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "..", "fixtures", "tutorial", "instances",
             "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"
         )
         client = DigestClient()
         client.set_authorization('bob', 'bob', 'Digest')
-        self._make_submission(xml_submission_file_path, client=client)
+        self._make_submission(xml_edit_submission_file_path, client=client)
         self.assertEqual(self.response.status_code, 201)
         # we must have the same number of instances
         self.assertEqual(Instance.objects.count(), num_instances + 1)
@@ -294,11 +294,30 @@ class TestFormSubmission(TestBase):
         query_args['count'] = False
         cursor = ParsedInstance.query_data(**query_args)
         record = cursor[0]
-        with open(xml_submission_file_path, "r") as f:
+        with open(xml_edit_submission_file_path, "r") as f:
             xml_str = f.read()
         xml_str = clean_and_parse_xml(xml_str).toxml()
         edited_name = re.match(ur"^.+?<name>(.+?)</name>", xml_str).groups()[0]
         self.assertEqual(record['name'], edited_name)
+        xml_edit_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid_edited_again.xml"
+        )
+        self._make_submission(xml_edit_submission_file_path)
+        cursor = ParsedInstance.query_data(**query_args)
+        record = cursor[0]
+        self.assertEqual(record['name'], 'Tom and Jerry')
+        self.assertEqual(
+            InstanceHistory.objects.count(), num_instances_history + 2)
+        # submitting original submission is treated as a duplicate
+        # does not add a new record
+        # does not change data
+        self._make_submission(xml_submission_file_path)
+        self.assertEqual(self.response.status_code, 202)
+        self.assertEqual(Instance.objects.count(), num_instances + 1)
+        self.assertEqual(
+            InstanceHistory.objects.count(), num_instances_history + 2)
 
     def test_submission_w_mismatched_uuid(self):
         """
