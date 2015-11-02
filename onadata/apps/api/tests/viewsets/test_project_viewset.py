@@ -1422,3 +1422,28 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         # user cant access the project removed from org
         self.assertEquals(404, response.status_code)
+
+    def test_public_project_on_creation(self):
+        view = ProjectViewSet.as_view({
+            'post': 'create'
+        })
+
+        data = {
+            'name': u'demopublic',
+            'owner':
+            'http://testserver/api/v1/users/%s' % self.user.username,
+            'metadata': {'description': 'Some description',
+                         'location': 'Naivasha, Kenya',
+                         'category': 'governance'},
+            'public': True
+        }
+
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, owner=self.user.username)
+        self.assertEqual(response.status_code, 201)
+        project = Project.prefetched.filter(
+            name=data['name'], created_by=self.user)[0]
+
+        self.assertTrue(project.shared)

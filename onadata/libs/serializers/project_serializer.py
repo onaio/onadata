@@ -121,6 +121,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             name=validated_data.get('name'),
             organization=validated_data.get('organization'),
             created_by=created_by,
+            shared=validated_data.get('shared', False),
             metadata=validated_data.get('metadata')
         )
 
