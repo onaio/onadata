@@ -17,7 +17,7 @@ class Command(BaseCommand):
         make_option(
             "-n", "--server_name", dest="server_name",
             default="enketo.ona.io"),
-        make_option("-p", "--server_port", dest="server_port", default="80"),
+        make_option("-p", "--server_port", dest="server_port", default="443"),
         make_option("-r", "--protocol", dest="protocol", default="https"),
     )
 
