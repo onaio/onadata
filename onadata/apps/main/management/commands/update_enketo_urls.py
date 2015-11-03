@@ -5,7 +5,7 @@ from django.utils.translation import ugettext_lazy
 from django.http import HttpRequest
 from django.db.models import Q
 
-from onadata.libs.utils.viewer_tools import _get_form_url, enketo_url
+from onadata.libs.utils.viewer_tools import get_form_url, enketo_url
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.main.models.meta_data import MetaData
 
@@ -14,10 +14,12 @@ class Command(BaseCommand):
     help = ugettext_lazy("Updates enketo preview urls in MetaData model")
 
     option_list = BaseCommand.option_list + (
-        make_option("-n", "--server_name", dest="server_name", default=False),
-        make_option("-p", "--server_port", dest="server_port", default=False),
-        make_option("-r", "--protocol", dest="protocol", default=False),
-        )
+        make_option(
+            "-n", "--server_name", dest="server_name",
+            default="enketo.ona.io"),
+        make_option("-p", "--server_port", dest="server_port", default="443"),
+        make_option("-r", "--protocol", dest="protocol", default="https"),
+    )
 
     def handle(self, *args, **kwargs):
         request = HttpRequest()
@@ -49,17 +51,21 @@ class Command(BaseCommand):
             username = meta_data.xform.user.username
             id_string = meta_data.xform.id_string
             data_type = meta_data.data_type
+            data_value = meta_data.data_value
             xform = meta_data.xform
+            with open('/tmp/enketo_url', 'a') as f:
 
-            if data_type == 'enketo_url':
-                form_url = _get_form_url(request, username, protocol=protocol)
-                _enketo_url = enketo_url(form_url, id_string)
-                MetaData.enketo_url(xform, _enketo_url)
-            elif data_type == 'enketo_preview_url':
-                _enketo_preview_url = get_enketo_preview_url(
-                    request, username, id_string)
-                MetaData.enketo_preview_url(xform, _enketo_preview_url)
+                if data_type == 'enketo_url':
+                    form_url = get_form_url(
+                        request, username, protocol=protocol)
+                    _enketo_url = enketo_url(form_url, id_string)
+                    MetaData.enketo_url(xform, _enketo_url)
+                elif data_type == 'enketo_preview_url':
+                    _enketo_preview_url = get_enketo_preview_url(
+                        request, username, id_string)
+                    MetaData.enketo_preview_url(xform, _enketo_preview_url)
+                f.write('%s : %s \n' % (id_string, data_value))
 
-            self.stdout.write('url: %s' % meta_data.data_value)
+            self.stdout.write('%s: %s' % (data_type, meta_data.data_value))
 
         self.stdout.write("enketo urls update complete!!")
