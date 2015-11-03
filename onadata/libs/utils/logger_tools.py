@@ -63,6 +63,9 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
     # check if its an edit submission
     old_uuid = get_deprecated_uuid_from_xml(xml)
     instances = Instance.objects.filter(uuid=old_uuid)
+    history = InstanceHistory.objects.filter(
+        xform_instance__xform=xform, uuid=new_uuid
+    )
 
     if instances:
         # edits
@@ -74,6 +77,8 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
         instance.uuid = new_uuid
         instance.json = instance.get_dict()
         instance.save()
+    elif history:
+        instance = history[0].xform_instance
     else:
         # new submission
         instance = Instance.objects.create(
@@ -238,9 +243,9 @@ def create_instance(username, xml_file, media_files,
         if not existing_instance.xform or\
                 existing_instance.xform.has_start_time:
             # ensure we have saved the extra attachments
-            save_attachments(xform, existing_instance, media_files)
-            existing_instance.save()
-            transaction.commit()
+            with transaction.atomic():
+                save_attachments(xform, existing_instance, media_files)
+                existing_instance.save()
 
             # Ignore submission as a duplicate IFF
             #  * a submission's XForm collects start time
@@ -250,13 +255,18 @@ def create_instance(username, xml_file, media_files,
 
     # get new and depracated uuid's
     new_uuid = get_uuid_from_xml(xml)
+    history = InstanceHistory.objects.filter(
+        xform_instance__xform=xform, uuid=new_uuid
+    )
     duplicate_instances = Instance.objects.filter(uuid=new_uuid)
 
-    if duplicate_instances:
+    if duplicate_instances or history:
+        duplicate_instance = history[0].xform_instance \
+            if history else duplicate_instances[0]
         # ensure we have saved the extra attachments
         with transaction.atomic():
-            save_attachments(xform, duplicate_instances[0], media_files)
-            duplicate_instances[0].save()
+            save_attachments(xform, duplicate_instance, media_files)
+            duplicate_instance.save()
 
         return DuplicateInstance()
 
