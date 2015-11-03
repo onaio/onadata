@@ -49,7 +49,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     is_org = serializers.SerializerMethodField()
     username = serializers.CharField(source='user.username', min_length=3,
                                      max_length=30)
-    name = serializers.CharField(required=False)
+    name = serializers.CharField(required=False, allow_blank=True)
     first_name = serializers.CharField(source='user.first_name',
                                        required=False, allow_blank=True)
     last_name = serializers.CharField(source='user.last_name',
