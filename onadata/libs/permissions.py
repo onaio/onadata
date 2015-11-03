@@ -129,6 +129,7 @@ class EditorRole(Role):
         (CAN_ADD_SUBMISSIONS, XForm),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_VIEW_XFORM, XForm),
+        (CAN_DELETE_XFORM, XForm),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_CHANGE_PROJECT, Project),
         (CAN_VIEW_PROJECT, Project),
