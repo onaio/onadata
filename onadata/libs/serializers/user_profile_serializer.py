@@ -164,7 +164,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         site = Site.objects.get(pk=settings.SITE_ID)
         new_user = RegistrationProfile.objects.create_inactive_user(
             username=params.get('username'),
-            password=params.get('password'),
+            password=params.get('password1'),
             email=params.get('email'),
             site=site,
             send_email=settings.SEND_EMAIL_ACTIVATION_API)
