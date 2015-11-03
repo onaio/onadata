@@ -38,6 +38,7 @@ from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs import filters
+from onadata.libs.permissions import CAN_DELETE_SUBMISSION
 from onadata.libs.utils.viewer_tools import (
     EnketoError,
     get_enketo_edit_url)
@@ -254,7 +255,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             raise ParseError(_(u"Data id not provided."))
         elif isinstance(self.object, Instance):
 
-            if request.user.has_perm("delete_xform", self.object.xform):
+            if request.user.has_perm(
+                    CAN_DELETE_SUBMISSION, self.object.xform):
                 self.object.set_deleted(timezone.now())
             else:
                 raise PermissionDenied(_(u"You do not have delete "
