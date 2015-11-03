@@ -113,6 +113,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
+        password = data['password']
         del data['password']
         profile = UserProfile.objects.get(user__username=data['username'])
         data['id'] = profile.user.pk
@@ -126,6 +127,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         user = User.objects.get(username='deno')
         self.assertTrue(user.is_active)
+        self.assertTrue(user.check_password(password), password)
 
     def test_profile_create_anon(self):
         data = _profile_data()

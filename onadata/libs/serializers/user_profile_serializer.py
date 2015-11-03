@@ -49,7 +49,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
     is_org = serializers.SerializerMethodField()
     username = serializers.CharField(source='user.username', min_length=3,
                                      max_length=30)
-    name = serializers.CharField(required=False)
+    name = serializers.CharField(required=False, allow_blank=True)
     first_name = serializers.CharField(source='user.first_name',
                                        required=False, allow_blank=True)
     last_name = serializers.CharField(source='user.last_name',
@@ -164,7 +164,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
         site = Site.objects.get(pk=settings.SITE_ID)
         new_user = RegistrationProfile.objects.create_inactive_user(
             username=params.get('username'),
-            password=params.get('password'),
+            password=params.get('password1'),
             email=params.get('email'),
             site=site,
             send_email=settings.SEND_EMAIL_ACTIVATION_API)
