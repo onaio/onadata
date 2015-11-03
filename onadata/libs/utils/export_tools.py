@@ -21,12 +21,13 @@ from json2xlsclient.client import Client
 from django.db.models import Q
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
-from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import\
     _is_invalid_for_mongo, _encode_for_mongo, _decode_from_mongo,\
     ParsedInstance
+from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     image_urls
 from onadata.libs.utils.common_tags import (
@@ -34,7 +35,6 @@ from onadata.libs.utils.common_tags import (
     DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, GROUPNAME_REMOVED_FLAG,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
     DATAVIEW_EXPORT)
-from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.osm import get_combined_osm
 
 
@@ -715,8 +715,6 @@ def generate_export(export_type, extension, username, id_string,
     """
     Create appropriate export object given the export type
     """
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.export import Export
     export_type_func_map = {
         Export.XLS_EXPORT: 'to_xls_export',
         Export.CSV_EXPORT: 'to_flat_csv_export',
@@ -804,8 +802,6 @@ def generate_export(export_type, extension, username, id_string,
 
 def should_create_new_export(xform, export_type, remove_group_name=False,
                              dataview=None):
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.export import Export
     q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
     q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
 
@@ -840,8 +836,6 @@ def newest_export_for(xform, export_type, remove_group_name=False,
     Make sure you check that an export exists before calling this,
     it will a DoesNotExist exception otherwise
     """
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.export import Export
     q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
     q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
 
@@ -883,8 +877,6 @@ def increment_index_in_filename(filename):
 def generate_attachments_zip_export(
         export_type, extension, username, id_string, export_id=None,
         filter_query=None):
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.export import Export
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     attachments = Attachment.objects.filter(instance__xform=xform)
     basename = "%s_%s" % (id_string,
@@ -930,8 +922,6 @@ def generate_attachments_zip_export(
 def generate_kml_export(
         export_type, extension, username, id_string, export_id=None,
         filter_query=None):
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.export import Export
     user = User.objects.get(username=username)
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     response = render_to_response(
@@ -1020,8 +1010,6 @@ def kml_export_data(id_string, user):
 def generate_osm_export(
         export_type, extension, username, id_string, export_id=None,
         filter_query=None):
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.export import Export
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     attachments = Attachment.objects.filter(
         extension=Attachment.OSM,
