@@ -15,8 +15,7 @@ from rest_framework.reverse import reverse
 from celery.result import AsyncResult
 
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.utils.export_tools import DEFAULT_GROUP_DELIMITER,\
-    should_create_new_export
+from onadata.libs.utils.export_tools import should_create_new_export
 from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import log
@@ -61,19 +60,6 @@ def _get_export_type(export_type):
     return export_type
 
 
-def should_regenerate_export(xform, export_type, request,
-                             remove_group_name=False,
-                             group_delimiter=DEFAULT_GROUP_DELIMITER,
-                             split_select_multiples=True, dataview=None):
-    return should_create_new_export(xform, export_type,
-                                    remove_group_name=remove_group_name,
-                                    dataview=dataview) or\
-        'start' in request.GET or 'end' in request.GET or\
-        'query' in request.GET or 'data_id' in request.GET or\
-        group_delimiter != DEFAULT_GROUP_DELIMITER or\
-        not split_select_multiples
-
-
 def custom_response_handler(request, xform, query, export_type,
                             token=None, meta=None, dataview=None):
     export_type = _get_export_type(export_type)
@@ -87,9 +73,10 @@ def custom_response_handler(request, xform, query, export_type,
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
 
-    if should_regenerate_export(
-            xform, export_type, request, remove_group_name=remove_group_name,
-            dataview=dataview, group_delimiter=group_delimiter,
+    if should_create_new_export(
+            xform, export_type, remove_group_name=remove_group_name,
+            dataview=dataview, request=request,
+            group_delimiter=group_delimiter,
             split_select_multiples=split_select_multiples):
         export = _generate_new_export(request, xform, query, export_type,
                                       dataview=dataview)
@@ -130,8 +117,7 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
             export = generate_external_export(
                 export_type, xform.user.username,
                 xform.id_string, None, request.GET.get('token'), query,
-                request.GET.get('meta'), request.GET.get('data_id')
-            )
+                request.GET.get('meta'), request.GET.get('data_id'))
         elif export_type == Export.OSM_EXPORT:
             export = generate_osm_export(
                 export_type, extension, xform.user.username,
@@ -150,8 +136,7 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
                 xform.id_string, None, query,
                 remove_group_name=remove_group_name, dataview_pk=dataview_pk,
                 group_delimiter=group_delimiter,
-                split_select_multiples=split_select_multiples
-            )
+                split_select_multiples=split_select_multiples)
         audit = {
             "xform": xform.id_string,
             "export_type": export_type
@@ -332,13 +317,12 @@ def process_async_export(request, xform, export_type, query=None, token=None,
     remove_group_name = options.get('remove_group_name')
 
     dataview_pk = options.get('dataview_pk')
-    if should_regenerate_export(
-            xform, export_type, request,
-            remove_group_name=remove_group_name,
-            dataview=dataview_pk,
+    if should_create_new_export(
+            xform, export_type, remove_group_name=remove_group_name,
+            dataview=dataview_pk, request=request,
             group_delimiter=options.get('group_delimiter'),
-            split_select_multiples=options.get('split_select_multiples'))\
-            or export_type == Export.EXTERNAL_EXPORT:
+            split_select_multiples=options.get('split_select_multiples')) or\
+            export_type == Export.EXTERNAL_EXPORT:
         resp = {
             u'job_uuid': _create_export_async(xform, export_type,
                                               query, False,

@@ -793,15 +793,24 @@ def generate_export(export_type, extension, username, id_string,
     export.filedir = dir_name
     export.filename = basename
     export.internal_status = Export.SUCCESSFUL
-    # dont persist exports that have a filter
+    # do not persist exports that have a filter
 
+    # if we should create a new export is true, we should not save it
     if not filter_query and start is None and end is None:
         export.save()
     return export
 
 
 def should_create_new_export(xform, export_type, remove_group_name=False,
-                             dataview=None):
+                             dataview=None, request=None,
+                             group_delimiter=DEFAULT_GROUP_DELIMITER,
+                             split_select_multiples=True):
+    if (request and frozenset(request.GET.keys()) &
+            frozenset(['start', 'end', 'query', 'data_id'])) or\
+            group_delimiter != DEFAULT_GROUP_DELIMITER or\
+            not split_select_multiples:
+        return True
+
     q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
     q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
 
@@ -1137,10 +1146,9 @@ def generate_external_export(
     records = _get_records(instances)
 
     status_code = 0
+
     if records and server:
-
         try:
-
             client = Client(ser)
             response = client.xls.create(token, json.dumps(records))
 
