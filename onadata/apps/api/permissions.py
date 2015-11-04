@@ -58,7 +58,7 @@ class XFormPermissions(DjangoObjectPermissions):
         if request.method == 'DELETE' and view.action == 'labels':
             user = request.user
 
-            return user.has_perms(CAN_CHANGE_XFORM, obj)
+            return user.has_perm(CAN_CHANGE_XFORM, obj)
 
         if request.method == 'DELETE' and view.action == 'destroy':
             return request.user.has_perm(CAN_DELETE_SUBMISSION, obj)
