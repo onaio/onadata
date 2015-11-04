@@ -49,7 +49,7 @@ class XFormPermissions(DjangoObjectPermissions):
         return super(XFormPermissions, self).has_permission(request, view)
 
     def has_object_permission(self, request, view, obj):
-        if obj.shared and view.action == 'clone':
+        if hasattr(obj, 'shared') and obj.shared and view.action == 'clone':
             return obj
 
         if request.method == 'DELETE' and view.action == 'labels':
