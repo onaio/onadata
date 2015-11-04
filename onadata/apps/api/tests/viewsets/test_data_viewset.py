@@ -743,6 +743,70 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 2)
 
+    def test_delete_submission_by_editor(self):
+        self._make_submissions()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        view = DataViewSet.as_view({
+            'delete': 'destroy',
+            'get': 'list'
+        })
+
+        # 4 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 4)
+
+        self._create_user_and_login(username='alice', password='alice')
+
+        # Editor can delete submission
+        role.EditorRole.add(self.user, self.xform)
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        request = self.factory.delete('/', **self.extra)
+        dataid = self.xform.instances.filter(deleted_at=None)\
+            .order_by('id')[0].pk
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 204)
+
+        # remaining 3 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 3)
+
+    def test_delete_submission_by_owner(self):
+        self._make_submissions()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        view = DataViewSet.as_view({
+            'delete': 'destroy',
+            'get': 'list'
+        })
+
+        # 4 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 4)
+
+        self._create_user_and_login(username='alice', password='alice')
+
+        # Owner can delete submission
+        role.OwnerRole.add(self.user, self.xform)
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        request = self.factory.delete('/', **self.extra)
+        dataid = self.xform.instances.filter(deleted_at=None)\
+            .order_by('id')[0].pk
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 204)
+
+        # remaining 3 submissions
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 3)
+
     def test_geojson_format(self):
         self._publish_submit_geojson()
 

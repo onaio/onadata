@@ -32,6 +32,7 @@ CAN_ADD_XFORM = 'add_xform'
 CAN_DELETE_XFORM = 'delete_xform'
 CAN_VIEW_XFORM = 'view_xform'
 CAN_ADD_SUBMISSIONS = 'report_xform'
+CAN_DELETE_SUBMISSION = 'delete_submission'
 CAN_TRANSFER_OWNERSHIP = 'transfer_xform'
 CAN_MOVE_TO_FOLDER = 'move_xform'
 CAN_EXPORT_XFORM = 'can_export_xform_data'
@@ -129,6 +130,7 @@ class EditorRole(Role):
         (CAN_ADD_SUBMISSIONS, XForm),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_VIEW_XFORM, XForm),
+        (CAN_DELETE_SUBMISSION, XForm),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_CHANGE_PROJECT, Project),
         (CAN_VIEW_PROJECT, Project),
@@ -145,6 +147,7 @@ class ManagerRole(Role):
         (CAN_ADD_XFORM, XForm),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_VIEW_XFORM, XForm),
+        (CAN_DELETE_SUBMISSION, XForm),
         (CAN_DELETE_XFORM, XForm),
         (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
@@ -174,6 +177,7 @@ class OwnerRole(Role):
     name = 'owner'
     permissions = (
         (CAN_ADD_SUBMISSIONS, XForm),
+        (CAN_DELETE_SUBMISSION, XForm),
         (CAN_ADD_XFORM, XForm),
         (CAN_VIEW_XFORM, XForm),
         (CAN_ADD_DATADICTIONARY, XForm),
