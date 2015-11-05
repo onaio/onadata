@@ -19,6 +19,8 @@ from onadata.apps.restservice.tasks import call_service_async
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
     NOTES, SUBMITTED_BY, VERSION, DURATION
+from onadata.apps.logger.models.osmdata import OSMData
+from onadata.libs.utils.osm import parse_osm_ways, parse_osm_tags
 
 from onadata.libs.utils.model_tools import queryset_iterator
 
@@ -454,6 +456,23 @@ def rest_service_form_submission(sender, **kwargs):
         if RestService.objects.filter(xform=parsed_instance.instance.xform)\
                 .count() > 0:
             call_service_async.delay(parsed_instance.pk)
+
+        for osm in parsed_instance.instance.attachments.filter(extension='osm'):
+            osm_xml = osm.media_file.read()
+
+            points = parse_osm_ways(osm_xml)
+            tags = parse_osm_tags(osm_xml)
+
+            osm_data = OSMData(instance= parsed_instance.instance,
+                               xml= osm_xml,
+                               osm_id="",
+                               tags=tags,
+                               geom=points,
+                               filename=osm.filename)
+            osm_data.save()
+
+
+
 
 
 post_save.connect(rest_service_form_submission, sender=ParsedInstance)
