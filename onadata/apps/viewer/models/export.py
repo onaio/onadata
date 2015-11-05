@@ -6,6 +6,8 @@ from django.db import models
 from django.db.models.signals import post_delete
 from django.utils.translation import ugettext as _
 
+from jsonfield import JSONField
+
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.common_tags import OSM
 
@@ -90,6 +92,8 @@ class Export(models.Model):
     # status
     internal_status = models.SmallIntegerField(max_length=1, default=PENDING)
     export_url = models.URLField(null=True, default=None)
+
+    options = JSONField(default={}, null=False)
 
     class Meta:
         app_label = "viewer"
