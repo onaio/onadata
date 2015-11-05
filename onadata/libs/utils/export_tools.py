@@ -805,8 +805,8 @@ def should_create_new_export(xform, export_type, remove_group_name=False,
                              dataview=None, request=None,
                              group_delimiter=DEFAULT_GROUP_DELIMITER,
                              split_select_multiples=True):
-    if (request and frozenset(request.GET.keys()) &
-            frozenset(['start', 'end', 'query', 'data_id'])) or\
+    if (request and (frozenset(request.GET.keys()) &
+                     frozenset(['start', 'end', 'query', 'data_id']))) or\
             group_delimiter != DEFAULT_GROUP_DELIMITER or\
             not split_select_multiples:
         return True
