@@ -5,7 +5,7 @@ from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
 from django.contrib.gis.geos import GeometryCollection
 
-from onadata.apps.logger.models.osmdata import OSMData
+from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.logger.models.attachment import Attachment
 
 from lxml import etree
@@ -97,7 +97,7 @@ def save_osm_data(parsed_instance):
 
                 geom = GeometryCollection(points)
 
-                osm_data = OSMData(instance=parsed_instance.instance,
+                osm_data = OsmData(instance=parsed_instance.instance,
                                    xml=osm_xml,
                                    osm_id="",
                                    tags=tags,
@@ -109,7 +109,7 @@ def save_osm_data(parsed_instance):
 
 
 def osm_flat_dict(instance_id):
-    osm_data = OSMData.objects.filter(instance=instance_id)
+    osm_data = OsmData.objects.filter(instance=instance_id)
     tags = {}
 
     for osm in osm_data:

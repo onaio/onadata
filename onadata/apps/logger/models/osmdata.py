@@ -5,7 +5,7 @@ from django.contrib.gis.db import models
 from onadata.apps.logger.models.instance import Instance
 
 
-class OSMData(models.Model):
+class OsmData(models.Model):
     """
     OSM Data information from a submission instance
     """

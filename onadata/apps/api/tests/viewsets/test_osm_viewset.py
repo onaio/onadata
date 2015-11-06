@@ -7,7 +7,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
 from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment
-from onadata.apps.logger.models import OSMData
+from onadata.apps.logger.models import OsmData
 from onadata.apps.viewer.models.export import Export
 
 from onadata.libs.utils.export_tools import generate_export
@@ -53,7 +53,7 @@ class TestOSM(TestAbstractViewSet):
         self.assertTrue(osm_attach_count > count)
 
         self.assertEqual(osm_attach_count,
-                         OSMData.objects.all().count())
+                         OsmData.objects.all().count())
 
         formid = self.xform.pk
         dataid = self.xform.instances.latest('date_created').pk
@@ -129,7 +129,7 @@ class TestOSM(TestAbstractViewSet):
         self.assertTrue(osm_attach_count > count)
 
         self.assertEqual(osm_attach_count,
-                         OSMData.objects.all().count())
+                         OsmData.objects.all().count())
 
         self.xform.instances.all()[0].pk
         #flat_dict = osm_flat_dict( self.xform.instances.all()[0].pk)
