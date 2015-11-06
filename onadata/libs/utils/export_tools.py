@@ -805,8 +805,7 @@ def should_create_new_export(xform,
                              export_type,
                              options={},
                              request=None):
-    split_select_multiples = options.get(
-        'split_select_multiples', export_type == Export.EXTERNAL_EXPORT)
+    split_select_multiples = options.get('split_select_multiples')
 
     if (request and (frozenset(request.GET.keys()) &
                      frozenset(['start', 'end', 'query', 'data_id']))) or\
