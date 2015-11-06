@@ -185,11 +185,12 @@ class Export(models.Model):
         return None
 
     @classmethod
-    def exports_outdated(cls, xform, export_type):
+    def exports_outdated(cls, xform, export_type, options):
         # get newest export for xform
         try:
             latest_export = Export.objects.filter(
                 xform=xform, export_type=export_type,
+                options__contains=options,
                 internal_status__in=[Export.SUCCESSFUL, Export.PENDING])\
                 .latest('created_on')
         except cls.DoesNotExist:
