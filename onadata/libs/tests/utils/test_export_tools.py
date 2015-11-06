@@ -15,8 +15,8 @@ from onadata.apps.api import tests as api_tests
 
 class TestExportTools(TestBase):
 
-    def _create_old_export(self, xform, export_type):
-        Export(xform=xform, export_type=export_type).save()
+    def _create_old_export(self, xform, export_type, options):
+        Export(xform=xform, export_type=export_type, options=options).save()
         self.export = Export.objects.filter(
             xform=xform, export_type=export_type)
 
@@ -75,32 +75,40 @@ class TestExportTools(TestBase):
         # should only create new export if filter is defined
         # Test setup
         export_type = "csv"
-        group_delimiter = "."
+        options = {"group_delimiter": "."}
         self._publish_transportation_form_and_submit_instance()
 
         will_create_new_export = should_create_new_export(
-            self.xform, export_type, group_delimiter=group_delimiter)
+            self.xform, export_type, options)
 
         self.assertTrue(will_create_new_export)
 
     def test_should_not_create_new_export_when_old_exists(self):
         export_type = "csv"
         self._publish_transportation_form_and_submit_instance()
-        self._create_old_export(self.xform, export_type)
+        options = {"group_delimiter": "/",
+                   "remove_group_name": False,
+                   "split_select_multiples": True}
+        self._create_old_export(self.xform, export_type, options)
 
         will_create_new_export = should_create_new_export(
-            self.xform, export_type)
+            self.xform, export_type, options)
 
         self.assertFalse(will_create_new_export)
 
     def test_should_create_new_export_when_filter_defined(self):
         export_type = "csv"
-        remove_group_name = True
+        options = {"group_delimiter": "/",
+                   "remove_group_name": False,
+                   "split_select_multiples": True}
 
         self._publish_transportation_form_and_submit_instance()
-        self._create_old_export(self.xform, export_type)
+        self._create_old_export(self.xform, export_type, options)
+
+        # Call should_create_new_export with updated options
+        options['remove_group_name'] = True
 
         will_create_new_export = should_create_new_export(
-            self.xform, export_type, remove_group_name=remove_group_name)
+            self.xform, export_type, options)
 
         self.assertTrue(will_create_new_export)

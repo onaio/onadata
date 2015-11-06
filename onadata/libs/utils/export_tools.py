@@ -229,7 +229,7 @@ class ExportBuilder(object):
         # Check if to truncate the group name prefix
         if remove_group_name:
             abbreviated_xpath_list = abbreviated_xpath.split(field_delimiter)
-            return abbreviated_xpath_list[len(abbreviated_xpath_list)-1]
+            return abbreviated_xpath_list[len(abbreviated_xpath_list) - 1]
         else:
             return abbreviated_xpath
 
@@ -801,39 +801,25 @@ def generate_export(export_type, extension, username, id_string,
     return export
 
 
-def should_create_new_export(xform, export_type, remove_group_name=False,
-                             dataview=None, request=None,
-                             group_delimiter=DEFAULT_GROUP_DELIMITER,
-                             split_select_multiples=True):
+def should_create_new_export(xform,
+                             export_type,
+                             options={},
+                             request=None):
+    split_select_multiples = options.get(
+        'split_select_multiples', export_type == Export.EXTERNAL_EXPORT)
+
     if (request and (frozenset(request.GET.keys()) &
                      frozenset(['start', 'end', 'query', 'data_id']))) or\
-            group_delimiter != DEFAULT_GROUP_DELIMITER or\
             not split_select_multiples:
         return True
 
-    q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
-    q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
-
-    filter_query = None
-    if remove_group_name:
-        filter_query = q_remove_grp_name
-
-    if dataview:
-        filter_query = q_dataview
-
-    if filter_query:
-        if Export.objects.filter(xform=xform, export_type=export_type)\
-                .filter(filter_query).count() == 0\
-                or Export.exports_outdated(xform, export_type=export_type):
-
-            return True
-
-        return False
-
-    if Export.objects.filter(xform=xform, export_type=export_type)\
-            .exclude(q_dataview | q_remove_grp_name).count() == 0\
-            or Export.exports_outdated(xform, export_type=export_type):
-
+    # convert options to string without spaces for query match
+    json_options = json.dumps(options).replace(" ", "")
+    if Export.objects.filter(xform=xform,
+                             export_type=export_type,
+                             options__contains=json_options)\
+                     .count() == 0 or\
+       Export.exports_outdated(xform, export_type, json_options):
         return True
 
     return False
@@ -1116,7 +1102,7 @@ def _get_server_from_metadata(xform, meta, token):
 
 
 def generate_external_export(
-    export_type, username, id_string, export_id=None,  token=None,
+    export_type, username, id_string, export_id=None, token=None,
         filter_query=None, meta=None, data_id=None):
 
     xform = XForm.objects.get(
