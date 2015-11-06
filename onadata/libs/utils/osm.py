@@ -1,7 +1,12 @@
+from celery import task
+
 from django.contrib.gis.geos import LineString
 from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
+from django.contrib.gis.geos import GeometryCollection
 
+from onadata.apps.logger.models.osmdata import OSMData
+from onadata.apps.logger.models.attachment import Attachment
 
 from lxml import etree
 
@@ -90,3 +95,33 @@ def parse_osm_tags(osm_xml):
             tags.append({tag.attrib['k']: tag.attrib['v']})
 
     return tags
+
+
+@task()
+def save_osm_data_async(parsed_instance):
+    save_osm_data(parsed_instance)
+
+
+def save_osm_data(parsed_instance):
+    from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+    try:
+        parsed_instance = ParsedInstance.objects.get(pk=parsed_instance)
+
+        for osm in parsed_instance.instance.attachments.filter(
+                extension=Attachment.OSM):
+                osm_xml = osm.media_file.read()
+
+                points = parse_osm_ways(osm_xml)
+                tags = parse_osm_tags(osm_xml)
+
+                geom = GeometryCollection(points)
+
+                osm_data = OSMData(instance=parsed_instance.instance,
+                                   xml=osm_xml,
+                                   osm_id="",
+                                   tags=tags,
+                                   geom=geom,
+                                   filename=osm.filename)
+                osm_data.save()
+    except ParsedInstance.DoesNotExist:
+        pass
