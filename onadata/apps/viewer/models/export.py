@@ -1,4 +1,6 @@
 import os
+from collections import OrderedDict
+
 from tempfile import NamedTemporaryFile
 
 from django.core.files.storage import get_storage_class
@@ -76,16 +78,20 @@ class Export(models.Model):
     # max no. of export files a user can keep
     MAX_EXPORTS = 10
 
+    # Required fields
     xform = models.ForeignKey(XForm)
+    export_type = models.CharField(
+        max_length=10, choices=EXPORT_TYPES, default=XLS_EXPORT
+    )
+
+    # optional fields
     created_on = models.DateTimeField(auto_now=True, auto_now_add=True)
     filename = models.CharField(max_length=255, null=True, blank=True)
+
     # need to save an the filedir since when an xform is deleted, it cascades
     # its exports which then try to delete their files and try to access the
     # deleted xform - bad things happen
     filedir = models.CharField(max_length=255, null=True, blank=True)
-    export_type = models.CharField(
-        max_length=10, choices=EXPORT_TYPES, default=XLS_EXPORT
-    )
     task_id = models.CharField(max_length=255, null=True, blank=True)
     # time of last submission when this export was created
     time_of_last_submission = models.DateTimeField(null=True, default=None)
@@ -93,7 +99,9 @@ class Export(models.Model):
     internal_status = models.SmallIntegerField(max_length=1, default=PENDING)
     export_url = models.URLField(null=True, default=None)
 
-    options = JSONField(default={}, null=False)
+    options = JSONField(
+        default={}, null=False,
+        load_kwargs={'object_pairs_hook': OrderedDict})
 
     class Meta:
         app_label = "viewer"
