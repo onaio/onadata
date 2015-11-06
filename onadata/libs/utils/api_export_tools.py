@@ -1,5 +1,6 @@
 import os
 import json
+from collections import OrderedDict
 from datetime import datetime
 from requests import ConnectionError
 
@@ -46,6 +47,10 @@ EXPORT_EXT = {
     'zip': Export.ZIP_EXPORT,
     OSM: Export.OSM_EXPORT
 }
+
+EXPORT_SUCCESS = "Success"
+EXPORT_PENDING = "Pending"
+EXPORT_FAILED = "Failed"
 
 
 def _get_export_type(export_type):
@@ -307,6 +312,9 @@ def process_async_export(request, xform, export_type, query=None, token=None,
     :param options: additional export params
     :return: response dictionary
     """
+    # maintain the order of keys while processing the export
+
+    options = OrderedDict(sorted(options.items()))
 
     export_type = _get_export_type(export_type)
 
@@ -317,12 +325,9 @@ def process_async_export(request, xform, export_type, query=None, token=None,
     remove_group_name = options.get('remove_group_name')
 
     dataview_pk = options.get('dataview_pk')
-    if should_create_new_export(
-            xform, export_type, remove_group_name=remove_group_name,
-            dataview=dataview_pk, request=request,
-            group_delimiter=options.get('group_delimiter'),
-            split_select_multiples=options.get('split_select_multiples')) or\
-            export_type == Export.EXTERNAL_EXPORT:
+
+    if should_create_new_export(xform, export_type, options, request=request)\
+            or export_type == Export.EXTERNAL_EXPORT:
         resp = {
             u'job_uuid': _create_export_async(xform, export_type,
                                               query, False,
@@ -361,7 +366,6 @@ def _create_export_async(xform, export_type, query=None, force_xlsx=False,
         export, async_result \
             = viewer_task.create_async_export(xform, export_type, query,
                                               force_xlsx, options=options)
-
         return async_result.task_id
 
 
@@ -390,22 +394,23 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
                     request=request
                 )
             remove_group_key = "remove_group_name"
+
             if str_to_bool(request.QUERY_PARAMS.get(remove_group_key)):
                 # append the param to the url
                 export_url = "{}?{}=true".format(export_url, remove_group_key)
         else:
             export_url = export.export_url
         resp = {
-            u'job_status': "Success",
+            u'job_status': EXPORT_SUCCESS,
             u'export_url': export_url
         }
     elif export.status == Export.PENDING:
         resp = {
-            'export_status': 'Pending'
+            'export_status': EXPORT_PENDING
         }
     else:
         resp = {
-            'export_status': "Failed"
+            'export_status': EXPORT_FAILED
         }
 
     return resp

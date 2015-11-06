@@ -1,21 +1,25 @@
 from celery import current_app
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 from django.conf import settings
 
-from mock import patch
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.viewer import tasks as viewer_task
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.api_export_tools import (
+    EXPORT_SUCCESS,
     process_async_export)
+
+from rest_framework.request import Request
 
 
 class TestApiExportTools(TestBase):
 
-    def _create_old_export(self, xform, export_type):
+    def _create_old_export(self, xform, export_type, options, filename=None):
+        options = OrderedDict(sorted(options.items()))
         Export(xform=xform,
                export_type=export_type,
+               options=options,
+               filename=filename,
                internal_status=Export.SUCCESSFUL).save()
         self.export = Export.objects.filter(
             xform=xform, export_type=export_type)[0]
@@ -36,23 +40,18 @@ class TestApiExportTools(TestBase):
         current_app.conf.CELERY_ALWAYS_EAGER = True
 
         self._publish_transportation_form_and_submit_instance()
-        request = self.factory.post('/')
-        export_type = "csv"
         options = {"group_delimiter": "/",
                    "remove_group_name": False,
                    "split_select_multiples": True}
 
-        self._create_old_export(self.xform, export_type)
+        request = Request(self.factory.post('/'))
+        export_type = "csv"
 
-        with patch(
-            'onadata.libs.utils.api_export_tools._create_export_async')\
-                as mock_create_export:
-            process_async_export(
-                request, self.xform, export_type, options=options)
+        self._create_old_export(self.xform, export_type, options,
+                                filename="test_async_export")
 
-            export, async_result = viewer_task.create_async_export(
-                self.xform, export_type, None, None, options=options)
+        resp = process_async_export(
+            request, self.xform, export_type, options=options)
 
-            self.assertTrue(mock_create_export.called)
-
-            self.assertEquals(self.export.id, export.id)
+        self.assertEquals(resp['job_status'], EXPORT_SUCCESS)
+        self.assertIn("export_url", resp)
