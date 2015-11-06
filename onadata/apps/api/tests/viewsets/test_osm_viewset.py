@@ -7,6 +7,11 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
 from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import OSMData
+from onadata.apps.viewer.models.export import Export
+
+from onadata.libs.utils.export_tools import generate_export
+from onadata.libs.utils.osm import osm_flat_dict
 
 
 class TestOSM(TestAbstractViewSet):
@@ -44,8 +49,11 @@ class TestOSM(TestAbstractViewSet):
         files = [open(path) for path in paths]
         count = Attachment.objects.filter(extension='osm').count()
         self._make_submission(submission_path, media_file=files)
-        self.assertTrue(
-            Attachment.objects.filter(extension='osm').count() > count)
+        osm_attach_count = Attachment.objects.filter(extension='osm').count()
+        self.assertTrue(osm_attach_count > count)
+
+        self.assertEqual(osm_attach_count,
+                         OSMData.objects.all().count())
 
         formid = self.xform.pk
         dataid = self.xform.instances.latest('date_created').pk
@@ -90,3 +98,43 @@ class TestOSM(TestAbstractViewSet):
         response = view(request, format='json')
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.data, [])
+
+    def test_osm_exports(self):
+        filenames = [
+            'OSMWay234134797.osm',
+            'OSMWay34298972.osm',
+        ]
+        osm_fixtures_dir = os.path.realpath(os.path.join(
+            os.path.dirname(__file__), '..', 'fixtures', 'osm'))
+        paths = [
+            os.path.join(osm_fixtures_dir, filename)
+            for filename in filenames]
+        xlsform_path = os.path.join(osm_fixtures_dir, 'osm.xlsx')
+        combined_osm_path = os.path.join(osm_fixtures_dir, 'combined.osm')
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+
+        # look at the forms.json?instances_with_osm=False
+        request = self.factory.get('/', {'instances_with_osm': 'True'},
+                                   **self.extra)
+        view = XFormViewSet.as_view({'get': 'list'})
+        response = view(request, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
+
+        submission_path = os.path.join(osm_fixtures_dir, 'instance_a.xml')
+        files = [open(path) for path in paths]
+        count = Attachment.objects.filter(extension='osm').count()
+        self._make_submission(submission_path, media_file=files)
+        osm_attach_count = Attachment.objects.filter(extension='osm').count()
+        self.assertTrue(osm_attach_count > count)
+
+        self.assertEqual(osm_attach_count,
+                         OSMData.objects.all().count())
+
+        self.xform.instances.all()[0].pk
+        #flat_dict = osm_flat_dict( self.xform.instances.all()[0].pk)
+
+        generate_export(Export.CSV_EXPORT, "csv", self.user.username,
+                        self.xform.id_string)
+
+

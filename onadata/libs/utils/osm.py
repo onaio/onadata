@@ -125,3 +125,16 @@ def save_osm_data(parsed_instance):
                 osm_data.save()
     except ParsedInstance.DoesNotExist:
         pass
+
+
+def osm_flat_dict(instance_id):
+    osm_data = OSMData.objects.filter(instance=instance_id)
+    tags = {}
+
+    for osm in osm_data:
+        for tag in osm.tags:
+            for k, v in tag.iteritems():
+                tags.update({"osm_{}".format(k):
+                             v})
+
+    return tags
