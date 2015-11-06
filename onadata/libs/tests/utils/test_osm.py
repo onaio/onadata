@@ -3,11 +3,11 @@ import unittest
 
 from django.contrib.gis.geos import GEOSGeometry
 
-from onadata.libs.utils.osm import get_combined_osm
+from onadata.libs.utils.osm import parse_osm_nodes
 from onadata.libs.utils.osm import parse_osm_ways
 from onadata.libs.utils.osm import parse_osm_tags
 
-OSMXML = """
+OSMWay = """
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="OpenMapKit 0.7" user="theoutpost">
     <node id="-1943" lat="-11.202901601" lon="28.883830387" />
@@ -37,42 +37,58 @@ OSMXML = """
     </way>
 </osm>
 """
+OSMNode = """
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="OpenMapKit 0.12" user="theoutpost">
+  <node id="-1" action="modify" lat="-9.24311382416424" lon="28.805980682373047">
+    <tag k="spray_status" v="sprayed" />
+  </node>
+</osm>
+"""  # noqa
+OSMNodeFaulty = """
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="OpenMapKit 0.12" user="theoutpost">
+  <node id="-1" action="modify" lat="-9.24311382416424" lon="28.805980682373047" action="modify">
+    <tag k="spray_status" v="sprayed" />
+  </node>
+</osm>
+"""  # noqa
 
 
 class TestOSM(unittest.TestCase):
-    def test_get_combined_osm(self):
-        filenames = ['osm1.osm', 'osm2.osm']
-        files = [
-            open(os.path.join(os.path.dirname(__file__), "fixtures", filename))
-            for filename in filenames]
-        path = os.path.join(os.path.dirname(__file__), "fixtures",
-                            "combined.osm")
-        with open(path) as f:
-            osm = f.read()
-            self.assertEqual(get_combined_osm(files), osm)
-
     def test_parse_osm_ways(self):
-        ways = parse_osm_ways(OSMXML.strip())
+        ways = parse_osm_ways(OSMWay.strip())
         self.assertTrue(len(ways) > 0)
         way = ways[0]
         self.assertIsInstance(way, GEOSGeometry)
 
+    def test_parse_osm_node(self):
+        nodes = parse_osm_nodes(OSMNode.strip())
+        self.assertTrue(len(nodes) > 0)
+        node = nodes[0]
+        self.assertIsInstance(node, GEOSGeometry)
+
+    def test_parse_osm_node_faulty(self):
+        nodes = parse_osm_nodes(OSMNodeFaulty.strip())
+        self.assertTrue(len(nodes) > 0)
+        node = nodes[0]
+        self.assertIsInstance(node, GEOSGeometry)
+
     def test_parse_osm_tags(self):
-        tags = parse_osm_tags(OSMXML.strip())
+        tags = parse_osm_tags(OSMWay.strip())
 
         self.assertTrue(len(tags) > 0)
         self.assertEqual(tags,
-                         [{'Shape_Area': '0.00000000969'},
-                          {'district_1': 'Mansa'},
-                          {'manual_c_1': 'Targeted'},
-                          {'OBJECTID': '79621'},
-                          {'rank_1': '300.000000'},
-                          {'province_1': 'Luapula'},
-                          {'Shape_Leng': '0.00039944548'},
-                          {'psa_id_1': '300 / 450'},
-                          {'y': '-11.20287380280'},
-                          {'x3': '28.88390064920'},
-                          {'structur_1': '450.000000'},
-                          {'id': '300 / 450_Mansa'},
-                          {'spray_status': 'yes'}
-                          ])
+                         {'Shape_Area': '0.00000000969',
+                          'district_1': 'Mansa',
+                          'manual_c_1': 'Targeted',
+                          'OBJECTID': '79621',
+                          'rank_1': '300.000000',
+                          'province_1': 'Luapula',
+                          'Shape_Leng': '0.00039944548',
+                          'psa_id_1': '300 / 450',
+                          'y': '-11.20287380280',
+                          'x3': '28.88390064920',
+                          'structur_1': '450.000000',
+                          'id': '300 / 450_Mansa',
+                          'spray_status': 'yes'})

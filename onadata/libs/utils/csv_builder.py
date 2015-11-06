@@ -18,7 +18,6 @@ from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     DURATION
 from onadata.libs.utils.export_tools import question_types_to_exclude
 from onadata.apps.logger.models.data_view import DataView
-from onadata.libs.utils.osm import osm_flat_dict
 
 
 # the bind type of select multiples that we use to compare
@@ -397,10 +396,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if self.group_delimiter != DEFAULT_GROUP_DELIMITER:
                 flat_dict = dict((self.group_delimiter.join(k.split('/')), v)
                                  for k, v in flat_dict.iteritems())
-            if self.xform.instances_with_osm:
-                osm_flat = osm_flat_dict(record['_id'])
-                
-                #flat_dict.update(osm_flat_dict())
             data.append(flat_dict)
         return data
 

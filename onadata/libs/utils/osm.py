@@ -11,49 +11,16 @@ from onadata.apps.logger.models.attachment import Attachment
 from lxml import etree
 
 
-def get_combined_osm(files):
-    """
-    Combines a list of osm files
-    :param files - list of osm file objects
-
-    :return string: osm xml string of the combined files
-    """
-    def _parse_osm_file(f):
-        try:
-            return etree.parse(f)
-        except:
-            return None
-
-    xml = u""
-    if len(files) and isinstance(files, list):
-        osm = None
-        for f in files:
-            _osm = _parse_osm_file(f)
-            if _osm is None:
-                continue
-
-            if osm is None:
-                osm = _osm
-                continue
-
-            for child in _osm.getroot().getchildren():
-                osm.getroot().append(child)
-
-        if osm:
-            xml = etree.tostring(osm, encoding='utf-8', xml_declaration=True)
-
-    elif isinstance(files, dict):
-        if 'detail' in files:
-            xml = u'<error>' + files['detail'] + '</error>'
-
-    return xml
-
-
 def _get_xml_obj(xml):
     if not isinstance(xml, bytes):
         xml = xml.strip().encode()
+    try:
+        return etree.fromstring(xml)
+    except etree.XMLSyntaxError as e:
+        if 'Attribute action redefined' in e.msg:
+            xml = xml.replace(b'action="modify" ', b'')
 
-    return etree.fromstring(xml)
+            return _get_xml_obj(xml)
 
 
 def _get_node(ref, root):
@@ -85,14 +52,28 @@ def parse_osm_ways(osm_xml):
     return items
 
 
+def parse_osm_nodes(osm_xml):
+    """Converts an OSM XMl to a list of GEOSGeometry objects """
+    items = []
+
+    root = _get_xml_obj(osm_xml)
+
+    for node in root.findall('node'):
+        x, y = float(node.get('lon')), float(node.get('lat'))
+        point = Point(x, y)
+        items.append(point)
+
+    return items
+
+
 def parse_osm_tags(osm_xml):
     """Retrieves all the tags from osm xml"""
-    tags = []
+    tags = {}
     root = _get_xml_obj(osm_xml)
 
     for way in root.findall('way'):
         for tag in way.findall('tag'):
-            tags.append({tag.attrib['k']: tag.attrib['v']})
+            tags.update({tag.attrib['k']: tag.attrib['v']})
 
     return tags
 
