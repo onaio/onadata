@@ -8,6 +8,7 @@ from django.conf import settings
 from pyxform.section import Section, RepeatingSection
 from pyxform.question import Question
 
+from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
@@ -423,6 +424,10 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
             # add extra columns
             columns += [col for col in self.ADDITIONAL_COLUMNS]
+            for field in self.dd.get_survey_elements_of_type('osm'):
+                columns += OsmData.get_tag_keys(self.xform,
+                                                field.get_abbreviated_xpath(),
+                                                include_prefix=True)
 
         write_to_csv(path, data, columns,
                      remove_group_name=self.remove_group_name)
