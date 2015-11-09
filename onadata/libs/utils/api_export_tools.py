@@ -72,17 +72,14 @@ def custom_response_handler(request, xform, query, export_type,
             (token is not None) or (meta is not None):
         export_type = Export.EXTERNAL_EXPORT
 
-    remove_group_name, group_delimiter, split_select_multiples =\
-        parse_request_export_options(request)
+    options = parse_request_export_options(request)
+
+    remove_group_name = options.get("remove_group_name")
 
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
 
-    if should_create_new_export(
-            xform, export_type, remove_group_name=remove_group_name,
-            dataview=dataview, request=request,
-            group_delimiter=group_delimiter,
-            split_select_multiples=split_select_multiples):
+    if should_create_new_export(xform, export_type, options, request=request):
         export = _generate_new_export(request, xform, query, export_type,
                                       dataview=dataview)
     else:
@@ -132,16 +129,17 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
                 export_type, extension, xform.user.username,
                 xform.id_string, export_id=None, filter_query=None)
         else:
-            remove_group_name, group_delimiter, split_select_multiples =\
-                parse_request_export_options(request)
-
             dataview_pk = dataview.pk if dataview else None
-            export = generate_export(
-                export_type, extension, xform.user.username,
-                xform.id_string, None, query,
-                remove_group_name=remove_group_name, dataview_pk=dataview_pk,
-                group_delimiter=group_delimiter,
-                split_select_multiples=split_select_multiples)
+
+            options = parse_request_export_options(request)
+            options["extension"] = extension
+            options["username"] = xform.user.username
+            options["id_string"] = xform.id_string
+            options["filter_query"] = query
+            options["dataview_pk"] = dataview_pk
+
+            export = generate_export(export_type, options)
+
         audit = {
             "xform": xform.id_string,
             "export_type": export_type

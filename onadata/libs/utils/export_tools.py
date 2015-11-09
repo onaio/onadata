@@ -1,4 +1,5 @@
 import csv
+from collections import OrderedDict
 from datetime import datetime, date
 import json
 import os
@@ -707,14 +708,23 @@ def dict_to_flat_export(d, parent_index=0):
     pass
 
 
-def generate_export(export_type, extension, username, id_string,
-                    export_id=None, filter_query=None, group_delimiter='/',
-                    split_select_multiples=True,
-                    binary_select_multiples=False, start=None, end=None,
-                    remove_group_name=False, dataview_pk=None):
+def generate_export(export_type, options=None):
     """
     Create appropriate export object given the export type
     """
+    extension = options.get("ext", export_type)
+    username = options.get("username")
+    id_string = options.get("id_string")
+    export_id = options.get("export_id")
+    filter_query = options.get("query")
+    start = options.get("start")
+    end = options.get("end")
+    remove_group_name = options.get("remove_group_name", False)
+    group_delimiter = options.get("group_delimiter", DEFAULT_GROUP_DELIMITER)
+    split_select_multiples = options.get("split_select_multiples", True)
+    binary_select_multiples = options.get("binary_select_multiples", False)
+    dataview_pk = options.get("dataview_pk")
+
     export_type_func_map = {
         Export.XLS_EXPORT: 'to_xls_export',
         Export.CSV_EXPORT: 'to_flat_csv_export',
@@ -789,7 +799,7 @@ def generate_export(export_type, extension, username, id_string,
     if export_id:
         export = Export.objects.get(id=export_id)
     else:
-        export = Export(xform=xform, export_type=export_type)
+        export = Export(xform=xform, export_type=export_type, options=options)
     export.filedir = dir_name
     export.filename = basename
     export.internal_status = Export.SUCCESSFUL
@@ -1100,9 +1110,14 @@ def _get_server_from_metadata(xform, meta, token):
     return server, name
 
 
-def generate_external_export(
-    export_type, username, id_string, export_id=None, token=None,
-        filter_query=None, meta=None, data_id=None):
+def generate_external_export(export_type, options):
+    username = options.get("username")
+    id_string = options.get("export_id")
+    token = options.get("token")
+    filter_query = options.get("query")
+    meta = options.get("meta")
+    data_id = options.get("data_id")
+    export_id = options.get("export_id")
 
     xform = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
@@ -1156,7 +1171,9 @@ def generate_external_export(
     if export_id:
         export = Export.objects.get(id=export_id)
     else:
-        export = Export.objects.create(xform=xform, export_type=export_type)
+        export = Export.objects.create(xform=xform,
+                                       export_type=export_type,
+                                       options=options)
 
     export.export_url = response
     if status_code == 201:
@@ -1194,6 +1211,7 @@ def parse_request_export_options(request):
     should be split.
     """
     boolean_list = ['true', 'false']
+    options = {}
     params = request.QUERY_PARAMS
     remove_group_name = params.get('remove_group_name') and \
         params.get('remove_group_name').lower()
@@ -1201,17 +1219,15 @@ def parse_request_export_options(request):
         'do_not_split_select_multiples')
 
     if remove_group_name in boolean_list:
-        remove_group_name = str_to_bool(remove_group_name)
+        options["remove_group_name"] = str_to_bool(remove_group_name)
     else:
-        remove_group_name = str_to_bool('false')
+        options["remove_group_name"] = str_to_bool('false')
 
     if params.get("group_delimiter") in ['.', DEFAULT_GROUP_DELIMITER]:
-        group_delimiter = params.get("group_delimiter")
+        options['group_delimiter'] = params.get("group_delimiter")
     else:
-        group_delimiter = DEFAULT_GROUP_DELIMITER
+        options['group_delimiter'] = DEFAULT_GROUP_DELIMITER
 
-    return (
-        remove_group_name,
-        group_delimiter,
-        not do_not_split_select_multiples,
-    )
+    options['split_select_multiples'] = not do_not_split_select_multiples
+
+    return OrderedDict(sorted(options.items()))

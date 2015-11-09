@@ -13,7 +13,18 @@ from onadata.libs.utils.export_tools import generate_kml_export
 from onadata.libs.utils.export_tools import generate_external_export
 from onadata.libs.utils.export_tools import generate_osm_export
 from onadata.libs.utils.logger_tools import report_exception
+
+# FIXME
 from onadata.libs.utils.export_tools import str_to_bool
+
+
+def _get_export_details(options):
+    details = {
+        'export_id': options.get("export_id"),
+        'username': options.get("username"),
+        'id_string': options.get("id_string")
+    }
+    return details
 
 
 def create_async_export(xform, export_type, query, force_xlsx, options=None):
@@ -21,74 +32,47 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
     id_string = xform.id_string
 
     @transaction.commit_on_success
-    def _create_export(xform, export_type):
-        return Export.objects.create(xform=xform, export_type=export_type)
+    def _create_export(xform, export_type, options):
+        return Export.objects.create(xform=xform,
+                                     export_type=export_type,
+                                     options=options)
 
-    export = _create_export(xform, export_type)
+    export = _create_export(xform, export_type, options)
     result = None
-    arguments = {
+    options.update({
         'username': username,
         'id_string': id_string,
         'export_id': export.id,
         'query': query,
+        'force_xlsx': force_xlsx
+    })
+    # start async export
+    export_types = {
+        Export.XLS_EXPORT: lambda options:
+            create_xls_export.apply_async((), options),
+        Export.GDOC_EXPORT: lambda options:
+            create_xls_export.apply_async((), options),
+        Export.CSV_EXPORT: lambda options:
+            create_csv_export.apply_async((), options),
+        Export.CSV_ZIP_EXPORT: lambda options:
+            create_csv_zip_export.apply_async((), options),
+        Export.SAV_ZIP_EXPORT: lambda options:
+            create_sav_zip_export.apply_async((), options),
+        Export.ZIP_EXPORT: lambda options:
+            create_zip_export.apply_async((), options),
+        Export.KML_EXPORT: lambda options:
+            create_kml_export.apply_async((), options),
+        Export.OSM_EXPORT: lambda options:
+            create_osm_export.apply_async((), options),
+        Export.EXTERNAL_EXPORT: lambda options:
+            create_external_export.apply_async((), options)
     }
-    if export_type in [Export.XLS_EXPORT, Export.GDOC_EXPORT,
-                       Export.CSV_EXPORT, Export.CSV_ZIP_EXPORT,
-                       Export.SAV_ZIP_EXPORT]:
-        if options and "group_delimiter" in options:
-            arguments["group_delimiter"] = options["group_delimiter"]
-        if options and "split_select_multiples" in options:
-            arguments["split_select_multiples"] =\
-                options["split_select_multiples"]
-        if options and "binary_select_multiples" in options:
-            arguments["binary_select_multiples"] =\
-                options["binary_select_multiples"]
 
-        if options and "remove_group_name" in options:
-            arguments["remove_group_name"] =  \
-                str_to_bool(options["remove_group_name"])
-
-        if options and "dataview_pk" in options:
-            arguments["dataview_pk"] = options["dataview_pk"]
-
-        # start async export
-        if export_type in [Export.XLS_EXPORT, Export.GDOC_EXPORT]:
-            result = create_xls_export.apply_async((), arguments)
-        elif export_type == Export.CSV_EXPORT:
-            result = create_csv_export.apply_async(
-                (), arguments)
-        elif export_type == Export.CSV_ZIP_EXPORT:
-            result = create_csv_zip_export.apply_async(
-                (), arguments)
-        elif export_type == Export.SAV_ZIP_EXPORT:
-            result = create_sav_zip_export.apply_async(
-                (), arguments)
-        else:
-            raise Export.ExportTypeError
-    elif export_type == Export.ZIP_EXPORT:
-        # start async export
-        result = create_zip_export.apply_async(
-            (), arguments)
-    elif export_type == Export.KML_EXPORT:
-        # start async export
-        result = create_kml_export.apply_async(
-            (), arguments)
-    elif export_type == Export.OSM_EXPORT:
-        # start async export
-        result = create_osm_export.apply_async(
-            (), arguments)
-    elif export_type == Export.EXTERNAL_EXPORT:
-        if options and "token" in options:
-            arguments["token"] = options["token"]
-        if options and "meta" in options:
-            arguments["meta"] = options["meta"]
-        if options and "data_id" in options:
-            arguments["data_id"] = options["data_id"]
-
-        result = create_external_export.apply_async(
-            (), arguments)
+    if export_type in export_types:
+        result = export_types[export_type](options)
     else:
         raise Export.ExportTypeError
+
     if result:
         # when celery is running eager, the export has been generated by the
         # time we get here so lets retrieve the export object a fresh before we
@@ -102,38 +86,30 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 
 
 @task()
-def create_xls_export(username, id_string, export_id, query=None,
-                      force_xlsx=True, group_delimiter='/',
-                      split_select_multiples=True,
-                      binary_select_multiples=False,
-                      remove_group_name=False, dataview_pk=None):
+def create_xls_export(options):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
-    ext = 'xls' if not force_xlsx else 'xlsx'
+
+    options['ext'] = 'xls' if not options.get("force_xlsx") else 'xlsx'
 
     try:
-        export = Export.objects.get(id=export_id)
+        export = Export.objects.get(id=options.get("export_id"))
     except Export.DoesNotExist:
         # no export for this ID return None.
         return None
 
     # though export is not available when for has 0 submissions, we
     # catch this since it potentially stops celery
+
     try:
-        gen_export = generate_export(
-            Export.XLS_EXPORT, ext, username, id_string, export_id, query,
-            group_delimiter, split_select_multiples, binary_select_multiples,
-            remove_group_name=remove_group_name, dataview_pk=dataview_pk
-        )
+        gen_export = generate_export(Export.XLS_EXPORT, options)
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
-        details = {
-            'export_id': export_id,
-            'username': username,
-            'id_string': id_string
-        }
+        details = _get_export_details(options)
+
+        import ipdb; ipdb.set_trace()
         report_exception("XLS Export Exception: Export ID - "
                          "%(export_id)s, /%(username)s/%(id_string)s"
                          % details, e, sys.exc_info())
@@ -145,21 +121,15 @@ def create_xls_export(username, id_string, export_id, query=None,
 
 
 @task()
-def create_csv_export(username, id_string, export_id, query=None,
-                      group_delimiter='/', split_select_multiples=True,
-                      binary_select_multiples=False, remove_group_name=False,
-                      dataview_pk=None):
+def create_csv_export(options):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
-    export = Export.objects.get(id=export_id)
+    export = Export.objects.get(id=options.get("export_id"))
+
     try:
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
-        gen_export = generate_export(
-            Export.CSV_EXPORT, 'csv', username, id_string, export_id, query,
-            group_delimiter, split_select_multiples, binary_select_multiples,
-            remove_group_name=remove_group_name, dataview_pk=dataview_pk
-        )
+        gen_export = generate_export(Export.CSV_EXPORT, options)
     except NoRecordsFoundError:
         # not much we can do but we don't want to report this as the user
         # should not even be on this page if the survey has no records
@@ -169,11 +139,8 @@ def create_csv_export(username, id_string, export_id, query=None,
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
-        details = {
-            'export_id': export_id,
-            'username': username,
-            'id_string': id_string
-        }
+        details = _get_export_details(options)
+
         report_exception("CSV Export Exception: Export ID - "
                          "%(export_id)s, /%(username)s/%(id_string)s"
                          % details, e, sys.exc_info())
@@ -183,25 +150,20 @@ def create_csv_export(username, id_string, export_id, query=None,
 
 
 @task()
-def create_kml_export(username, id_string, export_id, query=None):
+def create_kml_export(options):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
 
-    export = Export.objects.get(id=export_id)
+    export = Export.objects.get(id=options.get("export_id"))
     try:
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
-        gen_export = generate_kml_export(
-            Export.KML_EXPORT, 'kml', username, id_string, export_id, query)
+        gen_export = generate_kml_export(Export.KML_EXPORT, options)
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
-        details = {
-            'export_id': export_id,
-            'username': username,
-            'id_string': id_string
-        }
+        details = _get_export_details(options)
         report_exception("KML Export Exception: Export ID - "
                          "%(export_id)s, /%(username)s/%(id_string)s"
                          % details, e, sys.exc_info())
@@ -211,25 +173,20 @@ def create_kml_export(username, id_string, export_id, query=None):
 
 
 @task()
-def create_osm_export(username, id_string, export_id, query=None):
+def create_osm_export(options):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
 
-    export = Export.objects.get(id=export_id)
+    export = Export.objects.get(id=options.get("export_id"))
     try:
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
-        gen_export = generate_osm_export(
-            Export.OSM_EXPORT, 'osm', username, id_string, export_id, query)
+        gen_export = generate_osm_export(Export.OSM_EXPORT, options)
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
-        details = {
-            'export_id': export_id,
-            'username': username,
-            'id_string': id_string
-        }
+        details = _get_export_details(options)
         report_exception("OSM Export Exception: Export ID - "
                          "%(export_id)s, /%(username)s/%(id_string)s"
                          % details, e, sys.exc_info())
@@ -239,20 +196,16 @@ def create_osm_export(username, id_string, export_id, query=None):
 
 
 @task()
-def create_zip_export(username, id_string, export_id, query=None):
-    export = Export.objects.get(id=export_id)
+def create_zip_export(options):
+    export = Export.objects.get(id=options.get("export_id"))
     try:
         gen_export = generate_attachments_zip_export(
-            Export.ZIP_EXPORT, 'zip', username, id_string, export_id, query)
+            Export.ZIP_EXPORT, options)
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
-        details = {
-            'export_id': export_id,
-            'username': username,
-            'id_string': id_string
-        }
+        details = _get_export_details(options)
         report_exception("Zip Export Exception: Export ID - "
                          "%(export_id)s, /%(username)s/%(id_string)s"
                          % details, e)
@@ -266,27 +219,18 @@ def create_zip_export(username, id_string, export_id, query=None):
 
 
 @task()
-def create_csv_zip_export(username, id_string, export_id, query=None,
-                          group_delimiter='/', split_select_multiples=True,
-                          binary_select_multiples=False,
-                          remove_group_name=False):
-    export = Export.objects.get(id=export_id)
+def create_csv_zip_export(options):
+    export = Export.objects.get(id=options.get("export_id"))
+    options['ext'] = Export.ZIP_EXPORT
     try:
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
-        gen_export = generate_export(
-            Export.CSV_ZIP_EXPORT, 'zip', username, id_string, export_id,
-            query, group_delimiter, split_select_multiples,
-            binary_select_multiples, remove_group_name=remove_group_name)
+        gen_export = generate_export(Export.CSV_ZIP_EXPORT, options)
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
-        details = {
-            'export_id': export_id,
-            'username': username,
-            'id_string': id_string
-        }
+        details = _get_export_details(options)
         report_exception("CSV ZIP Export Exception: Export ID - "
                          "%(export_id)s, /%(username)s/%(id_string)s"
                          % details, e, sys.exc_info())
@@ -296,28 +240,18 @@ def create_csv_zip_export(username, id_string, export_id, query=None,
 
 
 @task()
-def create_sav_zip_export(username, id_string, export_id, query=None,
-                          group_delimiter='/', split_select_multiples=True,
-                          binary_select_multiples=False,
-                          remove_group_name=False):
-    export = Export.objects.get(id=export_id)
+def create_sav_zip_export(options):
+    export = Export.objects.get(id=options.get("export_id"))
+    options['ext'] = Export.ZIP_EXPORT
     try:
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
-        gen_export = generate_export(
-            Export.SAV_ZIP_EXPORT, 'zip', username, id_string, export_id,
-            query, group_delimiter, split_select_multiples,
-            binary_select_multiples, remove_group_name=remove_group_name
-        )
+        gen_export = generate_export(Export.SAV_ZIP_EXPORT, options)
     except (Exception, NoRecordsFoundError, TypeError) as e:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
-        details = {
-            'export_id': export_id,
-            'username': username,
-            'id_string': id_string
-        }
+        details = _get_export_details(options)
         report_exception("SAV ZIP Export Exception: Export ID - "
                          "%(export_id)s, /%(username)s/%(id_string)s"
                          % details, e, sys.exc_info())
@@ -327,25 +261,18 @@ def create_sav_zip_export(username, id_string, export_id, query=None,
 
 
 @task()
-def create_external_export(username, id_string, export_id, query=None,
-                           token=None, meta=None, data_id=None):
-    export = get_object_or_404(Export, id=export_id)
+def create_external_export(options):
+    export = get_object_or_404(Export, id=options.get("export_id"))
+
     try:
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
-        gen_export = generate_external_export(
-            Export.EXTERNAL_EXPORT, username,
-            id_string, export_id, token, query, meta, data_id
-        )
+        gen_export = generate_external_export(Export.EXTERNAL_EXPORT, options)
     except (Exception, NoRecordsFoundError, ConnectionError) as e:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
-        details = {
-            'export_id': export_id,
-            'username': username,
-            'id_string': id_string
-        }
+        details = _get_export_details(options)
         report_exception("External Export Exception: Export ID - "
                          "%(export_id)s, /%(username)s/%(id_string)s"
                          % details, e, sys.exc_info())
