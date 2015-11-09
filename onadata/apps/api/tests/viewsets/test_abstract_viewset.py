@@ -37,6 +37,27 @@ from onadata.apps.api.models import Team
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 
 
+def filename_from_disposition(content_disposition):
+    filename_pos = content_disposition.index('filename=')
+    assert filename_pos != -1
+
+    return content_disposition[filename_pos + len('filename='):]
+
+
+def get_response_content(response):
+    contents = u''
+    if response.streaming:
+        actual_content = StringIO.StringIO()
+        for content in response.streaming_content:
+            actual_content.write(content)
+        contents = actual_content.getvalue()
+        actual_content.close()
+    else:
+        contents = response.content
+
+    return contents
+
+
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey/preview$')
 def enketo_preview_url_mock(url, request):
     response = requests.Response()

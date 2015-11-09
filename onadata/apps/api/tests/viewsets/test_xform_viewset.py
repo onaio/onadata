@@ -4,7 +4,6 @@ import os
 import re
 import requests
 import pytz
-import StringIO
 import jwt
 
 from collections import OrderedDict
@@ -23,7 +22,7 @@ from django.utils.dateparse import parse_datetime
 
 from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
-    TestAbstractViewSet
+    TestAbstractViewSet, get_response_content, filename_from_disposition
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
@@ -177,25 +176,6 @@ def enketo_mock_with_form_defaults(url, request):
 def fixtures_path(filepath):
     return open(os.path.join(
         settings.PROJECT_ROOT, 'libs', 'tests', 'utils', 'fixtures', filepath))
-
-
-def _filename_from_disposition(content_disposition):
-    filename_pos = content_disposition.index('filename=')
-    assert filename_pos != -1
-    return content_disposition[filename_pos + len('filename='):]
-
-
-def _get_response_content(response):
-    contents = u''
-    if response.streaming:
-        actual_content = StringIO.StringIO()
-        for content in response.streaming_content:
-            actual_content.write(content)
-        contents = actual_content.getvalue()
-        actual_content.close()
-    else:
-        contents = response.content
-    return contents
 
 
 class TestXFormViewSet(TestAbstractViewSet):
@@ -2622,11 +2602,11 @@ class TestXFormViewSet(TestAbstractViewSet):
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
-            filename = _filename_from_disposition(content_disposition)
+            filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = _get_response_content(response)
+            content = get_response_content(response)
             content_header_row_with_slashes = content.split('\n')[0]
 
             data = {'remove_group_name': False, 'group_delimiter': '.'}
@@ -2637,11 +2617,11 @@ class TestXFormViewSet(TestAbstractViewSet):
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
-            filename = _filename_from_disposition(content_disposition)
+            filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = _get_response_content(response)
+            content = get_response_content(response)
             content_header_row_with_dots = content.split('\n')[0]
             self.assertEqual(content_header_row_with_dots,
                              content_header_row_with_slashes.replace("/", "."))
@@ -2673,11 +2653,11 @@ class TestXFormViewSet(TestAbstractViewSet):
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
-            filename = _filename_from_disposition(content_disposition)
+            filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = _get_response_content(response)
+            content = get_response_content(response)
             content_header_row_select_multiple_split = content.split('\n')[0]
             multiples_select_split = len(
                 content_header_row_select_multiple_split.split(','))
@@ -2691,11 +2671,11 @@ class TestXFormViewSet(TestAbstractViewSet):
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
-            filename = _filename_from_disposition(content_disposition)
+            filename = filename_from_disposition(content_disposition)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = _get_response_content(response)
+            content = get_response_content(response)
             content_header_row_select_multiple_not_split = \
                 content.split('\n')[0]
             no_multiples_select_split = len(
@@ -2730,12 +2710,12 @@ class TestXFormViewSet(TestAbstractViewSet):
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
-            filename = _filename_from_disposition(content_disposition)
+            filename = filename_from_disposition(content_disposition)
             self.assertIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = _get_response_content(response)
+            content = get_response_content(response)
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
                                           'transportation_no_group_names.csv')
@@ -2749,12 +2729,12 @@ class TestXFormViewSet(TestAbstractViewSet):
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
-            filename = _filename_from_disposition(content_disposition)
+            filename = filename_from_disposition(content_disposition)
             self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = _get_response_content(response)
+            content = get_response_content(response)
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
                                           'transportation.csv')
@@ -2787,12 +2767,12 @@ class TestXFormViewSet(TestAbstractViewSet):
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
-            filename = _filename_from_disposition(content_disposition)
+            filename = filename_from_disposition(content_disposition)
             self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = _get_response_content(response)
+            content = get_response_content(response)
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
                                           'transportation.csv')
@@ -2809,12 +2789,12 @@ class TestXFormViewSet(TestAbstractViewSet):
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
             content_disposition = headers['Content-Disposition']
-            filename = _filename_from_disposition(content_disposition)
+            filename = filename_from_disposition(content_disposition)
             self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            content = _get_response_content(response)
+            content = get_response_content(response)
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
                                           'transportation.csv')
