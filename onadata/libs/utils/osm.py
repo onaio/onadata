@@ -154,6 +154,11 @@ def save_osm_data(parsed_instance):
                 osm_xml = osm.media_file.read()
 
                 osm_list = parse_osm(osm_xml)
+                field_names = [
+                    k for k, v in parsed_instance.instance.json.items()
+                    if v == osm.filename
+                ]
+                field_name = field_names[0] if field_names else ''
                 for osmd in osm_list:
                     geom = GeometryCollection(osmd['geom'])
                     osm_id = osmd['osm_id']
@@ -165,9 +170,11 @@ def save_osm_data(parsed_instance):
                         osm_id=osm_id,
                         tags=tags,
                         geom=geom,
-                        filename=osm.filename
+                        filename=osm.filename,
+                        field_name=field_name
                     )
                     osm_data.save()
+        parsed_instance.instance.save()
     except ParsedInstance.DoesNotExist:
         pass
 

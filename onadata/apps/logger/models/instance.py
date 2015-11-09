@@ -294,6 +294,9 @@ class Instance(models.Model):
                 SUBMITTED_BY: self.user.username if self.user else None
             })
 
+            for osm in self.osm_data.all():
+                doc.update(osm.get_tags_with_prefix())
+
             if isinstance(self.deleted_at, datetime):
                 doc[DELETEDAT] = self.deleted_at.strftime(MONGO_STRFTIME)
 
