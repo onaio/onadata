@@ -1,11 +1,10 @@
-import os
 import unittest
 
 from django.contrib.gis.geos import GEOSGeometry
 
 from onadata.libs.utils.osm import parse_osm_nodes
 from onadata.libs.utils.osm import parse_osm_ways
-from onadata.libs.utils.osm import parse_osm_tags
+from onadata.libs.utils.osm import parse_osm
 
 OSMWay = """
 <?xml version="1.0" encoding="UTF-8"?>
@@ -57,28 +56,39 @@ OSMNodeFaulty = """
 
 
 class TestOSM(unittest.TestCase):
+    def test_parse_osm(self):
+        ways = parse_osm(OSMWay.strip())
+        self.assertTrue(len(ways) > 0)
+        node = ways[0]
+        self.assertIsInstance(node['geom'], GEOSGeometry)
+
+        nodes = parse_osm(OSMNode.strip())
+        self.assertTrue(len(nodes) > 0)
+        node = nodes[0]
+        self.assertIsInstance(node['geom'], GEOSGeometry)
+
     def test_parse_osm_ways(self):
         ways = parse_osm_ways(OSMWay.strip())
         self.assertTrue(len(ways) > 0)
-        way = ways[0]
-        self.assertIsInstance(way, GEOSGeometry)
+        node = ways[0]
+        self.assertIsInstance(node['geom'], GEOSGeometry)
 
     def test_parse_osm_node(self):
         nodes = parse_osm_nodes(OSMNode.strip())
         self.assertTrue(len(nodes) > 0)
         node = nodes[0]
-        self.assertIsInstance(node, GEOSGeometry)
+        self.assertIsInstance(node['geom'], GEOSGeometry)
 
     def test_parse_osm_node_faulty(self):
         nodes = parse_osm_nodes(OSMNodeFaulty.strip())
         self.assertTrue(len(nodes) > 0)
         node = nodes[0]
-        self.assertIsInstance(node, GEOSGeometry)
+        self.assertIsInstance(node['geom'], GEOSGeometry)
 
     def test_parse_osm_tags(self):
-        tags = parse_osm_tags(OSMWay.strip())
-
-        self.assertTrue(len(tags) > 0)
+        ways = parse_osm_ways(OSMWay.strip())
+        self.assertTrue(len(ways) > 0)
+        tags = ways[0]['tags']
         self.assertEqual(tags,
                          {'Shape_Area': '0.00000000969',
                           'district_1': 'Mansa',
