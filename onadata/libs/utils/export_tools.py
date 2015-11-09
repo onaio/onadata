@@ -35,6 +35,7 @@ from onadata.libs.utils.common_tags import (
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
     DATAVIEW_EXPORT)
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
+from onadata.libs.utils.osm import get_combined_osm
 
 
 QUESTION_TYPES_TO_EXCLUDE = [
