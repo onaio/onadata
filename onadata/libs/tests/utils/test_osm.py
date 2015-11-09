@@ -45,6 +45,7 @@ OSMNode = """
   </node>
 </osm>
 """  # noqa
+# Faulty xml, the attribute action appears twice in the <node> tag
 OSMNodeFaulty = """
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="OpenMapKit 0.12" user="theoutpost">
