@@ -22,7 +22,7 @@ class OsmData(models.Model):
     deleted_at = models.DateTimeField(null=True, default=None)
 
     @classmethod
-    def tag_keys(cls, xform, field_path, include_prefix=False):
+    def get_tag_keys(cls, xform, field_path, include_prefix=False):
         query = OsmData.objects.raw(
             '''SELECT DISTINCT JSON_OBJECT_KEYS(tags) as id FROM "logger_osmdata" INNER JOIN "logger_instance" ON ( "logger_osmdata"."instance_id" = "logger_instance"."id" ) WHERE "logger_instance"."xform_id" = %s AND field_name = %s''',  # noqa
             [xform.pk, field_path]
