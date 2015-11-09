@@ -923,9 +923,12 @@ def generate_attachments_zip_export(
     return export
 
 
-def generate_kml_export(
-        export_type, extension, username, id_string, export_id=None,
-        filter_query=None):
+def generate_kml_export(export_type, options):
+    extension = options.get("ext")
+    username = options.get("username")
+    id_string = options.get("id_string")
+    export_id = options.get("export_id")
+
     user = User.objects.get(username=username)
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     response = render_to_response(
@@ -956,7 +959,9 @@ def generate_kml_export(
     if(export_id):
         export = Export.objects.get(id=export_id)
     else:
-        export = Export.objects.create(xform=xform, export_type=export_type)
+        export = Export.objects.create(xform=xform,
+                                       export_type=export_type,
+                                       options=options)
 
     export.filedir = dir_name
     export.filename = basename
@@ -1011,9 +1016,12 @@ def kml_export_data(id_string, user):
     return data_for_template
 
 
-def generate_osm_export(
-        export_type, extension, username, id_string, export_id=None,
-        filter_query=None):
+def generate_osm_export(export_type, options):
+    extension = options.get("ext")
+    username = options.get("username")
+    id_string = options.get("id_string")
+    export_id = options.get("export_id")
+
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     attachments = Attachment.objects.filter(
         extension=Attachment.OSM,
