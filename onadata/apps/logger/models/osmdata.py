@@ -20,3 +20,20 @@ class OsmData(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, default=None)
+
+    @classmethod
+    def tag_keys(cls, xform, field_path, include_prefix=False):
+        query = OsmData.objects.raw(
+            '''SELECT DISTINCT JSON_OBJECT_KEYS(tags) as id FROM "logger_osmdata" INNER JOIN "logger_instance" ON ( "logger_osmdata"."instance_id" = "logger_instance"."id" ) WHERE "logger_instance"."xform_id" = %s AND field_name = %s''',  # noqa
+            [xform.pk, field_path]
+        )
+        prefix = field_path + u':' if include_prefix else u''
+
+        return sorted([prefix + key.id for key in query])
+
+    def get_tags_with_prefix(self):
+        doc = {}
+        for k, v in self.tags.items():
+            doc[self.field_name + ':' + k] = v
+
+        return doc
