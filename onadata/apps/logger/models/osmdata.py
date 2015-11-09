@@ -15,6 +15,7 @@ class OsmData(models.Model):
     tags = JSONField(default={}, null=False)
     geom = models.GeometryCollectionField()
     filename = models.CharField(max_length=255)
+    field_name = models.CharField(max_length=255, blank=True, default='')
 
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
