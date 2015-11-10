@@ -150,17 +150,29 @@ def save_osm_data(parsed_instance):
     from onadata.apps.viewer.models.parsed_instance import ParsedInstance
     try:
         parsed_instance = ParsedInstance.objects.get(pk=parsed_instance)
+        dd = parsed_instance.instance.xform.data_dictionary()
+        fields = [f.get_abbreviated_xpath()
+                  for f in dd.get_survey_elements_of_type('osm')]
+        osm_filenames = {}
+        for field in fields:
+            filename = parsed_instance.instance.json.get(field)
+            if filename:
+                osm_filenames.update({field: filename})
 
         for osm in parsed_instance.instance.attachments.filter(
                 extension=Attachment.OSM):
                 osm_xml = osm.media_file.read()
+                filename = None
+                field_name = None
+                for k, v in osm_filenames.items():
+                    fn = v.replace('.osm', '')
+                    if osm.filename.startswith(fn):
+                        filename = v
+                        field_name = k
+                        break
 
+                filename = osm.filename if filename is None else filename
                 osm_list = parse_osm(osm_xml, include_osm_id=True)
-                field_names = [
-                    k for k, v in parsed_instance.instance.json.items()
-                    if v == osm.filename
-                ]
-                field_name = field_names[0] if field_names else ''
                 for osmd in osm_list:
                     geom = GeometryCollection(osmd['geom'])
                     osm_id = osmd['osm_id']
@@ -174,7 +186,7 @@ def save_osm_data(parsed_instance):
                         osm_type=osm_type,
                         tags=tags,
                         geom=geom,
-                        filename=osm.filename,
+                        filename=filename,
                         field_name=field_name
                     )
                     osm_data.save()
