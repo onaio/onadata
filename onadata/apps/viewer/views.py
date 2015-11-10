@@ -254,6 +254,7 @@ def data_export(request, username, id_string, export_type):
         start, end = _get_start_end_submission_time(request)
         options.update({"start": start,
                         "end": end})
+
         try:
             export = generate_export(export_type, options)
             audit_log(
