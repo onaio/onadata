@@ -98,8 +98,8 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 def create_xls_export(**options):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
-
-    options['ext'] = 'xls' if not options.get("force_xlsx") else 'xlsx'
+    force_xlsx = options.get("force_xlsx", True)
+    options['ext'] = 'xlsx' if force_xlsx else 'xls'
 
     try:
         export = Export.objects.get(id=options.get("export_id"))

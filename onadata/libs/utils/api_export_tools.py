@@ -73,6 +73,7 @@ def custom_response_handler(request, xform, query, export_type,
         export_type = Export.EXTERNAL_EXPORT
 
     options = parse_request_export_options(request)
+    options["dataview"] = dataview
 
     remove_group_name = options.get("remove_group_name")
 
@@ -83,8 +84,7 @@ def custom_response_handler(request, xform, query, export_type,
         export = _generate_new_export(request, xform, query, export_type,
                                       dataview=dataview)
     else:
-        export = newest_export_for(xform, export_type, remove_group_name,
-                                   dataview=dataview)
+        export = newest_export_for(xform, export_type, options)
 
         if not export.filename:
             # tends to happen when using newset_export_for.
@@ -114,29 +114,27 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
+    options = {}
+    options["ext"] = extension
+    options["username"] = xform.user.username
+    options["id_string"] = xform.id_string
+    options["query"] = query
+
     try:
         if export_type == Export.EXTERNAL_EXPORT:
-            export = generate_external_export(
-                export_type, xform.user.username,
-                xform.id_string, None, request.GET.get('token'), query,
-                request.GET.get('meta'), request.GET.get('data_id'))
+            options['token'] = request.GET.get('token')
+            options['data_id'] = request.GET.get('data_id')
+            options['meta'] = request.GET.get('meta')
+
+            export = generate_external_export(export_type, options)
         elif export_type == Export.OSM_EXPORT:
-            export = generate_osm_export(
-                export_type, extension, xform.user.username,
-                xform.id_string, export_id=None, filter_query=None)
+            export = generate_osm_export(export_type, options)
         elif export_type == Export.KML_EXPORT:
-            export = generate_kml_export(
-                export_type, extension, xform.user.username,
-                xform.id_string, export_id=None, filter_query=None)
+            export = generate_kml_export(export_type, options)
         else:
             dataview_pk = dataview.pk if dataview else None
-
-            options = parse_request_export_options(request)
-            options["extension"] = extension
-            options["username"] = xform.user.username
-            options["id_string"] = xform.id_string
-            options["filter_query"] = query
             options["dataview_pk"] = dataview_pk
+            options.update(parse_request_export_options(request))
 
             export = generate_export(export_type, options)
 
