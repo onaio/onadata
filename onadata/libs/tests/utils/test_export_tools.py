@@ -60,4 +60,4 @@ class TestExportTools(TestBase):
             osm = f.read()
             with default_storage.open(export.filepath) as f2:
                 content = f2.read()
-                self.assertMultiLineEqual(content, osm)
+                self.assertMultiLineEqual(content.strip(), osm.strip())
