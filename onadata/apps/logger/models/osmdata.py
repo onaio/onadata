@@ -12,6 +12,7 @@ class OsmData(models.Model):
     instance = models.ForeignKey(Instance, related_name='osm_data')
     xml = models.TextField()
     osm_id = models.CharField(max_length=10)
+    osm_type = models.CharField(max_length=10, default='way')
     tags = JSONField(default={}, null=False)
     geom = models.GeometryCollectionField()
     filename = models.CharField(max_length=255)
@@ -32,7 +33,9 @@ class OsmData(models.Model):
         return sorted([prefix + key.id for key in query])
 
     def get_tags_with_prefix(self):
-        doc = {}
+        doc = {
+            self.field_name + ':' + self.osm_type + ':id': self.osm_id
+        }
         for k, v in self.tags.items():
             doc[self.field_name + ':' + k] = v
 
