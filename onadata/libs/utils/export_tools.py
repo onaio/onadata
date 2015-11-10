@@ -708,6 +708,41 @@ def dict_to_flat_export(d, parent_index=0):
     pass
 
 
+def get_export_options(options):
+    export_options = {
+        key: value for key, value in options.iteritems()
+        if key in Export.EXPORT_OPTION_FIELDS}
+
+    return export_options
+
+
+def generate_options_query(query, options):
+    """
+    Add option filters to Export query
+    """
+    query_with_filter = query
+    for field in Export.EXPORT_OPTION_FIELDS:
+        if field in options:
+            field_value = options.get(field)
+
+            field_value = json.dumps(field_value)\
+                if isinstance(field_value, bool)\
+                else '"{}"'.format(field_value)
+            option_field_query = '"{}":{}'.format(field, field_value)
+            query_with_filter = query_with_filter.filter(
+                options__contains=option_field_query)
+
+    return query_with_filter
+
+
+def get_boolean_value(str_var, default=None):
+    if isinstance(str_var, basestring) and \
+            str_var.lower() in ['true', 'false']:
+        return str_to_bool(str_var)
+
+    return str_var if default else str_to_bool('false')
+
+
 def generate_export(export_type, options=None):
     """
     Create appropriate export object given the export type
@@ -799,7 +834,11 @@ def generate_export(export_type, options=None):
     if export_id:
         export = Export.objects.get(id=export_id)
     else:
-        export = Export(xform=xform, export_type=export_type, options=options)
+        export_options = get_export_options(options)
+        export = Export.objects.create(xform=xform,
+                                       export_type=export_type,
+                                       options=export_options)
+
     export.filedir = dir_name
     export.filename = basename
     export.internal_status = Export.SUCCESSFUL
@@ -815,31 +854,31 @@ def should_create_new_export(xform,
                              export_type,
                              options={},
                              request=None):
-    split_select_multiples = options.get('split_select_multiples')
+    split_select_multiples = options.get('split_select_multiples', True)
 
     if (request and (frozenset(request.GET.keys()) &
                      frozenset(['start', 'end', 'query', 'data_id']))) or\
             not split_select_multiples:
         return True
 
-    # convert options to string without spaces for query match
-    json_options = json.dumps(options).replace(" ", "")
-    if Export.objects.filter(xform=xform,
-                             export_type=export_type,
-                             options__contains=json_options)\
-                     .count() == 0 or\
-       Export.exports_outdated(xform, export_type, json_options):
+    export_query = Export.objects.filter(xform=xform, export_type=export_type)
+    export_query = generate_options_query(export_query, options)
+
+    if export_query.count() == 0 or\
+       Export.exports_outdated(xform, export_type):
         return True
 
     return False
 
 
-def newest_export_for(xform, export_type, remove_group_name=False,
-                      dataview=None):
+def newest_export_for(xform, export_type, options):
     """
     Make sure you check that an export exists before calling this,
     it will a DoesNotExist exception otherwise
     """
+    remove_group_name = options.get("remove_group_name")
+    dataview = options.get("dataview_pk")
+
     q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
     q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
 
@@ -878,9 +917,11 @@ def increment_index_in_filename(filename):
     return new_filename
 
 
-def generate_attachments_zip_export(
-        export_type, extension, username, id_string, export_id=None,
-        filter_query=None):
+def generate_attachments_zip_export(export_type, options):
+    extension = options.get("ext")
+    username = options.get("username")
+    id_string = options.get("id_string")
+    export_id = options.get("export_id")
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     attachments = Attachment.objects.filter(instance__xform=xform)
     basename = "%s_%s" % (id_string,
@@ -914,7 +955,10 @@ def generate_attachments_zip_export(
     if(export_id):
         export = Export.objects.get(id=export_id)
     else:
-        export = Export.objects.create(xform=xform, export_type=export_type)
+        export_options = get_export_options(options)
+        export = Export.objects.create(xform=xform,
+                                       export_type=export_type,
+                                       options=export_options)
 
     export.filedir = dir_name
     export.filename = basename
@@ -959,9 +1003,10 @@ def generate_kml_export(export_type, options):
     if(export_id):
         export = Export.objects.get(id=export_id)
     else:
+        export_options = get_export_options(options)
         export = Export.objects.create(xform=xform,
                                        export_type=export_type,
-                                       options=options)
+                                       options=export_options)
 
     export.filedir = dir_name
     export.filename = basename
@@ -1054,7 +1099,10 @@ def generate_osm_export(export_type, options):
     if(export_id):
         export = Export.objects.get(id=export_id)
     else:
-        export = Export.objects.create(xform=xform, export_type=export_type)
+        export_options = get_export_options(options)
+        export = Export.objects.create(xform=xform,
+                                       export_type=export_type,
+                                       options=export_options)
 
     export.filedir = dir_name
     export.filename = basename
@@ -1120,7 +1168,7 @@ def _get_server_from_metadata(xform, meta, token):
 
 def generate_external_export(export_type, options):
     username = options.get("username")
-    id_string = options.get("export_id")
+    id_string = options.get("id_string")
     token = options.get("token")
     filter_query = options.get("query")
     meta = options.get("meta")
@@ -1179,9 +1227,10 @@ def generate_external_export(export_type, options):
     if export_id:
         export = Export.objects.get(id=export_id)
     else:
+        export_options = get_export_options(options)
         export = Export.objects.create(xform=xform,
                                        export_type=export_type,
-                                       options=options)
+                                       options=export_options)
 
     export.export_url = response
     if status_code == 201:

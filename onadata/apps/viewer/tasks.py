@@ -14,8 +14,9 @@ from onadata.libs.utils.export_tools import generate_external_export
 from onadata.libs.utils.export_tools import generate_osm_export
 from onadata.libs.utils.logger_tools import report_exception
 
-# FIXME
-from onadata.libs.utils.export_tools import str_to_bool
+from onadata.libs.utils.export_tools import (
+    get_boolean_value,
+    str_to_bool)
 
 
 def _get_export_details(options):
@@ -33,12 +34,20 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 
     @transaction.commit_on_success
     def _create_export(xform, export_type, options):
+        export_options = {
+            key: get_boolean_value(value, default=True)
+            for key, value in options.iteritems()
+            if key in Export.EXPORT_OPTION_FIELDS}
+
         return Export.objects.create(xform=xform,
                                      export_type=export_type,
-                                     options=options)
+                                     options=export_options)
 
     export = _create_export(xform, export_type, options)
     result = None
+    options['remove_group_name'] = str_to_bool(
+        options.get("remove_group_name"))
+
     options.update({
         'username': username,
         'id_string': id_string,
@@ -86,7 +95,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 
 
 @task()
-def create_xls_export(options):
+def create_xls_export(**options):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
 
@@ -109,7 +118,6 @@ def create_xls_export(options):
         # mail admins
         details = _get_export_details(options)
 
-        import ipdb; ipdb.set_trace()
         report_exception("XLS Export Exception: Export ID - "
                          "%(export_id)s, /%(username)s/%(id_string)s"
                          % details, e, sys.exc_info())
@@ -121,7 +129,7 @@ def create_xls_export(options):
 
 
 @task()
-def create_csv_export(options):
+def create_csv_export(**options):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
     export = Export.objects.get(id=options.get("export_id"))
@@ -150,7 +158,7 @@ def create_csv_export(options):
 
 
 @task()
-def create_kml_export(options):
+def create_kml_export(**options):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
 
@@ -173,7 +181,7 @@ def create_kml_export(options):
 
 
 @task()
-def create_osm_export(options):
+def create_osm_export(**options):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
 
@@ -196,7 +204,7 @@ def create_osm_export(options):
 
 
 @task()
-def create_zip_export(options):
+def create_zip_export(**options):
     export = Export.objects.get(id=options.get("export_id"))
     try:
         gen_export = generate_attachments_zip_export(
@@ -219,7 +227,7 @@ def create_zip_export(options):
 
 
 @task()
-def create_csv_zip_export(options):
+def create_csv_zip_export(**options):
     export = Export.objects.get(id=options.get("export_id"))
     options['ext'] = Export.ZIP_EXPORT
     try:
@@ -240,7 +248,7 @@ def create_csv_zip_export(options):
 
 
 @task()
-def create_sav_zip_export(options):
+def create_sav_zip_export(**options):
     export = Export.objects.get(id=options.get("export_id"))
     options['ext'] = Export.ZIP_EXPORT
     try:
@@ -261,7 +269,7 @@ def create_sav_zip_export(options):
 
 
 @task()
-def create_external_export(options):
+def create_external_export(**options):
     export = get_object_or_404(Export, id=options.get("export_id"))
 
     try:

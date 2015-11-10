@@ -69,6 +69,11 @@ class Export(models.Model):
         (OSM, OSM),
     ]
 
+    EXPORT_OPTION_FIELDS = ["remove_group_name",
+                            "group_delimiter",
+                            "split_select_multiples",
+                            "binary_select_multiples"]
+
     EXPORT_TYPE_DICT = dict(export_type for export_type in EXPORT_TYPES)
 
     PENDING = 0
@@ -185,12 +190,11 @@ class Export(models.Model):
         return None
 
     @classmethod
-    def exports_outdated(cls, xform, export_type, options):
+    def exports_outdated(cls, xform, export_type):
         # get newest export for xform
         try:
             latest_export = Export.objects.filter(
                 xform=xform, export_type=export_type,
-                options__contains=options,
                 internal_status__in=[Export.SUCCESSFUL, Export.PENDING])\
                 .latest('created_on')
         except cls.DoesNotExist:

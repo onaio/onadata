@@ -30,6 +30,7 @@ from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.tasks import create_async_export
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import (
+    DEFAULT_GROUP_DELIMITER,
     generate_export,
     should_create_new_export,
     kml_export_data,
@@ -239,17 +240,22 @@ def data_export(request, username, id_string, export_type):
         "xform": xform.id_string,
         "export_type": export_type
     }
+
+    options = {"ext": extension,
+               "username": username,
+               "id_string": id_string,
+               "query": query}
+
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
-    if should_create_new_export(xform, export_type) or query or\
+    if should_create_new_export(xform, export_type, options) or query or\
             'start' in request.GET or 'end' in request.GET:
         # check for start and end params
         start, end = _get_start_end_submission_time(request)
+        options.update({"start": start,
+                        "end": end})
         try:
-            export = generate_export(
-                export_type, extension, username, id_string, None, query,
-                start=start, end=end
-            )
+            export = generate_export(export_type, options)
             audit_log(
                 Actions.EXPORT_CREATED, request.user, owner,
                 _("Created %(export_type)s export on '%(id_string)s'.") %
@@ -260,7 +266,7 @@ def data_export(request, username, id_string, export_type):
         except NoRecordsFoundError:
             return HttpResponseNotFound(_("No records found to export"))
     else:
-        export = newest_export_for(xform, export_type)
+        export = newest_export_for(xform, export_type, options)
 
     # log download as well
     audit_log(
@@ -397,11 +403,15 @@ def export_list(request, username, id_string, export_type):
     export_token = request.GET.get('token')
     export_meta = request.GET.get('meta')
     options = {
+        'group_delimiter': DEFAULT_GROUP_DELIMITER,
+        'remove_group_name': False,
+        'split_select_multiples': True,
+        'binary_select_multiples': False,
         'meta': export_meta,
         'token': export_token,
     }
 
-    if should_create_new_export(xform, export_type):
+    if should_create_new_export(xform, export_type, options):
         try:
             create_async_export(
                 xform, export_type, query=None, force_xlsx=True,
