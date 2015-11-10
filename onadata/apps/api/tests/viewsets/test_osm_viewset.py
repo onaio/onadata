@@ -71,14 +71,14 @@ class TestOSM(TestAbstractViewSet):
         with open(self.combined_osm_path) as f:
             osm = f.read()
             response.render()
-            self.assertMultiLineEqual(response.content, osm)
+            self.assertMultiLineEqual(response.content.strip(), osm.strip())
 
             # look at the data/[pk].osm endpoint
             view = OsmViewSet.as_view({'get': 'list'})
             response = view(request, pk=formid, format='osm')
             self.assertEqual(response.status_code, 200)
             response.render()
-            self.assertMultiLineEqual(response.content, osm)
+            self.assertMultiLineEqual(response.content.strip(), osm.strip())
 
         # look at the data.osm endpoint
         view = OsmViewSet.as_view({'get': 'list'})
@@ -133,7 +133,3 @@ class TestOSM(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.xform.pk, format='csv')
         self.assertEqual(response.status_code, 200)
-
-    def tearDown(self):
-        for a in Attachment.objects.all():
-            a.media_file.delete()
