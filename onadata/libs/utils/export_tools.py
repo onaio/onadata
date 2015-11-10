@@ -19,7 +19,6 @@ from pyxform.question import Question
 from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
 from json2xlsclient.client import Client
-from django.db.models import Q
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
 from onadata.apps.logger.models.data_view import DataView
@@ -835,9 +834,8 @@ def generate_export(export_type, options=None):
         export = Export.objects.get(id=export_id)
     else:
         export_options = get_export_options(options)
-        export = Export.objects.create(xform=xform,
-                                       export_type=export_type,
-                                       options=export_options)
+        export = Export(
+            xform=xform, export_type=export_type, options=export_options)
 
     export.filedir = dir_name
     export.filename = basename
@@ -876,25 +874,11 @@ def newest_export_for(xform, export_type, options):
     Make sure you check that an export exists before calling this,
     it will a DoesNotExist exception otherwise
     """
-    remove_group_name = options.get("remove_group_name")
-    dataview = options.get("dataview_pk")
 
-    q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
-    q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
+    export_query = Export.objects.filter(xform=xform, export_type=export_type)
+    export_query = generate_options_query(export_query, options)
 
-    filter_query = None
-    if remove_group_name:
-        filter_query = q_remove_grp_name
-
-    if dataview:
-        filter_query = q_dataview
-
-    if filter_query:
-        return Export.objects.filter(xform=xform, export_type=export_type)\
-            .filter(filter_query).latest('created_on')
-    else:
-        return Export.objects.filter(xform=xform, export_type=export_type)\
-            .exclude(q_dataview | q_remove_grp_name).latest('created_on')
+    return export_query.latest('created_on')
 
 
 def increment_index_in_filename(filename):
