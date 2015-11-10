@@ -103,3 +103,23 @@ class TestOSM(unittest.TestCase):
                           'structur_1': '450.000000',
                           'id': '300 / 450_Mansa',
                           'spray_status': 'yes'})
+
+    def test_include_osm_id_in_tags(self):
+        ways = parse_osm_ways(OSMWay.strip(), include_osm_id=True)
+        self.assertTrue(len(ways) > 0)
+        tags = ways[0]['tags']
+        self.assertEqual(tags,
+                         {'Shape_Area': '0.00000000969',
+                          'district_1': 'Mansa',
+                          'manual_c_1': 'Targeted',
+                          'OBJECTID': '79621',
+                          'rank_1': '300.000000',
+                          'province_1': 'Luapula',
+                          'Shape_Leng': '0.00039944548',
+                          'psa_id_1': '300 / 450',
+                          'way:id': '-1942',
+                          'y': '-11.20287380280',
+                          'x3': '28.88390064920',
+                          'structur_1': '450.000000',
+                          'id': '300 / 450_Mansa',
+                          'spray_status': 'yes'})

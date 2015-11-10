@@ -72,7 +72,7 @@ def _get_node(ref, root):
     return point
 
 
-def parse_osm_ways(osm_xml):
+def parse_osm_ways(osm_xml, include_osm_id=False):
     """Converts an OSM XMl to a list of GEOSGeometry objects """
     items = []
 
@@ -88,17 +88,18 @@ def parse_osm_ways(osm_xml):
         except:
             geom = LineString(points)
 
-        tags = parse_osm_tags(way)
+        tags = parse_osm_tags(way, include_osm_id)
         items.append({
             'osm_id': way.get('id'),
             'geom': geom,
-            'tags': tags
+            'tags': tags,
+            'osm_type': 'way'
         })
 
     return items
 
 
-def parse_osm_nodes(osm_xml):
+def parse_osm_nodes(osm_xml, include_osm_id=False):
     """Converts an OSM XMl to a list of GEOSGeometry objects """
     items = []
 
@@ -107,19 +108,20 @@ def parse_osm_nodes(osm_xml):
     for node in root.findall('node'):
         x, y = float(node.get('lon')), float(node.get('lat'))
         point = Point(x, y)
-        tags = parse_osm_tags(node)
+        tags = parse_osm_tags(node, include_osm_id)
         items.append({
             'osm_id': node.get('id'),
             'geom': point,
-            'tags': tags
+            'tags': tags,
+            'osm_type': 'node'
         })
 
     return items
 
 
-def parse_osm_tags(node):
+def parse_osm_tags(node, include_osm_id=False):
     """Retrieves all the tags from a osm xml node"""
-    tags = {}
+    tags = {} if not include_osm_id else {node.tag + ':id': node.get('id')}
     for tag in node.findall('tag'):
         key, val = tag.attrib['k'], tag.attrib['v']
         if val == '' or val.upper() == 'FIXME':
@@ -129,12 +131,12 @@ def parse_osm_tags(node):
     return tags
 
 
-def parse_osm(osm_xml):
-    ways = parse_osm_ways(osm_xml)
+def parse_osm(osm_xml, include_osm_id=False):
+    ways = parse_osm_ways(osm_xml, include_osm_id)
     if ways:
         return ways
 
-    nodes = parse_osm_nodes(osm_xml)
+    nodes = parse_osm_nodes(osm_xml, include_osm_id)
 
     return nodes
 
@@ -153,7 +155,7 @@ def save_osm_data(parsed_instance):
                 extension=Attachment.OSM):
                 osm_xml = osm.media_file.read()
 
-                osm_list = parse_osm(osm_xml)
+                osm_list = parse_osm(osm_xml, include_osm_id=True)
                 field_names = [
                     k for k, v in parsed_instance.instance.json.items()
                     if v == osm.filename
@@ -162,12 +164,14 @@ def save_osm_data(parsed_instance):
                 for osmd in osm_list:
                     geom = GeometryCollection(osmd['geom'])
                     osm_id = osmd['osm_id']
+                    osm_type = osmd['osm_type']
                     tags = osmd['tags']
 
                     osm_data = OsmData(
                         instance=parsed_instance.instance,
                         xml=osm_xml,
                         osm_id=osm_id,
+                        osm_type=osm_type,
                         tags=tags,
                         geom=geom,
                         filename=osm.filename,
