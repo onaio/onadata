@@ -1,5 +1,4 @@
 import csv
-from collections import OrderedDict
 from datetime import datetime, date
 import json
 import os
@@ -1271,4 +1270,4 @@ def parse_request_export_options(request):
 
     options['split_select_multiples'] = not do_not_split_select_multiples
 
-    return OrderedDict(sorted(options.items()))
+    return options
