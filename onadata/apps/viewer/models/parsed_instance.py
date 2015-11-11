@@ -455,11 +455,17 @@ def rest_service_form_submission(sender, **kwargs):
         # Check if any rest service is set
         if RestService.objects.filter(xform=parsed_instance.instance.xform)\
                 .count() > 0:
-            call_service_async.delay(parsed_instance.pk)
+            call_service_async.apply_async(
+                args=[parsed_instance.pk],
+                countdown=1
+            )
 
         if parsed_instance.instance.attachments.filter(
                 extension=Attachment.OSM).count() > 0:
-            save_osm_data_async.delay(parsed_instance.pk)
+            save_osm_data_async.apply_async(
+                args=[parsed_instance.pk],
+                countdown=1
+            )
 
 
 post_save.connect(rest_service_form_submission, sender=ParsedInstance)
