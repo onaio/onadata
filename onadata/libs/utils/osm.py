@@ -4,6 +4,7 @@ from django.contrib.gis.geos import LineString
 from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
 from django.contrib.gis.geos import GeometryCollection
+from django.db import IntegrityError
 
 from lxml import etree
 
@@ -179,17 +180,30 @@ def save_osm_data(parsed_instance):
                     osm_type = osmd['osm_type']
                     tags = osmd['tags']
 
-                    osm_data = OsmData(
-                        instance=parsed_instance.instance,
-                        xml=osm_xml,
-                        osm_id=osm_id,
-                        osm_type=osm_type,
-                        tags=tags,
-                        geom=geom,
-                        filename=filename,
-                        field_name=field_name
-                    )
-                    osm_data.save()
+                    try:
+                        osm_data = OsmData(
+                            instance=parsed_instance.instance,
+                            xml=osm_xml,
+                            osm_id=osm_id,
+                            osm_type=osm_type,
+                            tags=tags,
+                            geom=geom,
+                            filename=filename,
+                            field_name=field_name
+                        )
+                        osm_data.save()
+                    except IntegrityError:
+                        osm_data = OsmData.objects.get(
+                            instance=parsed_instance.instance,
+                            field_name=field_name
+                        )
+                        osm_data.xml = osm_xml
+                        osm_data.osm_id = osm_id
+                        osm_data.osm_type = osm_type
+                        osm_data.tags = tags
+                        osm_data.geom = geom
+                        osm_data.filename = filename
+                        osm_data.save()
         parsed_instance.instance.save()
     except ParsedInstance.DoesNotExist:
         pass
