@@ -62,8 +62,12 @@ class TestExportTools(TestBase):
         self._make_submission_w_attachment(submission_path, paths)
         self.assertTrue(
             Attachment.objects.filter(extension='osm').count() > count)
-        export = generate_osm_export(Attachment.OSM, Attachment.OSM,
-                                     self.user.username, self.xform.id_string)
+
+        options = {"ext": Attachment.OSM,
+                   "username": self.user.username,
+                   "id_string": self.xform.id_string}
+
+        export = generate_osm_export(Attachment.OSM, options)
         self.assertTrue(export.is_successful)
         with open(combined_osm_path) as f:
             osm = f.read()

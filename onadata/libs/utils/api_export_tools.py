@@ -1,6 +1,5 @@
 import os
 import json
-from collections import OrderedDict
 from datetime import datetime
 from requests import ConnectionError
 
@@ -289,8 +288,7 @@ def export_async_export_response(request, xform, export, dataview_pk=None):
     return resp
 
 
-def process_async_export(request, xform, export_type, query=None, token=None,
-                         meta=None, options=None):
+def process_async_export(request, xform, export_type, options=None):
     """
     Check if should generate export or just return the latest export.
     Rules for regenerating an export are:
@@ -302,17 +300,19 @@ def process_async_export(request, xform, export_type, query=None, token=None,
     :param request:
     :param xform:
     :param export_type:
-    :param query: export filter
-    :param token: template url for xls external reports
-    :param meta: metadataid that contains the external xls report template url
-    :param options: additional export params
+    :param options: additional export params that may include
+        query: export filter
+        token: template url for xls external reports
+        meta: metadataid that contains the external xls report template url
+        remove_group_name: Flag to determine if group names should appear
     :return: response dictionary
     """
     # maintain the order of keys while processing the export
 
-    options = OrderedDict(sorted(options.items()))
-
     export_type = _get_export_type(export_type)
+    token = options.get("token")
+    meta = options.get("meta")
+    query = options.get("query")
 
     if export_type in external_export_types and \
             (token is not None) or (meta is not None):

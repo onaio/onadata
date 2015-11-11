@@ -589,6 +589,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             'meta': meta,
             'token': token,
             'data_id': data_id,
+            'query': query,
             'remove_group_name': remove_group_name,
             'group_delimiter': group_delimiter,
             'split_select_multiples': split_select_multiples
@@ -597,8 +598,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         if job_uuid:
             resp = get_async_response(job_uuid, request, xform)
         else:
-            resp = process_async_export(request, xform, export_type, query,
-                                        token, meta, options)
+            resp = process_async_export(request, xform, export_type, options)
 
         self.etag_data = '{}'.format(timezone.now())
 
