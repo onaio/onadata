@@ -22,6 +22,10 @@ class OsmData(models.Model):
     date_modified = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, default=None)
 
+    class Meta:
+        app_label = 'logger'
+        unique_together = ('instance', 'field_name')
+
     @classmethod
     def get_tag_keys(cls, xform, field_path, include_prefix=False):
         query = OsmData.objects.raw(
