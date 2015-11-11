@@ -113,11 +113,10 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
-    options = {}
-    options["ext"] = extension
-    options["username"] = xform.user.username
-    options["id_string"] = xform.id_string
-    options["query"] = query
+    options = {"ext": extension,
+               "username": xform.user.username,
+               "id_string": xform.id_string,
+               "query": query}
 
     try:
         if export_type == Export.EXTERNAL_EXPORT:
@@ -318,8 +317,6 @@ def process_async_export(request, xform, export_type, options=None):
             (token is not None) or (meta is not None):
                 export_type = Export.EXTERNAL_EXPORT
 
-    remove_group_name = options.get('remove_group_name')
-
     dataview_pk = options.get('dataview_pk')
 
     if should_create_new_export(xform, export_type, options, request=request)\
@@ -330,8 +327,7 @@ def process_async_export(request, xform, export_type, options=None):
                                               options=options)
         }
     else:
-        export = newest_export_for(xform, export_type, remove_group_name,
-                                   dataview_pk)
+        export = newest_export_for(xform, export_type, options)
 
         if not export.filename:
             # tends to happen when using newest_export_for.
