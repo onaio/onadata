@@ -55,30 +55,22 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
         'query': query,
         'force_xlsx': force_xlsx
     })
-    # start async export
+
     export_types = {
-        Export.XLS_EXPORT: lambda options:
-            create_xls_export.apply_async((), options),
-        Export.GDOC_EXPORT: lambda options:
-            create_xls_export.apply_async((), options),
-        Export.CSV_EXPORT: lambda options:
-            create_csv_export.apply_async((), options),
-        Export.CSV_ZIP_EXPORT: lambda options:
-            create_csv_zip_export.apply_async((), options),
-        Export.SAV_ZIP_EXPORT: lambda options:
-            create_sav_zip_export.apply_async((), options),
-        Export.ZIP_EXPORT: lambda options:
-            create_zip_export.apply_async((), options),
-        Export.KML_EXPORT: lambda options:
-            create_kml_export.apply_async((), options),
-        Export.OSM_EXPORT: lambda options:
-            create_osm_export.apply_async((), options),
-        Export.EXTERNAL_EXPORT: lambda options:
-            create_external_export.apply_async((), options)
+        Export.XLS_EXPORT: create_xls_export,
+        Export.GDOC_EXPORT: create_xls_export,
+        Export.CSV_EXPORT: create_csv_export,
+        Export.CSV_ZIP_EXPORT: create_csv_zip_export,
+        Export.SAV_ZIP_EXPORT: create_sav_zip_export,
+        Export.ZIP_EXPORT: create_zip_export,
+        Export.KML_EXPORT: create_kml_export,
+        Export.OSM_EXPORT: create_osm_export,
+        Export.EXTERNAL_EXPORT: create_external_export
     }
 
+    # start async export
     if export_type in export_types:
-        result = export_types[export_type](options)
+        result = export_types[export_type].apply_async((), options)
     else:
         raise Export.ExportTypeError
 
