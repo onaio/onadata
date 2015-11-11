@@ -738,7 +738,7 @@ def get_boolean_value(str_var, default=None):
             str_var.lower() in ['true', 'false']:
         return str_to_bool(str_var)
 
-    return str_var if default else str_to_bool('false')
+    return str_var if default else False
 
 
 def generate_export(export_type, options=None):
@@ -748,15 +748,10 @@ def generate_export(export_type, options=None):
     extension = options.get("ext", export_type)
     username = options.get("username")
     id_string = options.get("id_string")
-    export_id = options.get("export_id")
     filter_query = options.get("query")
     start = options.get("start")
     end = options.get("end")
     remove_group_name = options.get("remove_group_name", False)
-    group_delimiter = options.get("group_delimiter", DEFAULT_GROUP_DELIMITER)
-    split_select_multiples = options.get("split_select_multiples", True)
-    binary_select_multiples = options.get("binary_select_multiples", False)
-    dataview_pk = options.get("dataview_pk")
 
     export_type_func_map = {
         Export.XLS_EXPORT: 'to_xls_export',
@@ -769,8 +764,8 @@ def generate_export(export_type, options=None):
         user__username__iexact=username, id_string__iexact=id_string)
 
     dataview = None
-    if dataview_pk:
-        dataview = DataView.objects.get(pk=dataview_pk)
+    if options.get("dataview_pk"):
+        dataview = DataView.objects.get(pk=options.get("dataview_pk"))
         records = DataView.query_data(dataview)
     else:
         records = ParsedInstance.query_data(xform, query=filter_query,
@@ -779,9 +774,12 @@ def generate_export(export_type, options=None):
     export_builder = ExportBuilder()
 
     export_builder.TRUNCATE_GROUP_TITLE = remove_group_name
-    export_builder.GROUP_DELIMITER = group_delimiter
-    export_builder.SPLIT_SELECT_MULTIPLES = split_select_multiples
-    export_builder.BINARY_SELECT_MULTIPLES = binary_select_multiples
+    export_builder.GROUP_DELIMITER = options.get(
+        "group_delimiter", DEFAULT_GROUP_DELIMITER)
+    export_builder.SPLIT_SELECT_MULTIPLES = options.get(
+        "split_select_multiples", True)
+    export_builder.BINARY_SELECT_MULTIPLES = options.get(
+        "binary_select_multiples", False)
     export_builder.set_survey(xform.data_dictionary().survey)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
@@ -829,8 +827,8 @@ def generate_export(export_type, options=None):
     dir_name, basename = os.path.split(export_filename)
 
     # get or create export object
-    if export_id:
-        export = Export.objects.get(id=export_id)
+    if options.get("export_id"):
+        export = Export.objects.get(id=options.get("export_id"))
     else:
         export_options = get_export_options(options)
         export = Export(
