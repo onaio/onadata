@@ -901,7 +901,7 @@ def increment_index_in_filename(filename):
 
 
 def generate_attachments_zip_export(export_type, options):
-    extension = options.get("ext")
+    extension = options.get("ext", export_type)
     username = options.get("username")
     id_string = options.get("id_string")
     export_id = options.get("export_id")
@@ -951,7 +951,7 @@ def generate_attachments_zip_export(export_type, options):
 
 
 def generate_kml_export(export_type, options):
-    extension = options.get("ext")
+    extension = options.get("ext", export_type)
     username = options.get("username")
     id_string = options.get("id_string")
     export_id = options.get("export_id")
@@ -1045,7 +1045,7 @@ def kml_export_data(id_string, user):
 
 
 def generate_osm_export(export_type, options):
-    extension = options.get("ext")
+    extension = options.get("ext", export_type)
     username = options.get("username")
     id_string = options.get("id_string")
     export_id = options.get("export_id")
