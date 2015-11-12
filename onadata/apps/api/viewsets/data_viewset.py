@@ -330,7 +330,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 self.object_list = \
                     self.object_list.exclude(tags__name__in=not_tagged)
 
-        if (export_type is None or export_type in ['json']) \
+        if (export_type is None or export_type in ['json', 'jsonp']) \
                 and hasattr(self, 'object_list'):
             return self._get_data(query, fields, sort, start, limit,
                                   is_public_request)
