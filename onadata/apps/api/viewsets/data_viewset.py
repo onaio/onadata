@@ -109,8 +109,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         dataid = self.kwargs.get(dataid_lookup)
         fmt = self.kwargs.get('format', self.request.GET.get("format"))
         sort = self.request.GET.get("sort")
-        limit = parse_int(self.request.GET.get("limit"))
-        start = parse_int(self.request.GET.get("start"))
         fields = self.request.GET.get("fields")
         if fmt == Attachment.OSM:
             serializer_class = OSMSerializer
@@ -118,7 +116,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             serializer_class = GeoJsonSerializer
         elif pk is not None and dataid is None \
                 and pk != self.public_data_endpoint:
-            if sort or limit or start or fields:
+            if sort or fields:
                 serializer_class = JsonDataSerializer
             else:
                 serializer_class = DataInstanceSerializer
