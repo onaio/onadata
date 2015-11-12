@@ -1,4 +1,5 @@
 import geojson
+import json
 import os
 import requests
 
@@ -226,6 +227,22 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        response.render()
+        data = json.loads(response.content)
+        self.assertEqual([i['_uuid'] for i in data],
+                         [u'f3d8dc65-91a6-4d0f-9e97-802128083390',
+                          u'9c6f3468-cfda-46e8-84c1-75458e72805d'])
+        self.assertIsNotNone(response.get('ETag'))
+
+        request = self.factory.get('/', data={"start": "3", "limit": 1},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        response.render()
+        data = json.loads(response.content)
+        self.assertEqual([i['_uuid'] for i in data],
+                         [u'9f0a1508-c3b7-4c99-be00-9b237c26bcbf'])
         self.assertIsNotNone(response.get('ETag'))
 
         request = self.factory.get('/', data={"limit": "3"}, **self.extra)
