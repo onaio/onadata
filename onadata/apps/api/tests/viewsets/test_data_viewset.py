@@ -319,6 +319,7 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.has_header('X-total'))
         self.assertEqual(response.data, [])
         self.xform.shared_data = True
         self.xform.save()
@@ -326,6 +327,7 @@ class TestDataViewSet(TestBase):
         data = _data_list(formid)
         response = view(request, pk='public')
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.has_header('X-total'))
         self.assertEqual(response.data, data)
 
     def test_data_public_anon_user(self):
@@ -1231,5 +1233,6 @@ class TestOSM(TestAbstractViewSet):
             view = DataViewSet.as_view({'get': 'list'})
             response = view(request, pk=formid, format='osm')
             self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.has_header('X-total'))
             response.render()
             self.assertMultiLineEqual(response.content.strip(), osm.strip())
