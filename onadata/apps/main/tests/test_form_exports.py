@@ -223,7 +223,7 @@ class TestFormExports(TestBase):
                                                    self.login_password)
         }
         # create export
-        options = {"ext": "csv",
+        options = {"extension": "csv",
                    "username": self.user.username,
                    "id_string": self.xform.id_string}
 

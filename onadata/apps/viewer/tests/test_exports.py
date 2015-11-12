@@ -45,7 +45,7 @@ class TestExports(TestBase):
     def setUp(self):
         super(TestExports, self).setUp()
         self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
-        self.options = {"ext": "xls",
+        self.options = {"extension": "xls",
                         "username": self.user.username}
 
     def test_unique_xls_sheet_name(self):
@@ -125,7 +125,7 @@ class TestExports(TestBase):
         self.assertEqual(ext, '.xls')
 
         # test csv
-        self.options["ext"] = "csv"
+        self.options["extension"] = "csv"
 
         export = generate_export(Export.CSV_EXPORT, self.options)
         self.assertTrue(storage.exists(export.filepath))
@@ -135,7 +135,7 @@ class TestExports(TestBase):
         # test xls with existing export_id
         existing_export = Export.objects.create(xform=self.xform,
                                                 export_type=Export.XLS_EXPORT)
-        self.options["ext"] = "xls"
+        self.options["extension"] = "xls"
         self.options["export_id"] = existing_export.id
 
         export = generate_export(Export.XLS_EXPORT, self.options)
@@ -450,7 +450,7 @@ class TestExports(TestBase):
         """
         self._publish_transportation_form()
         self._submit_transport_instance()
-        self.options["ext"] = Export.CSV_EXPORT
+        self.options["extension"] = Export.CSV_EXPORT
         self.options["id_string"] = self.xform.id_string
 
         export = generate_export(Export.CSV_EXPORT, self.options)
@@ -1072,7 +1072,7 @@ class TestExports(TestBase):
         # publish xls form
         self._publish_transportation_form_and_submit_instance()
         # create export db object
-        self.options["ext"] = "zip"
+        self.options["extension"] = "zip"
         self.options["group_delimiter"] = "/"
         self.options["split_select_multiples"] = True
         self.options["id_string"] = self.xform.id_string

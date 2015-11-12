@@ -760,7 +760,7 @@ def generate_export(export_type, options=None):
         username: logged in username
     """
     end = options.get("end")
-    extension = options.get("ext", export_type)
+    extension = options.get("extension", export_type)
     filter_query = options.get("query")
     id_string = options.get("id_string")
     remove_group_name = options.get("remove_group_name", False)
@@ -941,7 +941,7 @@ def generate_attachments_zip_export(export_type, options):
         id_string: xform id_string
         export_id: ID of export object associated with the request
     """
-    extension = options.get("ext", export_type)
+    extension = options.get("extension", export_type)
     username = options.get("username")
     id_string = options.get("id_string")
     export_id = options.get("export_id")
@@ -1002,7 +1002,7 @@ def generate_kml_export(export_type, options):
         id_string: xform id_string
         export_id: ID of export object associated with the request
     """
-    extension = options.get("ext", export_type)
+    extension = options.get("extension", export_type)
     username = options.get("username")
     id_string = options.get("id_string")
     export_id = options.get("export_id")
@@ -1107,7 +1107,7 @@ def generate_osm_export(export_type, options):
         export_id: ID of export object associated with the request
     """
 
-    extension = options.get("ext", export_type)
+    extension = options.get("extension", export_type)
     username = options.get("username")
     id_string = options.get("id_string")
     export_id = options.get("export_id")

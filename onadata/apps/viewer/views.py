@@ -241,7 +241,7 @@ def data_export(request, username, id_string, export_type):
         "export_type": export_type
     }
 
-    options = {"ext": extension,
+    options = {"extension": extension,
                "username": username,
                "id_string": id_string,
                "query": query}

@@ -113,7 +113,7 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
-    options = {"ext": extension,
+    options = {"extension": extension,
                "username": xform.user.username,
                "id_string": xform.id_string,
                "query": query}

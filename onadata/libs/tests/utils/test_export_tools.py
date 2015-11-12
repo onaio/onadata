@@ -63,7 +63,7 @@ class TestExportTools(TestBase):
         self.assertTrue(
             Attachment.objects.filter(extension='osm').count() > count)
 
-        options = {"ext": Attachment.OSM,
+        options = {"extension": Attachment.OSM,
                    "username": self.user.username,
                    "id_string": self.xform.id_string}
 

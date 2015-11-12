@@ -16,7 +16,7 @@ class TestCsvExport(TestBase):
         self.fixture_dir = os.path.join(
             self.this_directory, 'fixtures', 'csv_export')
         self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
-        self.options = {"ext": "csv",
+        self.options = {"extension": "csv",
                         "username": self.user.username}
 
     def test_csv_export_url(self):
