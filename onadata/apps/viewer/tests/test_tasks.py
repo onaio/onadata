@@ -27,7 +27,7 @@ class TestExportTasks(TestBase):
                         (Export.ZIP_EXPORT, {}),
                         (Export.KML_EXPORT, {}),
                         (Export.OSM_EXPORT, {}),
-                        # (Export.EXTERNAL_EXPORT, {"meta": "j2x.ona.io"}),
+                        (Export.EXTERNAL_EXPORT, {"meta": "j2x.ona.io"}),
                         )
 
         for export_type, extra_options in export_types:
