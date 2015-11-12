@@ -361,6 +361,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if where:
             self.object_list = self.object_list.extra(where=where,
                                                       params=where_params)
+        x_total_count = self.object_list.count()
         if (start and limit or limit) and (not sort and not fields):
             start = start if start is not None else 0
             limit = limit if start is None or start == 0 else start + limit
@@ -382,6 +383,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             serializer = self.get_serializer(self.object_list, many=True)
             page = None
 
+        self.headers.update({'X-total': x_total_count})
         return Response(serializer.data)
 
 
