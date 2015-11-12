@@ -902,7 +902,6 @@ def newest_export_for(xform, export_type, options):
         group_delimiter: "/" or "." with "/" as the default
         split_select_multiples: boolean flag
         binary_select_multiples: boolean flag
-
     """
 
     export_query = Export.objects.filter(xform=xform, export_type=export_type)
