@@ -1233,6 +1233,5 @@ class TestOSM(TestAbstractViewSet):
             view = DataViewSet.as_view({'get': 'list'})
             response = view(request, pk=formid, format='osm')
             self.assertEqual(response.status_code, 200)
-            self.assertTrue(response.has_header('X-total'))
             response.render()
             self.assertMultiLineEqual(response.content.strip(), osm.strip())
