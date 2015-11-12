@@ -91,7 +91,7 @@ def create_xls_export(**options):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
     force_xlsx = options.get("force_xlsx", True)
-    options['ext'] = 'xlsx' if force_xlsx else 'xls'
+    options["extension"] = 'xlsx' if force_xlsx else 'xls'
 
     try:
         export = Export.objects.get(id=options.get("export_id"))
@@ -221,7 +221,7 @@ def create_zip_export(**options):
 @task()
 def create_csv_zip_export(**options):
     export = Export.objects.get(id=options.get("export_id"))
-    options['ext'] = Export.ZIP_EXPORT
+    options["extension"] = Export.ZIP_EXPORT
     try:
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
@@ -242,7 +242,7 @@ def create_csv_zip_export(**options):
 @task()
 def create_sav_zip_export(**options):
     export = Export.objects.get(id=options.get("export_id"))
-    options['ext'] = Export.ZIP_EXPORT
+    options["extension"] = Export.ZIP_EXPORT
     try:
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery

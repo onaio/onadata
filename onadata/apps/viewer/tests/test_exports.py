@@ -398,7 +398,7 @@ class TestExports(TestBase):
             datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
         filename = basename + ".csv"
 
-        self.options['ext'] = Export.CSV_EXPORT
+        self.options["extension"] = Export.CSV_EXPORT
         export = Export.objects.create(
             xform=self.xform, export_type=Export.CSV_EXPORT, filename=filename,
             options=self.options)
@@ -418,7 +418,7 @@ class TestExports(TestBase):
     def test_export_download_url(self):
         self._publish_transportation_form()
         self._submit_transport_instance()
-        self.options['ext'] = Export.CSV_EXPORT
+        self.options["extension"] = Export.CSV_EXPORT
 
         self.options["id_string"] = self.xform.id_string
         export = generate_export(Export.CSV_EXPORT, self.options)
@@ -432,7 +432,7 @@ class TestExports(TestBase):
         self.assertEqual(response.status_code, 200)
         # test xls
 
-        self.options['ext'] = "xls"
+        self.options["extension"] = "xls"
         export = generate_export(Export.XLS_EXPORT, self.options)
         xls_export_url = reverse(export_download, kwargs={
             "username": self.user.username,
