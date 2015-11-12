@@ -136,6 +136,18 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data[0].get('net_worth'), 100000.00)
         self.assertEqual(response.data[0].get('imei'), u'351746052009472')
 
+    def test_data_jsonp(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid, format='jsonp')
+        self.assertEqual(response.status_code, 200)
+        response.render()
+        self.assertTrue(response.content.startswith('callback('))
+        self.assertTrue(response.content.endswith(');'))
+        self.assertEqual(len(response.data), 4)
+
     def test_data_pagination(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
