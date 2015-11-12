@@ -365,7 +365,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                                                       params=where_params)
         if (start and limit or limit) and (not sort and not fields):
             start = start if start is not None else 0
-            limit = limit if start is None or start == 0 else limit + 1
+            limit = limit if start is None or start == 0 else start + limit
             self.object_list = \
                 self.object_list.order_by('pk')[start: limit]
         elif (sort or limit or start or fields) and not is_public_request:
