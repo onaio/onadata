@@ -18,15 +18,15 @@ from pyxform.question import Question
 from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
 from json2xlsclient.client import Client
-from django.db.models import Q
 
 from onadata.apps.logger.models import Attachment, Instance, XForm
-from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.logger.models.data_view import DataView
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import\
     _is_invalid_for_mongo, _encode_for_mongo, _decode_from_mongo,\
     ParsedInstance
+from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     image_urls
 from onadata.libs.utils.common_tags import (
@@ -34,7 +34,6 @@ from onadata.libs.utils.common_tags import (
     DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, GROUPNAME_REMOVED_FLAG,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
     DATAVIEW_EXPORT)
-from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.osm import get_combined_osm
 
 
@@ -229,7 +228,7 @@ class ExportBuilder(object):
         # Check if to truncate the group name prefix
         if remove_group_name:
             abbreviated_xpath_list = abbreviated_xpath.split(field_delimiter)
-            return abbreviated_xpath_list[len(abbreviated_xpath_list)-1]
+            return abbreviated_xpath_list[len(abbreviated_xpath_list) - 1]
         else:
             return abbreviated_xpath
 
@@ -707,16 +706,66 @@ def dict_to_flat_export(d, parent_index=0):
     pass
 
 
-def generate_export(export_type, extension, username, id_string,
-                    export_id=None, filter_query=None, group_delimiter='/',
-                    split_select_multiples=True,
-                    binary_select_multiples=False, start=None, end=None,
-                    remove_group_name=False, dataview_pk=None):
+def get_export_options(options):
+    export_options = {
+        key: value for key, value in options.iteritems()
+        if key in Export.EXPORT_OPTION_FIELDS}
+
+    return export_options
+
+
+def generate_options_query(query, options):
     """
-    Create appropriate export object given the export type
+    Add option filters to Export query
     """
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.export import Export
+    query_with_filter = query
+    for field in Export.EXPORT_OPTION_FIELDS:
+        if field in options:
+            field_value = options.get(field)
+
+            field_value = json.dumps(field_value)\
+                if isinstance(field_value, bool)\
+                else '"{}"'.format(field_value)
+            option_field_query = '"{}":{}'.format(field, field_value)
+            query_with_filter = query_with_filter.filter(
+                options__contains=option_field_query)
+
+    return query_with_filter
+
+
+def get_boolean_value(str_var, default=None):
+    if isinstance(str_var, basestring) and \
+            str_var.lower() in ['true', 'false']:
+        return str_to_bool(str_var)
+
+    return str_var if default else False
+
+
+def generate_export(
+        export_type, username, id_string, export_id=None, options=None):
+    """
+    Create appropriate export object given the export type.
+
+    param: export_type
+    params: username: logged in username
+    params: id_string: xform id_string
+    params: export_id: ID of export object associated with the request
+    param: options: additional parameters required for the lookup.
+        binary_select_multiples: boolean flag
+        end: end offset
+        ext: export extension type
+        dataview_pk: dataview pk
+        group_delimiter: "/" or "."
+        query: filter_query for custom queries
+        remove_group_name: boolean flag
+        split_select_multiples: boolean flag
+    """
+    end = options.get("end")
+    extension = options.get("extension", export_type)
+    filter_query = options.get("query")
+    remove_group_name = options.get("remove_group_name", False)
+    start = options.get("start")
+
     export_type_func_map = {
         Export.XLS_EXPORT: 'to_xls_export',
         Export.CSV_EXPORT: 'to_flat_csv_export',
@@ -728,8 +777,8 @@ def generate_export(export_type, extension, username, id_string,
         user__username__iexact=username, id_string__iexact=id_string)
 
     dataview = None
-    if dataview_pk:
-        dataview = DataView.objects.get(pk=dataview_pk)
+    if options.get("dataview_pk"):
+        dataview = DataView.objects.get(pk=options.get("dataview_pk"))
         records = DataView.query_data(dataview)
     else:
         records = ParsedInstance.query_data(xform, query=filter_query,
@@ -738,9 +787,12 @@ def generate_export(export_type, extension, username, id_string,
     export_builder = ExportBuilder()
 
     export_builder.TRUNCATE_GROUP_TITLE = remove_group_name
-    export_builder.GROUP_DELIMITER = group_delimiter
-    export_builder.SPLIT_SELECT_MULTIPLES = split_select_multiples
-    export_builder.BINARY_SELECT_MULTIPLES = binary_select_multiples
+    export_builder.GROUP_DELIMITER = options.get(
+        "group_delimiter", DEFAULT_GROUP_DELIMITER)
+    export_builder.SPLIT_SELECT_MULTIPLES = options.get(
+        "split_select_multiples", True)
+    export_builder.BINARY_SELECT_MULTIPLES = options.get(
+        "binary_select_multiples", False)
     export_builder.set_survey(xform.data_dictionary().survey)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
@@ -791,73 +843,70 @@ def generate_export(export_type, extension, username, id_string,
     if export_id:
         export = Export.objects.get(id=export_id)
     else:
-        export = Export(xform=xform, export_type=export_type)
+        export_options = get_export_options(options)
+        export = Export(
+            xform=xform, export_type=export_type, options=export_options)
+
     export.filedir = dir_name
     export.filename = basename
     export.internal_status = Export.SUCCESSFUL
-    # dont persist exports that have a filter
+    # do not persist exports that have a filter
 
+    # if we should create a new export is true, we should not save it
     if not filter_query and start is None and end is None:
         export.save()
     return export
 
 
-def should_create_new_export(xform, export_type, remove_group_name=False,
-                             dataview=None):
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.export import Export
-    q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
-    q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
+def should_create_new_export(xform,
+                             export_type,
+                             options,
+                             request=None):
+    """
+    Function that determines whether to create a new export.
+    param: xform
+    param: export_type
+    param: options: additional parameters required for the lookup.
+        remove_group_name: boolean flag
+        group_delimiter: "/" or "." with "/" as the default
+        split_select_multiples: boolean flag
+        binary_select_multiples: boolean flag
+    params: request: Get params are used to determine if new export is required
+    """
+    split_select_multiples = options.get('split_select_multiples', True)
 
-    filter_query = None
-    if remove_group_name:
-        filter_query = q_remove_grp_name
+    if (request and (frozenset(request.GET.keys()) &
+                     frozenset(['start', 'end', 'query', 'data_id']))) or\
+            not split_select_multiples:
+        return True
 
-    if dataview:
-        filter_query = q_dataview
+    export_query = Export.objects.filter(xform=xform, export_type=export_type)
+    export_query = generate_options_query(export_query, options)
 
-    if filter_query:
-        if Export.objects.filter(xform=xform, export_type=export_type)\
-                .filter(filter_query).count() == 0\
-                or Export.exports_outdated(xform, export_type=export_type):
-
-            return True
-
-        return False
-
-    if Export.objects.filter(xform=xform, export_type=export_type)\
-            .exclude(q_dataview | q_remove_grp_name).count() == 0\
-            or Export.exports_outdated(xform, export_type=export_type):
-
+    if export_query.count() == 0 or\
+       Export.exports_outdated(xform, export_type):
         return True
 
     return False
 
 
-def newest_export_for(xform, export_type, remove_group_name=False,
-                      dataview=None):
+def newest_export_for(xform, export_type, options):
     """
-    Make sure you check that an export exists before calling this,
-    it will a DoesNotExist exception otherwise
+    Retrieve the latest export given the following arguments:
+
+    param: xform
+    param: export_type
+    param: options: additional parameters required for the lookup.
+        remove_group_name: boolean flag
+        group_delimiter: "/" or "." with "/" as the default
+        split_select_multiples: boolean flag
+        binary_select_multiples: boolean flag
     """
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.export import Export
-    q_remove_grp_name = Q(filename__contains=GROUPNAME_REMOVED_FLAG)
-    q_dataview = Q(filename__contains=DATAVIEW_EXPORT)
 
-    filter_query = None
-    if remove_group_name:
-        filter_query = q_remove_grp_name
+    export_query = Export.objects.filter(xform=xform, export_type=export_type)
+    export_query = generate_options_query(export_query, options)
 
-    if dataview:
-        filter_query = q_dataview
-
-    if filter_query:
-        return Export.objects.filter(xform=xform, export_type=export_type)\
-            .filter(filter_query).latest('created_on')
-    else:
-        return Export.objects.filter(xform=xform, export_type=export_type)\
-            .exclude(q_dataview | q_remove_grp_name).latest('created_on')
+    return export_query.latest('created_on')
 
 
 def increment_index_in_filename(filename):
@@ -881,10 +930,19 @@ def increment_index_in_filename(filename):
 
 
 def generate_attachments_zip_export(
-        export_type, extension, username, id_string, export_id=None,
-        filter_query=None):
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.export import Export
+        export_type, username, id_string, export_id=None, options=None):
+    """
+    Generates zip export of attachments.
+
+    param: export_type
+    params: username: logged in username
+    params: id_string: xform id_string
+    params: export_id: ID of export object associated with the request
+    param: options: additional parameters required for the lookup.
+        ext: File extension of the generated export
+    """
+    extension = options.get("extension", export_type)
+
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     attachments = Attachment.objects.filter(instance__xform=xform)
     basename = "%s_%s" % (id_string,
@@ -918,7 +976,10 @@ def generate_attachments_zip_export(
     if(export_id):
         export = Export.objects.get(id=export_id)
     else:
-        export = Export.objects.create(xform=xform, export_type=export_type)
+        export_options = get_export_options(options)
+        export = Export.objects.create(xform=xform,
+                                       export_type=export_type,
+                                       options=export_options)
 
     export.filedir = dir_name
     export.filename = basename
@@ -928,10 +989,19 @@ def generate_attachments_zip_export(
 
 
 def generate_kml_export(
-        export_type, extension, username, id_string, export_id=None,
-        filter_query=None):
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.export import Export
+        export_type, username, id_string, export_id=None, options=None):
+    """
+    Generates kml export for geographical data
+
+    param: export_type
+    params: username: logged in username
+    params: id_string: xform id_string
+    params: export_id: ID of export object associated with the request
+    param: options: additional parameters required for the lookup.
+        ext: File extension of the generated export
+    """
+    extension = options.get("extension", export_type)
+
     user = User.objects.get(username=username)
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     response = render_to_response(
@@ -962,7 +1032,10 @@ def generate_kml_export(
     if(export_id):
         export = Export.objects.get(id=export_id)
     else:
-        export = Export.objects.create(xform=xform, export_type=export_type)
+        export_options = get_export_options(options)
+        export = Export.objects.create(xform=xform,
+                                       export_type=export_type,
+                                       options=export_options)
 
     export.filedir = dir_name
     export.filename = basename
@@ -1018,10 +1091,20 @@ def kml_export_data(id_string, user):
 
 
 def generate_osm_export(
-        export_type, extension, username, id_string, export_id=None,
-        filter_query=None):
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.export import Export
+        export_type, username, id_string, export_id=None, options=None):
+    """
+    Generates osm export for OpenStreetMap data
+
+    param: export_type
+    params: username: logged in username
+    params: id_string: xform id_string
+    params: export_id: ID of export object associated with the request
+    param: options: additional parameters required for the lookup.
+        ext: File extension of the generated export
+    """
+
+    extension = options.get("extension", export_type)
+
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     attachments = Attachment.objects.filter(
         extension=Attachment.OSM,
@@ -1054,7 +1137,10 @@ def generate_osm_export(
     if(export_id):
         export = Export.objects.get(id=export_id)
     else:
-        export = Export.objects.create(xform=xform, export_type=export_type)
+        export_options = get_export_options(options)
+        export = Export.objects.create(xform=xform,
+                                       export_type=export_type,
+                                       options=export_options)
 
     export.filedir = dir_name
     export.filename = basename
@@ -1119,8 +1205,24 @@ def _get_server_from_metadata(xform, meta, token):
 
 
 def generate_external_export(
-    export_type, username, id_string, export_id=None,  token=None,
-        filter_query=None, meta=None, data_id=None):
+        export_type, username, id_string, export_id=None, options=None):
+    """
+    Generates external export using ONA data through an external service.
+
+    param: export_type
+    params: username: logged in username
+    params: id_string: xform id_string
+    params: export_id: ID of export object associated with the request
+    param: options: additional parameters required for the lookup.
+        data_id: instance id
+        query: filter_query for custom queries
+        meta: metadata associated with external export
+        token: authentication key required by external service
+    """
+    data_id = options.get("data_id")
+    filter_query = options.get("query")
+    meta = options.get("meta")
+    token = options.get("token")
 
     xform = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
@@ -1149,10 +1251,9 @@ def generate_external_export(
     records = _get_records(instances)
 
     status_code = 0
+
     if records and server:
-
         try:
-
             client = Client(ser)
             response = client.xls.create(token, json.dumps(records))
 
@@ -1175,7 +1276,10 @@ def generate_external_export(
     if export_id:
         export = Export.objects.get(id=export_id)
     else:
-        export = Export.objects.create(xform=xform, export_type=export_type)
+        export_options = get_export_options(options)
+        export = Export.objects.create(xform=xform,
+                                       export_type=export_type,
+                                       options=export_options)
 
     export.export_url = response
     if status_code == 201:
@@ -1213,6 +1317,7 @@ def parse_request_export_options(request):
     should be split.
     """
     boolean_list = ['true', 'false']
+    options = {}
     params = request.QUERY_PARAMS
     remove_group_name = params.get('remove_group_name') and \
         params.get('remove_group_name').lower()
@@ -1220,17 +1325,15 @@ def parse_request_export_options(request):
         'do_not_split_select_multiples')
 
     if remove_group_name in boolean_list:
-        remove_group_name = str_to_bool(remove_group_name)
+        options["remove_group_name"] = str_to_bool(remove_group_name)
     else:
-        remove_group_name = str_to_bool('false')
+        options["remove_group_name"] = str_to_bool('false')
 
     if params.get("group_delimiter") in ['.', DEFAULT_GROUP_DELIMITER]:
-        group_delimiter = params.get("group_delimiter")
+        options['group_delimiter'] = params.get("group_delimiter")
     else:
-        group_delimiter = DEFAULT_GROUP_DELIMITER
+        options['group_delimiter'] = DEFAULT_GROUP_DELIMITER
 
-    return (
-        remove_group_name,
-        group_delimiter,
-        not do_not_split_select_multiples,
-    )
+    options['split_select_multiples'] = not do_not_split_select_multiples
+
+    return options

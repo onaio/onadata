@@ -15,8 +15,7 @@ from rest_framework.reverse import reverse
 from celery.result import AsyncResult
 
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.utils.export_tools import DEFAULT_GROUP_DELIMITER,\
-    should_create_new_export
+from onadata.libs.utils.export_tools import should_create_new_export
 from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import log
@@ -48,6 +47,10 @@ EXPORT_EXT = {
     OSM: Export.OSM_EXPORT
 }
 
+EXPORT_SUCCESS = "Success"
+EXPORT_PENDING = "Pending"
+EXPORT_FAILED = "Failed"
+
 
 def _get_export_type(export_type):
     if export_type in EXPORT_EXT.keys():
@@ -61,19 +64,6 @@ def _get_export_type(export_type):
     return export_type
 
 
-def should_regenerate_export(xform, export_type, request,
-                             remove_group_name=False,
-                             group_delimiter=DEFAULT_GROUP_DELIMITER,
-                             split_select_multiples=True, dataview=None):
-    return should_create_new_export(xform, export_type,
-                                    remove_group_name=remove_group_name,
-                                    dataview=dataview) or\
-        'start' in request.GET or 'end' in request.GET or\
-        'query' in request.GET or 'data_id' in request.GET or\
-        group_delimiter != DEFAULT_GROUP_DELIMITER or\
-        not split_select_multiples
-
-
 def custom_response_handler(request, xform, query, export_type,
                             token=None, meta=None, dataview=None):
     export_type = _get_export_type(export_type)
@@ -81,21 +71,19 @@ def custom_response_handler(request, xform, query, export_type,
             (token is not None) or (meta is not None):
         export_type = Export.EXTERNAL_EXPORT
 
-    remove_group_name, group_delimiter, split_select_multiples =\
-        parse_request_export_options(request)
+    options = parse_request_export_options(request)
+    options["dataview"] = dataview
+
+    remove_group_name = options.get("remove_group_name")
 
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
 
-    if should_regenerate_export(
-            xform, export_type, request, remove_group_name=remove_group_name,
-            dataview=dataview, group_delimiter=group_delimiter,
-            split_select_multiples=split_select_multiples):
+    if should_create_new_export(xform, export_type, options, request=request):
         export = _generate_new_export(request, xform, query, export_type,
                                       dataview=dataview)
     else:
-        export = newest_export_for(xform, export_type, remove_group_name,
-                                   dataview=dataview)
+        export = newest_export_for(xform, export_type, options)
 
         if not export.filename:
             # tends to happen when using newset_export_for.
@@ -125,33 +113,49 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
+    options = {"extension": extension,
+               "username": xform.user.username,
+               "id_string": xform.id_string,
+               "query": query}
+
     try:
         if export_type == Export.EXTERNAL_EXPORT:
+            options['token'] = request.GET.get('token')
+            options['data_id'] = request.GET.get('data_id')
+            options['meta'] = request.GET.get('meta')
+
             export = generate_external_export(
-                export_type, xform.user.username,
-                xform.id_string, None, request.GET.get('token'), query,
-                request.GET.get('meta'), request.GET.get('data_id')
-            )
+                export_type,
+                xform.user.username,
+                xform.id_string,
+                None,
+                options)
         elif export_type == Export.OSM_EXPORT:
             export = generate_osm_export(
-                export_type, extension, xform.user.username,
-                xform.id_string, export_id=None, filter_query=None)
+                export_type,
+                xform.user.username,
+                xform.id_string,
+                None,
+                options)
         elif export_type == Export.KML_EXPORT:
             export = generate_kml_export(
-                export_type, extension, xform.user.username,
-                xform.id_string, export_id=None, filter_query=None)
+                export_type,
+                xform.user.username,
+                xform.id_string,
+                None,
+                options)
         else:
-            remove_group_name, group_delimiter, split_select_multiples =\
-                parse_request_export_options(request)
-
             dataview_pk = dataview.pk if dataview else None
+            options["dataview_pk"] = dataview_pk
+            options.update(parse_request_export_options(request))
+
             export = generate_export(
-                export_type, extension, xform.user.username,
-                xform.id_string, None, query,
-                remove_group_name=remove_group_name, dataview_pk=dataview_pk,
-                group_delimiter=group_delimiter,
-                split_select_multiples=split_select_multiples
-            )
+                export_type,
+                xform.user.username,
+                xform.id_string,
+                None,
+                options)
+
         audit = {
             "xform": xform.id_string,
             "export_type": export_type
@@ -303,8 +307,7 @@ def export_async_export_response(request, xform, export, dataview_pk=None):
     return resp
 
 
-def process_async_export(request, xform, export_type, query=None, token=None,
-                         meta=None, options=None):
+def process_async_export(request, xform, export_type, options=None):
     """
     Check if should generate export or just return the latest export.
     Rules for regenerating an export are:
@@ -316,28 +319,27 @@ def process_async_export(request, xform, export_type, query=None, token=None,
     :param request:
     :param xform:
     :param export_type:
-    :param query: export filter
-    :param token: template url for xls external reports
-    :param meta: metadataid that contains the external xls report template url
-    :param options: additional export params
+    :param options: additional export params that may include
+        query: export filter
+        token: template url for xls external reports
+        meta: metadataid that contains the external xls report template url
+        remove_group_name: Flag to determine if group names should appear
     :return: response dictionary
     """
+    # maintain the order of keys while processing the export
 
     export_type = _get_export_type(export_type)
+    token = options.get("token")
+    meta = options.get("meta")
+    query = options.get("query")
 
     if export_type in external_export_types and \
             (token is not None) or (meta is not None):
                 export_type = Export.EXTERNAL_EXPORT
 
-    remove_group_name = options.get('remove_group_name')
-
     dataview_pk = options.get('dataview_pk')
-    if should_regenerate_export(
-            xform, export_type, request,
-            remove_group_name=remove_group_name,
-            dataview=dataview_pk,
-            group_delimiter=options.get('group_delimiter'),
-            split_select_multiples=options.get('split_select_multiples'))\
+
+    if should_create_new_export(xform, export_type, options, request=request)\
             or export_type == Export.EXTERNAL_EXPORT:
         resp = {
             u'job_uuid': _create_export_async(xform, export_type,
@@ -345,8 +347,7 @@ def process_async_export(request, xform, export_type, query=None, token=None,
                                               options=options)
         }
     else:
-        export = newest_export_for(xform, export_type, remove_group_name,
-                                   dataview_pk)
+        export = newest_export_for(xform, export_type, options)
 
         if not export.filename:
             # tends to happen when using newest_export_for.
@@ -377,7 +378,6 @@ def _create_export_async(xform, export_type, query=None, force_xlsx=False,
         export, async_result \
             = viewer_task.create_async_export(xform, export_type, query,
                                               force_xlsx, options=options)
-
         return async_result.task_id
 
 
@@ -406,22 +406,23 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
                     request=request
                 )
             remove_group_key = "remove_group_name"
+
             if str_to_bool(request.QUERY_PARAMS.get(remove_group_key)):
                 # append the param to the url
                 export_url = "{}?{}=true".format(export_url, remove_group_key)
         else:
             export_url = export.export_url
         resp = {
-            u'job_status': "Success",
+            u'job_status': EXPORT_SUCCESS,
             u'export_url': export_url
         }
     elif export.status == Export.PENDING:
         resp = {
-            'export_status': 'Pending'
+            'export_status': EXPORT_PENDING
         }
     else:
         resp = {
-            'export_status': "Failed"
+            'export_status': EXPORT_FAILED
         }
 
     return resp

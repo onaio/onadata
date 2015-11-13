@@ -3,13 +3,22 @@ from datetime import date, datetime
 from django.core.files.storage import default_storage
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.libs.utils.export_tools import encode_if_str
-from onadata.libs.utils.export_tools import generate_osm_export
+from onadata.apps.viewer.models.export import Export
+
+from onadata.libs.utils.export_tools import (
+    encode_if_str,
+    generate_osm_export,
+    should_create_new_export)
 from onadata.apps.logger.models import Attachment
 from onadata.apps.api import tests as api_tests
 
 
 class TestExportTools(TestBase):
+
+    def _create_old_export(self, xform, export_type, options):
+        Export(xform=xform, export_type=export_type, options=options).save()
+        self.export = Export.objects.filter(
+            xform=xform, export_type=export_type)
 
     def test_invalid_date_format_is_caught(self):
         row = {"date": date(0201, 9, 9)}
@@ -53,11 +62,60 @@ class TestExportTools(TestBase):
         self._make_submission_w_attachment(submission_path, paths)
         self.assertTrue(
             Attachment.objects.filter(extension='osm').count() > count)
-        export = generate_osm_export(Attachment.OSM, Attachment.OSM,
-                                     self.user.username, self.xform.id_string)
+
+        options = {"extension": Attachment.OSM}
+
+        export = generate_osm_export(
+            Attachment.OSM,
+            self.user.username,
+            self.xform.id_string,
+            None,
+            options)
         self.assertTrue(export.is_successful)
         with open(combined_osm_path) as f:
             osm = f.read()
             with default_storage.open(export.filepath) as f2:
                 content = f2.read()
                 self.assertMultiLineEqual(content.strip(), osm.strip())
+
+    def test_should_create_new_export(self):
+        # should only create new export if filter is defined
+        # Test setup
+        export_type = "csv"
+        options = {"group_delimiter": "."}
+        self._publish_transportation_form_and_submit_instance()
+
+        will_create_new_export = should_create_new_export(
+            self.xform, export_type, options)
+
+        self.assertTrue(will_create_new_export)
+
+    def test_should_not_create_new_export_when_old_exists(self):
+        export_type = "csv"
+        self._publish_transportation_form_and_submit_instance()
+        options = {"group_delimiter": "/",
+                   "remove_group_name": False,
+                   "split_select_multiples": True}
+        self._create_old_export(self.xform, export_type, options)
+
+        will_create_new_export = should_create_new_export(
+            self.xform, export_type, options)
+
+        self.assertFalse(will_create_new_export)
+
+    def test_should_create_new_export_when_filter_defined(self):
+        export_type = "csv"
+        options = {"group_delimiter": "/",
+                   "remove_group_name": False,
+                   "split_select_multiples": True}
+
+        self._publish_transportation_form_and_submit_instance()
+        self._create_old_export(self.xform, export_type, options)
+
+        # Call should_create_new_export with updated options
+        options['remove_group_name'] = True
+
+        will_create_new_export = should_create_new_export(
+            self.xform, export_type, options)
+
+        self.assertTrue(will_create_new_export)
