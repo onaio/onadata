@@ -31,7 +31,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.mixins.add_x_total_header_mixin import AddXTotalHeaderMixin
+from onadata.libs.mixins.total_header_mixin import TotalHeaderMixin
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import DataSerializer
 from onadata.libs.serializers.data_serializer import DataInstanceSerializer
@@ -71,7 +71,7 @@ class CustomPaginationSerializer(BasePaginationSerializer):
 class DataViewSet(AnonymousUserPublicFormsMixin,
                   AuthenticateHeaderMixin,
                   ETagsMixin, CacheControlMixin,
-                  AddXTotalHeaderMixin,
+                  TotalHeaderMixin,
                   BaseViewset,
                   ModelViewSet):
     """
@@ -102,7 +102,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     paginate_by = 1000000
     paginate_by_param = 'page_size'
     page_kwarg = 'page'
-    x_total_count = None
 
     queryset = XForm.objects.filter()
 
@@ -364,7 +363,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if where:
             self.object_list = self.object_list.extra(where=where,
                                                       params=where_params)
-        self.x_total_count = self.object_list.count()
+        self.total_count = self.object_list.count()
         if (start and limit or limit) and (not sort and not fields):
             start = start if start is not None else 0
             limit = limit if start is None or start == 0 else start + limit
