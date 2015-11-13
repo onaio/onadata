@@ -223,11 +223,14 @@ class TestFormExports(TestBase):
                                                    self.login_password)
         }
         # create export
-        options = {"extension": "csv",
-                   "username": self.user.username,
-                   "id_string": self.xform.id_string}
+        options = {"extension": "csv"}
 
-        export = generate_export(Export.CSV_EXPORT, options)
+        export = generate_export(
+            Export.CSV_EXPORT,
+            self.user.username,
+            self.xform.id_string,
+            None,
+            options)
         self.assertTrue(isinstance(export, Export))
         url = reverse(export_download, kwargs={
             'username': self.user.username,

@@ -256,7 +256,8 @@ def data_export(request, username, id_string, export_type):
                         "end": end})
 
         try:
-            export = generate_export(export_type, options)
+            export = generate_export(
+                export_type, username, id_string, None, options)
             audit_log(
                 Actions.EXPORT_CREATED, request.user, owner,
                 _("Created %(export_type)s export on '%(id_string)s'.") %

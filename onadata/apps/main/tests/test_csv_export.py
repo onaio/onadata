@@ -13,11 +13,11 @@ class TestCsvExport(TestBase):
 
     def setUp(self):
         self._create_user_and_login()
+
         self.fixture_dir = os.path.join(
             self.this_directory, 'fixtures', 'csv_export')
         self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
-        self.options = {"extension": "csv",
-                        "username": self.user.username}
+        self.options = {"extension": "csv"}
 
     def test_csv_export_url(self):
         """TODO: test data csv export"""
@@ -30,8 +30,13 @@ class TestCsvExport(TestBase):
         self._make_submission(
             path, forced_submission_time=self._submission_time)
         # test csv
-        self.options["id_string"] = 'tutorial_w_repeats'
-        export = generate_export(Export.CSV_EXPORT, self.options)
+
+        export = generate_export(
+            Export.CSV_EXPORT,
+            self.user.username,
+            "tutorial_w_repeats",
+            None,
+            self.options)
         storage = get_storage_class()()
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
@@ -60,8 +65,12 @@ class TestCsvExport(TestBase):
         ]
         self.assertEquals(dd.xpaths(repeat_iterations=2), xpaths)
         # test csv
-        self.options['id_string'] = 'double_repeat'
-        export = generate_export(Export.CSV_EXPORT, self.options)
+        export = generate_export(
+            Export.CSV_EXPORT,
+            self.user.username,
+            "double_repeat",
+            None,
+            self.options)
         storage = get_storage_class()()
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
@@ -82,7 +91,12 @@ class TestCsvExport(TestBase):
             path, forced_submission_time=self._submission_time)
         # test csv
         self.options['id_string'] = 'userone'
-        export = generate_export(Export.CSV_EXPORT, self.options)
+        export = generate_export(
+            Export.CSV_EXPORT,
+            self.user.username,
+            "userone",
+            None,
+            self.options)
         storage = get_storage_class()()
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
@@ -102,9 +116,13 @@ class TestCsvExport(TestBase):
         self._make_submission(
             path, forced_submission_time=self._submission_time)
         # test csv
-        self.options['id_string'] = 'tutorial_w_repeats'
         self.options['remove_group_name'] = True
-        export = generate_export(Export.CSV_EXPORT, self.options)
+        export = generate_export(
+            Export.CSV_EXPORT,
+            self.user.username,
+            "tutorial_w_repeats",
+            None,
+            self.options)
         storage = get_storage_class()()
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)

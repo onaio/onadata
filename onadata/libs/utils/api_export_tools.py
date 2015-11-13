@@ -124,17 +124,37 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
             options['data_id'] = request.GET.get('data_id')
             options['meta'] = request.GET.get('meta')
 
-            export = generate_external_export(export_type, options)
+            export = generate_external_export(
+                export_type,
+                xform.user.username,
+                xform.id_string,
+                None,
+                options)
         elif export_type == Export.OSM_EXPORT:
-            export = generate_osm_export(export_type, options)
+            export = generate_osm_export(
+                export_type,
+                xform.user.username,
+                xform.id_string,
+                None,
+                options)
         elif export_type == Export.KML_EXPORT:
-            export = generate_kml_export(export_type, options)
+            export = generate_kml_export(
+                export_type,
+                xform.user.username,
+                xform.id_string,
+                None,
+                options)
         else:
             dataview_pk = dataview.pk if dataview else None
             options["dataview_pk"] = dataview_pk
             options.update(parse_request_export_options(request))
 
-            export = generate_export(export_type, options)
+            export = generate_export(
+                export_type,
+                xform.user.username,
+                xform.id_string,
+                None,
+                options)
 
         audit = {
             "xform": xform.id_string,

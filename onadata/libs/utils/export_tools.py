@@ -741,31 +741,30 @@ def get_boolean_value(str_var, default=None):
     return str_var if default else False
 
 
-def generate_export(export_type, options=None):
+def generate_export(
+        export_type, username, id_string, export_id=None, options=None):
     """
     Create appropriate export object given the export type.
 
     param: export_type
+    params: username: logged in username
+    params: id_string: xform id_string
+    params: export_id: ID of export object associated with the request
     param: options: additional parameters required for the lookup.
         binary_select_multiples: boolean flag
         end: end offset
         ext: export extension type
-        export_id: ID of export object associated with the request
         dataview_pk: dataview pk
         group_delimiter: "/" or "."
-        id_string: xform id_string
         query: filter_query for custom queries
         remove_group_name: boolean flag
         split_select_multiples: boolean flag
-        username: logged in username
     """
     end = options.get("end")
     extension = options.get("extension", export_type)
     filter_query = options.get("query")
-    id_string = options.get("id_string")
     remove_group_name = options.get("remove_group_name", False)
     start = options.get("start")
-    username = options.get("username")
 
     export_type_func_map = {
         Export.XLS_EXPORT: 'to_xls_export',
@@ -841,8 +840,8 @@ def generate_export(export_type, options=None):
     dir_name, basename = os.path.split(export_filename)
 
     # get or create export object
-    if options.get("export_id"):
-        export = Export.objects.get(id=options.get("export_id"))
+    if export_id:
+        export = Export.objects.get(id=export_id)
     else:
         export_options = get_export_options(options)
         export = Export(
@@ -930,21 +929,19 @@ def increment_index_in_filename(filename):
     return new_filename
 
 
-def generate_attachments_zip_export(export_type, options):
+def generate_attachments_zip_export(
+        export_type, username, id_string, export_id=None, options=None):
     """
     Generates zip export of attachments.
 
     param: export_type
+    params: username: logged in username
+    params: id_string: xform id_string
+    params: export_id: ID of export object associated with the request
     param: options: additional parameters required for the lookup.
         ext: File extension of the generated export
-        username: logged in username
-        id_string: xform id_string
-        export_id: ID of export object associated with the request
     """
     extension = options.get("extension", export_type)
-    username = options.get("username")
-    id_string = options.get("id_string")
-    export_id = options.get("export_id")
 
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     attachments = Attachment.objects.filter(instance__xform=xform)
@@ -991,21 +988,19 @@ def generate_attachments_zip_export(export_type, options):
     return export
 
 
-def generate_kml_export(export_type, options):
+def generate_kml_export(
+        export_type, username, id_string, export_id=None, options=None):
     """
     Generates kml export for geographical data
 
     param: export_type
+    params: username: logged in username
+    params: id_string: xform id_string
+    params: export_id: ID of export object associated with the request
     param: options: additional parameters required for the lookup.
         ext: File extension of the generated export
-        username: logged in username
-        id_string: xform id_string
-        export_id: ID of export object associated with the request
     """
     extension = options.get("extension", export_type)
-    username = options.get("username")
-    id_string = options.get("id_string")
-    export_id = options.get("export_id")
 
     user = User.objects.get(username=username)
     xform = XForm.objects.get(user__username=username, id_string=id_string)
@@ -1095,22 +1090,20 @@ def kml_export_data(id_string, user):
     return data_for_template
 
 
-def generate_osm_export(export_type, options):
+def generate_osm_export(
+        export_type, username, id_string, export_id=None, options=None):
     """
     Generates osm export for OpenStreetMap data
 
     param: export_type
+    params: username: logged in username
+    params: id_string: xform id_string
+    params: export_id: ID of export object associated with the request
     param: options: additional parameters required for the lookup.
         ext: File extension of the generated export
-        username: logged in username
-        id_string: xform id_string
-        export_id: ID of export object associated with the request
     """
 
     extension = options.get("extension", export_type)
-    username = options.get("username")
-    id_string = options.get("id_string")
-    export_id = options.get("export_id")
 
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     attachments = Attachment.objects.filter(
@@ -1211,27 +1204,25 @@ def _get_server_from_metadata(xform, meta, token):
     return server, name
 
 
-def generate_external_export(export_type, options):
+def generate_external_export(
+        export_type, username, id_string, export_id=None, options=None):
     """
     Generates external export using ONA data through an external service.
 
     param: export_type
+    params: username: logged in username
+    params: id_string: xform id_string
+    params: export_id: ID of export object associated with the request
     param: options: additional parameters required for the lookup.
         data_id: instance id
-        export_id: ID of export object associated with the request
-        id_string: xform id_string
         query: filter_query for custom queries
         meta: metadata associated with external export
         token: authentication key required by external service
-        username: logged in username
     """
     data_id = options.get("data_id")
-    export_id = options.get("export_id")
     filter_query = options.get("query")
     meta = options.get("meta")
-    id_string = options.get("id_string")
     token = options.get("token")
-    username = options.get("username")
 
     xform = XForm.objects.get(
         user__username__iexact=username, id_string__iexact=id_string)
