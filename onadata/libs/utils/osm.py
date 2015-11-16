@@ -172,6 +172,8 @@ def save_osm_data(parsed_instance):
                         field_name = k
                         break
 
+                if field_name is None:
+                    continue
                 filename = osm.filename if filename is None else filename
                 osm_list = parse_osm(osm_xml, include_osm_id=True)
                 for osmd in osm_list:
