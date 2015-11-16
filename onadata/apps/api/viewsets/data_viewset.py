@@ -7,16 +7,13 @@ from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 
-from rest_framework import serializers
 from rest_framework import status
 from rest_framework.decorators import detail_route
 from rest_framework.generics import get_object_or_404
-from rest_framework.pagination import BasePaginationSerializer
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.settings import api_settings
-from rest_framework.utils.serializer_helpers import ReturnList
 
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.apps.api.tools import add_tags_to_instance
@@ -46,26 +43,10 @@ from onadata.libs.utils.viewer_tools import (
 from onadata.libs.data import parse_int
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
+from onadata.apps.api.tools import CustomPaginationSerializer
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 BaseViewset = get_baseviewset_class()
-
-
-class CustomPaginationSerializer(BasePaginationSerializer):
-    def to_representation(self, data):
-        ret = super(CustomPaginationSerializer, self).to_representation(data)
-        if 'results' in ret:
-            return ret['results']
-
-        return ret
-
-    @property
-    def data(self):
-        # hack: use Serializer class data
-
-        ret = super(serializers.Serializer, self).data
-
-        return ReturnList(ret, serializer=self)
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin,
