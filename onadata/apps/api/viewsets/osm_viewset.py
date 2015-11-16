@@ -101,6 +101,13 @@ The `.osm` file format concatenates all the files for a form or individual
 
         return super(OsmViewSet, self).get_serializer_class()
 
+    def filter_queryset(self, queryset):
+        pk = self.kwargs.get('pk')
+        if pk:
+            queryset = queryset.filter(pk=pk)
+
+        return super(OsmViewSet, self).filter_queryset(queryset)
+
     def get_object(self):
         obj = super(OsmViewSet, self).get_object()
         pk_lookup, dataid_lookup = self.lookup_fields
