@@ -5,6 +5,7 @@ from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
 from django.contrib.gis.geos import GeometryCollection
 from django.db import IntegrityError
+from django.db import models
 
 from lxml import etree
 
@@ -40,7 +41,8 @@ def get_combined_osm(osm_list):
     Combine osm xml form list of OsmData objects
     """
     xml = u""
-    if len(osm_list) and isinstance(osm_list, list):
+    if (len(osm_list) and isinstance(osm_list, list)) \
+            or isinstance(osm_list, models.QuerySet):
         osm = None
         for osm_data in osm_list:
             osm_xml = osm_data.xml

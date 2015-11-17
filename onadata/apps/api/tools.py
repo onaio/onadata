@@ -27,6 +27,7 @@ from taggit.forms import TagField
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
+from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
@@ -433,5 +434,9 @@ class CustomPaginationSerializer(BasePaginationSerializer):
         # hack: use Serializer class data
 
         ret = super(serializers.Serializer, self).data
+        fmt = self.context.get('format')
+        if fmt == Attachment.OSM:
+            if len(ret) == 1:
+                ret = ret[0]
 
         return ReturnList(ret, serializer=self)
