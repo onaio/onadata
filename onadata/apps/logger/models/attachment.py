@@ -26,6 +26,8 @@ class Attachment(models.Model):
     date_modified = models.DateTimeField(null=True, auto_now=True)
     deleted_at = models.DateTimeField(null=True, default=None)
 
+    file_size = models.PositiveIntegerField(default=0)
+
     class Meta:
         app_label = 'logger'
 
@@ -38,6 +40,11 @@ class Attachment(models.Model):
         if self.media_file and len(self.media_file.name) > 255:
             raise ValueError(
                 "Length of the media file should be less or equal to 255")
+
+        try:
+            self.file_size = self.media_file.size
+        except (OSError, AttributeError):
+            pass
 
         super(Attachment, self).save(*args, **kwargs)
 
