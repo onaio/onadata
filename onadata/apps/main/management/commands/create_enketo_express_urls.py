@@ -16,7 +16,7 @@ class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option(
             "-n", "--server_name", dest="server_name",
-            default="enketo.ona.io"),
+            default="api.ona.io"),
         make_option("-p", "--server_port", dest="server_port", default="443"),
         make_option("-r", "--protocol", dest="protocol", default="https"),
     )
@@ -31,7 +31,7 @@ class Command(BaseCommand):
             raise CommandError(
                 'please provide a server_name, a server_port and a protocol')
 
-        if server_name not in ['ona.io', 'stage.ona.io', 'localhost']:
+        if server_name not in ['api.ona.io', 'stage-api.ona.io', 'localhost']:
             raise CommandError('server name provided is not valid')
 
         if protocol not in ['http', 'https']:
