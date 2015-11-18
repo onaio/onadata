@@ -18,6 +18,7 @@ from rest_framework.settings import api_settings
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.apps.api.tools import add_tags_to_instance
 from onadata.apps.logger.models.attachment import Attachment
+from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.viewer.models.parsed_instance import ParsedInstance
@@ -319,7 +320,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         xform = self.get_object()
 
         if export_type == Attachment.OSM:
-            page = self.paginate_queryset(self.object_list)
+            osm_list = OsmData.objects.filter(instance__xform=xform)
+            page = self.paginate_queryset(osm_list)
             serializer = self.get_pagination_serializer(page)
 
             return Response(serializer.data)
