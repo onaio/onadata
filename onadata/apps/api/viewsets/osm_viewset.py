@@ -9,6 +9,7 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 
+from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
@@ -140,7 +141,14 @@ The `.osm` file format concatenates all the files for a form or individual
             return HttpResponsePermanentRedirect(
                 reverse(viewname, kwargs=kwargs, request=request))
 
-        return super(OsmViewSet, self).retrieve(request, *args, **kwargs)
+        instance = self.get_object()
+        if isinstance(instance, XForm):
+            osm_list = OsmData.objects.filter(instance__xform=instance)
+        else:
+            osm_list = OsmData.objects.filter(instance=instance)
+        serializer = self.get_serializer(osm_list, many=True)
+
+        return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
         fmt = kwargs.get('format', request.accepted_renderer.format)
@@ -150,7 +158,15 @@ The `.osm` file format concatenates all the files for a form or individual
                 return HttpResponsePermanentRedirect(
                     reverse('osm-list', kwargs={'pk': pk, 'format': 'osm'},
                             request=request))
-            return super(OsmViewSet, self).list(request, *args, **kwargs)
+            instance = self.filter_queryset(self.get_queryset())
+            osm_list = OsmData.objects.filter(instance__xform__in=instance)
+            page = self.paginate_queryset(osm_list)
+            if page is not None:
+                serializer = self.get_pagination_serializer(page)
+            else:
+                serializer = self.get_serializer(osm_list, many=True)
+
+            return Response(serializer.data)
 
         if fmt == 'osm':
             return HttpResponsePermanentRedirect(

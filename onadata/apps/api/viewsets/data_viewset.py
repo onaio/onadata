@@ -264,7 +264,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 return super(DataViewSet, self)\
                     .retrieve(request, *args, **kwargs)
             elif _format == Attachment.OSM:
-                serializer = self.get_serializer(instance)
+                serializer = self.get_serializer(instance.osm_data.all())
 
                 return Response(serializer.data)
             else:

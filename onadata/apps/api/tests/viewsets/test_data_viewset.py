@@ -1252,5 +1252,5 @@ class TestOSM(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             response.render()
             response1.render()
-            self.assertMultiLineEqual(response.content.strip(), osm.strip())
+            self.assertMultiLineEqual(response1.content.strip(), osm.strip())
             self.assertMultiLineEqual(response.content.strip(), osm.strip())
