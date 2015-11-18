@@ -72,7 +72,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 
     # start async export
     if export_type in export_types:
-        result = export_types[export_type].apply_async((), options)
+        result = export_types[export_type].apply_async((), kwargs=options)
     else:
         raise Export.ExportTypeError
 
