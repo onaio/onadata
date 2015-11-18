@@ -19,7 +19,10 @@ from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
 from json2xlsclient.client import Client
 
-from onadata.apps.logger.models import Attachment, Instance, XForm
+from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import OsmData
+from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
@@ -1106,11 +1109,8 @@ def generate_osm_export(
     extension = options.get("extension", export_type)
 
     xform = XForm.objects.get(user__username=username, id_string=id_string)
-    attachments = Attachment.objects.filter(
-        extension=Attachment.OSM,
-        instance__xform=xform
-    )
-    content = get_combined_osm([a.media_file for a in attachments])
+    osm_list = OsmData.objects.filter(instance__xform=xform)
+    content = get_combined_osm(osm_list)
 
     basename = "%s_%s" % (id_string,
                           datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))

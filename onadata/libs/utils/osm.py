@@ -5,49 +5,12 @@ from django.contrib.gis.geos import Point
 from django.contrib.gis.geos import Polygon
 from django.contrib.gis.geos import GeometryCollection
 from django.db import IntegrityError
+from django.db import models
 
 from lxml import etree
 
 from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.logger.models.attachment import Attachment
-
-
-def get_combined_osm(files):
-    """
-    Combines a list of osm files
-    :param files - list of osm file objects
-
-    :return string: osm xml string of the combined files
-    """
-    def _parse_osm_file(f):
-        try:
-            return etree.parse(f)
-        except:
-            return None
-
-    xml = u""
-    if len(files) and isinstance(files, list):
-        osm = None
-        for f in files:
-            _osm = _parse_osm_file(f)
-            if _osm is None:
-                continue
-
-            if osm is None:
-                osm = _osm
-                continue
-
-            for child in _osm.getroot().getchildren():
-                osm.getroot().append(child)
-
-        if osm:
-            xml = etree.tostring(osm, encoding='utf-8', xml_declaration=True)
-
-    elif isinstance(files, dict):
-        if 'detail' in files:
-            xml = u'<error>' + files['detail'] + '</error>'
-
-    return xml
 
 
 def _get_xml_obj(xml):
@@ -71,6 +34,37 @@ def _get_node(ref, root):
         point = Point(x, y)
 
     return point
+
+
+def get_combined_osm(osm_list):
+    """
+    Combine osm xml form list of OsmData objects
+    """
+    xml = u""
+    if (len(osm_list) and isinstance(osm_list, list)) \
+            or isinstance(osm_list, models.QuerySet):
+        osm = None
+        for osm_data in osm_list:
+            osm_xml = osm_data.xml
+            _osm = _get_xml_obj(osm_xml)
+            if _osm is None:
+                continue
+
+            if osm is None:
+                osm = _osm
+                continue
+
+            for child in _osm.getchildren():
+                osm.append(child)
+
+        if osm is not None:
+            xml = etree.tostring(osm, encoding='utf-8', xml_declaration=True)
+
+    elif isinstance(osm_list, dict):
+        if 'detail' in osm_list:
+            xml = u'<error>' + osm_list['detail'] + '</error>'
+
+    return xml
 
 
 def parse_osm_ways(osm_xml, include_osm_id=False):
@@ -172,6 +166,8 @@ def save_osm_data(parsed_instance):
                         field_name = k
                         break
 
+                if field_name is None:
+                    continue
                 filename = osm.filename if filename is None else filename
                 osm_list = parse_osm(osm_xml, include_osm_id=True)
                 for osmd in osm_list:

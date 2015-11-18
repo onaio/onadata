@@ -16,14 +16,18 @@ from django.http import HttpResponseNotFound
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.shortcuts import get_object_or_404
-from taggit.forms import TagField
-from rest_framework import exceptions
-from registration.models import RegistrationProfile
 from django.core.validators import ValidationError
+from registration.models import RegistrationProfile
+from rest_framework import exceptions
+from rest_framework import serializers
+from rest_framework.pagination import BasePaginationSerializer
+from rest_framework.utils.serializer_helpers import ReturnList
+from taggit.forms import TagField
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
+from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
@@ -415,3 +419,24 @@ def get_baseviewset_class():
     """
     return load_class(settings.BASE_VIEWSET) \
         if settings.BASE_VIEWSET else DefaultBaseViewset
+
+
+class CustomPaginationSerializer(BasePaginationSerializer):
+    def to_representation(self, data):
+        ret = super(CustomPaginationSerializer, self).to_representation(data)
+        if 'results' in ret:
+            return ret['results']
+
+        return ret
+
+    @property
+    def data(self):
+        # hack: use Serializer class data
+
+        ret = super(serializers.Serializer, self).data
+        fmt = self.context.get('format')
+        if fmt == Attachment.OSM:
+            if len(ret) == 1:
+                ret = ret[0]
+
+        return ReturnList(ret, serializer=self)

@@ -3,8 +3,9 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 from rest_framework.compat import OrderedDict
 from rest_framework.reverse import reverse
+from rest_framework.utils.serializer_helpers import ReturnList
 
-from onadata.apps.logger.models.attachment import Attachment
+from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.serializers.fields.json_field import JsonField
@@ -55,7 +56,19 @@ class SubmissionSerializer(serializers.Serializer):
         }
 
 
+class OSMListSerializer(serializers.ListSerializer):
+    @property
+    def data(self):
+        ret = super(serializers.ListSerializer, self).data
+        if len(ret) == 1:
+            ret = ret[0]
+        return ReturnList(ret, serializer=self)
+
+
 class OSMSerializer(serializers.Serializer):
+    class Meta:
+        list_serializer_class = OSMListSerializer
+
     def to_representation(self, obj):
         """
         Return a list of osm file objects from attachments.
@@ -63,13 +76,10 @@ class OSMSerializer(serializers.Serializer):
         if obj is None:
             return super(OSMSerializer, self).to_representation(obj)
 
-        attachments = Attachment.objects.filter(extension=Attachment.OSM)
-        if isinstance(obj, Instance):
-            attachments = attachments.filter(instance=obj)
-        elif isinstance(obj, XForm):
-            attachments = attachments.filter(instance__xform=obj)
+        if isinstance(obj, XForm):
+            return OsmData.objects.filter(instance__in=obj.instances.all())
 
-        return [a.media_file for a in attachments]
+        return obj.osm_data.all()
 
     @property
     def data(self):
