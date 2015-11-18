@@ -78,6 +78,8 @@ class OSMSerializer(serializers.Serializer):
 
         if isinstance(obj, XForm):
             return OsmData.objects.filter(instance__in=obj.instances.all())
+        elif isinstance(obj, OsmData):
+            return obj
 
         return obj.osm_data.all()
 

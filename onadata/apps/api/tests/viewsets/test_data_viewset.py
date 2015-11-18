@@ -1233,6 +1233,11 @@ class TestOSM(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
 
         # look at the data/[pk]/[dataid].osm endpoint
+        view = DataViewSet.as_view({'get': 'list'})
+        response1 = view(request, pk=formid, format='osm')
+        self.assertEqual(response1.status_code, 200)
+
+        # look at the data/[pk]/[dataid].osm endpoint
         view = DataViewSet.as_view({'get': 'retrieve'})
         response = view(request, pk=formid, dataid=dataid, format='osm')
         self.assertEqual(response.status_code, 200)
@@ -1246,4 +1251,6 @@ class TestOSM(TestAbstractViewSet):
             response = view(request, pk=formid, format='osm')
             self.assertEqual(response.status_code, 200)
             response.render()
+            response1.render()
+            self.assertMultiLineEqual(response.content.strip(), osm.strip())
             self.assertMultiLineEqual(response.content.strip(), osm.strip())
