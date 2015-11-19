@@ -49,7 +49,7 @@ var app; // sammy app
 var questions = {};
 var languages = [];
 // TODO: this re should only accept valid js variable names so numbers/letter/underscore
-var cleanRe = /[\[\]\/]/g; // regular expression used to clean names with slashes
+var cleanRe = /[\[\]( |\/)]/g; // regular expression used to clean names with slashes
 var cleanReplacement = '_';
 var positionTpl = "{% trans 'Record {pos} of {total}' %}";
 var numRecords = null;
