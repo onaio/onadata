@@ -307,3 +307,36 @@ class TestChartsViewSet(TestBase):
             {'cities': [u'Cape Town'], 'count': 2}
         ]
         self.assertEqual(expected, response.data['data'])
+
+    def test_deleted_submission_not_in_chart_endpoint(self):
+        data = {'field_name': 'gender'}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='html'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'select one')
+        self.assertEqual(response.data['field_name'], 'gender')
+        self.assertEqual(response.data['data_type'], 'categorized')
+        self.assertEqual(response.data['data'][0]['count'], 1)
+        self.assertEqual(response.data['data'][1]['count'], 2)
+
+        # soft delete one instance
+
+        inst = self.xform.instances.all()[0]
+        inst.deleted_at = timezone.now()
+        inst.save()
+
+        import ipdb
+        ipdb.set_trace()
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'select one')
+        self.assertEqual(response.data['field_name'], 'gender')
+        self.assertEqual(response.data['data_type'], 'categorized')
+        self.assertEqual(response.data['data'][1]['count'] +
+                         response.data['data'][0]['count'], 2)

@@ -24,6 +24,8 @@ def _dictfetchall(cursor):
 
 
 def _execute_query(query, to_dict=True):
+    import ipdb
+    ipdb.set_trace()
     cursor = connection.cursor()
     cursor.execute(query)
 
@@ -55,6 +57,7 @@ def _postgres_count_group(field, name, xform):
 
     return "SELECT %(json)s AS \"%(name)s\", COUNT(*) AS count FROM "\
            "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
+           " AND deleted_at IS NULL "\
            "GROUP BY %(json)s" % string_args
 
 
@@ -62,7 +65,8 @@ def _postgres_select_key(field, name, xform):
     string_args = _query_args(field, name, xform)
 
     return "SELECT %(json)s AS \"%(name)s\" FROM %(table)s WHERE "\
-           "%(restrict_field)s=%(restrict_value)s" % string_args
+           "%(restrict_field)s=%(restrict_value)s AND deleted_at IS NULL "\
+           % string_args
 
 
 def _query_args(field, name, xform):
