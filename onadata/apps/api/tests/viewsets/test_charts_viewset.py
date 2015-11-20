@@ -328,11 +328,14 @@ class TestChartsViewSet(TestBase):
         # soft delete one instance
 
         inst = self.xform.instances.all()[0]
-        inst.deleted_at = timezone.now()
-        inst.save()
+        inst.set_deleted(timezone.now())
 
-        import ipdb
-        ipdb.set_trace()
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='html'
+        )
+
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'select one')
