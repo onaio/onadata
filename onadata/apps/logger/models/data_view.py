@@ -255,8 +255,7 @@ class DataView(models.Model):
                                                                     count)]
         except Exception as e:
             # Not comfortable sending the sql error to the api
-            return {"error": _(u"Error retrieving the data."
-                               u" Check the query parameter")}
+            return {"error": _(e.message)}
 
         return records
 

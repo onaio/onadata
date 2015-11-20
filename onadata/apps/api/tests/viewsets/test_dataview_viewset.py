@@ -382,9 +382,10 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = self.view(request)
 
         self.assertEquals(response.status_code, 400)
-        self.assertEquals(response.data,
-                          {"detail": u"Error retrieving the data."
-                                     u" Check the query parameter"})
+        self.assertIn('detail', response.data)
+
+        self.assertTrue(str(response.data.get('detail'))
+                        .startswith("invalid input syntax for integer"))
 
     def test_dataview_invalid_columns(self):
         data = {
@@ -734,3 +735,55 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self._create_dataview(data)
         self.assertTrue(self.data_view.matches_parent)
+
+    def test_dataview_create_data_filter_invalid_date(self):
+        invalid_query = '[{"column":"_submission_time",' \
+                        '"filter":">","value":"30/06/2015"}]'
+        data = {
+            'name': "Transportation Dataview",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
+            'columns': '["name", "gender", "_submission_time"]',
+            'query': invalid_query
+        }
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+            'post': 'create',
+            'patch': 'partial_update'
+        })
+
+        request = self.factory.post('/', data=data, **self.extra)
+        response = view(request)
+
+        # Confirm you cannot create an invalid dataview
+        self.assertEquals(response.status_code, 400)
+
+    def test_dataview_update_data_filter_invalid_date(self):
+        invalid_query = '[{"column":"_submission_time",' \
+                        '"filter":">","value":"30/06/2015"}]'
+        self._create_dataview()
+
+        data = {'query': invalid_query}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+
+        # Confirm you cannot update an invalid dataview
+        self.assertEquals(response.status_code, 400)
+
+    def test_dataview_serializer_exception(self):
+        invalid_query = [
+            {"column": "_submission_time",
+             "filter": ">",
+             "value": "30/06/2015"}
+        ]
+        self._create_dataview()
+
+        self.data_view.query = invalid_query
+        self.data_view.save()
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+
+        self.assertEquals(response.status_code, 400)
