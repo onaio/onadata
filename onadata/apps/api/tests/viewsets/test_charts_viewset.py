@@ -318,12 +318,10 @@ class TestChartsViewSet(TestBase):
             format='html'
         )
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Cache-Control'), None)
-        self.assertEqual(response.data['field_type'], 'select one')
-        self.assertEqual(response.data['field_name'], 'gender')
-        self.assertEqual(response.data['data_type'], 'categorized')
-        self.assertEqual(response.data['data'][0]['count'], 1)
-        self.assertEqual(response.data['data'][1]['count'], 2)
+
+        total_records = response.data['data'][0]['count'] +\
+            response.data['data'][1]['count']
+        self.assertEqual(total_records, 3)
 
         # soft delete one instance
 
@@ -337,9 +335,7 @@ class TestChartsViewSet(TestBase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Cache-Control'), None)
-        self.assertEqual(response.data['field_type'], 'select one')
-        self.assertEqual(response.data['field_name'], 'gender')
-        self.assertEqual(response.data['data_type'], 'categorized')
-        self.assertEqual(response.data['data'][1]['count'] +
-                         response.data['data'][0]['count'], 2)
+
+        total_records = response.data['data'][0]['count'] +\
+            response.data['data'][1]['count']
+        self.assertEqual(total_records, 2)
