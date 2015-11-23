@@ -29,6 +29,10 @@ class ShareProject(object):
                 # apply same role to forms under the project
                 for xform in self.project.xform_set.all():
                     role.add(self.user, xform)
+
+                for dataview in self.project.dataview_set.all():
+                    role.add(self.user, dataview.xform)
+
         # clear cache
         safe_delete('{}{}'.format(PROJ_PERM_CACHE, self.project.pk))
 
