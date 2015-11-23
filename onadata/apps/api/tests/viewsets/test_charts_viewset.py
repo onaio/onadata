@@ -307,3 +307,35 @@ class TestChartsViewSet(TestBase):
             {'cities': [u'Cape Town'], 'count': 2}
         ]
         self.assertEqual(expected, response.data['data'])
+
+    def test_deleted_submission_not_in_chart_endpoint(self):
+        data = {'field_name': 'gender'}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='html'
+        )
+        self.assertEqual(response.status_code, 200)
+
+        total_records = response.data['data'][0]['count'] +\
+            response.data['data'][1]['count']
+        self.assertEqual(total_records, 3)
+
+        # soft delete one instance
+
+        inst = self.xform.instances.all()[0]
+        inst.set_deleted(timezone.now())
+
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='html'
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        total_records = response.data['data'][0]['count'] +\
+            response.data['data'][1]['count']
+        self.assertEqual(total_records, 2)
