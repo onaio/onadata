@@ -25,7 +25,6 @@ class Attachment(models.Model):
     date_created = models.DateTimeField(null=True, auto_now_add=True)
     date_modified = models.DateTimeField(null=True, auto_now=True)
     deleted_at = models.DateTimeField(null=True, default=None)
-
     file_size = models.PositiveIntegerField(default=0)
 
     class Meta:
