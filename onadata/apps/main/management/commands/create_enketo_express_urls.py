@@ -19,6 +19,8 @@ class Command(BaseCommand):
             default="api.ona.io"),
         make_option("-p", "--server_port", dest="server_port", default="80"),
         make_option("-r", "--protocol", dest="protocol", default="https"),
+        make_option("-u", "--username", dest="username", default=None),
+        make_option("-x", "--id_string", dest="id_string", default=None),
     )
 
     def handle(self, *args, **kwargs):
@@ -26,6 +28,8 @@ class Command(BaseCommand):
         server_name = kwargs.get('server_name')
         server_port = kwargs.get('server_port')
         protocol = kwargs.get('protocol')
+        username = kwargs.get('username')
+        id_string = kwargs.get('id_string')
 
         if not server_name or not server_port or not protocol:
             raise CommandError(
@@ -45,12 +49,51 @@ class Command(BaseCommand):
         request.META['SERVER_NAME'] = server_name
         request.META['SERVER_PORT'] = server_port
 
-        for xform in queryset_iterator(XForm.objects.all()):
-            username = xform.user.username
-            id_string = xform.id_string
+        if username and id_string:
             form_url = get_form_url(request, username, protocol=protocol)
-            _url = enketo_url(form_url, id_string)
-            _preview_url = get_enketo_preview_url(request, username, id_string)
-            self.stdout.write(
-                'enketo url: %s | preview url: %s' % (_url, _preview_url))
+            try:
+                xform = XForm.objects.get(
+                    user__username=username, id_string=id_string)
+                id_string = xform.id_string
+                _url = enketo_url(form_url, id_string)
+                _preview_url = get_enketo_preview_url(
+                    request, username, id_string)
+                self.stdout.write(
+                    'enketo url: %s | preview url: %s' %
+                    (_url, _preview_url))
+                self.stdout.write("enketo urls generation completed!!")
+            except XForm.DoesNotExist:
+                self.stdout.write(
+                    "No xform matching the provided username and id_string")
+        elif username and id_string is None:
+            form_url = get_form_url(request, username, protocol=protocol)
+            xforms = XForm.objects.filter(user__username=username)
+            num_of_xforms = xforms.count()
+            if xforms:
+                for xform in queryset_iterator(xforms):
+                    id_string = xform.id_string
+                    _url = enketo_url(form_url, id_string)
+                    _preview_url = get_enketo_preview_url(
+                        request, username, id_string)
+                    num_of_xforms -= 1
+                    self.stdout.write(
+                        'enketo url: %s | preview url: %s | remaining: %s' %
+                        (_url, _preview_url, num_of_xforms))
+                self.stdout.write("enketo urls generation completed!!")
+            else:
+                self.stdout.write("Username doesn't own any form")
+        else:
+            xforms = XForm.objects.all()
+            num_of_xforms = xforms.count()
+            for xform in queryset_iterator(xforms):
+                username = xform.user.username
+                id_string = xform.id_string
+                form_url = get_form_url(request, username, protocol=protocol)
+                _url = enketo_url(form_url, id_string)
+                _preview_url = get_enketo_preview_url(
+                    request, username, id_string)
+                num_of_xforms -= 1
+                self.stdout.write(
+                        'enketo url: %s | preview url: %s | remaining: %s' %
+                        (_url, _preview_url, num_of_xforms))
             self.stdout.write("enketo urls generation completed!!")
