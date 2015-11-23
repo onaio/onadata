@@ -94,6 +94,6 @@ class Command(BaseCommand):
                     request, username, id_string)
                 num_of_xforms -= 1
                 self.stdout.write(
-                        'enketo url: %s | preview url: %s | remaining: %s' %
-                        (_url, _preview_url, num_of_xforms))
+                    'enketo url: %s | preview url: %s | remaining: %s' %
+                    (_url, _preview_url, num_of_xforms))
             self.stdout.write("enketo urls generation completed!!")
