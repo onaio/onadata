@@ -114,5 +114,8 @@ class EnketoTokenAuthentication(TokenAuthentication):
             raise exceptions.AuthenticationFailed(_(u'Invalid token'))
         except KeyError:
             pass
+        except jwt.DecodeError:
+            raise exceptions.AuthenticationFailed(
+                _(u'JWT provided doesn\'t have enough segments'))
 
         return None
