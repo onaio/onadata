@@ -46,6 +46,8 @@ from onadata.libs.data import parse_int
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.apps.api.tools import CustomPaginationSerializer
+from onadata.libs.mixins.profiler_mixin import ProfilerMixin
+from onadata.libs.utils.profiler import profile
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 BaseViewset = get_baseviewset_class()
@@ -54,7 +56,7 @@ BaseViewset = get_baseviewset_class()
 class DataViewSet(AnonymousUserPublicFormsMixin,
                   AuthenticateHeaderMixin,
                   ETagsMixin, CacheControlMixin,
-                  TotalHeaderMixin,
+                  TotalHeaderMixin, ProfilerMixin,
                   BaseViewset,
                   ModelViewSet):
     """
@@ -279,6 +281,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                   {'data_id': data_id})
             )
 
+    @profile("get_data.prof")
     def list(self, request, *args, **kwargs):
         fields = request.GET.get("fields")
         query = request.GET.get("query", {})
