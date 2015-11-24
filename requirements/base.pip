@@ -82,6 +82,3 @@ django-query-builder==0.8.0
 # faster orederdict
 cyordereddict
 
-# faster json
-ujson
-

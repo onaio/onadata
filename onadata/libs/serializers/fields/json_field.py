@@ -1,4 +1,4 @@
-import ujson as json
+import json
 
 from rest_framework import serializers
 
