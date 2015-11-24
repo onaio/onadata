@@ -17,8 +17,14 @@ class ShareTeamProject(object):
         if role and self.team and self.project:
             role.add(self.team, self.project)
 
+            for xform in self.project.xform_set.all():
+                role.add(self.team, xform)
+
     def remove_team(self):
         role = ROLES.get(self.role)
 
         if role and self.team and self.project:
             role._remove_obj_permissions(self.team, self.project)
+
+            for xform in self.project.xform_set.all():
+                role._remove_obj_permissions(self.team, xform)
