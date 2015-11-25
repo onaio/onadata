@@ -44,3 +44,15 @@ class OsmData(models.Model):
             doc[self.field_name + ':' + k] = v
 
         return doc
+
+    def _set_centroid_in_tags(self):
+        self.tags = self.tags if isinstance(self.tags, dict) else {}
+        if self.geom is not None:
+            self.tags.update({
+                "ctr:lon": self.geom.centroid.x,
+                "ctr:lat": self.geom.centroid.y,
+            })
+
+    def save(self, *args, **kwargs):
+        self._set_centroid_in_tags()
+        super(OsmData, self).save(*args, **kwargs)
