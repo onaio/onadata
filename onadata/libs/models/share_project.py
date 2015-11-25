@@ -45,3 +45,6 @@ class ShareProject(object):
             # remove role from project forms as well
             for xform in self.project.xform_set.all():
                 role._remove_obj_permissions(self.user, xform)
+
+            for dataview in self.project.dataview_set.all():
+                role._remove_obj_permissions(self.user, dataview.xform)
