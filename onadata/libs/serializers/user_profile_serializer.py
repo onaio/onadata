@@ -200,6 +200,10 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                 u"username may only contain alpha-numeric characters and "
                 u"underscores"
             ))
+        elif len(username) < 3:
+            raise serializers.ValidationError(_(
+                u"Username must have 3 or more characters"
+            ))
         users = User.objects.filter(username=username)
         if self.instance:
             users = users.exclude(pk=self.instance.user.pk)
