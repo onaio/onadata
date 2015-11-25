@@ -1459,40 +1459,32 @@ class TestProjectViewSet(TestAbstractViewSet):
                 'metadata': {'description': 'Some description',
                              'location': 'Naivasha, Kenya',
                              'category': 'governance'},
-                'public': False
-                }
+                'public': False}
         self._project_create(data)
         project2 = self.project
-        data = {
-                'name': "My DataView",
+        data = {'name': "My DataView",
                 'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
                 'project':  'http://testserver/api/v1/projects/%s'
                             % project2.pk,
                 'columns': '["name", "age", "gender"]',
                 'query': '[{"column":"age","filter":">","value":"20"},'
-                         '{"column":"age","filter":"<","value":"50"}]'
-        }
+                         '{"column":"age","filter":"<","value":"50"}]'}
         self._create_dataview(data)
-
 
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(alice_data)
 
         view = ProjectViewSet.as_view({
-            'put': 'share'
-        })
+            'put': 'share'})
 
         data = {'username': 'alice', 'remove': True}
         for role_name, role_class in role.ROLES.iteritems():
 
             ShareProject(self.project, 'alice', role_name).save()
 
-            self.assertFalse(role_class.user_has_role(self.user,
-                                                      project1))
-            self.assertTrue(role_class.user_has_role(self.user,
-                                                      project2))
-            self.assertTrue(role_class.user_has_role(self.user,
-                                                     self.xform))
+            self.assertFalse(role_class.user_has_role(self.user, project1))
+            self.assertTrue(role_class.user_has_role(self.user, project2))
+            self.assertTrue(role_class.user_has_role(self.user, self.xform))
             data['role'] = role_name
 
             request = self.factory.put('/', data=data, **self.extra)
