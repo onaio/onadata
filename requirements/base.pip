@@ -79,6 +79,3 @@ sphinx==1.3.1
 # generic relation
 django-query-builder==0.8.0
 
-# faster orederdict
-cyordereddict
-
