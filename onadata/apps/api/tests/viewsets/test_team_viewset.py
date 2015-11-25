@@ -166,10 +166,7 @@ class TestTeamViewSet(TestAbstractViewSet):
 
     def test_team_share(self):
         self._team_create()
-        project = Project.objects.create(name="Test Project",
-                                         organization=self.team.organization,
-                                         created_by=self.user,
-                                         metadata='{}')
+        self._publish_xls_form_to_project()
         chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
         chuck_profile = self._create_user_profile(chuck_data)
         user_chuck = chuck_profile.user
@@ -183,23 +180,22 @@ class TestTeamViewSet(TestAbstractViewSet):
 
         for role_class in ROLES:
             self.assertFalse(role_class.user_has_role(user_chuck,
-                                                      project))
+                                                      self.project))
             data = {'role': role_class.name,
-                    'project': project.pk}
+                    'project': self.project.pk}
             request = self.factory.post(
                 '/', data=json.dumps(data),
                 content_type="application/json", **self.extra)
             response = view(request, pk=self.team.pk)
 
             self.assertEqual(response.status_code, 204)
-            self.assertTrue(role_class.user_has_role(user_chuck, project))
+
+            self.assertTrue(role_class.user_has_role(user_chuck, self.project))
+            self.assertTrue(role_class.user_has_role(user_chuck, self.xform))
 
     def test_remove_team_from_project(self):
         self._team_create()
-        project = Project.objects.create(name="Test Project",
-                                         organization=self.team.organization,
-                                         created_by=self.user,
-                                         metadata='{}')
+        self._publish_xls_form_to_project()
         chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
         chuck_profile = self._create_user_profile(chuck_data)
         user_chuck = chuck_profile.user
@@ -209,19 +205,19 @@ class TestTeamViewSet(TestAbstractViewSet):
             'post': 'share'})
 
         self.assertFalse(EditorRole.user_has_role(user_chuck,
-                                                  project))
+                                                  self.project))
         data = {'role': EditorRole.name,
-                'project': project.pk}
+                'project': self.project.pk}
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
         response = view(request, pk=self.team.pk)
 
         self.assertEqual(response.status_code, 204)
-        self.assertTrue(EditorRole.user_has_role(user_chuck, project))
+        self.assertTrue(EditorRole.user_has_role(user_chuck, self.project))
 
         data = {'role': EditorRole.name,
-                'project': project.pk,
+                'project': self.project.pk,
                 'remove': True}
 
         request = self.factory.post(
@@ -230,7 +226,8 @@ class TestTeamViewSet(TestAbstractViewSet):
         response = view(request, pk=self.team.pk)
 
         self.assertEqual(response.status_code, 204)
-        self.assertFalse(EditorRole.user_has_role(user_chuck, project))
+        self.assertFalse(EditorRole.user_has_role(user_chuck, self.project))
+        self.assertFalse(EditorRole.user_has_role(user_chuck, self.xform))
 
     def test_get_all_team(self):
         self._team_create()
