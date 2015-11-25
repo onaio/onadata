@@ -41,7 +41,9 @@ class Attachment(models.Model):
                 "Length of the media file should be less or equal to 255")
 
         try:
-            self.file_size = self.media_file.size
+            f_size = self.media_file.size
+            if f_size:
+                self.file_size = f_size
         except (OSError, AttributeError):
             pass
 
