@@ -1,7 +1,7 @@
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
-from cyordereddict import OrderedDict
+from rest_framework.compat import OrderedDict
 from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models.instance import Instance
