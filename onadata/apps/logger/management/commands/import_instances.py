@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-# vim: ai ts=4 sts=4 et sw=4 coding=utf-8
+# vim: ai ts=4 sts=4 et sw=5 coding=utf-8
 import os
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
 from django.utils.translation import ugettext as _, ugettext_lazy
 
-from onadata.libs.logger.import_tools import import_instances_from_zip,\
+from onadata.apps.logger.import_tools import import_instances_from_zip,\
     import_instances_from_path
 
 
@@ -46,7 +46,7 @@ class Command(BaseCommand):
                 subdirs.remove("odk")
                 self.stdout.write(_("Importing from dir %s..\n") % dir)
                 results = import_instances_from_path(dir, user)
-                self.log_import(results)
+                self._log_import(results)
             for file in files:
                 filepath = os.path.join(path, file)
                 if os.path.isfile(filepath) and\
@@ -54,4 +54,4 @@ class Command(BaseCommand):
                     self.stdout.write(_(
                         "Importing from zip at %s..\n") % filepath)
                     results = import_instances_from_zip(filepath, user)
-                    self.log_import(results)
+                    self._log_import(results)
