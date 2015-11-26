@@ -42,7 +42,8 @@ def django_file(path, field_name, content_type):
     )
 
 
-def iterate_through_instances(dirpath, callback, user, status, is_async=False):
+def iterate_through_instances(dirpath, callback, user=None, status='zip',
+                              is_async=False):
     total_file_count = 0
     success_count = 0
     errors = []
@@ -52,7 +53,7 @@ def iterate_through_instances(dirpath, callback, user, status, is_async=False):
             filepath = os.path.join(directory, filename)
             if XFormInstanceFS.is_valid_instance(filepath):
                 xfxs = XFormInstanceFS(filepath)
-                if is_async:
+                if is_async and user is not None:
                     callback.apply_async((
                         user.username, xfxs.path, xfxs.photos, xfxs.osm, status
                     ), queue='instances')
@@ -116,7 +117,12 @@ def import_instances_from_path(path, user, status="zip", is_async=False):
         from onadata.apps.logger.tasks import import_instance_async
 
         total_count, success_count, errors = iterate_through_instances(
-            path, import_instance_async, user, status, is_async)
+            path,
+            import_instance_async,
+            user=user,
+            status=status,
+            is_async=is_async
+        )
     else:
         total_count, success_count, errors = iterate_through_instances(
             path, callback
