@@ -28,6 +28,9 @@ class Command(BaseCommand):
             raise CommandError(_("Usage: <command> username file/path."))
         username = args[0]
         path = args[1]
+        is_async = args[2] if len(args) > 2 else False
+        is_async = True if isinstance(is_async, basestring) and \
+            is_async.lower() == 'true' else False
         try:
             user = User.objects.get(username=username)
         except User.DoesNotExist:
@@ -45,7 +48,9 @@ class Command(BaseCommand):
                 # dont walk further down this dir
                 subdirs.remove("odk")
                 self.stdout.write(_("Importing from dir %s..\n") % dir)
-                results = import_instances_from_path(dir, user)
+                results = import_instances_from_path(
+                    dir, user, is_async=is_async
+                )
                 self._log_import(results)
             for file in files:
                 filepath = os.path.join(path, file)
