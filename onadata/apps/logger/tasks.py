@@ -4,7 +4,7 @@ from onadata.apps.logger.import_tools import django_file
 from onadata.libs.utils.logger_tools import create_instance
 
 
-@task
+@task(ignore_result=True)
 def import_instance_async(username, xform_path, photos, osm_files, status):
     """
     This callback is passed an instance of a XFormInstanceFS.
@@ -19,16 +19,10 @@ def import_instance_async(username, xform_path, photos, osm_files, status):
                         content_type='text/xml')
             for osm in osm_files
         ]
-        # TODO: if an instance has been submitted make sure all the
-        # files are in the database.
-        # there shouldn't be any instances with a submitted status in the
-        # import.
-        instance = create_instance(username, xml_file, images, status)
+        try:
+            create_instance(username, xml_file, images, status)
+        except:
+            pass
 
         for i in images:
             i.close()
-
-        if instance:
-            return 1
-        else:
-            return 0
