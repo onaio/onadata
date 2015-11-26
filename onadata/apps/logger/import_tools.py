@@ -83,7 +83,7 @@ def import_instances_from_zip(zipfile_path, user, status="zip"):
         shutil.rmtree(temp_directory)
 
 
-def import_instances_from_path(path, user, status="zip"):
+def import_instances_from_path(path, user, status="zip", is_async=False):
     def callback(xform_fs):
         """
         This callback is passed an instance of a XFormInstanceFS.
@@ -112,44 +112,14 @@ def import_instances_from_path(path, user, status="zip"):
             else:
                 return 0
 
-    from onadata.apps.logger.tasks import import_instance_async
+    if is_async:
+        from onadata.apps.logger.tasks import import_instance_async
 
-    total_count, success_count, errors = iterate_through_instances(
-        path, import_instance_async, user, status, is_async=True)
-
-    return (total_count, success_count, errors)
-
-
-def import_osm_instances_from_path(path, user, status="zip"):
-    def callback(xform_fs):
-        """
-        This callback is passed an instance of a XFormInstanceFS.
-        See xform_fs.py for more info.
-        """
-        with django_file(xform_fs.path, field_name="xml_file",
-                         content_type="text/xml") as xml_file:
-            images = [django_file(jpg, field_name="image",
-                      content_type="image/jpeg") for jpg in xform_fs.photos]
-            images += [
-                django_file(osm, field_name='image',
-                            content_type='text/xml')
-                for osm in xform_fs.osm
-            ]
-            # TODO: if an instance has been submitted make sure all the
-            # files are in the database.
-            # there shouldn't be any instances with a submitted status in the
-            # import.
-            instance = create_instance(user.username, xml_file, images, status)
-
-            for i in images:
-                i.close()
-
-            if instance:
-                return 1
-            else:
-                return 0
-
-    total_count, success_count, errors = iterate_through_instances(
-        path, callback)
+        total_count, success_count, errors = iterate_through_instances(
+            path, import_instance_async, user, status, is_async)
+    else:
+        total_count, success_count, errors = iterate_through_instances(
+            path, callback
+        )
 
     return (total_count, success_count, errors)
