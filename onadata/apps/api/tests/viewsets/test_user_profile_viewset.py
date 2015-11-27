@@ -129,6 +129,22 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertTrue(user.is_active)
         self.assertTrue(user.check_password(password), password)
 
+    def test_profile_create_with_invalid_username(self):
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        data = _profile_data()
+        data['username'] = u'de'
+        del data['name']
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data.get('username'),
+            [u'Ensure this field has no more than 3 characters.'])
+
     def test_profile_create_anon(self):
         data = _profile_data()
         request = self.factory.post(
