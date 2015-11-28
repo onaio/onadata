@@ -57,6 +57,14 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
             'X-OpenRosa-Accept-Content-Length': DEFAULT_CONTENT_LENGTH
         }
 
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        filter_kwargs = {self.lookup_field: self.kwargs[self.lookup_field]}
+        obj = get_object_or_404(queryset or XForm, **filter_kwargs)
+        self.check_object_permissions(self.request, obj)
+
+        return obj
+
     def get_renderers(self):
         if self.action and self.action == 'manifest':
             return [XFormManifestRenderer()]
@@ -69,6 +77,7 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
             # raises a permission denied exception, forces authentication
             self.permission_denied(self.request)
 
+        profile = None
         if username is not None:
             profile = get_object_or_404(
                 UserProfile, user__username=username.lower())
@@ -81,6 +90,16 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
 
         if not self.request.user.is_anonymous():
             queryset = super(XFormListViewSet, self).filter_queryset(queryset)
+
+            if self.action == 'list' and profile:
+                user = profile.user
+                xfs = user.xformuserobjectpermission_set.all()
+                shared_forms_pks = list(
+                    set([xf.content_object.pk for xf in xfs]))
+                forms_shared_with_user = XForm.objects.filter(
+                    pk__in=shared_forms_pks).exclude(
+                    user=user).select_related('user')
+                queryset = queryset | forms_shared_with_user
 
         return queryset
 
