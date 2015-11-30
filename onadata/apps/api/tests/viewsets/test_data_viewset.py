@@ -3,6 +3,7 @@ import json
 import os
 import requests
 
+from datetime import timedelta
 from django.utils import timezone
 from django.test import RequestFactory
 from django_digest.test import DigestAuth
@@ -439,6 +440,28 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+
+        # reorder date submitted
+        start_time = timezone.now()
+        curr_time = start_time
+        for inst in self.xform.instances.all():
+            inst.date_created = curr_time
+            inst.json = instance.get_full_dict()
+            inst.save()
+            inst.parsed_instance.save()
+            curr_time += timedelta(days=1)
+
+        first_datetime = start_time.strftime(MONGO_STRFTIME)
+        second_datetime = instance.date_created + timedelta(days=2)
+        query_str = '{"@initial#_submission_time": {"$gte": "'\
+                    + first_datetime + '"}, "@final#_submission_time":'' \
+                    ''{"$lte": "' + second_datetime.strftime(MONGO_STRFTIME) \
+                    + '"}}'
+
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
 
         query_str = '{"_id: "%s"}' % dataid
         request = self.factory.get('/?query=%s' % query_str, **self.extra)

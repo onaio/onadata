@@ -211,8 +211,9 @@ class ParsedInstance(models.Model):
                 # where = [u"json->>%s = %s" for i in query.items()] + or_where
                 for k, v in query.items():
                     if isinstance(v, dict):
-                        if k == '_submission_time2':
-                            k = '_submission_time'
+                        key = re.search("^@\w+#(.*)$", k)
+                        if key:
+                            k = key.group(1)
                         json_str = _json_sql_str(
                             k, known_integers, known_dates)
                         _v = None
