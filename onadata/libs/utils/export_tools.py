@@ -1327,7 +1327,7 @@ def parse_request_export_options(request):
     if remove_group_name in boolean_list:
         options["remove_group_name"] = str_to_bool(remove_group_name)
     else:
-        options["remove_group_name"] = str_to_bool('false')
+        options["remove_group_name"] = False
 
     if params.get("group_delimiter") in ['.', DEFAULT_GROUP_DELIMITER]:
         options['group_delimiter'] = params.get("group_delimiter")
