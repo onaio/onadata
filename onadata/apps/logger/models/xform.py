@@ -155,6 +155,9 @@ class XForm(BaseModel):
             self.xml = title_pattern.sub(
                 u"<h:title>%s</h:title>" % title_xml, self.xml)
 
+        if '&' in title_xml:
+            raise XLSFormError(_("Title shouldn't have an ampersand"))
+
         self.title = title_xml
 
     def _set_encrypted_field(self):
