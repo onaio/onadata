@@ -1191,6 +1191,18 @@ class TestXFormViewSet(TestAbstractViewSet):
                 ' and contain no spaces.'
             self.assertEqual(response.data.get('text'), error_msg)
 
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation_ampersand_in_title.xls")
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.get('Cache-Control'), None)
+            error_msg = u"Title shouldn't have an ampersand"
+            self.assertEqual(response.data.get('text'), error_msg)
+
     def test_publish_invalid_xls_form_no_choices(self):
         view = XFormViewSet.as_view({
             'post': 'create'
