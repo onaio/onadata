@@ -248,8 +248,8 @@ class ParsedInstance(models.Model):
                     query.startswith('{'):
                 raise e
 
-            where = [u"json::text like %s"]
-            where_params = ["%%{}%%".format(query)]
+            where = [u"json::text ~* %s"]
+            where_params = [query]
 
         return where, where_params
 
