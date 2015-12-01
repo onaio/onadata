@@ -209,38 +209,36 @@ class ParsedInstance(models.Model):
                     or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
 
                 # where = [u"json->>%s = %s" for i in query.items()] + or_where
-                for k, v in query.items():
-                    if isinstance(v, dict):
-                        key = re.search("^@\w+#(.*)$", k)
-                        if key:
-                            k = key.group(1)
+                for field_key, field_value in query.iteritems():
+                    if isinstance(field_value, dict):
                         json_str = _json_sql_str(
-                            k, known_integers, known_dates)
-                        _v = None
-                        if '$gt' in v:
-                            where.append(u"{} > %s".format(json_str))
-                            _v = v.get('$gt')
-                        if '$gte' in v:
-                            where.append(u"{} >= %s".format(json_str))
-                            _v = v.get('$gte')
-                        if '$lt' in v:
-                            where.append(u"{} < %s".format(json_str))
-                            _v = v.get('$lt')
-                        if '$lte' in v:
-                            where.append(u"{} <= %s".format(json_str))
-                            _v = v.get('$lte')
-                        if '$i' in v:
-                            where.append(u"{} ~* %s".format(json_str))
-                            _v = v.get('$i')
-                        if _v is None:
-                            _v = v
-                        if k in known_dates:
-                            _v = datetime.datetime.strptime(
-                                _v[:19], MONGO_STRFTIME)
-                        where_params.extend((k, unicode(_v)))
+                            field_key, known_integers, known_dates)
+                        for key, value in field_value.iteritems():
+                            _v = None
+                            if '$gt' == key:
+                                where.append(u"{} > %s".format(json_str))
+                                _v = value
+                            if '$gte' == key:
+                                where.append(u"{} >= %s".format(json_str))
+                                _v = value
+                            if '$lt' == key:
+                                where.append(u"{} < %s".format(json_str))
+                                _v = value
+                            if '$lte' == key:
+                                where.append(u"{} <= %s".format(json_str))
+                                _v = value
+                            if '$i' == key:
+                                where.append(u"{} ~* %s".format(json_str))
+                                _v = value.get('$i')
+                            if _v is None:
+                                _v = value
+                            if field_key in known_dates:
+                                _v = datetime.datetime.strptime(
+                                    _v[:19], MONGO_STRFTIME)
+                            where_params.extend((field_key, unicode(_v)))
                     else:
                         where.append(u"json->>%s = %s")
-                        where_params.extend((k, unicode(v)))
+                        where_params.extend((field_key, unicode(field_value)))
                 where += or_where
                 # [where_params.extend(
                 #    (k, unicode(v))) for k, v in query.items()]
