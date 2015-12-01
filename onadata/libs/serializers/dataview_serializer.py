@@ -102,10 +102,18 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
         return False
 
     def get_matches_parent(self, obj):
-        # Get the parent xform data dictionary
-        dd = obj.xform.data_dictionary()
-        xform_columns = dd.get_mongo_field_names_dict().keys()
-        xform_columns.remove(obj.xform.id_string)
-        dataview_columns = obj.columns
-        # compare if the columns in the dataview match with parent
-        return set(xform_columns) == set(dataview_columns)
+        if obj:
+            # Get the parent xform data dictionary
+            dd = obj.xform.data_dictionary()
+            xform_columns = dd.get_mongo_field_names_dict().keys()
+            xform_columns.remove(obj.xform.id_string)
+            dataview_columns = obj.columns
+            # compare if the columns in the dataview match with parent
+            matches_parent = set(xform_columns) == set(dataview_columns)
+
+            if obj.matches_parent != matches_parent:
+                obj.matches_parent = matches_parent
+                obj.save()
+            return obj.matches_parent
+
+        return False
