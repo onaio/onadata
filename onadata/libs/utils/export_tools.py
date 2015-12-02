@@ -856,7 +856,7 @@ def generate_export(
     # do not persist exports that have a filter
 
     # if we should create a new export is true, we should not save it
-    if not filter_query and start is None and end is None:
+    if start is None and end is None:
         export.save()
     return export
 

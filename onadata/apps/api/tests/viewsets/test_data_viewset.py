@@ -2,6 +2,7 @@ import geojson
 import json
 import os
 import requests
+import datetime
 
 from datetime import timedelta
 from django.utils import timezone
@@ -442,7 +443,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(len(response.data), 4)
 
         # reorder date submitted
-        start_time = timezone.now()
+        start_time = datetime.datetime(2015, 12, 2)
         curr_time = start_time
         for inst in self.xform.instances.all():
             inst.date_created = curr_time
@@ -452,7 +453,8 @@ class TestDataViewSet(TestBase):
             curr_time += timedelta(days=1)
 
         first_datetime = start_time.strftime(MONGO_STRFTIME)
-        second_datetime = instance.date_created + timedelta(days=2)
+        second_datetime = start_time + timedelta(days=1, hours=20)
+
         query_str = '{"_submission_time": {"$gte": "'\
                     + first_datetime + '", "$lte": "'\
                     + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
