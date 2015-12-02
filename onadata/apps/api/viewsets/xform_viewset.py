@@ -33,7 +33,7 @@ from rest_framework.authtoken.models import Token
 
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
-from onadata.libs import filters
+from onadata.libs import filters, authentication
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
 from onadata.libs.mixins.authenticate_header_mixin import \
@@ -140,22 +140,26 @@ def get_survey_xml(csv_name):
     return survey.to_xml()
 
 
-def set_enketo_signed_cookies(resp, username=None, jwt=None):
-    if not username and not jwt:
+def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
+    if not username and not json_web_token:
         return
 
     max_age = 30 * 24 * 60 * 60 * 1000
-    resp.set_signed_cookie('__enketo_meta_uid',
-                           username,
-                           max_age=max_age,
-                           domain='.ona.io',
-                           salt=settings.ENKETO_API_SALT)
-    resp.set_signed_cookie('__enketo',
-                           jwt,
-                           httponly=True,
-                           secure=False,
-                           domain='.ona.io',
-                           salt=settings.ENKETO_API_SALT)
+
+    __enketo_meta_uid = {'max_age': max_age, 'salt': settings.ENKETO_API_SALT}
+    __enketo = {'httponly':  True,
+                'secure': False,
+                'salt': settings.ENKETO_API_SALT}
+
+    # add domain attribute if ENKETO_AUTH_COOKIE_DOMAIN is set in settings
+    # i.e. don't add in development environment because cookie automatically
+    # assigns 'localhost' as domain
+    if getattr(settings, 'ENKETO_AUTH_COOKIE_DOMAIN', None):
+        __enketo_meta_uid['domain'] = settings.ENKETO_AUTH_COOKIE_DOMAIN
+        __enketo['domain'] = settings.ENKETO_AUTH_COOKIE_DOMAIN
+
+    resp.set_signed_cookie('__enketo_meta_uid', username, **__enketo_meta_uid)
+    resp.set_signed_cookie('__enketo', json_web_token, **__enketo)
 
     return resp
 
@@ -195,21 +199,14 @@ def parse_webform_return_url(return_url, request):
     # enketo calls to authenticate the user
     if jwt_param:
         if request.user.is_anonymous():
-            try:
-                jwt_payload = jwt.decode(jwt_param,
-                                         settings.JWT_SECRET_KEY,
-                                         algorithms=[settings.JWT_ALGORITHM])
-            except jwt.DecodeError, e:
-                return Response({'message': e.message},
-                                status=status.HTTP_400_BAD_REQUEST)
-            api_token = get_object_or_404(
-                Token, key=jwt_payload.get(API_TOKEN))
-            username = api_token.user.username
+            api_token = authentication.get_api_token(jwt_param)
+            if getattr(api_token, 'user'):
+                username = api_token.user.username
         else:
             username = request.user.username
 
         response_redirect = set_enketo_signed_cookies(
-            response_redirect, username=username, jwt=jwt_param)
+            response_redirect, username=username, json_web_token=jwt_param)
 
         return response_redirect
 
