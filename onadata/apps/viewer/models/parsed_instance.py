@@ -129,7 +129,7 @@ def _json_order_by_params(sort_list):
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
-    _json_str = u"json->%s"
+    _json_str = u"json->>%s"
 
     if key in known_integers:
         _json_str = u"CAST(json->>%s AS INT)"
@@ -226,6 +226,9 @@ class ParsedInstance(models.Model):
                         if '$lte' in v:
                             where.append(u"{} <= %s".format(json_str))
                             _v = v.get('$lte')
+                        if '$i' in v:
+                            where.append(u"{} ~* %s".format(json_str))
+                            _v = v.get('$i')
                         if _v is None:
                             _v = v
                         if k in known_dates:
@@ -245,8 +248,8 @@ class ParsedInstance(models.Model):
                     query.startswith('{'):
                 raise e
 
-            where = [u"json::text like %s"]
-            where_params = ["%%{}%%".format(query)]
+            where = [u"json::text ~* %s"]
+            where_params = [query]
 
         return where, where_params
 

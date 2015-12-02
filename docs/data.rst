@@ -268,6 +268,52 @@ Query submitted data of a specific form
 ----------------------------------------
 Use the `query` parameter to pass in a JSON key/value query.
 
+Example I
+^^^^^^^
+Query submissions where name is `tom`
+
+::
+
+    curl -X GET https://ona.io/api/v1/data/22845?query={"name":"tom"}
+
+Example II
+^^^^^^^
+Query submissions where age is greater than 21
+
+::
+
+    curl -X GET https://ona.io/api/v1/data/22845?query={"age":{"$gt":"21"}}
+
+Example III
+^^^^^^^
+Query submissions where age is less than or equal to 21
+
+::
+
+    curl -X GET https://ona.io/api/v1/data/22845?query={"age":{"$lte":"21"}}
+
+Example IV
+^^^^^^^
+Query submissions with case insensitive and partial search
+
+::
+
+    curl -X GET https://ona.io/api/v1/data/22845?query={"name":{"$i":"hosee"}}
+
+
+All Filters Options
+
+========  ===================================
+Filter    Description
+========  ===================================
+**$gt**   Greater than
+**$gte**  Greater than or Equal to
+**$lt**   Less than
+**$lte**  Less or Equal to
+**$i**    Case insensitive or partial search
+========  ===================================
+
+
 Query submitted data of a specific form using Tags
 --------------------------------------------------
 Provides a list of json submitted data for a specific data/form matching specific

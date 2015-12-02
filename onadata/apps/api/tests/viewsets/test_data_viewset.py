@@ -447,6 +447,13 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.data.get('detail'),
                          u"Expecting ':' delimiter: line 1 column 9 (char 8)")
 
+        query_str = '{"transport/available_transportation' \
+                    '_types_to_referral_facility": {"$i": "%s"}}' % "ambula"
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
     def test_anon_data_list(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
