@@ -86,7 +86,7 @@ def write_to_csv(path, rows, columns, remove_group_name=False):
         # Check if to truncate the group name prefix
         if remove_group_name:
             new_column = [col.split('/')[-1:][0]
-                         if '/' in col else col for col in columns]
+                          if '/' in col else col for col in columns]
             writer.writerow(new_column)
         else:
             writer.writerow(columns)
