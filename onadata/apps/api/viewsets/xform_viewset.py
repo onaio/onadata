@@ -1,7 +1,6 @@
 import os
 import random
 
-import jwt
 from urlparse import urlparse
 from datetime import datetime
 
@@ -17,7 +16,6 @@ from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
 from django.db import IntegrityError
-from django.shortcuts import get_object_or_404
 
 from pyxform.xls2json import parse_file_to_json
 from pyxform.builder import create_survey_element_from_dict
@@ -29,7 +27,6 @@ from rest_framework.settings import api_settings
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.filters import DjangoFilterBackend
-from rest_framework.authtoken.models import Token
 
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
@@ -56,7 +53,6 @@ from onadata.libs.utils.viewer_tools import (
     generate_enketo_form_defaults)
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.string import str2bool
-from onadata.libs.utils.common_tags import API_TOKEN
 
 from onadata.libs.utils.csv_import import get_async_csv_submission_status
 from onadata.libs.utils.csv_import import submit_csv
