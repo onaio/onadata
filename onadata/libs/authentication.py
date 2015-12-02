@@ -41,8 +41,6 @@ def get_api_token(json_web_token):
         return api_token
     except BadSignature as e:
         raise exceptions.AuthenticationFailed(_(u'Bad Signature: %s' % e))
-    except KeyError:
-        pass
     except jwt.DecodeError:
         raise exceptions.AuthenticationFailed(
             _(u'JWT provided doesn\'t have enough segments'))
@@ -116,14 +114,16 @@ class EnketoTokenAuthentication(TokenAuthentication):
     model = Token
 
     def authenticate(self, request):
-        cookie_jwt = request.get_signed_cookie(
-            '__enketo', salt=settings.ENKETO_API_SALT)
         try:
+            cookie_jwt = request.get_signed_cookie(
+                '__enketo', salt=settings.ENKETO_API_SALT)
             api_token = get_api_token(cookie_jwt)
 
             if getattr(api_token, 'user'):
                 return api_token.user, api_token
         except self.model.DoesNotExist:
             raise exceptions.AuthenticationFailed(_(u'Invalid token'))
+        except KeyError:
+            pass
 
         return None
