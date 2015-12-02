@@ -11,7 +11,8 @@ from pyxform.question import Question
 from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.viewer.models.parsed_instance import (
+    ParsedInstance, query_data)
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP,\
@@ -226,7 +227,7 @@ class AbstractDataFrameBuilder(object):
     def _query_data(self, query='{}', start=0,
                     limit=ParsedInstance.DEFAULT_LIMIT,
                     fields='[]', count=False):
-        # ParsedInstance.query_mongo takes params as json strings
+        # query_data takes params as json strings
         # so we dumps the fields dictionary
         count_args = {
             'xform': self.xform,
@@ -237,7 +238,7 @@ class AbstractDataFrameBuilder(object):
             'sort': '{}',
             'count': True
         }
-        count_object = list(ParsedInstance.query_data(**count_args))
+        count_object = list(query_data(**count_args))
         record_count = count_object[0]["count"]
         if record_count < 1:
             raise NoRecordsFoundError("No records found for your query")
@@ -258,8 +259,7 @@ class AbstractDataFrameBuilder(object):
                 'limit': limit,
                 'count': False
             }
-            # use ParsedInstance.query_mongo
-            cursor = ParsedInstance.query_data(**query_args)
+            cursor = query_data(**query_args)
             return cursor
 
 

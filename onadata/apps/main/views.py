@@ -39,7 +39,7 @@ from onadata.apps.logger.views import enter_data
 from onadata.apps.viewer.models.data_dictionary import DataDictionary,\
     upload_to
 from onadata.apps.viewer.models.parsed_instance import\
-    DATETIME_FORMAT, ParsedInstance
+    DATETIME_FORMAT, query_data
 from onadata.apps.viewer.views import attachment_url
 from onadata.apps.sms_support.tools import check_form_sms_compatibility,\
     is_sms_related
@@ -479,7 +479,7 @@ def api(request, username=None, id_string=None):
             count_args = args.copy()
             count_args['count'] = True
             count_results = [
-                i for i in ParsedInstance.query_data(**count_args)
+                i for i in query_data(**count_args)
             ]
             total_records = count_results[0].get('count', total_records)\
                 if len(count_results) else total_records
@@ -491,7 +491,7 @@ def api(request, username=None, id_string=None):
             args["count"] = True if int(request.GET.get('count')) > 0\
                 else False
 
-        cursor = ParsedInstance.query_data(**args)
+        cursor = query_data(**args)
     except ValueError as e:
         return HttpResponseBadRequest(e.__str__())
 
