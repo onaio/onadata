@@ -18,6 +18,9 @@ DATABASES = {
 
 SECRET_KEY = 'mlfs33^s1l4xf6a36$0#j%dd*sisfoi&)&4s-v=91#^l01v)*j'
 
+JWT_SECRET_KEY = 'thesecretkey'
+JWT_ALGORITHM = 'HS256'
+
 if len(sys.argv) >= 2 and (sys.argv[1] == "test" or sys.argv[1] == "test_all"):
     # This trick works only when we run tests from the command line.
     TESTING_MODE = True
