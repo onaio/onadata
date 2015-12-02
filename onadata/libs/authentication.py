@@ -30,6 +30,24 @@ def expired(time_token_created):
     return True if time_diff > token_expiry_time else False
 
 
+def get_api_token(json_web_token):
+    try:
+        jwt_payload = jwt.decode(json_web_token,
+                                 settings.JWT_SECRET_KEY,
+                                 algorithms=[settings.JWT_ALGORITHM])
+        api_token = get_object_or_404(
+            Token, key=jwt_payload.get(API_TOKEN))
+
+        return api_token
+    except BadSignature as e:
+        raise exceptions.AuthenticationFailed(_(u'Bad Signature: %s' % e))
+    except KeyError:
+        pass
+    except jwt.DecodeError:
+        raise exceptions.AuthenticationFailed(
+            _(u'JWT provided doesn\'t have enough segments'))
+
+
 class DigestAuthentication(BaseAuthentication):
 
     def __init__(self):
@@ -98,24 +116,14 @@ class EnketoTokenAuthentication(TokenAuthentication):
     model = Token
 
     def authenticate(self, request):
+        cookie_jwt = request.get_signed_cookie(
+            '__enketo', salt=settings.ENKETO_API_SALT)
         try:
-            _jwt = request.get_signed_cookie(
-                '__enketo', salt=settings.ENKETO_API_SALT)
-            jwt_payload = jwt.decode(_jwt,
-                                     settings.JWT_SECRET_KEY,
-                                     algorithms=[settings.JWT_ALGORITHM])
-            api_token = get_object_or_404(
-                Token, key=jwt_payload.get(API_TOKEN))
+            api_token = get_api_token(cookie_jwt)
 
-            return api_token.user, api_token
-        except BadSignature as e:
-            raise exceptions.AuthenticationFailed(_(u'Bad Signature: %s' % e))
+            if getattr(api_token, 'user'):
+                return api_token.user, api_token
         except self.model.DoesNotExist:
             raise exceptions.AuthenticationFailed(_(u'Invalid token'))
-        except KeyError:
-            pass
-        except jwt.DecodeError:
-            raise exceptions.AuthenticationFailed(
-                _(u'JWT provided doesn\'t have enough segments'))
 
         return None
