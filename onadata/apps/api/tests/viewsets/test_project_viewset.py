@@ -1463,20 +1463,25 @@ class TestProjectViewSet(TestAbstractViewSet):
                 'public': False}
         self._project_create(data)
         project2 = self.project
+
+        dd = self.xform.data_dictionary()
+        xform_columns = dd.get_mongo_field_names_dict().keys()
+        if self.xform.id_string in xform_columns:
+            xform_columns.remove(self.xform.id_string)
+
+        columns = '["'+'", "'.join(str(c) for c in xform_columns)+'"]'
         data = {'name': "My DataView",
                 'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
                 'project':  'http://testserver/api/v1/projects/%s'
                             % project2.pk,
-                'columns': '["name", "age", "gender"]',
-                'query': '[{"column":"age","filter":">","value":"20"},'
-                         '{"column":"age","filter":"<","value":"50"}]'}
+                'columns': columns,
+                'query': '[ ]'}
         self._create_dataview(data)
 
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(alice_data)
 
-        view = ProjectViewSet.as_view({
-            'put': 'share'})
+        view = ProjectViewSet.as_view({'put': 'share'})
 
         data = {'username': 'alice', 'remove': True}
         for role_name, role_class in role.ROLES.iteritems():
@@ -1486,6 +1491,58 @@ class TestProjectViewSet(TestAbstractViewSet):
             self.assertFalse(role_class.user_has_role(self.user, project1))
             self.assertTrue(role_class.user_has_role(self.user, project2))
             self.assertTrue(role_class.user_has_role(self.user, self.xform))
+            data['role'] = role_name
+
+            request = self.factory.put('/', data=data, **self.extra)
+            response = view(request, pk=self.project.pk)
+
+            self.assertEqual(response.status_code, 204)
+
+            self.assertFalse(role_class.user_has_role(self.user,
+                                                      project1))
+            self.assertFalse(role_class.user_has_role(self.user,
+                                                      self.project))
+            self.assertFalse(role_class.user_has_role(self.user,
+                                                      self.xform))
+
+    def test_permission_not_passed_to_dataview_parent_form(self):
+
+        self._project_create()
+        project1 = self.project
+        self._publish_xls_form_to_project()
+        data = {'name': u'demo2',
+                'owner':
+                'http://testserver/api/v1/users/%s' % self.user.username,
+                'metadata': {'description': 'Some description',
+                             'location': 'Naivasha, Kenya',
+                             'category': 'governance'},
+                'public': False}
+        self._project_create(data)
+        project2 = self.project
+
+        data = {'name': "My DataView",
+                'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+                'project':  'http://testserver/api/v1/projects/%s'
+                            % project2.pk,
+                'columns': '["name", "age", "gender"]',
+                'query': '[{"column":"age","filter":">","value":"20"},'
+                         '{"column":"age","filter":"<","value":"50"}]'}
+
+        self._create_dataview(data)
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(alice_data)
+
+        view = ProjectViewSet.as_view({'put': 'share'})
+
+        data = {'username': 'alice', 'remove': True}
+        for role_name, role_class in role.ROLES.iteritems():
+
+            ShareProject(self.project, 'alice', role_name).save()
+
+            self.assertFalse(role_class.user_has_role(self.user, project1))
+            self.assertTrue(role_class.user_has_role(self.user, project2))
+            self.assertFalse(role_class.user_has_role(self.user, self.xform))
             data['role'] = role_name
 
             request = self.factory.put('/', data=data, **self.extra)
