@@ -41,9 +41,9 @@ def get_api_token(json_web_token):
         return api_token
     except BadSignature as e:
         raise exceptions.AuthenticationFailed(_(u'Bad Signature: %s' % e))
-    except jwt.DecodeError:
+    except jwt.DecodeError as e:
         raise exceptions.AuthenticationFailed(
-            _(u'JWT provided doesn\'t have enough segments'))
+            _(u'JWT DecodeError: %s' % e))
 
 
 class DigestAuthentication(BaseAuthentication):
