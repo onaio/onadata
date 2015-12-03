@@ -2,7 +2,9 @@ import geojson
 import json
 import os
 import requests
+import datetime
 
+from datetime import timedelta
 from django.utils import timezone
 from django.test import RequestFactory
 from django_digest.test import DigestAuth
@@ -439,6 +441,28 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
+
+        # reorder date submitted
+        start_time = datetime.datetime(2015, 12, 2)
+        curr_time = start_time
+        for inst in self.xform.instances.all():
+            inst.date_created = curr_time
+            inst.json = instance.get_full_dict()
+            inst.save()
+            inst.parsed_instance.save()
+            curr_time += timedelta(days=1)
+
+        first_datetime = start_time.strftime(MONGO_STRFTIME)
+        second_datetime = start_time + timedelta(days=1, hours=20)
+
+        query_str = '{"_submission_time": {"$gte": "'\
+                    + first_datetime + '", "$lte": "'\
+                    + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
 
         query_str = '{"_id: "%s"}' % dataid
         request = self.factory.get('/?query=%s' % query_str, **self.extra)

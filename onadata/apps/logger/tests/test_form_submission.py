@@ -13,7 +13,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.utils.common_tags import GEOLOCATION
 
 
@@ -261,7 +261,7 @@ class TestFormSubmission(TestBase):
             'count': True
         }
 
-        cursor = [r for r in ParsedInstance.query_data(**query_args)]
+        cursor = [r for r in query_data(**query_args)]
         num_data_instances = cursor[0]['count']
         # make first submission
         self._make_submission(xml_submission_file_path)
@@ -271,7 +271,7 @@ class TestFormSubmission(TestBase):
         self.assertEqual(
             InstanceHistory.objects.count(), num_instances_history)
         # check count of mongo instances after first submission
-        cursor = ParsedInstance.query_data(**query_args)
+        cursor = query_data(**query_args)
         self.assertEqual(cursor[0]['count'], num_data_instances + 1)
         # edited submission
         xml_edit_submission_file_path = os.path.join(
@@ -288,11 +288,11 @@ class TestFormSubmission(TestBase):
         # should be a new record in instances history
         self.assertEqual(
             InstanceHistory.objects.count(), num_instances_history + 1)
-        cursor = ParsedInstance.query_data(**query_args)
+        cursor = query_data(**query_args)
         self.assertEqual(cursor[0]['count'], num_data_instances + 1)
         # make sure we edited the mongo db record and NOT added a new row
         query_args['count'] = False
-        cursor = ParsedInstance.query_data(**query_args)
+        cursor = query_data(**query_args)
         record = cursor[0]
         with open(xml_edit_submission_file_path, "r") as f:
             xml_str = f.read()
@@ -305,7 +305,7 @@ class TestFormSubmission(TestBase):
             "tutorial_2012-06-27_11-27-53_w_uuid_edited_again.xml"
         )
         self._make_submission(xml_edit_submission_file_path)
-        cursor = ParsedInstance.query_data(**query_args)
+        cursor = query_data(**query_args)
         record = cursor[0]
         self.assertEqual(record['name'], 'Tom and Jerry')
         self.assertEqual(
@@ -375,7 +375,7 @@ class TestFormSubmission(TestBase):
         self.assertEqual(self.response.status_code, 201)
         # query mongo for the _geopoint field
         query_args['count'] = False
-        records = ParsedInstance.query_data(**query_args)
+        records = query_data(**query_args)
         self.assertEqual(len(records), 1)
         # submit the edited instance
         xml_submission_file_path = os.path.join(
@@ -385,7 +385,7 @@ class TestFormSubmission(TestBase):
         )
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
-        records = ParsedInstance.query_data(**query_args)
+        records = query_data(**query_args)
         self.assertEqual(len(records), 1)
         cached_geopoint = records[0][GEOLOCATION]
         # the cached geopoint should equal the gps field
@@ -455,7 +455,7 @@ class TestFormSubmission(TestBase):
             'fields': '[]',
             'count': True
         }
-        cursor = ParsedInstance.query_data(**query_args)
+        cursor = query_data(**query_args)
         num_data_instances = cursor[0]['count']
         # make first submission
         self._make_submission(xml_submission_file_path)
@@ -466,7 +466,7 @@ class TestFormSubmission(TestBase):
         self.assertEqual(
             InstanceHistory.objects.count(), num_instances_history)
         # check count of mongo instances after first submission
-        cursor = ParsedInstance.query_data(**query_args)
+        cursor = query_data(**query_args)
         self.assertEqual(cursor[0]['count'], num_data_instances + 1)
 
         # create a new user
@@ -494,11 +494,11 @@ class TestFormSubmission(TestBase):
         # should be a new record in instances history
         self.assertEqual(
             InstanceHistory.objects.count(), num_instances_history + 1)
-        cursor = ParsedInstance.query_data(**query_args)
+        cursor = query_data(**query_args)
         self.assertEqual(cursor[0]['count'], num_data_instances + 1)
         # make sure we edited the mongo db record and NOT added a new row
         query_args['count'] = False
-        cursor = ParsedInstance.query_data(**query_args)
+        cursor = query_data(**query_args)
         record = cursor[0]
         with open(xml_submission_file_path, "r") as f:
             xml_str = f.read()

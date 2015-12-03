@@ -434,7 +434,7 @@ ZIP_EXPORT_COUNTDOWN = 3600  # 1 hour
 DEFAULT_CONTENT_LENGTH = 10000000
 
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
-NOSE_ARGS = ['--with-fixture-bundling']
+NOSE_ARGS = ['--with-fixture-bundling', '--nologcapture']
 
 # fake endpoints for testing
 TEST_HTTP_HOST = 'testserver.com'

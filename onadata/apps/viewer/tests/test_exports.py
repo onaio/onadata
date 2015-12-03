@@ -22,7 +22,7 @@ from onadata.apps.viewer.views import delete_export, export_list,\
 from onadata.apps.viewer.xls_writer import XlsWriter
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.apps.logger.models import Instance
 from onadata.apps.viewer.tasks import create_xls_export
 from onadata.libs.utils.export_tools import generate_export,\
@@ -534,12 +534,12 @@ class TestExports(TestBase):
 
     def test_deleted_submission_not_in_export(self):
         self._publish_transportation_form()
-        initial_count = ParsedInstance.query_data(
+        initial_count = query_data(
             self.xform, '{}', None, '{}',
             count=True)[0]['count']
         self._submit_transport_instance(0)
         self._submit_transport_instance(1)
-        count = ParsedInstance.query_data(
+        count = query_data(
             self.xform, '{}', None, '{}', count=True)[0]['count']
         self.assertEqual(count, initial_count + 2)
         # get id of second submission
@@ -550,7 +550,7 @@ class TestExports(TestBase):
                                  "id_string": self.xform.id_string})
         params = {'id': instance_id}
         self.client.post(delete_url, params)
-        count = ParsedInstance.query_data(
+        count = query_data(
             self.xform, '{}', '[]', '{}', count=True)[0]['count']
         self.assertEqual(count, initial_count + 1)
         # create the export
@@ -568,19 +568,19 @@ class TestExports(TestBase):
 
     def test_edited_submissions_in_exports(self):
         self._publish_transportation_form()
-        initial_count = ParsedInstance.query_data(
+        initial_count = query_data(
             self.xform, '{}', None, '{}', count=True)[0]['count']
         instance_name = 'transport_2011-07-25_19-05-36'
         path = _main_fixture_path(instance_name)
         self._make_submission(path)
-        count = ParsedInstance.query_data(
+        count = query_data(
             self.xform, '{}', '[]', count=True)[0]['count']
         self.assertEqual(count, initial_count + 1)
         # make edited submission - simulating what enketo would return
         instance_name = 'transport_2011-07-25_19-05-36-edited'
         path = _main_fixture_path(instance_name)
         self._make_submission(path)
-        count = ParsedInstance.query_data(
+        count = query_data(
             self.xform, '{}', '[]', count=True)[0]['count']
         self.assertEqual(count, initial_count + 1)
         # create the export

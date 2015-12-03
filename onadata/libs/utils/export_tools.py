@@ -28,7 +28,7 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import\
     _is_invalid_for_mongo, _encode_for_mongo, _decode_from_mongo,\
-    ParsedInstance
+    query_data
 from onadata.libs.exceptions import J2XException, NoRecordsFoundError
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     image_urls
@@ -784,8 +784,7 @@ def generate_export(
         dataview = DataView.objects.get(pk=options.get("dataview_pk"))
         records = DataView.query_data(dataview)
     else:
-        records = ParsedInstance.query_data(xform, query=filter_query,
-                                            start=start, end=end)
+        records = query_data(xform, query=filter_query, start=start, end=end)
 
     export_builder = ExportBuilder()
 
@@ -856,7 +855,7 @@ def generate_export(
     # do not persist exports that have a filter
 
     # if we should create a new export is true, we should not save it
-    if not filter_query and start is None and end is None:
+    if start is None and end is None:
         export.save()
     return export
 
@@ -1246,7 +1245,7 @@ def generate_external_export(
 
         instances = [inst[0].get_dict() if inst else {}]
     else:
-        instances = ParsedInstance.query_data(xform, query=filter_query)
+        instances = query_data(xform, query=filter_query)
 
     records = _get_records(instances)
 

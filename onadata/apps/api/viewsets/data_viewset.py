@@ -21,7 +21,8 @@ from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.viewer.models.parsed_instance import (
+    get_where_clause, query_data)
 from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -339,7 +340,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
         try:
-            where, where_params = ParsedInstance._get_where_clause(query)
+            where, where_params = get_where_clause(query)
         except ValueError as e:
             raise ParseError(unicode(e))
 
@@ -356,10 +357,9 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             if self.object_list.count():
                 xform = self.object_list[0].xform
                 self.object_list = \
-                    ParsedInstance.query_data(
-                        xform, query=query, sort=sort,
-                        start_index=start, limit=limit,
-                        fields=fields)
+                    query_data(xform, query=query, sort=sort,
+                               start_index=start, limit=limit,
+                               fields=fields)
 
         if not isinstance(self.object_list, types.GeneratorType):
             page = self.paginate_queryset(self.object_list)

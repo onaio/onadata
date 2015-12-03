@@ -9,7 +9,8 @@ from mock import patch
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import XForm, Instance
 from onadata.apps.logger.models.instance import get_id_string_from_xml_str
-from onadata.apps.viewer.models import ParsedInstance
+from onadata.apps.viewer.models.parsed_instance import (
+    ParsedInstance, query_data)
 from onadata.libs.utils.common_tags import MONGO_STRFTIME, SUBMISSION_TIME,\
     XFORM_ID_STRING, SUBMITTED_BY
 
@@ -116,19 +117,19 @@ class TestInstance(TestBase):
         latest = Instance.objects.filter(xform=self.xform).latest('pk').pk
         oldest = Instance.objects.filter(xform=self.xform).first().pk
 
-        data = [i.get('_id') for i in ParsedInstance.query_data(
+        data = [i.get('_id') for i in query_data(
             self.xform, sort='-_id')]
         self.assertEqual(data[0], latest)
         self.assertEqual(data[len(data) - 1], oldest)
 
         # sort with a json field
-        data = [i.get('_id') for i in ParsedInstance.query_data(
+        data = [i.get('_id') for i in query_data(
             self.xform, sort='{"pk": "-1"}')]
         self.assertEqual(data[0], latest)
         self.assertEqual(data[len(data) - 1], oldest)
 
         # sort with a json field
-        data = [i.get('_id') for i in ParsedInstance.query_data(
+        data = [i.get('_id') for i in query_data(
             self.xform, sort='{"_id": -1}')]
         self.assertEqual(data[0], latest)
         self.assertEqual(data[len(data) - 1], oldest)
@@ -138,19 +139,19 @@ class TestInstance(TestBase):
         self._make_submissions()
         oldest = Instance.objects.filter(xform=self.xform).first().pk
 
-        data = [i.get('_id') for i in ParsedInstance.query_data(
+        data = [i.get('_id') for i in query_data(
             self.xform, query='[{"_id": %s}]' % (oldest))]
         self.assertEqual(len(data), 1)
         self.assertEqual(data, [oldest])
 
         # with fields
-        data = [i.get('_id') for i in ParsedInstance.query_data(
+        data = [i.get('_id') for i in query_data(
             self.xform, query='{"_id": %s}' % (oldest), fields='["_id"]')]
         self.assertEqual(len(data), 1)
         self.assertEqual(data, [oldest])
 
         # mongo $gt
-        data = [i.get('_id') for i in ParsedInstance.query_data(
+        data = [i.get('_id') for i in query_data(
             self.xform, query='{"_id": {"$gt": %s}}' % (oldest),
             fields='["_id"]')]
         self.assertEqual(self.xform.instances.count(), 4)
@@ -174,7 +175,7 @@ class TestInstance(TestBase):
                 atime = i.date_created.strftime(MONGO_STRFTIME)
 
         # mongo $gt
-        data = [i.get('_submission_time') for i in ParsedInstance.query_data(
+        data = [i.get('_submission_time') for i in query_data(
             self.xform, query='{"_submission_time": {"$lt": "%s"}}' % (atime),
             fields='["_submission_time"]')]
         self.assertEqual(self.xform.instances.count(), 4)
