@@ -106,7 +106,8 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             # Get the parent xform data dictionary
             dd = obj.xform.data_dictionary()
             xform_columns = dd.get_mongo_field_names_dict().keys()
-            xform_columns.remove(obj.xform.id_string)
+            if obj.xform.id_string in xform_columns:
+                xform_columns.remove(obj.xform.id_string)
             dataview_columns = obj.columns
             # compare if the columns in the dataview match with parent
             matches_parent = set(xform_columns) == set(dataview_columns)
