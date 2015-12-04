@@ -1,3 +1,4 @@
+import re
 import types
 
 from django.db.models import Q
@@ -289,6 +290,24 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         lookup_field = self.lookup_field
         lookup = self.kwargs.get(lookup_field)
         is_public_request = lookup == self.public_data_endpoint
+
+        def validate_sort_params(sort_param):
+            data = None
+            status_code = status.HTTP_400_BAD_REQUEST
+            try:
+                pattern = r'^{((\'|\").+(\'|\"):(\'|\").+(\'|\"))+,?}$'
+                if not re.match(pattern, sort):
+                    data = {'message': u'invalid sort parameter(s)'}
+            except SyntaxError, e:
+                data = {'message': e.message}
+
+            if data:
+                return Response(data, status=status_code)
+
+        if sort:
+            response = validate_sort_params(sort)
+            if response:
+                return response
 
         if lookup_field not in kwargs.keys():
             self.object_list = self.filter_queryset(self.get_queryset())
