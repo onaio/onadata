@@ -1873,9 +1873,10 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEquals(form_id, self.xform.pk)
         self.assertEquals(id_string, self.xform.id_string)
 
-    def test_update_xform_xls_file_with_different_id_string(self):
+    def test_update_xform_with_different_id_string_form_with_sub(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
+            self._make_submissions()
 
             self.assertIsNotNone(self.xform.version)
             form_id = self.xform.pk
@@ -1894,9 +1895,35 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.status_code, 400)
                 expected_response = u"Your updated form's id_string " \
                     "'transportation_2015_01_07' must match the existing " \
-                    "forms' id_string 'transportation_2011_07_25'."
+                    "forms' id_string 'transportation_2011_07_25', if form " \
+                    "has submissions."
                 self.assertEqual(response.data.get(
                     'text'), expected_response)
+
+    def test_update_xform_with_different_id_string_form_with_no_sub(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            self.assertIsNotNone(self.xform.version)
+            form_id = self.xform.pk
+
+            view = XFormViewSet.as_view({
+                'patch': 'partial_update',
+            })
+
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "transportation_different_id_string.xlsx")
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.patch('/', data=post_data, **self.extra)
+                response = view(request, pk=form_id)
+                self.assertEqual(response.status_code, 200)
+
+                self.xform.reload()
+
+                self.assertEqual(self.xform.id_string,
+                                 "transportation_2015_01_07")
 
     def test_update_xform_xls_file_with_different_model_name(self):
         with HTTMock(enketo_mock):
