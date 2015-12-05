@@ -1845,6 +1845,12 @@ class TestXFormViewSet(TestAbstractViewSet):
         version = self.xform.version
         form_id = self.xform.pk
         id_string = self.xform.id_string
+        xml = self.xform.xml
+        fhuuid = xml.find('formhub/uuid')
+        self.assertEqual(
+            xml[xml[:fhuuid].rfind('=') + 2:fhuuid],
+            '/transportation/'
+        )
 
         view = XFormViewSet.as_view({
             'patch': 'partial_update',
@@ -1872,6 +1878,12 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertNotEquals(title_old, self.xform.title)
         self.assertEquals(form_id, self.xform.pk)
         self.assertEquals(id_string, self.xform.id_string)
+        xml = self.xform.xml
+        fhuuid = xml.find('formhub/uuid')
+        self.assertEqual(
+            xml[xml[:fhuuid].rfind('=') + 2:fhuuid],
+            '/transportation/'
+        )
 
     def test_update_xform_xls_file_with_different_id_string(self):
         with HTTMock(enketo_mock):
