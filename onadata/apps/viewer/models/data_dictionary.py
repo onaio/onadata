@@ -155,7 +155,7 @@ class DataDictionary(XForm):
             # append the calculate bind node
             calculate_node = doc.createElement("bind")
             calculate_node.setAttribute(
-                "nodeset", "/%s/formhub/uuid" % file_name)
+                "nodeset", "/%s/formhub/uuid" % survey_node.tagName)
             calculate_node.setAttribute("type", "string")
             calculate_node.setAttribute("calculate", "'%s'" % self.uuid)
             model_node.appendChild(calculate_node)
