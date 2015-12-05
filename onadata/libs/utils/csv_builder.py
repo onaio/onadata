@@ -79,18 +79,38 @@ class UnicodeWriter:
             self.writerow(row)
 
 
-def write_to_csv(path, rows, columns, remove_group_name=False):
+def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
+                 group_delimiter=DEFAULT_GROUP_DELIMITER):
     na_rep = getattr(settings, 'NA_REP', NA_REP)
     with open(path, 'wb') as csvfile:
         writer = UnicodeWriter(csvfile, lineterminator='\n')
 
         # Check if to truncate the group name prefix
-        if remove_group_name:
-            new_column = [col.split('/')[-1:][0]
-                          if '/' in col else col for col in columns]
-            writer.writerow(new_column)
+        if remove_group_name and dd:
+            new_columns = []
+            for col in columns:
+                new_col = None
+                if dd.get_survey_element(col) is None:
+                    new_col = col
+                elif dd.get_survey_element(col).type != '':
+                    new_col = dd.get_survey_element(col).name
+                else:
+                    new_col = u'/'.join([
+                        dd.get_survey_element(col).parent.name,
+                        dd.get_survey_element(col).name
+                    ])
+                new_columns.append(new_col)
         else:
-            writer.writerow(columns)
+            new_columns = columns
+
+        # use a different group delimiter if needed
+        if group_delimiter != DEFAULT_GROUP_DELIMITER:
+            new_columns = [
+                group_delimiter.join(col.split(DEFAULT_GROUP_DELIMITER))
+                for col in new_columns
+            ]
+
+        writer.writerow(new_columns)
 
         for row in rows:
             for col in AbstractDataFrameBuilder.IGNORED_COLUMNS:
@@ -393,10 +413,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 reindexed = self._reindex(key, value, self.ordered_columns)
                 flat_dict.update(reindexed)
 
-            # if delimetr is diferent, replace within record as well
-            if self.group_delimiter != DEFAULT_GROUP_DELIMITER:
-                flat_dict = dict((self.group_delimiter.join(k.split('/')), v)
-                                 for k, v in flat_dict.iteritems())
             data.append(flat_dict)
         return data
 
@@ -417,11 +433,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 [[xpath] if cols is None else cols
                  for xpath, cols in self.ordered_columns.iteritems()]))
 
-            # use a different group delimiter if needed
-            if self.group_delimiter != DEFAULT_GROUP_DELIMITER:
-                columns = [self.group_delimiter.join(col.split("/"))
-                           for col in columns]
-
             # add extra columns
             columns += [col for col in self.ADDITIONAL_COLUMNS]
             for field in self.dd.get_survey_elements_of_type('osm'):
@@ -430,4 +441,5 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                                 include_prefix=True)
 
         write_to_csv(path, data, columns,
-                     remove_group_name=self.remove_group_name)
+                     remove_group_name=self.remove_group_name,
+                     dd=self.dd, group_delimiter=self.group_delimiter)
