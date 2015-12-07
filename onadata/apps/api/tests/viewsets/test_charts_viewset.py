@@ -318,10 +318,7 @@ class TestChartsViewSet(TestBase):
             format='html'
         )
         self.assertEqual(response.status_code, 200)
-
-        total_records = response.data['data'][0]['count'] +\
-            response.data['data'][1]['count']
-        self.assertEqual(total_records, 3)
+        self.assertEqual(sum([i['count'] for i in response.data['data']]), 3)
 
         # soft delete one instance
 
@@ -335,7 +332,4 @@ class TestChartsViewSet(TestBase):
         )
 
         self.assertEqual(response.status_code, 200)
-
-        total_records = response.data['data'][0]['count'] +\
-            response.data['data'][1]['count']
-        self.assertEqual(total_records, 2)
+        self.assertEqual(sum([i['count'] for i in response.data['data']]), 2)

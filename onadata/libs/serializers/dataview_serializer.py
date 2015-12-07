@@ -29,6 +29,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     query = JsonField(required=False)
     count = serializers.SerializerMethodField()
     instances_with_geopoints = serializers.SerializerMethodField()
+    matches_parent = serializers.SerializerMethodField()
 
     class Meta:
         model = DataView
@@ -97,5 +98,23 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
                 obj.save()
 
             return obj.instances_with_geopoints
+
+        return False
+
+    def get_matches_parent(self, obj):
+        if obj:
+            # Get the parent xform data dictionary
+            dd = obj.xform.data_dictionary()
+            xform_columns = dd.get_mongo_field_names_dict().keys()
+            if obj.xform.id_string in xform_columns:
+                xform_columns.remove(obj.xform.id_string)
+            dataview_columns = obj.columns
+            # compare if the columns in the dataview match with parent
+            matches_parent = set(xform_columns) == set(dataview_columns)
+
+            if obj.matches_parent != matches_parent:
+                obj.matches_parent = matches_parent
+                obj.save()
+            return obj.matches_parent
 
         return False

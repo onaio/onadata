@@ -51,6 +51,7 @@ class DataView(models.Model):
     columns = JSONField()
     query = JSONField(default={}, blank=True)
     instances_with_geopoints = models.BooleanField(default=False)
+    matches_parent = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 

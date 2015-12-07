@@ -16,6 +16,10 @@ from rest_framework.authtoken.models import Token
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.libs.utils.common_tags import API_TOKEN
 
+JWT_SECRET_KEY = getattr(settings, 'JWT_SECRET_KEY', 'jwt')
+JWT_ALGORITHM = getattr(settings, 'JWT_ALGORITHM', 'HS256')
+TEMP_TOKEN_EXPIRY_TIME = getattr(settings, 'DEFAULT_TEMP_TOKEN_EXPIRY_TIME')
+
 
 def expired(time_token_created):
     """Checks if the time between when time_token_created and current time
@@ -25,7 +29,7 @@ def expired(time_token_created):
     :returns: Boolean True if not passed expired time, otherwise False.
     """
     time_diff = (timezone.now() - time_token_created).total_seconds()
-    token_expiry_time = settings.DEFAULT_TEMP_TOKEN_EXPIRY_TIME
+    token_expiry_time = TEMP_TOKEN_EXPIRY_TIME
 
     return True if time_diff > token_expiry_time else False
 
@@ -33,8 +37,8 @@ def expired(time_token_created):
 def get_api_token(json_web_token):
     try:
         jwt_payload = jwt.decode(json_web_token,
-                                 settings.JWT_SECRET_KEY,
-                                 algorithms=[settings.JWT_ALGORITHM])
+                                 JWT_SECRET_KEY,
+                                 algorithms=[JWT_ALGORITHM])
         api_token = get_object_or_404(
             Token, key=jwt_payload.get(API_TOKEN))
 
@@ -116,7 +120,8 @@ class EnketoTokenAuthentication(TokenAuthentication):
     def authenticate(self, request):
         try:
             cookie_jwt = request.get_signed_cookie(
-                '__enketo', salt=settings.ENKETO_API_SALT)
+                '__enketo', salt=getattr(settings, 'ENKETO_API_SALT')
+            )
             api_token = get_api_token(cookie_jwt)
 
             if getattr(api_token, 'user'):
