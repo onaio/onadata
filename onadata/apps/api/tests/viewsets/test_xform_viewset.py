@@ -471,7 +471,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             for b in expected_data:
                 b['metadata'].sort()
 
-            self.assertEqual(response_data, expected_data)
+            self.assertTrue(len(response_data), 2)
+
+            self.assertEqual(response_data[0], expected_data[0])
+            self.assertEqual(response_data[1], expected_data[1])
 
             # apply filter, see only bob's forms
             request = self.factory.get(
