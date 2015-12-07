@@ -145,11 +145,12 @@ def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
 
 
 class AbstractDataFrameBuilder(object):
-    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ID, ATTACHMENTS, GEOLOCATION,
+    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ID, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields NOT within the form def that we want to include
     ADDITIONAL_COLUMNS = [
-        UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION, SUBMITTED_BY]
+        UUID, SUBMISSION_TIME, TAGS, NOTES, ATTACHMENTS, VERSION, DURATION,
+        SUBMITTED_BY]
     BINARY_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML

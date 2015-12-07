@@ -189,11 +189,12 @@ def dict_to_joined_export(data, index, indices, name):
 
 
 class ExportBuilder(object):
-    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,
+    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields we export but are not within the form's structure
     EXTRA_FIELDS = [ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME,
-                    PARENT_INDEX, TAGS, NOTES, VERSION, DURATION, SUBMITTED_BY]
+                    PARENT_INDEX, TAGS, NOTES, ATTACHMENTS, VERSION, DURATION,
+                    SUBMITTED_BY]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
 
