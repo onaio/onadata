@@ -143,7 +143,7 @@ def set_enketo_signed_cookies(resp, username=None, json_web_token=None):
     max_age = 30 * 24 * 60 * 60 * 1000
 
     __enketo_meta_uid = {'max_age': max_age, 'salt': settings.ENKETO_API_SALT}
-    __enketo = {'httponly':  True,
+    __enketo = {'httponly': True,
                 'secure': False,
                 'salt': settings.ENKETO_API_SALT}
 
