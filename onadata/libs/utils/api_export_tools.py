@@ -109,7 +109,8 @@ def custom_response_handler(request, xform, query, export_type,
     return response
 
 
-def _generate_new_export(request, xform, query, export_type, dataview_pk=False):
+def _generate_new_export(request, xform, query, export_type,
+                         dataview_pk=False):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
