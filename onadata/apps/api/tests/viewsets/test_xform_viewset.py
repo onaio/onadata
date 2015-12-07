@@ -815,9 +815,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', data=query_data)
             response = view(request, pk=formid)
 
-            self.assertEqual(response.status_code, 400)
-            self.assertEqual(response.data.get('message'),
-                             'Not enough segments')
+            self.assertEqual(response.status_code, 401)
+            self.assertEqual(response.data.get('detail'),
+                             u'JWT DecodeError: Not enough segments')
 
     @patch('onadata.apps.api.viewsets.xform_viewset.settings')
     def test_login_enketo_offline_url_using_jwt(self, mock_settings):
@@ -846,6 +846,18 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.get('Location'), return_url)
+
+    @patch(
+        'onadata.libs.authentication.EnketoTokenAuthentication.authenticate')
+    def test_enketo_cookie_authentication_with_invalid_jwt(
+            self, mock_jwt_decode):
+        mock_jwt_decode.side_effect = jwt.DecodeError(
+            u'JWT DecodeError: Not enough segments')
+
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+            with self.assertRaises(jwt.DecodeError):
+                self._publish_xls_form_to_project()
+                self.assertTrue(mock_jwt_decode.called)
 
     @patch('onadata.apps.api.viewsets.xform_viewset.settings')
     def test_login_enketo_online_url_using_jwt(self, mock_settings):
