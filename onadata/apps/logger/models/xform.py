@@ -182,10 +182,12 @@ class XForm(BaseModel):
         self._set_encrypted_field()
         # check if we have an existing id_string,
         # if so, the one must match but only if xform is NOT new
-        if self.pk and old_id_string and old_id_string != self.id_string:
+        if self.pk and old_id_string and old_id_string != self.id_string and \
+                self.num_of_submissions > 0:
             raise XLSFormError(
                 _(u"Your updated form's id_string '%(new_id)s' must match "
-                  "the existing forms' id_string '%(old_id)s'." %
+                  "the existing forms' id_string '%(old_id)s', if form has "
+                  "submissions." %
                   {'new_id': self.id_string, 'old_id': old_id_string}))
 
         if getattr(settings, 'STRICT', True) and \
