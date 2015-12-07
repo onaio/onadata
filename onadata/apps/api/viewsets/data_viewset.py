@@ -1,4 +1,3 @@
-import re
 import types
 
 from django.db.models import Q
@@ -291,24 +290,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         lookup = self.kwargs.get(lookup_field)
         is_public_request = lookup == self.public_data_endpoint
 
-        def validate_sort_params(sort_param):
-            data = None
-            status_code = status.HTTP_400_BAD_REQUEST
-            try:
-                pattern = r'^{((\'|\").+(\'|\"):(\'|\").+(\'|\"))+,?}$'
-                if not re.match(pattern, sort):
-                    data = {'message': u'invalid sort parameter(s)'}
-            except SyntaxError, e:
-                data = {'message': e.message}
-
-            if data:
-                return Response(data, status=status_code)
-
-        if sort:
-            response = validate_sort_params(sort)
-            if response:
-                return response
-
         if lookup_field not in kwargs.keys():
             self.object_list = self.filter_queryset(self.get_queryset())
             serializer = self.get_serializer(self.object_list, many=True)
@@ -360,25 +341,26 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
         try:
             where, where_params = get_where_clause(query)
-        except ValueError as e:
-            raise ParseError(unicode(e))
 
-        if where:
-            self.object_list = self.object_list.extra(where=where,
-                                                      params=where_params)
-        self.total_count = self.object_list.count()
-        if (start and limit or limit) and (not sort and not fields):
-            start = start if start is not None else 0
-            limit = limit if start is None or start == 0 else start + limit
-            self.object_list = \
-                self.object_list.order_by('pk')[start: limit]
-        elif (sort or limit or start or fields) and not is_public_request:
-            if self.object_list.count():
-                xform = self.object_list[0].xform
+            if where:
+                self.object_list = self.object_list.extra(where=where,
+                                                          params=where_params)
+            self.total_count = self.object_list.count()
+
+            if (start and limit or limit) and (not sort and not fields):
+                start = start if start is not None else 0
+                limit = limit if start is None or start == 0 else start + limit
                 self.object_list = \
-                    query_data(xform, query=query, sort=sort,
-                               start_index=start, limit=limit,
-                               fields=fields)
+                    self.object_list.order_by('pk')[start: limit]
+            elif (sort or limit or start or fields) and not is_public_request:
+                if self.object_list.count():
+                    xform = self.object_list[0].xform
+                    self.object_list = \
+                        query_data(xform, query=query, sort=sort,
+                                   start_index=start, limit=limit,
+                                   fields=fields)
+        except ValueError, e:
+            raise ParseError(unicode(e))
 
         if not isinstance(self.object_list, types.GeneratorType):
             page = self.paginate_queryset(self.object_list)
