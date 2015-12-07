@@ -535,8 +535,8 @@ class TestExports(TestBase):
     def test_query_data_with_invalid_args(self):
         self._publish_transportation_form()
         with self.assertRaises(TypeError):
-            q = "'{0}' is shorter than '{1}'" % 2, "two"
-            query_data(self.xform, q, None, '{}', count=True)
+            query = "select '{0}' from '{1}'" % 2, "two"
+            query_data(self.xform, query, None, '{}', count=True)
 
     def test_deleted_submission_not_in_export(self):
         self._publish_transportation_form()
