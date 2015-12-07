@@ -70,7 +70,7 @@ class Export(models.Model):
     ]
 
     EXPORT_OPTION_FIELDS = ["remove_group_name",
-                            "dataview",
+                            "dataview_pk",
                             "group_delimiter",
                             "split_select_multiples",
                             "binary_select_multiples"]

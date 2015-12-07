@@ -65,14 +65,14 @@ def _get_export_type(export_type):
 
 
 def custom_response_handler(request, xform, query, export_type,
-                            token=None, meta=None, dataview=None):
+                            token=None, meta=None, dataview_pk=False):
     export_type = _get_export_type(export_type)
     if export_type in external_export_types and \
             (token is not None) or (meta is not None):
         export_type = Export.EXTERNAL_EXPORT
 
     options = parse_request_export_options(request)
-    options["dataview"] = dataview
+    options["dataview_pk"] = dataview_pk
 
     remove_group_name = options.get("remove_group_name")
 
@@ -81,14 +81,14 @@ def custom_response_handler(request, xform, query, export_type,
 
     if should_create_new_export(xform, export_type, options, request=request):
         export = _generate_new_export(request, xform, query, export_type,
-                                      dataview=dataview)
+                                      dataview_pk=dataview_pk)
     else:
         export = newest_export_for(xform, export_type, options)
 
         if not export.filename:
             # tends to happen when using newset_export_for.
             export = _generate_new_export(request, xform, query, export_type,
-                                          dataview=dataview)
+                                          dataview_pk=dataview_pk)
 
     log_export(request, xform, export_type)
 
@@ -101,7 +101,7 @@ def custom_response_handler(request, xform, query, export_type,
     ext = ext[1:]
 
     id_string = _generate_filename(request, xform, remove_group_name,
-                                   dataview=dataview)
+                                   dataview_pk=dataview_pk)
     response = response_with_mimetype_and_name(
         Export.EXPORT_MIMES[ext], id_string, extension=ext,
         file_path=export.filepath)
@@ -109,14 +109,15 @@ def custom_response_handler(request, xform, query, export_type,
     return response
 
 
-def _generate_new_export(request, xform, query, export_type, dataview=None):
+def _generate_new_export(request, xform, query, export_type, dataview_pk=False):
     query = _set_start_end_params(request, query)
     extension = _get_extension_from_export_type(export_type)
 
     options = {"extension": extension,
                "username": xform.user.username,
                "id_string": xform.id_string,
-               "query": query}
+               "query": query,
+               "dataview_pk": dataview_pk}
 
     try:
         if export_type == Export.EXTERNAL_EXPORT:
@@ -145,7 +146,6 @@ def _generate_new_export(request, xform, query, export_type, dataview=None):
                 None,
                 options)
         else:
-            dataview_pk = dataview.pk if dataview else None
             options["dataview_pk"] = dataview_pk
             options.update(parse_request_export_options(request))
 
@@ -203,14 +203,14 @@ def external_export_response(export):
 
 
 def _generate_filename(request, xform, remove_group_name=False,
-                       dataview=False):
+                       dataview_pk=False):
     if request.GET.get('raw'):
         filename = None
     else:
         # append group name removed flag otherwise use the form id_string
         if remove_group_name:
             filename = "{}-{}".format(xform.id_string, GROUPNAME_REMOVED_FLAG)
-        elif dataview:
+        elif dataview_pk:
             filename = "{}-{}".format(xform.id_string, DATAVIEW_EXPORT)
         else:
             filename = xform.id_string
@@ -261,7 +261,7 @@ def _format_date_for_mongo(x, datetime):
         x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
 
 
-def export_async_export_response(request, xform, export, dataview_pk=None):
+def export_async_export_response(request, xform, export, dataview_pk=False):
     """
     Checks the export status and generates the reponse
     :param request:

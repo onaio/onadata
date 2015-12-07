@@ -86,7 +86,8 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         else:
             return custom_response_handler(request, self.object.xform, None,
-                                           export_type, dataview=self.object)
+                                           export_type,
+                                           dataview_pk=self.object.pk)
 
     @detail_route(methods=['GET'])
     def export_async(self, request, *args, **kwargs):
