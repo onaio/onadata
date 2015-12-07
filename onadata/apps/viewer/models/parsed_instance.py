@@ -197,7 +197,10 @@ def _query_iterator(sql, fields=None, params=[], count=False):
         sql_params = params
         fields = [u'count']
 
-    cursor.execute(sql, [unicode(i) for i in sql_params])
+    try:
+        cursor.execute(sql, [unicode(i) for i in sql_params])
+    except TypeError, e:
+        raise e
 
     if fields is None:
         for row in cursor.fetchall():
