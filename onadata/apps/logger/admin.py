@@ -4,7 +4,6 @@ from onadata.apps.logger.models import XForm, Project
 
 
 class FormAdmin(admin.ModelAdmin):
-
     exclude = ('user',)
     list_display = ('id_string', 'downloadable', 'shared')
 
@@ -19,6 +18,10 @@ admin.site.register(XForm, FormAdmin)
 
 
 class ProjectAdmin(admin.ModelAdmin):
+    list_max_show_all = 2000
+    list_select_related = ('user',)
+    ordering = ['name']
+    search_fields = ('name', 'user__username', 'user__email')
 
     # A user should only see projects that belong to him.
     def get_queryset(self, request):
