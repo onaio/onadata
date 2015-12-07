@@ -204,6 +204,38 @@ class TestDataViewSet(TestBase):
             **self.extra)
         response = view(request, pk=formid)
 
+    def test_sort_query_param_with_invalid_values(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+
+        # without sort param
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        error_message = (u'Expecting property name enclosed in '
+                         'double quotes: line 1 column 2 (char 1)')
+
+        request = self.factory.get('/', data={"sort": u'{'':}'},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data.get('detail'), error_message)
+
+        request = self.factory.get('/', data={"sort": u'{:}'},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data.get('detail'), error_message)
+
+        request = self.factory.get('/', data={"sort": u'{'':''}'},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data.get('detail'), error_message)
+
     def test_data_start_limit_no_records(self):
         view = DataViewSet.as_view({'get': 'list'})
         formid = self.xform.pk
