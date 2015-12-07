@@ -205,6 +205,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
 
     def test_sort_query_param_with_invalid_values(self):
+        self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
         formid = self.xform.pk
 
@@ -212,51 +213,28 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 0)
+        self.assertEqual(len(response.data), 4)
 
-        # with valid sort param
-        request = self.factory.get('/', data={"sort": "{'test':'test'}"},
-                                   **self.extra)
-        response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 200)
+        error_message = (u'Expecting property name enclosed in '
+                         'double quotes: line 1 column 2 (char 1)')
 
-        error_message = u"invalid sort parameter(s)"
-
-        request = self.factory.get('/', data={"sort": "{'':}"},
+        request = self.factory.get('/', data={"sort": u'{'':}'},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data.get('message'), error_message)
+        self.assertEqual(response.data.get('detail'), error_message)
 
-        request = self.factory.get('/', data={"sort": "{"":}"},
+        request = self.factory.get('/', data={"sort": u'{:}'},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data.get('message'), error_message)
+        self.assertEqual(response.data.get('detail'), error_message)
 
-        request = self.factory.get('/', data={"sort": "{:}"},
+        request = self.factory.get('/', data={"sort": u'{'':''}'},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data.get('message'), error_message)
-
-        request = self.factory.get('/', data={"sort": "{}"},
-                                   **self.extra)
-        response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data.get('message'), error_message)
-
-        request = self.factory.get('/', data={"sort": "{'':''}"},
-                                   **self.extra)
-        response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data.get('message'), error_message)
-
-        request = self.factory.get('/', data={"sort": "{"":""}"},
-                                   **self.extra)
-        response = view(request, pk=formid)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data.get('message'), error_message)
+        self.assertEqual(response.data.get('detail'), error_message)
 
     def test_data_start_limit_no_records(self):
         view = DataViewSet.as_view({'get': 'list'})
