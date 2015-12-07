@@ -36,6 +36,7 @@ from onadata.libs.utils.cache_tools import (
     safe_delete,
     ENKETO_URL_CACHE,
     PROJ_FORMS_CACHE)
+from onadata.libs.utils.cache_tools import XFORM_PERMISSIONS_CACHE
 
 
 @urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
@@ -418,9 +419,16 @@ class TestXFormViewSet(TestAbstractViewSet):
             view = XFormViewSet.as_view({
                 'get': 'retrieve'
             })
+            safe_delete('{}{}'.format(XFORM_PERMISSIONS_CACHE, self.xform.pk))
             request = self.factory.get('/', **self.extra)
             response = view(request, pk=self.xform.pk)
             bobs_form_data = response.data
+            form_users = [
+                (u['role'], u['user']) for u in bobs_form_data['users']
+            ]
+            self.assertEqual(len(form_users), 2)
+            self.assertIn(('owner', 'bob'), form_users)
+            self.assertIn(('readonly', 'alice'), form_users)
 
             # publish alice's form
             self._publish_xls_form_to_project()
@@ -472,7 +480,6 @@ class TestXFormViewSet(TestAbstractViewSet):
                 b['metadata'].sort()
 
             self.assertTrue(len(response_data), 2)
-
             self.assertEqual(response_data[0], expected_data[0])
             self.assertEqual(response_data[1], expected_data[1])
 
