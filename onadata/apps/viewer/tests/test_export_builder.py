@@ -13,6 +13,7 @@ from pyxform.builder import create_survey_from_xls
 from savReaderWriter import SavReader
 
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
 from onadata.libs.utils.export_tools import (
@@ -1011,4 +1012,16 @@ class TestExportBuilder(TestBase):
         field_name = ExportBuilder.format_field_title("child/age", "/",
                                                       remove_group_name=True)
         expected_field_name = "age"
+        self.assertEqual(field_name, expected_field_name)
+
+    def test_generate_field_title_truncated_titles_select_multiple(self):
+        path = _logger_fixture_path('childrens_survey.xls')
+        self._publish_xls_file(path)
+        self.dd = DataDictionary.objects.get(id_string='childrens_survey')
+        field_name = ExportBuilder.format_field_title(
+            "children/fav_colors/red", "/",
+            data_dictionary=self.dd,
+            remove_group_name=True
+        )
+        expected_field_name = "fav_colors/red"
         self.assertEqual(field_name, expected_field_name)

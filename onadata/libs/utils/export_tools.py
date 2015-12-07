@@ -224,16 +224,21 @@ class ExportBuilder(object):
 
     @classmethod
     def format_field_title(cls, abbreviated_xpath, field_delimiter,
-                           remove_group_name=False):
-        if field_delimiter != '/':
-            return field_delimiter.join(abbreviated_xpath.split('/'))
-
+                           data_dictionary, remove_group_name=False):
+        title = abbreviated_xpath
         # Check if to truncate the group name prefix
         if remove_group_name:
-            abbreviated_xpath_list = abbreviated_xpath.split(field_delimiter)
-            return abbreviated_xpath_list[len(abbreviated_xpath_list) - 1]
-        else:
-            return abbreviated_xpath
+            elem = data_dictionary.get_survey_element(abbreviated_xpath)
+            # incase abbreviated_xpath is a choices xpath
+            if elem.type == u'':
+                title = u'/'.join([elem.parent.name, elem.name])
+            else:
+                title = elem.name
+
+        if field_delimiter != '/':
+            title = field_delimiter.join(title.split('/'))
+
+        return title
 
     def set_survey(self, survey):
         # TODO resolve circular import
