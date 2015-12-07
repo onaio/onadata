@@ -13,12 +13,12 @@ from django.utils import timezone
 from django.conf import settings
 from django.core.cache import cache
 from django.test.utils import override_settings
+from django.utils.dateparse import parse_datetime
+from django_digest.test import DigestAuth
 from httmock import urlmatch, HTTMock
 from mock import patch
 from rest_framework import status
 from xml.dom import minidom, Node
-from django_digest.test import DigestAuth
-from django.utils.dateparse import parse_datetime
 
 from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -463,7 +463,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             }]
 
             response_data = sorted(response.data)
-            expected_data = sorted([bobs_form_data, self.form_data])
+            expected_data = sorted([OrderedDict(bobs_form_data),
+                                    OrderedDict(self.form_data)])
             for a in response_data:
                 a['metadata'].sort()
 
