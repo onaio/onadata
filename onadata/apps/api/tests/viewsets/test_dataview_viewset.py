@@ -44,6 +44,47 @@ class TestDataViewViewSet(TestAbstractViewSet):
     def test_create_dataview(self):
         self._create_dataview()
 
+    def test_dataview_with_attachment_field(self):
+        view = DataViewViewSet.as_view({
+            'get': 'data'
+        })
+        media_file = "test-image.png"
+        attachment_file_path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                media_file)
+        submission_file_path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'tutorial', 'instances', 'uuid10', 'submission.xml')
+
+        # make a submission with an attachment
+        with open(attachment_file_path) as f:
+            self._make_submission(submission_file_path, media_file=f)
+
+        data = {
+            'name': "My DataView",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project':  'http://testserver/api/v1/projects/%s'
+                        % self.project.pk,
+            # ensure there's an attachment column(photo) in you dataview
+            'columns': '["name", "age", "gender", "photo"]'
+        }
+
+        self._create_dataview(data=data)
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        for a in response.data:
+            # retrieve the instance with attachment
+            if a.get('photo') == media_file:
+                instance_with_attachment = a
+
+        self.assertTrue(instance_with_attachment)
+        attachment_info = instance_with_attachment.get('_attachments')[0]
+        self.assertEquals(u'image/png', attachment_info.get(u'mimetype'))
+        self.assertEquals(
+            u'%s/attachments/%s' % (self.user.username, media_file),
+            attachment_info.get(u'filename'))
+        self.assertEquals(response.status_code, 200)
+
     def test_get_dataview_form_definition(self):
         self._create_dataview()
 
