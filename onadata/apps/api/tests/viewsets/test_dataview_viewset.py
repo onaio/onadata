@@ -50,11 +50,11 @@ class TestDataViewViewSet(TestAbstractViewSet):
         })
         media_file = "test-image.png"
         attachment_file_path = os.path.join(
-                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
-                media_file)
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+            media_file)
         submission_file_path = os.path.join(
-                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
-                'tutorial', 'instances', 'uuid10', 'submission.xml')
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+            'tutorial', 'instances', 'uuid10', 'submission.xml')
 
         # make a submission with an attachment
         with open(attachment_file_path) as f:
