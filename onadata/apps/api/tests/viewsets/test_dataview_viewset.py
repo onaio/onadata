@@ -14,6 +14,7 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.utils.cache_tools import PROJECT_LINKED_DATAVIEWS
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 
 
 class TestDataViewViewSet(TestAbstractViewSet):
@@ -602,3 +603,40 @@ class TestDataViewViewSet(TestAbstractViewSet):
         updated_cache = cache.get('{}{}'.format(PROJECT_LINKED_DATAVIEWS,
                                                 self.project.pk))
         self.assertIsNone(updated_cache)
+
+    def test_export_dataview_not_affected_by_normal_exports(self):
+        count = Export.objects.all().count()
+
+        view = XFormViewSet.as_view({
+            'get': 'retrieve',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, format='csv')
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEquals(count+1, Export.objects.all().count())
+
+        self._create_dataview()
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk, format='csv')
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEquals(count + 2, Export.objects.all().count())
+
+        headers = dict(response.items())
+        self.assertEqual(headers['Content-Type'], 'application/csv')
+        content_disposition = headers['Content-Disposition']
+        filename = self.filename_from_disposition(content_disposition)
+        basename, ext = os.path.splitext(filename)
+        self.assertEqual(ext, '.csv')
+
+        content = self.get_response_content(response)
+
+        # count csv headers and ensure they are three
+        self.assertEqual(len(content.split('\n')[0].split(',')), 3)
