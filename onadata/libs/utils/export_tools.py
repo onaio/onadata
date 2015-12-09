@@ -39,6 +39,8 @@ from onadata.libs.utils.common_tags import (
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
     DATAVIEW_EXPORT)
 from onadata.libs.utils.osm import get_combined_osm
+from onadata.apps.logger.models.instance import \
+    get_attachment_url_from_instance_pk
 
 
 QUESTION_TYPES_TO_EXCLUDE = [
@@ -153,7 +155,12 @@ def dict_to_joined_export(data, index, indices, name):
     if isinstance(data, dict):
         for key, val in data.iteritems():
             if isinstance(val, list) and key not in [NOTES, TAGS]:
+
                 output[key] = []
+                if key == ATTACHMENTS:
+                    output[ATTACHMENTS] = \
+                        get_attachment_url_from_instance_pk(data.get(ID))
+
                 for child in val:
                     if key not in indices:
                         indices[key] = 0
@@ -613,6 +620,9 @@ class ExportBuilder(object):
                 joined_export)
             # attach meta fields (index, parent_index, parent_table)
             # output has keys for every section
+            if d.get(ID) == 823559:
+                import ipdb
+                ipdb.set_trace()
             if survey_name not in output:
                 output[survey_name] = {}
             output[survey_name][INDEX] = index
