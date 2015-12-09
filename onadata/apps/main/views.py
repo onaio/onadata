@@ -35,6 +35,7 @@ from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
     ActivateSMSSupportFom, ExternalExportForm
 from onadata.apps.main.models import AuditLog, UserProfile, MetaData
 from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models.xform import get_forms_shared_with_user
 from onadata.apps.logger.views import enter_data
 from onadata.apps.viewer.models.data_dictionary import DataDictionary,\
     upload_to
@@ -221,7 +222,7 @@ def profile(request, username):
             .select_related('user', 'instances')
         user_xforms = xforms
         # forms shared with user
-        forms_shared_with = XForm.get_forms_shared_with_user(content_user)
+        forms_shared_with = get_forms_shared_with_user(content_user)
         xforms_list = [
             {
                 'id': 'published',

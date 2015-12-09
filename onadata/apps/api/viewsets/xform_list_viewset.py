@@ -12,7 +12,7 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 
 from onadata.apps.api.tools import get_media_file_response
-from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.xform import XForm, get_forms_shared_with_user
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
@@ -92,7 +92,7 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
             queryset = super(XFormListViewSet, self).filter_queryset(queryset)
 
             if self.action == 'list' and profile:
-                forms_shared_with_user = XForm.get_forms_shared_with_user(
+                forms_shared_with_user = get_forms_shared_with_user(
                     profile.user)
                 queryset = queryset | forms_shared_with_user
 
