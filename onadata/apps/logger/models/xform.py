@@ -275,6 +275,19 @@ class XForm(BaseModel):
     def public_forms(cls):
         return cls.objects.filter(shared=True)
 
+    @classmethod
+    def get_forms_share_with_user(cls, user):
+        """
+        Returns forms shared with a user
+        """
+        xfs = user.xformuserobjectpermission_set.all()
+        shared_forms_pks = list(set([xf.content_object.pk for xf in xfs]))
+        forms_shared_with_user = cls.objects.filter(
+            pk__in=shared_forms_pks).exclude(user=user)\
+            .select_related('user')
+
+        return forms_shared_with_user
+
 
 def update_profile_num_submissions(sender, instance, **kwargs):
     profile_qs = User.profile.get_queryset()
