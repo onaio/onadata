@@ -276,7 +276,7 @@ class XForm(BaseModel):
         return cls.objects.filter(shared=True)
 
     @classmethod
-    def get_forms_share_with_user(cls, user):
+    def get_forms_shared_with_user(cls, user):
         """
         Returns forms shared with a user
         """

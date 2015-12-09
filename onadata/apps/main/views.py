@@ -221,7 +221,7 @@ def profile(request, username):
             .select_related('user', 'instances')
         user_xforms = xforms
         # forms shared with user
-        forms_shared_with = XForm.get_forms_share_with_user(content_user)
+        forms_shared_with = XForm.get_forms_shared_with_user(content_user)
         xforms_list = [
             {
                 'id': 'published',
