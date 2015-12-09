@@ -198,6 +198,11 @@ class TestExportBuilder(TestBase):
         return create_survey_from_xls(_logger_fixture_path(
             'childrens_survey.xls'))
 
+    def _publish_childrens_survey(self):
+        path = _logger_fixture_path('childrens_survey.xls')
+        self._publish_xls_file(path)
+        self.dd = DataDictionary.objects.get(id_string='childrens_survey')
+
     def test_build_sections_from_survey(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
@@ -633,8 +638,10 @@ class TestExportBuilder(TestBase):
         self.assertEqual(new_row, expected_row)
 
     def test_generate_field_title(self):
-        field_name = ExportBuilder.format_field_title("child/age", ".")
-        expected_field_name = "child.age"
+        self._publish_childrens_survey()
+        field_name = ExportBuilder.format_field_title("children/age", ".",
+                                                      data_dictionary=self.dd)
+        expected_field_name = "children.age"
         self.assertEqual(field_name, expected_field_name)
 
     def test_delimiter_replacement_works_existing_fields(self):
@@ -1009,15 +1016,15 @@ class TestExportBuilder(TestBase):
             _test_sav_file(section_name)
 
     def test_generate_field_title_truncated_titles(self):
-        field_name = ExportBuilder.format_field_title("child/age", "/",
+        self._publish_childrens_survey()
+        field_name = ExportBuilder.format_field_title("children/age", "/",
+                                                      data_dictionary=self.dd,
                                                       remove_group_name=True)
         expected_field_name = "age"
         self.assertEqual(field_name, expected_field_name)
 
     def test_generate_field_title_truncated_titles_select_multiple(self):
-        path = _logger_fixture_path('childrens_survey.xls')
-        self._publish_xls_file(path)
-        self.dd = DataDictionary.objects.get(id_string='childrens_survey')
+        self._publish_childrens_survey()
         field_name = ExportBuilder.format_field_title(
             "children/fav_colors/red", "/",
             data_dictionary=self.dd,
