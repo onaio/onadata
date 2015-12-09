@@ -1050,3 +1050,57 @@ class TestExportBuilder(TestBase):
         self.assertTrue(data[u'fav_colors/blue\u2019s'])
         self.assertFalse(data[u'fav_colors/pink\u2019s'])
         temp_xls_file.close()
+
+    def test_zipped_csv_export_remove_group_name(self):
+        """
+        cvs writer doesnt handle unicode we we have to encode to ascii
+        """
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_unicode.xls'))
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_csv(temp_zip_file.name, self.data_utf8)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "children.info.csv")))
+        # check file's contents
+        with open(os.path.join(temp_dir, "children.info.csv")) as csv_file:
+            reader = csv.reader(csv_file)
+            expected_headers = ['name.first',
+                                'age',
+                                'fav_colors',
+                                u'fav_colors/red\u2019s',
+                                u'fav_colors/blue\u2019s',
+                                u'fav_colors/pink\u2019s',
+                                'ice_creams',
+                                'ice_creams/vanilla',
+                                'ice_creams/strawberry',
+                                'ice_creams/chocolate', '_id',
+                                '_uuid', '_submission_time', '_index',
+                                '_parent_table_name', '_parent_index',
+                                u'_tags', '_notes', '_version',
+                                '_duration', '_submitted_by']
+            rows = [row for row in reader]
+            actual_headers = [h.decode('utf-8') for h in rows[0]]
+            self.assertEqual(sorted(actual_headers), sorted(expected_headers))
+            data = dict(zip(rows[0], rows[1]))
+            self.assertEqual(
+                data[u'fav_colors/red\u2019s'.encode('utf-8')],
+                'True')
+            self.assertEqual(
+                data[u'fav_colors/blue\u2019s'.encode('utf-8')],
+                'True')
+            self.assertEqual(
+                data[u'fav_colors/pink\u2019s'.encode('utf-8')],
+                'False')
+            # check that red and blue are set to true
+        shutil.rmtree(temp_dir)
