@@ -492,7 +492,7 @@ def api(request, username=None, id_string=None):
                 else False
 
         cursor = query_data(**args)
-    except ValueError as e:
+    except (ValueError, TypeError) as e:
         return HttpResponseBadRequest(e.__str__())
 
     records = list(record for record in cursor)
