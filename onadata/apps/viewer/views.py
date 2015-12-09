@@ -34,7 +34,8 @@ from onadata.libs.utils.export_tools import (
     generate_export,
     should_create_new_export,
     kml_export_data,
-    newest_export_for)
+    newest_export_for,
+    str_to_bool)
 from onadata.libs.utils.image_tools import image_url
 from onadata.libs.utils.google import google_export_xls, redirect_uri
 from onadata.libs.utils.log import audit_log, Actions
@@ -334,7 +335,7 @@ def create_export(request, username, id_string, export_type):
         'group_delimiter': group_delimiter,
         'split_select_multiples': split_select_multiples,
         'binary_select_multiples': binary_select_multiples,
-        'remove_group_name': remove_group_name,
+        'remove_group_name': str_to_bool(remove_group_name),
         'meta': meta.replace(",", "") if meta else None
     }
 
