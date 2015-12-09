@@ -2422,6 +2422,7 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_export_zip_async(self, async_result):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
+            self._make_submissions()
             form_view = XFormViewSet.as_view({
                 'get': 'retrieve',
             })

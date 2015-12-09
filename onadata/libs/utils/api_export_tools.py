@@ -73,7 +73,8 @@ def custom_response_handler(request, xform, query, export_type,
         export_type = Export.EXTERNAL_EXPORT
 
     options = parse_request_export_options(request)
-    options["dataview_pk"] = dataview_pk
+    if dataview_pk:
+        options["dataview_pk"] = dataview_pk
 
     remove_group_name = options.get("remove_group_name")
 
