@@ -634,9 +634,6 @@ class ExportBuilder(object):
                 joined_export)
             # attach meta fields (index, parent_index, parent_table)
             # output has keys for every section
-            if d.get(ID) == 823559:
-                import ipdb
-                ipdb.set_trace()
             if survey_name not in output:
                 output[survey_name] = {}
             output[survey_name][INDEX] = index
