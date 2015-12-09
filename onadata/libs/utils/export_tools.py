@@ -76,7 +76,7 @@ def question_types_to_exclude(_type):
 
 
 def str_to_bool(s):
-    if s in ['True', 'true', 'TRUE', True]:
+    if s in ['True', 'true', 'TRUE']:
         return True
     else:
         return False

@@ -45,8 +45,6 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 
     export = _create_export(xform, export_type, options)
     result = None
-    options['remove_group_name'] = str_to_bool(
-        options.get("remove_group_name"))
 
     export_id = export.id
 
