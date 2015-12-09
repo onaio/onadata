@@ -230,7 +230,9 @@ class ExportBuilder(object):
         if remove_group_name:
             elem = data_dictionary.get_survey_element(abbreviated_xpath)
             # incase abbreviated_xpath is a choices xpath
-            if elem.type == u'':
+            if elem is None:
+                pass
+            elif elem.type == u'':
                 title = u'/'.join([elem.parent.name, elem.name])
             else:
                 title = elem.name
@@ -244,6 +246,8 @@ class ExportBuilder(object):
         # TODO resolve circular import
         from onadata.apps.viewer.models.data_dictionary import\
             DataDictionary
+        dd = DataDictionary()
+        dd._survey = survey
 
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
@@ -278,7 +282,7 @@ class ExportBuilder(object):
                         current_section['elements'].append({
                             'title': ExportBuilder.format_field_title(
                                 child.get_abbreviated_xpath(),
-                                field_delimiter, remove_group_name),
+                                field_delimiter, dd, remove_group_name),
                             'xpath': child_xpath,
                             'type': child.bind.get(u"type")
                         })
@@ -295,7 +299,7 @@ class ExportBuilder(object):
                         for c in child.children:
                             _xpath = c.get_abbreviated_xpath()
                             _title = ExportBuilder.format_field_title(
-                                _xpath, field_delimiter, remove_group_name)
+                                _xpath, field_delimiter, dd, remove_group_name)
                             choice = {
                                 'title': _title,
                                 'xpath': _xpath,
@@ -319,7 +323,7 @@ class ExportBuilder(object):
                             [
                                 {
                                     'title': ExportBuilder.format_field_title(
-                                        xpath, field_delimiter,
+                                        xpath, field_delimiter, dd,
                                         remove_group_name),
                                     'xpath': xpath,
                                     'type': 'decimal'
