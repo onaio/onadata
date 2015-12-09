@@ -7,16 +7,14 @@ from requests import ConnectionError
 
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.exceptions import NoRecordsFoundError
-from onadata.libs.utils.export_tools import generate_export
-from onadata.libs.utils.export_tools import generate_attachments_zip_export
-from onadata.libs.utils.export_tools import generate_kml_export
-from onadata.libs.utils.export_tools import generate_external_export
-from onadata.libs.utils.export_tools import generate_osm_export
-from onadata.libs.utils.logger_tools import report_exception
-
 from onadata.libs.utils.export_tools import (
-    get_boolean_value,
-    str_to_bool)
+    generate_export,
+    generate_attachments_zip_export,
+    generate_kml_export,
+    generate_external_export,
+    generate_osm_export,
+    get_boolean_value)
+from onadata.libs.utils.logger_tools import report_exception
 
 
 def _get_export_details(username, id_string, export_id):
