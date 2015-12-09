@@ -221,11 +221,7 @@ def profile(request, username):
             .select_related('user', 'instances')
         user_xforms = xforms
         # forms shared with user
-        xfs = content_user.xformuserobjectpermission_set.all()
-        shared_forms_pks = list(set([xf.content_object.pk for xf in xfs]))
-        forms_shared_with = XForm.objects.filter(
-            pk__in=shared_forms_pks).exclude(user=content_user)\
-            .select_related('user')
+        forms_shared_with = XForm.get_forms_share_with_user(content_user)
         xforms_list = [
             {
                 'id': 'published',
