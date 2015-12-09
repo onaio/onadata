@@ -42,15 +42,6 @@ def get_attachment_url(attachment, suffix=None):
     return url
 
 
-def get_attachment_url_from_instance_pk(instance_pk):
-    try:
-        instance = Instance.objects.get(pk=instance_pk)
-        return [get_attachment_url(a) for a in instance.attachments.all()]
-
-    except Instance.DoesNotExist:
-        pass
-
-
 def _get_attachments_from_instance(instance):
     attachments = []
     for a in instance.attachments.all():

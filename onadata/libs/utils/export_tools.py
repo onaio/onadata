@@ -8,6 +8,7 @@ import six
 from urlparse import urlparse
 from zipfile import ZipFile
 
+from django.conf import settings
 from django.core.files.base import File
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files.storage import get_storage_class
@@ -39,8 +40,6 @@ from onadata.libs.utils.common_tags import (
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
     DATAVIEW_EXPORT)
 from onadata.libs.utils.osm import get_combined_osm
-from onadata.apps.logger.models.instance import \
-    get_attachment_url_from_instance_pk
 
 
 QUESTION_TYPES_TO_EXCLUDE = [
@@ -52,6 +51,21 @@ GEOPOINT_BIND_TYPE = u"geopoint"
 
 DEFAULT_GROUP_DELIMITER = '/'
 EXPORT_QUERY_KEY = 'query'
+
+
+def current_site_url(path):
+    """Returns fully qualified URL (no trailing slash) for the current site."""
+    from django.contrib.sites.models import Site
+    current_site = Site.objects.get_current()
+    protocol = getattr(settings, 'ONA_SITE_PROTOCOL', 'http')
+    port = getattr(settings, 'ONA_SITE_PORT', '')
+    url = '%s://%s' % (protocol, current_site.domain)
+    if port:
+        url += ':%s' % port
+    if path:
+        url += '%s' % path
+
+    return url
 
 
 def encode_if_str(row, key, encode_dates=False):
@@ -154,13 +168,9 @@ def dict_to_joined_export(data, index, indices, name):
     # TODO: test for _geolocation and attachment lists
     if isinstance(data, dict):
         for key, val in data.iteritems():
-            if isinstance(val, list) and key not in [NOTES, TAGS]:
+            if isinstance(val, list) and key not in [NOTES, ATTACHMENTS, TAGS]:
 
                 output[key] = []
-                if key == ATTACHMENTS:
-                    output[ATTACHMENTS] = \
-                        get_attachment_url_from_instance_pk(data.get(ID))
-
                 for child in val:
                     if key not in indices:
                         indices[key] = 0
@@ -189,6 +199,10 @@ def dict_to_joined_export(data, index, indices, name):
                     note_list = [v if isinstance(v, six.string_types)
                                  else v['note'] for v in val]
                     output[name][key] = "\r\n".join(note_list)
+                elif key in ATTACHMENTS:
+                    urls = [current_site_url(v.get('download_url', ''))
+                            for v in val]
+                    output[name][key] = '\n'.join(urls)
                 else:
                     output[name][key] = val
 

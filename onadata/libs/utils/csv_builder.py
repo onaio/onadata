@@ -18,6 +18,7 @@ from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
     DURATION
+from onadata.libs.utils.export_tools import current_site_url
 from onadata.libs.utils.export_tools import question_types_to_exclude
 
 
@@ -384,7 +385,9 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if key == NOTES:
                 d[key] = u"\r\n".join(value)
             elif key == ATTACHMENTS:
-                d[key] = []
+                urls = [current_site_url(v.get('download_url', ''))
+                        for v in value]
+                d[key] = '\n'.join(urls)
             else:
                 d[key] = value
         return d
