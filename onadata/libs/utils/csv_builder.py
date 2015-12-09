@@ -90,14 +90,15 @@ def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
             new_columns = []
             for col in columns:
                 new_col = None
-                if dd.get_survey_element(col) is None:
+                elem = dd.get_survey_element(col)
+                if elem is None:
                     new_col = col
-                elif dd.get_survey_element(col).type != '':
-                    new_col = dd.get_survey_element(col).name
+                elif elem.type != '':
+                    new_col = elem.name
                 else:
                     new_col = u'/'.join([
-                        dd.get_survey_element(col).parent.name,
-                        dd.get_survey_element(col).name
+                        elem.parent.name,
+                        elem.name
                     ])
                 new_columns.append(new_col)
         else:
