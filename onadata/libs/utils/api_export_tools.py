@@ -22,6 +22,7 @@ from onadata.libs.utils import log
 from onadata.apps.viewer import tasks as viewer_task
 from onadata.libs.exceptions import NoRecordsFoundError, J2XException
 from onadata.libs.utils.export_tools import newest_export_for
+from onadata.libs.utils.export_tools import generate_attachments_zip_export
 from onadata.libs.utils.export_tools import generate_export
 from onadata.libs.utils.export_tools import generate_kml_export
 from onadata.libs.utils.export_tools import generate_external_export
@@ -134,6 +135,13 @@ def _generate_new_export(request, xform, query, export_type,
                 options)
         elif export_type == Export.OSM_EXPORT:
             export = generate_osm_export(
+                export_type,
+                xform.user.username,
+                xform.id_string,
+                None,
+                options)
+        elif export_type == Export.ZIP_EXPORT:
+            export = generate_attachments_zip_export(
                 export_type,
                 xform.user.username,
                 xform.id_string,

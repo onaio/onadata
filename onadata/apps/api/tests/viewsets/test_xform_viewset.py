@@ -2419,6 +2419,45 @@ class TestXFormViewSet(TestAbstractViewSet):
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    def test_export_zip_async(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            form_view = XFormViewSet.as_view({
+                'get': 'retrieve',
+            })
+            export_async_view = XFormViewSet.as_view({
+                'get': 'export_async',
+            })
+            formid = self.xform.pk
+            fmt = 'zip'
+
+            request = self.factory.get(
+                '/', data={"format": fmt}, **self.extra)
+            response = export_async_view(request, pk=formid)
+            self.assertIsNotNone(response.data)
+            self.assertEqual(response.status_code, 202)
+            self.assertTrue('job_uuid' in response.data)
+            task_id = response.data.get('job_uuid')
+            get_data = {'job_uuid': task_id}
+            request = self.factory.get('/', data=get_data, **self.extra)
+            response = export_async_view(request, pk=formid)
+
+            self.assertTrue(async_result.called)
+            self.assertEqual(response.status_code, 202)
+            export = Export.objects.get(task_id=task_id)
+            self.assertTrue(export.is_successful)
+
+            request = self.factory.get('/', **self.extra)
+            response = form_view(request, pk=formid, format=fmt)
+            self.assertTrue(response.status_code, 200)
+            headers = dict(response.items())
+            content_disposition = headers['Content-Disposition']
+            filename = filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.zip')
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_export_async_connection_error(self, async_result):
         with HTTMock(enketo_mock):
             from requests import ConnectionError
