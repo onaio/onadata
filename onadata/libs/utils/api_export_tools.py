@@ -76,10 +76,15 @@ def custom_response_handler(request, xform, query, export_type,
     if dataview_pk:
         options["dataview_pk"] = dataview_pk
 
+    if query:
+        options['query'] = query
+
     remove_group_name = options.get("remove_group_name")
 
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
+    import ipdb
+    ipdb.set_trace()
 
     if should_create_new_export(xform, export_type, options, request=request):
         export = _generate_new_export(request, xform, query, export_type,
@@ -119,8 +124,10 @@ def _generate_new_export(request, xform, query, export_type,
     options = {"extension": extension,
                "username": xform.user.username,
                "id_string": xform.id_string,
-               "query": query,
-               "dataview_pk": dataview_pk}
+               "query": query}
+
+    if dataview_pk:
+        options["dataview_pk"] = dataview_pk
 
     try:
         if export_type == Export.EXTERNAL_EXPORT:
@@ -156,7 +163,6 @@ def _generate_new_export(request, xform, query, export_type,
                 None,
                 options)
         else:
-            options["dataview_pk"] = dataview_pk
             options.update(parse_request_export_options(request))
 
             export = generate_export(

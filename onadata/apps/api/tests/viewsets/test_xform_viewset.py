@@ -19,6 +19,7 @@ from httmock import urlmatch, HTTMock
 from mock import patch
 from rest_framework import status
 from xml.dom import minidom, Node
+from datetime import timedelta
 
 from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -37,6 +38,7 @@ from onadata.libs.utils.cache_tools import (
     ENKETO_URL_CACHE,
     PROJ_FORMS_CACHE)
 from onadata.libs.utils.cache_tools import XFORM_PERMISSIONS_CACHE
+from onadata.libs.utils.common_tags import MONGO_STRFTIME
 
 
 @urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
@@ -185,6 +187,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         super(self.__class__, self).setUp()
         self.view = XFormViewSet.as_view({
             'get': 'list',
+            'get': 'retrieve',
         })
         self.JWT_SECRET_KEY = 'thesecretkey'
         self.JWT_ALGORITHM = 'HS256'
@@ -3018,3 +3021,93 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertEqual(response.status_code, 200)
             self.assertIn('enketo_url', response.data)
+
+    def _make_submission_over_date_range(self, start, days=1):
+        self._publish_xls_form_to_project()
+
+        start_time = start
+        curr_time = start_time
+        for survey in self.surveys:
+            _submission_time = curr_time
+            self._make_submission(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'apps',
+                    'main', 'tests', 'fixtures', 'transportation',
+                    'instances', survey, survey + '.xml'),
+                forced_submission_time=_submission_time)
+            curr_time += timedelta(days=days)
+
+    def _validate_csv_export(self, response, test_file_path):
+        headers = dict(response.items())
+        self.assertEqual(headers['Content-Type'], 'application/csv')
+        content_disposition = headers['Content-Disposition']
+        filename = filename_from_disposition(content_disposition)
+        basename, ext = os.path.splitext(filename)
+        self.assertEqual(ext, '.csv')
+
+        content = get_response_content(response)
+
+        with open(test_file_path, 'r') as test_file:
+            self.assertEqual(content, test_file.read())
+
+    def _get_date_filtered_export(self, query_str):
+
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = self.view(request, pk=self.xform.pk, format='csv')
+
+        self.assertEqual(response.status_code, 200)
+
+
+        return response
+
+    def test__csv_export_filtered_by_date(self):
+        with HTTMock(enketo_mock):
+            start_date = datetime(2015, 12, 2)
+            self._make_submission_over_date_range(start_date)
+
+            first_datetime = start_date.strftime(MONGO_STRFTIME)
+            second_datetime = start_date + timedelta(days=1, hours=20)
+
+            query_str = '{"_submission_time": {"$gte": "'\
+                        + first_datetime + '", "$lte": "'\
+                        + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+
+            count = Export.objects.all().count()
+            response = self._get_date_filtered_export(query_str)
+            self.assertEquals(count+1, Export.objects.all().count())
+
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                      'viewer', 'tests', 'fixtures',
+                                      'transportation_filtered_date.csv')
+
+            self._validate_csv_export(response, test_file_path)
+
+            export = Export.objects.last()
+
+            self.assertIn("query", export.options)
+            self.assertEquals(export.options['query'], query_str)
+
+    def test_previous_export_with_date_filter_is_returned(self):
+        with HTTMock(enketo_mock):
+            start_date = datetime(2015, 12, 2)
+            self._make_submission_over_date_range(start_date)
+
+            first_datetime = start_date.strftime(MONGO_STRFTIME)
+            second_datetime = start_date + timedelta(days=1, hours=20)
+
+            query_str = '{"_submission_time": {"$gte": "'\
+                        + first_datetime + '", "$lte": "'\
+                        + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+
+            # Generate initial filtered export by date
+            response = self._get_date_filtered_export(query_str)
+
+            count = Export.objects.all().count()
+
+            # request for export again
+            response = self._get_date_filtered_export(query_str)
+
+            # no change in count of exports
+            self.assertEquals(count, Export.objects.all().count())
+
+
