@@ -12,6 +12,8 @@ from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.instance import InstanceHistory
+from onadata.apps.logger.models.project import Project
+from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.utils.common_tags import GEOLOCATION
@@ -41,6 +43,29 @@ class TestFormSubmission(TestBase):
 
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
+
+    def test_duplicate_form_id(self):
+        """
+        Should return an error if submitting to a form with a duplicate ID.
+        """
+        project = Project.objects.create(name="another project",
+                                              organization=self.user,
+                                              created_by=self.user)
+        first_xform = XForm.objects.first()
+        first_xform.pk = None
+        first_xform.project = project
+        first_xform.save()
+
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/instances/tutorial_2012-06-27_11-27-53.xml"
+        )
+
+        self._make_submission(xml_submission_file_path)
+        self.assertEqual(self.response.status_code, 400)
+        self.assertTrue(
+            "Unable to submit because there are multiple forms with this form"
+            in self.response.content)
 
     @patch('django.utils.datastructures.MultiValueDict.pop')
     def test_fail_with_ioerror_read(self, mock_pop):
