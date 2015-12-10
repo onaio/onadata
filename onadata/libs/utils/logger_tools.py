@@ -9,7 +9,8 @@ from xml.parsers.expat import ExpatError
 
 from dict2xml import dict2xml
 from django.conf import settings
-from django.core.exceptions import ValidationError, PermissionDenied
+from django.core.exceptions import (
+    ValidationError, PermissionDenied, MultipleObjectsReturned)
 from django.core.files.storage import get_storage_class
 from django.core.mail import mail_admins
 from django.core.servers.basehttp import FileWrapper
@@ -38,6 +39,7 @@ from onadata.apps.logger.xform_instance_parser import (
     InstanceEmptyError,
     InstanceInvalidUserError,
     InstanceMultipleNodeError,
+    NonUniqueFormIdError,
     DuplicateInstance,
     clean_and_parse_xml,
     get_uuid_from_xml,
@@ -116,8 +118,11 @@ def get_xform_from_submission(xml, username, uuid=None):
 
     id_string = get_id_string_from_xml_str(xml)
 
-    return get_object_or_404(XForm, id_string__iexact=id_string,
-                             user__username=username)
+    try:
+        return get_object_or_404(XForm, id_string__iexact=id_string,
+                                 user__username=username)
+    except MultipleObjectsReturned:
+        raise NonUniqueFormIdError()
 
 
 def _has_edit_xform_permission(xform, user):
@@ -313,6 +318,10 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseBadRequest(_(u"File likely corrupted during "
                                              u"transmission, please try later."
                                              ))
+    except NonUniqueFormIdError as e:
+        error = OpenRosaResponseBadRequest(_(
+            u"A form with this form ID already exists. Please set a unique "
+            u"form ID in the XLSForm's settings sheet."))
     if isinstance(instance, DuplicateInstance):
         response = OpenRosaResponse(_(u"Duplicate submission"))
         response.status_code = 202
