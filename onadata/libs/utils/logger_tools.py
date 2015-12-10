@@ -320,8 +320,8 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
                                              ))
     except NonUniqueFormIdError as e:
         error = OpenRosaResponseBadRequest(_(
-            u"A form with this form ID already exists. Please set a unique "
-            u"form ID in the XLSForm's settings sheet."))
+            u"Unable to submit because there are multiple forms with this form"
+            u"ID."))
     if isinstance(instance, DuplicateInstance):
         response = OpenRosaResponse(_(u"Duplicate submission"))
         response.status_code = 202
