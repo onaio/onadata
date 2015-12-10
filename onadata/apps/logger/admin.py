@@ -19,9 +19,9 @@ admin.site.register(XForm, FormAdmin)
 
 class ProjectAdmin(admin.ModelAdmin):
     list_max_show_all = 2000
-    list_select_related = ('user',)
+    list_select_related = ('organization',)
     ordering = ['name']
-    search_fields = ('name', 'user__username', 'user__email')
+    search_fields = ('name', 'organization__username', 'organization__email')
 
     # A user should only see projects that belong to him.
     def get_queryset(self, request):
