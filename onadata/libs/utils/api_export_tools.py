@@ -83,8 +83,6 @@ def custom_response_handler(request, xform, query, export_type,
 
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
-    import ipdb
-    ipdb.set_trace()
 
     if should_create_new_export(xform, export_type, options, request=request):
         export = _generate_new_export(request, xform, query, export_type,

@@ -1,6 +1,7 @@
 import csv
 from datetime import datetime, date
 import json
+import hashlib
 import os
 import re
 import six
@@ -48,6 +49,7 @@ MULTIPLE_SELECT_BIND_TYPE = u"select"
 GEOPOINT_BIND_TYPE = u"geopoint"
 
 DEFAULT_GROUP_DELIMITER = '/'
+EXPORT_QUERY_KEY = 'query'
 
 
 def encode_if_str(row, key, encode_dates=False):
@@ -723,6 +725,11 @@ def get_export_options(options):
         key: value for key, value in options.iteritems()
         if key in Export.EXPORT_OPTION_FIELDS}
 
+    if EXPORT_QUERY_KEY in export_options:
+        query_str = '{}'.format(export_options[EXPORT_QUERY_KEY])
+
+        export_options[EXPORT_QUERY_KEY] = hashlib.md5(query_str).hexdigest()
+
     return export_options
 
 
@@ -735,9 +742,15 @@ def generate_options_query(query, options):
         if field in options:
             field_value = options.get(field)
 
-            field_value = json.dumps(field_value)\
-                if isinstance(field_value, bool)\
-                else '"{}"'.format(field_value)
+            if isinstance(field_value, bool):
+                field_value = json.dumps(field_value)
+            elif field == EXPORT_QUERY_KEY:
+                query_str = '{}'.format(field_value)
+
+                field_value = '"{}"'.format(hashlib.md5(query_str).hexdigest())
+            else:
+                field_value = '"{}"'.format(field_value)
+
             option_field_query = '"{}":{}'.format(field, field_value)
             query_with_filter = query_with_filter.filter(
                 options__contains=option_field_query)

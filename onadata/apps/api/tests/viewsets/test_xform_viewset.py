@@ -5,6 +5,7 @@ import re
 import requests
 import pytz
 import jwt
+import hashlib
 
 from collections import OrderedDict
 from django.db.models import Q
@@ -187,7 +188,6 @@ class TestXFormViewSet(TestAbstractViewSet):
         super(self.__class__, self).setUp()
         self.view = XFormViewSet.as_view({
             'get': 'list',
-            'get': 'retrieve',
         })
         self.JWT_SECRET_KEY = 'thesecretkey'
         self.JWT_ALGORITHM = 'HS256'
@@ -3051,12 +3051,11 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(content, test_file.read())
 
     def _get_date_filtered_export(self, query_str):
-
+        view = XFormViewSet.as_view({'get': 'retrieve'})
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
-        response = self.view(request, pk=self.xform.pk, format='csv')
+        response = view(request, pk=self.xform.pk, format='csv')
 
         self.assertEqual(response.status_code, 200)
-
 
         return response
 
@@ -3077,14 +3076,16 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEquals(count+1, Export.objects.all().count())
 
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
-                                      'viewer', 'tests', 'fixtures',
-                                      'transportation_filtered_date.csv')
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation_filtered_date.csv')
 
             self._validate_csv_export(response, test_file_path)
 
             export = Export.objects.last()
 
             self.assertIn("query", export.options)
+
+            query_str = hashlib.md5(query_str).hexdigest()
             self.assertEquals(export.options['query'], query_str)
 
     def test_previous_export_with_date_filter_is_returned(self):
@@ -3100,12 +3101,12 @@ class TestXFormViewSet(TestAbstractViewSet):
                         + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
 
             # Generate initial filtered export by date
-            response = self._get_date_filtered_export(query_str)
+            self._get_date_filtered_export(query_str)
 
             count = Export.objects.all().count()
 
             # request for export again
-            response = self._get_date_filtered_export(query_str)
+            self._get_date_filtered_export(query_str)
 
             # no change in count of exports
             self.assertEquals(count, Export.objects.all().count())
