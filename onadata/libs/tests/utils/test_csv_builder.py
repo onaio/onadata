@@ -437,3 +437,43 @@ class TestCSVDataFrameBuilder(TestBase):
         }
         self.maxDiff = None
         self.assertEqual(data_0, expected_data_0)
+
+    def test_csv_export_remove_group_name(self):
+        self._publish_single_level_repeat_form()
+        # submit 7 instances
+        for i in range(4):
+            self._submit_fixture_instance("new_repeats", "01")
+        self._submit_fixture_instance("new_repeats", "02")
+        for i in range(2):
+            self._submit_fixture_instance("new_repeats", "01")
+        csv_df_builder = CSVDataFrameBuilder(
+            self.user.username,
+            self.xform.id_string,
+            remove_group_name=True
+        )
+        record_count = csv_df_builder._query_data(count=True)
+        self.assertEqual(record_count, 7)
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        csv_df_builder.export_to(temp_file.name)
+        csv_file = open(temp_file.name)
+        csv_reader = csv.reader(csv_file)
+        header = csv_reader.next()
+        self.assertEqual(
+            len(header), 17 + len(AbstractDataFrameBuilder.ADDITIONAL_COLUMNS))
+        expected_header = [
+            'name', 'age', 'has_kids', 'kids_name', 'kids_age', 'kids_name',
+            'kids_age', 'gps', '_gps_latitude', '_gps_longitude',
+            '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
+            'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
+            'instanceID', '_uuid', '_submission_time', '_tags',
+            '_notes', '_version', '_duration', '_submitted_by'
+        ]
+        self.assertEqual(expected_header, header)
+        rows = []
+        for row in csv_reader:
+            rows.append(row)
+        self.assertEqual(len(rows), 7)
+        self.assertEqual(rows[4][5], NA_REP)
+        # close and delete file
+        csv_file.close()
+        os.unlink(temp_file.name)

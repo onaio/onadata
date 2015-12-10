@@ -224,21 +224,30 @@ class ExportBuilder(object):
 
     @classmethod
     def format_field_title(cls, abbreviated_xpath, field_delimiter,
-                           remove_group_name=False):
-        if field_delimiter != '/':
-            return field_delimiter.join(abbreviated_xpath.split('/'))
-
+                           data_dictionary, remove_group_name=False):
+        title = abbreviated_xpath
         # Check if to truncate the group name prefix
         if remove_group_name:
-            abbreviated_xpath_list = abbreviated_xpath.split(field_delimiter)
-            return abbreviated_xpath_list[len(abbreviated_xpath_list) - 1]
-        else:
-            return abbreviated_xpath
+            elem = data_dictionary.get_survey_element(abbreviated_xpath)
+            # incase abbreviated_xpath is a choices xpath
+            if elem is None:
+                pass
+            elif elem.type == u'':
+                title = u'/'.join([elem.parent.name, elem.name])
+            else:
+                title = elem.name
+
+        if field_delimiter != '/':
+            title = field_delimiter.join(title.split('/'))
+
+        return title
 
     def set_survey(self, survey):
         # TODO resolve circular import
         from onadata.apps.viewer.models.data_dictionary import\
             DataDictionary
+        dd = DataDictionary()
+        dd._survey = survey
 
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
@@ -273,7 +282,7 @@ class ExportBuilder(object):
                         current_section['elements'].append({
                             'title': ExportBuilder.format_field_title(
                                 child.get_abbreviated_xpath(),
-                                field_delimiter, remove_group_name),
+                                field_delimiter, dd, remove_group_name),
                             'xpath': child_xpath,
                             'type': child.bind.get(u"type")
                         })
@@ -290,7 +299,7 @@ class ExportBuilder(object):
                         for c in child.children:
                             _xpath = c.get_abbreviated_xpath()
                             _title = ExportBuilder.format_field_title(
-                                _xpath, field_delimiter, remove_group_name)
+                                _xpath, field_delimiter, dd, remove_group_name)
                             choice = {
                                 'title': _title,
                                 'xpath': _xpath,
@@ -314,7 +323,7 @@ class ExportBuilder(object):
                             [
                                 {
                                     'title': ExportBuilder.format_field_title(
-                                        xpath, field_delimiter,
+                                        xpath, field_delimiter, dd,
                                         remove_group_name),
                                     'xpath': xpath,
                                     'type': 'decimal'

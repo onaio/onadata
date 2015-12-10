@@ -2692,7 +2692,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertEquals(expected, response.data.get('form_versions'))
 
-    def test__csv_export__with_and_without_group_delimiter(self):
+    def test_csv_export__with_and_without_group_delimiter(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             survey = self.surveys[0]
@@ -2740,7 +2740,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(content_header_row_with_dots,
                              content_header_row_with_slashes.replace("/", "."))
 
-    def test__csv_export__with_and_without_do_not_split_select_multiples(self):
+    def test_csv_export__with_and_without_do_not_split_select_multiples(self):
         with HTTMock(enketo_mock):
             xlsform_path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
@@ -2800,7 +2800,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertGreater(multiples_select_split,
                                no_multiples_select_split)
 
-    def test__csv_export__with_and_without_removed_group_name(self):
+    def test_csv_export_with_and_without_removed_group_name(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
             survey = self.surveys[0]

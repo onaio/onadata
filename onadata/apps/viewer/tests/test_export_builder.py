@@ -13,6 +13,7 @@ from pyxform.builder import create_survey_from_xls
 from savReaderWriter import SavReader
 
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
 from onadata.libs.utils.export_tools import (
@@ -194,8 +195,13 @@ class TestExportBuilder(TestBase):
     ]
 
     def _create_childrens_survey(self):
-        return create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey.xls'))
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey.xls')
+        )
+        self.dd = DataDictionary()
+        self.dd._survey = survey
+
+        return survey
 
     def test_build_sections_from_survey(self):
         survey = self._create_childrens_survey()
@@ -632,8 +638,10 @@ class TestExportBuilder(TestBase):
         self.assertEqual(new_row, expected_row)
 
     def test_generate_field_title(self):
-        field_name = ExportBuilder.format_field_title("child/age", ".")
-        expected_field_name = "child.age"
+        self._create_childrens_survey()
+        field_name = ExportBuilder.format_field_title("children/age", ".",
+                                                      data_dictionary=self.dd)
+        expected_field_name = "children.age"
         self.assertEqual(field_name, expected_field_name)
 
     def test_delimiter_replacement_works_existing_fields(self):
@@ -1008,7 +1016,91 @@ class TestExportBuilder(TestBase):
             _test_sav_file(section_name)
 
     def test_generate_field_title_truncated_titles(self):
-        field_name = ExportBuilder.format_field_title("child/age", "/",
+        self._create_childrens_survey()
+        field_name = ExportBuilder.format_field_title("children/age", "/",
+                                                      data_dictionary=self.dd,
                                                       remove_group_name=True)
         expected_field_name = "age"
         self.assertEqual(field_name, expected_field_name)
+
+    def test_generate_field_title_truncated_titles_select_multiple(self):
+        self._create_childrens_survey()
+        field_name = ExportBuilder.format_field_title(
+            "children/fav_colors/red", "/",
+            data_dictionary=self.dd,
+            remove_group_name=True
+        )
+        expected_field_name = "fav_colors/red"
+        self.assertEqual(field_name, expected_field_name)
+
+    def test_xls_export_remove_group_name(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_unicode.xls'))
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
+        temp_xls_file.seek(0)
+        # check that values for red\u2019s and blue\u2019s are set to true
+        wb = load_workbook(temp_xls_file.name)
+        children_sheet = wb.get_sheet_by_name("children.info")
+        data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
+        self.assertTrue(data[u'fav_colors/red\u2019s'])
+        self.assertTrue(data[u'fav_colors/blue\u2019s'])
+        self.assertFalse(data[u'fav_colors/pink\u2019s'])
+        temp_xls_file.close()
+
+    def test_zipped_csv_export_remove_group_name(self):
+        """
+        cvs writer doesnt handle unicode we we have to encode to ascii
+        """
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_unicode.xls'))
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_csv(temp_zip_file.name, self.data_utf8)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "children.info.csv")))
+        # check file's contents
+        with open(os.path.join(temp_dir, "children.info.csv")) as csv_file:
+            reader = csv.reader(csv_file)
+            expected_headers = ['name.first',
+                                'age',
+                                'fav_colors',
+                                u'fav_colors/red\u2019s',
+                                u'fav_colors/blue\u2019s',
+                                u'fav_colors/pink\u2019s',
+                                'ice_creams',
+                                'ice_creams/vanilla',
+                                'ice_creams/strawberry',
+                                'ice_creams/chocolate', '_id',
+                                '_uuid', '_submission_time', '_index',
+                                '_parent_table_name', '_parent_index',
+                                u'_tags', '_notes', '_version',
+                                '_duration', '_submitted_by']
+            rows = [row for row in reader]
+            actual_headers = [h.decode('utf-8') for h in rows[0]]
+            self.assertEqual(sorted(actual_headers), sorted(expected_headers))
+            data = dict(zip(rows[0], rows[1]))
+            self.assertEqual(
+                data[u'fav_colors/red\u2019s'.encode('utf-8')],
+                'True')
+            self.assertEqual(
+                data[u'fav_colors/blue\u2019s'.encode('utf-8')],
+                'True')
+            self.assertEqual(
+                data[u'fav_colors/pink\u2019s'.encode('utf-8')],
+                'False')
+            # check that red and blue are set to true
+        shutil.rmtree(temp_dir)
