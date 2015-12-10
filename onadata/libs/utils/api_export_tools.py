@@ -6,6 +6,7 @@ from requests import ConnectionError
 from django.http import Http404, HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.utils import six
+from django.shortcuts import get_object_or_404
 
 from rest_framework import exceptions
 from rest_framework.response import Response
@@ -81,24 +82,31 @@ def custom_response_handler(request, xform, query, export_type,
 
     remove_group_name = options.get("remove_group_name")
 
-    # check if we need to re-generate,
-    # we always re-generate if a filter is specified
+    export_id = request.QUERY_PARAMS.get("export_id")
 
-    if should_create_new_export(xform, export_type, options, request=request):
-        export = _generate_new_export(request, xform, query, export_type,
-                                      dataview_pk=dataview_pk)
+    if export_id:
+        export = get_object_or_404(Export, id=export_id, xform=xform)
     else:
-        export = newest_export_for(xform, export_type, options)
+        # check if we need to re-generate,
+        # we always re-generate if a filter is specified
 
-        if not export.filename:
-            # tends to happen when using newset_export_for.
+        if should_create_new_export(xform, export_type, options,
+                                    request=request):
             export = _generate_new_export(request, xform, query, export_type,
                                           dataview_pk=dataview_pk)
+        else:
+            export = newest_export_for(xform, export_type, options)
 
-    log_export(request, xform, export_type)
+            if not export.filename:
+                # tends to happen when using newset_export_for.
+                export = _generate_new_export(request, xform, query,
+                                              export_type,
+                                              dataview_pk=dataview_pk)
 
-    if export_type == Export.EXTERNAL_EXPORT:
-        return external_export_response(export)
+        log_export(request, xform, export_type)
+
+        if export_type == Export.EXTERNAL_EXPORT:
+            return external_export_response(export)
 
     # get extension from file_path, exporter could modify to
     # xlsx if it exceeds limits
@@ -419,11 +427,8 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
                             'format': export.export_type},
                     request=request
                 )
-            remove_group_key = "remove_group_name"
 
-            if str_to_bool(request.QUERY_PARAMS.get(remove_group_key)):
-                # append the param to the url
-                export_url = "{}?{}=true".format(export_url, remove_group_key)
+            export_url = "{}?export_id={}".format(export_url, export.pk)
         else:
             export_url = export.export_url
         resp = {

@@ -2950,7 +2950,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid)
 
-            self.assertIn("remove_group_name=true",
+            export = Export.objects.last()
+            self.assertIn("export_id={}".format(export.pk),
                           response.data.get('export_url'))
 
             self.assertTrue(async_result.called)
@@ -3111,4 +3112,52 @@ class TestXFormViewSet(TestAbstractViewSet):
             # no change in count of exports
             self.assertEquals(count, Export.objects.all().count())
 
+    def test_download_export_with_export_id(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            survey = self.surveys[0]
+            _submission_time = parse_datetime('2013-02-18 15:54:01Z')
+            self._make_submission(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'apps',
+                    'main', 'tests', 'fixtures', 'transportation',
+                    'instances', survey, survey + '.xml'),
+                forced_submission_time=_submission_time)
 
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            export = Export.objects.last()
+
+            data = {"export_id": export.pk}
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation.csv')
+            self._validate_csv_export(response, test_file_path)
+
+    def test_download_export_with_invalid_export_id(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            data = {"export_id": 12131231}
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 404)

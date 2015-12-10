@@ -43,7 +43,8 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
         if EXPORT_QUERY_KEY in export_options:
             query_str = '{}'.format(export_options[EXPORT_QUERY_KEY])
 
-            export_options[EXPORT_QUERY_KEY] = hashlib.md5(query_str).hexdigest()
+            export_options[EXPORT_QUERY_KEY] \
+                = hashlib.md5(query_str).hexdigest()
 
         return Export.objects.create(xform=xform,
                                      export_type=export_type,
