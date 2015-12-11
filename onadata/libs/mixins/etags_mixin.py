@@ -48,7 +48,7 @@ class ETagsMixin(object):
                 etag_value = str(self.etag_data)
             elif hasattr(self, 'object_list'):
                 if not isinstance(self.object_list, types.GeneratorType) and \
-                        len(self.object_list):
+                        self.object_list:
                     etag_value = get_etag_value(obj, self.object_list)
             elif hasattr(self, 'object'):
                 if self.object.__class__.__name__ in MODELS_WITH_DATE_MODIFIED:
