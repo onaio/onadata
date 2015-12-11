@@ -3161,3 +3161,37 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', data=data, **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 404)
+
+    def test_normal_export_after_export_with_date_filter(self):
+        with HTTMock(enketo_mock):
+            start_date = datetime(2015, 12, 2)
+            self._make_submission_over_date_range(start_date)
+
+            first_datetime = start_date.strftime(MONGO_STRFTIME)
+            second_datetime = start_date + timedelta(days=1, hours=20)
+
+            query_str = '{"_submission_time": {"$gte": "'\
+                        + first_datetime + '", "$lte": "'\
+                        + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+
+            # Generate initial filtered export by date
+            self._get_date_filtered_export(query_str)
+
+            count = Export.objects.all().count()
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            # request for export again
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            # no change in count of exports
+            self.assertEquals(count+1, Export.objects.all().count())
+
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation_all.csv')
+            self._validate_csv_export(response, test_file_path)
