@@ -19,6 +19,7 @@ from onadata.libs.utils.user_auth import get_user_default_project
 from onadata.apps.api.tests.viewsets.test_xform_viewset import enketo_mock,\
     enketo_preview_url_mock
 from test_base import TestBase
+from onadata.apps.logger.xform_instance_parser import XLSFormError
 
 
 def raise_multiple_objects_returned_error(*args, **kwargs):
@@ -40,6 +41,15 @@ class TestFormShow(TestBase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.xform.id_string)
+
+    @mock.patch.object(XForm, '_set_title')
+    def test_show_form_name_with_ampersand_in_title(self, mock_set_title):
+        mock_set_title.side_effect = XLSFormError(
+            u"Title shouldn't have an ampersand")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.content, u"Title shouldn't have an ampersand")
 
     def test_hide_from_anon(self):
         response = self.anon.get(self.url)
