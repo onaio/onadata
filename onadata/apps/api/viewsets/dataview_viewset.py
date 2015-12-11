@@ -110,7 +110,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
                 export = Export.objects.get(id=export_id)
 
                 resp = _export_async_export_response(request, xform, export,
-                                                    dataview_pk=dataview.pk)
+                                                     dataview_pk=dataview.pk)
             else:
                 resp = {
                     'job_status': job.state

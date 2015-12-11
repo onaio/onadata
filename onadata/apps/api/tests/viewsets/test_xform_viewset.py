@@ -3060,7 +3060,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         return response
 
-    def test__csv_export_filtered_by_date(self):
+    def test_csv_export_filtered_by_date(self):
         with HTTMock(enketo_mock):
             start_date = datetime(2015, 12, 2)
             self._make_submission_over_date_range(start_date)

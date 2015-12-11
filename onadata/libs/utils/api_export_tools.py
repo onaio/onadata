@@ -17,7 +17,6 @@ from celery.result import AsyncResult
 
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.export_tools import should_create_new_export
-from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import log
 from onadata.apps.viewer import tasks as viewer_task
@@ -89,19 +88,18 @@ def custom_response_handler(request, xform, query, export_type,
     else:
         # check if we need to re-generate,
         # we always re-generate if a filter is specified
+        def new_export():
+            return _generate_new_export(request, xform, query, export_type,
+                                        dataview_pk=dataview_pk)
 
         if should_create_new_export(xform, export_type, options,
                                     request=request):
-            export = _generate_new_export(request, xform, query, export_type,
-                                          dataview_pk=dataview_pk)
+            export = new_export()
         else:
             export = newest_export_for(xform, export_type, options)
 
             if not export.filename:
-                # tends to happen when using newset_export_for.
-                export = _generate_new_export(request, xform, query,
-                                              export_type,
-                                              dataview_pk=dataview_pk)
+                export = new_export()
 
         log_export(request, xform, export_type)
 

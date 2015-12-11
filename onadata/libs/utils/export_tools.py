@@ -720,6 +720,10 @@ def dict_to_flat_export(d, parent_index=0):
     pass
 
 
+def md5hash(string):
+    return hashlib.md5(string).hexdigest()
+
+
 def get_export_options(options):
     export_options = {
         key: value for key, value in options.iteritems()
@@ -728,7 +732,7 @@ def get_export_options(options):
     if EXPORT_QUERY_KEY in export_options:
         query_str = '{}'.format(export_options[EXPORT_QUERY_KEY])
 
-        export_options[EXPORT_QUERY_KEY] = hashlib.md5(query_str).hexdigest()
+        export_options[EXPORT_QUERY_KEY] = md5hash(query_str)
 
     return export_options
 
@@ -745,9 +749,9 @@ def generate_options_query(query, options):
             if isinstance(field_value, bool):
                 field_value = json.dumps(field_value)
             elif field == EXPORT_QUERY_KEY:
-                query_str = '{}'.format(field_value)
+                query_str = str(format(field_value))
 
-                field_value = '"{}"'.format(hashlib.md5(query_str).hexdigest())
+                field_value = '"{}"'.format(md5hash(query_str))
             else:
                 field_value = '"{}"'.format(field_value)
 
