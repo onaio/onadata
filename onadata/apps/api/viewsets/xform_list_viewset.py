@@ -89,6 +89,11 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
         if not self.request.user.is_anonymous():
             queryset = super(XFormListViewSet, self).filter_queryset(queryset)
 
+            if self.action == 'list' and profile:
+                forms_shared_with_user = get_forms_shared_with_user(
+                    profile.user)
+                queryset = queryset | forms_shared_with_user
+
             return queryset
 
     def list(self, request, *args, **kwargs):
