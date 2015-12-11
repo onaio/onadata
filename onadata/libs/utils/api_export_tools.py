@@ -283,52 +283,6 @@ def _format_date_for_mongo(x, datetime):
         x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
 
 
-def export_async_export_response(request, xform, export, dataview_pk=False):
-    """
-    Checks the export status and generates the reponse
-    :param request:
-    :param xform:
-    :param export:
-    :return: response dict
-    """
-    if export.status == Export.SUCCESSFUL:
-        if export.export_type != Export.EXTERNAL_EXPORT:
-            export_url = reverse(
-                'xform-detail',
-                kwargs={'pk': xform.pk,
-                        'format': export.export_type},
-                request=request
-            )
-            if dataview_pk:
-                export_url = reverse(
-                    'dataviews-data',
-                    kwargs={'pk': dataview_pk,
-                            'action': 'data',
-                            'format': export.export_type},
-                    request=request
-                )
-            remove_group_key = "remove_group_name"
-            if str_to_bool(request.QUERY_PARAMS.get(remove_group_key)):
-                # append the param to the url
-                export_url = "{}?{}=true".format(export_url, remove_group_key)
-        else:
-            export_url = export.export_url
-        resp = {
-            u'job_status': "Success",
-            u'export_url': export_url
-        }
-    elif export.status == Export.PENDING:
-        resp = {
-            'export_status': 'Pending'
-        }
-    else:
-        resp = {
-            'export_status': "Failed"
-        }
-
-    return resp
-
-
 def process_async_export(request, xform, export_type, options=None):
     """
     Check if should generate export or just return the latest export.

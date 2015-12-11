@@ -22,7 +22,7 @@ from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.utils.api_export_tools import custom_response_handler
-from onadata.libs.utils.api_export_tools import export_async_export_response
+from onadata.libs.utils.api_export_tools import _export_async_export_response
 from onadata.libs.utils.api_export_tools import process_async_export
 from onadata.libs.utils.api_export_tools import response_for_format
 from onadata.libs.utils.chart_tools import get_chart_data_for_field
@@ -109,7 +109,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
                 export_id = job.result
                 export = Export.objects.get(id=export_id)
 
-                resp = export_async_export_response(request, xform, export,
+                resp = _export_async_export_response(request, xform, export,
                                                     dataview_pk=dataview.pk)
             else:
                 resp = {
