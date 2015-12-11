@@ -45,6 +45,7 @@ from onadata.apps.sms_support.tools import check_form_sms_compatibility,\
     is_sms_related
 from onadata.apps.sms_support.autodoc import get_autodoc_for
 from onadata.apps.sms_support.providers import providers_doc
+from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
     publish_form
@@ -389,20 +390,23 @@ def show(request, username=None, id_string=None, uuid=None):
         XForm.objects.filter(user__username__iexact=request.user.username,
                              id_string__iexact=id_string + XForm.CLONED_SUFFIX)
     ) > 0
-    data['public_link'] = MetaData.public_link(xform)
-    data['is_owner'] = is_owner
-    data['can_edit'] = can_edit
-    data['can_view'] = can_view or request.session.get('public_link')
-    data['xform'] = xform
-    data['content_user'] = xform.user
-    data['base_url'] = "https://%s" % request.get_host()
-    data['source'] = MetaData.source(xform)
-    data['form_license'] = MetaData.form_license(xform).data_value
-    data['data_license'] = MetaData.data_license(xform).data_value
-    data['supporting_docs'] = MetaData.supporting_docs(xform)
-    data['media_upload'] = MetaData.media_upload(xform)
-    data['mapbox_layer'] = MetaData.mapbox_layer_upload(xform)
-    data['external_export'] = MetaData.external_export(xform)
+    try:
+        data['public_link'] = MetaData.public_link(xform)
+        data['is_owner'] = is_owner
+        data['can_edit'] = can_edit
+        data['can_view'] = can_view or request.session.get('public_link')
+        data['xform'] = xform
+        data['content_user'] = xform.user
+        data['base_url'] = "https://%s" % request.get_host()
+        data['source'] = MetaData.source(xform)
+        data['form_license'] = MetaData.form_license(xform).data_value
+        data['data_license'] = MetaData.data_license(xform).data_value
+        data['supporting_docs'] = MetaData.supporting_docs(xform)
+        data['media_upload'] = MetaData.media_upload(xform)
+        data['mapbox_layer'] = MetaData.mapbox_layer_upload(xform)
+        data['external_export'] = MetaData.external_export(xform)
+    except XLSFormError, e:
+        return HttpResponseBadRequest(e.__str__())
 
     if is_owner:
         set_xform_owner_data(data, xform, request, username, id_string)
