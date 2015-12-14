@@ -1104,3 +1104,32 @@ class TestExportBuilder(TestBase):
                 'False')
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
+
+    def test_xls_export_with_labels(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_unicode.xls'))
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
+        temp_xls_file.seek(0)
+        # check that values for red\u2019s and blue\u2019s are set to true
+        wb = load_workbook(temp_xls_file.name)
+        children_sheet = wb.get_sheet_by_name("children.info")
+        labels = dict([(r[0].value, r[1].value)
+                       for r in children_sheet.columns])
+        self.assertEqual(labels[u'name.first'], '3.1 Childs name')
+        self.assertEqual(labels[u'age'], '3.2 Child age')
+        self.assertEqual(labels[u'fav_colors/red\u2019s'], 'fav_colors/Red')
+        self.assertEqual(labels[u'fav_colors/blue\u2019s'], 'fav_colors/Blue')
+        self.assertEqual(labels[u'fav_colors/pink\u2019s'], 'fav_colors/Pink')
+
+        data = dict([(r[0].value, r[2].value) for r in children_sheet.columns])
+        self.assertEqual(data[u'name.first'], 'Mike')
+        self.assertEqual(data[u'age'], 5)
+        self.assertTrue(data[u'fav_colors/red\u2019s'])
+        self.assertTrue(data[u'fav_colors/blue\u2019s'])
+        self.assertFalse(data[u'fav_colors/pink\u2019s'])
+        temp_xls_file.close()
