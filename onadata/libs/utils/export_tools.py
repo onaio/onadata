@@ -476,11 +476,12 @@ class ExportBuilder(object):
                 'csv_file': csv_file, 'csv_writer': csv_writer}
 
         # write headers
-        for section in self.sections:
-            fields = [element['title'] for element in section['elements']]\
-                + self.EXTRA_FIELDS
-            csv_defs[section['name']]['csv_writer'].writerow(
-                [f.encode('utf-8') for f in fields])
+        if not self.INCLUDE_LABELS_ONLY:
+            for section in self.sections:
+                fields = [element['title'] for element in section['elements']]\
+                    + self.EXTRA_FIELDS
+                csv_defs[section['name']]['csv_writer'].writerow(
+                    [f.encode('utf-8') for f in fields])
 
         # write labels
         if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY:
@@ -582,13 +583,14 @@ class ExportBuilder(object):
                 title=work_sheet_title)
 
         # write the headers
-        for section in self.sections:
-            section_name = section['name']
-            headers = self.get_fields(dataview, section, 'title')
+        if not self.INCLUDE_LABELS_ONLY:
+            for section in self.sections:
+                section_name = section['name']
+                headers = self.get_fields(dataview, section, 'title')
 
-            # get the worksheet
-            ws = work_sheets[section_name]
-            ws.append(headers)
+                # get the worksheet
+                ws = work_sheets[section_name]
+                ws.append(headers)
 
         # write labels
         if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY:
