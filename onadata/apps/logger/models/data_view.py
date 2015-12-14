@@ -9,13 +9,17 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.project import Project
 from jsonfield import JSONField
 from onadata.libs.utils.common_tags import (
-    MONGO_STRFTIME, ID, GEOLOCATION, ATTACHMENTS)
+    ATTACHMENTS,
+    MONGO_STRFTIME,
+    ID,
+    GEOLOCATION,
+    SUBMISSION_TIME)
 from onadata.libs.utils.cache_tools import (safe_delete,
                                             XFORM_LINKED_DATAVIEWS)
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
-DEFAULT_COLUMNS = [ID]
 ATTACHMENT_TYPES = ['photo', 'audio', 'video']
+DEFAULT_COLUMNS = [ID, SUBMISSION_TIME]
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
@@ -187,7 +191,8 @@ class DataView(models.Model):
                 yield dict(zip(fields, row))
 
     @classmethod
-    def query_data(cls, data_view, start_index=None, limit=None, count=None):
+    def query_data(cls, data_view, start_index=None, limit=None, count=None,
+                   last_submission_time=False):
 
         additional_columns = [GEOLOCATION] \
             if data_view.instances_with_geopoints else []
@@ -228,6 +233,10 @@ class DataView(models.Model):
         if limit is not None:
             sql += u" LIMIT %s"
             params += [limit]
+
+        if last_submission_time:
+            sql += u" ORDER BY date_created DESC"
+            sql += u" LIMIT 1"
 
         try:
             records = [record for record in DataView.query_iterator(sql,

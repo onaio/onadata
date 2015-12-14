@@ -9,7 +9,12 @@ from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.data_view import SUPPORTED_FILTERS
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.project import Project
-from onadata.libs.utils.cache_tools import DATAVIEW_COUNT
+from onadata.libs.utils.cache_tools import (
+    DATAVIEW_COUNT,
+    DATAVIEW_LAST_SUBMISSION_TIME)
+
+
+LAST_SUBMISSION_TIME = '_submission_time'
 
 
 class DataViewSerializer(serializers.HyperlinkedModelSerializer):
@@ -30,6 +35,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     count = serializers.SerializerMethodField()
     instances_with_geopoints = serializers.SerializerMethodField()
     matches_parent = serializers.SerializerMethodField()
+    last_submission_time = serializers.SerializerMethodField()
 
     class Meta:
         model = DataView
@@ -86,6 +92,31 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
                           count)
 
                 return count
+
+        return None
+
+    def get_last_submission_time(self, obj):
+        if obj:
+            last_submission_time = cache.get('{}{}'.format(
+                DATAVIEW_LAST_SUBMISSION_TIME, obj.xform.pk))
+
+            if last_submission_time:
+                return last_submission_time
+
+            last_submission_row = DataView.query_data(
+                obj, last_submission_time=True)[0]  # data is returned as list
+
+            if 'error' in last_submission_row:
+                raise ParseError(last_submission_time.get('error'))
+
+            if LAST_SUBMISSION_TIME in last_submission_row:
+                last_submission_time = last_submission_row.get(
+                    LAST_SUBMISSION_TIME)
+                cache.set(
+                    '{}{}'.format(DATAVIEW_LAST_SUBMISSION_TIME, obj.xform.pk),
+                    last_submission_time)
+
+                return last_submission_time
 
         return None
 

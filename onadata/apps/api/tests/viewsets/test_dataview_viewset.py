@@ -129,6 +129,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.data['url'],
                           'http://testserver/api/v1/dataviews/%s'
                           % self.data_view.pk)
+        self.assertEquals(response.data['last_submission_time'],
+                          '2015-03-09T13:34:05')
 
     def test_update_dataview(self):
         self._create_dataview()
