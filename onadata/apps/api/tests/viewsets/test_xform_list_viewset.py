@@ -44,7 +44,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertEqual(response['Content-Type'],
                              'text/xml; charset=utf-8')
 
-    def test_get_xform_list_with_enketo_token_authentication(self):
+    def test_get_xform_list_with_malformed_cookie(self):
         request = self.factory.get('/')
         response = self.view(request)
         self.assertEqual(response.status_code, 401)
