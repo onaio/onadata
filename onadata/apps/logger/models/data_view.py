@@ -3,7 +3,7 @@ import datetime
 from django.utils.translation import ugettext as _
 from django.contrib.gis.db import models
 from django.db import connection
-from django.db.models.signals import post_delete
+from django.db.models.signals import post_delete, post_save
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.project import Project
@@ -14,8 +14,11 @@ from onadata.libs.utils.common_tags import (
     ID,
     GEOLOCATION,
     SUBMISSION_TIME)
-from onadata.libs.utils.cache_tools import (safe_delete,
-                                            XFORM_LINKED_DATAVIEWS)
+from onadata.libs.utils.cache_tools import (
+    safe_delete,
+    DATAVIEW_COUNT,
+    DATAVIEW_LAST_SUBMISSION_TIME,
+    XFORM_LINKED_DATAVIEWS)
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 ATTACHMENT_TYPES = ['photo', 'audio', 'video']
@@ -255,6 +258,17 @@ class DataView(models.Model):
 def clear_cache(sender, instance, **kwargs):
     # clear cache
     safe_delete('{}{}'.format(XFORM_LINKED_DATAVIEWS, instance.xform.pk))
+
+
+# Post Save handler for clearing dataview cache on serialized fields
+def clear_dataview_cache(sender, instance, **kwargs):
+    safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform.pk))
+    safe_delete(
+        '{}{}'.format(DATAVIEW_LAST_SUBMISSION_TIME, instance.xform.pk))
+
+
+post_save.connect(clear_dataview_cache, sender=DataView,
+                  dispatch_uid='clear_cache')
 
 post_delete.connect(clear_cache, sender=DataView,
                     dispatch_uid='clear_xform_cache')
