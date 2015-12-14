@@ -130,5 +130,8 @@ class EnketoTokenAuthentication(TokenAuthentication):
             raise exceptions.AuthenticationFailed(_(u'Invalid token'))
         except KeyError:
             pass
+        except BadSignature:
+            raise exceptions.ParseError(
+                _('Malformed cookie. Clear your cookies then try again'))
 
         return None
