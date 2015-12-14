@@ -63,6 +63,25 @@ def get_labels_from_columns(columns, dd, group_delimiter):
     return labels
 
 
+def get_column_names_only(columns, dd, group_delimiter):
+    new_columns = []
+    for col in columns:
+        new_col = None
+        elem = dd.get_survey_element(col)
+        if elem is None:
+            new_col = col
+        elif elem.type != '':
+            new_col = elem.name
+        else:
+            new_col = DEFAULT_GROUP_DELIMITER.join([
+                elem.parent.name,
+                elem.name
+            ])
+        new_columns.append(new_col)
+
+    return new_columns
+
+
 class UnicodeWriter:
     """
     A CSV writer which will write rows to CSV file "f",
@@ -102,20 +121,7 @@ def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
 
         # Check if to truncate the group name prefix
         if remove_group_name and dd:
-            new_columns = []
-            for col in columns:
-                new_col = None
-                elem = dd.get_survey_element(col)
-                if elem is None:
-                    new_col = col
-                elif elem.type != '':
-                    new_col = elem.name
-                else:
-                    new_col = DEFAULT_GROUP_DELIMITER.join([
-                        elem.parent.name,
-                        elem.name
-                    ])
-                new_columns.append(new_col)
+            new_columns = get_column_names_only(columns, dd, group_delimiter)
         else:
             new_columns = columns
 
