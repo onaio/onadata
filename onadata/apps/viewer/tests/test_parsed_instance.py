@@ -13,11 +13,11 @@ class TestParsedInstance(TestBase):
     def test_get_where_clause_with_string_query(self):
         query = 'bla'
         where, where_params = get_where_clause(query)
-        self.assertEqual(where, [u"json::text ~* %s"])
+        self.assertEqual(where, [u"json::text ~* cast(%s as text)"])
         self.assertEqual(where_params, ["bla"])
 
     def test_get_where_clause_with_integer(self):
         query = '11'
         where, where_params = get_where_clause(query)
-        self.assertEqual(where, [u"json::text ~* %s"])
+        self.assertEqual(where, [u"json::text ~* cast(%s as text)"])
         self.assertEqual(where_params, [11])
