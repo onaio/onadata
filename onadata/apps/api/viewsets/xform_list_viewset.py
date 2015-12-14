@@ -94,7 +94,7 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
                     profile.user)
                 queryset = queryset | forms_shared_with_user
 
-            return queryset
+        return queryset
 
     def list(self, request, *args, **kwargs):
         self.object_list = self.filter_queryset(self.get_queryset())
