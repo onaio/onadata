@@ -414,7 +414,7 @@ class TestCSVDataFrameBuilder(TestBase):
             u'name': u'Abe',
             u'age': 88,
             u'has_children': u'1',
-            u'_attachments': [],
+            u'_attachments': '',
             u'children[1]/childs_info/name': u'Cain',
             u'children[2]/childs_info/name': u'Abel',
             u'children[1]/childs_info/age': 56,

@@ -210,11 +210,11 @@ def dict_to_joined_export(data, index, indices, name):
 
 
 class ExportBuilder(object):
-    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, GEOLOCATION,
+    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, GEOLOCATION, ATTACHMENTS,
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields we export but are not within the form's structure
     EXTRA_FIELDS = [ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME,
-                    PARENT_INDEX, TAGS, NOTES, ATTACHMENTS, VERSION, DURATION,
+                    PARENT_INDEX, TAGS, NOTES, VERSION, DURATION,
                     SUBMITTED_BY]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
@@ -662,7 +662,7 @@ class ExportBuilder(object):
 
     def to_flat_csv_export(
             self, path, data, username, id_string, filter_query,
-            start=None, end=None, dataview=None, xform=None):
+            start=None, end=None, dataview=None, include_images=True):
         # TODO resolve circular import
         from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 
@@ -672,6 +672,13 @@ class ExportBuilder(object):
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
             self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY
         )
+
+        if include_images:
+            if ATTACHMENTS in csv_builder.IGNORED_COLUMNS:
+                csv_builder.IGNORED_COLUMNS.remove(ATTACHMENTS)
+            if ATTACHMENTS not in csv_builder.ADDITIONAL_COLUMNS:
+                csv_builder.ADDITIONAL_COLUMNS.append(ATTACHMENTS)
+
         csv_builder.export_to(path, dataview=dataview)
 
     def to_zipped_sav(self, path, data, *args, **kwargs):
@@ -853,6 +860,7 @@ def generate_export(export_type, username, id_string, export_id=None,
     filter_query = options.get("query")
     remove_group_name = options.get("remove_group_name", False)
     start = options.get("start")
+    include_images = options.get("include_images", True)
 
     export_type_func_map = {
         Export.XLS_EXPORT: 'to_xls_export',
@@ -890,6 +898,12 @@ def generate_export(export_type, username, id_string, export_id=None,
     )
     export_builder.set_survey(xform.data_dictionary().survey)
 
+    if include_images:
+        if ATTACHMENTS in export_builder.EXTRA_FIELDS:
+            export_builder.EXTRA_FIELDS.append(ATTACHMENTS)
+        if ATTACHMENTS not in export_builder.IGNORED_COLUMNS:
+            export_builder.IGNORED_COLUMNS.remove(ATTACHMENTS)
+
     temp_file = NamedTemporaryFile(suffix=("." + extension))
 
     # get the export function by export type
@@ -897,7 +911,8 @@ def generate_export(export_type, username, id_string, export_id=None,
     try:
         func.__call__(
             temp_file.name, records, username, id_string, filter_query,
-            start=start, end=end, dataview=dataview, xform=xform
+            start=start, end=end, dataview=dataview, xform=xform,
+            include_images=include_images
         )
     except NoRecordsFoundError:
         pass
@@ -1440,5 +1455,9 @@ def parse_request_export_options(request):
         options['group_delimiter'] = DEFAULT_GROUP_DELIMITER
 
     options['split_select_multiples'] = not do_not_split_select_multiples
+
+    if 'include_images' in request.QUERY_PARAMS:
+        options["include_images"] = str_to_bool(
+            request.QUERY_PARAMS.get("include_images"))
 
     return options
