@@ -82,12 +82,13 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             if count:
                 return count
 
-            count = DataView.query_data(obj, count=True)
-            if 'error' in count:
-                raise ParseError(count.get('error'))
+            count_rows = DataView.query_data(obj, count=True)
+            if 'error' in count_rows:
+                raise ParseError(count_rows.get('error'))
 
-            if 'count' in count[0]:
-                count = count[0].get('count')
+            count_row = count_rows[0]
+            if 'count' in count_row:
+                count = count_row.get('count')
                 cache.set('{}{}'.format(DATAVIEW_COUNT, obj.xform.pk),
                           count)
 
@@ -103,11 +104,13 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             if last_submission_time:
                 return last_submission_time
 
-            last_submission_row = DataView.query_data(
-                obj, last_submission_time=True)[0]  # data is returned as list
+            last_submission_rows = DataView.query_data(
+                obj, last_submission_time=True)  # data is returned as list
 
-            if 'error' in last_submission_row:
-                raise ParseError(last_submission_time.get('error'))
+            if 'error' in last_submission_rows:
+                raise ParseError(last_submission_rows.get('error'))
+
+            last_submission_row = last_submission_rows[0]
 
             if LAST_SUBMISSION_TIME in last_submission_row:
                 last_submission_time = last_submission_row.get(
