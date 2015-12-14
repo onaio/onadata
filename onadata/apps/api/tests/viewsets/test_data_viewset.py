@@ -510,6 +510,20 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
+        # search a text
+        query_str = 'uuid:9f0a1508-c3b7-4c99-be00-9b237c26bcbf'
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
+        # search an integer
+        query_str = 75
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+
     def test_anon_data_list(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
