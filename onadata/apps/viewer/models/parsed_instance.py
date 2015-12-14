@@ -235,8 +235,8 @@ def get_where_clause(query, form_integer_fields=[]):
         if query and isinstance(query, six.string_types) and \
                 query.startswith('{'):
             raise e
-
-        where = [u"json::text ~* %s"]
+        # cast query param to text
+        where = [u"json::text ~* cast(%s as text)"]
         where_params = [query]
 
     return where, where_params
