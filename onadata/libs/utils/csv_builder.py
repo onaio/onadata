@@ -120,21 +120,22 @@ def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
         writer = UnicodeWriter(csvfile, lineterminator='\n')
 
         # Check if to truncate the group name prefix
-        if remove_group_name and dd:
-            new_columns = get_column_names_only(columns, dd, group_delimiter)
-        else:
-            new_columns = columns
+        if not include_labels_only:
+            if remove_group_name and dd:
+                new_cols = get_column_names_only(columns, dd, group_delimiter)
+            else:
+                new_cols = columns
 
-        # use a different group delimiter if needed
-        if group_delimiter != DEFAULT_GROUP_DELIMITER:
-            new_columns = [
-                group_delimiter.join(col.split(DEFAULT_GROUP_DELIMITER))
-                for col in new_columns
-            ]
+            # use a different group delimiter if needed
+            if group_delimiter != DEFAULT_GROUP_DELIMITER:
+                new_cols = [
+                    group_delimiter.join(col.split(DEFAULT_GROUP_DELIMITER))
+                    for col in new_cols
+                ]
 
-        writer.writerow(new_columns)
+            writer.writerow(new_cols)
 
-        if include_labels:
+        if include_labels or include_labels_only:
             labels = get_labels_from_columns(columns, dd, group_delimiter)
             writer.writerow(labels)
 
