@@ -49,6 +49,20 @@ def get_prefix_from_xpath(xpath):
             '%s cannot be prefixed, it returns %s' % (xpath, str(parts)))
 
 
+def get_labels_from_columns(columns, dd, group_delimiter):
+    labels = []
+    for col in columns:
+        elem = dd.get_survey_element(col)
+        label = elem.label if elem else col
+        if elem is not None and elem.type == '':
+            label = group_delimiter.join([elem.parent.name, label])
+        if label == '':
+            label = elem.name
+        labels.append(label)
+
+    return labels
+
+
 class UnicodeWriter:
     """
     A CSV writer which will write rows to CSV file "f",
@@ -80,7 +94,8 @@ class UnicodeWriter:
 
 
 def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
-                 group_delimiter=DEFAULT_GROUP_DELIMITER):
+                 group_delimiter=DEFAULT_GROUP_DELIMITER, include_labels=False,
+                 include_labels_only=False):
     na_rep = getattr(settings, 'NA_REP', NA_REP)
     with open(path, 'wb') as csvfile:
         writer = UnicodeWriter(csvfile, lineterminator='\n')
@@ -96,7 +111,7 @@ def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
                 elif elem.type != '':
                     new_col = elem.name
                 else:
-                    new_col = u'/'.join([
+                    new_col = DEFAULT_GROUP_DELIMITER.join([
                         elem.parent.name,
                         elem.name
                     ])
@@ -112,6 +127,10 @@ def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
             ]
 
         writer.writerow(new_columns)
+
+        if include_labels:
+            labels = get_labels_from_columns(columns, dd, group_delimiter)
+            writer.writerow(labels)
 
         for row in rows:
             for col in AbstractDataFrameBuilder.IGNORED_COLUMNS:
@@ -133,7 +152,8 @@ class AbstractDataFrameBuilder(object):
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
-                 start=None, end=None, remove_group_name=False, xform=None):
+                 start=None, end=None, remove_group_name=False, xform=None,
+                 include_labels=False, include_labels_only=False):
         self.username = username
         self.id_string = id_string
         self.filter_query = filter_query
@@ -148,6 +168,8 @@ class AbstractDataFrameBuilder(object):
         else:
             self.xform = XForm.objects.get(id_string=self.id_string,
                                            user__username=self.username)
+        self.include_labels = include_labels
+        self.include_labels_only = include_labels_only
         self._setup()
 
     def _setup(self):
@@ -291,11 +313,12 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
-                 start=None, end=None, remove_group_name=False, xform=None):
+                 start=None, end=None, remove_group_name=False, xform=None,
+                 include_labels=False, include_labels_only=False):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
-            remove_group_name, xform=xform)
+            remove_group_name, xform, include_labels, include_labels_only)
         self.ordered_columns = OrderedDict()
 
     def _setup(self):
@@ -445,4 +468,6 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
         write_to_csv(path, data, columns,
                      remove_group_name=self.remove_group_name,
-                     dd=self.dd, group_delimiter=self.group_delimiter)
+                     dd=self.dd, group_delimiter=self.group_delimiter,
+                     include_labels=self.include_labels,
+                     include_labels_only=self.include_labels_only)
