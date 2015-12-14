@@ -44,6 +44,18 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertEqual(response['Content-Type'],
                              'text/xml; charset=utf-8')
 
+    def test_get_xform_list_with_enketo_token_authentication(self):
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+
+        request.COOKIES['__enketo'] = 'hello'
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data.get('detail'),
+            u'Malformed cookie. Clear your cookies then try again')
+
     def test_get_xform_list_inactive_form(self):
         self.xform.downloadable = False
         self.xform.save()
