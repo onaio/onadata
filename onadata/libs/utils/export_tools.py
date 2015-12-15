@@ -647,7 +647,7 @@ class ExportBuilder(object):
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
-            start, end, self.TRUNCATE_GROUP_TITLE, xform=xform,
+            start, end, self.TRUNCATE_GROUP_TITLE, xform,
             self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY
         )
         csv_builder.export_to(path, dataview=dataview)
@@ -661,7 +661,9 @@ class ExportBuilder(object):
 
         # write headers
         for section in self.sections:
-            fields = [element['title'] for element in section['elements']]\
+            _title = 'label' \
+                if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY else 'title'
+            fields = [element[_title] for element in section['elements']]\
                 + self.EXTRA_FIELDS
             c = 0
             var_labels = {}
@@ -675,7 +677,7 @@ class ExportBuilder(object):
                 tmp_k[field] = var_name
 
             var_types = dict(
-                [(tmp_k[element['title']],
+                [(tmp_k[element[_title]],
                   0 if element['type'] in ['decimal', 'int'] else 255)
                  for element in section['elements']] +
                 [(tmp_k[item],

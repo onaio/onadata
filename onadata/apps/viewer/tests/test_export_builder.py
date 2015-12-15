@@ -11,6 +11,7 @@ from django.core.files.temp import NamedTemporaryFile
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
 from savReaderWriter import SavReader
+from savReaderWriter import SavHeaderReader
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -1282,3 +1283,71 @@ class TestExportBuilder(TestBase):
                 'False')
             # check that red and blue are set to true
         shutil.rmtree(temp_dir)
+
+    def test_to_sav_export_with_labels(self):
+        survey = self._create_childrens_survey()
+        export_builder = ExportBuilder()
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        filename = temp_zip_file.name
+        export_builder.to_zipped_sav(filename, self.data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+
+        # generate data to compare with
+        index = 1
+        indices = {}
+        survey_name = survey.name
+        outputs = []
+        for d in self.data:
+            outputs.append(
+                dict_to_joined_export(d, index, indices, survey_name))
+            index += 1
+
+        # check that each file exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "{0}.sav".format(survey.name))))
+
+        def _test_sav_file(section):
+            sav_path = os.path.join(temp_dir, "{0}.sav".format(section))
+            if section == 'children_survey':
+                with SavHeaderReader(sav_path) as header:
+                    expected_labels = [
+                        '1. What is your name?', '2. How old are you?',
+                        '4. Geo-location', '5.1 Office telephone',
+                        '5.2 Mobile telephone', '_duration', '_id',
+                        '_index', '_notes', '_parent_index',
+                        '_parent_table_name', '_submission_time',
+                        '_submitted_by',
+                        '_tags', '_uuid', '_version',
+                        'geo/_geolocation_altitude',
+                        'geo/_geolocation_latitude',
+                        'geo/_geolocation_longitude',
+                        'geo/_geolocation_precision',
+                        'meta/instanceID'
+                    ]
+                    labels = header.varLabels.values()
+                    self.assertEqual(sorted(expected_labels), sorted(labels))
+
+            with SavReader(sav_path, returnHeader=True) as reader:
+                header = next(reader)
+                rows = [r for r in reader]
+
+                # open comparison file
+                with SavReader(_logger_fixture_path(
+                        'spss', "{0}.sav".format(section)),
+                        returnHeader=True) as fixture_reader:
+                    fixture_header = next(fixture_reader)
+                    self.assertEqual(header, fixture_header)
+                    expected_rows = [r for r in fixture_reader]
+                    self.assertEqual(rows, expected_rows)
+
+        for section in export_builder.sections:
+            section_name = section['name'].replace('/', '_')
+            _test_sav_file(section_name)
