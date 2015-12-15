@@ -110,14 +110,16 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             if 'error' in last_submission_rows:
                 raise ParseError(last_submission_rows.get('error'))
 
-            last_submission_row = last_submission_rows[0]
+            if len(last_submission_rows) > 0:
+                last_submission_row = last_submission_rows[0]
 
-            if LAST_SUBMISSION_TIME in last_submission_row:
-                last_submission_time = last_submission_row.get(
-                    LAST_SUBMISSION_TIME)
-                cache.set(
-                    '{}{}'.format(DATAVIEW_LAST_SUBMISSION_TIME, obj.xform.pk),
-                    last_submission_time)
+                if LAST_SUBMISSION_TIME in last_submission_row:
+                    last_submission_time = last_submission_row.get(
+                        LAST_SUBMISSION_TIME)
+                    cache.set(
+                        '{}{}'.format(
+                            DATAVIEW_LAST_SUBMISSION_TIME, obj.xform.pk),
+                        last_submission_time)
 
                 return last_submission_time
 
