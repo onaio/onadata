@@ -436,9 +436,7 @@ class TestAbstractViewSet(TestCase):
             'post': 'create'
         })
 
-        if data:
-            data = data
-        else:
+        if not data:
             data = {
                 'name': "My DataView",
                 'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
@@ -456,7 +454,7 @@ class TestAbstractViewSet(TestCase):
 
         # load the created dataview
         self.data_view = DataView.objects.filter(xform=self.xform,
-                                                 project=self.project)[0]
+                                                 project=self.project).last()
 
         self.assertEquals(response.data['name'], data['name'])
         self.assertEquals(response.data['xform'], data['xform'])

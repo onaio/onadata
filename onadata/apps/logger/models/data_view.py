@@ -8,12 +8,14 @@ from django.db.models.signals import post_delete
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.project import Project
 from jsonfield import JSONField
-from onadata.libs.utils.common_tags import (MONGO_STRFTIME, ID, GEOLOCATION)
+from onadata.libs.utils.common_tags import (
+    MONGO_STRFTIME, ID, GEOLOCATION, ATTACHMENTS)
 from onadata.libs.utils.cache_tools import (safe_delete,
                                             XFORM_LINKED_DATAVIEWS)
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 DEFAULT_COLUMNS = [ID]
+ATTACHMENT_TYPES = ['photo', 'audio', 'video']
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
@@ -38,6 +40,35 @@ def append_where_list(comp, t_list, json_str):
         t_list.append(u"{} <> %s".format(json_str))
 
     return t_list
+
+
+def get_elements_of_type(data_dictionary, field_type):
+    """
+    This function returns a list of column names of a specified type
+    """
+    return [f.get('name')
+            for f in data_dictionary.get_survey_elements_of_type(field_type)]
+
+
+def has_attachments_fields(data_view):
+    """
+    This function checks if any column of the dataview is of type
+    photo, video or audio (attachments fields). It returns a boolean
+    value.
+    """
+    dd = data_view.xform.data_dictionary()
+
+    if dd:
+        attachments = []
+        for element_type in ATTACHMENT_TYPES:
+            attachments += get_elements_of_type(dd, element_type)
+
+        if attachments:
+            for a in data_view.columns:
+                if a in attachments:
+                    return True
+
+    return False
 
 
 class DataView(models.Model):
@@ -160,6 +191,9 @@ class DataView(models.Model):
 
         additional_columns = [GEOLOCATION] \
             if data_view.instances_with_geopoints else []
+
+        if has_attachments_fields(data_view):
+            additional_columns += [ATTACHMENTS]
 
         # get the columns needed
         columns = data_view.columns + DEFAULT_COLUMNS + additional_columns
