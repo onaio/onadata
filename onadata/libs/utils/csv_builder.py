@@ -292,11 +292,11 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
-                 start=None, end=None, remove_group_name=False):
+                 start=None, end=None, remove_group_name=False, xform=None):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
-            remove_group_name)
+            remove_group_name, xform=xform)
         self.ordered_columns = OrderedDict()
 
     def _setup(self):
