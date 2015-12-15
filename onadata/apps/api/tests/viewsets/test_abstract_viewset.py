@@ -362,6 +362,7 @@ class TestAbstractViewSet(TestCase):
             self.main_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
+        xform_pre_count = self.xform.instances.count()
 
         auth = DigestAuth(self.profile_data['username'],
                           self.profile_data['password1'])
@@ -369,11 +370,14 @@ class TestAbstractViewSet(TestCase):
             self._make_submission(path, username, add_uuid, auth=auth)
         post_count = pre_count + len(self.surveys) if should_store\
             else pre_count
+        xform_post_count = xform_pre_count + len(self.surveys) \
+            if should_store else xform_pre_count
         self.assertEqual(Instance.objects.count(), post_count)
-        self.assertEqual(self.xform.instances.count(), post_count)
+        self.assertEqual(self.xform.instances.count(), xform_post_count)
         xform = XForm.objects.get(pk=self.xform.pk)
-        self.assertEqual(xform.num_of_submissions, post_count)
-        self.assertEqual(xform.user.profile.num_of_submissions, post_count)
+        self.assertEqual(xform.num_of_submissions, xform_post_count)
+        self.assertEqual(xform.user.profile.num_of_submissions,
+                         xform_post_count)
 
     def _submit_transport_instance_w_attachment(self,
                                                 survey_at=0,

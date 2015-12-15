@@ -23,6 +23,16 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         })
         self._publish_xls_form_to_project()
 
+    def test_unique_instanceid_per_form_only(self):
+        self._make_submissions()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice = self._create_user_profile(alice_data)
+        self.user = alice.user
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+
     def test_post_submission_anonymous(self):
         s = self.surveys[0]
         media_file = "1335783522563.jpg"

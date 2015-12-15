@@ -263,7 +263,7 @@ def create_instance(username, xml_file, media_files,
     history = InstanceHistory.objects.filter(
         xform_instance__xform=xform, uuid=new_uuid
     )
-    duplicate_instances = Instance.objects.filter(uuid=new_uuid)
+    duplicate_instances = Instance.objects.filter(uuid=new_uuid, xform=xform)
 
     if duplicate_instances or history:
         duplicate_instance = history[0].xform_instance \
