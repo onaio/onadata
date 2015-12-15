@@ -662,7 +662,8 @@ class ExportBuilder(object):
 
     def to_flat_csv_export(
             self, path, data, username, id_string, filter_query,
-            start=None, end=None, dataview=None, include_images=True):
+            start=None, end=None, dataview=None, include_images=True,
+            xform=None):
         # TODO resolve circular import
         from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 
@@ -670,14 +671,8 @@ class ExportBuilder(object):
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
-            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY
+            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, include_images
         )
-
-        if include_images:
-            if ATTACHMENTS in csv_builder.IGNORED_COLUMNS:
-                csv_builder.IGNORED_COLUMNS.remove(ATTACHMENTS)
-            if ATTACHMENTS not in csv_builder.ADDITIONAL_COLUMNS:
-                csv_builder.ADDITIONAL_COLUMNS.append(ATTACHMENTS)
 
         csv_builder.export_to(path, dataview=dataview)
 
@@ -911,8 +906,8 @@ def generate_export(export_type, username, id_string, export_id=None,
     try:
         func.__call__(
             temp_file.name, records, username, id_string, filter_query,
-            start=start, end=end, dataview=dataview, xform=xform,
-            include_images=include_images
+            start=start, end=end, dataview=dataview,
+            include_images=include_images,xform=xform
         )
     except NoRecordsFoundError:
         pass

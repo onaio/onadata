@@ -161,7 +161,9 @@ class AbstractDataFrameBuilder(object):
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
                  start=None, end=None, remove_group_name=False, xform=None,
-                 include_labels=False, include_labels_only=False):
+                 include_labels=False, include_labels_only=False,
+                 include_images=True):
+
         self.username = username
         self.id_string = id_string
         self.filter_query = filter_query
@@ -171,6 +173,7 @@ class AbstractDataFrameBuilder(object):
         self.start = start
         self.end = end
         self.remove_group_name = remove_group_name
+
         if xform:
             self.xform = xform
         else:
@@ -178,6 +181,13 @@ class AbstractDataFrameBuilder(object):
                                            user__username=self.username)
         self.include_labels = include_labels
         self.include_labels_only = include_labels_only
+        self.include_images = include_images
+
+        if self.include_images:
+            if ATTACHMENTS in self.IGNORED_COLUMNS:
+                self.IGNORED_COLUMNS.remove(ATTACHMENTS)
+            if ATTACHMENTS not in self.ADDITIONAL_COLUMNS:
+                self.ADDITIONAL_COLUMNS.append(ATTACHMENTS)
         self._setup()
 
     def _setup(self):
@@ -322,11 +332,14 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
                  start=None, end=None, remove_group_name=False, xform=None,
-                 include_labels=False, include_labels_only=False):
+                 include_labels=False, include_labels_only=False,
+                 include_images=False):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
-            remove_group_name, xform, include_labels, include_labels_only)
+            remove_group_name, xform, include_labels, include_labels_only,
+            include_images
+        )
         self.ordered_columns = OrderedDict()
 
     def _setup(self):

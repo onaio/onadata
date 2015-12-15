@@ -75,7 +75,8 @@ class TestCSVDataFrameBuilder(TestBase):
 
     def _csv_data_for_dataframe(self):
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string)
+                                             self.xform.id_string,
+                                             include_images=False)
         cursor = csv_df_builder._query_data()
         return csv_df_builder._format_for_dataframe(cursor)
 
@@ -85,8 +86,10 @@ class TestCSVDataFrameBuilder(TestBase):
             "nested_repeats", "01", submission_time=self._submission_time)
         self._submit_fixture_instance(
             "nested_repeats", "02", submission_time=self._submission_time)
+
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string)
+                                             self.xform.id_string,
+                                             include_images=False)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
         csv_fixture_path = os.path.join(
@@ -164,7 +167,8 @@ class TestCSVDataFrameBuilder(TestBase):
         dd = self.xform.data_dictionary()
         self._submit_fixture_instance("nested_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string)
+                                             self.xform.id_string,
+                                             include_images=False)
         cursor = [k for k in csv_df_builder._query_data()]
         record = cursor[0]
         select_multiples = CSVDataFrameBuilder._collect_select_multiples(dd)
@@ -373,7 +377,8 @@ class TestCSVDataFrameBuilder(TestBase):
         for i in range(2):
             self._submit_fixture_instance("new_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
-                                             self.xform.id_string)
+                                             self.xform.id_string,
+                                             include_images=False)
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
@@ -449,7 +454,8 @@ class TestCSVDataFrameBuilder(TestBase):
         csv_df_builder = CSVDataFrameBuilder(
             self.user.username,
             self.xform.id_string,
-            remove_group_name=True
+            remove_group_name=True,
+            include_images=False
         )
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)

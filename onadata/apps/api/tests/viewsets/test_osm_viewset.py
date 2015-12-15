@@ -1,6 +1,7 @@
 import os
 
 from django.test import RequestFactory
+from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -58,6 +59,7 @@ class TestOSM(TestAbstractViewSet):
             Attachment.objects.filter(extension='osm').count() > count)
         self.assertEqual(OsmData.objects.count(), count_osm + 2)
 
+    @override_settings(CELERY_ALWAYS_EAGER=True)
     def test_data_retrieve_instance_osm_format(self):
         self._publish_osm_with_submission()
         formid = self.xform.pk
@@ -104,6 +106,7 @@ class TestOSM(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response.data, [])
 
+    @override_settings(CELERY_ALWAYS_EAGER=True)
     def test_osm_csv_export(self):
         self._publish_osm_with_submission()
         count = Export.objects.all().count()
@@ -112,7 +115,8 @@ class TestOSM(TestAbstractViewSet):
             'get': 'retrieve'
         })
 
-        request = self.factory.get('/', **self.extra)
+        request = self.factory.get('/', data={'include_images': False},
+                                   **self.extra)
         response = view(request, pk=self.xform.pk, format='csv')
         self.assertEqual(response.status_code, 200)
 

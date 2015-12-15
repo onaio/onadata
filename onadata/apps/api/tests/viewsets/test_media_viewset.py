@@ -41,16 +41,24 @@ class TestMediaViewSet(TestAbstractViewSet):
                         attachment_url(self.attachment, 'small'))
 
     def test_retrieve_view_invalid_suffix(self):
-        request = self.factory.get('/', {
-            'filename': self.attachment.media_file.name, 'suffix': 'TK'},
-                                    **self.extra)
+        request = self.factory.get('/',
+                                   {
+                                       'filename':
+                                           self.attachment.media_file.name,
+                                       'suffix': 'TK'
+                                   },
+                                   **self.extra)
         response = self.retrieve_view(request, self.attachment.pk)
         self.assertEqual(response.status_code, 404)
 
     def test_retrieve_view_invalid_pk(self):
-        request = self.factory.get('/', {
-            'filename': self.attachment.media_file.name, 'suffix': 'small'},
-                                    **self.extra)
+        request = self.factory.get('/',
+                                   {
+                                       'filename':
+                                           self.attachment.media_file.name,
+                                       'suffix': 'small'
+                                   },
+                                   **self.extra)
         response = self.retrieve_view(request,  'INVALID')
         self.assertEqual(response.status_code, 404)
 
