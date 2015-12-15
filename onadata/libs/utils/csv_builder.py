@@ -151,8 +151,7 @@ class AbstractDataFrameBuilder(object):
         self._setup()
 
     def _setup(self):
-        self.dd = DataDictionary.objects.get(user__username=self.username,
-                                             id_string=self.id_string)
+        self.dd = self.xform.data_dictionary()
         self.select_multiples = self._collect_select_multiples(self.dd)
         self.gps_fields = self._collect_gps_fields(self.dd)
 
