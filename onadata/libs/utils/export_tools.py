@@ -1,6 +1,7 @@
 import csv
 from datetime import datetime, date
 import json
+import hashlib
 import os
 import re
 import six
@@ -48,6 +49,7 @@ MULTIPLE_SELECT_BIND_TYPE = u"select"
 GEOPOINT_BIND_TYPE = u"geopoint"
 
 DEFAULT_GROUP_DELIMITER = '/'
+EXPORT_QUERY_KEY = 'query'
 
 
 def encode_if_str(row, key, encode_dates=False):
@@ -718,10 +720,19 @@ def dict_to_flat_export(d, parent_index=0):
     pass
 
 
+def md5hash(string):
+    return hashlib.md5(string).hexdigest()
+
+
 def get_export_options(options):
     export_options = {
         key: value for key, value in options.iteritems()
         if key in Export.EXPORT_OPTION_FIELDS}
+
+    if EXPORT_QUERY_KEY in export_options:
+        query_str = '{}'.format(export_options[EXPORT_QUERY_KEY])
+
+        export_options[EXPORT_QUERY_KEY] = md5hash(query_str)
 
     return export_options
 
@@ -735,9 +746,15 @@ def generate_options_query(query, options):
         if field in options:
             field_value = options.get(field)
 
-            field_value = json.dumps(field_value)\
-                if isinstance(field_value, bool)\
-                else '"{}"'.format(field_value)
+            if isinstance(field_value, bool):
+                field_value = json.dumps(field_value)
+            elif field == EXPORT_QUERY_KEY:
+                query_str = str(format(field_value))
+
+                field_value = '"{}"'.format(md5hash(query_str))
+            else:
+                field_value = '"{}"'.format(field_value)
+
             option_field_query = '"{}":{}'.format(field, field_value)
             query_with_filter = query_with_filter.filter(
                 options__contains=option_field_query)
@@ -887,7 +904,7 @@ def should_create_new_export(xform,
     split_select_multiples = options.get('split_select_multiples', True)
 
     if (request and (frozenset(request.GET.keys()) &
-                     frozenset(['start', 'end', 'query', 'data_id']))) or\
+                     frozenset(['start', 'end', 'data_id']))) or\
             not split_select_multiples:
         return True
 

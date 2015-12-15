@@ -1,4 +1,5 @@
 import sys
+import hashlib
 from celery import task
 from django.db import transaction
 from django.conf import settings
@@ -15,6 +16,8 @@ from onadata.libs.utils.export_tools import (
     generate_osm_export,
     get_boolean_value)
 from onadata.libs.utils.logger_tools import report_exception
+
+EXPORT_QUERY_KEY = 'query'
 
 
 def _get_export_details(username, id_string, export_id):
@@ -36,6 +39,12 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
             key: get_boolean_value(value, default=True)
             for key, value in options.iteritems()
             if key in Export.EXPORT_OPTION_FIELDS}
+
+        if EXPORT_QUERY_KEY in export_options:
+            query_str = '{}'.format(export_options[EXPORT_QUERY_KEY])
+
+            export_options[EXPORT_QUERY_KEY] \
+                = hashlib.md5(query_str).hexdigest()
 
         return Export.objects.create(xform=xform,
                                      export_type=export_type,

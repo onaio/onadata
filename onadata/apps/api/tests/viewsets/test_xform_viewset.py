@@ -5,6 +5,7 @@ import re
 import requests
 import pytz
 import jwt
+import hashlib
 
 from collections import OrderedDict
 from django.db.models import Q
@@ -19,6 +20,7 @@ from httmock import urlmatch, HTTMock
 from mock import patch
 from rest_framework import status
 from xml.dom import minidom, Node
+from datetime import timedelta
 
 from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -37,6 +39,7 @@ from onadata.libs.utils.cache_tools import (
     ENKETO_URL_CACHE,
     PROJ_FORMS_CACHE)
 from onadata.libs.utils.cache_tools import XFORM_PERMISSIONS_CACHE
+from onadata.libs.utils.common_tags import MONGO_STRFTIME
 
 
 @urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
@@ -2947,7 +2950,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             request = self.factory.get('/', data=get_data, **self.extra)
             response = view(request, pk=formid)
 
-            self.assertIn("remove_group_name=true",
+            export = Export.objects.last()
+            self.assertIn("export_id={}".format(export.pk),
                           response.data.get('export_url'))
 
             self.assertTrue(async_result.called)
@@ -3018,3 +3022,176 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertEqual(response.status_code, 200)
             self.assertIn('enketo_url', response.data)
+
+    def _make_submission_over_date_range(self, start, days=1):
+        self._publish_xls_form_to_project()
+
+        start_time = start
+        curr_time = start_time
+        for survey in self.surveys:
+            _submission_time = curr_time
+            self._make_submission(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'apps',
+                    'main', 'tests', 'fixtures', 'transportation',
+                    'instances', survey, survey + '.xml'),
+                forced_submission_time=_submission_time)
+            curr_time += timedelta(days=days)
+
+    def _validate_csv_export(self, response, test_file_path):
+        headers = dict(response.items())
+        self.assertEqual(headers['Content-Type'], 'application/csv')
+        content_disposition = headers['Content-Disposition']
+        filename = filename_from_disposition(content_disposition)
+        basename, ext = os.path.splitext(filename)
+        self.assertEqual(ext, '.csv')
+
+        content = get_response_content(response)
+
+        with open(test_file_path, 'r') as test_file:
+            self.assertEqual(content, test_file.read())
+
+    def _get_date_filtered_export(self, query_str):
+        view = XFormViewSet.as_view({'get': 'retrieve'})
+        request = self.factory.get('/?query=%s' % query_str, **self.extra)
+        response = view(request, pk=self.xform.pk, format='csv')
+
+        self.assertEqual(response.status_code, 200)
+
+        return response
+
+    def test_csv_export_filtered_by_date(self):
+        with HTTMock(enketo_mock):
+            start_date = datetime(2015, 12, 2)
+            self._make_submission_over_date_range(start_date)
+
+            first_datetime = start_date.strftime(MONGO_STRFTIME)
+            second_datetime = start_date + timedelta(days=1, hours=20)
+
+            query_str = '{"_submission_time": {"$gte": "'\
+                        + first_datetime + '", "$lte": "'\
+                        + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+
+            count = Export.objects.all().count()
+            response = self._get_date_filtered_export(query_str)
+            self.assertEquals(count+1, Export.objects.all().count())
+
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation_filtered_date.csv')
+
+            self._validate_csv_export(response, test_file_path)
+
+            export = Export.objects.last()
+
+            self.assertIn("query", export.options)
+
+            query_str = hashlib.md5(query_str).hexdigest()
+            self.assertEquals(export.options['query'], query_str)
+
+    def test_previous_export_with_date_filter_is_returned(self):
+        with HTTMock(enketo_mock):
+            start_date = datetime(2015, 12, 2)
+            self._make_submission_over_date_range(start_date)
+
+            first_datetime = start_date.strftime(MONGO_STRFTIME)
+            second_datetime = start_date + timedelta(days=1, hours=20)
+
+            query_str = '{"_submission_time": {"$gte": "'\
+                        + first_datetime + '", "$lte": "'\
+                        + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+
+            # Generate initial filtered export by date
+            self._get_date_filtered_export(query_str)
+
+            count = Export.objects.all().count()
+
+            # request for export again
+            self._get_date_filtered_export(query_str)
+
+            # no change in count of exports
+            self.assertEquals(count, Export.objects.all().count())
+
+    def test_download_export_with_export_id(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            survey = self.surveys[0]
+            _submission_time = parse_datetime('2013-02-18 15:54:01Z')
+            self._make_submission(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'apps',
+                    'main', 'tests', 'fixtures', 'transportation',
+                    'instances', survey, survey + '.xml'),
+                forced_submission_time=_submission_time)
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            export = Export.objects.last()
+
+            data = {"export_id": export.pk}
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation.csv')
+            self._validate_csv_export(response, test_file_path)
+
+    def test_download_export_with_invalid_export_id(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            data = {"export_id": 12131231}
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 404)
+
+    def test_normal_export_after_export_with_date_filter(self):
+        with HTTMock(enketo_mock):
+            start_date = datetime(2015, 12, 2)
+            self._make_submission_over_date_range(start_date)
+
+            first_datetime = start_date.strftime(MONGO_STRFTIME)
+            second_datetime = start_date + timedelta(days=1, hours=20)
+
+            query_str = '{"_submission_time": {"$gte": "'\
+                        + first_datetime + '", "$lte": "'\
+                        + second_datetime.strftime(MONGO_STRFTIME) + '"}}'
+
+            # Generate initial filtered export by date
+            self._get_date_filtered_export(query_str)
+
+            count = Export.objects.all().count()
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            # request for export again
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            # no change in count of exports
+            self.assertEquals(count+1, Export.objects.all().count())
+
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation_all.csv')
+            self._validate_csv_export(response, test_file_path)

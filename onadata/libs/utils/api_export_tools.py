@@ -6,6 +6,7 @@ from requests import ConnectionError
 from django.http import Http404, HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.utils import six
+from django.shortcuts import get_object_or_404
 
 from rest_framework import exceptions
 from rest_framework.response import Response
@@ -16,7 +17,6 @@ from celery.result import AsyncResult
 
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.export_tools import should_create_new_export
-from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import log
 from onadata.apps.viewer import tasks as viewer_task
@@ -73,29 +73,36 @@ def custom_response_handler(request, xform, query, export_type,
         export_type = Export.EXTERNAL_EXPORT
 
     options = parse_request_export_options(request)
-    if dataview_pk:
-        options["dataview_pk"] = dataview_pk
+
+    options["dataview_pk"] = dataview_pk
+    options['query'] = query
 
     remove_group_name = options.get("remove_group_name")
 
-    # check if we need to re-generate,
-    # we always re-generate if a filter is specified
+    export_id = request.QUERY_PARAMS.get("export_id")
 
-    if should_create_new_export(xform, export_type, options, request=request):
-        export = _generate_new_export(request, xform, query, export_type,
-                                      dataview_pk=dataview_pk)
+    if export_id:
+        export = get_object_or_404(Export, id=export_id, xform=xform)
     else:
-        export = newest_export_for(xform, export_type, options)
+        # check if we need to re-generate,
+        # we always re-generate if a filter is specified
+        def new_export():
+            return _generate_new_export(request, xform, query, export_type,
+                                        dataview_pk=dataview_pk)
 
-        if not export.filename:
-            # tends to happen when using newset_export_for.
-            export = _generate_new_export(request, xform, query, export_type,
-                                          dataview_pk=dataview_pk)
+        if should_create_new_export(xform, export_type, options,
+                                    request=request):
+            export = new_export()
+        else:
+            export = newest_export_for(xform, export_type, options)
 
-    log_export(request, xform, export_type)
+            if not export.filename:
+                export = new_export()
 
-    if export_type == Export.EXTERNAL_EXPORT:
-        return external_export_response(export)
+        log_export(request, xform, export_type)
+
+        if export_type == Export.EXTERNAL_EXPORT:
+            return external_export_response(export)
 
     # get extension from file_path, exporter could modify to
     # xlsx if it exceeds limits
@@ -119,8 +126,9 @@ def _generate_new_export(request, xform, query, export_type,
     options = {"extension": extension,
                "username": xform.user.username,
                "id_string": xform.id_string,
-               "query": query,
-               "dataview_pk": dataview_pk}
+               "query": query}
+
+    options["dataview_pk"] = dataview_pk
 
     try:
         if export_type == Export.EXTERNAL_EXPORT:
@@ -156,7 +164,6 @@ def _generate_new_export(request, xform, query, export_type,
                 None,
                 options)
         else:
-            options["dataview_pk"] = dataview_pk
             options.update(parse_request_export_options(request))
 
             export = generate_export(
@@ -271,52 +278,6 @@ def _format_date_for_mongo(x, datetime):
         x, '%y_%m_%d_%H_%M_%S').strftime('%Y-%m-%dT%H:%M:%S')
 
 
-def export_async_export_response(request, xform, export, dataview_pk=False):
-    """
-    Checks the export status and generates the reponse
-    :param request:
-    :param xform:
-    :param export:
-    :return: response dict
-    """
-    if export.status == Export.SUCCESSFUL:
-        if export.export_type != Export.EXTERNAL_EXPORT:
-            export_url = reverse(
-                'xform-detail',
-                kwargs={'pk': xform.pk,
-                        'format': export.export_type},
-                request=request
-            )
-            if dataview_pk:
-                export_url = reverse(
-                    'dataviews-data',
-                    kwargs={'pk': dataview_pk,
-                            'action': 'data',
-                            'format': export.export_type},
-                    request=request
-                )
-            remove_group_key = "remove_group_name"
-            if str_to_bool(request.QUERY_PARAMS.get(remove_group_key)):
-                # append the param to the url
-                export_url = "{}?{}=true".format(export_url, remove_group_key)
-        else:
-            export_url = export.export_url
-        resp = {
-            u'job_status': "Success",
-            u'export_url': export_url
-        }
-    elif export.status == Export.PENDING:
-        resp = {
-            'export_status': 'Pending'
-        }
-    else:
-        resp = {
-            'export_status': "Failed"
-        }
-
-    return resp
-
-
 def process_async_export(request, xform, export_type, options=None):
     """
     Check if should generate export or just return the latest export.
@@ -415,11 +376,8 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
                             'format': export.export_type},
                     request=request
                 )
-            remove_group_key = "remove_group_name"
 
-            if str_to_bool(request.QUERY_PARAMS.get(remove_group_key)):
-                # append the param to the url
-                export_url = "{}?{}=true".format(export_url, remove_group_key)
+            export_url = "{}?export_id={}".format(export_url, export.pk)
         else:
             export_url = export.export_url
         resp = {
