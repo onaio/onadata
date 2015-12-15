@@ -133,7 +133,7 @@ class AbstractDataFrameBuilder(object):
     def __init__(self, username, id_string, filter_query=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
-                 start=None, end=None, remove_group_name=False):
+                 start=None, end=None, remove_group_name=False, xform=None):
         self.username = username
         self.id_string = id_string
         self.filter_query = filter_query
@@ -143,8 +143,11 @@ class AbstractDataFrameBuilder(object):
         self.start = start
         self.end = end
         self.remove_group_name = remove_group_name
-        self.xform = XForm.objects.get(id_string=self.id_string,
-                                       user__username=self.username)
+        if xform:
+            self.xform = xform
+        else:
+            self.xform = XForm.objects.get(id_string=self.id_string,
+                                           user__username=self.username)
         self._setup()
 
     def _setup(self):

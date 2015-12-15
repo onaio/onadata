@@ -141,28 +141,28 @@ def _generate_new_export(request, xform, query, export_type,
                 xform.user.username,
                 xform.id_string,
                 None,
-                options)
+                options, xform=xform)
         elif export_type == Export.OSM_EXPORT:
             export = generate_osm_export(
                 export_type,
                 xform.user.username,
                 xform.id_string,
                 None,
-                options)
+                options, xform=xform)
         elif export_type == Export.ZIP_EXPORT:
             export = generate_attachments_zip_export(
                 export_type,
                 xform.user.username,
                 xform.id_string,
                 None,
-                options)
+                options, xform=xform)
         elif export_type == Export.KML_EXPORT:
             export = generate_kml_export(
                 export_type,
                 xform.user.username,
                 xform.id_string,
                 None,
-                options)
+                options, xform=xform)
         else:
             options.update(parse_request_export_options(request))
 
@@ -171,7 +171,8 @@ def _generate_new_export(request, xform, query, export_type,
                 xform.user.username,
                 xform.id_string,
                 None,
-                options)
+                options,
+                xform=xform)
 
         audit = {
             "xform": xform.id_string,

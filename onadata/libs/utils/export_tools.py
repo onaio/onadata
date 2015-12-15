@@ -609,14 +609,14 @@ class ExportBuilder(object):
 
     def to_flat_csv_export(
             self, path, data, username, id_string, filter_query,
-            start=None, end=None, dataview=None):
+            start=None, end=None, dataview=None, xform=None):
         # TODO resolve circular import
         from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
-            start, end, self.TRUNCATE_GROUP_TITLE
+            start, end, self.TRUNCATE_GROUP_TITLE, xform=xform
         )
         csv_builder.export_to(path, dataview=dataview)
 
@@ -770,8 +770,8 @@ def get_boolean_value(str_var, default=None):
     return str_var if default else False
 
 
-def generate_export(
-        export_type, username, id_string, export_id=None, options=None):
+def generate_export(export_type, username, id_string, export_id=None,
+                    options=None, xform=None):
     """
     Create appropriate export object given the export type.
 
@@ -802,8 +802,9 @@ def generate_export(
         Export.SAV_ZIP_EXPORT: 'to_zipped_sav',
     }
 
-    xform = XForm.objects.get(
-        user__username__iexact=username, id_string__iexact=id_string)
+    if xform is None:
+        xform = XForm.objects.get(
+            user__username__iexact=username, id_string__iexact=id_string)
 
     dataview = None
     if options.get("dataview_pk"):
@@ -830,7 +831,7 @@ def generate_export(
     try:
         func.__call__(
             temp_file.name, records, username, id_string, filter_query,
-            start=start, end=end, dataview=dataview
+            start=start, end=end, dataview=dataview, xform=xform
         )
     except NoRecordsFoundError:
         pass
@@ -957,8 +958,9 @@ def increment_index_in_filename(filename):
     return new_filename
 
 
-def generate_attachments_zip_export(
-        export_type, username, id_string, export_id=None, options=None):
+def generate_attachments_zip_export(export_type, username, id_string,
+                                    export_id=None, options=None,
+                                    xform=None):
     """
     Generates zip export of attachments.
 
@@ -971,7 +973,8 @@ def generate_attachments_zip_export(
     """
     extension = options.get("extension", export_type)
 
-    xform = XForm.objects.get(user__username=username, id_string=id_string)
+    if xform is None:
+        xform = XForm.objects.get(user__username=username, id_string=id_string)
     attachments = Attachment.objects.filter(instance__xform=xform)
     basename = "%s_%s" % (id_string,
                           datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
@@ -1016,8 +1019,8 @@ def generate_attachments_zip_export(
     return export
 
 
-def generate_kml_export(
-        export_type, username, id_string, export_id=None, options=None):
+def generate_kml_export(export_type, username, id_string, export_id=None,
+                        options=None, xform=None):
     """
     Generates kml export for geographical data
 
@@ -1031,7 +1034,8 @@ def generate_kml_export(
     extension = options.get("extension", export_type)
 
     user = User.objects.get(username=username)
-    xform = XForm.objects.get(user__username=username, id_string=id_string)
+    if xform is None:
+        xform = XForm.objects.get(user__username=username, id_string=id_string)
     response = render_to_response(
         'survey.kml', {'data': kml_export_data(id_string, user)})
 
@@ -1118,8 +1122,8 @@ def kml_export_data(id_string, user):
     return data_for_template
 
 
-def generate_osm_export(
-        export_type, username, id_string, export_id=None, options=None):
+def generate_osm_export(export_type, username, id_string, export_id=None,
+                        options=None, xform=None):
     """
     Generates osm export for OpenStreetMap data
 
@@ -1133,7 +1137,8 @@ def generate_osm_export(
 
     extension = options.get("extension", export_type)
 
-    xform = XForm.objects.get(user__username=username, id_string=id_string)
+    if xform is None:
+        xform = XForm.objects.get(user__username=username, id_string=id_string)
     osm_list = OsmData.objects.filter(instance__xform=xform)
     content = get_combined_osm(osm_list)
 
@@ -1229,8 +1234,8 @@ def _get_server_from_metadata(xform, meta, token):
     return server, name
 
 
-def generate_external_export(
-        export_type, username, id_string, export_id=None, options=None):
+def generate_external_export(export_type, username, id_string, export_id=None,
+                             options=None, xform=None):
     """
     Generates external export using ONA data through an external service.
 
@@ -1249,8 +1254,9 @@ def generate_external_export(
     meta = options.get("meta")
     token = options.get("token")
 
-    xform = XForm.objects.get(
-        user__username__iexact=username, id_string__iexact=id_string)
+    if xform is None:
+        xform = XForm.objects.get(
+            user__username__iexact=username, id_string__iexact=id_string)
     user = User.objects.get(username=username)
 
     server, name = _get_server_from_metadata(xform, meta, token)
