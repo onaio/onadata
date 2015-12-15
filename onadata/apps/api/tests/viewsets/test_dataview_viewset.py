@@ -13,7 +13,10 @@ from onadata.apps.viewer.models.export import Export
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
 from onadata.libs.serializers.xform_serializer import XFormSerializer
-from onadata.libs.utils.cache_tools import PROJECT_LINKED_DATAVIEWS
+from onadata.libs.utils.cache_tools import (
+    DATAVIEW_COUNT,
+    DATAVIEW_LAST_SUBMISSION_TIME,
+    PROJECT_LINKED_DATAVIEWS)
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 
 
@@ -647,6 +650,37 @@ class TestDataViewViewSet(TestAbstractViewSet):
                                                 self.project.pk))
         self.assertIsNone(updated_cache)
 
+    def test_dataview_update_refreshes_cached_data(self):
+        self._create_dataview()
+        cache.set('{}{}'.format(DATAVIEW_COUNT, self.data_view.xform.pk), 5)
+        cache.set('{}{}'.format(DATAVIEW_LAST_SUBMISSION_TIME,
+                                self.data_view.xform.pk),
+                  '2015-03-09T13:34:05')
+        self.data_view.name = "Updated Dataview"
+        self.data_view.save()
+
+        self.assertIsNone(
+            cache.get('{}{}'.format(DATAVIEW_COUNT, self.data_view.xform.pk)))
+        self.assertIsNone(cache.get('{}{}'.format(
+            DATAVIEW_LAST_SUBMISSION_TIME, self.data_view.xform.pk)))
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+
+        expected_count = 3
+        expected_last_submission_time = "2015-03-09T13:34:05"
+
+        self.assertEquals(response.data['count'], expected_count)
+        self.assertEquals(response.data['last_submission_time'],
+                          '2015-03-09T13:34:05')
+
+        self.assertEquals(
+            cache.get('{}{}'.format(DATAVIEW_COUNT, self.data_view.xform.pk)),
+            expected_count)
+        self.assertEquals(cache.get('{}{}'.format(
+            DATAVIEW_LAST_SUBMISSION_TIME, self.data_view.xform.pk)),
+            expected_last_submission_time)
+
     def test_export_dataview_not_affected_by_normal_exports(self):
         count = Export.objects.all().count()
 
@@ -658,7 +692,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = view(request, pk=self.xform.pk, format='csv')
         self.assertEqual(response.status_code, 200)
 
-        self.assertEquals(count+1, Export.objects.all().count())
+        self.assertEquals(count + 1, Export.objects.all().count())
 
         self._create_dataview()
 
