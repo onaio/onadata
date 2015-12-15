@@ -89,7 +89,7 @@ class TestCSVDataFrameBuilder(TestBase):
 
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
                                              self.xform.id_string,
-                                             include_images=True)
+                                             include_images=False)
         temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
         csv_df_builder.export_to(temp_file.name)
         csv_fixture_path = os.path.join(
@@ -455,7 +455,7 @@ class TestCSVDataFrameBuilder(TestBase):
             self.user.username,
             self.xform.id_string,
             remove_group_name=True,
-            include_images=True
+            include_images=False
         )
         record_count = csv_df_builder._query_data(count=True)
         self.assertEqual(record_count, 7)
