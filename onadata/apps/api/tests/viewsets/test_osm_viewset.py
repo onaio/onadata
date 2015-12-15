@@ -115,7 +115,7 @@ class TestOSM(TestAbstractViewSet):
             'get': 'retrieve'
         })
 
-        request = self.factory.get('/', data={'include_images': False},
+        request = self.factory.get('/', data={'include_images': True},
                                    **self.extra)
         response = view(request, pk=self.xform.pk, format='csv')
         self.assertEqual(response.status_code, 200)
