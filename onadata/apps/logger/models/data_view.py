@@ -15,6 +15,7 @@ from onadata.libs.utils.cache_tools import (safe_delete,
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 DEFAULT_COLUMNS = [ID]
+ATTACHMENT_TYPES = ['photo', 'audio', 'video']
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
@@ -59,7 +60,7 @@ def has_attachments_fields(data_view):
 
     if dd:
         attachments = []
-        for element_type in ['photo', 'audio', 'video']:
+        for element_type in ATTACHMENT_TYPES:
             attachments += get_elements_of_type(dd, element_type)
 
         if attachments:
