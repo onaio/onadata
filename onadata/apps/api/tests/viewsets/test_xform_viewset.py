@@ -1,4 +1,5 @@
 # coding=utf-8
+import csv
 import json
 import os
 import re
@@ -8,11 +9,13 @@ import jwt
 import hashlib
 
 from collections import OrderedDict
+from cStringIO import StringIO
 from django.db.models import Q
 from datetime import datetime
 from django.utils import timezone
 from django.conf import settings
 from django.core.cache import cache
+from django.core.files.storage import default_storage
 from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 from django_digest.test import DigestAuth
@@ -3195,3 +3198,107 @@ class TestXFormViewSet(TestAbstractViewSet):
                                           'viewer', 'tests', 'fixtures',
                                           'transportation_all.csv')
             self._validate_csv_export(response, test_file_path)
+
+    @patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    def test_export_form_data_async_include_labels(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+            export_view = XFormViewSet.as_view({
+                'get': 'export_async',
+            })
+            form_view = XFormViewSet.as_view({
+                'get': 'retrieve',
+            })
+            formid = self.xform.pk
+
+            for export_format in ['csv']:
+                request = self.factory.get(
+                    '/', data={
+                        "format": export_format, 'include_labels': 'true'
+                    }, **self.extra)
+                response = export_view(request, pk=formid)
+                self.assertIsNotNone(response.data)
+                self.assertEqual(response.status_code, 202)
+                self.assertTrue('job_uuid' in response.data)
+                task_id = response.data.get('job_uuid')
+                get_data = {'job_uuid': task_id}
+                request = self.factory.get('/', data=get_data, **self.extra)
+                response = export_view(request, pk=formid)
+
+                self.assertTrue(async_result.called)
+                self.assertEqual(response.status_code, 202)
+                export = Export.objects.get(task_id=task_id)
+                self.assertTrue(export.is_successful)
+                with default_storage.open(export.filepath) as f:
+                    csv_reader = csv.reader(f)
+                    # jump over headers first
+                    csv_reader.next()
+                    labels = csv_reader.next()
+                    self.assertIn(
+                        'Is ambulance available daily or weekly?', labels
+                    )
+
+                request = self.factory.get('/',
+                                           data={'include_labels': 'true'},
+                                           **self.extra)
+                response = form_view(request, pk=formid, format=export_format)
+                f = StringIO(u''.join(response.streaming_content))
+                csv_reader = csv.reader(f)
+                # jump over headers first
+                csv_reader.next()
+                labels = csv_reader.next()
+                self.assertIn(
+                    'Is ambulance available daily or weekly?', labels
+                )
+
+    @patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    def test_export_form_data_async_include_labels_only(self, async_result):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._make_submissions()
+            export_view = XFormViewSet.as_view({
+                'get': 'export_async',
+            })
+            form_view = XFormViewSet.as_view({
+                'get': 'retrieve',
+            })
+            formid = self.xform.pk
+
+            for export_format in ['csv']:
+                request = self.factory.get(
+                    '/', data={
+                        "format": export_format, 'include_labels_only': 'true'
+                    }, **self.extra)
+                response = export_view(request, pk=formid)
+                self.assertIsNotNone(response.data)
+                self.assertEqual(response.status_code, 202)
+                self.assertTrue('job_uuid' in response.data)
+                task_id = response.data.get('job_uuid')
+                get_data = {'job_uuid': task_id}
+                request = self.factory.get('/', data=get_data, **self.extra)
+                response = export_view(request, pk=formid)
+
+                self.assertTrue(async_result.called)
+                self.assertEqual(response.status_code, 202)
+                export = Export.objects.get(task_id=task_id)
+                self.assertTrue(export.is_successful)
+                with default_storage.open(export.filepath) as f:
+                    csv_reader = csv.reader(f)
+                    headers = csv_reader.next()
+                    self.assertIn(
+                        'Is ambulance available daily or weekly?', headers
+                    )
+
+                request = self.factory.get(
+                    '/',
+                    data={'include_labels_only': 'true'},
+                    **self.extra
+                )
+                response = form_view(request, pk=formid, format=export_format)
+                f = StringIO(u''.join(response.streaming_content))
+                csv_reader = csv.reader(f)
+                headers = csv_reader.next()
+                self.assertIn(
+                    'Is ambulance available daily or weekly?', headers
+                )

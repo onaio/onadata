@@ -202,6 +202,10 @@ class ExportBuilder(object):
     GROUP_DELIMITER_DOT = '.'
     GROUP_DELIMITER = GROUP_DELIMITER_SLASH
     GROUP_DELIMITERS = [GROUP_DELIMITER_SLASH, GROUP_DELIMITER_DOT]
+
+    INCLUDE_LABELS = False
+    INCLUDE_LABELS_ONLY = False
+
     TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
     CONVERT_FUNCS = {
         'int': lambda x: int(x),
@@ -281,10 +285,14 @@ class ExportBuilder(object):
                     # add to survey_sections
                     if isinstance(child, Question):
                         child_xpath = child.get_abbreviated_xpath()
+                        _title = ExportBuilder.format_field_title(
+                            child.get_abbreviated_xpath(),
+                            field_delimiter, dd, remove_group_name
+                        )
+                        _label = child.label if child.label != '' else _title
                         current_section['elements'].append({
-                            'title': ExportBuilder.format_field_title(
-                                child.get_abbreviated_xpath(),
-                                field_delimiter, dd, remove_group_name),
+                            'label': _label,
+                            'title': _title,
                             'xpath': child_xpath,
                             'type': child.bind.get(u"type")
                         })
@@ -303,6 +311,9 @@ class ExportBuilder(object):
                             _title = ExportBuilder.format_field_title(
                                 _xpath, field_delimiter, dd, remove_group_name)
                             choice = {
+                                'label': field_delimiter.join([
+                                    child.name, c.label
+                                ]),
                                 'title': _title,
                                 'xpath': _xpath,
                                 'type': 'string'
@@ -321,17 +332,17 @@ class ExportBuilder(object):
                         # add columns for geopoint components
                         xpaths = DataDictionary.get_additional_geopoint_xpaths(
                             child.get_abbreviated_xpath())
-                        current_section['elements'].extend(
-                            [
-                                {
-                                    'title': ExportBuilder.format_field_title(
-                                        xpath, field_delimiter, dd,
-                                        remove_group_name),
-                                    'xpath': xpath,
-                                    'type': 'decimal'
-                                }
-                                for xpath in xpaths
-                            ])
+                        for xpath in xpaths:
+                            _title = ExportBuilder.format_field_title(
+                                xpath, field_delimiter, dd,
+                                remove_group_name
+                            )
+                            current_section['elements'].append({
+                                'label': _title,
+                                'title': _title,
+                                'xpath': xpath,
+                                'type': 'decimal'
+                            })
                         _append_xpaths_to_section(
                             current_section_name, gps_fields,
                             child.get_abbreviated_xpath(), xpaths)
@@ -465,11 +476,20 @@ class ExportBuilder(object):
                 'csv_file': csv_file, 'csv_writer': csv_writer}
 
         # write headers
-        for section in self.sections:
-            fields = [element['title'] for element in section['elements']]\
-                + self.EXTRA_FIELDS
-            csv_defs[section['name']]['csv_writer'].writerow(
-                [f.encode('utf-8') for f in fields])
+        if not self.INCLUDE_LABELS_ONLY:
+            for section in self.sections:
+                fields = [element['title'] for element in section['elements']]\
+                    + self.EXTRA_FIELDS
+                csv_defs[section['name']]['csv_writer'].writerow(
+                    [f.encode('utf-8') for f in fields])
+
+        # write labels
+        if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY:
+            for section in self.sections:
+                fields = [element['label'] for element in section['elements']]\
+                    + self.EXTRA_FIELDS
+                csv_defs[section['name']]['csv_writer'].writerow(
+                    [f.encode('utf-8') for f in fields])
 
         index = 1
         indices = {}
@@ -563,13 +583,24 @@ class ExportBuilder(object):
                 title=work_sheet_title)
 
         # write the headers
-        for section in self.sections:
-            section_name = section['name']
-            headers = self.get_fields(dataview, section, 'title')
+        if not self.INCLUDE_LABELS_ONLY:
+            for section in self.sections:
+                section_name = section['name']
+                headers = self.get_fields(dataview, section, 'title')
 
-            # get the worksheet
-            ws = work_sheets[section_name]
-            ws.append(headers)
+                # get the worksheet
+                ws = work_sheets[section_name]
+                ws.append(headers)
+
+        # write labels
+        if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY:
+            for section in self.sections:
+                section_name = section['name']
+                labels = self.get_fields(dataview, section, 'label')
+
+                # get the worksheet
+                ws = work_sheets[section_name]
+                ws.append(labels)
 
         index = 1
         indices = {}
@@ -616,7 +647,8 @@ class ExportBuilder(object):
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
-            start, end, self.TRUNCATE_GROUP_TITLE, xform=xform
+            start, end, self.TRUNCATE_GROUP_TITLE, xform,
+            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY
         )
         csv_builder.export_to(path, dataview=dataview)
 
@@ -629,7 +661,9 @@ class ExportBuilder(object):
 
         # write headers
         for section in self.sections:
-            fields = [element['title'] for element in section['elements']]\
+            _title = 'label' \
+                if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY else 'title'
+            fields = [element[_title] for element in section['elements']]\
                 + self.EXTRA_FIELDS
             c = 0
             var_labels = {}
@@ -643,7 +677,7 @@ class ExportBuilder(object):
                 tmp_k[field] = var_name
 
             var_types = dict(
-                [(tmp_k[element['title']],
+                [(tmp_k[element[_title]],
                   0 if element['type'] in ['decimal', 'int'] else 255)
                  for element in section['elements']] +
                 [(tmp_k[item],
@@ -817,11 +851,18 @@ def generate_export(export_type, username, id_string, export_id=None,
 
     export_builder.TRUNCATE_GROUP_TITLE = remove_group_name
     export_builder.GROUP_DELIMITER = options.get(
-        "group_delimiter", DEFAULT_GROUP_DELIMITER)
+        "group_delimiter", DEFAULT_GROUP_DELIMITER
+    )
     export_builder.SPLIT_SELECT_MULTIPLES = options.get(
-        "split_select_multiples", True)
+        "split_select_multiples", True
+    )
     export_builder.BINARY_SELECT_MULTIPLES = options.get(
-        "binary_select_multiples", False)
+        "binary_select_multiples", False
+    )
+    export_builder.INCLUDE_LABELS = options.get('include_labels', False)
+    export_builder.INCLUDE_LABELS_ONLY = options.get(
+        'include_labels_only', False
+    )
     export_builder.set_survey(xform.data_dictionary().survey)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
@@ -1354,6 +1395,14 @@ def parse_request_export_options(request):
         params.get('remove_group_name').lower()
     do_not_split_select_multiples = params.get(
         'do_not_split_select_multiples')
+    include_labels = params.get('include_labels', None)
+    include_labels_only = params.get('include_labels_only', None)
+
+    if include_labels is not None:
+        options['include_labels'] = str_to_bool(include_labels)
+
+    if include_labels_only is not None:
+        options['include_labels_only'] = str_to_bool(include_labels_only)
 
     if remove_group_name in boolean_list:
         options["remove_group_name"] = str_to_bool(remove_group_name)
