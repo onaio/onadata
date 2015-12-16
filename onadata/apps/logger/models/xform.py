@@ -43,6 +43,19 @@ class DuplicateUUIDError(Exception):
     pass
 
 
+def get_forms_shared_with_user(user):
+    """
+    Returns forms shared with a user
+    """
+    xfs = user.xformuserobjectpermission_set.all()
+    shared_forms_pks = list(set([xf.content_object.pk for xf in xfs]))
+    forms_shared_with_user = XForm.objects.filter(
+        pk__in=shared_forms_pks).exclude(user=user)\
+        .select_related('user')
+
+    return forms_shared_with_user
+
+
 class XForm(BaseModel):
     CLONED_SUFFIX = '_cloned'
     MAX_ID_LENGTH = 100

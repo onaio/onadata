@@ -12,7 +12,7 @@ from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 
 from onadata.apps.api.tools import get_media_file_response
-from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.xform import XForm, get_forms_shared_with_user
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
@@ -57,6 +57,14 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
             'X-OpenRosa-Accept-Content-Length': DEFAULT_CONTENT_LENGTH
         }
 
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        filter_kwargs = {self.lookup_field: self.kwargs[self.lookup_field]}
+        obj = get_object_or_404(queryset or XForm, **filter_kwargs)
+        self.check_object_permissions(self.request, obj)
+
+        return obj
+
     def get_renderers(self):
         if self.action and self.action == 'manifest':
             return [XFormManifestRenderer()]
@@ -69,6 +77,7 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
             # raises a permission denied exception, forces authentication
             self.permission_denied(self.request)
 
+        profile = None
         if username is not None:
             profile = get_object_or_404(
                 UserProfile, user__username=username.lower())
@@ -81,6 +90,11 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
 
         if not self.request.user.is_anonymous():
             queryset = super(XFormListViewSet, self).filter_queryset(queryset)
+
+            if self.action == 'list' and profile:
+                forms_shared_with_user = get_forms_shared_with_user(
+                    profile.user)
+                queryset = queryset | forms_shared_with_user
 
         return queryset
 

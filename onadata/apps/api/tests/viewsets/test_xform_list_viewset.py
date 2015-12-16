@@ -1,4 +1,5 @@
 import os
+from mock import patch
 
 from django.conf import settings
 from django.test import TransactionTestCase
@@ -7,6 +8,7 @@ from django_digest.test import DigestAuth
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_list_viewset import XFormListViewSet
+from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import DataEntryRole
 from onadata.libs.permissions import ReadOnlyRole
 
@@ -55,6 +57,73 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(
             response.data.get('detail'),
             u'Malformed cookie. Clear your cookies then try again')
+
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_get_xform_list_with_shared_forms(self, mock_send_mail):
+        # create user alice
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com',
+                      'password1': 'alice', 'password2': 'alice'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        # check that she can authenticate successfully
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('alice', 'alice')
+        request.META.update(auth(request.META, response))
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertFalse(
+            ReadOnlyRole.user_has_role(alice_profile.user, self.project))
+        # share bob's project with her
+        data = {'username': 'alice',
+                'role': ReadOnlyRole.name,
+                'email_msg': 'I have shared the project with you'}
+        request = self.factory.post('/', data=data, **self.extra)
+        share_view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        projectid = self.project.pk
+        response = share_view(request, pk=projectid)
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(mock_send_mail.called)
+        self.assertTrue(
+            ReadOnlyRole.user_has_role(alice_profile.user, self.project))
+
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('alice', 'alice')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username='alice')
+        self.assertEqual(response.status_code, 200)
+
+        path = os.path.join(
+            os.path.dirname(__file__),
+            '..', 'fixtures', 'formList.xml')
+
+        with open(path) as f:
+            form_list_xml = f.read().strip()
+            data = {"hash": self.xform.hash, "pk": self.xform.pk}
+            content = response.render().content
+            self.assertEqual(content, form_list_xml % data)
+            download_url = (
+                '<downloadUrl>http://testserver/%s/'
+                'forms/%s/form.xml</downloadUrl>') % (
+                self.user.username, self.xform.id)
+            manifest_url = (
+                '<manifestUrl>http://testserver/%s/xformsManifest'
+                '/%s</manifestUrl>') % (self.user.username, self.xform.id)
+            # check that bob's form exists in alice's formList
+            self.assertTrue(download_url in content)
+            self.assertTrue(manifest_url in content)
+            self.assertTrue(response.has_header('X-OpenRosa-Version'))
+            self.assertTrue(
+                response.has_header('X-OpenRosa-Accept-Content-Length'))
+            self.assertTrue(response.has_header('Date'))
+            self.assertEqual(response['Content-Type'],
+                             'text/xml; charset=utf-8')
 
     def test_get_xform_list_inactive_form(self):
         self.xform.downloadable = False
