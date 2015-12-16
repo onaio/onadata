@@ -907,7 +907,7 @@ def generate_export(export_type, username, id_string, export_id=None,
         func.__call__(
             temp_file.name, records, username, id_string, filter_query,
             start=start, end=end, dataview=dataview,
-            include_images=include_images,xform=xform
+            include_images=include_images, xform=xform
         )
     except NoRecordsFoundError:
         pass
