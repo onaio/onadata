@@ -317,6 +317,36 @@ Example
      curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&do_not_split_select_multiples
 
 
+Include labels in CSV, SAV, XLS and zipped CSV exports
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+By default labels are not included in exports. To include labels in the exports, use
+ the `include_labels` param, acceptable values are `true` and `false`.
+
+Example
+^^^^^^^
+
+::
+
+     curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&include_labels=true
+     curl -X GET https://ona.io/api/v1/forms/28058.xls?include_labels=true
+
+
+Include labels as column headers in CSV, SAV, XLS and zipped CSV exports
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+By default labels are not included in exports. To include labels as column headers in the exports, use
+ the `include_labels_only` param, acceptable values are `true` and `false`.
+
+Example
+^^^^^^^
+
+::
+
+     curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&include_labels_only=true
+     curl -X GET https://ona.io/api/v1/forms/28058.xls?include_labels_only=true
+
+
+CSV and XLS exports with either '.' or '/' group delimiter in header names
+
 Delete an XLS form asynchronously
 -----------------------------------
 .. raw:: html
