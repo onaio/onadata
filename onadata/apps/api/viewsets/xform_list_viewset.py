@@ -85,6 +85,8 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
             if profile.require_auth and self.request.user.is_anonymous():
                 # raises a permission denied exception, forces authentication
                 self.permission_denied(self.request)
+            else:
+                queryset = queryset.filter(user=profile.user)
 
         if not self.request.user.is_anonymous():
             queryset = super(XFormListViewSet, self).filter_queryset(queryset)
