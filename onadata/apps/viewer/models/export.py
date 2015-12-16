@@ -69,12 +69,16 @@ class Export(models.Model):
         (OSM, OSM),
     ]
 
-    EXPORT_OPTION_FIELDS = ["binary_select_multiples",
-                            "dataview_pk",
-                            "group_delimiter",
-                            "query",
-                            "remove_group_name",
-                            "split_select_multiples"]
+    EXPORT_OPTION_FIELDS = [
+        "binary_select_multiples",
+        "dataview_pk",
+        "group_delimiter",
+        "include_labels",
+        "include_labels_only",
+        "query",
+        "remove_group_name",
+        "split_select_multiples"
+    ]
 
     EXPORT_TYPE_DICT = dict(export_type for export_type in EXPORT_TYPES)
 
