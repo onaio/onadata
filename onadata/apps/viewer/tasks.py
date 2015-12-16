@@ -111,7 +111,13 @@ def create_xls_export(username, id_string, export_id, **options):
 
     try:
         gen_export = generate_export(
-            Export.XLS_EXPORT, username, id_string, export_id, options)
+            Export.XLS_EXPORT,
+            username,
+            id_string,
+            export_id,
+            options,
+            xform=export.xform
+        )
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
@@ -138,7 +144,13 @@ def create_csv_export(username, id_string, export_id, **options):
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
         gen_export = generate_export(
-            Export.CSV_EXPORT, username, id_string, export_id, options)
+            Export.CSV_EXPORT,
+            username,
+            id_string,
+            export_id,
+            options,
+            xform=export.xform
+        )
     except NoRecordsFoundError:
         # not much we can do but we don't want to report this as the user
         # should not even be on this page if the survey has no records
@@ -168,7 +180,13 @@ def create_kml_export(username, id_string, export_id, **options):
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
         gen_export = generate_kml_export(
-            Export.KML_EXPORT, username, id_string, export_id, options)
+            Export.KML_EXPORT,
+            username,
+            id_string,
+            export_id,
+            options,
+            xform=export.xform
+        )
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
@@ -192,7 +210,13 @@ def create_osm_export(username, id_string, export_id, **options):
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
         gen_export = generate_osm_export(
-            Export.OSM_EXPORT, username, id_string, export_id, options)
+            Export.OSM_EXPORT,
+            username,
+            id_string,
+            export_id,
+            options,
+            xform=export.xform
+        )
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
@@ -211,7 +235,13 @@ def create_zip_export(username, id_string, export_id, **options):
     export = Export.objects.get(id=export_id)
     try:
         gen_export = generate_attachments_zip_export(
-            Export.ZIP_EXPORT, username, id_string, export_id, options)
+            Export.ZIP_EXPORT,
+            username,
+            id_string,
+            export_id,
+            options,
+            xform=export.xform
+        )
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
@@ -237,7 +267,13 @@ def create_csv_zip_export(username, id_string, export_id, **options):
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
         gen_export = generate_export(
-            Export.CSV_ZIP_EXPORT, username, id_string, export_id, options)
+            Export.CSV_ZIP_EXPORT,
+            username,
+            id_string,
+            export_id,
+            options,
+            xform=export.xform
+        )
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
         export.save()
@@ -259,7 +295,13 @@ def create_sav_zip_export(username, id_string, export_id, **options):
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
         gen_export = generate_export(
-            Export.SAV_ZIP_EXPORT, username, id_string, export_id, options)
+            Export.SAV_ZIP_EXPORT,
+            username,
+            id_string,
+            export_id,
+            options,
+            xform=export.xform
+        )
     except (Exception, NoRecordsFoundError, TypeError) as e:
         export.internal_status = Export.FAILED
         export.save()
@@ -281,7 +323,13 @@ def create_external_export(username, id_string, export_id, **options):
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
         gen_export = generate_external_export(
-            Export.EXTERNAL_EXPORT, username, id_string, export_id, options)
+            Export.EXTERNAL_EXPORT,
+            username,
+            id_string,
+            export_id,
+            options,
+            xform=export.xform
+        )
     except (Exception, NoRecordsFoundError, ConnectionError) as e:
         export.internal_status = Export.FAILED
         export.save()
