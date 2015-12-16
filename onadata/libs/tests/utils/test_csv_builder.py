@@ -472,7 +472,7 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by'
+            '_notes', '_version', '_duration', '_submitted_by', '_attachments'
         ]
         self.assertEqual(expected_header, header)
         rows = []

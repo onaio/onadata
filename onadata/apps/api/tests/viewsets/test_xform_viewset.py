@@ -3306,7 +3306,9 @@ class TestXFormViewSet(TestAbstractViewSet):
     def test_csv_exports_w_attachments(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
+            media_file = "1442323232322.jpg"
             self._submit_transport_instance_w_attachment(
+                media_file=media_file,
                 forced_submission_time=datetime(2015, 12, 2))
 
             view = XFormViewSet.as_view({
