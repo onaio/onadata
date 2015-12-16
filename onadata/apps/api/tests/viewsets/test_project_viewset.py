@@ -150,6 +150,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                           'date_created',
                           'date_modified',
                           'instances_with_geopoints',
+                          'last_submission_time',
                           'matches_parent',
                           'name',
                           'project',
