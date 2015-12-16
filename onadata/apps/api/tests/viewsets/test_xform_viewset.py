@@ -3302,3 +3302,34 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertIn(
                     'Is ambulance available daily or weekly?', headers
                 )
+
+    def test_csv_exports_w_attachments(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            self._submit_transport_instance_w_attachment(
+                forced_submission_time=datetime(2015, 12, 2))
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            # request for export again
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation_images_included.csv')
+            self._validate_csv_export(response, test_file_path)
+
+            data = {"include_images": False}
+            # request for export again
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation_no_images.csv')
+            self._validate_csv_export(response, test_file_path)

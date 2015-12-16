@@ -146,12 +146,12 @@ def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
 
 
 class AbstractDataFrameBuilder(object):
-    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ID, GEOLOCATION, ATTACHMENTS,
+    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ID, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields NOT within the form def that we want to include
     ADDITIONAL_COLUMNS = [
         UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
-        SUBMITTED_BY]
+        SUBMITTED_BY, ATTACHMENTS]
     BINARY_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
@@ -182,13 +182,14 @@ class AbstractDataFrameBuilder(object):
         self.include_labels = include_labels
         self.include_labels_only = include_labels_only
         self.include_images = include_images
-
-        if self.include_images:
-            if ATTACHMENTS in self.IGNORED_COLUMNS:
-                self.IGNORED_COLUMNS.remove(ATTACHMENTS)
-            if ATTACHMENTS not in self.ADDITIONAL_COLUMNS:
-                self.ADDITIONAL_COLUMNS.append(ATTACHMENTS)
+        self._reset_columns()
         self._setup()
+
+    def _reset_columns(self):
+        if ATTACHMENTS not in self.ADDITIONAL_COLUMNS:
+            self.ADDITIONAL_COLUMNS.append(ATTACHMENTS)
+        if ATTACHMENTS in self.IGNORED_COLUMNS:
+            self.IGNORED_COLUMNS.remove(ATTACHMENTS)
 
     def _setup(self):
         self.dd = self.xform.data_dictionary()

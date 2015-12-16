@@ -210,12 +210,12 @@ def dict_to_joined_export(data, index, indices, name):
 
 
 class ExportBuilder(object):
-    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, GEOLOCATION, ATTACHMENTS,
+    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields we export but are not within the form's structure
     EXTRA_FIELDS = [ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME,
                     PARENT_INDEX, TAGS, NOTES, VERSION, DURATION,
-                    SUBMITTED_BY]
+                    SUBMITTED_BY, ATTACHMENTS]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
 
@@ -239,6 +239,12 @@ class ExportBuilder(object):
     TRUNCATE_GROUP_TITLE = False
 
     XLS_SHEET_NAME_MAX_CHARS = 31
+
+    def __init__(self):
+        if ATTACHMENTS not in self.EXTRA_FIELDS:
+            self.EXTRA_FIELDS.append(ATTACHMENTS)
+        if ATTACHMENTS in self.IGNORED_COLUMNS:
+            self.IGNORED_COLUMNS.remove(ATTACHMENTS)
 
     @classmethod
     def string_to_date_with_xls_validation(cls, date_str):
@@ -673,6 +679,11 @@ class ExportBuilder(object):
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
             self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, include_images
         )
+        if not csv_builder.include_images:
+            if ATTACHMENTS not in csv_builder.IGNORED_COLUMNS:
+                csv_builder.IGNORED_COLUMNS.append(ATTACHMENTS)
+            if ATTACHMENTS in csv_builder.ADDITIONAL_COLUMNS:
+                csv_builder.ADDITIONAL_COLUMNS.remove(ATTACHMENTS)
 
         csv_builder.export_to(path, dataview=dataview)
 
@@ -893,11 +904,11 @@ def generate_export(export_type, username, id_string, export_id=None,
     )
     export_builder.set_survey(xform.data_dictionary().survey)
 
-    if include_images:
+    if not include_images:
         if ATTACHMENTS in export_builder.EXTRA_FIELDS:
-            export_builder.EXTRA_FIELDS.append(ATTACHMENTS)
+            export_builder.EXTRA_FIELDS.remove(ATTACHMENTS)
         if ATTACHMENTS not in export_builder.IGNORED_COLUMNS:
-            export_builder.IGNORED_COLUMNS.remove(ATTACHMENTS)
+            export_builder.IGNORED_COLUMNS.append(ATTACHMENTS)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
 
@@ -1454,5 +1465,6 @@ def parse_request_export_options(request):
     if 'include_images' in request.QUERY_PARAMS:
         options["include_images"] = str_to_bool(
             request.QUERY_PARAMS.get("include_images"))
-
+    else:
+        options["include_images"] = True
     return options

@@ -73,6 +73,7 @@ class Export(models.Model):
         "binary_select_multiples",
         "dataview_pk",
         "group_delimiter",
+        "include_images",
         "include_labels",
         "include_labels_only",
         "query",
