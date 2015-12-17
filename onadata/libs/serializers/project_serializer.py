@@ -98,8 +98,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             user = request.user
             data = {}
 
-            for perm in obj.projectuserobjectpermission_set.filter(
-                    permission__user=user):
+            for perm in obj.projectuserobjectpermission_set.filter(user=user):
                 if perm.user_id not in data:
                     user = perm.user
                     data[perm.user_id] = {}
@@ -118,6 +117,8 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             results = []
             for k, v in data.items():
                 v['role'] = get_role(v['permissions'], obj)
+
+                del(v['permissions'])
                 results.append(v)
 
             cache.set('{}{}'.format(PROJ_PERM_CACHE, obj.pk), results)
