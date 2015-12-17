@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.db.models import Q
 from django.utils.translation import ugettext as _
 
 from onadata.apps.logger.models import Project
@@ -100,7 +101,8 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             user = request.user
             data = {}
 
-            for perm in obj.projectuserobjectpermission_set.filter(user=user):
+            for perm in obj.projectuserobjectpermission_set.filter(
+                    Q(user=user) | Q(user=obj.organization)):
                 if perm.user_id not in data:
                     user = perm.user
                     data[perm.user_id] = {}
