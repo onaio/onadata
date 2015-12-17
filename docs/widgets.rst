@@ -33,7 +33,7 @@ Example
         {
             "title": "My new title",
             "description": "new description",
-            "content_object": "https://ona.io/api/v1/forms/9929",
+            "content_object": "https://api.ona.io/api/v1/forms/9929",
             "widget_type": "charts",
             "view_type": "horizontal-bar",
             "column": "age"
@@ -52,7 +52,7 @@ Response
               "view_type": "horizontal-bar",
               "column": "age",
               "group_by": null,
-              "content_object": "https://ona.io/api/v1/forms/9929",
+              "content_object": "https://api.ona.io/api/v1/forms/9929",
               "data": []
         }
 
@@ -79,7 +79,7 @@ Response
               "view_type": "horizontal-bar",
               "column": "age",
               "group_by": null,
-              "content_object": "https://ona.io/api/v1/forms/9929",
+              "content_object": "https://api.ona.io/api/v1/forms/9929",
               "data": []
         }
 
@@ -106,7 +106,7 @@ Response
               "view_type": "horizontal-bar",
               "column": "gender",
               "group_by": age,
-              "content_object": "https://ona.io/api/v1/forms/9929",
+              "content_object": "https://api.ona.io/api/v1/forms/9929",
               "data": []
         },
         {
@@ -117,7 +117,7 @@ Response
               "view_type": "horizontal-bar",
               "column": "gender",
               "group_by": null,
-              "content_object": "https://ona.io/api/v1/forms/9929",
+              "content_object": "https://api.ona.io/api/v1/forms/9929",
               "data": []
         }
     ]
@@ -138,7 +138,7 @@ Example
         {
             "title": "My new title updated",
             "description": "new description",
-            "content_object": "https://ona.io/api/v1/forms/9929",
+            "content_object": "https://api.ona.io/api/v1/forms/9929",
             "widget_type": "charts",
             "view_type": "horizontal-bar",
             "column": "age"
@@ -157,7 +157,7 @@ Response
               "view_type": "horizontal-bar",
               "column": "age",
               "group_by": null,
-              "content_object": "https://ona.io/api/v1/forms/9929",
+              "content_object": "https://api.ona.io/api/v1/forms/9929",
               "data": []
         }
 
@@ -190,7 +190,7 @@ Response
               "view_type": "horizontal-bar",
               "column": "gender",
               "group_by": null,
-              "content_object": "https://ona.io/api/v1/forms/9929",
+              "content_object": "https://api.ona.io/api/v1/forms/9929",
               "data": []
         }
 
@@ -233,7 +233,7 @@ Response
               "view_type": "horizontal-bar",
               "column": "age",
               "group_by": null,
-              "content_object": "https://ona.io/api/v1/forms/9929",
+              "content_object": "https://api.ona.io/api/v1/forms/9929",
               "data": [
                     {
                       "count": 2,
@@ -272,7 +272,7 @@ Response
               "view_type": "horizontal-bar",
               "column": "age",
               "group_by": null,
-              "content_object": "https://ona.io/api/v1/forms/9929",
+              "content_object": "https://api.ona.io/api/v1/forms/9929",
               "data": [
                     {
                       "count": 2,
@@ -310,7 +310,7 @@ Response
               "view_type": "horizontal-bar",
               "column": "age",
               "group_by": null,
-              "content_object": "https://ona.io/api/v1/forms/9929",
+              "content_object": "https://api.ona.io/api/v1/forms/9929",
               "data": [
                     {
                       "count": 2,

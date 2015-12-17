@@ -14,7 +14,7 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/charts
+       curl -X GET https://api.ona.io/api/v1/charts
 
 Response
 ^^^^^^^^^
@@ -23,7 +23,7 @@ Response
         [{
             "id": 4240,
             "id_string": "dhis2form",
-            "url": "https://ona.io/api/v1/charts/4240",
+            "url": "https://api.ona.io/api/v1/charts/4240",
         }
         ...
 
@@ -38,7 +38,7 @@ Example
 ^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/charts/4240
+    curl -X GET https://api.ona.io/api/v1/charts/4240
 
 Response
 ^^^^^^^^^
@@ -48,10 +48,10 @@ Response
             {
                 "id": 4240,
                 "id_string": "dhis2form",
-                "url": "https://ona.io/api/v1/charts/4240",
+                "url": "https://api.ona.io/api/v1/charts/4240",
                 "fields": {
-                    "uuid": "https://ona.io/api/v1/charts/4240?field_name=uuid",
-                    "num": "https://ona.io/api/v1/charts/4240?field_name=num",
+                    "uuid": "https://api.ona.io/api/v1/charts/4240?field_name=uuid",
+                    "num": "https://api.ona.io/api/v1/charts/4240?field_name=num",
                     ...
                 }
             }
@@ -71,7 +71,7 @@ Example
 ^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/charts/4240.html?field_name=age
+    curl -X GET https://api.ona.io/api/v1/charts/4240.html?field_name=age
 
 Response
 ^^^^^^^^
@@ -96,7 +96,7 @@ Example
 ^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/charts/4240?fields=all
+       curl -X GET https://api.ona.io/api/v1/charts/4240?fields=all
 
 Response
 ^^^^^^^^^
