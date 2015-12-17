@@ -49,7 +49,7 @@ Get a specific Rest Service
 
 ::
 
-    curl -X GET https://ona.io/api/v1/metadata/7100
+    curl -X GET https://api.ona.io/api/v1/metadata/7100
 
 ::
 
@@ -92,7 +92,7 @@ Example:
 ^^^^^^^^
 ::
 
-        curl -X POST -d "{"service_url": "https://textit.io/api/v1/runs.json", "name":"textit", "xform": 9929}" https://ona.io/api/v1/restservices -H "Content-Type: appliction/json"
+        curl -X POST -d "{"service_url": "https://textit.io/api/v1/runs.json", "name":"textit", "xform": 9929}" https://api.ona.io/api/v1/restservices -H "Content-Type: appliction/json"
 
 ::
 
@@ -137,7 +137,7 @@ Where:
 
 ::
 
-        curl -X POST -d "{"auth_token": "abffbbb8f16f7a1bc75f141b5aa538sasdsd", "flow_uuid":"cf7d7891-a01b-4ca9-99d2-weqqrwqd", "contacts": "52d4ff71-4d4e-464c-bksadfsdiwew", "service": "textit"}" https://ona.io/api/v1/restservices/236/textit -H "Content-Type: appliction/json"
+        curl -X POST -d "{"auth_token": "abffbbb8f16f7a1bc75f141b5aa538sasdsd", "flow_uuid":"cf7d7891-a01b-4ca9-99d2-weqqrwqd", "contacts": "52d4ff71-4d4e-464c-bksadfsdiwew", "service": "textit"}" https://api.ona.io/api/v1/restservices/236/textit -H "Content-Type: appliction/json"
 
 ::
 

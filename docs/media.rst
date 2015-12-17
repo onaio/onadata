@@ -13,7 +13,7 @@ Example
 ^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/media
+       curl -X GET https://api.ona.io/api/v1/media
 
 Response
 ^^^^^^^^
@@ -21,14 +21,14 @@ Response
 
     [
         {
-            "download_url": "http://ona.io/api/v1/media/1.jpg",
-            "small_download_url": "http://ona.io/api/v1/media/1-small.jpg",
-            "medium_download_url": "http://ona.io/api/v1/media/1-medium.jpg",
+            "download_url": "http://api.ona.io/api/v1/media/1.jpg",
+            "small_download_url": "http://api.ona.io/api/v1/media/1-small.jpg",
+            "medium_download_url": "http://api.ona.io/api/v1/media/1-medium.jpg",
             "filename": "doe/attachments/1408520136827.jpg",
             "id": 1,
             "instance": 1,
             "mimetype": "image/jpeg",
-            "url": "http://ona.io/api/v1/media/1",
+            "url": "http://api.ona.io/api/v1/media/1",
             "xform": 1,
         },
         ...
@@ -42,7 +42,7 @@ Example
 ^^^^^^^
 ::
   
-      curl -X GET https://ona.io/api/v1/media.json?page=1&page_size=4
+      curl -X GET https://api.ona.io/api/v1/media.json?page=1&page_size=4
 
 Retrieve details of an attachment
 ---------------------------------
@@ -54,7 +54,7 @@ Example
 ^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/media/1
+      curl -X GET https://api.ona.io/api/v1/media/1
 
 Response
 ^^^^^^^^
@@ -62,14 +62,14 @@ Response
 ::
 
     {
-        "download_url": "http://ona.io/api/v1/media/1.jpg",
-        "small_download_url": "http://ona.io/api/v1/media/1-small.jpg",
-        "medium_download_url": "http://ona.io/api/v1/media/1-medium.jpg",
+        "download_url": "http://api.ona.io/api/v1/media/1.jpg",
+        "small_download_url": "http://api.ona.io/api/v1/media/1-small.jpg",
+        "medium_download_url": "http://api.ona.io/api/v1/media/1-medium.jpg",
         "filename": "doe/attachments/1408520136827.jpg",
         "id": 1,
         "instance": 1,
         "mimetype": "image/jpeg",
-        "url": "http://ona.io/api/v1/media/1",
+        "url": "http://api.ona.io/api/v1/media/1",
         "xform": 1,
     }
 
@@ -82,7 +82,7 @@ Retrieve an attachment file
     
 ::
 
-    curl -X GET https://ona.io/api/v1/media/1.png -o a.png
+    curl -X GET https://api.ona.io/api/v1/media/1.png -o a.png
 
 Alternatively, if the request is made with an `Accept` header of the
 content type of the file the file would be returned e.g
@@ -96,7 +96,7 @@ Example
 
 ::
 
-    curl -X GET https://ona.io/api/v1/media/1 -H "Accept: image/png" -o a.png
+    curl -X GET https://api.ona.io/api/v1/media/1 -H "Accept: image/png" -o a.png
 
 Lists attachments of a specific xform
 -------------------------------------
@@ -109,7 +109,7 @@ Example
 ^^^^^^^
 ::
 
-     curl -X GET https://ona.io/api/v1/media?xform=1
+     curl -X GET https://api.ona.io/api/v1/media?xform=1
 
 Response
 ^^^^^^^^
@@ -117,14 +117,14 @@ Response
 
     [
         {
-            "download_url": "http://ona.io/api/v1/media/1.jpg",
-            "small_download_url": "http://ona.io/api/v1/media/1-small.jpg",
-            "medium_download_url": "http://ona.io/api/v1/media/1-medium.jpg",
+            "download_url": "http://api.ona.io/api/v1/media/1.jpg",
+            "small_download_url": "http://api.ona.io/api/v1/media/1-small.jpg",
+            "medium_download_url": "http://api.ona.io/api/v1/media/1-medium.jpg",
             "filename": "doe/attachments/1408520136827.jpg",
             "id": 1,
             "instance": 1,
             "mimetype": "image/jpeg",
-            "url": "http://ona.io/api/v1/media/1",
+            "url": "http://api.ona.io/api/v1/media/1",
             "xform": 1,
         },
         ...
@@ -143,7 +143,7 @@ Example
 
 ::
 
-     curl -X GET https://ona.io/api/v1/media?instance=1
+     curl -X GET https://api.ona.io/api/v1/media?instance=1
 
 Response
 ^^^^^^^^
@@ -152,14 +152,14 @@ Response
 
     [
         {
-            "download_url": "http://ona.io/api/v1/media/1.jpg",
-            "small_download_url": "http://ona.io/api/v1/media/1-small.jpg",
-            "medium_download_url": "http://ona.io/api/v1/media/1-medium.jpg",
+            "download_url": "http://api.ona.io/api/v1/media/1.jpg",
+            "small_download_url": "http://api.ona.io/api/v1/media/1-small.jpg",
+            "medium_download_url": "http://api.ona.io/api/v1/media/1-medium.jpg",
             "filename": "doe/attachments/1408520136827.jpg",
             "id": 1,
             "instance": 1,
             "mimetype": "image/jpeg",
-            "url": "http://ona.io/api/v1/media/1",
+            "url": "http://api.ona.io/api/v1/media/1",
             "xform": 1,
         },
         ...
@@ -177,12 +177,12 @@ Example
 ::
 
 
-    curl -X GET https://ona.io/api/v1/media/1\?filename=doe/attachments/1408520136827.jpg
+    curl -X GET https://api.ona.io/api/v1/media/1\?filename=doe/attachments/1408520136827.jpg
 
 Response
 ^^^^^^^^
 ::
 
-        http://ona.io/api/v1/media/1.jpg
+        http://api.ona.io/api/v1/media/1.jpg
 
     

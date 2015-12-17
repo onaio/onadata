@@ -17,7 +17,7 @@ Example
 
 ::
 
-      curl -X GET https://ona.io/api/v1/teams
+      curl -X GET https://api.ona.io/api/v1/teams
 
 Optional params:
 
@@ -28,7 +28,7 @@ Example
 
 ::
 
-      curl -X GET https://ona.io/api/v1/teams?org=bruize
+      curl -X GET https://api.ona.io/api/v1/teams?org=bruize
 
 Response
 ^^^^^^^^
@@ -37,13 +37,13 @@ Response
 
     [
         {
-            "url": "https://ona.io/api/v1/teams/1",
+            "url": "https://api.ona.io/api/v1/teams/1",
             "name": "Owners",
             "organization": "bruize",
             "projects": []
         },
         {
-            "url": "https://ona.io/api/v1/teams/2",
+            "url": "https://api.ona.io/api/v1/teams/2",
             "name": "demo team",
             "organization": "bruize",
             "projects": []
@@ -68,7 +68,7 @@ Example
 
 ::
 
-      curl -X GET https://ona.io/api/v1/teams/1
+      curl -X GET https://api.ona.io/api/v1/teams/1
 
 Response
 ^^^^^^^^
@@ -76,7 +76,7 @@ Response
 ::
 
        {
-           "url": "https://ona.io/api/v1/teams/1",
+           "url": "https://api.ona.io/api/v1/teams/1",
            "name": "Owners",
            "organization": "bruize",
            "projects": []
@@ -98,7 +98,7 @@ Example
 
 ::
 
-      curl -X GET https://ona.io/api/v1/teams/1/members
+      curl -X GET https://api.ona.io/api/v1/teams/1/members
 
 Response
 ^^^^^^^^
@@ -145,7 +145,7 @@ Example
 
 ::
 
-      curl -X POST -d project=3 -d role=readonly https://ona.io/api/v1/teams/1/share
+      curl -X POST -d project=3 -d role=readonly https://api.ona.io/api/v1/teams/1/share
 
 Response
 ^^^^^^^^
@@ -172,7 +172,7 @@ Example
 
 ::
 
-      curl -X POST -d project=3 -d role=readonly -d remove=true https://ona.io/api/v1/teams/1/share
+      curl -X POST -d project=3 -d role=readonly -d remove=true https://api.ona.io/api/v1/teams/1/share
 
 Response
 ^^^^^^^^
