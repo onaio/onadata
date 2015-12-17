@@ -104,7 +104,6 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
                     data[perm.user_id]['is_org'] = is_organization(
                         user.profile
                     )
-                    data[perm.user_id]['gravatar'] = user.profile.gravatar
                     data[perm.user_id]['first_name'] = user.first_name
                     data[perm.user_id]['last_name'] = user.last_name
                     data[perm.user_id]['user'] = user.username
