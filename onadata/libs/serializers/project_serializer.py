@@ -24,6 +24,20 @@ from onadata.apps.api.tools import (
 from onadata.libs.utils.profiler import profile
 
 
+def get_obj_xforms(obj):
+    return obj.xforms_prefetch if hasattr(obj, 'xforms_prefetch') else\
+        obj.xform_set.filter(deleted_at__isnull=True)
+
+
+def get_starred(obj, request):
+    return obj.user_stars.filter(pk=request.user.pk).count() == 1
+
+
+def get_team_permissions(team, obj):
+    obj.projectgroupobjectpermission_set.filter(
+        group__pk=team.pk).values_list('permission__codename', flat=True)
+
+
 def set_owners_permission(user, project):
     """Give the user owner permission"""
     OwnerRole.add(user, project)
@@ -81,13 +95,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         exclude = ('shared', 'organization', 'user_stars')
 
     def get_starred(self, obj):
-        request = self.context['request']
-        user = request.user
-        user_stars = obj.user_stars.all()
-        if user in user_stars:
-            return True
-
-        return False
+        return get_starred(obj, self.context['request'])
 
     def get_users(self, obj):
         if obj:
@@ -126,9 +134,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
     @check_obj
     def get_forms(self, obj):
         if obj:
-            xforms = obj.xforms_prefetch \
-                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.filter(
-                    deleted_at__isnull=True)
+            xforms = get_obj_xforms(obj)
             request = self.context.get('request')
             serializer = BaseProjectXFormSerializer(
                 xforms, context={'request': request}, many=True
@@ -149,9 +155,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             if count:
                 return count
 
-            xforms = obj.xforms_prefetch \
-                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.all()
-            count = len(xforms)
+            count = len(get_obj_xforms(obj))
             cache.set('{}{}'.format(PROJ_NUM_DATASET_CACHE, obj.pk), count)
             return count
 
@@ -169,14 +173,10 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
                 PROJ_SUB_DATE_CACHE, obj.pk))
             if last_submission_date:
                 return last_submission_date
-            dates = []
-            xforms = obj.xforms_prefetch \
-                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.all()
-            for x in xforms:
-                if x.last_submission_time is not None:
-                    dates.append(x.last_submission_time)
-            dates.sort()
-            dates.reverse()
+            xforms = get_obj_xforms(obj)
+            dates = [x.last_submission_time for x in xforms
+                     if x.last_submission_time is not None]
+            dates.sort(reverse=True)
             last_submission_date = dates[0] if len(dates) else None
 
             cache.set('{}{}'.format(PROJ_SUB_DATE_CACHE, obj.pk),
@@ -187,13 +187,6 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         return None
 
     def get_teams(self, obj):
-        def get_team_permissions(team, obj):
-            return [
-                p.permission.codename
-                for p in obj.projectgroupobjectpermission_set.all()
-                if p.group.pk == team.pk
-            ]
-
         if obj:
             teams_users = cache.get('{}{}'.format(
                 PROJ_TEAM_USERS_CACHE, obj.pk))
@@ -204,9 +197,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             teams = obj.organization.team_set.all()
 
             for team in teams:
-                users = []
-                for user in team.user_set.all():
-                    users.append(user.username)
+                users = team.user_set.values_list('username', flat=True)
                 perms = get_team_permissions(team, obj)
 
                 teams_users.append({
@@ -324,7 +315,6 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
                     data[perm.user_id]['is_org'] = is_organization(
                         user.profile
                     )
-                    data[perm.user_id]['gravatar'] = user.profile.gravatar
                     data[perm.user_id]['metadata'] = user.profile.metadata
                     data[perm.user_id]['first_name'] = user.first_name
                     data[perm.user_id]['last_name'] = user.last_name
@@ -415,13 +405,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         return None
 
     def get_starred(self, obj):
-        request = self.context['request']
-        user = request.user
-        user_stars = obj.user_stars.all()
-        if user in user_stars:
-            return True
-
-        return False
+        return get_starred(obj, self.context['request'])
 
     def get_teams(self, obj):
         def get_team_permissions(team, obj):
