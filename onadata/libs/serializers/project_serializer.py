@@ -16,8 +16,6 @@ from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.cache_tools import (
-    BASE_PROJ_FORMS_CACHE,
-    BASE_PROJ_USERS_CACHE,
     PROJ_FORMS_CACHE, PROJ_NUM_DATASET_CACHE, PROJ_PERM_CACHE,
     PROJ_SUB_DATE_CACHE, safe_delete, PROJ_TEAM_USERS_CACHE,
     PROJECT_LINKED_DATAVIEWS)
@@ -93,10 +91,6 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_users(self, obj):
         if obj:
-            users = cache.get('{}{}'.format(BASE_PROJ_USERS_CACHE, obj.pk))
-            if users:
-                return users
-
             request = self.context['request']
             user = request.user
             data = {}
@@ -125,8 +119,6 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
                 del(v['permissions'])
                 results.append(v)
 
-            cache.set('{}{}'.format(BASE_PROJ_USERS_CACHE, obj.pk), results)
-
             return results
 
         return []
@@ -135,10 +127,6 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
     @check_obj
     def get_forms(self, obj):
         if obj:
-            forms = cache.get('{}{}'.format(BASE_PROJ_FORMS_CACHE, obj.pk))
-            if forms:
-                return forms
-
             xforms = obj.xforms_prefetch \
                 if hasattr(obj, 'xforms_prefetch') else obj.xform_set.filter(
                     deleted_at__isnull=True)
@@ -147,8 +135,6 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
                 xforms, context={'request': request}, many=True
             )
             forms = list(serializer.data)
-            cache.set('{}{}'.format(BASE_PROJ_FORMS_CACHE, obj.pk), forms)
-
             return forms
 
         return []
