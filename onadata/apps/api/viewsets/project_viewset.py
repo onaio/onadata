@@ -17,7 +17,9 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.user_profile_serializer import\
     UserProfileSerializer
-from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.serializers.project_serializer import (
+    BaseProjectSerializer,
+    ProjectSerializer)
 from onadata.libs.serializers.share_project_serializer import\
     ShareProjectSerializer, RemoveUserFromProjectSerializer
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -52,6 +54,17 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     filter_backends = (AnonUserProjectFilter,
                        ProjectOwnerFilter,
                        TagFilter)
+
+    def get_serializer_class(self):
+        action = self.action
+
+        if action == "list":
+            serializer_class = BaseProjectSerializer
+        else:
+            serializer_class = \
+                super(ProjectViewSet, self).get_serializer_class()
+
+        return serializer_class
 
     def get_queryset(self):
         if self.request.method.upper() in ['GET', 'OPTIONS']:
