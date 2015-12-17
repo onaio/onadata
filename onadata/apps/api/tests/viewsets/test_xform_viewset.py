@@ -3311,6 +3311,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 media_file=media_file,
                 forced_submission_time=datetime(2015, 12, 2))
 
+            attachment_id = self.attachment.pk
+
             view = XFormViewSet.as_view({
                 'get': 'retrieve'
             })
@@ -3323,7 +3325,20 @@ class TestXFormViewSet(TestAbstractViewSet):
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
                                           'transportation_images_included.csv')
-            self._validate_csv_export(response, test_file_path)
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = get_response_content(response)
+
+            with open(test_file_path, 'r') as test_file:
+                fixture_content = test_file.read()
+                self.assertEqual(content,
+                                 fixture_content.format(attachment_id))
 
             data = {"include_images": False}
             # request for export again
