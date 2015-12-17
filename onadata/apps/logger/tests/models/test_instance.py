@@ -86,6 +86,19 @@ class TestInstance(TestBase):
 
         self.assertFalse(xform.instances_with_geopoints)
 
+    def test_instances_with_geopoints_in_repeats(self):
+        xls_path = self._fixture_path("gps", "gps_in_repeats.xlsx")
+        self._publish_xls_file_and_set_xform(xls_path)
+
+        self.assertFalse(self.xform.instances_with_geopoints)
+
+        instance_path = self._fixture_path("gps",
+                                           "gps_in_repeats_submission.xml")
+        self._make_submission(instance_path)
+        xform = XForm.objects.get(pk=self.xform.pk)
+
+        self.assertTrue(xform.instances_with_geopoints)
+
     def test_set_instances_with_geopoints_on_submission_true(self):
         xls_path = self._fixture_path("gps", "gps.xls")
         self._publish_xls_file_and_set_xform(xls_path)

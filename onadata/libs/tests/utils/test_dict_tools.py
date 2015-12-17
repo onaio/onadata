@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from dict2xml import dict2xml
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
+from onadata.libs.utils.dict_tools import get_values_matching_key
 
 
 class TestDictTools(TestCase):
@@ -399,4 +400,32 @@ class TestDictTools(TestCase):
   </repeat>
 </group>
             """.strip()
+        )
+
+    def test_lookup_path(self):
+        doc = {
+            u'fruits': u'carrot guava',
+            u'end': u'2015-12-17T11:09:56.000+03:00',
+            u'start': u'2015-12-17T11:08:41.000+03:00',
+            u'points': [
+                {
+                    u'points/point': u'-13.859414 27.995911 0 0'
+                },
+                {
+                    u'points/point': u'-12.897489 30.27832 0 0'
+                }
+            ],
+            u'_xform_id_string': u'gps_in_repeats',
+            u'meta/instanceID':
+            u'uuid:340f7fe7-5d8e-451b-891f-09c8b3b44679'
+        }
+        fruits = list(get_values_matching_key(doc, 'fruits'))
+        self.assertEqual(fruits, ['carrot guava'])
+        points = list(get_values_matching_key(doc, 'points/point'))
+        self.assertEqual(
+            points,
+            [
+                u'-13.859414 27.995911 0 0',
+                u'-12.897489 30.27832 0 0'
+            ]
         )
