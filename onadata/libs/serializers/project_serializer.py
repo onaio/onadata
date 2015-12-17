@@ -28,6 +28,15 @@ def set_owners_permission(user, project):
     OwnerRole.add(user, project)
 
 
+class BaseProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
+    formid = serializers.ReadOnlyField(source='id')
+    name = serializers.ReadOnlyField(source='title')
+
+    class Meta:
+        model = XForm
+        fields = ('name', 'formid')
+
+
 class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
                                                lookup_field='pk')
@@ -40,6 +49,101 @@ class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
             'name', 'formid', 'num_of_submissions', 'downloadable',
             'last_submission_time', 'date_created', 'url'
         )
+
+
+class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
+    projectid = serializers.ReadOnlyField(source='id')
+    url = serializers.HyperlinkedIdentityField(
+        view_name='project-detail', lookup_field='pk')
+    owner = serializers.HyperlinkedRelatedField(
+        view_name='user-detail', source='organization',
+        lookup_field='username',
+        queryset=User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
+    )
+    created_by = serializers.HyperlinkedRelatedField(
+        view_name='user-detail',
+        lookup_field='username',
+        read_only=True
+    )
+    metadata = JsonField(required=False)
+    starred = serializers.SerializerMethodField()
+    users = serializers.SerializerMethodField()
+    forms = serializers.SerializerMethodField()
+    public = serializers.BooleanField(source='shared')
+    tags = TagListSerializer(read_only=True)
+    num_datasets = serializers.SerializerMethodField()
+    last_submission_date = serializers.SerializerMethodField()
+    teams = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Project
+        exclude = ('shared', 'organization', 'user_stars')
+
+    def get_starred(self, obj):
+        request = self.context['request']
+        user = request.user
+        user_stars = obj.user_stars.all()
+        if user in user_stars:
+            return True
+
+        return False
+
+    def get_users(self, obj):
+        if obj:
+            users = cache.get('{}{}'.format(PROJ_PERM_CACHE, obj.pk))
+            if users:
+                return users
+
+            request = self.context['request']
+            user = request.user
+            data = {}
+            for perm in obj.projectuserobjectpermission_set.filter(user=user):
+                if perm.user_id not in data:
+                    user = perm.user
+                    data[perm.user_id] = {}
+                    data[perm.user_id]['permissions'] = []
+                    data[perm.user_id]['is_org'] = is_organization(
+                        user.profile
+                    )
+                    data[perm.user_id]['gravatar'] = user.profile.gravatar
+                    data[perm.user_id]['first_name'] = user.first_name
+                    data[perm.user_id]['last_name'] = user.last_name
+                    data[perm.user_id]['user'] = user.username
+                data[perm.user_id]['permissions'].append(
+                    perm.permission.codename
+                )
+
+            results = []
+            for k, v in data.items():
+                v['role'] = get_role(v['permissions'], obj)
+                results.append(v)
+
+            cache.set('{}{}'.format(PROJ_PERM_CACHE, obj.pk), results)
+
+            return results
+
+        return []
+
+    @profile("get_project_forms.prof")
+    @check_obj
+    def get_forms(self, obj):
+        if obj:
+            forms = cache.get('{}{}'.format(PROJ_FORMS_CACHE, obj.pk))
+            if forms:
+                return forms
+            xforms = obj.xforms_prefetch \
+                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.filter(
+                    deleted_at__isnull=True)
+            request = self.context.get('request')
+            serializer = BaseProjectXFormSerializer(
+                xforms, context={'request': request}, many=True
+            )
+            forms = list(serializer.data)
+            cache.set('{}{}'.format(PROJ_FORMS_CACHE, obj.pk), forms)
+
+            return forms
+
+        return []
 
 
 class ProjectSerializer(serializers.HyperlinkedModelSerializer):
