@@ -97,7 +97,9 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
             request = self.context['request']
             user = request.user
             data = {}
-            for perm in obj.projectuserobjectpermission_set.filter(user=user):
+
+            for perm in obj.projectuserobjectpermission_set.filter(
+                    permission__user=user):
                 if perm.user_id not in data:
                     user = perm.user
                     data[perm.user_id] = {}
