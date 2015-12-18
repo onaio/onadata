@@ -103,9 +103,10 @@ def get_teams(obj):
 
 @check_obj
 def get_users(obj, request, minimal_perms=False):
-    users = cache.get('{}{}'.format(PROJ_PERM_CACHE, obj.pk))
-    if users:
-        return users
+    if not minimal_perms:
+        users = cache.get('{}{}'.format(PROJ_PERM_CACHE, obj.pk))
+        if users:
+            return users
 
     data = {}
     perms = obj.projectuserobjectpermission_set
@@ -116,7 +117,7 @@ def get_users(obj, request, minimal_perms=False):
     else:
         perms = perms.all()
 
-    for perm in perms.select_related('user', 'user__profile'):
+    for perm in perms.select_related('permission', 'user', 'user__profile'):
         if perm.user_id not in data:
             user = perm.user
             profile = user.profile
@@ -138,7 +139,8 @@ def get_users(obj, request, minimal_perms=False):
 
     results = data.values()
 
-    cache.set('{}{}'.format(PROJ_PERM_CACHE, obj.pk), results)
+    if not minimal_perms:
+        cache.set('{}{}'.format(PROJ_PERM_CACHE, obj.pk), results)
 
     return results
 
