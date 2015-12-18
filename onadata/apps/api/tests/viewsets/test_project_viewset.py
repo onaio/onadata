@@ -98,7 +98,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        user_props = ['user', 'first_name', 'last_name', 'role', 'gravatar',
+        user_props = ['user', 'first_name', 'last_name', 'role',
                       'is_org', 'metadata', 'permissions']
         user_props.sort()
 
@@ -1328,8 +1328,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertIsNotNone(response.data['teams'])
         self.assertEquals(3, len(response.data['teams']))
         self.assertEquals(response.data['teams'][2]['role'], 'editor')
-        self.assertEquals(response.data['teams'][2]['users'],
-                          [chuck_profile.user.username])
+        self.assertEquals(response.data['teams'][2]['users'][0],
+                          unicode(chuck_profile.user.username))
 
     def test_project_accesible_by_admin_created_by_diff_admin(self):
         self._org_create()
