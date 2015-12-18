@@ -227,10 +227,14 @@ for role in ROLES.values():
 
 
 def is_organization(obj):
-    """OrganizationProfiles has a pointer to the UserProfile, UserProfiles do
-    not.
+    """Some OrganizationProfiles have a pointer to the UserProfile, but no
+    UserProfiles do. Check for that first since it avoids a database hit.
     """
-    return hasattr(obj, 'userprofile_ptr')
+    try:
+        hasattr(obj, 'userprofile_ptr') or obj.organizationprofile
+        return True
+    except OrganizationProfile.DoesNotExist:
+        return False
 
 
 def get_role(permissions, obj):
