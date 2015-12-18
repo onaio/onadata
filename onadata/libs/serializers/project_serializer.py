@@ -86,7 +86,8 @@ def get_teams(obj):
     teams = obj.organization.team_set.all()
 
     for team in teams:
-        users = team.user_set.values_list('username', flat=True)
+        # to take advantage of prefetch iterate over user set
+        users = [user.username for user in team.user_set.all()]
         perms = get_team_permissions(team, obj)
 
         teams_users.append({
