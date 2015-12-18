@@ -102,7 +102,7 @@ def get_teams(obj):
 
 
 @check_obj
-def get_users(obj, request, minimal_perms=False):
+def get_users(obj, context, minimal_perms=False):
     if not minimal_perms:
         users = cache.get('{}{}'.format(PROJ_PERM_CACHE, obj.pk))
         if users:
@@ -112,7 +112,7 @@ def get_users(obj, request, minimal_perms=False):
     perms = obj.projectuserobjectpermission_set
 
     if minimal_perms:
-        perms = perms.filter(Q(user=request.user) |
+        perms = perms.filter(Q(user=context['request'].user) |
                              Q(user=obj.organization))
     else:
         perms = perms.all()
@@ -205,7 +205,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         return get_starred(obj, self.context['request'])
 
     def get_users(self, obj):
-        return get_users(obj, self.context['request'], True)
+        return get_users(obj, self.context, True)
 
     @profile("get_project_forms.prof")
     @check_obj
@@ -317,7 +317,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         return project
 
     def get_users(self, obj):
-        return get_users(obj, self.context['request'])
+        return get_users(obj, self.context)
 
     @profile("get_project_forms.prof")
     @check_obj
