@@ -29,46 +29,42 @@ def get_obj_xforms(obj):
         obj.xform_set.filter(deleted_at__isnull=True)
 
 
+@check_obj
 def get_last_submission_date(obj):
     """Return the most recent submission date to any of the projects
     datasets.
 
     :param obj: The project to find the last submission date for.
     """
-    if obj:
-        last_submission_date = cache.get('{}{}'.format(
-            PROJ_SUB_DATE_CACHE, obj.pk))
-        if last_submission_date:
-            return last_submission_date
-        xforms = get_obj_xforms(obj)
-        dates = [x.last_submission_time for x in xforms
-                 if x.last_submission_time is not None]
-        dates.sort(reverse=True)
-        last_submission_date = dates[0] if len(dates) else None
-
-        cache.set('{}{}'.format(PROJ_SUB_DATE_CACHE, obj.pk),
-                  last_submission_date)
-
+    last_submission_date = cache.get('{}{}'.format(
+        PROJ_SUB_DATE_CACHE, obj.pk))
+    if last_submission_date:
         return last_submission_date
+    xforms = get_obj_xforms(obj)
+    dates = [x.last_submission_time for x in xforms
+             if x.last_submission_time is not None]
+    dates.sort(reverse=True)
+    last_submission_date = dates[0] if len(dates) else None
 
-    return None
+    cache.set('{}{}'.format(PROJ_SUB_DATE_CACHE, obj.pk),
+              last_submission_date)
+
+    return last_submission_date
 
 
+@check_obj
 def get_num_datasets(obj):
     """Return the number of datasets attached to the object.
 
     :param obj: The project to find datasets for.
     """
-    if obj:
-        count = cache.get('{}{}'.format(PROJ_NUM_DATASET_CACHE, obj.pk))
-        if count:
-            return count
-
-        count = len(get_obj_xforms(obj))
-        cache.set('{}{}'.format(PROJ_NUM_DATASET_CACHE, obj.pk), count)
+    count = cache.get('{}{}'.format(PROJ_NUM_DATASET_CACHE, obj.pk))
+    if count:
         return count
 
-    return None
+    count = len(get_obj_xforms(obj))
+    cache.set('{}{}'.format(PROJ_NUM_DATASET_CACHE, obj.pk), count)
+    return count
 
 
 def get_starred(obj, request):
@@ -80,75 +76,71 @@ def get_team_permissions(team, obj):
         group__pk=team.pk).values_list('permission__codename', flat=True)
 
 
+@check_obj
 def get_teams(obj):
-    if obj:
-        teams_users = cache.get('{}{}'.format(
-            PROJ_TEAM_USERS_CACHE, obj.pk))
-        if teams_users:
-            return teams_users
-
-        teams_users = []
-        teams = obj.organization.team_set.all()
-
-        for team in teams:
-            users = team.user_set.values_list('username', flat=True)
-            perms = get_team_permissions(team, obj)
-
-            teams_users.append({
-                "name": team.name,
-                "role": get_role(perms, obj),
-                "users": users
-            })
-
-        cache.set('{}{}'.format(PROJ_TEAM_USERS_CACHE, obj.pk),
-                  teams_users)
+    teams_users = cache.get('{}{}'.format(
+        PROJ_TEAM_USERS_CACHE, obj.pk))
+    if teams_users:
         return teams_users
 
-    return []
+    teams_users = []
+    teams = obj.organization.team_set.all()
+
+    for team in teams:
+        users = team.user_set.values_list('username', flat=True)
+        perms = get_team_permissions(team, obj)
+
+        teams_users.append({
+            "name": team.name,
+            "role": get_role(perms, obj),
+            "users": users
+        })
+
+    cache.set('{}{}'.format(PROJ_TEAM_USERS_CACHE, obj.pk),
+              teams_users)
+    return teams_users
 
 
+@check_obj
 def get_users(obj, request, minimal_perms=False):
-    if obj:
-        users = cache.get('{}{}'.format(PROJ_PERM_CACHE, obj.pk))
-        if users:
-            return users
+    users = cache.get('{}{}'.format(PROJ_PERM_CACHE, obj.pk))
+    if users:
+        return users
 
-        data = {}
-        perms = obj.projectuserobjectpermission_set
+    data = {}
+    perms = obj.projectuserobjectpermission_set
 
-        if minimal_perms:
-            perms = perms.filter(Q(user=request.user) |
-                                 Q(user=obj.organization))
-        else:
-            perms = perms.all()
+    if minimal_perms:
+        perms = perms.filter(Q(user=request.user) |
+                             Q(user=obj.organization))
+    else:
+        perms = perms.all()
 
-        for perm in perms.select_related('user', 'user__profile'):
-            if perm.user_id not in data:
-                user = perm.user
-                profile = user.profile
-                data[perm.user_id] = {
-                    'permissions': [],
-                    'is_org': is_organization(profile),
-                    'metadata': profile.metadata,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'user': user.username
-                }
-            data[perm.user_id]['permissions'].append(
-                perm.permission.codename
-            )
+    for perm in perms.select_related('user', 'user__profile'):
+        if perm.user_id not in data:
+            user = perm.user
+            profile = user.profile
+            data[perm.user_id] = {
+                'permissions': [],
+                'is_org': is_organization(profile),
+                'metadata': profile.metadata,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'user': user.username
+            }
+        data[perm.user_id]['permissions'].append(
+            perm.permission.codename
+        )
 
-        for k in data.keys():
-            data[k]['permissions'].sort()
-            data[k]['role'] = get_role(data[k]['permissions'], obj)
+    for k in data.keys():
+        data[k]['permissions'].sort()
+        data[k]['role'] = get_role(data[k]['permissions'], obj)
 
-        results = data.values()
+    results = data.values()
 
-        cache.set('{}{}'.format(PROJ_PERM_CACHE, obj.pk), results)
+    cache.set('{}{}'.format(PROJ_PERM_CACHE, obj.pk), results)
 
-        return results
-
-    return []
+    return results
 
 
 def set_owners_permission(user, project):
@@ -216,22 +208,17 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
     @profile("get_project_forms.prof")
     @check_obj
     def get_forms(self, obj):
-        if obj:
-            xforms = get_obj_xforms(obj)
-            request = self.context.get('request')
-            serializer = BaseProjectXFormSerializer(
-                xforms, context={'request': request}, many=True
-            )
-            forms = list(serializer.data)
-            return forms
+        xforms = get_obj_xforms(obj)
+        request = self.context.get('request')
+        serializer = BaseProjectXFormSerializer(
+            xforms, context={'request': request}, many=True
+        )
+        forms = list(serializer.data)
+        return forms
 
-        return []
-
-    @check_obj
     def get_num_datasets(self, obj):
         return get_num_datasets(obj)
 
-    @check_obj
     def get_last_submission_date(self, obj):
         return get_last_submission_date(obj)
 
@@ -333,29 +320,24 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     @profile("get_project_forms.prof")
     @check_obj
     def get_forms(self, obj):
-        if obj:
-            forms = cache.get('{}{}'.format(PROJ_FORMS_CACHE, obj.pk))
-            if forms:
-                return forms
-            xforms = obj.xforms_prefetch \
-                if hasattr(obj, 'xforms_prefetch') else obj.xform_set.filter(
-                    deleted_at__isnull=True)
-            request = self.context.get('request')
-            serializer = ProjectXFormSerializer(
-                xforms, context={'request': request}, many=True
-            )
-            forms = list(serializer.data)
-            cache.set('{}{}'.format(PROJ_FORMS_CACHE, obj.pk), forms)
-
+        forms = cache.get('{}{}'.format(PROJ_FORMS_CACHE, obj.pk))
+        if forms:
             return forms
+        xforms = obj.xforms_prefetch \
+            if hasattr(obj, 'xforms_prefetch') else obj.xform_set.filter(
+                deleted_at__isnull=True)
+        request = self.context.get('request')
+        serializer = ProjectXFormSerializer(
+            xforms, context={'request': request}, many=True
+        )
+        forms = list(serializer.data)
+        cache.set('{}{}'.format(PROJ_FORMS_CACHE, obj.pk), forms)
 
-        return []
+        return forms
 
-    @check_obj
     def get_num_datasets(self, obj):
         return get_num_datasets(obj)
 
-    @check_obj
     def get_last_submission_date(self, obj):
         return get_last_submission_date(obj)
 
@@ -365,24 +347,23 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     def get_teams(self, obj):
         return get_teams(obj)
 
+    @check_obj
     def get_data_views(self, obj):
-        if obj:
-            data_views = cache.get(
-                '{}{}'.format(PROJECT_LINKED_DATAVIEWS, obj.pk))
-            if data_views:
-                return data_views
-
-            data_views_obj = obj.dataview_prefetch if \
-                hasattr(obj, 'dataview_prefetch') else obj.dataview_set.all()
-
-            serializer = DataViewSerializer(
-                data_views_obj,
-                many=True,
-                context=self.context)
-            data_views = list(serializer.data)
-
-            cache.set(
-                '{}{}'.format(PROJECT_LINKED_DATAVIEWS, obj.pk), data_views)
-
+        data_views = cache.get(
+            '{}{}'.format(PROJECT_LINKED_DATAVIEWS, obj.pk))
+        if data_views:
             return data_views
-        return []
+
+        data_views_obj = obj.dataview_prefetch if \
+            hasattr(obj, 'dataview_prefetch') else obj.dataview_set.all()
+
+        serializer = DataViewSerializer(
+            data_views_obj,
+            many=True,
+            context=self.context)
+        data_views = list(serializer.data)
+
+        cache.set(
+            '{}{}'.format(PROJECT_LINKED_DATAVIEWS, obj.pk), data_views)
+
+        return data_views
