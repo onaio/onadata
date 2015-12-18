@@ -102,8 +102,8 @@ def get_teams(obj):
 
 
 @check_obj
-def get_users(obj, context, minimal_perms=False):
-    if not minimal_perms:
+def get_users(obj, context, all_perms=True):
+    if all_perms:
         users = cache.get('{}{}'.format(PROJ_PERM_CACHE, obj.pk))
         if users:
             return users
@@ -113,22 +113,18 @@ def get_users(obj, context, minimal_perms=False):
         if perm.user_id not in data:
             user = perm.user
 
-            if not minimal_perms or user in [context['request'].user,
-                                             obj.organization]:
-                data[perm.user_id] = {}
-                data[perm.user_id]['permissions'] = []
-                data[perm.user_id]['is_org'] = is_organization(
-                    user.profile
-                )
-                data[perm.user_id]['gravatar'] = user.profile.gravatar
-                data[perm.user_id]['metadata'] = user.profile.metadata
-                data[perm.user_id]['first_name'] = user.first_name
-                data[perm.user_id]['last_name'] = user.last_name
-                data[perm.user_id]['user'] = user.username
+            if all_perms or user in [context['request'].user,
+                                     obj.organization]:
+                data[perm.user_id] = {
+                    'permissions': [],
+                    'is_org': is_organization(user.profile),
+                    'metadata': user.profile.metadata,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'user': user.username
+                }
         if perm.user_id in data:
-            data[perm.user_id]['permissions'].append(
-                perm.permission.codename
-            )
+            data[perm.user_id]['permissions'].append(perm.permission.codename)
 
     for k in data.keys():
         data[k]['permissions'].sort()
@@ -136,7 +132,7 @@ def get_users(obj, context, minimal_perms=False):
 
     results = data.values()
 
-    if not minimal_perms:
+    if all_perms:
         cache.set('{}{}'.format(PROJ_PERM_CACHE, obj.pk), results)
 
     return results
@@ -202,7 +198,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         return get_starred(obj, self.context['request'])
 
     def get_users(self, obj):
-        return get_users(obj, self.context, True)
+        return get_users(obj, self.context, False)
 
     @profile("get_project_forms.prof")
     @check_obj
