@@ -16,7 +16,7 @@ class TestProjectSerializer(TestAbstractViewSet):
 
     def test_get_users_none(self):
         perms = self.serializer.get_users(None)
-        self.assertEqual(perms, [])
+        self.assertEqual(perms, None)
 
     def test_get_project_forms(self):
         # create a project with a form

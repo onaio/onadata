@@ -16,7 +16,8 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole,
     ReadOnlyRoleNoDownload)
-from onadata.libs.serializers.project_serializer import ProjectSerializer
+from onadata.libs.serializers.project_serializer import ProjectSerializer,\
+    BaseProjectSerializer
 from onadata.libs import permissions as role
 from onadata.libs.models.share_project import ShareProject
 from django.db.models import Q
@@ -80,10 +81,14 @@ class TestProjectViewSet(TestAbstractViewSet):
     def test_projects_list(self):
         self._project_create()
         request = self.factory.get('/', **self.extra)
+        request.user = self.user
         response = self.view(request)
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, [self.project_data])
+        serializer = BaseProjectSerializer(self.project,
+                                           context={'request': request})
+
+        self.assertEqual(response.data, [serializer.data])
         self.assertIn('created_by', response.data[0].keys())
 
     def test_projects_get(self):
@@ -93,8 +98,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        user_props = ['user', 'first_name', 'last_name', 'role', 'gravatar',
-                      'is_org', 'metadata', 'permissions']
+        user_props = ['user', 'first_name', 'last_name', 'role',
+                      'is_org', 'metadata', 'permissions', 'gravatar']
         user_props.sort()
 
         self.assertNotEqual(response.get('Cache-Control'), None)
@@ -189,7 +194,7 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         self.project.reload()
         request.user = self.user
-        self.project_data = ProjectSerializer(
+        self.project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
         response = list_view(request, pk=project_id)
         self.assertNotEqual(response.get('Cache-Control'), None)
@@ -564,7 +569,11 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
-        updated_project_data = response.data
+        request.user = self.user
+        self.project.reload()
+        self.project_data = BaseProjectSerializer(
+            self.project, context={'request': request}).data
+        updated_project_data = self.project_data
 
         self._project_create({'name': 'another project'})
 
@@ -572,6 +581,9 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
+        request.user = self.user
+        self.project_data = BaseProjectSerializer(
+            self.project, context={'request': request}).data
         self.assertIn(updated_project_data, response.data)
         self.assertIn(self.project_data, response.data)
 
@@ -610,7 +622,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.project.shared = True
         self.project.save()
         request.user = self.user
-        self.project_data = ProjectSerializer(
+        self.project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
 
         request = self.factory.get('/', {'owner': 'alice'}, **self.extra)
@@ -1317,8 +1329,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertIsNotNone(response.data['teams'])
         self.assertEquals(3, len(response.data['teams']))
         self.assertEquals(response.data['teams'][2]['role'], 'editor')
-        self.assertEquals(response.data['teams'][2]['users'],
-                          [chuck_profile.user.username])
+        self.assertEquals(response.data['teams'][2]['users'][0],
+                          unicode(chuck_profile.user.username))
 
     def test_project_accesible_by_admin_created_by_diff_admin(self):
         self._org_create()
