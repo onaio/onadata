@@ -164,14 +164,12 @@ class ManagerRole(Role):
 
 
 class MemberRole(Role):
-
     """This is a role for a member of an organization.
     """
     name = 'member'
 
 
 class OwnerRole(Role):
-
     """This is a role for an owner of a dataset, organization, or project.
     """
     name = 'owner'
@@ -229,11 +227,10 @@ for role in ROLES.values():
 
 
 def is_organization(obj):
-    try:
-        obj.organizationprofile
-        return True
-    except OrganizationProfile.DoesNotExist:
-        return False
+    """OrganizationProfiles has a pointer to the UserProfile, UserProfiles do
+    not.
+    """
+    return hasattr(obj, 'userprofile_ptr')
 
 
 def get_role(permissions, obj):
