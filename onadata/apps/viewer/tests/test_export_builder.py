@@ -1368,9 +1368,44 @@ class TestExportBuilder(TestBase):
         temp_xls_file.seek(0)
         # check that values for red\u2019s and blue\u2019s are set to true
         wb = load_workbook(temp_xls_file.name)
-        children_sheet = wb.get_sheet_by_name("childrens_survey_en")
+        childrens_survey_sheet = wb.get_sheet_by_name("childrens_survey_en")
         labels = dict([(r[0].value, r[1].value)
-                       for r in children_sheet.columns])
+                       for r in childrens_survey_sheet.columns])
         self.assertEqual(labels[u'name'], '1. What is your name?')
         self.assertEqual(labels[u'age'], '2. How old are you?')
+
+        children_sheet = wb.get_sheet_by_name("children")
+        labels = dict([(r[0].value, r[1].value)
+                       for r in children_sheet.columns])
+        self.assertEqual(labels['fav_colors/red'], 'fav_colors/Red')
+        self.assertEqual(labels['fav_colors/blue'], 'fav_colors/Blue')
+        temp_xls_file.close()
+
+    def test_xls_export_with_swahili_labels(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_sw.xls'))
+        # no default_language is not set
+        self.assertEqual(
+            survey.to_json_dict().get('default_language'), 'swahili'
+        )
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file.name, self.data)
+        temp_xls_file.seek(0)
+        # check that values for red\u2019s and blue\u2019s are set to true
+        wb = load_workbook(temp_xls_file.name)
+        childrens_survey_sheet = wb.get_sheet_by_name("childrens_survey_sw")
+        labels = dict([(r[0].value, r[1].value)
+                       for r in childrens_survey_sheet.columns])
+        self.assertEqual(labels[u'name'], '1. Jina lako ni?')
+        self.assertEqual(labels[u'age'], '2. Umri wako ni?')
+
+        children_sheet = wb.get_sheet_by_name("children")
+        labels = dict([(r[0].value, r[1].value)
+                       for r in children_sheet.columns])
+        self.assertEqual(labels['fav_colors/red'], 'fav_colors/Nyekundu')
+        self.assertEqual(labels['fav_colors/blue'], 'fav_colors/Bluu')
         temp_xls_file.close()
