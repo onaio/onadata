@@ -1351,3 +1351,26 @@ class TestExportBuilder(TestBase):
         for section in export_builder.sections:
             section_name = section['name'].replace('/', '_')
             _test_sav_file(section_name)
+
+    def test_xls_export_with_english_labels(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_en.xls'))
+        # no default_language is not set
+        self.assertEqual(
+            survey.to_json_dict().get('default_language'), 'default'
+        )
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file.name, self.data)
+        temp_xls_file.seek(0)
+        # check that values for red\u2019s and blue\u2019s are set to true
+        wb = load_workbook(temp_xls_file.name)
+        children_sheet = wb.get_sheet_by_name("childrens_survey_en")
+        labels = dict([(r[0].value, r[1].value)
+                       for r in children_sheet.columns])
+        self.assertEqual(labels[u'name'], '1. What is your name?')
+        self.assertEqual(labels[u'age'], '2. How old are you?')
+        temp_xls_file.close()

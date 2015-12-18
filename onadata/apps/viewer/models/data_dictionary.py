@@ -414,11 +414,38 @@ class DataDictionary(XForm):
         clean_xpath = remove_all_indices(abbreviated_xpath)
         return self._survey_elements.get(clean_xpath)
 
-    def get_label(self, abbreviated_xpath):
-        e = self.get_element(abbreviated_xpath)
-        # TODO: think about multiple language support
-        if e:
-            return e.label
+    def get_default_language(self):
+        if not hasattr(self, '_default_language'):
+            self._default_language = \
+                self.survey.to_json_dict().get('default_language')
+
+        return self._default_language
+
+    default_language = property(get_default_language)
+
+    def get_language(self, languages, language_index=None):
+        language = None
+        if isinstance(languages, list) and len(languages):
+            if language_index is None and self.default_language in languages:
+                language_index = languages.index(self.default_language)
+            else:
+                language_index = 0
+
+            language = languages[language_index]
+
+        return language
+
+    def get_label(self, abbreviated_xpath, elem=None, language_index=None):
+        elem = self.get_element(abbreviated_xpath) if elem is None else elem
+
+        if elem:
+            label = elem.label
+
+            if isinstance(label, dict):
+                language = self.get_language(label.keys())
+                label = label[language] if language else ''
+
+            return label
 
     def get_xpath_cmp(self):
         if not hasattr(self, "_xpaths"):

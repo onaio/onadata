@@ -289,7 +289,8 @@ class ExportBuilder(object):
                             child.get_abbreviated_xpath(),
                             field_delimiter, dd, remove_group_name
                         )
-                        _label = child.label if child.label != '' else _title
+                        _label = \
+                            dd.get_label(child_xpath, elem=child) or _title
                         current_section['elements'].append({
                             'label': _label,
                             'title': _title,
@@ -310,9 +311,10 @@ class ExportBuilder(object):
                             _xpath = c.get_abbreviated_xpath()
                             _title = ExportBuilder.format_field_title(
                                 _xpath, field_delimiter, dd, remove_group_name)
+                            _label = dd.get_label(_xpath, elem=c) or _title
                             choice = {
                                 'label': field_delimiter.join([
-                                    child.name, c.label
+                                    child.name, _label
                                 ]),
                                 'title': _title,
                                 'xpath': _xpath,
