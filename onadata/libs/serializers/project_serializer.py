@@ -215,8 +215,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         serializer = BaseProjectXFormSerializer(
             xforms, context={'request': request}, many=True
         )
-        forms = list(serializer.data)
-        return forms
+        return list(serializer.data)
 
     def get_num_datasets(self, obj):
         return get_num_datasets(obj)
@@ -325,9 +324,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         forms = cache.get('{}{}'.format(PROJ_FORMS_CACHE, obj.pk))
         if forms:
             return forms
-        xforms = obj.xforms_prefetch \
-            if hasattr(obj, 'xforms_prefetch') else obj.xform_set.filter(
-                deleted_at__isnull=True)
+        xforms = get_obj_xforms(obj)
         request = self.context.get('request')
         serializer = ProjectXFormSerializer(
             xforms, context={'request': request}, many=True
