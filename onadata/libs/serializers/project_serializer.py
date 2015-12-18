@@ -107,7 +107,7 @@ def get_teams(obj):
     return []
 
 
-def get_users(obj, user, minimal_perms=False):
+def get_users(obj, request, minimal_perms=False):
     if obj:
         users = cache.get('{}{}'.format(PROJ_PERM_CACHE, obj.pk))
         if users:
@@ -115,16 +115,21 @@ def get_users(obj, user, minimal_perms=False):
 
         data = {}
         perms = obj.projectuserobjectpermission_set
-        perms = perms.filter(Q(user=user) | Q(user=obj.organization))\
-            if minimal_perms else perms.all()
 
-        for perm in perms:
+        if minimal_perms:
+            perms = perms.filter(Q(user=request.user) |
+                                 Q(user=obj.organization))
+        else:
+            perms = perms.all()
+
+        for perm in perms.select_related('user', 'user__profile'):
             if perm.user_id not in data:
                 user = perm.user
+                profile = user.profile
                 data[perm.user_id] = {
                     'permissions': [],
-                    'is_org': is_organization(user.profile),
-                    'metadata': user.profile.metadata,
+                    'is_org': is_organization(profile),
+                    'metadata': profile.metadata,
                     'first_name': user.first_name,
                     'last_name': user.last_name,
                     'user': user.username
@@ -133,11 +138,11 @@ def get_users(obj, user, minimal_perms=False):
                 perm.permission.codename
             )
 
-        results = []
-        for k, v in data.items():
-            v['permissions'].sort()
-            v['role'] = get_role(v['permissions'], obj)
-            results.append(v)
+        for k in data.keys():
+            data[k]['permissions'].sort()
+            data[k]['role'] = get_role(data[k]['permissions'], obj)
+
+        results = data.values()
 
         cache.set('{}{}'.format(PROJ_PERM_CACHE, obj.pk), results)
 
@@ -206,7 +211,7 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
         return get_starred(obj, self.context['request'])
 
     def get_users(self, obj):
-        return get_users(obj, self.context['request'].user, True)
+        return get_users(obj, self.context['request'], True)
 
     @profile("get_project_forms.prof")
     @check_obj
@@ -323,7 +328,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
         return project
 
     def get_users(self, obj):
-        return get_users(obj, self.context['request'].user)
+        return get_users(obj, self.context['request'])
 
     @profile("get_project_forms.prof")
     @check_obj
