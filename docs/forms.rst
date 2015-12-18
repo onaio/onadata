@@ -31,25 +31,25 @@ Example
 ^^^^^^^
 ::
 
-    curl -X POST -F xls_file=@/path/to/form.xls https://ona.io/api/v1/forms
+    curl -X POST -F xls_file=@/path/to/form.xls https://api.ona.io/api/v1/forms
 
 **OR post an xlsform url**
 ::
 
-    curl -X POST -d "xls_url=https://ona.io/ukanga/forms/tutorial/form.xls" https://ona.io/api/v1/forms
+    curl -X POST -d "xls_url=https://api.ona.io/ukanga/forms/tutorial/form.xls" https://api.ona.io/api/v1/forms
 
 **OR post an xlsform via Dropbox url**
 
 ::
 
-    curl -X POST -d "dropbox_xls_url=https://www.dropbox.com/s/ynenld7xdf1vdlo/tutorial.xls?dl=1" https://ona.io/api/v1/forms
+    curl -X POST -d "dropbox_xls_url=https://www.dropbox.com/s/ynenld7xdf1vdlo/tutorial.xls?dl=1" https://api.ona.io/api/v1/forms
 
 Response
 ^^^^^^^^^
 ::
 
        {
-           "url": "https://ona.io/api/v1/forms/28058",
+           "url": "https://api.ona.io/api/v1/forms/28058",
            "formid": 28058,
            "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
            "id_string": "Birds",
@@ -79,7 +79,7 @@ Request
 ^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/forms
+       curl -X GET https://api.ona.io/api/v1/forms
 
 
 Get list of forms filter by owner
@@ -93,7 +93,7 @@ Request
 ^^^^^^^
 ::
 
-	curl -X GET https://ona.io/api/v1/forms?owner=ona
+	curl -X GET https://api.ona.io/api/v1/forms?owner=ona
 
 
 Get Form Information
@@ -107,14 +107,14 @@ Example
 ^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/forms/28058
+       curl -X GET https://api.ona.io/api/v1/forms/28058
 
 Response
 ^^^^^^^^
 ::
 
        {
-           "url": "https://ona.io/api/v1/forms/28058",
+           "url": "https://api.ona.io/api/v1/forms/28058",
            "formid": 28058,
            "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
            "id_string": "Birds",
@@ -125,7 +125,7 @@ Response
            "description": "",
            "downloadable": true,
            "encrypted": false,
-           "owner": "https://ona.io/api/v1/users/ona",
+           "owner": "https://api.ona.io/api/v1/users/ona",
            "public": false,
            "public_data": false,
            "require_auth": false,
@@ -158,7 +158,7 @@ Example
 ^^^^^^^
 ::
 
-       curl -X PATCH -d "public=True" -d "description=Le description" https://ona.io/api/v1/forms/28058
+       curl -X PATCH -d "public=True" -d "description=Le description" https://api.ona.io/api/v1/forms/28058
 
 Response
 ^^^^^^^^
@@ -166,7 +166,7 @@ Response
 
 
        {
-           "url": "https://ona.io/api/v1/forms/28058",
+           "url": "https://api.ona.io/api/v1/forms/28058",
            "formid": 28058,
            "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
            "id_string": "Birds",
@@ -177,7 +177,7 @@ Response
            "description": "Le description",
            "downloadable": true,
            "encrypted": false,
-           "owner": "https://ona.io/api/v1/users/ona",
+           "owner": "https://api.ona.io/api/v1/users/ona",
            "public": true,
            "public_data": false,
            "date_created": "2013-07-25T14:14:22.892Z",
@@ -197,7 +197,7 @@ Example
 ^^^^^^^
 ::
 
-       curl -X DELETE https://ona.io/api/v1/forms/28058
+       curl -X DELETE https://api.ona.io/api/v1/forms/28058
 
 Response
 ^^^^^^^^
@@ -218,7 +218,7 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls
+       curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls
 
 Response
 ^^^^^^^^
@@ -244,7 +244,7 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&query={"_version": "2014111"}
+       curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&query={"_version": "2014111"}
 
 You can use the `job_uuid` value to check the progress of data export
 
@@ -260,7 +260,7 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/forms/28058/export_async?job_uuid=d1559e9e-5bab-480d-9804-e32111e8b2b8
+       curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?job_uuid=d1559e9e-5bab-480d-9804-e32111e8b2b8
 
 Response
 ^^^^^^^^
@@ -271,7 +271,7 @@ If the job is done:
        HTTP 202 Accepted
        {
            "job_status": "SUCCESS",
-           "export_url": "https://ona.io/api/v1/forms/28058.xls"
+           "export_url": "https://api.ona.io/api/v1/forms/28058.xls"
        }
 
 
@@ -285,7 +285,7 @@ Example
 
 ::
 
-     curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&remove_group_name=true
+     curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&remove_group_name=true
 
 
 CSV and XLS exports with either '.' or '/' group delimiter in header names
@@ -299,7 +299,7 @@ Example
 
 ::
 
-     curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&group_delimiter=.
+     curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&group_delimiter=.
 
 
 
@@ -314,7 +314,7 @@ Example
 
 ::
 
-     curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&do_not_split_select_multiples
+     curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&do_not_split_select_multiples
 
 
 Include labels in CSV, SAV, XLS and zipped CSV exports
@@ -327,8 +327,8 @@ Example
 
 ::
 
-     curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&include_labels=true
-     curl -X GET https://ona.io/api/v1/forms/28058.xls?include_labels=true
+     curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&include_labels=true
+     curl -X GET https://api.ona.io/api/v1/forms/28058.xls?include_labels=true
 
 
 Include labels as column headers in CSV, SAV, XLS and zipped CSV exports
@@ -341,8 +341,8 @@ Example
 
 ::
 
-     curl -X GET https://ona.io/api/v1/forms/28058/export_async?format=xls&include_labels_only=true
-     curl -X GET https://ona.io/api/v1/forms/28058.xls?include_labels_only=true
+     curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&include_labels_only=true
+     curl -X GET https://api.ona.io/api/v1/forms/28058.xls?include_labels_only=true
 
 
 CSV and XLS exports with either '.' or '/' group delimiter in header names
@@ -359,7 +359,7 @@ Example
 ^^^^^^^
 ::
 
-       curl -X DELETE https://ona.io/api/v1/forms/28058/delete_async
+       curl -X DELETE https://api.ona.io/api/v1/forms/28058/delete_async
 
 Response
 ^^^^^^^^
@@ -383,7 +383,7 @@ Example
 ^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/forms/28058/delete_async?job_uuid=d1559e9e-5bab-480d-9804-e32111e8b2b8
+    curl -X GET https://api.ona.io/api/v1/forms/28058/delete_async?job_uuid=d1559e9e-5bab-480d-9804-e32111e8b2b8
 
 Response
 ^^^^^^^^
@@ -407,7 +407,7 @@ Example
 ^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/forms
+       curl -X GET https://api.ona.io/api/v1/forms
 
 Response
 ^^^^^^^^
@@ -415,7 +415,7 @@ Response
 
     [
         {
-            "url": "https://ona.io/api/v1/forms/28058",
+            "url": "https://api.ona.io/api/v1/forms/28058",
             "formid": 28058,
             "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
             "id_string": "Birds",
@@ -438,7 +438,7 @@ JSON Example
 ^^^^^^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/forms/28058/form.json
+    curl -X GET https://api.ona.io/api/v1/forms/28058/form.json
 
 Response
 ^^^^^^^^
@@ -464,7 +464,7 @@ XML Example
 ^^^^^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/forms/28058/form.xml
+      curl -X GET https://api.ona.io/api/v1/forms/28058/form.xml
 
 Response
 ^^^^^^^^
@@ -484,7 +484,7 @@ XLS Example
 ^^^^^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/forms/28058/form.xls
+    curl -X GET https://api.ona.io/api/v1/forms/28058/form.xls
 
 Response
 ^^^^^^^^
@@ -507,7 +507,7 @@ Request
 ^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/forms?tag=smart,brand+new
+       curl -X GET https://api.ona.io/api/v1/forms?tag=smart,brand+new
 
 Response
 ^^^^^^^^
@@ -521,7 +521,7 @@ Response
 
     [
         {
-            "url": "https://ona.io/api/v1/forms/28058",
+            "url": "https://api.ona.io/api/v1/forms/28058",
             "formid": 28058,
             "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
             "id_string": "Birds",
@@ -545,7 +545,7 @@ Request
 ^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/forms/28058/labels
+    curl -X GET https://api.ona.io/api/v1/forms/28058/labels
 
 Response
 ^^^^^^^^
@@ -587,13 +587,13 @@ Request
 ^^^^^^^
 ::
 
-    curl -X DELETE https://ona.io/api/v1/forms/28058/labels/tag1
+    curl -X DELETE https://api.ona.io/api/v1/forms/28058/labels/tag1
 
 or to delete the tag "hello world"
 
 ::
 
-    curl -X DELETE https://ona.io/api/v1/forms/28058/labels/hello%20world
+    curl -X DELETE https://api.ona.io/api/v1/forms/28058/labels/hello%20world
 
 Response
 ^^^^^^^^
@@ -627,7 +627,7 @@ Request
 ^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/forms/28058/enketo
+    curl -X GET https://api.ona.io/api/v1/forms/28058/enketo
 
 Response
 ^^^^^^^^
@@ -655,7 +655,7 @@ Request
 ^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/forms/28058/enketo?name=test
+    curl -X GET https://api.ona.io/api/v1/forms/28058/enketo?name=test
 
 Response
 ^^^^^^^^
@@ -669,7 +669,7 @@ Response
 
     {
         "enketo_url": "https://h6ic6.enketo.org/webform?d[%2Fform_id%2Fname]=test",
-        "enketo_preview_url": "https://H6Ic6.enketo.org/webform/preview?server=https://ona.io/geoffreymuchai/&id=form_id"
+        "enketo_preview_url": "https://H6Ic6.enketo.org/webform/preview?server=https://api.ona.io/geoffreymuchai/&id=form_id"
     }
 
 
@@ -699,7 +699,7 @@ Example
 ^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/forms/28058.xls
+    curl -X GET https://api.ona.io/api/v1/forms/28058.xls
 
 Binary file export of the format specified is returned as the response for
 the download.
@@ -714,13 +714,13 @@ Example 2 Custom XLS reports (beta)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/forms/28058.xls?meta=12121
+    curl -X GET https://api.ona.io/api/v1/forms/28058.xls?meta=12121
 
 or
 
 ::
 
-    curl -X GET https://ona.io/api/v1/forms/28058.xls?token={url}
+    curl -X GET https://api.ona.io/api/v1/forms/28058.xls?token={url}
 
 XLS file is downloaded
 
@@ -740,13 +740,13 @@ Example 3 Custom XLS reports with meta or token and data_id(beta)
 ::
 
 
-    curl "https://ona.io/api/v1/forms/2.xls?meta=19&data_id=7" -L -o data.xlsx
+    curl "https://api.ona.io/api/v1/forms/2.xls?meta=19&data_id=7" -L -o data.xlsx
 
 or
 
 ::
 
-    curl "https://ona.io/api/v1/forms/2.xls?token={url}&data_id=7" -L -o data.xlsx
+    curl "https://api.ona.io/api/v1/forms/2.xls?token={url}&data_id=7" -L -o data.xlsx
 
 
 XLS file is downloaded
@@ -782,7 +782,7 @@ Example
 ^^^^^^^
 ::
 
-      curl -X POST -d '{"username": "alice", "role": "readonly"}' https://ona.io/api/v1/forms/123.json
+      curl -X POST -d '{"username": "alice", "role": "readonly"}' https://api.ona.io/api/v1/forms/123.json
 
 Response
 ^^^^^^^^
@@ -808,7 +808,7 @@ Example
 ^^^^^^^
 ::
 
-      curl -X POST -d '{"body": <unicode-string-with-csv-text>}' https://ona.io/api/v1/forms/survey_preview
+      curl -X POST -d '{"body": <unicode-string-with-csv-text>}' https://api.ona.io/api/v1/forms/survey_preview
 
 Response
 ^^^^^^^^
@@ -825,7 +825,7 @@ Example
 ^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/forms/survey_preview.xml\?filename\=<unique_string>&username=<username>
+      curl -X GET https://api.ona.io/api/v1/forms/survey_preview.xml\?filename\=<unique_string>&username=<username>
 
 Response
 ^^^^^^^^
@@ -852,7 +852,7 @@ Example
 ^^^^^^^
 ::
 
-       curl -X POST https://ona.io/api/v1/forms/123/clone -d username=alice
+       curl -X POST https://api.ona.io/api/v1/forms/123/clone -d username=alice
 
 Response
 ^^^^^^^^
@@ -865,7 +865,7 @@ Response
 ::
 
     {
-        "url": "https://ona.io/api/v1/forms/124",
+        "url": "https://api.ona.io/api/v1/forms/124",
         "formid": 124,
         "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1e",
         "id_string": "Birds_cloned_1",
@@ -884,7 +884,7 @@ Example
 ^^^^^^^
 ::
 
-       curl -X POST https://ona.io/api/v1/forms/123/clone -d username=alice project_id=7003
+       curl -X POST https://api.ona.io/api/v1/forms/123/clone -d username=alice project_id=7003
 
 Response
 ^^^^^^^^
@@ -897,13 +897,13 @@ Response
 ::
 
     {
-        "url": "https://ona.io/api/v1/forms/124",
+        "url": "https://api.ona.io/api/v1/forms/124",
         "formid": 124,
         "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1e",
         "id_string": "Birds_cloned_1",
         "sms_id_string": "Birds_cloned_1",
         "title": "Birds_cloned_1",
-        "project": 'https://ona.io/api/v1/projects/7000'
+        "project": 'https://api.ona.io/api/v1/projects/7000'
         ...
     }
 
@@ -923,7 +923,7 @@ Example
 
 ::
 
-    curl -X POST https://ona.io/api/v1/forms/123/csv_import -F csv_file=@/path/to/csv_import.csv
+    curl -X POST https://api.ona.io/api/v1/forms/123/csv_import -F csv_file=@/path/to/csv_import.csv
 
 If the job was executed immediately:
 
@@ -964,7 +964,7 @@ Example
 ^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/forms/123/csv_import?job_uuid=UUID
+    curl -X GET https://api.ona.io/api/v1/forms/123/csv_import?job_uuid=UUID
 
 Response
 ^^^^^^^^
@@ -1001,7 +1001,7 @@ Example
 ^^^^^^^
 ::
 
-      	curl -X POST https://ona.io/api/v1/forms/create_async -F xls_file=@/path/to/xls_file
+      	curl -X POST https://api.ona.io/api/v1/forms/create_async -F xls_file=@/path/to/xls_file
 
 Response
 ^^^^^^^^
@@ -1023,7 +1023,7 @@ Example
 ^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/forms/create_async?job_uuid=UUID
+       curl -X GET https://api.ona.io/api/v1/forms/create_async?job_uuid=UUID
 
 Response
 ^^^^^^^^
@@ -1033,7 +1033,7 @@ If the job is done:
 ::
 
       {
-           "url": "https://ona.io/api/v1/forms/28058",
+           "url": "https://api.ona.io/api/v1/forms/28058",
            "formid": 28058,
            "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
            "id_string": "Birds",

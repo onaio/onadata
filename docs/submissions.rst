@@ -21,7 +21,7 @@ Example
 ^^^^^^^
 ::
 
-    curl -X POST -F xml_submission_file=@/path/to/submission.xml https://ona.io/api/v1/submissions
+    curl -X POST -F xml_submission_file=@/path/to/submission.xml https://api.ona.io/api/v1/submissions
 
 Submit a JSON XForm submission
 --------------------------------
@@ -35,7 +35,7 @@ Example
 ^^^^^^^^
 ::
 
-    curl -X POST -d '{"id": "[id_string]", "submission": [the JSON]} http://localhost:8000/api/v1/submissions -u user:pass -H "Content-Type: application/json"
+    curl -X POST -d '{"id": "[id_string]", "submission": [the JSON]} http://api.ona.io/api/v1/submissions -u user:pass -H "Content-Type: application/json"
 
 .. note:: The ``[id_string]`` here is in the name of your form as exposed in the Ona UI and the ``id_string`` as per the `Forms API <forms.html#get-form-information>`_.
 

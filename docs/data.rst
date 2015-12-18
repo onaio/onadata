@@ -25,7 +25,7 @@ Example
 ^^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/data
+    curl -X GET https://api.ona.io/api/v1/data
 
 
 Response
@@ -38,7 +38,7 @@ Response
             "id_string": "dhis2form",
             "title": "dhis2form",
             "description": "dhis2form",
-            "url": "https://ona.io/api/v1/data/4240"
+            "url": "https://api.ona.io/api/v1/data/4240"
         },
         ...
     ]
@@ -58,7 +58,7 @@ of records and the limit parameter to limit the number of records returned.
 
 ::
 
-    curl -X GET 'https://ona.io/api/v1/data/2?start=5'
+    curl -X GET 'https://api.ona.io/api/v1/data/2?start=5'
 
 .. raw:: html
 
@@ -68,7 +68,7 @@ of records and the limit parameter to limit the number of records returned.
 
 ::
 
-	curl -X GET 'https://ona.io/api/v1/data/2?limit=2'
+	curl -X GET 'https://api.ona.io/api/v1/data/2?limit=2'
 
 .. raw:: html
 
@@ -78,7 +78,7 @@ of records and the limit parameter to limit the number of records returned.
 
 ::
 
-	 curl -X GET 'https://ona.io/api/v1/data/2?start=3&limit=4'
+	 curl -X GET 'https://api.ona.io/api/v1/data/2?start=3&limit=4'
 
 Download data in `csv` format
 -----------------------------
@@ -90,7 +90,7 @@ Download data in `csv` format
 
 ::
 
-	curl -O https://ona.io/api/v1/data.csv
+	curl -O https://api.ona.io/api/v1/data.csv
 
 GET JSON List of data end points filter by owner
 ------------------------------------------------
@@ -109,7 +109,7 @@ Example
 ^^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/data?owner=ona
+       curl -X GET https://api.ona.io/api/v1/data?owner=ona
 
 Get Submitted data for a specific form
 ------------------------------------------
@@ -124,7 +124,7 @@ Example
 ^^^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/data/22845
+      curl -X GET https://api.ona.io/api/v1/data/22845
 
 Response
 ^^^^^^^^^
@@ -169,7 +169,7 @@ Example
 ^^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/data/328.json?page=1&page_size=4
+      curl -X GET https://api.ona.io/api/v1/data/328.json?page=1&page_size=4
 
 
 Sort submitted data of a specific form using existing fields
@@ -198,14 +198,14 @@ Example of Ascending Sort
 
 ::
 
-      curl -X GET https://ona.io/api/v1/data/328.json?sort={"age":1}
+      curl -X GET https://api.ona.io/api/v1/data/328.json?sort={"age":1}
 
 Example of Descending sort
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ::
 
-      curl -X GET https://ona.io/api/v1/data/328.json?sort={"age":-1}
+      curl -X GET https://api.ona.io/api/v1/data/328.json?sort={"age":-1}
 
 
 Get a single data submission for a given form
@@ -227,7 +227,7 @@ Example
 ^^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/data/22845/4503
+       curl -X GET https://api.ona.io/api/v1/data/22845/4503
 
 Response
 ^^^^^^^^^
@@ -274,7 +274,7 @@ Query submissions where name is `tom`
 
 ::
 
-    curl -X GET https://ona.io/api/v1/data/22845?query={"name":"tom"}
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"name":"tom"}
 
 Example II
 ^^^^^^^
@@ -282,7 +282,7 @@ Query submissions where age is greater than 21
 
 ::
 
-    curl -X GET https://ona.io/api/v1/data/22845?query={"age":{"$gt":"21"}}
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"age":{"$gt":"21"}}
 
 Example III
 ^^^^^^^
@@ -290,7 +290,7 @@ Query submissions where age is less than or equal to 21
 
 ::
 
-    curl -X GET https://ona.io/api/v1/data/22845?query={"age":{"$lte":"21"}}
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"age":{"$lte":"21"}}
 
 Example IV
 ^^^^^^^
@@ -298,7 +298,7 @@ Query submissions with case insensitive and partial search
 
 ::
 
-    curl -X GET https://ona.io/api/v1/data/22845?query={"name":{"$i":"hosee"}}
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"name":{"$i":"hosee"}}
 
 
 All Filters Options
@@ -338,7 +338,7 @@ Example
 ^^^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/data/22845?tags=monthly
+      curl -X GET https://api.ona.io/api/v1/data/22845?tags=monthly
 
 Tag a submission data point
 ----------------------------
@@ -372,13 +372,13 @@ Request
 ^^^^^^^^^
 ::
 
-    curl -X DELETE https://ona.io/api/v1/data/28058/20/labels/tag1
+    curl -X DELETE https://api.ona.io/api/v1/data/28058/20/labels/tag1
 
 or to delete the tag "hello world"
 
 ::
 
-    curl -X DELETE https://ona.io/api/v1/data/28058/20/labels/hello%20world
+    curl -X DELETE https://api.ona.io/api/v1/data/28058/20/labels/hello%20world
 
 Response
 ^^^^^^^^^
@@ -399,7 +399,7 @@ Example
 ^^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/data/public
+       curl -X GET https://api.ona.io/api/v1/data/public
 
 Response
 ^^^^^^^^^
@@ -411,7 +411,7 @@ Response
             "id_string": "dhis2form",
             "title": "dhis2form",
             "description": "dhis2form",
-            "url": "https://ona.io/api/v1/data/4240"
+            "url": "https://api.ona.io/api/v1/data/4240"
         },
         ...
     ]
@@ -428,7 +428,7 @@ Example
 ^^^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/data/28058/20/enketo?return_url=url
+    curl -X GET https://api.ona.io/api/v1/data/28058/20/enketo?return_url=url
 
 Response
 ^^^^^^^^^
@@ -451,7 +451,7 @@ Example
 ^^^^^^^^^
 ::
 
-    curl -X DELETE https://ona.io/api/v1/data/28058/20
+    curl -X DELETE https://api.ona.io/api/v1/data/28058/20
 
 Response
 ^^^^^^^^^
@@ -488,7 +488,7 @@ Example
 ^^^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/data/28058/20.geojson
+    curl -X GET https://api.ona.io/api/v1/data/28058/20.geojson
 
 Response
 ^^^^^^^^^
@@ -528,7 +528,7 @@ Example
 ^^^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/data/28058.geojson
+      curl -X GET https://api.ona.io/api/v1/data/28058.geojson
 
 Response
 ^^^^^^^^^
@@ -589,7 +589,7 @@ Example
 ^^^^^^^^^
 ::
 
-	curl -X GET https://ona.io/api/v1/data/28058.osm
+	curl -X GET https://api.ona.io/api/v1/data/28058.osm
 
 OSM endpoint with all osm files for a specific submission concatenated.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -603,4 +603,4 @@ Example
 ^^^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/data/28058/20.osm
+    curl -X GET https://api.ona.io/api/v1/data/28058/20.osm

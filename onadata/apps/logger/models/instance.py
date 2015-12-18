@@ -26,6 +26,7 @@ from onadata.libs.utils.cache_tools import IS_ORG
 from onadata.libs.utils.cache_tools import PROJ_SUB_DATE_CACHE
 from onadata.libs.utils.cache_tools import PROJ_NUM_DATASET_CACHE,\
     XFORM_DATA_VERSIONS, DATAVIEW_COUNT
+from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.timing import calculate_duration
 
 
@@ -255,13 +256,14 @@ class Instance(models.Model):
 
         if len(geo_xpaths):
             for xpath in geo_xpaths:
-                try:
-                    geometry = [float(s) for s in doc.get(xpath, u'').split()]
-                except ValueError:
-                    return
+                for gps in get_values_matching_key(doc, xpath):
+                    try:
+                        geometry = [float(s) for s in gps.split()]
+                    except ValueError:
+                        return
 
-                if len(geometry):
-                    lat, lng = geometry[0:2]
+                    if len(geometry):
+                        lat, lng = geometry[0:2]
                     points.append(Point(lng, lat))
 
             if not xform.instances_with_geopoints and len(points):

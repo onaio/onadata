@@ -34,7 +34,7 @@ Example
 
 ::
 
-    curl -X GET https://ona.io/api/v1/orgs
+    curl -X GET https://api.ona.io/api/v1/orgs
 
 Response
 ^^^^^^^^
@@ -43,7 +43,7 @@ Response
 
     [
         {
-            "url": "https://ona.io/api/v1/orgs/modilabs",
+            "url": "https://api.ona.io/api/v1/orgs/modilabs",
             "org": "modilabs",
             "name": "Modi Labs Research",
             "email": "modilabs@localhost.com",
@@ -53,8 +53,8 @@ Response
             "twitter": "",
             "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
             "require_auth": false,
-            "user": "https://ona.io/api/v1/users/modilabs",
-            "creator": "https://ona.io/api/v1/users/demo"
+            "user": "https://api.ona.io/api/v1/users/modilabs",
+            "creator": "https://api.ona.io/api/v1/users/demo"
         },
         ...
     ]
@@ -72,7 +72,7 @@ Example
 
 ::
 
-      curl -X GET https://ona.io/api/v1/orgs?shared_with=username
+      curl -X GET https://api.ona.io/api/v1/orgs?shared_with=username
 
 
 Retrieve Organization Profile Information
@@ -88,7 +88,7 @@ Example
 
 ::
 
-      curl -X GET https://ona.io/api/v1/orgs/modilabs
+      curl -X GET https://api.ona.io/api/v1/orgs/modilabs
 
 
 Response
@@ -97,7 +97,7 @@ Response
 ::
 
     {
-        "url": "https://ona.io/api/v1/orgs/modilabs",
+        "url": "https://api.ona.io/api/v1/orgs/modilabs",
         "org": "modilabs",
         "name": "Modi Labs Research",
         "email": "modilabs@localhost.com",
@@ -107,8 +107,8 @@ Response
         "twitter": "",
         "gravatar": "https://secure.gravatar.com/avatar/xxxxxx",
         "require_auth": false,
-        "user": "https://ona.io/api/v1/users/modilabs",
-        "creator": "https://ona.io/api/v1/users/demo"
+        "user": "https://api.ona.io/api/v1/users/modilabs",
+        "creator": "https://api.ona.io/api/v1/users/demo"
     }
 
 Partial updates of Organization Profile Information
@@ -128,7 +128,7 @@ Example
 
 ::
 
-    curl -X PATCH -d ‘{“metadata”: {“computer”: “mac”}}’https://ona.io/api/v1/profiles/modilabs -H “Content-Type: application/json”
+    curl -X PATCH -d ‘{“metadata”: {“computer”: “mac”}}’https://api.ona.io/api/v1/profiles/modilabs -H “Content-Type: application/json”
 
 Response
 ^^^^^^^^
@@ -136,7 +136,7 @@ Response
 ::
 
     {
-        "url": "https://ona.io/api/v1/orgs/modilabs",
+        "url": "https://api.ona.io/api/v1/orgs/modilabs",
         "org": "modilabs",
         "name": "Modi Labs Research",
         "email": "modilabs@localhost.com",
@@ -149,8 +149,8 @@ Response
         "metadata": {
             "computer": "mac"
         },
-        "user": "https://ona.io/api/v1/users/modilabs",
-        "creator": "https://ona.io/api/v1/users/demo"
+        "user": "https://api.ona.io/api/v1/users/modilabs",
+        "creator": "https://api.ona.io/api/v1/users/demo"
    }
 
 List Organization members
@@ -167,7 +167,7 @@ Example
 
 ::
 
-      curl -X GET https://ona.io/api/v1/orgs/modilabs/members
+      curl -X GET https://api.ona.io/api/v1/orgs/modilabs/members
 
 Response
 ^^^^^^^^
@@ -192,7 +192,7 @@ Example
 
 ::
 
-      curl -X POST -d '{"username": "member1"}' https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
+      curl -X POST -d '{"username": "member1"}' https://api.ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
 Response
 ^^^^^^^^
@@ -218,7 +218,7 @@ Example
 
 ::
 
-      curl -X POST -d '{"username": "member1", "email_msg": "You have been added to Ona", "email_subject": "Your have been added"}' https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
+      curl -X POST -d '{"username": "member1", "email_msg": "You have been added to Ona", "email_subject": "Your have been added"}' https://api.ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
 Response
 ^^^^^^^^
@@ -242,7 +242,7 @@ Example
 
 ::
 
-      curl -X PUT -d '{"username": "member1", "role": "editor"}' https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
+      curl -X PUT -d '{"username": "member1", "role": "editor"}' https://api.ona.io/api/v1/orgs/modilabs/members -H "Content-Type: application/json"
 
 Response
 ^^^^^^^^
@@ -266,7 +266,7 @@ Example
 
 ::
 
-      curl -X DELETE -d '{"username": "member1"}' https://ona.io/api/v1/orgs/modilabs/members -H "Content-Type:application/json"
+      curl -X DELETE -d '{"username": "member1"}' https://api.ona.io/api/v1/orgs/modilabs/members -H "Content-Type:application/json"
 
 Response
 ^^^^^^^^

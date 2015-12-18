@@ -58,8 +58,8 @@ Example
 
         {
             'name': "My DataView",
-            'xform': 'https://ona.io/api/v1/forms/12',
-            'project':  'https://ona.io/api/v1/projects/13',
+            'xform': 'https://api.ona.io/api/v1/forms/12',
+            'project':  'https://api.ona.io/api/v1/projects/13',
             'columns': '["name", "age", "gender"]',
             'query': '[{"column":"age", "filter":">", "value":"20"}]'
         }
@@ -71,9 +71,9 @@ Response
 
         {
             name: "My DataView",
-            url: "https://ona.io/api/v1/dataviews/1",
-            xform: "https://ona.io/api/v1/forms/12",
-            project: "https://ona.io/api/v1/projects/13",
+            url: "https://api.ona.io/api/v1/dataviews/1",
+            xform: "https://api.ona.io/api/v1/forms/12",
+            project: "https://api.ona.io/api/v1/projects/13",
             columns: [
                 "name",
                 "age",
@@ -104,9 +104,9 @@ Response
 
         {
             name: "My DataView",
-            url: "https://ona.io/api/v1/dataviews/1",
-            xform: "https://ona.io/api/v1/forms/12",
-            project: "https://ona.io/api/v1/projects/13",
+            url: "https://api.ona.io/api/v1/dataviews/1",
+            xform: "https://api.ona.io/api/v1/forms/12",
+            project: "https://api.ona.io/api/v1/projects/13",
             columns: [
                 "name",
                 "age",
@@ -138,9 +138,9 @@ Response
     [
         {
             name: "My DataView",
-            url: "https://ona.io/api/v1/dataviews/1",
-            xform: "https://ona.io/api/v1/forms/12",
-            project: "https://ona.io/api/v1/projects/13",
+            url: "https://api.ona.io/api/v1/dataviews/1",
+            xform: "https://api.ona.io/api/v1/forms/12",
+            project: "https://api.ona.io/api/v1/projects/13",
             columns: [
                 "name",
                 "age",
@@ -156,9 +156,9 @@ Response
         },
         {
             name: "My DataView2",
-            url: "https://ona.io/api/v1/dataviews/2",
-            xform: "https://ona.io/api/v1/forms/12",
-            project: "https://ona.io/api/v1/projects/13",
+            url: "https://api.ona.io/api/v1/dataviews/2",
+            xform: "https://api.ona.io/api/v1/forms/12",
+            project: "https://api.ona.io/api/v1/projects/13",
             columns: [
                 "name",
                 "age",
@@ -189,8 +189,8 @@ Example
 
         {
             'name': "My DataView updated",
-            'xform': 'https://ona.io/api/v1/forms/12',
-            'project':  'https://ona.io/api/v1/projects/13',
+            'xform': 'https://api.ona.io/api/v1/forms/12',
+            'project':  'https://api.ona.io/api/v1/projects/13',
             'columns': '["name", "age", "gender"]',
             'query': '[{"col":"age", "filter":">", "value":"30"}]'
         }
@@ -202,9 +202,9 @@ Response
 
         {
             name: "My DataView updated",
-            url: "https://ona.io/api/v1/dataviews/1",
-            xform: "https://ona.io/api/v1/forms/12",
-            project: "https://ona.io/api/v1/projects/13",
+            url: "https://api.ona.io/api/v1/dataviews/1",
+            xform: "https://api.ona.io/api/v1/forms/12",
+            project: "https://api.ona.io/api/v1/projects/13",
             columns: [
                 "name",
                 "age",
@@ -242,9 +242,9 @@ Response
 
         {
             name: "My DataView updated",
-            url: "https://ona.io/api/v1/dataviews/1",
-            xform: "https://ona.io/api/v1/forms/12",
-            project: "https://ona.io/api/v1/projects/13",
+            url: "https://api.ona.io/api/v1/dataviews/1",
+            xform: "https://api.ona.io/api/v1/forms/12",
+            project: "https://api.ona.io/api/v1/projects/13",
             columns: [
                 "name",
                 "age",
@@ -288,7 +288,7 @@ Returns the data using the dataview filters
 
 ::
 
-    curl -X GET 'https://ona.io/api/v1/dataviews/1/data'
+    curl -X GET 'https://api.ona.io/api/v1/dataviews/1/data'
 
 
 
@@ -318,7 +318,7 @@ of records and the limit parameter to limit the number of records returned.
 
 ::
 
-    curl -X GET 'https://ona.io/api/v1/dataviews/2/data?start=5'
+    curl -X GET 'https://api.ona.io/api/v1/dataviews/2/data?start=5'
 
 .. raw:: html
 
@@ -328,7 +328,7 @@ of records and the limit parameter to limit the number of records returned.
 
 ::
 
-	curl -X GET 'https://ona.io/api/v1/dataviews/2/data?limit=2'
+	curl -X GET 'https://api.ona.io/api/v1/dataviews/2/data?limit=2'
 
 .. raw:: html
 
@@ -338,7 +338,7 @@ of records and the limit parameter to limit the number of records returned.
 
 ::
 
-	 curl -X GET 'https://ona.io/api/v1/dataviews/2/data?start=3&limit=4'
+	 curl -X GET 'https://api.ona.io/api/v1/dataviews/2/data?start=3&limit=4'
 
 
 Counting the Data in the DataView
@@ -351,7 +351,7 @@ Counting the Data in the DataView
 
 ::
 
-    curl -X GET 'https://ona.io/api/v1/dataviews/2/data?count=true'
+    curl -X GET 'https://api.ona.io/api/v1/dataviews/2/data?count=true'
 
 
 Example Response
@@ -377,7 +377,7 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/dataviews/28058/export_async?format=xls
+       curl -X GET https://api.ona.io/api/v1/dataviews/28058/export_async?format=xls
 
 Response
 ^^^^^^^^
@@ -399,7 +399,7 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/dataviews/28058/export_async?job_uuid=d1559e9e-5bab-480d-9804-e32111e8b2b8
+       curl -X GET https://api.ona.io/api/v1/dataviews/28058/export_async?job_uuid=d1559e9e-5bab-480d-9804-e32111e8b2b8
 
 Response
 ^^^^^^^^
@@ -410,7 +410,7 @@ If the job is done:
        HTTP 202 Accepted
        {
            "job_status": "SUCCESS",
-           "export_url": "https://ona.io/api/v1/dataviews/28058/data.xls"
+           "export_url": "https://api.ona.io/api/v1/dataviews/28058/data.xls"
        }
 
 Export Dataview Data Synchronously
@@ -426,7 +426,7 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/dataviews/28058/data.xls
+       curl -X GET https://api.ona.io/api/v1/dataviews/28058/data.xls
 
 Response
 ^^^^^^^^
@@ -444,7 +444,7 @@ Example
 ^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/dataviews/4240/charts
+    curl -X GET https://api.ona.io/api/v1/dataviews/4240/charts
 
 Response
 ^^^^^^^^^
@@ -453,10 +453,10 @@ Response
 
             {
                 "id": 4240,
-                "url": "https://ona.io/api/v1/dataviews/4240",
+                "url": "https://api.ona.io/api/v1/dataviews/4240",
                 "fields": {
-                    "uuid": "https://ona.io/api/v1/dataviews/4240/charts?field_name=age",
-                    "num": "https://ona.io/api/v1/dataviews/4240/charts?field_name=gender",
+                    "uuid": "https://api.ona.io/api/v1/dataviews/4240/charts?field_name=age",
+                    "num": "https://api.ona.io/api/v1/dataviews/4240/charts?field_name=gender",
                     ...
                 }
             }
@@ -476,7 +476,7 @@ Example
 ^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/dataviews/4240/charts.json?field_name=age
+    curl -X GET https://api.ona.io/api/v1/dataviews/4240/charts.json?field_name=age
 
 Response
 ^^^^^^^^

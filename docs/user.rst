@@ -9,7 +9,7 @@ Example
 
 ::
 
-      curl -X GET https://ona.io/api/v1/user
+      curl -X GET https://api.ona.io/api/v1/user
 
 Response
 --------
@@ -27,8 +27,8 @@ Response
             "organization": "",
             "require_auth": false,
             "twitter": "",
-            "url": "http://localhost:8000/api/v1/profiles/demo",
-            "user": "http://localhost:8000/api/v1/users/demo",
+            "url": "http://api.ona.io/api/v1/profiles/demo",
+            "user": "http://api.ona.io/api/v1/users/demo",
             "username": "demo",
             "website": "",
 
@@ -63,7 +63,7 @@ Example
 
 ::
 
-      curl -X POST -d email=demouser@mail.com -d reset\_url=http://example-url.com/reset https://ona.io/api/v1/user/reset -d email_subject="Reset password requested"
+      curl -X POST -d email=demouser@mail.com -d reset\_url=http://example-url.com/reset https://api.ona.io/api/v1/user/reset -d email_subject="Reset password requested"
 
 Response
 --------
@@ -90,7 +90,7 @@ Example
 
 ::
 
-      curl -X POST -d uid=Mg -d token=qndoi209jf02n4 -d new\_password=usernewpass https://ona.io/api/v1/user/reset
+      curl -X POST -d uid=Mg -d token=qndoi209jf02n4 -d new\_password=usernewpass https://api.ona.io/api/v1/user/reset
 
 Response
 --------
@@ -115,7 +115,7 @@ Example
 
 ::
 
-      curl -X DELETE https://ona.io/api/v1/user/expire 
+      curl -X DELETE https://api.ona.io/api/v1/user/expire 
 
 Response
 --------
