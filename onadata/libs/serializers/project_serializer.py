@@ -2,7 +2,6 @@ from rest_framework import serializers
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.db.models import Q
 from django.utils.translation import ugettext as _
 
 from onadata.apps.logger.models import Project
@@ -109,29 +108,26 @@ def get_users(obj, context, minimal_perms=False):
             return users
 
     data = {}
-    perms = obj.projectuserobjectpermission_set
-
-    if minimal_perms:
-        perms = perms.filter(Q(user=context['request'].user) |
-                             Q(user=obj.organization))
-    else:
-        perms = perms.all()
-
-    for perm in perms.select_related('permission', 'user', 'user__profile'):
+    for perm in obj.projectuserobjectpermission_set.all():
         if perm.user_id not in data:
             user = perm.user
-            profile = user.profile
-            data[perm.user_id] = {
-                'permissions': [],
-                'is_org': is_organization(profile),
-                'metadata': profile.metadata,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'user': user.username
-            }
-        data[perm.user_id]['permissions'].append(
-            perm.permission.codename
-        )
+
+            if not minimal_perms or user in [context['request'].user,
+                                             obj.organization]:
+                data[perm.user_id] = {}
+                data[perm.user_id]['permissions'] = []
+                data[perm.user_id]['is_org'] = is_organization(
+                    user.profile
+                )
+                data[perm.user_id]['gravatar'] = user.profile.gravatar
+                data[perm.user_id]['metadata'] = user.profile.metadata
+                data[perm.user_id]['first_name'] = user.first_name
+                data[perm.user_id]['last_name'] = user.last_name
+                data[perm.user_id]['user'] = user.username
+        if perm.user_id in data:
+            data[perm.user_id]['permissions'].append(
+                perm.permission.codename
+            )
 
     for k in data.keys():
         data[k]['permissions'].sort()
