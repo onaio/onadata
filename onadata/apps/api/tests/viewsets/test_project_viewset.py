@@ -570,6 +570,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.project.pk)
         request.user = self.user
+        self.project.reload()
         self.project_data = BaseProjectSerializer(
             self.project, context={'request': request}).data
         updated_project_data = self.project_data
