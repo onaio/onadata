@@ -53,7 +53,7 @@ def get_labels_from_columns(columns, dd, group_delimiter):
     labels = []
     for col in columns:
         elem = dd.get_survey_element(col)
-        label = elem.label if elem else col
+        label = dd.get_label(col, elem=elem) if elem else col
         if elem is not None and elem.type == '':
             label = group_delimiter.join([elem.parent.name, label])
         if label == '':

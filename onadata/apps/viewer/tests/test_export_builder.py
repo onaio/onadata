@@ -6,6 +6,7 @@ import tempfile
 import xlrd
 import zipfile
 
+from collections import OrderedDict
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 from openpyxl import load_workbook
@@ -20,6 +21,8 @@ from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
 from onadata.libs.utils.export_tools import (
     dict_to_joined_export,
     ExportBuilder)
+from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
+from onadata.libs.utils.csv_builder import get_labels_from_columns
 
 
 def _logger_fixture_path(*args):
@@ -1366,7 +1369,6 @@ class TestExportBuilder(TestBase):
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
         export_builder.to_xls_export(temp_xls_file.name, self.data)
         temp_xls_file.seek(0)
-        # check that values for red\u2019s and blue\u2019s are set to true
         wb = load_workbook(temp_xls_file.name)
         childrens_survey_sheet = wb.get_sheet_by_name("childrens_survey_en")
         labels = dict([(r[0].value, r[1].value)
@@ -1384,7 +1386,7 @@ class TestExportBuilder(TestBase):
     def test_xls_export_with_swahili_labels(self):
         survey = create_survey_from_xls(_logger_fixture_path(
             'childrens_survey_sw.xls'))
-        # no default_language is not set
+        # default_language is set to swahili
         self.assertEqual(
             survey.to_json_dict().get('default_language'), 'swahili'
         )
@@ -1395,7 +1397,6 @@ class TestExportBuilder(TestBase):
         temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
         export_builder.to_xls_export(temp_xls_file.name, self.data)
         temp_xls_file.seek(0)
-        # check that values for red\u2019s and blue\u2019s are set to true
         wb = load_workbook(temp_xls_file.name)
         childrens_survey_sheet = wb.get_sheet_by_name("childrens_survey_sw")
         labels = dict([(r[0].value, r[1].value)
@@ -1409,3 +1410,20 @@ class TestExportBuilder(TestBase):
         self.assertEqual(labels['fav_colors/red'], 'fav_colors/Nyekundu')
         self.assertEqual(labels['fav_colors/blue'], 'fav_colors/Bluu')
         temp_xls_file.close()
+
+    def test_csv_export_with_swahili_labels(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_sw.xls'))
+        # default_language is set to swahili
+        self.assertEqual(
+            survey.to_json_dict().get('default_language'), 'swahili'
+        )
+        dd = DataDictionary()
+        dd._survey = survey
+        ordered_columns = OrderedDict()
+        CSVDataFrameBuilder._build_ordered_columns(survey, ordered_columns)
+        ordered_columns['children/fav_colors/red'] = None
+        labels = get_labels_from_columns(ordered_columns, dd, '/')
+        self.assertIn('1. Jina lako ni?', labels)
+        self.assertIn('2. Umri wako ni?', labels)
+        self.assertIn('fav_colors/Nyekundu', labels)
