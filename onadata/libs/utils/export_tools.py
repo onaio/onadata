@@ -846,7 +846,7 @@ def generate_export(export_type, username, id_string, export_id=None,
     dataview = None
     if options.get("dataview_pk"):
         dataview = DataView.objects.get(pk=options.get("dataview_pk"))
-        records = query_data(xform, query=filter_query, start=start, end=end)
+        records = dataview.query_data(dataview, all_data=True)
     else:
         records = query_data(xform, query=filter_query, start=start, end=end)
 
