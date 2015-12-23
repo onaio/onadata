@@ -471,6 +471,8 @@ class ExportBuilder(object):
                 [encode_if_str(row, field) for field in fields])
 
         csv_defs = {}
+        dataview = kwargs.get('dataview')
+
         for section in self.sections:
             csv_file = NamedTemporaryFile(suffix=".csv")
             csv_writer = csv.writer(csv_file)
@@ -480,16 +482,14 @@ class ExportBuilder(object):
         # write headers
         if not self.INCLUDE_LABELS_ONLY:
             for section in self.sections:
-                fields = [element['title'] for element in section['elements']]\
-                    + self.EXTRA_FIELDS
+                fields = self.get_fields(dataview, section, 'title')
                 csv_defs[section['name']]['csv_writer'].writerow(
                     [f.encode('utf-8') for f in fields])
 
         # write labels
         if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY:
             for section in self.sections:
-                fields = [element['label'] for element in section['elements']]\
-                    + self.EXTRA_FIELDS
+                fields = self.get_fields(dataview, section, 'label')
                 csv_defs[section['name']]['csv_writer'].writerow(
                     [f.encode('utf-8') for f in fields])
 
@@ -512,9 +512,7 @@ class ExportBuilder(object):
                 # get data for this section and write to csv
                 section_name = section['name']
                 csv_def = csv_defs[section_name]
-                fields = [
-                    element['xpath'] for element in
-                    section['elements']] + self.EXTRA_FIELDS
+                fields = self.get_fields(dataview, section, 'xpath')
                 csv_writer = csv_def['csv_writer']
                 # section name might not exist within the output, e.g. data was
                 # not provided for said repeat - write test to check this
@@ -746,7 +744,10 @@ class ExportBuilder(object):
 
     def get_fields(self, dataview, section, key):
         if dataview:
-            return dataview.columns
+            return [element[key] for element in section['elements']
+                    if [col for col in dataview.columns
+                        if element[key].startswith(col)]] + self.EXTRA_FIELDS
+
         else:
             return [element[key] for element in
                     section['elements']] + self.EXTRA_FIELDS
@@ -845,7 +846,7 @@ def generate_export(export_type, username, id_string, export_id=None,
     dataview = None
     if options.get("dataview_pk"):
         dataview = DataView.objects.get(pk=options.get("dataview_pk"))
-        records = DataView.query_data(dataview)
+        records = query_data(xform, query=filter_query, start=start, end=end)
     else:
         records = query_data(xform, query=filter_query, start=start, end=end)
 
