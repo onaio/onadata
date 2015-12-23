@@ -257,7 +257,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         try:
             self.object = instance = self.get_object()
 
-            if _format == 'json' or _format is None:
+            if _format == 'json' or _format is None or _format == 'debug':
                 return Response(instance.json)
             elif _format == 'xml':
                 return Response(instance.xml)
@@ -313,7 +313,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 self.object_list = \
                     self.object_list.exclude(tags__name__in=not_tagged)
 
-        if (export_type is None or export_type in ['json', 'jsonp']) \
+        if (export_type is None or export_type in ['json', 'jsonp', 'debug']) \
                 and hasattr(self, 'object_list'):
             return self._get_data(query, fields, sort, start, limit,
                                   is_public_request)

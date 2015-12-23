@@ -74,7 +74,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         export_type = self.kwargs.get('format', request.GET.get("format"))
         self.object = self.get_object()
 
-        if export_type is None or export_type in ['json']:
+        if export_type is None or export_type in ['json', 'debug']:
             data = DataView.query_data(self.object, start, limit,
                                        str_to_bool(count))
             if 'error' in data:
