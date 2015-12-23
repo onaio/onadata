@@ -451,15 +451,25 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
 
     def export_to(self, path, dataview=None):
         self.ordered_columns = OrderedDict()
-        self._build_ordered_columns(self.dd.survey, self.ordered_columns)
 
         if dataview:
-            data = DataView.query_data(dataview)
+            for col in dataview.columns:
+                elem = self.dd.get_survey_element(col)
+                if elem:
+                    self._build_ordered_columns(elem, self.ordered_columns)
+                else:
+                    self.ordered_columns.append(col)
 
-            columns = dataview.columns
+            cursor = self._query_data(self.filter_query)
+            data = self._format_for_dataframe(cursor)
+            columns = list(chain.from_iterable(
+                [[xpath] if cols is None else cols
+                 for xpath, cols in self.ordered_columns.iteritems()
+                 if [c for c in dataview.columns if xpath.startswith(c)]]
+            ))
         else:
-            cursor = self._query_data(
-                self.filter_query)
+            self._build_ordered_columns(self.dd.survey, self.ordered_columns)
+            cursor = self._query_data(self.filter_query)
             data = self._format_for_dataframe(cursor)
 
             columns = list(chain.from_iterable(
