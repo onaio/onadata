@@ -1,3 +1,4 @@
+import json
 import os
 
 from django.conf import settings
@@ -717,3 +718,19 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         # count csv headers and ensure they are three
         self.assertEqual(len(content.split('\n')[0].split(',')), 3)
+
+    def test_matches_parent(self):
+        self._create_dataview()
+        self.assertFalse(self.data_view.matches_parent)
+        columns = [u'name', u'age', u'gender', u'photo', u'date', u'location', u'pizza_fan', u'pizza_hater', u'pizza_type', u'favorite_toppings', u'test_location2.latitude', u'test_location2.longitude', u'test_location.precision', u'test_location2.precision', u'test_location.altitude', u'test_location.latitude', u'test_location2.altitude', u'test_location.longitude', u'thanks', u'start_time', u'end_time', u'today', u'imei', u'phonenumber', 'meta', 'meta/instanceID']  # noqa
+        data = {
+            'name': "My DataView2",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
+            'columns': json.dumps(columns),
+            'query': '[{"column":"age","filter":">","value":"20"}]'
+        }
+
+        self._create_dataview(data)
+        self.assertTrue(self.data_view.matches_parent)

@@ -17,6 +17,22 @@ from onadata.libs.utils.cache_tools import (
 LAST_SUBMISSION_TIME = '_submission_time'
 
 
+def match_columns(data):
+    matches_parent = data.get('matches_parent')
+    columns = data.get('columns')
+    dd = data.get('xform').data_dictionary()
+    fields = [
+        elem.get_abbreviated_xpath()
+        for elem in dd.survey_elements
+        if elem.type != '' and elem.type != 'survey'
+    ]
+    matched = [col for col in columns if col in fields]
+    matches_parent = len(matched) == len(columns) == len(fields)
+    data['matches_parent'] = matches_parent
+
+    return data
+
+
 class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     dataviewid = serializers.ReadOnlyField(source='id')
     name = serializers.CharField(max_length=255)
@@ -34,11 +50,21 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     query = JsonField(required=False)
     count = serializers.SerializerMethodField()
     instances_with_geopoints = serializers.SerializerMethodField()
-    matches_parent = serializers.SerializerMethodField()
+    matches_parent = serializers.BooleanField(default=True)
     last_submission_time = serializers.SerializerMethodField()
 
     class Meta:
         model = DataView
+
+    def create(self, validated_data):
+        validated_data = match_columns(validated_data)
+
+        return super(DataViewSerializer, self).create(validated_data)
+
+    def update(self, instance, validated_data):
+        validated_data = match_columns(validated_data)
+
+        return super(DataViewSerializer, self).update(instance, validated_data)
 
     def validate_query(self, value):
         if value:
@@ -134,23 +160,5 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
                 obj.save()
 
             return obj.instances_with_geopoints
-
-        return False
-
-    def get_matches_parent(self, obj):
-        if obj:
-            # Get the parent xform data dictionary
-            dd = obj.xform.data_dictionary()
-            xform_columns = dd.get_mongo_field_names_dict().keys()
-            if obj.xform.id_string in xform_columns:
-                xform_columns.remove(obj.xform.id_string)
-            dataview_columns = obj.columns
-            # compare if the columns in the dataview match with parent
-            matches_parent = set(xform_columns) == set(dataview_columns)
-
-            if obj.matches_parent != matches_parent:
-                obj.matches_parent = matches_parent
-                obj.save()
-            return obj.matches_parent
 
         return False
