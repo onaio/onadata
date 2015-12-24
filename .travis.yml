@@ -29,6 +29,7 @@ env:
   - TESTFOLDER="onadata/apps/main onadata/apps/api" 
   - TESTFOLDER="onadata/apps/logger onadata/apps/viewer onadata/apps/restservice onadata/apps/sms_support onadata/libs"
 install:
+  - pip install --upgrade pip
   - pip install -r requirements/base.pip --allow-all-external
   - pip install flake8
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
