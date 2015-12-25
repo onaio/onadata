@@ -1478,11 +1478,8 @@ class TestProjectViewSet(TestAbstractViewSet):
         project2 = self.project
 
         dd = self.xform.data_dictionary()
-        xform_columns = dd.get_mongo_field_names_dict().keys()
-        if self.xform.id_string in xform_columns:
-            xform_columns.remove(self.xform.id_string)
+        columns = json.dumps(dd.get_field_name_xpaths_only())
 
-        columns = '["'+'", "'.join(str(c) for c in xform_columns)+'"]'
         data = {'name': "My DataView",
                 'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
                 'project':  'http://testserver/api/v1/projects/%s'
