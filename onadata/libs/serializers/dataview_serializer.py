@@ -17,18 +17,20 @@ from onadata.libs.utils.cache_tools import (
 LAST_SUBMISSION_TIME = '_submission_time'
 
 
-def match_columns(data):
+def match_columns(data, instance=None):
     matches_parent = data.get('matches_parent')
-    columns = data.get('columns')
-    dd = data.get('xform').data_dictionary()
-    fields = [
-        elem.get_abbreviated_xpath()
-        for elem in dd.survey_elements
-        if elem.type != '' and elem.type != 'survey'
-    ]
-    matched = [col for col in columns if col in fields]
-    matches_parent = len(matched) == len(columns) == len(fields)
-    data['matches_parent'] = matches_parent
+    xform = data.get('xform', instance.xform if instance else None)
+    columns = data.get('columns', instance.columns if instance else None)
+    if xform and columns:
+        dd = xform.data_dictionary()
+        fields = [
+            elem.get_abbreviated_xpath()
+            for elem in dd.survey_elements
+            if elem.type != '' and elem.type != 'survey'
+        ]
+        matched = [col for col in columns if col in fields]
+        matches_parent = len(matched) == len(columns) == len(fields)
+        data['matches_parent'] = matches_parent
 
     return data
 
@@ -62,7 +64,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
         return super(DataViewSerializer, self).create(validated_data)
 
     def update(self, instance, validated_data):
-        validated_data = match_columns(validated_data)
+        validated_data = match_columns(validated_data, instance)
 
         return super(DataViewSerializer, self).update(instance, validated_data)
 
