@@ -21,9 +21,11 @@ urlpatterns = patterns(
     url('^api/v1/dataviews/(?P<pk>[^/]+)/(?P<action>[^/]+).'
         '(?P<format>[a-z]+[0-9]*)$', DataViewViewSet,
         name='dataviews-data'),
-    url(r'^api-docs/', RedirectView.as_view(url=settings.STATIC_DOC)),
-    url(r'^api/', RedirectView.as_view(url=settings.STATIC_DOC)),
-    url(r'^api/v1', RedirectView.as_view(url='/api/v1/')),
+    url(r'^api-docs/',
+        RedirectView.as_view(url=settings.STATIC_DOC, permanent=True)),
+    url(r'^api/',
+        RedirectView.as_view(url=settings.STATIC_DOC, permanent=True)),
+    url(r'^api/v1', RedirectView.as_view(url='/api/v1/', permanent=True)),
 
     # django default stuff
     url(r'^accounts/', include('onadata.apps.main.registration_urls')),
@@ -260,7 +262,8 @@ urlpatterns = patterns(
     url(r'^media/(?P<path>.*)$', 'django.views.static.serve',
         {'document_root': settings.MEDIA_ROOT}),
     url(r'^favicon\.ico',
-        RedirectView.as_view(url='/static/images/favicon.ico')))
+        RedirectView.as_view(url='/static/images/favicon.ico',
+                             permanent=True)))
 
 urlpatterns += patterns('django.contrib.staticfiles.views',
                         url(r'^static/(?P<path>.*)$', 'serve'))
