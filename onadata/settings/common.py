@@ -517,6 +517,8 @@ except:
 
 CACHE_MIXIN_SECONDS = 60
 
+TAGGIT_CASE_INSENSITIVE = True
+
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:

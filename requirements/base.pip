@@ -1,9 +1,9 @@
 pytz==2015.4
 simplejson
-Django>=1.7,<1.8
-django-guardian==1.2.5
+Django>=1.8,<1.9
+django-guardian==1.3.2
 django-ordered-model==1.1.0
-django-registration-redux==1.1
+django-registration-redux==1.2
 django-templated-email==0.4.9
 gdata==2.0.18
 httplib2>=0.9,<1
@@ -25,7 +25,7 @@ django-celery==3.1.17
 librabbitmq==1.6.1
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 python-digest==1.7
-django-digest==1.13
+-e git+https://github.com/dimagi/django-digest.git#egg=django-digest
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
 python-dateutil==2.4.2
 
@@ -54,14 +54,13 @@ unicodecsv==0.13
 dpath==1.4
 
 # tagging
-django-taggit==0.12.3
+django-taggit
 
 # oath2 support
-django-oauth-toolkit==0.8.2
+django-oauth-toolkit==0.10.0
 
 # spss
-#savReaderWriter
-https://bitbucket.org/fomcl/savreaderwriter/downloads/savReaderWriter-3.3.0.zip
+#https://bitbucket.org/fomcl/savreaderwriter/downloads/savReaderWriter-3.3.0.zip
 
 # JSON data type support
 jsonfield<1.0
