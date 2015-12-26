@@ -97,7 +97,7 @@ class Export(models.Model):
     )
 
     # optional fields
-    created_on = models.DateTimeField(auto_now=True, auto_now_add=True)
+    created_on = models.DateTimeField(auto_now_add=True)
     filename = models.CharField(max_length=255, null=True, blank=True)
 
     # need to save an the filedir since when an xform is deleted, it cascades
