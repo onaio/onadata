@@ -108,7 +108,7 @@ class Export(models.Model):
     # time of last submission when this export was created
     time_of_last_submission = models.DateTimeField(null=True, default=None)
     # status
-    internal_status = models.SmallIntegerField(max_length=1, default=PENDING)
+    internal_status = models.SmallIntegerField(default=PENDING)
     export_url = models.URLField(null=True, default=None)
 
     options = JSONField(
