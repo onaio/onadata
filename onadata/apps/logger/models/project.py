@@ -22,7 +22,7 @@ class PrefetchManager(models.Manager):
         ).prefetch_related(
             Prefetch('xform_set',
                      queryset=XForm.objects.filter(deleted_at__isnull=True)
-                     .select_related('user', 'dataview_set', 'metadata_set')
+                     .select_related('user')
                      .prefetch_related('user')
                      .prefetch_related('dataview_set')
                      .prefetch_related('metadata_set')
