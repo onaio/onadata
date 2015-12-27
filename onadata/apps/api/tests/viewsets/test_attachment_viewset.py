@@ -111,9 +111,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
         # invalid page type
         request = self.factory.get('/', data={"page": "invalid"}, **self.extra)
         response = self.list_view(request)
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(isinstance(response.data, list))
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.status_code, 404)
 
         # invalid page size type
         request = self.factory.get('/', data={"page_size": "invalid"},
@@ -128,10 +126,7 @@ class TestAttachmentViewSet(TestAbstractViewSet):
             '/', data={"page": "invalid", "page_size": "invalid"},
             **self.extra)
         response = self.list_view(request)
-        self.assertNotEqual(response.get('Cache-Control'), None)
-        self.assertEqual(response.status_code, 200)
-        self.assertTrue(isinstance(response.data, list))
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.status_code, 404)
 
         # invalid page size
         request = self.factory.get(

@@ -6,7 +6,6 @@ from rest_framework import renderers
 from rest_framework import viewsets
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
-from rest_framework.pagination import BasePaginationSerializer
 
 from onadata.apps.api.permissions import AttachmentObjectPermissions
 from onadata.apps.logger.models.attachment import Attachment
@@ -16,6 +15,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.attachment_serializer import AttachmentSerializer
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
     MediaFileRenderer
@@ -47,9 +47,7 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
     queryset = Attachment.objects.all()
     permission_classes = (AttachmentObjectPermissions,)
     serializer_class = AttachmentSerializer
-    pagination_class = BasePaginationSerializer
-    paginate_by_param = 'page_size'
-    page_kwarg = 'page'
+    pagination_class = StandardPageNumberPagination
     renderer_classes = (
         renderers.JSONRenderer,
         renderers.BrowsableAPIRenderer,
@@ -93,7 +91,8 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
         self.object_list = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(self.object_list)
         if page is not None:
-            serializer = self.get_pagination_serializer(page)
-            return Response(serializer.data.get('results'))
+            serializer = self.get_serializer(page, many=True)
+
+            return Response(serializer.data)
 
         return super(AttachmentViewSet, self).list(request, *args, **kwargs)
