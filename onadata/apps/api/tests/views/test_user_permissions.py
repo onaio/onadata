@@ -51,6 +51,9 @@ class TestUserPermissions(TestAbstractViewSet):
             response = view(request)
             self.assertEqual(response.status_code, 403)
 
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file, 'owner': 'bob'}
+            request = self.factory.post('/', data=post_data, **self.extra)
             role.ManagerRole.add(self.user, bob.profile)
             with HTTMock(enketo_url_mock, enketo_preview_url_mock):
                 response = view(request)
