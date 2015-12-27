@@ -48,7 +48,6 @@ from onadata.libs.utils.viewer_tools import (
 from onadata.libs.data import parse_int
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.apps.api.tools import CustomPaginationSerializer
 from onadata.libs.mixins.profiler_mixin import ProfilerMixin
 from onadata.libs.utils.profiler import profile
 
@@ -95,7 +94,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     lookup_fields = ('pk', 'dataid')
     extra_lookup_fields = None
     public_data_endpoint = 'public'
-    pagination_serializer_class = CustomPaginationSerializer
     paginate_by = 1000000
     paginate_by_param = 'page_size'
     page_kwarg = 'page'

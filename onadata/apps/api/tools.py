@@ -22,9 +22,6 @@ from django.shortcuts import get_object_or_404
 from django.core.validators import ValidationError
 from registration.models import RegistrationProfile
 from rest_framework import exceptions
-from rest_framework import serializers
-from rest_framework.pagination import BasePaginationSerializer
-from rest_framework.utils.serializer_helpers import ReturnList
 from taggit.forms import TagField
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -466,19 +463,3 @@ def get_baseviewset_class():
     """
     return load_class(settings.BASE_VIEWSET) \
         if settings.BASE_VIEWSET else DefaultBaseViewset
-
-
-class CustomPaginationSerializer(BasePaginationSerializer):
-    def to_representation(self, data):
-        ret = super(CustomPaginationSerializer, self).to_representation(data)
-        if 'results' in ret:
-            return ret['results']
-
-        return ret
-
-    @property
-    def data(self):
-        # hack: use Serializer class data
-        ret = super(serializers.Serializer, self).data
-
-        return ReturnList(ret, serializer=self)
