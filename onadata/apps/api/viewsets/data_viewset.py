@@ -340,7 +340,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if export_type == Attachment.OSM:
             osm_list = OsmData.objects.filter(instance__xform=xform)
             page = self.paginate_queryset(osm_list)
-            serializer = self.get_pagination_serializer(page)
+            serializer = self.get_serializer(page)
 
             return Response(serializer.data)
 
@@ -383,7 +383,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         if not isinstance(self.object_list, types.GeneratorType):
             page = self.paginate_queryset(self.object_list)
-            serializer = self.get_pagination_serializer(page)
+            serializer = self.get_serializer(page)
         else:
             serializer = self.get_serializer(self.object_list, many=True)
             page = None
