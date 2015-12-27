@@ -91,10 +91,10 @@ def _compose_send_email(request, organization, username):
     user = User.objects.get(username=username)
 
     email_msg = request.DATA.get('email_msg') \
-        or request.QUERY_PARAMS.get('email_msg')
+        or request.query_params.get('email_msg')
 
     email_subject = request.DATA.get('email_subject') \
-        or request.QUERY_PARAMS.get('email_subject')
+        or request.query_params.get('email_subject')
 
     if not email_subject:
         email_subject = SHARE_ORG_SUBJECT.format(user.username,
@@ -175,7 +175,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
         organization = self.get_object()
         status_code = status.HTTP_200_OK
         data = []
-        username = request.DATA.get('username') or request.QUERY_PARAMS.get(
+        username = request.DATA.get('username') or request.query_params.get(
             'username')
 
         if request.method in ['DELETE', 'POST', 'PUT'] and not username:
@@ -186,7 +186,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
                 organization, username)
 
             if ('email_msg' in request.DATA or
-                    'email_msg' in request.QUERY_PARAMS) \
+                    'email_msg' in request.query_params) \
                     and status_code == 201:
                 _compose_send_email(request, organization, username)
 

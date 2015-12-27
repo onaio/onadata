@@ -28,7 +28,7 @@ class FieldsChartSerializer(serializers.ModelSerializer):
             fields = obj.survey_elements
 
             if request:
-                selected_fields = request.QUERY_PARAMS.get('fields')
+                selected_fields = request.query_params.get('fields')
 
                 if isinstance(selected_fields, basestring) \
                         and selected_fields != 'all':

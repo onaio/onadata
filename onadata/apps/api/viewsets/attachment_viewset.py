@@ -60,7 +60,7 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
 
         if isinstance(request.accepted_renderer, MediaFileRenderer) \
                 and self.object.media_file is not None:
-            suffix = request.QUERY_PARAMS.get('suffix')
+            suffix = request.query_params.get('suffix')
             try:
                 data = get_attachment_data(self.object, suffix)
             except IOError as e:
@@ -71,7 +71,7 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
             else:
                 return Response(data, content_type=self.object.mimetype)
 
-        filename = request.QUERY_PARAMS.get('filename')
+        filename = request.query_params.get('filename')
         serializer = self.get_serializer(self.object)
 
         if filename:
@@ -84,7 +84,7 @@ class AttachmentViewSet(AuthenticateHeaderMixin, CacheControlMixin, ETagsMixin,
 
     def list(self, request, *args, **kwargs):
         if request.user.is_anonymous():
-            xform = request.QUERY_PARAMS.get('xform')
+            xform = request.query_params.get('xform')
             if xform:
                 xform = XForm.objects.get(id=xform)
                 if not xform.shared_data:

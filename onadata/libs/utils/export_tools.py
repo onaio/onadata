@@ -1423,10 +1423,7 @@ def parse_request_export_options(request):
     """
     boolean_list = ['true', 'false']
     options = {}
-    if hasattr(request, 'QUERY_PARAMS'):
-        params = request.QUERY_PARAMS
-    if hasattr(request, 'GET'):
-        params = request.GET
+    params = request.query_params
     remove_group_name = params.get('remove_group_name') and \
         params.get('remove_group_name').lower()
     do_not_split_select_multiples = params.get(

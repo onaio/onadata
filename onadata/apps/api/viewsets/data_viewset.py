@@ -171,8 +171,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             else:
                 qs = self._filtered_or_shared_qs(qs, pk)
         else:
-            tags = self.request.QUERY_PARAMS.get('tags')
-            not_tagged = self.request.QUERY_PARAMS.get('not_tagged')
+            tags = self.request.query_params.get('tags')
+            not_tagged = self.request.query_params.get('not_tagged')
 
             if tags and isinstance(tags, six.string_types):
                 tags = tags.split(',')
@@ -227,7 +227,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             raise ParseError(_(u"Data id not provided."))
         elif(isinstance(self.object, Instance)):
             if request.user.has_perm("change_xform", self.object.xform):
-                return_url = request.QUERY_PARAMS.get('return_url')
+                return_url = request.query_params.get('return_url')
                 if not return_url:
                     raise ParseError(_(u"return_url not provided."))
 
@@ -319,8 +319,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             qs = self.filter_queryset(self.get_queryset())
             self.object_list = Instance.objects.filter(xform__in=qs,
                                                        deleted_at=None)
-            tags = self.request.QUERY_PARAMS.get('tags')
-            not_tagged = self.request.QUERY_PARAMS.get('not_tagged')
+            tags = self.request.query_params.get('tags')
+            not_tagged = self.request.query_params.get('not_tagged')
 
             if tags and isinstance(tags, six.string_types):
                 tags = tags.split(',')

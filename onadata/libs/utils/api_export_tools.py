@@ -79,7 +79,7 @@ def custom_response_handler(request, xform, query, export_type,
 
     remove_group_name = options.get("remove_group_name")
 
-    export_id = request.QUERY_PARAMS.get("export_id")
+    export_id = request.query_params.get("export_id")
 
     if export_id:
         export = get_object_or_404(Export, id=export_id, xform=xform)

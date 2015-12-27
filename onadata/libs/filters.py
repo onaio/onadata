@@ -70,7 +70,7 @@ class XFormOwnerFilter(filters.BaseFilterBackend):
     owner_prefix = 'user'
 
     def filter_queryset(self, request, queryset, view):
-        owner = request.QUERY_PARAMS.get('owner')
+        owner = request.query_params.get('owner')
 
         if owner:
             kwargs = {
@@ -132,7 +132,7 @@ class TagFilter(filters.BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
         # filter by tags if available.
-        tags = request.QUERY_PARAMS.get('tags', None)
+        tags = request.query_params.get('tags', None)
 
         if tags and isinstance(tags, six.string_types):
             tags = tags.split(',')
@@ -145,7 +145,7 @@ class XFormPermissionFilterMixin(object):
 
     def _xform_filter(self, request, view, keyword):
         """Use XForm permissions"""
-        xform = request.QUERY_PARAMS.get('xform')
+        xform = request.query_params.get('xform')
         if xform:
             try:
                 int(xform)
@@ -249,7 +249,7 @@ class AttachmentFilter(XFormPermissionFilterMixin,
 
         queryset = self._xform_filter_queryset(request, queryset, view,
                                                'instance__xform')
-        instance_id = request.QUERY_PARAMS.get('instance')
+        instance_id = request.query_params.get('instance')
         if instance_id:
             try:
                 int(instance_id)
@@ -265,7 +265,7 @@ class AttachmentFilter(XFormPermissionFilterMixin,
 class TeamOrgFilter(filters.BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
-        org = request.DATA.get('org') or request.QUERY_PARAMS.get('org')
+        org = request.DATA.get('org') or request.query_params.get('org')
 
         # Get all the teams for the organization
         if org:
@@ -281,7 +281,7 @@ class TeamOrgFilter(filters.BaseFilterBackend):
 class UserNoOrganizationsFilter(filters.BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
-        if str(request.QUERY_PARAMS.get('orgs')).lower() == 'false':
+        if str(request.query_params.get('orgs')).lower() == 'false':
             organization_user_ids = OrganizationProfile.objects.values_list(
                 'user__id',
                 flat=True)
@@ -298,7 +298,7 @@ class OrganizationsSharedWithUserFilter(filters.BaseFilterBackend):
         the passed user belongs.
         """
 
-        username = request.QUERY_PARAMS.get('shared_with')
+        username = request.query_params.get('shared_with')
 
         if username:
             try:

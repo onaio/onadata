@@ -36,8 +36,8 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
                 .to_representation(obj)
 
         request = self.context.get('request')
-        field = request.QUERY_PARAMS.get('group')
-        name = request.QUERY_PARAMS.get('name', field)
+        field = request.query_params.get('group')
+        name = request.query_params.get('name', field)
 
         if field is None:
             raise exceptions.ParseError(_(u"Expecting `group` and `name`"
@@ -81,8 +81,8 @@ class StatsInstanceSerializer(serializers.Serializer):
             return super(StatsInstanceSerializer, self).to_representation(obj)
 
         request = self.context.get('request')
-        method = request.QUERY_PARAMS.get('method', None)
-        field = request.QUERY_PARAMS.get('field', None)
+        method = request.query_params.get('method', None)
+        field = request.query_params.get('field', None)
 
         if field and field not in obj.get_keys():
             raise exceptions.ParseError(detail=_("Field not in XForm."))

@@ -46,7 +46,7 @@ class TeamViewSet(AuthenticateHeaderMixin,
 
         if request.method in ['DELETE', 'POST']:
             username = request.DATA.get('username') or\
-                request.QUERY_PARAMS.get('username')
+                request.query_params.get('username')
 
             if username:
                 try:

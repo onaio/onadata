@@ -154,7 +154,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, *args, **kwargs):
-        owner = request.QUERY_PARAMS.get('owner')
+        owner = request.query_params.get('owner')
 
         if owner:
             kwargs = {'organization__username__iexact': owner}

@@ -90,13 +90,13 @@ class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
         request = self.context.get('request')
 
         if obj and ret and 'properties' in ret and request is not None:
-            fields = request.QUERY_PARAMS.get('fields')
+            fields = request.query_params.get('fields')
             if fields:
                 for field in fields.split(','):
                     ret['properties'][field] = obj.json.get(field)
 
         if obj and ret and request:
-            geo_field = request.QUERY_PARAMS.get('geo_field')
+            geo_field = request.query_params.get('geo_field')
             if geo_field:
                 points = obj.json.get(geo_field)
                 geometry = geometry_from_string(points) \
