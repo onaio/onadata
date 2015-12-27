@@ -105,7 +105,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     @detail_route(methods=['PUT'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
-        data = dict(request.DATA.items() + [('project', self.object.pk)])
+        data = dict(request.data.items() + [('project', self.object.pk)])
         if data.get("remove"):
             serializer = RemoveUserFromProjectSerializer(data=data)
         else:

@@ -258,7 +258,7 @@ def add_team_to_project(team, project):
 
 def publish_xlsform(request, owner, id_string=None, project=None):
     return do_publish_xlsform(
-        request.user, request.DATA, request.FILES, owner, id_string,
+        request.user, request.data, request.FILES, owner, id_string,
         project)
 
 
@@ -295,10 +295,10 @@ def publish_project_xform(request, project):
     def set_form():
         props = {
             'project': project.pk,
-            'dropbox_xls_url': request.DATA.get('dropbox_xls_url'),
-            'xls_url': request.DATA.get('xls_url'),
-            'csv_url': request.DATA.get('csv_url'),
-            'text_xls_form': request.DATA.get('text_xls_form')
+            'dropbox_xls_url': request.data.get('dropbox_xls_url'),
+            'xls_url': request.data.get('xls_url'),
+            'csv_url': request.data.get('csv_url'),
+            'text_xls_form': request.data.get('text_xls_form')
         }
 
         form = QuickConverter(props, request.FILES)
@@ -317,7 +317,7 @@ def publish_project_xform(request, project):
         return True
 
     if 'formid' in request.DATA:
-        xform = get_object_or_404(XForm, pk=request.DATA.get('formid'))
+        xform = get_object_or_404(XForm, pk=request.data.get('formid'))
         if not ManagerRole.user_has_role(request.user, xform):
             raise exceptions.PermissionDenied(_(
                 "{} has no manager/owner role to the form {}". format(
@@ -378,7 +378,7 @@ def add_tags_to_instance(request, instance):
     class TagForm(forms.Form):
         tags = TagField()
 
-    form = TagForm(request.DATA)
+    form = TagForm(request.data)
 
     if form.is_valid():
         tags = form.cleaned_data.get('tags', None)

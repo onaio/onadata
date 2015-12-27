@@ -66,7 +66,7 @@ def create_instance_from_xml(username, request):
 def create_instance_from_json(username, request):
     request.accepted_renderer = JSONRenderer()
     request.accepted_media_type = JSONRenderer.media_type
-    dict_form = request.DATA
+    dict_form = request.data
     submission = dict_form.get('submission')
 
     if submission is None:

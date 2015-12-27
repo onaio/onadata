@@ -70,8 +70,8 @@ class ConnectViewSet(AuthenticateHeaderMixin,
     @list_route(methods=['POST'])
     def reset(self, request, *args, **kwargs):
         context = {'request': request}
-        data = request.DATA if request.DATA is not None else {}
-        if 'token' in request.DATA:
+        data = request.data if request.data is not None else {}
+        if 'token' in request.data:
             serializer = PasswordResetChangeSerializer(data=data,
                                                        context=context)
         else:

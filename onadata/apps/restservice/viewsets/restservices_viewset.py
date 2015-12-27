@@ -30,7 +30,7 @@ class RestServicesViewSet(AuthenticateHeaderMixin,
     filter_backends = (filters.RestServiceFilter, )
 
     def get_serializer_class(self):
-        name = self.request.DATA.get('name')
+        name = self.request.data.get('name')
 
         if name == TEXTIT:
             return TextItSerializer

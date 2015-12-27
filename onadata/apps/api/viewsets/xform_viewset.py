@@ -97,7 +97,7 @@ def _get_user(username):
 
 
 def _get_owner(request):
-    owner = request.DATA.get('owner') or request.user
+    owner = request.data.get('owner') or request.user
 
     if isinstance(owner, six.string_types):
         owner_obj = _get_user(owner)
@@ -384,7 +384,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if not username:
                 raise ParseError("User has to be authenticated")
 
-            csv_data = request.DATA.get('body')
+            csv_data = request.data.get('body')
             if csv_data:
                 rand_name = "survey_draft_%s.csv" % ''.join(
                     random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
@@ -461,7 +461,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         self.object = self.get_object()
 
         data = {}
-        for key, val in request.DATA.iteritems():
+        for key, val in request.data.iteritems():
             data[key] = val
         data.update({'xform': self.object.pk})
 
@@ -479,8 +479,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     def clone(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = {'xform': self.object.pk,
-                'username': request.DATA.get('username')}
-        project = request.DATA.get('project_id')
+                'username': request.data.get('username')}
+        project = request.data.get('project_id')
         if project:
             data['project'] = project
         serializer = CloneXFormSerializer(data=data)
@@ -556,8 +556,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         owner = self.object.user
 
         # updating the file
-        if request.FILES or 'xls_url' in request.DATA \
-                or 'dropbox_xls_url' in request.DATA:
+        if request.FILES or 'xls_url' in request.data \
+                or 'dropbox_xls_url' in request.data:
             return _try_update_xlsform(request, self.object, owner)
 
         return super(XFormViewSet, self).partial_update(request, *args,
