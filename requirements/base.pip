@@ -42,6 +42,8 @@ dict2xml
 djangorestframework
 djangorestframework-csv
 djangorestframework-gis
+djangorestframework-jsonp
+djangorestframework-xml
 
 # cors
 -e git+https://github.com/onaio/django-cors-headers.git@allow-all-for-url#egg=cors-headers
