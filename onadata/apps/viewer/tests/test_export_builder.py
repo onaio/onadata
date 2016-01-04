@@ -1197,7 +1197,7 @@ class TestExportBuilder(TestBase):
                                 '_uuid', '_submission_time', '_index',
                                 '_parent_table_name', '_parent_index',
                                 u'_tags', '_notes', '_version',
-                                '_duration', '_submitted_by']
+                                '_duration', '_submitted_by', '_attachments']
             expected_labels = ['3.1 Childs name',
                                '3.2 Child age',
                                '3.3 Favorite Colors',
@@ -1211,7 +1211,7 @@ class TestExportBuilder(TestBase):
                                '_uuid', '_submission_time', '_index',
                                '_parent_table_name', '_parent_index',
                                u'_tags', '_notes', '_version',
-                               '_duration', '_submitted_by']
+                               '_duration', '_submitted_by', '_attachments']
             rows = [row for row in reader]
             actual_headers = [h.decode('utf-8') for h in rows[0]]
             self.assertEqual(sorted(actual_headers), sorted(expected_headers))
@@ -1269,7 +1269,7 @@ class TestExportBuilder(TestBase):
                 '_uuid', '_submission_time', '_index',
                 '_parent_table_name', '_parent_index',
                 u'_tags', '_notes', '_version',
-                '_duration', '_submitted_by'
+                '_duration', '_submitted_by', '_attachments'
             ]
             rows = [row for row in reader]
             actual_headers = [h.decode('utf-8') for h in rows[0]]

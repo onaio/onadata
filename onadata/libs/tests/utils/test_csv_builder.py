@@ -513,7 +513,7 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by'
+            '_notes', '_version', '_duration', '_submitted_by', '_attachments'
         ]
         self.assertEqual(expected_header, header)
         labels = csv_reader.next()
@@ -527,7 +527,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
             'web_browsers/Safari',
             'instanceID', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by'
+            '_notes', '_version', '_duration', '_submitted_by', '_attachments'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -570,7 +570,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
             'web_browsers/Safari',
             'instanceID', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by'
+            '_notes', '_version', '_duration', '_submitted_by', '_attachments'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
