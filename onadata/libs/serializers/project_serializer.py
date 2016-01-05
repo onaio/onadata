@@ -129,6 +129,7 @@ def get_users(obj, context, all_perms=True):
     for k in data.keys():
         data[k]['permissions'].sort()
         data[k]['role'] = get_role(data[k]['permissions'], obj)
+        del(data[k]['permissions'])
 
     results = data.values()
 
