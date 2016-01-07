@@ -377,16 +377,16 @@ def response_with_mimetype_and_name(
                 _(u"The requested file could not be found."))
     else:
         response = HttpResponse(content_type=mimetype)
-    response['Content-Disposition'] = disposition_ext_and_date(
+    response['Content-Disposition'] = generate_content_disposition_header(
         name, extension, show_date)
     return response
 
 
-def disposition_ext_and_date(name, extension, show_date=True):
+def generate_content_disposition_header(name, extension, show_date=True):
     if name is None:
         return 'attachment;'
     if show_date:
-        name = "%s_%s" % (name, date.today().strftime("%Y_%m_%d"))
+        name = "%s-%s" % (name, datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
     return 'attachment; filename=%s.%s' % (name, extension)
 
 
