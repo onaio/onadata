@@ -97,7 +97,6 @@ class TestPermissions(TestBase):
         self.assertIn('role', users_with_perms[0].keys())
         self.assertIn('gravatar', users_with_perms[0].keys())
         self.assertIn('metadata', users_with_perms[0].keys())
-        self.assertIn('permissions', users_with_perms[0].keys())
         self.assertIn('is_org', users_with_perms[0].keys())
 
     def test_readonly_no_downloads_has_role(self):
