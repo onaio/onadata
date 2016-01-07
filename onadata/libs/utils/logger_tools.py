@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import datetime
 import os
 import pytz
 import re
