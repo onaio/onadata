@@ -124,6 +124,7 @@ class TestCSVDataFrameBuilder(TestBase):
             AbstractDataFrameBuilder.IGNORED_COLUMNS
         try:
             expected_columns.remove(u'_deleted_at')
+            expected_columns.remove(u'_attachments')
         except ValueError:
             pass
         self.maxDiff = None
@@ -419,7 +420,6 @@ class TestCSVDataFrameBuilder(TestBase):
             u'name': u'Abe',
             u'age': 88,
             u'has_children': u'1',
-            u'_attachments': '',
             u'children[1]/childs_info/name': u'Cain',
             u'children[2]/childs_info/name': u'Abel',
             u'children[1]/childs_info/age': 56,
@@ -472,7 +472,7 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by', '_attachments'
+            '_notes', '_version', '_duration', '_submitted_by'
         ]
         self.assertEqual(expected_header, header)
         rows = []
@@ -513,7 +513,7 @@ class TestCSVDataFrameBuilder(TestBase):
             '_gps_altitude', '_gps_precision', 'web_browsers/firefox',
             'web_browsers/chrome', 'web_browsers/ie', 'web_browsers/safari',
             'instanceID', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by', '_attachments'
+            '_notes', '_version', '_duration', '_submitted_by'
         ]
         self.assertEqual(expected_header, header)
         labels = csv_reader.next()
@@ -527,7 +527,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
             'web_browsers/Safari',
             'instanceID', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by', '_attachments'
+            '_notes', '_version', '_duration', '_submitted_by'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []
@@ -570,7 +570,7 @@ class TestCSVDataFrameBuilder(TestBase):
             'web_browsers/Google Chrome', 'web_browsers/Internet Explorer',
             'web_browsers/Safari',
             'instanceID', '_uuid', '_submission_time', '_tags',
-            '_notes', '_version', '_duration', '_submitted_by', '_attachments'
+            '_notes', '_version', '_duration', '_submitted_by'
         ]
         self.assertEqual(expected_labels, labels)
         rows = []

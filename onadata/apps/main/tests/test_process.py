@@ -21,7 +21,7 @@ from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.libs.utils.common_tags import MONGO_STRFTIME, ATTACHMENTS
+from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from test_base import TestBase
 
 
@@ -275,9 +275,6 @@ class TestProcess(TestBase):
             expected_list = json.load(f)
 
         self.assertEqual(self.data_dictionary.get_headers(), expected_list)
-
-        # Add additional colums
-        expected_list.append(ATTACHMENTS)
 
         # test to make sure the headers in the actual csv are as expected
         actual_csv = self._get_csv_()

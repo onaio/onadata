@@ -40,6 +40,8 @@ from onadata.libs.utils.common_tags import (
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
     DATAVIEW_EXPORT)
 from onadata.libs.utils.osm import get_combined_osm
+from onadata.libs.serializers.attachment_serializer import dict_key_for_value, \
+    get_path
 
 
 QUESTION_TYPES_TO_EXCLUDE = [
@@ -54,7 +56,11 @@ EXPORT_QUERY_KEY = 'query'
 
 
 def current_site_url(path):
-    """Returns fully qualified URL (no trailing slash) for the current site."""
+    """
+    Returns fully qualified URL (no trailing slash) for the current site.
+    :param path
+    :return: complete url
+    """
     from django.contrib.sites.models import Site
     current_site = Site.objects.get_current()
     protocol = getattr(settings, 'ONA_SITE_PROTOCOL', 'http')
@@ -66,6 +72,26 @@ def current_site_url(path):
         url += '%s' % path
 
     return url
+
+
+def get_attachment_xpath(attachment_id):
+    """
+    Gets the xpath of the attachment
+    :param attachment_id:
+    :return: field_xpath
+    """
+    try:
+        attachment = Attachment.objects.get(pk=attachment_id)
+        qa_dict = attachment.instance.get_dict()
+        if attachment.filename not in qa_dict.values():
+            return None
+
+        question_name = dict_key_for_value(qa_dict, attachment.filename)
+        data = json.loads(attachment.instance.xform.json)
+
+        return get_path(data, question_name, [])
+    except Attachment.DoesNotExist:
+        return None
 
 
 def encode_if_str(row, key, encode_dates=False):
@@ -160,7 +186,7 @@ class DictOrganizer(object):
         return result
 
 
-def dict_to_joined_export(data, index, indices, name):
+def dict_to_joined_export(data, index, indices, name, include_images=True):
     """
     Converts a dict into one or more tabular datasets
     """
@@ -177,7 +203,7 @@ def dict_to_joined_export(data, index, indices, name):
                     indices[key] += 1
                     child_index = indices[key]
                     new_output = dict_to_joined_export(
-                        child, child_index, indices, key)
+                        child, child_index, indices, key, include_images)
                     d = {INDEX: child_index, PARENT_INDEX: index,
                          PARENT_TABLE_NAME: name}
                     # iterate over keys within new_output and append to
@@ -199,10 +225,13 @@ def dict_to_joined_export(data, index, indices, name):
                     note_list = [v if isinstance(v, six.string_types)
                                  else v['note'] for v in val]
                     output[name][key] = "\r\n".join(note_list)
-                elif key in ATTACHMENTS:
-                    urls = [current_site_url(v.get('download_url', ''))
-                            for v in val]
-                    output[name][key] = '\n'.join(urls)
+                elif key in [ATTACHMENTS]:
+                    # Overwrite the default photo column with the url
+                    if include_images:
+                        for v in val:
+                            url = current_site_url(v.get('download_url', ''))
+                            output[name][get_attachment_xpath(v.get('id'))]\
+                                = url
                 else:
                     output[name][key] = val
 
@@ -210,12 +239,12 @@ def dict_to_joined_export(data, index, indices, name):
 
 
 class ExportBuilder(object):
-    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, GEOLOCATION,
+    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields we export but are not within the form's structure
     EXTRA_FIELDS = [ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME,
                     PARENT_INDEX, TAGS, NOTES, VERSION, DURATION,
-                    SUBMITTED_BY, ATTACHMENTS]
+                    SUBMITTED_BY]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
 
@@ -227,6 +256,7 @@ class ExportBuilder(object):
 
     INCLUDE_LABELS = False
     INCLUDE_LABELS_ONLY = False
+    INCLUDE_IMAGES = True
 
     TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
     CONVERT_FUNCS = {
@@ -239,12 +269,6 @@ class ExportBuilder(object):
     TRUNCATE_GROUP_TITLE = False
 
     XLS_SHEET_NAME_MAX_CHARS = 31
-
-    def __init__(self):
-        if ATTACHMENTS not in self.EXTRA_FIELDS:
-            self.EXTRA_FIELDS.append(ATTACHMENTS)
-        if ATTACHMENTS in self.IGNORED_COLUMNS:
-            self.IGNORED_COLUMNS.remove(ATTACHMENTS)
 
     @classmethod
     def string_to_date_with_xls_validation(cls, date_str):
@@ -527,7 +551,8 @@ class ExportBuilder(object):
         for d in data:
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
-                                                  survey_name)
+                                                  survey_name,
+                                                  self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
             # attach meta fields (index, parent_index, parent_table)
@@ -635,7 +660,8 @@ class ExportBuilder(object):
         survey_name = self.survey.name
         for d in data:
             joined_export = dict_to_joined_export(d, index, indices,
-                                                  survey_name)
+                                                  survey_name,
+                                                  self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
             # attach meta fields (index, parent_index, parent_table)
@@ -668,8 +694,7 @@ class ExportBuilder(object):
 
     def to_flat_csv_export(
             self, path, data, username, id_string, filter_query,
-            start=None, end=None, dataview=None, include_images=True,
-            xform=None):
+            start=None, end=None, dataview=None, xform=None):
         # TODO resolve circular import
         from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 
@@ -677,13 +702,8 @@ class ExportBuilder(object):
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
-            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, include_images
+            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES
         )
-        if not csv_builder.include_images:
-            if ATTACHMENTS not in csv_builder.IGNORED_COLUMNS:
-                csv_builder.IGNORED_COLUMNS.append(ATTACHMENTS)
-            if ATTACHMENTS in csv_builder.ADDITIONAL_COLUMNS:
-                csv_builder.ADDITIONAL_COLUMNS.remove(ATTACHMENTS)
 
         csv_builder.export_to(path, dataview=dataview)
 
@@ -732,7 +752,8 @@ class ExportBuilder(object):
         for d in data:
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
-                                                  survey_name)
+                                                  survey_name,
+                                                  self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
             # attach meta fields (index, parent_index, parent_table)
@@ -866,7 +887,6 @@ def generate_export(export_type, username, id_string, export_id=None,
     filter_query = options.get("query")
     remove_group_name = options.get("remove_group_name", False)
     start = options.get("start")
-    include_images = options.get("include_images", True)
 
     export_type_func_map = {
         Export.XLS_EXPORT: 'to_xls_export',
@@ -902,13 +922,9 @@ def generate_export(export_type, username, id_string, export_id=None,
     export_builder.INCLUDE_LABELS_ONLY = options.get(
         'include_labels_only', False
     )
-    export_builder.set_survey(xform.data_dictionary().survey)
 
-    if not include_images:
-        if ATTACHMENTS in export_builder.EXTRA_FIELDS:
-            export_builder.EXTRA_FIELDS.remove(ATTACHMENTS)
-        if ATTACHMENTS not in export_builder.IGNORED_COLUMNS:
-            export_builder.IGNORED_COLUMNS.append(ATTACHMENTS)
+    export_builder.INCLUDE_IMAGES = options.get("include_images", True)
+    export_builder.set_survey(xform.data_dictionary().survey)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
 
@@ -917,8 +933,7 @@ def generate_export(export_type, username, id_string, export_id=None,
     try:
         func.__call__(
             temp_file.name, records, username, id_string, filter_query,
-            start=start, end=end, dataview=dataview,
-            include_images=include_images, xform=xform
+            start=start, end=end, dataview=dataview, xform=xform
         )
     except NoRecordsFoundError:
         pass

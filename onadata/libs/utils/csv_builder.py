@@ -20,6 +20,7 @@ from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     DURATION
 from onadata.libs.utils.export_tools import current_site_url
 from onadata.libs.utils.export_tools import question_types_to_exclude
+from onadata.libs.utils.export_tools import get_attachment_xpath
 
 
 # the bind type of select multiples that we use to compare
@@ -146,12 +147,12 @@ def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
 
 
 class AbstractDataFrameBuilder(object):
-    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ID, GEOLOCATION,
+    IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ID, ATTACHMENTS, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields NOT within the form def that we want to include
     ADDITIONAL_COLUMNS = [
         UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
-        SUBMITTED_BY, ATTACHMENTS]
+        SUBMITTED_BY]
     BINARY_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
@@ -182,14 +183,7 @@ class AbstractDataFrameBuilder(object):
         self.include_labels = include_labels
         self.include_labels_only = include_labels_only
         self.include_images = include_images
-        self._reset_columns()
         self._setup()
-
-    def _reset_columns(self):
-        if ATTACHMENTS not in self.ADDITIONAL_COLUMNS:
-            self.ADDITIONAL_COLUMNS.append(ATTACHMENTS)
-        if ATTACHMENTS in self.IGNORED_COLUMNS:
-            self.IGNORED_COLUMNS.remove(ATTACHMENTS)
 
     def _setup(self):
         self.dd = self.xform.data_dictionary()
@@ -347,7 +341,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         super(CSVDataFrameBuilder, self)._setup()
 
     @classmethod
-    def _reindex(cls, key, value, ordered_columns, parent_prefix=None):
+    def _reindex(cls, key, value, ordered_columns, parent_prefix=None,
+                 include_images=True):
         """
         Flatten list columns by appending an index, otherwise return as is
         """
@@ -379,7 +374,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             # if nested_value is a list, rinse and repeat
                             d.update(cls._reindex(
                                 nested_key, nested_val,
-                                ordered_columns, new_prefix))
+                                ordered_columns, new_prefix,
+                                include_images=include_images))
                         else:
                             # it can only be a scalar
                             # collapse xpath
@@ -399,9 +395,10 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if key == NOTES:
                 d[key] = u"\r\n".join(value)
             elif key == ATTACHMENTS:
-                urls = [current_site_url(v.get('download_url', ''))
-                        for v in value]
-                d[key] = '\n'.join(urls)
+                if include_images:
+                    for v in value:
+                        url = current_site_url(v.get('download_url', ''))
+                        d[get_attachment_xpath(v.get('id'))] = url
             else:
                 d[key] = value
         return d
@@ -460,7 +457,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             flat_dict = {}
             # re index repeats
             for key, value in record.iteritems():
-                reindexed = self._reindex(key, value, self.ordered_columns)
+                reindexed = self._reindex(key, value, self.ordered_columns,
+                                          include_images=self.include_images)
                 flat_dict.update(reindexed)
 
             data.append(flat_dict)

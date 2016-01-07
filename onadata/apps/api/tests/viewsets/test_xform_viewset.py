@@ -32,6 +32,7 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 from onadata.apps.viewer.models import Export
+from onadata.apps.logger.models import Attachment
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -3303,15 +3304,26 @@ class TestXFormViewSet(TestAbstractViewSet):
                     'Is ambulance available daily or weekly?', headers
                 )
 
-    def test_csv_exports_w_attachments(self):
+    def test_csv_exports_w_images_link(self):
         with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            media_file = "1442323232322.jpg"
-            self._submit_transport_instance_w_attachment(
-                media_file=media_file,
-                forced_submission_time=datetime(2015, 12, 2))
+            xlsform_path = os.path.join(settings.PROJECT_ROOT, 'libs', 'tests',
+                                        "utils", "fixtures", "tutorial.xls")
 
-            attachment_id = self.attachment.pk
+            self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+            media_file = "1442323232322.jpg"
+
+            path = os.path.join(settings.PROJECT_ROOT, 'libs', 'tests',
+                                "utils", "fixtures", "tutorial", "instances",
+                                "uuid1", media_file)
+            with open(path) as f:
+                self._make_submission(os.path.join(
+                    settings.PROJECT_ROOT, 'libs', 'tests', "utils",
+                    "fixtures", "tutorial", "instances",
+                    "uuid1", 'submission.xml'),
+                    media_file=f,
+                    forced_submission_time=datetime(2015, 12, 2))
+
+            attachment_id = Attachment.objects.all().last().pk
 
             view = XFormViewSet.as_view({
                 'get': 'retrieve'
@@ -3324,7 +3336,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
-                                          'transportation_images_included.csv')
+                                          'tutorial_images_included.csv')
 
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
@@ -3348,5 +3360,5 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
-                                          'transportation_no_images.csv')
+                                          'tutorial_no_images.csv')
             self._validate_csv_export(response, test_file_path)
