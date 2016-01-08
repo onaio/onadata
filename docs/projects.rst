@@ -313,7 +313,7 @@ Response
                    {
                        "role": "owner",
                        "user": "alice",
-                       "permissions": ["report_xform", ...]
+                       ...
                    },
                    ...
                ]

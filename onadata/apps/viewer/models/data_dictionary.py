@@ -306,6 +306,12 @@ class DataDictionary(XForm):
 
     survey_elements = property(get_survey_elements)
 
+    def get_field_name_xpaths_only(self):
+        return [
+            elem.get_abbreviated_xpath() for elem in self.survey_elements
+            if elem.type != '' and elem.type != 'survey'
+        ]
+
     def geopoint_xpaths(self):
         geo_xpaths = []
 

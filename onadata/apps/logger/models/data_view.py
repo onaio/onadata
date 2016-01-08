@@ -195,7 +195,7 @@ class DataView(models.Model):
 
     @classmethod
     def query_data(cls, data_view, start_index=None, limit=None, count=None,
-                   last_submission_time=False):
+                   last_submission_time=False, all_data=False):
 
         additional_columns = [GEOLOCATION] \
             if data_view.instances_with_geopoints else []
@@ -203,12 +203,16 @@ class DataView(models.Model):
         if has_attachments_fields(data_view):
             additional_columns += [ATTACHMENTS]
 
-        # get the columns needed
-        columns = data_view.columns + DEFAULT_COLUMNS + additional_columns
+        if all_data:
+            sql = u"SELECT json FROM logger_instance"
+            columns = None
+        else:
+            # get the columns needed
+            columns = data_view.columns + DEFAULT_COLUMNS + additional_columns
 
-        field_list = [u"json->%s" for i in columns]
+            field_list = [u"json->%s" for i in columns]
 
-        sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
+            sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
 
         data_dictionary = data_view.xform.data_dictionary()
         known_integers = [

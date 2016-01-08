@@ -19,7 +19,6 @@ from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
     DURATION
 from onadata.libs.utils.export_tools import question_types_to_exclude
-from onadata.apps.logger.models.data_view import DataView
 
 
 # the bind type of select multiples that we use to compare
@@ -454,12 +453,15 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         self._build_ordered_columns(self.dd.survey, self.ordered_columns)
 
         if dataview:
-            data = DataView.query_data(dataview)
-
-            columns = dataview.columns
+            cursor = dataview.query_data(dataview, all_data=True)
+            data = self._format_for_dataframe(cursor)
+            columns = list(chain.from_iterable(
+                [[xpath] if cols is None else cols
+                 for xpath, cols in self.ordered_columns.iteritems()
+                 if [c for c in dataview.columns if xpath.startswith(c)]]
+            ))
         else:
-            cursor = self._query_data(
-                self.filter_query)
+            cursor = self._query_data(self.filter_query)
             data = self._format_for_dataframe(cursor)
 
             columns = list(chain.from_iterable(

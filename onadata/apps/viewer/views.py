@@ -40,7 +40,7 @@ from onadata.libs.utils.image_tools import image_url
 from onadata.libs.utils.google import google_export_xls, redirect_uri
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
-    disposition_ext_and_date
+    generate_content_disposition_header
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
     export_def_from_filename
 from onadata.libs.utils.user_auth import has_permission, get_xform_and_perms,\
@@ -638,7 +638,7 @@ def kml_export(request, username, id_string):
         render(request, "survey.kml", data,
                content_type="application/vnd.google-earth.kml+xml")
     response['Content-Disposition'] = \
-        disposition_ext_and_date(id_string, 'kml')
+        generate_content_disposition_header(id_string, 'kml')
     audit = {
         "xform": xform.id_string,
         "export_type": Export.KML_EXPORT
