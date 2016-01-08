@@ -21,11 +21,12 @@ class ExportViewSet(ModelViewSet):
 
     def retrieve(self, request, pk=None):
         export = Export.objects.get(pk=pk)
-        extension = os.path.splitext(export.filename)[1][1:]
+        filename, extension = os.path.splitext(export.filename)
+        extension = extension[1:]
 
         return response_with_mimetype_and_name(
             Export.EXPORT_MIMES[extension],
-            export.filename,
+            filename,
             extension=extension,
             file_path=export.filepath,
             show_date=False)
