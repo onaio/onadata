@@ -136,6 +136,7 @@ class EnketoTokenAuthentication(TokenAuthentication):
 
         return None
 
+
 class TempTokenURLParameterAuthentication(TempTokenAuthentication):
     model = TempToken
 

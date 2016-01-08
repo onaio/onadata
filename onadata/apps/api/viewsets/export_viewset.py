@@ -2,19 +2,18 @@ import os
 
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.serializers.export_serializer import ExportSerializer
-from onadata.libs.authentication import *
-from rest_framework.authentication import (
-    BasicAuthentication,
-    TokenAuthentication)
-from rest_framework.decorators import detail_route
-from rest_framework.response import Response
+from onadata.libs.authentication import (
+    DigestAuthentication,
+    TempTokenAuthentication,
+    TempTokenURLParameterAuthentication)
+from rest_framework.authentication import BasicAuthentication
 from rest_framework.viewsets import ModelViewSet
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 
 
 class ExportViewSet(ModelViewSet):
     authentication_classes = (DigestAuthentication,
-                              TokenAuthentication,
+                              TempTokenAuthentication,
                               TempTokenURLParameterAuthentication,
                               BasicAuthentication)
     queryset = Export.objects.filter()
