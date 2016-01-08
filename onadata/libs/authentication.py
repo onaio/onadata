@@ -135,3 +135,12 @@ class EnketoTokenAuthentication(TokenAuthentication):
                 _('Malformed cookie. Clear your cookies then try again'))
 
         return None
+
+class TempTokenURLParameterAuthentication(TokenAuthentication):
+    model = Token
+
+    def authenticate(self, request):
+        key = request.GET.get('temp_token')
+        api_token = self.model.objects.get(key=key)
+
+        return api_token.user, api_token
