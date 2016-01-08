@@ -136,11 +136,13 @@ class EnketoTokenAuthentication(TokenAuthentication):
 
         return None
 
-class TempTokenURLParameterAuthentication(TokenAuthentication):
-    model = Token
+class TempTokenURLParameterAuthentication(TempTokenAuthentication):
+    model = TempToken
 
     def authenticate(self, request):
         key = request.GET.get('temp_token')
-        api_token = self.model.objects.get(key=key)
+        if not key:
+            error_message = _(u'Missing temp_token parameter')
+            raise exceptions.AuthenticationFailed(error_message)
 
-        return api_token.user, api_token
+        return self.authenticate_credentials(key)
