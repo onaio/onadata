@@ -12,6 +12,7 @@ from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.api.viewsets.data_viewset import AuthenticatedDataViewSet
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
+from onadata.apps.api.viewsets.export_viewset import ExportViewSet
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
@@ -240,3 +241,4 @@ router.register(r'restservices', RestServicesViewSet, base_name='restservices')
 router.register(r'files', MediaViewSet, base_name='files')
 router.register(r'dataviews', DataViewViewSet, base_name='dataviews')
 router.register(r'widgets', WidgetViewSet, base_name='widgets')
+router.register(r'export', ExportViewSet, base_name='export')
