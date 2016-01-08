@@ -27,4 +27,5 @@ class ExportViewSet(ModelViewSet):
             Export.EXPORT_MIMES[extension],
             export.filename,
             extension=extension,
-            file_path=export.filepath)
+            file_path=export.filepath,
+            show_date=False)
