@@ -10,6 +10,7 @@ from onadata.libs.authentication import (DigestAuthentication,
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.test import APIRequestFactory
 
+
 class TestPermissions(TestCase):
 
     def setUp(self):
@@ -37,35 +38,37 @@ class TestTempTokenAuthentication(TestCase):
         temp_token.created = expired_time
 
         temp_token.save()
-        self.assertRaisesMessage(AuthenticationFailed,
-                                 u'Token expired',
-                                 self.temp_token_authentication.authenticate_credentials,
-                                 temp_token.key)
+        self.assertRaisesMessage(
+            AuthenticationFailed,
+            u'Token expired',
+            self.temp_token_authentication.authenticate_credentials,
+            temp_token.key)
 
     def test_inactive_user(self):
         user, created = User.objects.get_or_create(username='temp')
         temp_token, created = TempToken.objects.get_or_create(user=user)
         user.is_active = False
         user.save()
-        self.assertRaisesMessage(AuthenticationFailed,
-                                 u'User inactive or deleted',
-                                 self.temp_token_authentication.authenticate_credentials,
-                                 temp_token.key)
-        
+        self.assertRaisesMessage(
+            AuthenticationFailed,
+            u'User inactive or deleted',
+            self.temp_token_authentication.authenticate_credentials,
+            temp_token.key)
 
     def test_invalid_temp_token(self):
-        self.assertRaisesMessage(AuthenticationFailed,
-                                 u'Invalid token',
-                                 self.temp_token_authentication.authenticate_credentials,
-                                 '123')
+        self.assertRaisesMessage(
+            AuthenticationFailed,
+            u'Invalid token',
+            self.temp_token_authentication.authenticate_credentials,
+            '123')
 
     def test_authenticates_if_token_is_valid(self):
         user, created = User.objects.get_or_create(username='temp')
         token, created = TempToken.objects.get_or_create(user=user)
 
         returned_user, returned_token = self.\
-                                        temp_token_authentication.\
-                                        authenticate_credentials(token.key)
+            temp_token_authentication.\
+            authenticate_credentials(token.key)
         self.assertEquals(user, returned_user)
         self.assertEquals(token, returned_token)
 
