@@ -4,7 +4,6 @@ from django.conf import settings
 from onadata.apps.api.viewsets.export_viewset import ExportViewSet
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
-from onadata.apps.api.models.temp_token import TempToken
 
 from rest_framework.test import APIRequestFactory, force_authenticate
 
