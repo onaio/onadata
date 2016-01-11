@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 
 from rest_framework.response import Response
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 
 from onadata.apps.logger.models import Attachment
 from onadata.libs.mixins.authenticate_header_mixin import \
@@ -22,7 +22,7 @@ class MediaViewSet(AuthenticateHeaderMixin,
                    CacheControlMixin, ETagsMixin, BaseViewset,
                    viewsets.ViewSet):
     """A view to redirect to actual attachments url"""
-    permission_classes = (IsAuthenticated, )
+    permission_classes = (AllowAny, )
 
     def retrieve(self, request, pk=None):
         """
