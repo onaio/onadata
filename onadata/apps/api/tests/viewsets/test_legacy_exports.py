@@ -7,7 +7,7 @@ from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.main.tests.test_base import TestBase
 
 
-class TestExportViewSet(TestBase):
+class TestLegacyExports(TestBase):
 
     def setUp(self):
         super(self.__class__, self).setUp()
