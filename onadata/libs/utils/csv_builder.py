@@ -18,7 +18,9 @@ from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
     DURATION
+from onadata.libs.utils.export_tools import current_site_url
 from onadata.libs.utils.export_tools import question_types_to_exclude
+from onadata.libs.utils.export_tools import get_attachment_xpath
 
 
 # the bind type of select multiples that we use to compare
@@ -149,7 +151,8 @@ class AbstractDataFrameBuilder(object):
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields NOT within the form def that we want to include
     ADDITIONAL_COLUMNS = [
-        UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION, SUBMITTED_BY]
+        UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
+        SUBMITTED_BY]
     BINARY_SELECT_MULTIPLES = False
     """
     Group functionality used by any DataFrameBuilder i.e. XLS, CSV and KML
@@ -159,7 +162,9 @@ class AbstractDataFrameBuilder(object):
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
                  start=None, end=None, remove_group_name=False, xform=None,
-                 include_labels=False, include_labels_only=False):
+                 include_labels=False, include_labels_only=False,
+                 include_images=True):
+
         self.username = username
         self.id_string = id_string
         self.filter_query = filter_query
@@ -169,6 +174,7 @@ class AbstractDataFrameBuilder(object):
         self.start = start
         self.end = end
         self.remove_group_name = remove_group_name
+
         if xform:
             self.xform = xform
         else:
@@ -176,6 +182,7 @@ class AbstractDataFrameBuilder(object):
                                            user__username=self.username)
         self.include_labels = include_labels
         self.include_labels_only = include_labels_only
+        self.include_images = include_images
         self._setup()
 
     def _setup(self):
@@ -320,18 +327,22 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  group_delimiter=DEFAULT_GROUP_DELIMITER,
                  split_select_multiples=True, binary_select_multiples=False,
                  start=None, end=None, remove_group_name=False, xform=None,
-                 include_labels=False, include_labels_only=False):
+                 include_labels=False, include_labels_only=False,
+                 include_images=False):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
-            remove_group_name, xform, include_labels, include_labels_only)
+            remove_group_name, xform, include_labels, include_labels_only,
+            include_images
+        )
         self.ordered_columns = OrderedDict()
 
     def _setup(self):
         super(CSVDataFrameBuilder, self)._setup()
 
     @classmethod
-    def _reindex(cls, key, value, ordered_columns, parent_prefix=None):
+    def _reindex(cls, key, value, ordered_columns, parent_prefix=None,
+                 include_images=True):
         """
         Flatten list columns by appending an index, otherwise return as is
         """
@@ -363,7 +374,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             # if nested_value is a list, rinse and repeat
                             d.update(cls._reindex(
                                 nested_key, nested_val,
-                                ordered_columns, new_prefix))
+                                ordered_columns, new_prefix,
+                                include_images=include_images))
                         else:
                             # it can only be a scalar
                             # collapse xpath
@@ -383,7 +395,10 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if key == NOTES:
                 d[key] = u"\r\n".join(value)
             elif key == ATTACHMENTS:
-                d[key] = []
+                if include_images:
+                    for v in value:
+                        url = current_site_url(v.get('download_url', ''))
+                        d[get_attachment_xpath(v.get('id'))] = url
             else:
                 d[key] = value
         return d
@@ -442,7 +457,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             flat_dict = {}
             # re index repeats
             for key, value in record.iteritems():
-                reindexed = self._reindex(key, value, self.ordered_columns)
+                reindexed = self._reindex(key, value, self.ordered_columns,
+                                          include_images=self.include_images)
                 flat_dict.update(reindexed)
 
             data.append(flat_dict)

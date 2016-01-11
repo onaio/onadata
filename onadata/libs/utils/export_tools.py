@@ -8,6 +8,7 @@ import six
 from urlparse import urlparse
 from zipfile import ZipFile
 
+from django.conf import settings
 from django.core.files.base import File
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files.storage import get_storage_class
@@ -39,6 +40,8 @@ from onadata.libs.utils.common_tags import (
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
     DATAVIEW_EXPORT)
 from onadata.libs.utils.osm import get_combined_osm
+from onadata.libs.serializers.attachment_serializer import dict_key_for_value, \
+    get_path
 
 
 QUESTION_TYPES_TO_EXCLUDE = [
@@ -50,6 +53,45 @@ GEOPOINT_BIND_TYPE = u"geopoint"
 
 DEFAULT_GROUP_DELIMITER = '/'
 EXPORT_QUERY_KEY = 'query'
+
+
+def current_site_url(path):
+    """
+    Returns fully qualified URL (no trailing slash) for the current site.
+    :param path
+    :return: complete url
+    """
+    from django.contrib.sites.models import Site
+    current_site = Site.objects.get_current()
+    protocol = getattr(settings, 'ONA_SITE_PROTOCOL', 'http')
+    port = getattr(settings, 'ONA_SITE_PORT', '')
+    url = '%s://%s' % (protocol, current_site.domain)
+    if port:
+        url += ':%s' % port
+    if path:
+        url += '%s' % path
+
+    return url
+
+
+def get_attachment_xpath(attachment_id):
+    """
+    Gets the xpath of the attachment
+    :param attachment_id:
+    :return: field_xpath
+    """
+    try:
+        attachment = Attachment.objects.get(pk=attachment_id)
+        qa_dict = attachment.instance.get_dict()
+        if attachment.filename not in qa_dict.values():
+            return None
+
+        question_name = dict_key_for_value(qa_dict, attachment.filename)
+        data = json.loads(attachment.instance.xform.json)
+
+        return get_path(data, question_name, [])
+    except Attachment.DoesNotExist:
+        return None
 
 
 def encode_if_str(row, key, encode_dates=False):
@@ -144,7 +186,7 @@ class DictOrganizer(object):
         return result
 
 
-def dict_to_joined_export(data, index, indices, name):
+def dict_to_joined_export(data, index, indices, name, include_images=True):
     """
     Converts a dict into one or more tabular datasets
     """
@@ -152,7 +194,8 @@ def dict_to_joined_export(data, index, indices, name):
     # TODO: test for _geolocation and attachment lists
     if isinstance(data, dict):
         for key, val in data.iteritems():
-            if isinstance(val, list) and key not in [NOTES, TAGS]:
+            if isinstance(val, list) and key not in [NOTES, ATTACHMENTS, TAGS]:
+
                 output[key] = []
                 for child in val:
                     if key not in indices:
@@ -160,7 +203,7 @@ def dict_to_joined_export(data, index, indices, name):
                     indices[key] += 1
                     child_index = indices[key]
                     new_output = dict_to_joined_export(
-                        child, child_index, indices, key)
+                        child, child_index, indices, key, include_images)
                     d = {INDEX: child_index, PARENT_INDEX: index,
                          PARENT_TABLE_NAME: name}
                     # iterate over keys within new_output and append to
@@ -182,6 +225,13 @@ def dict_to_joined_export(data, index, indices, name):
                     note_list = [v if isinstance(v, six.string_types)
                                  else v['note'] for v in val]
                     output[name][key] = "\r\n".join(note_list)
+                elif key in [ATTACHMENTS]:
+                    # Overwrite the default photo column with the url
+                    if include_images:
+                        for v in val:
+                            url = current_site_url(v.get('download_url', ''))
+                            output[name][get_attachment_xpath(v.get('id'))]\
+                                = url
                 else:
                     output[name][key] = val
 
@@ -193,7 +243,8 @@ class ExportBuilder(object):
                        BAMBOO_DATASET_ID, DELETEDAT]
     # fields we export but are not within the form's structure
     EXTRA_FIELDS = [ID, UUID, SUBMISSION_TIME, INDEX, PARENT_TABLE_NAME,
-                    PARENT_INDEX, TAGS, NOTES, VERSION, DURATION, SUBMITTED_BY]
+                    PARENT_INDEX, TAGS, NOTES, VERSION, DURATION,
+                    SUBMITTED_BY]
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
 
@@ -205,6 +256,7 @@ class ExportBuilder(object):
 
     INCLUDE_LABELS = False
     INCLUDE_LABELS_ONLY = False
+    INCLUDE_IMAGES = True
 
     TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
     CONVERT_FUNCS = {
@@ -499,7 +551,8 @@ class ExportBuilder(object):
         for d in data:
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
-                                                  survey_name)
+                                                  survey_name,
+                                                  self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
             # attach meta fields (index, parent_index, parent_table)
@@ -607,7 +660,8 @@ class ExportBuilder(object):
         survey_name = self.survey.name
         for d in data:
             joined_export = dict_to_joined_export(d, index, indices,
-                                                  survey_name)
+                                                  survey_name,
+                                                  self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
             # attach meta fields (index, parent_index, parent_table)
@@ -648,8 +702,9 @@ class ExportBuilder(object):
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
-            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY
+            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES
         )
+
         csv_builder.export_to(path, dataview=dataview)
 
     def to_zipped_sav(self, path, data, *args, **kwargs):
@@ -697,7 +752,8 @@ class ExportBuilder(object):
         for d in data:
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
-                                                  survey_name)
+                                                  survey_name,
+                                                  self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
             # attach meta fields (index, parent_index, parent_table)
@@ -866,6 +922,8 @@ def generate_export(export_type, username, id_string, export_id=None,
     export_builder.INCLUDE_LABELS_ONLY = options.get(
         'include_labels_only', False
     )
+
+    export_builder.INCLUDE_IMAGES = options.get("include_images", True)
     export_builder.set_survey(xform.data_dictionary().survey)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
@@ -1419,4 +1477,9 @@ def parse_request_export_options(request):
 
     options['split_select_multiples'] = not do_not_split_select_multiples
 
+    if 'include_images' in request.QUERY_PARAMS:
+        options["include_images"] = str_to_bool(
+            request.QUERY_PARAMS.get("include_images"))
+    else:
+        options["include_images"] = True
     return options

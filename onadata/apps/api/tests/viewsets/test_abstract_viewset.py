@@ -381,7 +381,8 @@ class TestAbstractViewSet(TestCase):
 
     def _submit_transport_instance_w_attachment(self,
                                                 survey_at=0,
-                                                media_file=None):
+                                                media_file=None,
+                                                forced_submission_time=None):
         s = self.surveys[survey_at]
         if not media_file:
             media_file = "1335783522563.jpg"
@@ -390,7 +391,8 @@ class TestAbstractViewSet(TestCase):
         with open(path) as f:
             self._make_submission(os.path.join(
                 self.main_directory, 'fixtures',
-                'transportation', 'instances', s, s + '.xml'), media_file=f)
+                'transportation', 'instances', s, s + '.xml'), media_file=f,
+                forced_submission_time=forced_submission_time)
 
         attachment = Attachment.objects.all().reverse()[0]
         self.attachment = attachment

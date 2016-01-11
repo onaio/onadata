@@ -25,7 +25,7 @@ class TestMediaViewSet(TestAbstractViewSet):
 
     def test_retrieve_view(self):
         request = self.factory.get('/', {
-            'filename': self.attachment.media_file.name})
+            'filename': self.attachment.media_file.name},  **self.extra)
         response = self.retrieve_view(request, self.attachment.pk)
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response['Location'], attachment_url(self.attachment))
@@ -34,25 +34,35 @@ class TestMediaViewSet(TestAbstractViewSet):
         request = self.factory.get('/', {
             'filename': self.attachment.media_file.name,
             'suffix': 'small'
-        })
+        },  **self.extra)
         response = self.retrieve_view(request, self.attachment.pk)
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response['Location'],
                         attachment_url(self.attachment, 'small'))
 
     def test_retrieve_view_invalid_suffix(self):
-        request = self.factory.get('/', {
-            'filename': self.attachment.media_file.name, 'suffix': 'TK'})
+        request = self.factory.get('/',
+                                   {
+                                       'filename':
+                                           self.attachment.media_file.name,
+                                       'suffix': 'TK'
+                                   },
+                                   **self.extra)
         response = self.retrieve_view(request, self.attachment.pk)
         self.assertEqual(response.status_code, 404)
 
     def test_retrieve_view_invalid_pk(self):
-        request = self.factory.get('/', {
-            'filename': self.attachment.media_file.name, 'suffix': 'small'})
+        request = self.factory.get('/',
+                                   {
+                                       'filename':
+                                           self.attachment.media_file.name,
+                                       'suffix': 'small'
+                                   },
+                                   **self.extra)
         response = self.retrieve_view(request,  'INVALID')
         self.assertEqual(response.status_code, 404)
 
     def test_retrieve_view_no_filename_param(self):
-        request = self.factory.get('/')
+        request = self.factory.get('/',  **self.extra)
         response = self.retrieve_view(request, self.attachment.pk)
         self.assertEqual(response.status_code, 404)

@@ -32,6 +32,7 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 from onadata.apps.viewer.models import Export
+from onadata.apps.logger.models import Attachment
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
 from onadata.libs.serializers.xform_serializer import XFormSerializer
@@ -3302,3 +3303,62 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertIn(
                     'Is ambulance available daily or weekly?', headers
                 )
+
+    def test_csv_exports_w_images_link(self):
+        with HTTMock(enketo_mock):
+            xlsform_path = os.path.join(settings.PROJECT_ROOT, 'libs', 'tests',
+                                        "utils", "fixtures", "tutorial.xls")
+
+            self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+            media_file = "1442323232322.jpg"
+
+            path = os.path.join(settings.PROJECT_ROOT, 'libs', 'tests',
+                                "utils", "fixtures", "tutorial", "instances",
+                                "uuid1", media_file)
+            with open(path) as f:
+                self._make_submission(os.path.join(
+                    settings.PROJECT_ROOT, 'libs', 'tests', "utils",
+                    "fixtures", "tutorial", "instances",
+                    "uuid1", 'submission.xml'),
+                    media_file=f,
+                    forced_submission_time=datetime(2015, 12, 2))
+
+            attachment_id = Attachment.objects.all().last().pk
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            # request for export again
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'tutorial_images_included.csv')
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = get_response_content(response)
+
+            with open(test_file_path, 'r') as test_file:
+                fixture_content = test_file.read()
+                self.assertEqual(content,
+                                 fixture_content.format(attachment_id))
+
+            data = {"include_images": False}
+            # request for export again
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'tutorial_no_images.csv')
+            self._validate_csv_export(response, test_file_path)
