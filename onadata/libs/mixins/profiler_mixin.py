@@ -2,6 +2,7 @@ import logging
 import time
 from django.conf import settings
 from django.core.signals import request_started, request_finished
+from django.http import StreamingHttpResponse
 
 
 project_viewset_profiler = logging.getLogger('profiler_logger')
@@ -35,10 +36,12 @@ class ProfilerMixin(object):
         dispatch_start = time.time()
         ret = super(ProfilerMixin, self).dispatch(request, *args, **kwargs)
 
-        render_start = time.time()
-        ret.render()
-        render_time = time.time() - render_start
-
+        if not isinstance(ret, StreamingHttpResponse):
+            render_start = time.time()
+            ret.render()
+            render_time = time.time() - render_start
+        else:
+            render_time = 0
         dispatch_time = time.time() - dispatch_start
 
         return ret

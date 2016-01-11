@@ -1,7 +1,6 @@
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
-from rest_framework.compat import OrderedDict
 from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models.instance import Instance
@@ -33,7 +32,7 @@ class DataInstanceSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         ret = super(DataInstanceSerializer, self).to_representation(instance)
         if 'json' in ret:
-            ret = OrderedDict(ret['json'])
+            ret = ret['json']
 
         return ret
 
