@@ -134,7 +134,7 @@ Response
 Share a project with a specific user
 -------------------------------------
 
-You can share a project with a specific user by ``POST`` a payload with
+You can share a project with a specific user by ``PUT`` a payload with
 
 - ``username`` of the user you want to share the form with and
 - ``role`` you want the user to have on the project.Available roles are ``readonly``, ``dataentry``, ``editor``, ``manager``.
@@ -142,14 +142,14 @@ You can share a project with a specific user by ``POST`` a payload with
 .. raw:: html
 
 	<pre class="prettyprint">
-	<b>POST</b> /api/v1/projects/<code>{pk}</code>/share
+	<b>PUT</b> /api/v1/projects/<code>{pk}</code>/share
 	</pre>
 
 Example
 ^^^^^^^^
 ::
 
-    curl -X POST -d username=alice -d role=readonly https://api.ona.io/api/v1/projects/1/share
+    curl -X PUT -d username=alice -d role=readonly https://api.ona.io/api/v1/projects/1/share
 
 Response
 ^^^^^^^^^
