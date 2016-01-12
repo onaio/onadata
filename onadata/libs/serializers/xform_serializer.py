@@ -9,7 +9,8 @@ from rest_framework import serializers
 from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models import XForm, Instance
-from onadata.libs.permissions import get_object_users_with_permissions
+from onadata.libs.permissions import get_role
+from onadata.libs.permissions import is_organization
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
@@ -126,10 +127,35 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             if xform_perms:
                 return xform_perms
 
-            xform_perms = map(user_to_username,
-                              get_object_users_with_permissions(obj))
             cache.set(
                 '{}{}'.format(XFORM_PERMISSIONS_CACHE, obj.pk), xform_perms)
+        data = {}
+        for perm in obj.xformuserobjectpermission_set.all():
+            if perm.user_id not in data:
+                user = perm.user
+
+                data[perm.user_id] = {
+                    'permissions': [],
+                    'is_org': is_organization(user.profile),
+                    'metadata': user.profile.metadata,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'user': user.username
+                }
+            if perm.user_id in data:
+                data[perm.user_id]['permissions'].append(
+                    perm.permission.codename
+                )
+
+        for k in data.keys():
+            data[k]['permissions'].sort()
+            data[k]['role'] = get_role(data[k]['permissions'], obj)
+            del(data[k]['permissions'])
+
+        xform_perms = data.values()
+
+        cache.set(
+            '{}{}'.format(XFORM_PERMISSIONS_CACHE, obj.pk), xform_perms)
 
         return xform_perms
 

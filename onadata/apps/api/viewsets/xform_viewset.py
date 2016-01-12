@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
 from django.db import IntegrityError
+from django.db.models import Prefetch
 
 from pyxform.xls2json import parse_file_to_json
 from pyxform.builder import create_survey_element_from_dict
@@ -47,6 +48,7 @@ from onadata.libs.serializers.share_xform_serializer import (
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.models.xform import XFormUserObjectPermission
 from onadata.libs.utils.viewer_tools import (
     enketo_url,
     EnketoError,
@@ -226,7 +228,13 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         renderers.OSMExportRenderer,
         renderers.ZipRenderer
     ]
-    queryset = XForm.objects.select_related()
+    queryset = XForm.objects.select_related().prefetch_related(Prefetch(
+        'xformuserobjectpermission_set',
+        queryset=XFormUserObjectPermission.objects.select_related(
+            'user__profile__organizationprofile',
+            'permission'
+        )
+    ))
     serializer_class = XFormSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
