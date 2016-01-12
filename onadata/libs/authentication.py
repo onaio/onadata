@@ -143,7 +143,6 @@ class TempTokenURLParameterAuthentication(TempTokenAuthentication):
     def authenticate(self, request):
         key = request.GET.get('temp_token')
         if not key:
-            error_message = _(u'Missing temp_token parameter')
-            raise exceptions.AuthenticationFailed(error_message)
+            return None
 
         return self.authenticate_credentials(key)

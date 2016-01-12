@@ -77,10 +77,8 @@ class TestTempTokenURLParameterAuthentication(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
 
-    def test_missing_parameter(self):
+    def test_returns_false_if_no_param(self):
         temp_token_param_authentication = TempTokenURLParameterAuthentication()
         request = self.factory.get('/export/123')
-        self.assertRaisesMessage(AuthenticationFailed,
-                                 u'Missing temp_token parameter',
-                                 temp_token_param_authentication.authenticate,
-                                 request)
+        self.assertEqual(temp_token_param_authentication.authenticate(request),
+                         None)
