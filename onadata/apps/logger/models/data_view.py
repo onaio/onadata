@@ -206,6 +206,9 @@ class DataView(models.Model):
         if all_data:
             sql = u"SELECT json FROM logger_instance"
             columns = None
+        elif last_submission_time:
+            sql = u"SELECT json->%s FROM logger_instance"
+            columns = [SUBMISSION_TIME]
         else:
             # get the columns needed
             columns = data_view.columns + DEFAULT_COLUMNS + additional_columns
