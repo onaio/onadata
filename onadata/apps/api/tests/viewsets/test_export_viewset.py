@@ -1,10 +1,13 @@
 import os
 
-from django.test import RequestFactory
-
-from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.api.viewsets.data_viewset import DataViewSet
+from django.conf import settings
+from onadata.apps.api.viewsets.export_viewset import ExportViewSet
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.models.export import Export
+
+from rest_framework.test import APIRequestFactory, force_authenticate
+
+from tempfile import NamedTemporaryFile
 
 
 class TestExportViewSet(TestBase):
@@ -13,82 +16,19 @@ class TestExportViewSet(TestBase):
         super(self.__class__, self).setUp()
         self._create_user_and_login()
         self._publish_transportation_form()
-        self.factory = RequestFactory()
-        self.extra = {
-            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        self.factory = APIRequestFactory()
+        self.view = ExportViewSet.as_view({'get': 'retrieve'})
 
-    def _filename_from_disposition(self, content_disposition):
-        filename_pos = content_disposition.index('filename=')
-        self.assertTrue(filename_pos != -1)
-        return content_disposition[filename_pos + len('filename='):]
-
-    def test_form_data_export(self):
-        self._make_submissions()
-        view = XFormViewSet.as_view({
-            'get': 'retrieve'
-        })
-        formid = self.xform.pk
-        # csv
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=formid, format='csv')
-        self.assertEqual(response.status_code, 200)
-        headers = dict(response.items())
-        content_disposition = headers['Content-Disposition']
-        filename = self._filename_from_disposition(content_disposition)
-        basename, ext = os.path.splitext(filename)
-        self.assertEqual(headers['Content-Type'], 'application/csv')
-        self.assertEqual(ext, '.csv')
-
-        # xls
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=formid, format='xls')
-        self.assertEqual(response.status_code, 200)
-        headers = dict(response.items())
-        content_disposition = headers['Content-Disposition']
-        filename = self._filename_from_disposition(content_disposition)
-        basename, ext = os.path.splitext(filename)
-        self.assertEqual(headers['Content-Type'],
-                         'application/vnd.openxmlformats')
-        self.assertEqual(ext, '.xlsx')
-
-    def test_data_export(self):
-        self._make_submissions()
-        view = DataViewSet.as_view({
-            'get': 'list'
-        })
-        formid = self.xform.pk
-
-        # csv
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=formid, format='csv')
-        self.assertEqual(response.status_code, 200)
-        headers = dict(response.items())
-        content_disposition = headers['Content-Disposition']
-        filename = self._filename_from_disposition(content_disposition)
-        basename, ext = os.path.splitext(filename)
-        self.assertEqual(headers['Content-Type'], 'application/csv')
-        self.assertEqual(ext, '.csv')
-
-        # xls
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=formid, format='xls')
-        self.assertEqual(response.status_code, 200)
-        headers = dict(response.items())
-        content_disposition = headers['Content-Disposition']
-        filename = self._filename_from_disposition(content_disposition)
-        basename, ext = os.path.splitext(filename)
-        self.assertEqual(headers['Content-Type'],
-                         'application/vnd.openxmlformats')
-        self.assertEqual(ext, '.xlsx')
-
-        # kml
-        request = self.factory.get('/', **self.extra)
-        response = view(request, pk=formid, format='kml')
-        self.assertEqual(response.status_code, 200)
-        headers = dict(response.items())
-        content_disposition = headers['Content-Disposition']
-        filename = self._filename_from_disposition(content_disposition)
-        basename, ext = os.path.splitext(filename)
-        self.assertEqual(headers['Content-Type'],
-                         'application/vnd.google-earth.kml+xml')
-        self.assertEqual(ext, '.kml')
+    def test_generates_expected_response(self):
+        temp_dir = settings.MEDIA_ROOT
+        dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
+        filename = os.path.basename(dummy_export_file.name)
+        filedir = os.path.dirname(dummy_export_file.name)
+        export = Export.objects.create(xform=self.xform,
+                                       filename=filename,
+                                       filedir=filedir)
+        export.save()
+        request = self.factory.get('/export')
+        force_authenticate(request, user=self.user)
+        response = self.view(request, pk=export.pk)
+        self.assertIn(filename, response.get('Content-Disposition'))

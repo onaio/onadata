@@ -2955,7 +2955,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=formid)
 
             export = Export.objects.last()
-            self.assertIn("export_id={}".format(export.pk),
+            self.assertIn(str(export.pk),
                           response.data.get('export_url'))
 
             self.assertTrue(async_result.called)

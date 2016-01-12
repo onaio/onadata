@@ -364,21 +364,9 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
     if export.status == Export.SUCCESSFUL:
         if export.export_type != Export.EXTERNAL_EXPORT:
             export_url = reverse(
-                'xform-detail',
-                kwargs={'pk': xform.pk,
-                        'format': export.export_type},
-                request=request
-            )
-            if dataview_pk:
-                export_url = reverse(
-                    'dataviews-data',
-                    kwargs={'pk': dataview_pk,
-                            'action': 'data',
-                            'format': export.export_type},
-                    request=request
-                )
-
-            export_url = "{}?export_id={}".format(export_url, export.pk)
+                'export-detail',
+                kwargs={'pk': export.pk},
+                request=request)
         else:
             export_url = export.export_url
         resp = {
