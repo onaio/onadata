@@ -19,7 +19,7 @@ class Attachment(models.Model):
     instance = models.ForeignKey(Instance, related_name="attachments")
     media_file = models.FileField(max_length=255, upload_to=upload_to)
     mimetype = models.CharField(
-        max_length=50, null=False, blank=True, default='')
+        max_length=100, null=False, blank=True, default='')
     extension = models.CharField(max_length=10, null=False, blank=False,
                                  default=u"non", db_index=True)
     date_created = models.DateTimeField(null=True, auto_now_add=True)
