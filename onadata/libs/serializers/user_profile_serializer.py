@@ -274,7 +274,7 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
         token, created = TempToken.objects.get_or_create(user=object.user)
 
         if not created and expired(token.created):
-            token.delete()
+            TempToken.objects.get(user=object.user, key=token.key).delete()
             token = TempToken.objects.create(user=object.user)
 
         return token.key
