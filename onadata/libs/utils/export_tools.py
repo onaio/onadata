@@ -40,8 +40,8 @@ from onadata.libs.utils.common_tags import (
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
     DATAVIEW_EXPORT)
 from onadata.libs.utils.osm import get_combined_osm
-from onadata.libs.serializers.attachment_serializer import dict_key_for_value, \
-    get_path
+from onadata.libs.serializers.attachment_serializer import (
+    dict_key_for_value, get_path)
 
 
 QUESTION_TYPES_TO_EXCLUDE = [
