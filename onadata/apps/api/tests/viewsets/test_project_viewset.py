@@ -449,32 +449,22 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_profile = self._create_user_profile(alice_data)
 
         # share bob's project with alice
-        ROLES = [ReadOnlyRoleNoDownload,
-                 ReadOnlyRole,
-                 DataEntryRole,
-                 EditorRole,
-                 ManagerRole,
-                 OwnerRole]
-        for role_class in ROLES:
-            self.assertFalse(role_class.user_has_role(alice_profile.user,
-                                                      bobs_project))
+        self.assertFalse(
+            ManagerRole.user_has_role(alice_profile.user, bobs_project))
 
-            data = {'username': 'alice', 'role': role_class.name,
-                    'email_msg': 'I have shared the project with you'}
-            request = self.factory.post('/', data=data, **self.extra)
-
-            view = ProjectViewSet.as_view({
-                'post': 'share'
-            })
-            response = view(request, pk=projectid)
-
-            self.assertEqual(response.status_code, 204)
-            self.assertTrue(mock_send_mail.called)
-
-            self.assertTrue(role_class.user_has_role(alice_profile.user,
-                                                     self.project))
-            self.assertTrue(role_class.user_has_role(alice_profile.user,
-                                                     self.xform))
+        data = {'username': 'alice', 'role': ManagerRole.name,
+                'email_msg': 'I have shared the project with you'}
+        request = self.factory.post('/', data=data, **self.extra)
+        view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        response = view(request, pk=projectid)
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(mock_send_mail.called)
+        self.assertTrue(
+            ManagerRole.user_has_role(alice_profile.user, self.project))
+        self.assertTrue(
+            ManagerRole.user_has_role(alice_profile.user, self.xform))
 
         # log in as alice
         self._login_user_and_profile(extra_post_data=alice_data)
@@ -498,6 +488,21 @@ class TestProjectViewSet(TestAbstractViewSet):
         post_data = {'formid': formid}
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=alices_project.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(
+            response.data.get('detail'),
+            u'Form with the same id_string already exists in this account')
+
+        # try transfering bob's form from to alice's other project with
+        # no forms
+        self._project_create({'name': 'another project'})
+        new_project_id = self.project.id
+        view = ProjectViewSet.as_view({
+            'post': 'forms',
+        })
+        post_data = {'formid': formid}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=new_project_id)
         self.assertEqual(response.status_code, 400)
         self.assertEquals(
             response.data.get('detail'),
