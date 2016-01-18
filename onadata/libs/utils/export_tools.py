@@ -863,14 +863,12 @@ def get_boolean_value(str_var, default=None):
     return str_var if default else False
 
 
-def generate_export(export_type, username, id_string, export_id=None,
-                    options=None, xform=None):
+def generate_export(export_type, xform, export_id=None, options=None):
     """
     Create appropriate export object given the export type.
 
     param: export_type
-    params: username: logged in username
-    params: id_string: xform id_string
+    param: xform
     params: export_id: ID of export object associated with the request
     param: options: additional parameters required for the lookup.
         binary_select_multiples: boolean flag
@@ -882,6 +880,8 @@ def generate_export(export_type, username, id_string, export_id=None,
         remove_group_name: boolean flag
         split_select_multiples: boolean flag
     """
+    username = xform.user.username
+    id_string = xform.id_string
     end = options.get("end")
     extension = options.get("extension", export_type)
     filter_query = options.get("query")
