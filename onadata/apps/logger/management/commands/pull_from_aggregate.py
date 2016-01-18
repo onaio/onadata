@@ -26,7 +26,13 @@ class Command(BaseCommand):
         username = kwargs.get('username')
         password = kwargs.get('password')
         to = kwargs.get('to')
-        user = User.objects.get(username=to)
-        bc = BriefcaseClient(username=username, password=password,
-                             user=user, url=url)
-        bc.download_xforms(include_instances=True)
+        if username is None or password is None or to is None or url is None:
+            self.stderr.write(
+                'pull_form_aggregate -u username -p password --to=username'
+                ' --url=aggregate_server_url'
+            )
+        else:
+            user = User.objects.get(username=to)
+            bc = BriefcaseClient(username=username, password=password,
+                                 user=user, url=url)
+            bc.download_xforms(include_instances=True)
