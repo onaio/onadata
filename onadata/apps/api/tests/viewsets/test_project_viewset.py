@@ -432,6 +432,83 @@ class TestProjectViewSet(TestAbstractViewSet):
                                                  self.xform))
 
     @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_reject_form_transfer_if_target_account_has_id_string_already(
+            self, mock_send_mail):
+        # create bob's project and publish a form to it
+        self._publish_xls_form_to_project()
+        projectid = self.project.pk
+        bobs_project = self.project
+
+        # create user alice
+        alice_data = {
+            'username': 'alice',
+            'email': 'alice@localhost.com',
+            'name': 'alice',
+            'first_name': 'alice'
+        }
+        alice_profile = self._create_user_profile(alice_data)
+
+        # share bob's project with alice
+        self.assertFalse(
+            ManagerRole.user_has_role(alice_profile.user, bobs_project))
+
+        data = {'username': 'alice', 'role': ManagerRole.name,
+                'email_msg': 'I have shared the project with you'}
+        request = self.factory.post('/', data=data, **self.extra)
+        view = ProjectViewSet.as_view({
+            'post': 'share'
+        })
+        response = view(request, pk=projectid)
+        self.assertEqual(response.status_code, 204)
+        self.assertTrue(mock_send_mail.called)
+        self.assertTrue(
+            ManagerRole.user_has_role(alice_profile.user, self.project))
+        self.assertTrue(
+            ManagerRole.user_has_role(alice_profile.user, self.xform))
+
+        # log in as alice
+        self._login_user_and_profile(extra_post_data=alice_data)
+
+        # publish a form to alice's project that shares an id_string with
+        # form published by bob
+        publish_data = {'owner': 'http://testserver/api/v1/users/alice'}
+        self._publish_xls_form_to_project(publish_data=publish_data)
+
+        alices_form = XForm.objects.filter(
+            user__username='alice', id_string='transportation_2011_07_25')[0]
+        alices_project = alices_form.project
+        bobs_form = XForm.objects.filter(
+            user__username='bob', id_string='transportation_2011_07_25')[0]
+        formid = bobs_form.id
+
+        # try transfering bob's form from bob's project to alice's project
+        view = ProjectViewSet.as_view({
+            'post': 'forms',
+        })
+        post_data = {'formid': formid}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=alices_project.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(
+            response.data.get('detail'),
+            u'Form with the same id_string already exists in this account')
+
+        # try transfering bob's form from to alice's other project with
+        # no forms
+        self._project_create({'name': 'another project'})
+        new_project_id = self.project.id
+        view = ProjectViewSet.as_view({
+            'post': 'forms',
+        })
+        post_data = {'formid': formid}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=new_project_id)
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(
+            response.data.get('detail'),
+            u'Form with the same id_string already exists in this account')
+
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
     def test_project_share_endpoint(self, mock_send_mail):
         # create project and publish form to project
         self._publish_xls_form_to_project()

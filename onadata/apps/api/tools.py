@@ -285,12 +285,26 @@ def publish_project_xform(request, project):
 
     xform = None
 
+    def id_string_exists_in_account():
+        try:
+            XForm.objects.get(user=request.user, id_string=xform.id_string)
+        except XForm.DoesNotExist:
+            return False
+
+        return True
+
     if 'formid' in request.DATA:
         xform = get_object_or_404(XForm, pk=request.DATA.get('formid'))
         if not ManagerRole.user_has_role(request.user, xform):
             raise exceptions.PermissionDenied(_(
                 "{} has no manager/owner role to the form {}". format(
                     request.user, xform)))
+
+        # if the target project and xform aren't in the same account
+        if project.organization != xform.user:
+            msg = 'Form with the same id_string already exists in this account'
+            if id_string_exists_in_account():
+                raise exceptions.ParseError(_(msg))
         xform.project = project
         xform.save()
         set_project_perms_to_xform(xform, project)
