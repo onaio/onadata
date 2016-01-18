@@ -33,8 +33,7 @@ class TestCsvExport(TestBase):
 
         export = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            "tutorial_w_repeats",
+            self.xform,
             None,
             self.options)
         storage = get_storage_class()()
@@ -67,8 +66,7 @@ class TestCsvExport(TestBase):
         # test csv
         export = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            "double_repeat",
+            self.xform,
             None,
             self.options)
         storage = get_storage_class()()
@@ -93,8 +91,7 @@ class TestCsvExport(TestBase):
         self.options['id_string'] = 'userone'
         export = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            "userone",
+            self.xform,
             None,
             self.options)
         storage = get_storage_class()()
@@ -119,8 +116,7 @@ class TestCsvExport(TestBase):
         self.options['remove_group_name'] = True
         export = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            "tutorial_w_repeats",
+            self.xform,
             None,
             self.options)
         storage = get_storage_class()()

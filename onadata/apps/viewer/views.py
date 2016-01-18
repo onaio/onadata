@@ -258,7 +258,7 @@ def data_export(request, username, id_string, export_type):
 
         try:
             export = generate_export(
-                export_type, username, id_string, None, options)
+                export_type, xform, None, options)
             audit_log(
                 Actions.EXPORT_CREATED, request.user, owner,
                 _("Created %(export_type)s export on '%(id_string)s'.") %

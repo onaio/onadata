@@ -112,11 +112,9 @@ def create_xls_export(username, id_string, export_id, **options):
     try:
         gen_export = generate_export(
             Export.XLS_EXPORT,
-            username,
-            id_string,
+            export.form,
             export_id,
-            options,
-            xform=export.xform
+            options
         )
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
@@ -145,11 +143,9 @@ def create_csv_export(username, id_string, export_id, **options):
         # catch this since it potentially stops celery
         gen_export = generate_export(
             Export.CSV_EXPORT,
-            username,
-            id_string,
+            export.form,
             export_id,
-            options,
-            xform=export.xform
+            options
         )
     except NoRecordsFoundError:
         # not much we can do but we don't want to report this as the user
@@ -268,11 +264,9 @@ def create_csv_zip_export(username, id_string, export_id, **options):
         # catch this since it potentially stops celery
         gen_export = generate_export(
             Export.CSV_ZIP_EXPORT,
-            username,
-            id_string,
+            export.form,
             export_id,
-            options,
-            xform=export.xform
+            options
         )
     except (Exception, NoRecordsFoundError) as e:
         export.internal_status = Export.FAILED
@@ -296,11 +290,9 @@ def create_sav_zip_export(username, id_string, export_id, **options):
         # catch this since it potentially stops celery
         gen_export = generate_export(
             Export.SAV_ZIP_EXPORT,
-            username,
-            id_string,
+            export.form,
             export_id,
-            options,
-            xform=export.xform
+            options
         )
     except (Exception, NoRecordsFoundError, TypeError) as e:
         export.internal_status = Export.FAILED

@@ -168,11 +168,9 @@ def _generate_new_export(request, xform, query, export_type,
 
             export = generate_export(
                 export_type,
-                xform.user.username,
-                xform.id_string,
+                xform,
                 None,
-                options,
-                xform=xform)
+                options)
 
         audit = {
             "xform": xform.id_string,
