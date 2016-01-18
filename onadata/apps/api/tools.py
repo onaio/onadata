@@ -287,7 +287,8 @@ def publish_project_xform(request, project):
 
     def id_string_exists_in_project_and_account():
         try:
-            XForm.objects.get(user=request.user, id_string=xform.id_string)
+            XForm.objects.get(
+                project=project, user=request.user, id_string=xform.id_string)
         except XForm.DoesNotExist:
             return False
 
