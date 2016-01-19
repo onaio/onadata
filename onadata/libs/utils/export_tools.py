@@ -1139,7 +1139,7 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
     response = render_to_response(
-        'survey.kml', {'data': kml_export_data(id_string, user)})
+        'survey.kml', {'data': kml_export_data(id_string, user, xform=xform)})
 
     basename = "%s_%s" % (id_string,
                           datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
@@ -1179,10 +1179,15 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
     return export
 
 
-def kml_export_data(id_string, user):
+def kml_export_data(id_string, user, xform=None):
     # TODO resolve circular import
     from onadata.apps.viewer.models.data_dictionary import DataDictionary
-    dd = DataDictionary.objects.get(id_string=id_string, user=user)
+
+    if xform is None:
+        dd = DataDictionary.objects.get(id_string=id_string, user=user)
+    else:
+        dd = xform.data_dictionary()
+
     instances = Instance.objects.filter(
         xform__user=user, xform__id_string=id_string, geom__isnull=False
     ).order_by('id')
