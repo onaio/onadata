@@ -347,6 +347,21 @@ Example
 
 CSV and XLS exports with either '.' or '/' group delimiter in header names
 
+Include image links in CSV, SAV, XLS and zipped CSV exports
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+By default image links are included in exports. To exclude the image links in the exports, use
+ the `include_images` param, acceptable values are `true` and `false`.
+
+Example
+^^^^^^^
+
+::
+
+     curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&include_images=false
+     curl -X GET https://api.ona.io/api/v1/forms/28058.xls?include_images=false
+
+
+
 Delete an XLS form asynchronously
 -----------------------------------
 .. raw:: html
