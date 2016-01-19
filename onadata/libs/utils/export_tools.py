@@ -1186,7 +1186,7 @@ def kml_export_data(id_string, user, xform=None):
     if xform is None:
         dd = DataDictionary.objects.get(id_string=id_string, user=user)
     else:
-        dd = xform.data_dictionary();
+        dd = xform.data_dictionary()
 
     instances = Instance.objects.filter(
         xform__user=user, xform__id_string=id_string, geom__isnull=False
