@@ -1,4 +1,5 @@
 from celery import task
+from six import string_types
 
 from django.contrib.gis.geos import LineString
 from django.contrib.gis.geos import Point
@@ -45,6 +46,8 @@ def get_combined_osm(osm_list):
             or isinstance(osm_list, models.QuerySet):
         osm = None
         for osm_data in osm_list:
+            if isinstance(osm_data, string_types):
+                continue
             osm_xml = osm_data.xml
             _osm = _get_xml_obj(osm_xml)
             if _osm is None:
