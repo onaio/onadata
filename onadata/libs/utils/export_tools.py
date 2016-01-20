@@ -256,7 +256,7 @@ class ExportBuilder(object):
 
     INCLUDE_LABELS = False
     INCLUDE_LABELS_ONLY = False
-    INCLUDE_IMAGES = True
+    INCLUDE_IMAGES = settings.EXPORT_WITH_IMAGE_DEFAULT
 
     TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
     CONVERT_FUNCS = {
@@ -923,7 +923,8 @@ def generate_export(export_type, username, id_string, export_id=None,
         'include_labels_only', False
     )
 
-    export_builder.INCLUDE_IMAGES = options.get("include_images", True)
+    export_builder.INCLUDE_IMAGES \
+        = options.get("include_images", settings.EXPORT_WITH_IMAGE_DEFAULT)
     export_builder.set_survey(xform.data_dictionary().survey)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
