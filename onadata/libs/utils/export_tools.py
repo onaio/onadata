@@ -38,10 +38,8 @@ from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
     DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, GROUPNAME_REMOVED_FLAG,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
-    DATAVIEW_EXPORT)
+    DATAVIEW_EXPORT, KNOWN_MEDIA_TYPES)
 from onadata.libs.utils.osm import get_combined_osm
-from onadata.libs.serializers.attachment_serializer import \
-        dict_key_for_value, get_path
 
 
 QUESTION_TYPES_TO_EXCLUDE = [
@@ -74,24 +72,26 @@ def current_site_url(path):
     return url
 
 
-def get_attachment_xpath(attachment_id):
+def get_attachment_xpath(file_name, row, data_dictionary):
     """
-    Gets the xpath of the attachment
-    :param attachment_id:
+    Gets the xpath of the attachment using the file name
+    :param file_name: attachment filename
+    :param row: current records row
+    :param data_dictionary: form structure
     :return: field_xpath
     """
-    try:
-        attachment = Attachment.objects.get(pk=attachment_id)
-        qa_dict = attachment.instance.get_dict()
-        if attachment.filename not in qa_dict.values():
-            return None
 
-        question_name = dict_key_for_value(qa_dict, attachment.filename)
-        data = json.loads(attachment.instance.xform.json)
+    # get all known media types for this form
+    media_types = [data_dictionary.get_survey_elements_of_type(e)
+                   for e in KNOWN_MEDIA_TYPES]
 
-        return get_path(data, question_name, [])
-    except Attachment.DoesNotExist:
-        return None
+    # convert to single array
+    media_types = sum(media_types, [])
+
+    # test the media type to find the correct attachment xpath
+    for m in media_types:
+        if file_name.endswith(row[m.get('type')]):
+            return m.get('type')
 
 
 def encode_if_str(row, key, encode_dates=False):
@@ -186,7 +186,8 @@ class DictOrganizer(object):
         return result
 
 
-def dict_to_joined_export(data, index, indices, name, include_images=True):
+def dict_to_joined_export(data, index, indices, name, data_dictionary,
+                          include_images=True):
     """
     Converts a dict into one or more tabular datasets
     """
@@ -203,7 +204,8 @@ def dict_to_joined_export(data, index, indices, name, include_images=True):
                     indices[key] += 1
                     child_index = indices[key]
                     new_output = dict_to_joined_export(
-                        child, child_index, indices, key, include_images)
+                        child, child_index, indices, key, data_dictionary,
+                        include_images)
                     d = {INDEX: child_index, PARENT_INDEX: index,
                          PARENT_TABLE_NAME: name}
                     # iterate over keys within new_output and append to
@@ -230,8 +232,9 @@ def dict_to_joined_export(data, index, indices, name, include_images=True):
                     if include_images:
                         for v in val:
                             url = current_site_url(v.get('download_url', ''))
-                            output[name][get_attachment_xpath(v.get('id'))]\
-                                = url
+                            output[name][
+                                get_attachment_xpath(v.get('filename'), data,
+                                                     data_dictionary)] = url
                 else:
                     output[name][key] = val
 
@@ -548,10 +551,12 @@ class ExportBuilder(object):
         index = 1
         indices = {}
         survey_name = self.survey.name
+        xform = kwargs.get('xform')
         for d in data:
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
+                                                  xform.data_dictionary(),
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
@@ -658,9 +663,12 @@ class ExportBuilder(object):
         index = 1
         indices = {}
         survey_name = self.survey.name
+
+        xform = kwargs.get('xform')
         for d in data:
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
+                                                  xform.data_dictionary(),
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
@@ -749,10 +757,12 @@ class ExportBuilder(object):
         index = 1
         indices = {}
         survey_name = self.survey.name
+        xform = kwargs.get('xform')
         for d in data:
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
+                                                  xform.data_dictionary(),
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
