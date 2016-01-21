@@ -94,6 +94,15 @@ def get_attachment_xpath(file_name, row, data_dictionary):
             return m.get('type')
 
 
+def get_data_dictionary_from_survey(survey):
+    from onadata.apps.viewer.models.data_dictionary import\
+            DataDictionary
+    dd = DataDictionary()
+    dd._survey = survey
+
+    return dd
+
+
 def encode_if_str(row, key, encode_dates=False):
     val = row.get(key)
 
@@ -307,8 +316,7 @@ class ExportBuilder(object):
         # TODO resolve circular import
         from onadata.apps.viewer.models.data_dictionary import\
             DataDictionary
-        dd = DataDictionary()
-        dd._survey = survey
+        dd = get_data_dictionary_from_survey(survey)
 
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
@@ -551,12 +559,12 @@ class ExportBuilder(object):
         index = 1
         indices = {}
         survey_name = self.survey.name
-        xform = kwargs.get('xform')
+        dd = get_data_dictionary_from_survey(self.survey)
         for d in data:
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
-                                                  xform.data_dictionary(),
+                                                  dd,
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
@@ -664,11 +672,11 @@ class ExportBuilder(object):
         indices = {}
         survey_name = self.survey.name
 
-        xform = kwargs.get('xform')
+        dd = get_data_dictionary_from_survey(self.survey)
         for d in data:
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
-                                                  xform.data_dictionary(),
+                                                  dd,
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
@@ -757,12 +765,12 @@ class ExportBuilder(object):
         index = 1
         indices = {}
         survey_name = self.survey.name
-        xform = kwargs.get('xform')
+        dd = get_data_dictionary_from_survey(self.survey)
         for d in data:
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
-                                                  xform.data_dictionary(),
+                                                  dd,
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)

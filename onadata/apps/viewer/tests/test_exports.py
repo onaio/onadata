@@ -965,6 +965,7 @@ class TestExports(TestBase):
         ].split(" "))
 
     def test_dict_to_joined_export_works(self):
+        self._publish_transportation_form()
         data =\
             {
                 'name': 'Abe',
@@ -1107,7 +1108,8 @@ class TestExports(TestBase):
             }
         survey_name = 'survey'
         indices = {survey_name: 0}
-        output = dict_to_joined_export(data, 1, indices, survey_name)
+        output = dict_to_joined_export(data, 1, indices, survey_name,
+                                       self.xform.data_dictionary())
         self.assertEqual(output[survey_name], expected_output[survey_name])
         # 1st level
         self.assertEqual(len(output['children']), 3)
@@ -1162,6 +1164,7 @@ class TestExports(TestBase):
         self.assertEqual(ext, '.zip')
 
     def test_dict_to_joined_export_notes(self):
+        self._publish_transportation_form()
         submission = {
             "_id": 579828,
             "_submission_time": "2013-07-03T08:26:10",
@@ -1197,7 +1200,8 @@ class TestExports(TestBase):
 
         survey_name = 'tutorial'
         indices = {survey_name: 0}
-        data = dict_to_joined_export(submission, 1, indices, survey_name)
+        data = dict_to_joined_export(submission, 1, indices, survey_name,
+                                     self.xform.data_dictionary())
         expected_data = {
             'tutorial': {
                 '_id': 579828,

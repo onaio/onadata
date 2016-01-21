@@ -277,7 +277,7 @@ class TestExportBuilder(TestBase):
         outputs = []
         for d in self.data:
             outputs.append(
-                dict_to_joined_export(d, index, indices, survey_name))
+                dict_to_joined_export(d, index, indices, survey_name, self.dd))
             index += 1
 
         # check that each file exists
@@ -917,8 +917,11 @@ class TestExportBuilder(TestBase):
         export_builder.set_survey(survey)
         # format submission 1 for export
         survey_name = survey.name
+        self.dd = DataDictionary()
+        self.dd._survey = survey
         indices = {survey_name: 0}
-        data = dict_to_joined_export(submission_1, 1, indices, survey_name)
+        data = dict_to_joined_export(submission_1, 1, indices, survey_name,
+                                     self.dd)
         new_row = export_builder.pre_process_row(data[survey_name],
                                                  export_builder.sections[0])
         self.assertIsInstance(new_row['age'], int)
@@ -927,7 +930,8 @@ class TestExportBuilder(TestBase):
 
         # check missing values dont break and empty values return blank strings
         indices = {survey_name: 0}
-        data = dict_to_joined_export(submission_2, 1, indices, survey_name)
+        data = dict_to_joined_export(submission_2, 1, indices, survey_name,
+                                     self.dd)
         new_row = export_builder.pre_process_row(data[survey_name],
                                                  export_builder.sections[0])
         self.assertIsInstance(new_row['amount'], basestring)
@@ -990,7 +994,7 @@ class TestExportBuilder(TestBase):
         outputs = []
         for d in self.data:
             outputs.append(
-                dict_to_joined_export(d, index, indices, survey_name))
+                dict_to_joined_export(d, index, indices, survey_name, self.dd))
             index += 1
 
         # check that each file exists
@@ -1309,7 +1313,7 @@ class TestExportBuilder(TestBase):
         outputs = []
         for d in self.data:
             outputs.append(
-                dict_to_joined_export(d, index, indices, survey_name))
+                dict_to_joined_export(d, index, indices, survey_name, self.dd))
             index += 1
 
         # check that each file exists
