@@ -1461,8 +1461,8 @@ def parse_request_export_options(request):
         params.get('remove_group_name').lower()
     do_not_split_select_multiples = params.get(
         'do_not_split_select_multiples')
-    include_labels = params.get('include_labels', None)
-    include_labels_only = params.get('include_labels_only', None)
+    include_labels = params.get('include_labels', False)
+    include_labels_only = params.get('include_labels_only', False)
 
     if include_labels is not None:
         options['include_labels'] = str_to_bool(include_labels)
