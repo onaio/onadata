@@ -3362,3 +3362,81 @@ class TestXFormViewSet(TestAbstractViewSet):
                                           'viewer', 'tests', 'fixtures',
                                           'tutorial_no_images.csv')
             self._validate_csv_export(response, test_file_path)
+
+    def test_csv_export_with_and_without_labels_only(self):
+        with HTTMock(enketo_mock):
+            # create a project and form and add a submission to the form
+            self._publish_xls_form_to_project()
+            survey = self.surveys[0]
+            _submission_time = parse_datetime('2013-02-18 15:54:01Z')
+            self._make_submission(
+                os.path.join(
+                    settings.PROJECT_ROOT, 'apps',
+                    'main', 'tests', 'fixtures', 'transportation',
+                    'instances', survey, survey + '.xml'),
+                forced_submission_time=_submission_time)
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            # export the sumbitted data as csv
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            # assert exported data is csv
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = filename_from_disposition(content_disposition)
+            self.assertNotIn(GROUPNAME_REMOVED_FLAG, filename)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+            content = get_response_content(response)
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation.csv')
+            with open(test_file_path, 'r') as test_file:
+                self.assertEqual(content, test_file.read())
+
+            # export submitted data with include_labels_only and
+            # remove_group_name set to true
+            data = {'include_labels_only': True, 'remove_group_name': True}
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            # assert exported data has labels only on the names have no
+            # group names
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            content = get_response_content(response)
+            test_file_path = os.path.join(
+                settings.PROJECT_ROOT, 'apps', 'viewer', 'tests', 'fixtures',
+                'transportation_labels_only.csv')
+            with open(test_file_path, 'r') as test_file:
+                file_content = test_file.read()
+                self.assertEqual(content, file_content)
+
+            # assert that the next request without the options doesn't result
+            # to the same result as the previous result
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+
+            content = get_response_content(response)
+            test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                          'viewer', 'tests', 'fixtures',
+                                          'transportation.csv')
+            with open(test_file_path, 'r') as test_file:
+                self.assertEqual(content, test_file.read())
