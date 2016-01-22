@@ -2,7 +2,8 @@ from collections import defaultdict
 from pyxform import Section, Question
 from xlwt import Workbook
 
-from onadata.libs.utils.export_tools import question_types_to_exclude
+from onadata.apps.viewer.models.data_dictionary import\
+    question_types_to_exclude
 
 
 class XlsWriter(object):

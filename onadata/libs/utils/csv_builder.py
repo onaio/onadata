@@ -19,7 +19,8 @@ from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
     DURATION
 from onadata.libs.utils.export_tools import current_site_url
-from onadata.libs.utils.export_tools import question_types_to_exclude
+from onadata.apps.viewer.models.data_dictionary import\
+    question_types_to_exclude
 from onadata.libs.utils.export_tools import get_attachment_xpath
 
 
