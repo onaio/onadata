@@ -94,7 +94,8 @@ def get_choice_label(choices, string):
     return labels
 
 
-def build_chart_data_for_field(xform, field, language_index=0, choices=None):
+def build_chart_data_for_field(xform, field, language_index=0, choices=None,
+                               group_by=None):
     # check if its the special _submission_time META
     if isinstance(field, basestring) and field == common_tags.SUBMISSION_TIME:
         field_label = 'Submission Time'
@@ -119,7 +120,7 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None):
     field_name = field.name if not isinstance(field, basestring) else field
 
     result = get_form_submissions_grouped_by_field(
-        xform, field_xpath, field_name)
+        xform, field_xpath, field_name, group_by)
 
     # truncate field name to 63 characters to fix #354
     truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
