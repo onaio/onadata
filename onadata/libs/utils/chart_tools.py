@@ -143,7 +143,8 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
             item[field_name] = item[truncated_name]
             del(item[truncated_name])
 
-    result = sorted(result, key=lambda d: d['count'])
+    if not group_by:
+        result = sorted(result, key=lambda d: d['count'])
 
     # for date fields, strip out None values
     if data_type == 'time_based':

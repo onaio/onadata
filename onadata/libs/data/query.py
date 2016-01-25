@@ -8,7 +8,7 @@ def _count_group(field, name, xform, group_by=None):
     if using_postgres:
 
         if group_by:
-            result = _postgres_group_column_by_category(field, name, xform,
+            result = _postgres_aggregate_group_by(field, name, xform,
                                                         group_by)
         else:
             result = _postgres_count_group(field, name, xform)
@@ -63,15 +63,18 @@ def _postgres_count_group(field, name, xform):
            " AND deleted_at IS NULL GROUP BY %(json)s" % string_args
 
 
-def _postgres_group_column_by_category(field, name, xform, group_by):
-    string_args = _query_args(field, name, xform)
+def _postgres_aggregate_group_by(field, name, xform, group_by):
+    string_args = _query_args(field, name, xform, group_by)
     if is_date_field(xform, field):
         string_args['json'] = "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY"\
                               "-MM-DD')" % string_args
+    query = "SELECT %(group_by)s AS \"%(group_name)s\","\
+            "SUM((%(json)s)::int) AS sum, " \
+            "AVG((%(json)s)::int) AS mean  " \
+            "FROM logger_instance WHERE xform_id=31 AND deleted_at IS NULL " \
+            "GROUP BY %(group_by)s" % string_args
 
-    return "SELECT %(json)s AS \"%(name)s\", COUNT(*) AS count FROM "\
-           "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
-           " AND deleted_at IS NULL " % string_args
+    return query
 
 
 def _postgres_select_key(field, name, xform):
@@ -82,11 +85,13 @@ def _postgres_select_key(field, name, xform):
            % string_args
 
 
-def _query_args(field, name, xform):
+def _query_args(field, name, xform, group_by=None):
     return {
         'table': 'logger_instance',
         'json': _json_query(field),
         'name': name,
+        'group_name': group_by,
+        'group_by': _json_query(group_by),
         'restrict_field': 'xform_id',
         'restrict_value': xform.pk}
 
