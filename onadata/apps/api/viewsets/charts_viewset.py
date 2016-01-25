@@ -75,6 +75,7 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin,
 
         field_name = request.QUERY_PARAMS.get('field_name')
         fields = request.QUERY_PARAMS.get('fields')
+        group_by = request.QUERY_PARAMS.get('group_by')
         fmt = kwargs.get('format')
 
         if fields:
@@ -91,7 +92,8 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin,
             data = get_chart_data_for_field(
                 field_name,
                 xform,
-                fmt
+                fmt,
+                group_by
             )
 
             return Response(data, template_name='chart_detail.html')

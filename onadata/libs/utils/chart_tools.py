@@ -233,7 +233,7 @@ def build_chart_data_from_widget(widget, language_index=0):
     return data
 
 
-def get_chart_data_for_field(field_name, xform, accepted_format):
+def get_chart_data_for_field(field_name, xform, accepted_format, group_by):
     """
     Get chart data for a given xlsform field.
     """
@@ -260,7 +260,7 @@ def get_chart_data_for_field(field_name, xform, accepted_format):
 
     try:
         data = build_chart_data_for_field(
-            xform, field, choices=choices)
+            xform, field, choices=choices, group_by=group_by)
     except DataError as e:
         raise ParseError(unicode(e))
     else:
