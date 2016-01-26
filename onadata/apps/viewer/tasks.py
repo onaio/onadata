@@ -112,7 +112,7 @@ def create_xls_export(username, id_string, export_id, **options):
     try:
         gen_export = generate_export(
             Export.XLS_EXPORT,
-            export.form,
+            export.xform,
             export_id,
             options
         )
@@ -143,7 +143,7 @@ def create_csv_export(username, id_string, export_id, **options):
         # catch this since it potentially stops celery
         gen_export = generate_export(
             Export.CSV_EXPORT,
-            export.form,
+            export.xform,
             export_id,
             options
         )
@@ -264,7 +264,7 @@ def create_csv_zip_export(username, id_string, export_id, **options):
         # catch this since it potentially stops celery
         gen_export = generate_export(
             Export.CSV_ZIP_EXPORT,
-            export.form,
+            export.xform,
             export_id,
             options
         )
@@ -290,7 +290,7 @@ def create_sav_zip_export(username, id_string, export_id, **options):
         # catch this since it potentially stops celery
         gen_export = generate_export(
             Export.SAV_ZIP_EXPORT,
-            export.form,
+            export.xform,
             export_id,
             options
         )
