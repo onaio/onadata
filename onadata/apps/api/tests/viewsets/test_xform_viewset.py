@@ -2027,6 +2027,41 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(xform_2.id_string, 'transportation_2011_07_25_1')
             self.assertEqual(xform_3.id_string, 'transportation_2011_07_25_2')
 
+    def test_id_string_is_unique_after_form_deletion(self):
+        xform_count = XForm.objects.count()
+
+        # create 2 projects and submit the same form to each of the project
+        self._project_create()
+        first_project = self.project
+        self._publish_xls_form_to_project()
+        data_2 = {
+            'name': u'demo2',
+            'owner': 'http://testserver/api/v1/users/%s' %
+            self.user.username,
+            'metadata': {'description': 'Demo2 Description',
+                         'location': 'Nakuru, Kenya',
+                         'category': 'education'},
+            'public': False
+        }
+        self._project_create(data_2, False)
+        self._publish_xls_form_to_project()
+        self.assertEqual(xform_count + 2, XForm.objects.count())
+
+        xform_1 = XForm.objects.get(project__name='demo')
+        xform_2 = XForm.objects.get(project__name='demo2')
+        self.assertEqual(xform_1.id_string, 'transportation_2011_07_25')
+        self.assertEqual(xform_2.id_string, 'transportation_2011_07_25_1')
+
+        # delete one form in a project, publish the same form to the project
+        # where the form was deleted and check that '_1' is not appended to
+        # the id_string; ensure the id_string is unique
+        xform_1.delete()
+        self.project = first_project
+        self._publish_xls_form_to_project()
+        xform_3 = XForm.objects.get(project__name='demo')
+        self.assertEqual(xform_count + 2, XForm.objects.count())
+        self.assertEqual(xform_3.id_string, 'transportation_2011_07_25')
+
     def test_update_xform_xls_bad_file(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
