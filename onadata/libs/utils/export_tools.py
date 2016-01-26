@@ -129,7 +129,7 @@ def str_to_bool(s):
         return False
 
 
-def dict_to_joined_export(data, index, indices, name, data_dictionary,
+def dict_to_joined_export(data, index, indices, name, survey,
                           include_images=True):
     """
     Converts a dict into one or more tabular datasets
@@ -147,7 +147,7 @@ def dict_to_joined_export(data, index, indices, name, data_dictionary,
                     indices[key] += 1
                     child_index = indices[key]
                     new_output = dict_to_joined_export(
-                        child, child_index, indices, key, data_dictionary,
+                        child, child_index, indices, key, survey,
                         include_images)
                     d = {INDEX: child_index, PARENT_INDEX: index,
                          PARENT_TABLE_NAME: name}
@@ -175,6 +175,8 @@ def dict_to_joined_export(data, index, indices, name, data_dictionary,
                     if include_images:
                         for v in val:
                             url = current_site_url(v.get('download_url', ''))
+                            data_dictionary = \
+                                get_data_dictionary_from_survey(survey)
                             output[name][
                                 get_attachment_xpath(v.get('filename'), data,
                                                      data_dictionary)] = url
@@ -490,12 +492,11 @@ class ExportBuilder(object):
         index = 1
         indices = {}
         survey_name = self.survey.name
-        dd = get_data_dictionary_from_survey(self.survey)
         for d in data:
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
-                                                  dd,
+                                                  self.survey,
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
@@ -602,12 +603,10 @@ class ExportBuilder(object):
         index = 1
         indices = {}
         survey_name = self.survey.name
-
-        dd = get_data_dictionary_from_survey(self.survey)
         for d in data:
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
-                                                  dd,
+                                                  self.survey,
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
@@ -696,12 +695,11 @@ class ExportBuilder(object):
         index = 1
         indices = {}
         survey_name = self.survey.name
-        dd = get_data_dictionary_from_survey(self.survey)
         for d in data:
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
-                                                  dd,
+                                                  self.survey,
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
