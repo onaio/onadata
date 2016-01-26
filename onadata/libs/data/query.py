@@ -37,6 +37,21 @@ def _json_query(field):
     return "json->>'%s'" % field
 
 
+def _postgres_count_group_field_n_group_by(field, name, xform, group_by):
+    string_args = _query_args(field, name, xform, group_by)
+    if is_date_field(xform, field):
+        string_args['json'] = "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY"\
+                              "-MM-DD')" % string_args
+    query = "SELECT %(json)s AS \"%(name)s\", "\
+            "%(group_by)s AS \"%(group_name)s\", "\
+            "count(*) as count "\
+            "FROM %(table)s WHERE %(restrict_field)s=%(restrict_value)s " \
+            "AND deleted_at IS NULL " \
+            "GROUP BY %(json)s, %(group_by)s" % string_args
+
+    return query
+
+
 def _postgres_count_group(field, name, xform):
     string_args = _query_args(field, name, xform)
     if is_date_field(xform, field):
@@ -121,6 +136,13 @@ def get_form_submissions_grouped_by_field(xform, field, name=None,
     result = _execute_query(query)
 
     return result
+
+
+def get_form_submissions_grouped_by_select_one(xform, field, group_by,
+                                               name=None):
+    return _execute_query(_postgres_count_group_field_n_group_by(field, name,
+                                                                 xform,
+                                                                 group_by))
 
 
 def get_numeric_fields(xform):
