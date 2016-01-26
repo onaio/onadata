@@ -3,6 +3,7 @@ from django.db import connection
 
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
 
+
 def _dictfetchall(cursor):
     "Returns all rows from a cursor as a dict"
     desc = cursor.description

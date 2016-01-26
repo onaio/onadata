@@ -92,8 +92,9 @@ class TestChartTools(TestBase):
     def test_build_chart_data_for_numeric_field_group_by_category_field(self):
         dd = self.xform.data_dictionary()
         field = find_field_by_name(dd, 'net_worth')
+        group_by_field = find_field_by_name(dd, 'pizza_type')
         data = build_chart_data_for_field(self.xform, field,
-                                          group_by="pizza_type")
+                                          group_by=group_by_field)
 
         self.assertEqual(data['field_name'], 'net_worth')
         self.assertEqual(data['field_xpath'], 'net_worth')
@@ -103,6 +104,27 @@ class TestChartTools(TestBase):
         self.assertEqual(data['data'], [{'sum': 150000.0,
                                          'pizza_type': None,
                                          'mean': 75000.0}])
+
+    def test_build_chart_data_for_category_field_group_by_category_field(self):
+        dd = self.xform.data_dictionary()
+        field = find_field_by_name(dd, 'gender')
+        group_by_field = find_field_by_name(dd, 'pizza_fan')
+        data = build_chart_data_for_field(self.xform, field,
+                                          group_by=group_by_field)
+
+        self.assertEqual(data['field_name'], 'gender')
+        self.assertEqual(data['field_xpath'], 'gender')
+        self.assertEqual(data['field_type'], 'select one')
+        self.assertEqual(data['grouped_by'], 'pizza_fan')
+        self.assertEqual(data['data_type'], 'categorized')
+        self.assertEqual(data['data'], [
+            {
+                u'gender': [u'Male'],
+                'items': [{'count': 1L, u'pizza_fan': u'no'}]
+            }, {
+                u'gender': [u'Female'],
+                'items': [{'count': 1L, u'pizza_fan': u'no'}]
+            }])
 
     def test_build_chart_data_output(self):
         data = build_chart_data(self.xform)

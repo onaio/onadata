@@ -97,7 +97,7 @@ def get_choice_label(choices, string):
 
 def _flatten_multiple_dict_into_one(field_name, group_by_name, data):
     final = [{field_name: b, 'items': []}
-                     for b in list({a.get(field_name) for a in data})]
+             for b in list({a.get(field_name) for a in data})]
 
     for a in data:
         for b in final:
@@ -136,19 +136,20 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
     field_name = field.name if not isinstance(field, basestring) else field
 
     if group_by:
-        group_by_name = group_by.name if not isinstance(group_by, basestring) else group_by
+        group_by_name = group_by.name if not isinstance(group_by, basestring) \
+            else group_by
 
-        if field_type == common_tags.SELECT_ONE and \
-                        group_by.type == common_tags.SELECT_ONE:
+        if field_type == common_tags.SELECT_ONE \
+                and group_by.type == common_tags.SELECT_ONE:
             result = get_form_submissions_grouped_by_select_one(
-                    xform, field_xpath, group_by_name,field_name)
+                    xform, field_xpath, group_by_name, field_name)
 
             result = _flatten_multiple_dict_into_one(field_name,
                                                      group_by_name,
                                                      result)
 
-        if field_type in common_tags.NUMERIC_LIST and \
-                        group_by.type == common_tags.SELECT_ONE:
+        if field_type in common_tags.NUMERIC_LIST \
+                and group_by.type == common_tags.SELECT_ONE:
             result = get_form_submissions_grouped_by_field(
                     xform, field_xpath, field_name, group_by_name)
     else:
@@ -198,7 +199,7 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
         'field_xpath': field_name,
         'field_name': field_xpath.replace('/', '-'),
         'field_type': field_type,
-        'grouped_by': group_by
+        'grouped_by': group_by_name if group_by else None
     }
 
 
