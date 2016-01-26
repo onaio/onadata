@@ -5,6 +5,7 @@ from django.utils.dateparse import parse_datetime
 
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.export import Export
+from onadata.apps.logger.models import XForm
 from onadata.libs.utils.export_tools import generate_export
 from test_base import TestBase
 
@@ -50,6 +51,7 @@ class TestCsvExport(TestBase):
     def test_csv_nested_repeat_output(self):
         path = os.path.join(self.fixture_dir, 'double_repeat.xls')
         self._publish_xls_file(path)
+        self.xform = XForm.objects.get(id_string='double_repeat')
         path = os.path.join(self.fixture_dir, 'instance.xml')
         self._make_submission(
             path, forced_submission_time=self._submission_time)
