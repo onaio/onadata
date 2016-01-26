@@ -69,8 +69,8 @@ def _postgres_aggregate_group_by(field, name, xform, group_by):
         string_args['json'] = "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY"\
                               "-MM-DD')" % string_args
     query = "SELECT %(group_by)s AS \"%(group_name)s\","\
-            "SUM((%(json)s)::int) AS sum, " \
-            "AVG((%(json)s)::int) AS mean  " \
+            "SUM((%(json)s)::numeric) AS sum, " \
+            "AVG((%(json)s)::numeric) AS mean  " \
             "FROM %(table)s WHERE %(restrict_field)s=%(restrict_value)s " \
             "AND deleted_at IS NULL " \
             "GROUP BY %(group_by)s" % string_args

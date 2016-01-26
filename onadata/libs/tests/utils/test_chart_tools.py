@@ -89,6 +89,21 @@ class TestChartTools(TestBase):
         self.assertEqual(data['field_type'], 'text')
         self.assertEqual(data['data_type'], 'categorized')
 
+    def test_build_chart_data_for_numeric_field_group_by_category_field(self):
+        dd = self.xform.data_dictionary()
+        field = find_field_by_name(dd, 'net_worth')
+        data = build_chart_data_for_field(self.xform, field,
+                                          group_by="pizza_type")
+        import ipdb; ipdb.set_trace()
+        self.assertEqual(data['field_name'], 'net_worth')
+        self.assertEqual(data['field_xpath'], 'net_worth')
+        self.assertEqual(data['field_type'], 'decimal')
+        self.assertEqual(data['grouped_by'], 'pizza_type')
+        self.assertEqual(data['data_type'], 'numeric')
+        self.assertEqual(data['data'], [{'sum': '150000',
+                                         'pizza_type': None,
+                                         'mean': '75000'}])
+
     def test_build_chart_data_output(self):
         data = build_chart_data(self.xform)
         self.assertIsInstance(data, list)
