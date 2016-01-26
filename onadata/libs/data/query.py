@@ -3,21 +3,6 @@ from django.db import connection
 
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
 
-
-def _count_group(field, name, xform, group_by=None):
-    if using_postgres:
-
-        if group_by:
-            result = _postgres_aggregate_group_by(field, name, xform,
-                                                        group_by)
-        else:
-            result = _postgres_count_group(field, name, xform)
-    else:
-        raise Exception("Unsupported Database")
-
-    return result
-
-
 def _dictfetchall(cursor):
     "Returns all rows from a cursor as a dict"
     desc = cursor.description
@@ -128,7 +113,12 @@ def get_form_submissions_grouped_by_field(xform, field, name=None,
     if not name:
         name = field
 
-    result = _execute_query(_count_group(field, name, xform, group_by))
+    if group_by:
+        query = _postgres_aggregate_group_by(field, name, xform, group_by)
+    else:
+        query = _postgres_count_group(field, name, xform)
+
+    result = _execute_query(query)
 
     return result
 
