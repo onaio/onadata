@@ -71,7 +71,8 @@ def _postgres_aggregate_group_by(field, name, xform, group_by):
     query = "SELECT %(group_by)s AS \"%(group_name)s\","\
             "SUM((%(json)s)::int) AS sum, " \
             "AVG((%(json)s)::int) AS mean  " \
-            "FROM logger_instance WHERE xform_id=31 AND deleted_at IS NULL " \
+            "FROM %(table)s WHERE %(restrict_field)s=%(restrict_value)s " \
+            "AND deleted_at IS NULL " \
             "GROUP BY %(group_by)s" % string_args
 
     return query
