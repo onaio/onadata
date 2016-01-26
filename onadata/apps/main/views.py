@@ -1365,11 +1365,11 @@ def get_enketo_preview_url(request, username, id_string):
         response = res.json()
     except ValueError:
         pass
-    # else:
-    #     if 'preview_url' in response:
-    #         return response['preview_url']
-    #     elif 'message' in response:
-    #         raise EnketoError(response['message'])
+    else:
+        if 'preview_url' in response:
+            return response['preview_url']
+        elif 'message' in response:
+            raise EnketoError(response['message'])
 
     return False
 
