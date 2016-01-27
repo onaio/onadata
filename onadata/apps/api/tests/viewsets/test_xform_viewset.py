@@ -2051,6 +2051,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         xform_2 = XForm.objects.get(project__name='demo2')
         self.assertEqual(xform_1.id_string, 'transportation_2011_07_25')
         self.assertEqual(xform_2.id_string, 'transportation_2011_07_25_1')
+        self.assertEqual(xform_1.user, xform_2.user)
 
         # delete one form in a project, publish the same form to the project
         # where the form was deleted and check that '_1' is not appended to
@@ -2061,6 +2062,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         xform_3 = XForm.objects.get(project__name='demo')
         self.assertEqual(xform_count + 2, XForm.objects.count())
         self.assertEqual(xform_3.id_string, 'transportation_2011_07_25')
+        self.assertEqual(xform_1.user, xform_3.user)
 
     def test_update_xform_xls_bad_file(self):
         with HTTMock(enketo_mock):
