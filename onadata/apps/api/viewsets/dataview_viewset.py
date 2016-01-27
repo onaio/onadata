@@ -149,13 +149,11 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         field_name = request.QUERY_PARAMS.get('field_name')
         fmt = kwargs.get('format', request.accepted_renderer.format)
+        group_by = request.QUERY_PARAMS.get('group_by')
 
         if field_name and field_name in dataview.columns:
             data = get_chart_data_for_field(
-                field_name,
-                xform,
-                fmt
-            )
+                field_name, xform, fmt, group_by)
             return Response(data, template_name='chart_detail.html')
 
         if fmt != 'json' and field_name is None:

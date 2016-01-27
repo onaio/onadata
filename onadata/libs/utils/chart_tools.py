@@ -3,7 +3,9 @@ import re
 from django.db.utils import DataError
 from django.http import Http404
 
-from onadata.libs.data.query import get_form_submissions_grouped_by_field, \
+from onadata.libs.data.query import \
+    get_form_submissions_aggregated_by_select_one, \
+    get_form_submissions_grouped_by_field, \
     get_form_submissions_grouped_by_select_one
 from onadata.libs.utils import common_tags
 
@@ -142,7 +144,7 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
         if field_type == common_tags.SELECT_ONE \
                 and group_by.type == common_tags.SELECT_ONE:
             result = get_form_submissions_grouped_by_select_one(
-                    xform, field_xpath, group_by_name, field_name)
+                xform, field_xpath, group_by_name, field_name)
 
             result = _flatten_multiple_dict_into_one(field_name,
                                                      group_by_name,
@@ -150,8 +152,8 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
 
         if field_type in common_tags.NUMERIC_LIST \
                 and group_by.type == common_tags.SELECT_ONE:
-            result = get_form_submissions_grouped_by_field(
-                    xform, field_xpath, field_name, group_by_name)
+            result = get_form_submissions_aggregated_by_select_one(
+                xform, field_xpath, field_name, group_by_name)
     else:
         result = get_form_submissions_grouped_by_field(
             xform, field_xpath, field_name)

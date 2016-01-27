@@ -123,25 +123,32 @@ def get_field_records(field, xform):
     return [float(i[0]) for i in result if i[0] is not None]
 
 
-def get_form_submissions_grouped_by_field(xform, field, name=None,
-                                          group_by=None):
+def get_form_submissions_grouped_by_field(xform, field, name=None):
     """Number of submissions grouped by field"""
     if not name:
         name = field
 
-    if group_by:
-        query = _postgres_aggregate_group_by(field, name, xform, group_by)
-    else:
-        query = _postgres_count_group(field, name, xform)
+    return _execute_query(_postgres_count_group(field, name, xform))
 
-    result = _execute_query(query)
 
-    return result
+def get_form_submissions_aggregated_by_select_one(xform, field,
+                                                  name=None, group_by=None):
+    """Number of submissions grouped and aggregated by select_one field"""
+    if not name:
+        name = field
+    return _execute_query(_postgres_aggregate_group_by(field,
+                                                       name,
+                                                       xform,
+                                                       group_by))
 
 
 def get_form_submissions_grouped_by_select_one(xform, field, group_by,
                                                name=None):
-    return _execute_query(_postgres_count_group_field_n_group_by(field, name,
+    """Number of submissions disaggregated by select_one field"""
+    if not name:
+        name = field
+    return _execute_query(_postgres_count_group_field_n_group_by(field,
+                                                                 name,
                                                                  xform,
                                                                  group_by))
 

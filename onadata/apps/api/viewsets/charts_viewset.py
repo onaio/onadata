@@ -90,11 +90,7 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin,
 
         if field_name:
             data = get_chart_data_for_field(
-                field_name,
-                xform,
-                fmt,
-                group_by
-            )
+                field_name, xform, fmt, group_by)
 
             return Response(data, template_name='chart_detail.html')
 
