@@ -10,6 +10,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     filename_from_disposition
 from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.api.viewsets.data_viewset import DataViewSet
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import OsmData
 from onadata.apps.viewer.models import Export
@@ -137,3 +138,13 @@ class TestOSM(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.xform.pk, format='csv')
         self.assertEqual(response.status_code, 200)
+
+    def test_process_error_osm_format(self):
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+        request = self.factory.get('/')
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        response = view(request, pk=self.xform.pk, dataid=dataid, format='osm')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual('<error>Not found</error>', response.content)
