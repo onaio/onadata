@@ -227,8 +227,7 @@ class TestFormExports(TestBase):
 
         export = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             options)
         self.assertTrue(isinstance(export, Export))

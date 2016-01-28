@@ -5,6 +5,7 @@ from django.utils.dateparse import parse_datetime
 
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.export import Export
+from onadata.apps.logger.models import XForm
 from onadata.libs.utils.export_tools import generate_export
 from test_base import TestBase
 
@@ -33,8 +34,7 @@ class TestCsvExport(TestBase):
 
         export = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            "tutorial_w_repeats",
+            self.xform,
             None,
             self.options)
         storage = get_storage_class()()
@@ -51,6 +51,7 @@ class TestCsvExport(TestBase):
     def test_csv_nested_repeat_output(self):
         path = os.path.join(self.fixture_dir, 'double_repeat.xls')
         self._publish_xls_file(path)
+        self.xform = XForm.objects.get(id_string='double_repeat')
         path = os.path.join(self.fixture_dir, 'instance.xml')
         self._make_submission(
             path, forced_submission_time=self._submission_time)
@@ -67,8 +68,7 @@ class TestCsvExport(TestBase):
         # test csv
         export = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            "double_repeat",
+            self.xform,
             None,
             self.options)
         storage = get_storage_class()()
@@ -93,8 +93,7 @@ class TestCsvExport(TestBase):
         self.options['id_string'] = 'userone'
         export = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            "userone",
+            self.xform,
             None,
             self.options)
         storage = get_storage_class()()
@@ -119,8 +118,7 @@ class TestCsvExport(TestBase):
         self.options['remove_group_name'] = True
         export = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            "tutorial_w_repeats",
+            self.xform,
             None,
             self.options)
         storage = get_storage_class()()

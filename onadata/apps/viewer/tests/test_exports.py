@@ -119,8 +119,7 @@ class TestExports(TestBase):
 
         export = generate_export(
             Export.XLS_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
         self.assertTrue(storage.exists(export.filepath))
@@ -132,8 +131,7 @@ class TestExports(TestBase):
 
         export = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
         self.assertTrue(storage.exists(export.filepath))
@@ -148,8 +146,7 @@ class TestExports(TestBase):
 
         export = generate_export(
             Export.XLS_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             existing_export.id,
             self.options)
         self.assertEqual(existing_export.id, export.id)
@@ -160,8 +157,7 @@ class TestExports(TestBase):
 
         export = generate_export(
             Export.XLS_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
         storage = get_storage_class()()
@@ -177,8 +173,7 @@ class TestExports(TestBase):
 
         export = generate_export(
             Export.XLS_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
         storage = get_storage_class()()
@@ -206,8 +201,7 @@ class TestExports(TestBase):
 
         first_export = generate_export(
             Export.XLS_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
         self.assertIsNotNone(first_export.pk)
@@ -215,8 +209,7 @@ class TestExports(TestBase):
         for i in range(Export.MAX_EXPORTS):
             generate_export(
                 Export.XLS_EXPORT,
-                self.user.username,
-                self.xform.id_string,
+                self.xform,
                 None,
                 self.options)
         # first export should be deleted
@@ -251,8 +244,7 @@ class TestExports(TestBase):
 
         export = generate_export(
             Export.XLS_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
         exports = Export.objects.filter(id=export.id)
@@ -283,8 +275,7 @@ class TestExports(TestBase):
         for i in range(2):
             generate_export(
                 Export.XLS_EXPORT,
-                self.user.username,
-                self.xform.id_string,
+                self.xform,
                 None,
                 self.options)
         self.assertEqual(Export.objects.count(), 2)
@@ -340,8 +331,7 @@ class TestExports(TestBase):
 
         generate_export(
             Export.XLS_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
         num_exports = Export.objects.filter(
@@ -392,8 +382,7 @@ class TestExports(TestBase):
 
         export = generate_export(
             Export.XLS_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
         # set time of last submission to None
@@ -456,8 +445,7 @@ class TestExports(TestBase):
 
         export_2 = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
 
@@ -475,8 +463,7 @@ class TestExports(TestBase):
 
         export = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
         csv_export_url = reverse(export_download, kwargs={
@@ -492,8 +479,7 @@ class TestExports(TestBase):
         self.options["extension"] = "xls"
         export = generate_export(
             Export.XLS_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
         xls_export_url = reverse(export_download, kwargs={
@@ -516,8 +502,7 @@ class TestExports(TestBase):
 
         export = generate_export(
             Export.CSV_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
         export_url = reverse(export_download, kwargs={
@@ -1152,8 +1137,7 @@ class TestExports(TestBase):
 
         export = generate_export(
             Export.CSV_ZIP_EXPORT,
-            self.user.username,
-            self.xform.id_string,
+            self.xform,
             None,
             self.options)
         storage = get_storage_class()()
