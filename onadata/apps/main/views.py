@@ -250,7 +250,12 @@ def profile(request, username):
     # for any other user -> profile
     set_profile_data(data, content_user)
 
-    return render(request, "profile.html", data)
+    try:
+        resp = render(request, "profile.html", data)
+    except XLSFormError, e:
+        resp = HttpResponseBadRequest(e.__str__())
+
+    return resp
 
 
 def members_list(request):
