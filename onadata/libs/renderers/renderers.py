@@ -187,7 +187,12 @@ class OSMRenderer(BaseRenderer):
     charset = 'utf-8'
 
     def render(self, data, media_type=None, renderer_context=None):
-        """Combine/concatenate the list of osm files to one file"""
+        # Process error before making a list
+        if isinstance(data, dict):
+            if 'detail' in data:
+                return u'<error>' + data['detail'] + '</error>'
+
+        # Combine/concatenate the list of osm files to one file
         def _list(list_or_item):
             if isinstance(list_or_item, list):
                 return list_or_item
