@@ -3,7 +3,10 @@ import re
 from django.db.utils import DataError
 from django.http import Http404
 
-from onadata.libs.data.query import get_form_submissions_grouped_by_field
+from onadata.libs.data.query import \
+    get_form_submissions_aggregated_by_select_one, \
+    get_form_submissions_grouped_by_field, \
+    get_form_submissions_grouped_by_select_one
 from onadata.libs.utils import common_tags
 
 from onadata.apps.logger.models.xform import XForm
@@ -94,7 +97,23 @@ def get_choice_label(choices, string):
     return labels
 
 
-def build_chart_data_for_field(xform, field, language_index=0, choices=None):
+def _flatten_multiple_dict_into_one(field_name, group_by_name, data):
+    final = [{field_name: b, 'items': []}
+             for b in list({a.get(field_name) for a in data})]
+
+    for a in data:
+        for b in final:
+            if a.get(field_name) == b.get(field_name):
+                b['items'].append({
+                    group_by_name: a.get(group_by_name),
+                    'count': a.get('count')
+                    })
+
+    return final
+
+
+def build_chart_data_for_field(xform, field, language_index=0, choices=None,
+                               group_by=None):
     # check if its the special _submission_time META
     if isinstance(field, basestring) and field == common_tags.SUBMISSION_TIME:
         field_label = 'Submission Time'
@@ -118,8 +137,26 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None):
     data_type = DATA_TYPE_MAP.get(field_type, 'categorized')
     field_name = field.name if not isinstance(field, basestring) else field
 
-    result = get_form_submissions_grouped_by_field(
-        xform, field_xpath, field_name)
+    if group_by:
+        group_by_name = group_by.name if not isinstance(group_by, basestring) \
+            else group_by
+
+        if field_type == common_tags.SELECT_ONE \
+                and group_by.type == common_tags.SELECT_ONE:
+            result = get_form_submissions_grouped_by_select_one(
+                xform, field_xpath, group_by_name, field_name)
+
+            result = _flatten_multiple_dict_into_one(field_name,
+                                                     group_by_name,
+                                                     result)
+
+        if field_type in common_tags.NUMERIC_LIST \
+                and group_by.type == common_tags.SELECT_ONE:
+            result = get_form_submissions_aggregated_by_select_one(
+                xform, field_xpath, field_name, group_by_name)
+    else:
+        result = get_form_submissions_grouped_by_field(
+            xform, field_xpath, field_name)
 
     # truncate field name to 63 characters to fix #354
     truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
@@ -142,7 +179,8 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None):
             item[field_name] = item[truncated_name]
             del(item[truncated_name])
 
-    result = sorted(result, key=lambda d: d['count'])
+    if not group_by:
+        result = sorted(result, key=lambda d: d['count'])
 
     # for date fields, strip out None values
     if data_type == 'time_based':
@@ -162,7 +200,8 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None):
         'field_label': field_label,
         'field_xpath': field_name,
         'field_name': field_xpath.replace('/', '-'),
-        'field_type': field_type
+        'field_type': field_type,
+        'grouped_by': group_by_name if group_by else None
     }
 
 
@@ -233,12 +272,7 @@ def build_chart_data_from_widget(widget, language_index=0):
     return data
 
 
-def get_chart_data_for_field(field_name, xform, accepted_format):
-    """
-    Get chart data for a given xlsform field.
-    """
-    data = {}
-    dd = xform.data_dictionary()
+def _get_field_from_field_name(field_name, dd):
     # check if its the special _submission_time META
     if field_name == common_tags.SUBMISSION_TIME:
         field = common_tags.SUBMISSION_TIME
@@ -253,6 +287,20 @@ def get_chart_data_for_field(field_name, xform, accepted_format):
                 "Field %s does not not exist on the form" % field_name)
 
         field = fields[0]
+
+    return field
+
+
+def get_chart_data_for_field(field_name, xform, accepted_format, group_by):
+    """
+    Get chart data for a given xlsform field.
+    """
+    data = {}
+    dd = xform.data_dictionary()
+    field = _get_field_from_field_name(field_name, dd)
+
+    if group_by:
+        group_by = _get_field_from_field_name(group_by, dd)
     choices = dd.survey.get('choices')
 
     if choices:
@@ -260,7 +308,7 @@ def get_chart_data_for_field(field_name, xform, accepted_format):
 
     try:
         data = build_chart_data_for_field(
-            xform, field, choices=choices)
+            xform, field, choices=choices, group_by=group_by)
     except DataError as e:
         raise ParseError(unicode(e))
     else:
