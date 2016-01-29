@@ -499,6 +499,8 @@ ORG_PROFILE_SERIALIZER = \
 BASE_VIEWSET = "onadata.libs.baseviewset.DefaultBaseViewset"
 
 path = os.path.join(PROJECT_ROOT, "..", "extras", "reserved_accounts.txt")
+
+EXPORT_WITH_IMAGE_DEFAULT = True
 try:
     with open(path, 'r') as f:
         RESERVED_USERNAMES = [line.rstrip() for line in f]

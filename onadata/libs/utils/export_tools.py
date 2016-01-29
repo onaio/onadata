@@ -38,15 +38,13 @@ from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
     DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, GROUPNAME_REMOVED_FLAG,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
-    DATAVIEW_EXPORT)
+    DATAVIEW_EXPORT, KNOWN_MEDIA_TYPES)
 from onadata.libs.utils.osm import get_combined_osm
-from onadata.libs.serializers.attachment_serializer import \
-        dict_key_for_value, get_path
+from onadata.apps.viewer.models.data_dictionary import DataDictionary
+from onadata.apps.viewer.models.data_dictionary import\
+    QUESTION_TYPES_TO_EXCLUDE
 
 
-QUESTION_TYPES_TO_EXCLUDE = [
-    u'note',
-]
 # the bind type of select multiples that we use to compare
 MULTIPLE_SELECT_BIND_TYPE = u"select"
 GEOPOINT_BIND_TYPE = u"geopoint"
@@ -74,24 +72,33 @@ def current_site_url(path):
     return url
 
 
-def get_attachment_xpath(attachment_id):
+def get_attachment_xpath(file_name, row, data_dictionary):
     """
-    Gets the xpath of the attachment
-    :param attachment_id:
+    Gets the xpath of the attachment using the file name
+    :param file_name: attachment filename
+    :param row: current records row
+    :param data_dictionary: form structure
     :return: field_xpath
     """
-    try:
-        attachment = Attachment.objects.get(pk=attachment_id)
-        qa_dict = attachment.instance.get_dict()
-        if attachment.filename not in qa_dict.values():
-            return None
 
-        question_name = dict_key_for_value(qa_dict, attachment.filename)
-        data = json.loads(attachment.instance.xform.json)
+    # get all known media types for this form
+    media_types = [data_dictionary.get_survey_elements_of_type(e)
+                   for e in KNOWN_MEDIA_TYPES]
 
-        return get_path(data, question_name, [])
-    except Attachment.DoesNotExist:
-        return None
+    # convert to single array
+    media_types = sum(media_types, [])
+
+    # test the media type to find the correct attachment xpath
+    for m in media_types:
+        if file_name.endswith(row[m.get('type')]):
+            return m.get('type')
+
+
+def get_data_dictionary_from_survey(survey):
+    dd = DataDictionary()
+    dd._survey = survey
+
+    return dd
 
 
 def encode_if_str(row, key, encode_dates=False):
@@ -115,10 +122,6 @@ def encode_if_str(row, key, encode_dates=False):
     return val
 
 
-def question_types_to_exclude(_type):
-    return _type in QUESTION_TYPES_TO_EXCLUDE
-
-
 def str_to_bool(s):
     if s in ['True', 'true', 'TRUE']:
         return True
@@ -126,67 +129,8 @@ def str_to_bool(s):
         return False
 
 
-class DictOrganizer(object):
-
-    def set_dict_iterator(self, dict_iterator):
-        self._dict_iterator = dict_iterator
-
-    # Every section will get its own table
-    # I need to think of an easy way to flatten out a dictionary
-    # parent name, index, table name, data
-    def _build_obs_from_dict(self, d, obs, table_name,
-                             parent_table_name, parent_index):
-        if table_name not in obs:
-            obs[table_name] = []
-        this_index = len(obs[table_name])
-        obs[table_name].append({
-            u"_parent_table_name": parent_table_name,
-            u"_parent_index": parent_index,
-        })
-        for k, v in d.items():
-            if type(v) != dict and type(v) != list:
-                assert k not in obs[table_name][-1]
-                obs[table_name][-1][k] = v
-        obs[table_name][-1][u"_index"] = this_index
-
-        for k, v in d.items():
-            if type(v) == dict:
-                kwargs = {
-                    "d": v,
-                    "obs": obs,
-                    "table_name": k,
-                    "parent_table_name": table_name,
-                    "parent_index": this_index
-                }
-                self._build_obs_from_dict(**kwargs)
-            if type(v) == list:
-                for i, item in enumerate(v):
-                    kwargs = {
-                        "d": item,
-                        "obs": obs,
-                        "table_name": k,
-                        "parent_table_name": table_name,
-                        "parent_index": this_index,
-                    }
-                    self._build_obs_from_dict(**kwargs)
-        return obs
-
-    def get_observation_from_dict(self, d):
-        result = {}
-        assert len(d.keys()) == 1
-        root_name = d.keys()[0]
-        kwargs = {
-            "d": d[root_name],
-            "obs": result,
-            "table_name": root_name,
-            "parent_table_name": u"",
-            "parent_index": -1,
-        }
-        self._build_obs_from_dict(**kwargs)
-        return result
-
-
-def dict_to_joined_export(data, index, indices, name, include_images=True):
+def dict_to_joined_export(data, index, indices, name, survey,
+                          include_images=True):
     """
     Converts a dict into one or more tabular datasets
     """
@@ -203,7 +147,8 @@ def dict_to_joined_export(data, index, indices, name, include_images=True):
                     indices[key] += 1
                     child_index = indices[key]
                     new_output = dict_to_joined_export(
-                        child, child_index, indices, key, include_images)
+                        child, child_index, indices, key, survey,
+                        include_images)
                     d = {INDEX: child_index, PARENT_INDEX: index,
                          PARENT_TABLE_NAME: name}
                     # iterate over keys within new_output and append to
@@ -230,8 +175,11 @@ def dict_to_joined_export(data, index, indices, name, include_images=True):
                     if include_images:
                         for v in val:
                             url = current_site_url(v.get('download_url', ''))
-                            output[name][get_attachment_xpath(v.get('id'))]\
-                                = url
+                            data_dictionary = \
+                                get_data_dictionary_from_survey(survey)
+                            output[name][
+                                get_attachment_xpath(v.get('filename'), data,
+                                                     data_dictionary)] = url
                 else:
                     output[name][key] = val
 
@@ -256,7 +204,7 @@ class ExportBuilder(object):
 
     INCLUDE_LABELS = False
     INCLUDE_LABELS_ONLY = False
-    INCLUDE_IMAGES = True
+    INCLUDE_IMAGES = settings.EXPORT_WITH_IMAGE_DEFAULT
 
     TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
     CONVERT_FUNCS = {
@@ -301,11 +249,7 @@ class ExportBuilder(object):
         return title
 
     def set_survey(self, survey):
-        # TODO resolve circular import
-        from onadata.apps.viewer.models.data_dictionary import\
-            DataDictionary
-        dd = DataDictionary()
-        dd._survey = survey
+        dd = get_data_dictionary_from_survey(survey)
 
         def build_sections(
                 current_section, survey_element, sections, select_multiples,
@@ -552,6 +496,7 @@ class ExportBuilder(object):
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
+                                                  self.survey,
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
@@ -661,6 +606,7 @@ class ExportBuilder(object):
         for d in data:
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
+                                                  self.survey,
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
@@ -753,6 +699,7 @@ class ExportBuilder(object):
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
+                                                  self.survey,
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
@@ -923,7 +870,8 @@ def generate_export(export_type, xform, export_id=None, options=None):
         'include_labels_only', False
     )
 
-    export_builder.INCLUDE_IMAGES = options.get("include_images", True)
+    export_builder.INCLUDE_IMAGES \
+        = options.get("include_images", settings.EXPORT_WITH_IMAGE_DEFAULT)
     export_builder.set_survey(xform.data_dictionary().survey)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))

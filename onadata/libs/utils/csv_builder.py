@@ -19,7 +19,8 @@ from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
     DURATION
 from onadata.libs.utils.export_tools import current_site_url
-from onadata.libs.utils.export_tools import question_types_to_exclude
+from onadata.apps.viewer.models.data_dictionary import\
+    question_types_to_exclude
 from onadata.libs.utils.export_tools import get_attachment_xpath
 
 
@@ -341,7 +342,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
         super(CSVDataFrameBuilder, self)._setup()
 
     @classmethod
-    def _reindex(cls, key, value, ordered_columns, parent_prefix=None,
+    def _reindex(cls, key, value, ordered_columns, row, data_dictionary,
+                 parent_prefix=None,
                  include_images=True):
         """
         Flatten list columns by appending an index, otherwise return as is
@@ -374,7 +376,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             # if nested_value is a list, rinse and repeat
                             d.update(cls._reindex(
                                 nested_key, nested_val,
-                                ordered_columns, new_prefix,
+                                ordered_columns, row, data_dictionary,
+                                new_prefix,
                                 include_images=include_images))
                         else:
                             # it can only be a scalar
@@ -398,7 +401,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                 if include_images:
                     for v in value:
                         url = current_site_url(v.get('download_url', ''))
-                        d[get_attachment_xpath(v.get('id'))] = url
+                        d[get_attachment_xpath(v.get('filename'), row,
+                                               data_dictionary)] = url
             else:
                 d[key] = value
         return d
@@ -458,6 +462,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             # re index repeats
             for key, value in record.iteritems():
                 reindexed = self._reindex(key, value, self.ordered_columns,
+                                          record, self.dd,
                                           include_images=self.include_images)
                 flat_dict.update(reindexed)
 

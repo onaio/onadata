@@ -71,3 +71,5 @@ DATAVIEW_EXPORT = U'dataview'
 OWNER_TEAM_NAME = "Owners"
 
 API_TOKEN = 'api-token'
+
+KNOWN_MEDIA_TYPES = ['photo', 'image', 'audio', 'video']
