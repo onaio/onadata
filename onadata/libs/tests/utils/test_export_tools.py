@@ -3,10 +3,12 @@ from datetime import date, datetime
 from django.core.files.storage import default_storage
 
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.logger.models import XForm
 from onadata.apps.viewer.models.export import Export
 
 from onadata.libs.utils.export_tools import (
     encode_if_str,
+    get_attachment_xpath,
     generate_osm_export,
     should_create_new_export)
 from onadata.apps.logger.models import Attachment
@@ -119,3 +121,11 @@ class TestExportTools(TestBase):
             self.xform, export_type, options)
 
         self.assertTrue(will_create_new_export)
+
+    def test_should_get_attachment_xpath_with_no_photos(self):
+        self._publish_xls_file(os.path.join(self.this_directory, "fixtures",
+                                            "photos", "tutorial.xls"))
+        filename = "filename"
+        dd = XForm.objects.order_by('pk').reverse()[0].data_dictionary()
+        row = {}
+        get_attachment_xpath(filename, row, dd)

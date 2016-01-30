@@ -90,7 +90,9 @@ def get_attachment_xpath(file_name, row, data_dictionary):
 
     # test the media type to find the correct attachment xpath
     for m in media_types:
-        if file_name.endswith(row[m.get('type')]):
+        type_in_row = row.get(m.get('type'))
+
+        if type_in_row and file_name.endswith(type_in_row):
             return m.get('type')
 
 
