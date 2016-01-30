@@ -29,6 +29,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.filters import DjangoFilterBackend
 
+from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.main.views import get_enketo_preview_url
 from onadata.apps.api import tasks
 from onadata.libs import filters, authentication
@@ -600,3 +601,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         return Response(data=resp,
                         status=status.HTTP_202_ACCEPTED,
                         content_type="application/json")
+
+    def list(self, request, *args, **kwargs):
+        try:
+            resp = super(XFormViewSet, self).list(request, *args, **kwargs)
+        except XLSFormError, e:
+            resp = HttpResponseBadRequest(e.message)
+
+        return resp

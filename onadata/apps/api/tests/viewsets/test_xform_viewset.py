@@ -7,6 +7,7 @@ import requests
 import pytz
 import jwt
 import hashlib
+import mock
 
 from collections import OrderedDict
 from cStringIO import StringIO
@@ -22,6 +23,7 @@ from django_digest.test import DigestAuth
 from httmock import urlmatch, HTTMock
 from mock import patch
 from rest_framework import status
+from rest_framework.viewsets import ModelViewSet
 from xml.dom import minidom, Node
 from datetime import timedelta
 
@@ -29,6 +31,7 @@ from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet, get_response_content, filename_from_disposition
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 from onadata.apps.viewer.models import Export
@@ -1232,6 +1235,17 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.get('Cache-Control'), None)
             error_msg = u"Title shouldn't have an ampersand"
             self.assertEqual(response.data.get('text'), error_msg)
+
+    @mock.patch.object(ModelViewSet, 'list')
+    def test_return_400_on_xlsform_error_on_list_action(self, mock_set_title):
+        with HTTMock(enketo_mock):
+            error_msg = u"Title shouldn't have an ampersand"
+            mock_set_title.side_effect = XLSFormError(error_msg)
+            request = self.factory.get('/', **self.extra)
+            response = self.view(request)
+            self.assertTrue(mock_set_title.called)
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.content, error_msg)
 
     def test_publish_invalid_xls_form_no_choices(self):
         view = XFormViewSet.as_view({
