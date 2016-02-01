@@ -112,6 +112,69 @@ def _flatten_multiple_dict_into_one(field_name, group_by_name, data):
     return final
 
 
+def _use_labels_from_field_name(field_name, field, data_type, data,
+                                choices=None):
+    # truncate field name to 63 characters to fix #354
+    truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
+    truncated_name = truncated_name.encode('utf-8')
+
+    if data_type == 'categorized':
+        if data:
+            if field.children:
+                choices = field.children
+
+            for item in data:
+                item[truncated_name] = get_choice_label(
+                    choices, item[truncated_name])
+
+    # replace truncated field names in the result set with the field name key
+    field_name = field_name.encode('utf-8')
+
+    for item in data:
+        if field_name != truncated_name:
+            item[field_name] = item[truncated_name]
+            del(item[truncated_name])
+
+    return data
+
+
+def _use_labels_from_group_by_name(field_name, field, data_type, data,
+                                   choices=None):
+    # truncate field name to 63 characters to fix #354
+    truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
+    truncated_name = truncated_name.encode('utf-8')
+
+    if data_type == 'categorized':
+        if data:
+            if field.children:
+                choices = field.children
+
+            for item in data:
+                if 'items' in item:
+                    for i in item.get('items'):
+                        i[truncated_name] = get_choice_label(
+                            choices, i[truncated_name])
+                else:
+                    item[truncated_name] = \
+                        get_choice_label(choices, item[truncated_name])
+
+    # replace truncated field names in the result set with the field name key
+    field_name = field_name.encode('utf-8')
+
+    for item in data:
+        if 'items' in item:
+            for i in item.get('items'):
+                if field_name != truncated_name:
+                    i[field_name] = i[truncated_name]
+                    del(i[truncated_name])
+        else:
+            if field_name != truncated_name:
+                item[field_name] = item[truncated_name]
+                del(item[truncated_name])
+
+    return data
+
+
 def build_chart_data_for_field(xform, field, language_index=0, choices=None,
                                group_by=None):
     # check if its the special _submission_time META
@@ -158,26 +221,13 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
         result = get_form_submissions_grouped_by_field(
             xform, field_xpath, field_name)
 
-    # truncate field name to 63 characters to fix #354
-    truncated_name = field_name[0:POSTGRES_ALIAS_LENGTH]
-    truncated_name = truncated_name.encode('utf-8')
+    result = _use_labels_from_field_name(field_name, field, data_type, result,
+                                         choices=choices)
 
-    if data_type == 'categorized':
-        if result:
-            if field.children:
-                choices = field.children
-
-            for item in result:
-                item[truncated_name] = get_choice_label(
-                    choices, item[truncated_name])
-
-    # replace truncated field names in the result set with the field name key
-    field_name = field_name.encode('utf-8')
-
-    for item in result:
-        if field_name != truncated_name:
-            item[field_name] = item[truncated_name]
-            del(item[truncated_name])
+    if group_by:
+        result = _use_labels_from_group_by_name(group_by_name, group_by,
+                                                data_type, result,
+                                                choices=choices)
 
     if not group_by:
         result = sorted(result, key=lambda d: d['count'])

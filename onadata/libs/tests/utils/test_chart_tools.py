@@ -120,10 +120,10 @@ class TestChartTools(TestBase):
         self.assertEqual(data['data'], [
             {
                 u'gender': [u'Male'],
-                'items': [{'count': 1L, u'pizza_fan': u'no'}]
+                'items': [{'count': 1L, u'pizza_fan': [u'No']}]
             }, {
                 u'gender': [u'Female'],
-                'items': [{'count': 1L, u'pizza_fan': u'no'}]
+                'items': [{'count': 1L, u'pizza_fan': [u'No']}]
             }])
 
     def test_build_chart_data_output(self):
