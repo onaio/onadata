@@ -18,6 +18,12 @@ def find_field_by_name(dd, field_name):
         lambda f: f.name == field_name, [e for e in dd.survey_elements])[0]
 
 
+def find_field_by_xpath(dd, field_xpath):
+    return filter(
+        lambda f: f.get_abbreviated_xpath() == field_xpath,
+        [e for e in dd.survey_elements])[0]
+
+
 class TestChartTools(TestBase):
 
     def setUp(self):
@@ -82,7 +88,7 @@ class TestChartTools(TestBase):
 
     def test_build_chart_data_for_field_on_grouped_field(self):
         dd = self.xform.data_dictionary()
-        field = find_field_by_name(dd, 'a_text')
+        field = find_field_by_xpath(dd, 'a_group/a_text')
         data = build_chart_data_for_field(self.xform, field)
         self.assertEqual(data['field_name'], 'a_group-a_text')
         self.assertEqual(data['field_xpath'], 'a_text')
@@ -92,7 +98,7 @@ class TestChartTools(TestBase):
     def test_build_chart_data_for_numeric_field_group_by_category_field(self):
         dd = self.xform.data_dictionary()
         field = find_field_by_name(dd, 'net_worth')
-        group_by_field = find_field_by_name(dd, 'pizza_type')
+        group_by_field = find_field_by_xpath(dd, 'pizza_type')
         data = build_chart_data_for_field(self.xform, field,
                                           group_by=group_by_field)
 
@@ -130,7 +136,7 @@ class TestChartTools(TestBase):
         dd = self.xform.data_dictionary()
 
         field = find_field_by_name(dd, 'gender')
-        group_by_field = find_field_by_name(dd, 'grouped')
+        group_by_field = find_field_by_xpath(dd, 'a_group/grouped')
         data = build_chart_data_for_field(self.xform, field,
                                           group_by=group_by_field)
 

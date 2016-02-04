@@ -341,16 +341,42 @@ def _get_field_from_field_name(field_name, dd):
     return field
 
 
-def get_chart_data_for_field(field_name, xform, accepted_format, group_by):
+def _get_field_from_field_xpath(field_xpath, dd):
+    # check if its the special _submission_time META
+    if field_xpath == common_tags.SUBMISSION_TIME:
+        field = common_tags.SUBMISSION_TIME
+    else:
+        # use specified field to get summary
+        fields = filter(
+            lambda f: f.get_abbreviated_xpath() == field_xpath,
+            [e for e in dd.survey_elements])
+
+        if len(fields) == 0:
+            raise Http404(
+                "Field %s does not not exist on the form" % field_xpath)
+
+        field = fields[0]
+
+    return field
+
+
+def get_chart_data_for_field(field_name, xform, accepted_format, group_by,
+                             field_xpath=None):
     """
     Get chart data for a given xlsform field.
     """
     data = {}
     dd = xform.data_dictionary()
-    field = _get_field_from_field_name(field_name, dd)
+
+    if field_name:
+        field = _get_field_from_field_name(field_name, dd)
 
     if group_by:
-        group_by = _get_field_from_field_name(group_by, dd)
+        group_by = _get_field_from_field_xpath(group_by, dd)
+
+    if field_xpath:
+        field = _get_field_from_field_xpath(field_xpath, dd)
+
     choices = dd.survey.get('choices')
 
     if choices:
