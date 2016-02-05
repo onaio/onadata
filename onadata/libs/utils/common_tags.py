@@ -72,5 +72,5 @@ OWNER_TEAM_NAME = "Owners"
 
 API_TOKEN = 'api-token'
 KNOWN_MEDIA_TYPES = ['photo', 'image', 'audio', 'video']
-NUMERIC_LIST = [u'integer', u'decimal']
+NUMERIC_LIST = [u'integer', u'decimal', u'calculate']
 SELECT_ONE = u'select one'
