@@ -18,6 +18,12 @@ def find_field_by_name(dd, field_name):
         lambda f: f.name == field_name, [e for e in dd.survey_elements])[0]
 
 
+def find_field_by_xpath(dd, field_xpath):
+    return filter(
+        lambda f: f.get_abbreviated_xpath() == field_xpath,
+        [e for e in dd.survey_elements])[0]
+
+
 class TestChartTools(TestBase):
 
     def setUp(self):
@@ -82,7 +88,7 @@ class TestChartTools(TestBase):
 
     def test_build_chart_data_for_field_on_grouped_field(self):
         dd = self.xform.data_dictionary()
-        field = find_field_by_name(dd, 'a_text')
+        field = find_field_by_xpath(dd, 'a_group/a_text')
         data = build_chart_data_for_field(self.xform, field)
         self.assertEqual(data['field_name'], 'a_group-a_text')
         self.assertEqual(data['field_xpath'], 'a_text')
@@ -92,7 +98,7 @@ class TestChartTools(TestBase):
     def test_build_chart_data_for_numeric_field_group_by_category_field(self):
         dd = self.xform.data_dictionary()
         field = find_field_by_name(dd, 'net_worth')
-        group_by_field = find_field_by_name(dd, 'pizza_type')
+        group_by_field = find_field_by_xpath(dd, 'pizza_type')
         data = build_chart_data_for_field(self.xform, field,
                                           group_by=group_by_field)
 
@@ -120,11 +126,30 @@ class TestChartTools(TestBase):
         self.assertEqual(data['data'], [
             {
                 u'gender': [u'Male'],
-                'items': [{'count': 1L, u'pizza_fan': u'no'}]
+                'items': [{'count': 1L, u'pizza_fan': [u'No']}]
             }, {
                 u'gender': [u'Female'],
-                'items': [{'count': 1L, u'pizza_fan': u'no'}]
+                'items': [{'count': 1L, u'pizza_fan': [u'No']}]
             }])
+
+    def test_build_chart_category_field_group_by_category_field_in_group(self):
+        dd = self.xform.data_dictionary()
+
+        field = find_field_by_name(dd, 'gender')
+        group_by_field = find_field_by_xpath(dd, 'a_group/grouped')
+        data = build_chart_data_for_field(self.xform, field,
+                                          group_by=group_by_field)
+
+        self.assertEqual(data['field_name'], 'gender')
+        self.assertEqual(data['field_xpath'], 'gender')
+        self.assertEqual(data['field_type'], 'select one')
+        self.assertEqual(data['grouped_by'], 'a_group/grouped')
+        self.assertEqual(data['data_type'], 'categorized')
+        self.assertEqual(data['data'], [
+            {u'gender': [u'Male'],
+             'items': [{u'a_group/grouped': [u'Yes'], 'count': 1L}]},
+            {u'gender': [u'Female'],
+             'items': [{u'a_group/grouped': [u'Yes'], 'count': 1L}]}])
 
     def test_build_chart_data_output(self):
         data = build_chart_data(self.xform)
@@ -132,7 +157,8 @@ class TestChartTools(TestBase):
         # check expected fields
         expected_fields = sorted(['_submission_time', 'pizza_type', 'age',
                                   'gender', 'date', 'pizza_fan', 'net_worth',
-                                  'start_time', 'end_time', 'today'])
+                                  'start_time', 'end_time', 'today',
+                                  'a_group-grouped'])
         data_field_names = sorted([f['field_name'] for f in data])
         self.assertEqual(expected_fields, data_field_names)
 

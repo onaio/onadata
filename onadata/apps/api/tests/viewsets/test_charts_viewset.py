@@ -138,6 +138,21 @@ class TestChartsViewSet(TestBase):
         self.assertEqual(response.data['field_name'], 'gender')
         self.assertEqual(response.data['data_type'], 'categorized')
 
+    def test_get_on_select_field_xpath(self):
+        data = {'field_xpath': 'gender'}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'select one')
+        self.assertEqual(response.data['field_name'], 'gender')
+        self.assertEqual(response.data['data_type'], 'categorized')
+
     def test_get_on_select_multi_field(self):
         field_name = 'favorite_toppings'
         data = {'field_name': field_name}

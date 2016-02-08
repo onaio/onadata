@@ -74,6 +74,7 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin,
         dd = xform.data_dictionary()
 
         field_name = request.QUERY_PARAMS.get('field_name')
+        field_xpath = request.QUERY_PARAMS.get('field_xpath')
         fields = request.QUERY_PARAMS.get('fields')
         group_by = request.QUERY_PARAMS.get('group_by')
         fmt = kwargs.get('format')
@@ -88,9 +89,9 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin,
 
             return Response(serializer.data)
 
-        if field_name:
+        if field_name or field_xpath:
             data = get_chart_data_for_field(
-                field_name, xform, fmt, group_by)
+                field_name, xform, fmt, group_by, field_xpath)
 
             return Response(data, template_name='chart_detail.html')
 
