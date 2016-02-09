@@ -111,6 +111,22 @@ class TestChartTools(TestBase):
                                          'pizza_type': None,
                                          'mean': 75000.0}])
 
+    def test_build_chart_data_calculate_field_group_by_category_field(self):
+        dd = self.xform.data_dictionary()
+        field = find_field_by_name(dd, 'networth_calc')
+        group_by_field = find_field_by_name(dd, 'pizza_fan')
+        data = build_chart_data_for_field(self.xform, field,
+                                          group_by=group_by_field)
+
+        self.assertEqual(data['field_name'], 'networth_calc')
+        self.assertEqual(data['field_xpath'], 'networth_calc')
+        self.assertEqual(data['field_type'], 'calculate')
+        self.assertEqual(data['grouped_by'], 'pizza_fan')
+        self.assertEqual(data['data_type'], 'numeric')
+        self.assertEqual(data['data'], [{'sum': 150000.0,
+                                        'pizza_fan': u'no',
+                                         'mean': 75000.0}])
+
     def test_build_chart_data_for_category_field_group_by_category_field(self):
         dd = self.xform.data_dictionary()
         field = find_field_by_name(dd, 'gender')
