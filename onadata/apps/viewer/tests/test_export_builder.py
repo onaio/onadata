@@ -503,6 +503,25 @@ class TestExportBuilder(TestBase):
             }
         self.assertEqual(new_row, expected_row)
 
+    def test_split_select_mutliples_works_with_int_value_in_row(self):
+        select_multiples = {
+            'children/fav_number': ['children/fav_number/1',
+                                    'children/fav_number/2',
+                                    'children/fav_number/3']
+        }
+        row = {'children/fav_number': 1}
+
+        expected_row = {
+            'children/fav_number/1': True,
+            'children/fav_number': 1,
+            'children/fav_number/3': False,
+            'children/fav_number/2': False
+        }
+
+        new_row = ExportBuilder.split_select_multiples(row, select_multiples)
+        self.assertTrue(new_row)
+        self.assertEqual(new_row, expected_row)
+
     def test_split_select_multiples_works_when_data_is_blank(self):
         select_multiples =\
             {
