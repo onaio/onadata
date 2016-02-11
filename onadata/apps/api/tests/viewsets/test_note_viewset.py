@@ -53,6 +53,8 @@ class TestNoteViewSet(TestBase):
 
     def test_add_notes_to_data_point(self):
         self._add_notes_to_data_point()
+        instance = self.xform.instances.all()[0]
+        self.assertEquals(len(instance.json["_notes"]), 1)
 
     def test_other_user_notes_access(self):
         self._create_user_and_login('lilly', '1234')
