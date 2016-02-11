@@ -55,7 +55,8 @@ Response
                 "note":"This is a test note",
                 "date_created":"2016-02-10T13:27:10.299003Z",
                 "date_modified":"2016-02-10T13:27:10.299039Z",
-                "instance":1234
+                "instance":1234,
+                "created_by":1
             }
         ]
 
