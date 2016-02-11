@@ -30,6 +30,7 @@ Forms
    forms
    media
    metadata
+   notes
    files
    projects
    submissions
