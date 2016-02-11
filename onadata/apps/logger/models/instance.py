@@ -15,7 +15,7 @@ from onadata.apps.logger.models.survey_type import SurveyType
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
-    clean_and_parse_xml, get_uuid_from_xml
+    clean_and_parse_xml, get_uuid_from_xml, parse_xform_instance
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
     UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, STATUS, DURATION, START, END
@@ -427,3 +427,8 @@ class InstanceHistory(models.Model):
 
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
+
+    def get_dict(self):
+        data_dictionary = self.xform_instance.xform.data_dictionary()
+
+        return parse_xform_instance(self.xml, data_dictionary)
