@@ -260,7 +260,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             self.object = instance = self.get_object()
 
             if _format == 'json' or _format is None or _format == 'debug':
-                return Response(instance.get_full_dict())
+                return Response(instance.json)
             elif _format == 'xml':
                 return Response(instance.xml)
             elif _format == 'geojson':
