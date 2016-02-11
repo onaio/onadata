@@ -338,7 +338,10 @@ class Instance(models.Model):
         return self.numeric_converter(instance_dict)
 
     def get_notes(self):
-        return [note['note'] for note in self.notes.values('note')]
+        return [{"id": note.id,
+                 "note": note.note,
+                 "user": note.created_by.username if note.created_by else None}
+                for note in self.notes.all()]
 
     def get_root_node(self):
         self._set_parser()
