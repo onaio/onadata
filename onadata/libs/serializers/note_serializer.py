@@ -21,7 +21,7 @@ class NoteSerializer(serializers.ModelSerializer):
             assign_perm('view_note', request.user, obj)
 
         # should update instance json
-        obj.instance.parsed_instance.save()
+        obj.instance.save()
 
         return obj
 
