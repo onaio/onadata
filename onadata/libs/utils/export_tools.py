@@ -375,7 +375,7 @@ class ExportBuilder(object):
         # for each select_multiple, get the associated data and split it
         for xpath, choices in select_multiples.iteritems():
             # get the data matching this xpath
-            data = row.get(xpath)
+            data = row.get(xpath) and unicode(row.get(xpath))
             selections = []
             if data:
                 selections = [
