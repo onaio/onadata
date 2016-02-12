@@ -97,3 +97,34 @@ class TestNoteViewSet(TestBase):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         self.assertEquals(response.data, [])
+
+    def test_question_level_notes(self):
+        field = "transport"
+        dataid = self.xform.instances.all()[0].pk
+        note = {'note': "Road Warrior",
+                'instance': dataid,
+                'instance_field': field}
+        request = self.factory.post('/', data=note, **self.extra)
+        self.assertTrue(self.xform.instances.count())
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
+        instance = self.xform.instances.all()[0]
+        self.assertEquals(len(instance.json["_notes"]), 1)
+
+        note = instance.json["_notes"][0]
+        self.assertEquals(note['field'], field)
+
+    def test_only_add_question_notes_to_existing_fields(self):
+        field = "bla"
+        dataid = self.xform.instances.all()[0].pk
+        note = {'note': "Road Warrior",
+                'instance': dataid,
+                'instance_field': field}
+        request = self.factory.post('/', data=note, **self.extra)
+        self.assertTrue(self.xform.instances.count())
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+
+        instance = self.xform.instances.all()[0]
+        self.assertEquals(len(instance.json["_notes"]), 0)

@@ -339,6 +339,7 @@ class Instance(models.Model):
 
     def get_notes(self):
         return [{"id": note.id,
+                 "field": note.instance_field,
                  "note": note.note,
                  "user": note.created_by.username if note.created_by else None}
                 for note in self.notes.all()]
