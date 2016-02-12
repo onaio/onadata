@@ -11,8 +11,8 @@ class NoteSerializer(serializers.ModelSerializer):
         model = Note
 
     def create(self, validated_data):
-        obj = super(NoteSerializer, self).create(validated_data)
         request = self.context.get('request')
+        obj = super(NoteSerializer, self).create(validated_data)
 
         if request:
             assign_perm('add_note', request.user, obj)
@@ -21,7 +21,7 @@ class NoteSerializer(serializers.ModelSerializer):
             assign_perm('view_note', request.user, obj)
 
         # should update instance json
-        obj.instance.parsed_instance.save()
+        obj.instance.save()
 
         return obj
 
@@ -33,5 +33,7 @@ class NoteSerializer(serializers.ModelSerializer):
             raise exceptions.PermissionDenied(_(
                 u"You are not authorized to add/change notes on this form."
             ))
+
+        attrs['created_by'] = request.user
 
         return attrs
