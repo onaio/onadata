@@ -16,7 +16,7 @@ psycopg2==2.6.1
 pymongo==2.7.2
 lxml==3.4.4
 -e git+https://github.com/onaio/pyxform.git@onaio#egg=pyxform
-django-reversion==1.8.7
+django-reversion==1.10.1
 xlrd==0.9.3
 xlwt==0.7.5
 openpyxl==2.2.5
