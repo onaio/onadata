@@ -33,6 +33,7 @@ To add notes to a submission you need the following parameters:
 
 - ``note``: the text content of the note
 - ``instance``: the submission instance ID you are adding notes on
+- ``instance_field``: (optional) The specific question to associate the comment to on the submission instance specified.
 
 .. raw:: html
 
