@@ -1,9 +1,11 @@
+from reversion.admin import VersionAdmin
+
 from django.contrib import admin
 
 from onadata.apps.api.models import Team, OrganizationProfile, TempToken
 
 
-class TeamAdmin(admin.ModelAdmin):
+class TeamAdmin(VersionAdmin, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super(TeamAdmin, self).queryset(request)
@@ -14,7 +16,7 @@ class TeamAdmin(admin.ModelAdmin):
 admin.site.register(Team, TeamAdmin)
 
 
-class OrganizationProfileAdmin(admin.ModelAdmin):
+class OrganizationProfileAdmin(VersionAdmin, admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super(OrganizationProfileAdmin, self).queryset(request)
