@@ -40,8 +40,8 @@ To add notes to a submission you need the following parameters:
     <pre class="prettyprint">
     <b>POST</b> /api/v1/notes</pre>
 
-Example
-^^^^^^^^
+Example: without ``instance_field``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ::
 
        curl -X POST https://api.ona.io/api/v1/notes -d "note=this is a test note" -d "instance=1234"
@@ -57,6 +57,29 @@ Response
                 "date_created":"2016-02-10T13:27:10.299003Z",
                 "date_modified":"2016-02-10T13:27:10.299039Z",
                 "instance":1234,
+                "instance_field": null,
+                "created_by":1
+            }
+        ]
+
+Example: with ``instance_field``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+::
+
+       curl -X POST https://api.ona.io/api/v1/notes -d "note=this is a test note" -d "instance=1234" -d "instance_field=age"
+
+Response
+^^^^^^^^^
+::
+
+        [
+            {
+                "id":1238,
+                "note":"This is a test note",
+                "date_created":"2016-02-10T13:27:10.299003Z",
+                "date_modified":"2016-02-10T13:27:10.299039Z",
+                "instance":1234,
+                "instance_field": "age",
                 "created_by":1
             }
         ]
