@@ -358,7 +358,7 @@ def update_attached_xform(sender, instance=None, created=False, **kwargs):
 
 post_save.connect(clear_cached_metadata_instance_object, sender=MetaData,
                   dispatch_uid='clear_cached_metadata_instance_object')
-post_save.connect(ContentType, sender=MetaData,
+post_save.connect(update_attached_xform, sender=MetaData,
                   dispatch_uid='update_attached_xform')
 post_delete.connect(clear_cached_metadata_instance_object, sender=MetaData,
                     dispatch_uid='clear_cached_metadata_instance_delete')
