@@ -9,6 +9,7 @@ from datetime import datetime
 from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.fields import GenericRelation
 from django.core.urlresolvers import reverse
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.core.exceptions import ObjectDoesNotExist
@@ -26,7 +27,6 @@ from onadata.libs.utils.cache_tools import (
     PROJ_NUM_DATASET_CACHE,
     PROJ_SUB_DATE_CACHE,
     safe_delete)
-
 
 XFORM_TITLE_LENGTH = 255
 title_pattern = re.compile(r"<h:title>([^<]+)</h:title>")
@@ -107,6 +107,7 @@ class XForm(BaseModel):
                                blank=True)
     project = models.ForeignKey('Project')
     created_by = models.ForeignKey(User, null=True, blank=True)
+    metadata = GenericRelation('onadata.apps.main.models.Metadata')
 
     tags = TaggableManager()
 
