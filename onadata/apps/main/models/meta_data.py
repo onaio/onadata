@@ -15,7 +15,6 @@ from django.db import models, IntegrityError
 from django.conf import settings
 from hashlib import md5
 
-from onadata.apps.logger.models import XForm
 from onadata.libs.utils.cache_tools import (safe_delete, XFORM_METADATA_CACHE)
 from onadata.libs.utils.common_tags import TEXTIT
 
@@ -36,12 +35,12 @@ def is_valid_url(uri):
 def upload_to(instance, filename):
     if instance.data_type == 'media':
         return os.path.join(
-            instance.xform.user.username,
+            instance.content_object.user.username,
             'formid-media',
             filename
         )
     return os.path.join(
-        instance.xform.user.username,
+        instance.content_object.user.username,
         'docs',
         filename
     )
@@ -352,6 +351,8 @@ def clear_cached_metadata_instance_object(
 
 
 def update_attached_xform(sender, instance=None, created=False, **kwargs):
+    from onadata.apps.logger.models import XForm
+
     if instance and isinstance(instance.content_object, XForm):
         instance.content_object.save(skip_xls_read=True)
 
