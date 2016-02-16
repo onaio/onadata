@@ -1,3 +1,4 @@
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
@@ -23,9 +24,26 @@ METADATA_TYPES = (
 )
 
 
+class XFormObjectRelatedField(serializers.RelatedField):
+    """A custom field to represent the content_object generic relationship"""
+
+    def to_internal_value(self, data):
+        return XForm.objects.get(id=data)
+
+    def to_representation(self, obj):
+        """Serialize xform object"""
+        if obj:
+            content_object = obj.content_object
+
+            if isinstance(content_object, XForm):
+                return content_object
+
+        raise Exception("Unexpected type of MetaData XForm")
+
+
 class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     id = serializers.ReadOnlyField()
-    xform = serializers.PrimaryKeyRelatedField(queryset=XForm.objects.all())
+    xform = XFormObjectRelatedField(queryset=XForm.objects.all())
     data_value = serializers.CharField(max_length=255,
                                        required=True)
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
@@ -37,9 +55,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = MetaData
-        fields = ('id', 'xform', 'data_value', 'data_type', 'data_file',
-                  'data_file_type', 'media_url', 'file_hash', 'url',
-                  'date_created')
+        fields = ('id', 'xform', 'data_value', 'data_type',
+                  'data_file', 'data_file_type', 'media_url', 'file_hash',
+                  'url', 'date_created')
 
     def get_media_url(self, obj):
         if obj.data_type == MEDIA_TYPE and getattr(obj, "data_file") \
@@ -49,8 +67,8 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         return None
 
     def validate(self, attrs):
-        """Ensure we have a valid url if we are adding a media uri
-        instead of a media file
+        """
+        Validate url if we are adding a media uri instead of a media file
         """
         value = attrs.get('data_value')
         media = attrs.get('data_type')
@@ -82,10 +100,13 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                 and data_file_type != CSV_CONTENT_TYPE:
             data_file_type = CSV_CONTENT_TYPE
 
+        content_type = ContentType.objects.get_for_model(xform)
+
         return MetaData.objects.create(
+            content_type=content_type,
             data_type=data_type,
-            xform=xform,
             data_value=data_value,
             data_file=data_file,
-            data_file_type=data_file_type
+            data_file_type=data_file_type,
+            object_id=xform.id
         )
