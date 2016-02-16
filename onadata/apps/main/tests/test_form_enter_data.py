@@ -32,6 +32,14 @@ def enketo_mock(url, request):
 
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
+def enketo_mock_http(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = '{"url": "http://enketo.ona.io/_/#abcd"}'
+    return response
+
+
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
 def enketo_error_mock(url, request):
     response = requests.Response()
     response.status_code = 400
@@ -67,6 +75,17 @@ class TestFormEnterData(TestBase):
             server_url = 'https://testserver.com/bob'
             form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))
             url = enketo_url(server_url, form_id)
+            self.assertIsInstance(url, basestring)
+            self.assertIsNone(URLValidator()(url))
+
+    def test_enketo_url_with_http_protocol_on_formlist(self):
+        if not self._running_enketo():
+            raise SkipTest
+        with HTTMock(enketo_mock_http):
+            server_url = 'http://testserver.com/bob'
+            form_id = "test_%s" % re.sub(re.compile("\."), "_", str(time()))
+            url = enketo_url(server_url, form_id)
+            self.assertIn('http:', url)
             self.assertIsInstance(url, basestring)
             self.assertIsNone(URLValidator()(url))
 
