@@ -6,6 +6,7 @@ import StringIO
 
 from django.conf import settings
 from django.contrib.auth.models import Permission
+from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from django_digest.test import Client as DigestClient
 from tempfile import NamedTemporaryFile
@@ -413,10 +414,12 @@ class TestAbstractViewSet(TestCase):
         return response
 
     def _add_form_metadata(self, xform, data_type, data_value, path=None):
+        content_type = ContentType.objects.get_for_model(xform)
         data = {
+            'content_type': content_type,
             'data_type': data_type,
             'data_value': data_value,
-            'xform': xform.pk
+            'object_id': xform.pk
         }
 
         if path and data_value:
@@ -446,7 +449,7 @@ class TestAbstractViewSet(TestCase):
             data = {
                 'name': "My DataView",
                 'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-                'project':  'http://testserver/api/v1/projects/%s'
+                'project': 'http://testserver/api/v1/projects/%s'
                             % self.project.pk,
                 'columns': '["name", "age", "gender"]',
                 'query': '[{"column":"age","filter":">","value":"20"},'
