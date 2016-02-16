@@ -306,6 +306,12 @@ class DataDictionary(XForm):
             if self.pk is None:
                 survey['id_string'] = self.get_unique_id_string(
                     survey.get('id_string'))
+            elif self.id_string != survey.get('id_string'):
+                raise Exception(
+                    (u"The id_string of the form being replaced and the "
+                     "form replacing it should match"))
+            else:
+                survey['id_string'] = self.id_string
             self.json = survey.to_json()
             self.xml = survey.to_xml()
             self.version = survey.get('version')
