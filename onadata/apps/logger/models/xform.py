@@ -28,6 +28,8 @@ from onadata.libs.utils.cache_tools import (
     PROJ_SUB_DATE_CACHE,
     safe_delete)
 
+from onadata.apps.main.models import MetaData
+
 XFORM_TITLE_LENGTH = 255
 title_pattern = re.compile(r"<h:title>([^<]+)</h:title>")
 
@@ -45,7 +47,7 @@ class DuplicateUUIDError(Exception):
 
 def get_forms_shared_with_user(user):
     """
-    Returns forms shared with a user
+    Return forms shared with a user
     """
     xfs = user.xformuserobjectpermission_set.all()
     shared_forms_pks = list(set([xf.content_object.pk for xf in xfs]))
@@ -107,7 +109,9 @@ class XForm(BaseModel):
                                blank=True)
     project = models.ForeignKey('Project')
     created_by = models.ForeignKey(User, null=True, blank=True)
-    metadata = GenericRelation('onadata.apps.main.models.Metadata')
+    metadata_set = GenericRelation(MetaData,
+                                   content_type_field='content_type_id',
+                                   object_id_field="object_id")
 
     tags = TaggableManager()
 
@@ -348,9 +352,11 @@ post_delete.connect(xform_post_delete_callback,
 
 class XFormUserObjectPermission(UserObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
+
     content_object = models.ForeignKey(XForm)
 
 
 class XFormGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
+
     content_object = models.ForeignKey(XForm)
