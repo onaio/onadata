@@ -18,6 +18,10 @@ from hashlib import md5
 from onadata.libs.utils.cache_tools import (safe_delete, XFORM_METADATA_CACHE)
 from onadata.libs.utils.common_tags import TEXTIT
 
+from onadata.apps.main.models import (
+    XFormMetaDataManager,
+    ProjectMetaDataManager)
+
 CHUNK_SIZE = 1024
 
 urlvalidate = URLValidator()
@@ -67,14 +71,14 @@ def unique_type_for_form(content_object,
                          data_value=None,
                          data_file=None):
     """
-    Function to ensure that each metadata object has unique xform and
-    data_type fields (like a composite key in relational db) then returns
-    the metadata object
+    Ensure that each metadata object has unique xform and data_type fields
+
+    return the metadata object
     """
     defaults = {'data_value': data_value} if data_value else {}
     content_type = ContentType.objects.get_for_model(content_object)
 
-    result, created = MetaData.objects.update_or_create(
+    result, created = MetaData.xforms.update_or_create(
         object_id=content_object.id, content_type=content_type,
         data_type=data_type, defaults=defaults)
 
@@ -154,6 +158,10 @@ class MetaData(models.Model):
                                      default=get_default_content_type)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = GenericForeignKey('content_type', 'object_id')
+
+    objects = models.Manager()
+    xforms = XFormMetaDataManager()
+    projects = ProjectMetaDataManager()
 
     class Meta:
         app_label = 'main'

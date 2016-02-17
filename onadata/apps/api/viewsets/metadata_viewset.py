@@ -29,7 +29,7 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
 
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.MetaDataFilter,)
-    queryset = MetaData.objects.select_related('object_id')
+    queryset = MetaData.objects.all()
     permission_classes = (MetaDataXFormObjectPermissions,)
     renderer_classes = (
         renderers.JSONRenderer,
