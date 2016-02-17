@@ -27,18 +27,25 @@ METADATA_TYPES = (
 class XFormObjectRelatedField(serializers.RelatedField):
     """A custom field to represent the content_object generic relationship"""
 
+    def get_attribute(self, instance):
+        # xform is not an attribute of the MetaData object
+        if instance:
+            instance = instance.content_object
+
+        return instance
+
     def to_internal_value(self, data):
-        return XForm.objects.get(id=data)
+        try:
+            return XForm.objects.get(id=data)
+        except ValueError:
+            raise Exception("xform id should be an integer")
 
-    def to_representation(self, obj):
+    def to_representation(self, instance):
         """Serialize xform object"""
-        if obj:
-            content_object = obj.content_object
+        if isinstance(instance, XForm):
+            return instance.id
 
-            if isinstance(content_object, XForm):
-                return content_object
-
-        raise Exception("Unexpected type of MetaData XForm")
+        raise Exception("XForm instance not found")
 
 
 class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
@@ -87,6 +94,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     def create(self, validated_data):
         data_type = validated_data.get('data_type')
         data_file = validated_data.get('data_file')
+
         xform = validated_data.get('xform')
         data_value = data_file.name \
             if data_file else validated_data.get('data_value')
