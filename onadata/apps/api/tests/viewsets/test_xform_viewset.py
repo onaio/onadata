@@ -804,36 +804,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEquals(form_id, self.xform.pk)
             self.assertEquals(id_string, self.xform.id_string)
 
-    def test_prohibit_replacement_of_forms_with_different_id_string(self):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-
-            self.assertIsNotNone(self.xform.version)
-            form_id = self.xform.pk
-
-            self.view = XFormViewSet.as_view({
-                'get': 'retrieve',
-                'patch': 'partial_update',
-            })
-
-            request = self.factory.get('/', **self.extra)
-            response = self.view(request, pk=self.xform.id)
-            self.assertEqual(response.status_code, 200)
-            self.assertNotEqual(response.get('Cache-Control'), None)
-
-            path = os.path.join(
-                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
-                "transportation", "tutorial .xls")
-            with open(path) as xls_file:
-                post_data = {'xls_file': xls_file}
-                request = self.factory.patch('/', data=post_data, **self.extra)
-                response = self.view(request, pk=form_id)
-                self.assertEqual(response.status_code, 400)
-                self.assertEqual(
-                    response.data.get('text'),
-                    (u'The id_string of the form being replaced and the form '
-                     'replacing it should match'))
-
     def test_login_enketo_no_redirect(self):
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()
@@ -2004,12 +1974,14 @@ class TestXFormViewSet(TestAbstractViewSet):
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
-                self.assertEqual(response.status_code, 200)
-
-                self.xform.reload()
-
-                self.assertEqual(self.xform.id_string,
-                                 "transportation_2015_01_07")
+                self.assertEqual(response.status_code, 400)
+                expected_response = (
+                    u"Your updated form's id_string "
+                    "'transportation_2015_01_07' must match the existing "
+                    "forms' id_string 'transportation_2011_07_25', if form "
+                    "has submissions.")
+                self.assertEqual(response.data.get(
+                    'text'), expected_response)
 
     def test_update_xform_xls_file_with_different_model_name(self):
         with HTTMock(enketo_mock):
