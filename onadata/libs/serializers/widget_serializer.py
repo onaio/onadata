@@ -38,7 +38,7 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
         elif isinstance(value, DataView):
             self.view_name = 'dataviews-detail'
         else:
-            raise Exception(_(u"Uknown type for content_object."))
+            raise Exception(_(u"Unknown type for content_object."))
 
         self._setup_field(self.view_name)
 
