@@ -2,7 +2,7 @@ from rest_framework import renderers
 from rest_framework import viewsets
 from rest_framework.response import Response
 
-from onadata.apps.api.permissions import MetaDataObjectPermissions
+from onadata.apps.api.permissions import MetaDataXFormObjectPermissions
 from onadata.apps.api.tools import get_media_file_response
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
@@ -26,10 +26,11 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
     """
     This endpoint provides access to form metadata.
     """
+
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.MetaDataFilter,)
-    queryset = MetaData.objects.select_related('content_object')
-    permission_classes = (MetaDataObjectPermissions,)
+    queryset = MetaData.objects.select_related('object_id')
+    permission_classes = (MetaDataXFormObjectPermissions,)
     renderer_classes = (
         renderers.JSONRenderer,
         renderers.BrowsableAPIRenderer,
