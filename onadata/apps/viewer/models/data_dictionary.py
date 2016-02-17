@@ -9,6 +9,7 @@ from cStringIO import StringIO
 from django.db import models
 from django.db.models.signals import post_save, pre_save
 from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.utils.translation import ugettext as _
 from pyxform import SurveyElementBuilder
 from pyxform.builder import create_survey_element_from_dict
 from pyxform.question import Question
@@ -19,7 +20,8 @@ from pyxform.xls2json import parse_file_to_json
 from xml.dom import Node
 
 from onadata.apps.logger.models.xform import XForm
-from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
+from onadata.apps.logger.xform_instance_parser import (
+    clean_and_parse_xml, XLSFormError)
 from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
 from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES,\
     VERSION, DURATION, SUBMITTED_BY
@@ -306,6 +308,12 @@ class DataDictionary(XForm):
             if self.pk is None:
                 survey['id_string'] = self.get_unique_id_string(
                     survey.get('id_string'))
+            elif self.id_string != survey.get('id_string'):
+                raise XLSFormError(_(
+                    (u"Your updated form's id_string '%(new_id)s' must match "
+                     "the existing forms' id_string '%(old_id)s', if form has "
+                     "submissions." % {'new_id': survey.get('id_string'),
+                                       'old_id': self.id_string})))
             else:
                 survey['id_string'] = self.id_string
             self.json = survey.to_json()
