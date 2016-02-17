@@ -16,5 +16,5 @@ class ProjectMetaDataManager(models.Manager):
         content_object, created = ContentType.objects.get_or_create(
             app_label="logger", model="project")
 
-        return super(XFormMetaDataManager, self).get_queryset().filter(
+        return super(ProjectMetaDataManager, self).get_queryset().filter(
             content_type=content_object)

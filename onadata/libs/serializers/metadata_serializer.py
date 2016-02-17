@@ -110,7 +110,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         content_type = ContentType.objects.get_for_model(xform)
 
-        return MetaData.xforms.create(
+        return MetaData.objects.create(
             content_type=content_type,
             data_type=data_type,
             data_value=data_value,

@@ -78,7 +78,7 @@ def unique_type_for_form(content_object,
     defaults = {'data_value': data_value} if data_value else {}
     content_type = ContentType.objects.get_for_model(content_object)
 
-    result, created = MetaData.xforms.update_or_create(
+    result, created = XFormMetaData.objects.update_or_create(
         object_id=content_object.id, content_type=content_type,
         data_type=data_type, defaults=defaults)
 
@@ -160,8 +160,6 @@ class MetaData(models.Model):
     content_object = GenericForeignKey('content_type', 'object_id')
 
     objects = models.Manager()
-    xforms = XFormMetaDataManager()
-    projects = ProjectMetaDataManager()
 
     class Meta:
         app_label = 'main'
@@ -363,6 +361,20 @@ def update_attached_xform(sender, instance=None, created=False, **kwargs):
 
     if instance and isinstance(instance.content_object, XForm):
         instance.content_object.save(skip_xls_read=True)
+
+
+class XFormMetaData(MetaData):
+    objects = XFormMetaDataManager()
+
+    class Meta:
+        proxy = True
+
+
+class ProjectMetaData(MetaData):
+    objects = ProjectMetaDataManager()
+
+    class Meta:
+        proxy = True
 
 
 post_save.connect(clear_cached_metadata_instance_object, sender=MetaData,
