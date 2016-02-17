@@ -174,7 +174,8 @@ class MetaDataFilter(XFormPermissionFilterMixin,
                      filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
-        return self._xform_filter_queryset(request, queryset, view, 'xform')
+        return self._xform_filter_queryset(
+            request, queryset, view, 'object_id')
 
 
 class AttachmentFilter(XFormPermissionFilterMixin,
