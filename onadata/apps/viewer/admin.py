@@ -2,7 +2,7 @@ from reversion.admin import VersionAdmin
 
 from django.contrib import admin
 
-from onadata.apps.viewer.models import DataDictionary, ParsedInstance
+from onadata.apps.viewer.models import DataDictionary
 
 
 class DataDictionaryAdmin(VersionAdmin, admin.ModelAdmin):
@@ -15,14 +15,3 @@ class DataDictionaryAdmin(VersionAdmin, admin.ModelAdmin):
         return qs.filter(user=request.user)
 
 admin.site.register(DataDictionary, DataDictionaryAdmin)
-
-
-class ParsedInstanceAdmin(VersionAdmin, admin.ModelAdmin):
-
-    def get_queryset(self, request):
-        qs = super(ParsedInstanceAdmin, self).queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(user=request.user)
-
-admin.site.register(ParsedInstance, ParsedInstanceAdmin)

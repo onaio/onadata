@@ -2,21 +2,7 @@ from reversion.admin import VersionAdmin
 
 from django.contrib import admin
 
-from onadata.apps.logger.models import XForm, Project, SurveyType, Instance
-
-
-class InstanceAdmin(VersionAdmin, admin.ModelAdmin):
-    exclude = ('user',)
-    list_display = ('uuid', 'xform')
-    search_fields = ('uuid', 'xform__id_string')
-
-    def get_queryset(self, request):
-        qs = super(InstanceAdmin, self).queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(user=request.user)
-
-admin.site.register(Instance, InstanceAdmin)
+from onadata.apps.logger.models import XForm, Project
 
 
 class XFormAdmin(VersionAdmin, admin.ModelAdmin):
@@ -48,15 +34,3 @@ class ProjectAdmin(VersionAdmin, admin.ModelAdmin):
         return qs.filter(user=request.user)
 
 admin.site.register(Project, ProjectAdmin)
-
-
-class SurveyTypeAdmin(VersionAdmin, admin.ModelAdmin):
-    list_display = ('slug',)
-
-    def get_queryset(self, request):
-        qs = super(SurveyTypeAdmin, self).queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(user=request.user)
-
-admin.site.register(SurveyType, SurveyTypeAdmin)
