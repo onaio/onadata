@@ -7,6 +7,9 @@ from rest_framework import serializers
 from onadata.apps.logger.models import XForm
 from onadata.apps.main.models import MetaData
 
+from onadata.libs.serializers.fields.xform_related_field import (
+    XFormRelatedField,)
+
 CSV_CONTENT_TYPE = 'text/csv'
 MEDIA_TYPE = 'media'
 METADATA_TYPES = (
@@ -24,33 +27,9 @@ METADATA_TYPES = (
 )
 
 
-class XFormObjectRelatedField(serializers.RelatedField):
-    """A custom field to represent the content_object generic relationship"""
-
-    def get_attribute(self, instance):
-        # xform is not an attribute of the MetaData object
-        if instance:
-            instance = instance.content_object
-
-        return instance
-
-    def to_internal_value(self, data):
-        try:
-            return XForm.objects.get(id=data)
-        except ValueError:
-            raise Exception("xform id should be an integer")
-
-    def to_representation(self, instance):
-        """Serialize xform object"""
-        if isinstance(instance, XForm):
-            return instance.id
-
-        raise Exception("XForm instance not found")
-
-
 class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     id = serializers.ReadOnlyField()
-    xform = XFormObjectRelatedField(queryset=XForm.objects.all())
+    xform = XFormRelatedField(queryset=XForm.objects.all())
     data_value = serializers.CharField(max_length=255,
                                        required=True)
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
