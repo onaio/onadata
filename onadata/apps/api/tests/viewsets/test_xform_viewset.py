@@ -1653,8 +1653,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             view = XFormViewSet.as_view({
                 'get': 'retrieve',
             })
-            data = {'meta': metadata.pk,
-                    'data_id': self.xform.instances.all()[0].pk}
+            data_id = self.xform.instances.all().order_by('-pk')[0].pk
+            data = {'meta': metadata.pk, 'data_id': data_id}
             formid = self.xform.pk
             request = self.factory.get('/', data=data,
                                        **self.extra)
@@ -2785,8 +2785,8 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             expected = [{'total': 1, 'version': u'212121211'},
                         {'total': 4, 'version': u'2014111'}]
-
-            self.assertEquals(expected, response.data.get('form_versions'))
+            for v in expected:
+                self.assertIn(v, response.data.get('form_versions'))
 
     def test_csv_export__with_and_without_group_delimiter(self):
         with HTTMock(enketo_mock):
