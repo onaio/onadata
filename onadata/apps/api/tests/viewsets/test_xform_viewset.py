@@ -2709,8 +2709,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             view = XFormViewSet.as_view({
                 'get': 'retrieve',
             })
-            data = {'meta': metadata.pk,
-                    'data_id': self.xform.instances.all()[0].pk}
+            data_id = self.xform.instances.all().order_by('-pk')[0].pk
+            data = {'meta': metadata.pk, 'data_id': data_id}
             formid = self.xform.pk
             request = self.factory.get('/', data=data,
                                        **self.extra)
