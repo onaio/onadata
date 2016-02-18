@@ -4,11 +4,13 @@ from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
-from onadata.apps.logger.models import XForm
+from onadata.apps.logger.models import XForm, Project
 from onadata.apps.main.models import MetaData
 
 from onadata.libs.serializers.fields.xform_related_field import (
     XFormRelatedField,)
+from onadata.libs.serializers.fields.project_related_field import (
+    ProjectRelatedField,)
 
 CSV_CONTENT_TYPE = 'text/csv'
 MEDIA_TYPE = 'media'
@@ -26,10 +28,13 @@ METADATA_TYPES = (
     ('textit', _(u"External Export"))
 )
 
+PROJECT_METADATA_TYPES = (
+    (MEDIA_TYPE, _(u"Media")),
+    ('supporting_doc', _(u"Supporting Document")))
 
-class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
+
+class GenericMetaDataSerializer(serializers.HyperlinkedModelSerializer):
     id = serializers.ReadOnlyField()
-    xform = XFormRelatedField(queryset=XForm.objects.all())
     data_value = serializers.CharField(max_length=255,
                                        required=True)
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
@@ -41,9 +46,6 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = MetaData
-        fields = ('id', 'xform', 'data_value', 'data_type',
-                  'data_file', 'data_file_type', 'media_url', 'file_hash',
-                  'url', 'date_created')
 
     def get_media_url(self, obj):
         if obj.data_type == MEDIA_TYPE and getattr(obj, "data_file") \
@@ -70,11 +72,15 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         return attrs
 
+    def get_content_object(self, validated_data):
+        if validated_data:
+            return validated_data.get('content_object')
+
     def create(self, validated_data):
         data_type = validated_data.get('data_type')
         data_file = validated_data.get('data_file')
 
-        xform = validated_data.get('xform')
+        content_object = self.get_content_object(validated_data)
         data_value = data_file.name \
             if data_file else validated_data.get('data_value')
         data_file_type = data_file.content_type if data_file else None
@@ -87,7 +93,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                 and data_file_type != CSV_CONTENT_TYPE:
             data_file_type = CSV_CONTENT_TYPE
 
-        content_type = ContentType.objects.get_for_model(xform)
+        content_type = ContentType.objects.get_for_model(content_object)
 
         return MetaData.objects.create(
             content_type=content_type,
@@ -95,5 +101,32 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             data_value=data_value,
             data_file=data_file,
             data_file_type=data_file_type,
-            object_id=xform.id
+            object_id=content_object.id
         )
+
+
+class XFormMetaDataSerializer(GenericMetaDataSerializer):
+    xform = XFormRelatedField(queryset=XForm.objects.all())
+
+    class Meta(GenericMetaDataSerializer.Meta):
+        fields = ('id', 'xform', 'data_value', 'data_type',
+                  'data_file', 'data_file_type', 'media_url', 'file_hash',
+                  'url', 'date_created')
+
+    def get_content_object(self, validated_data):
+        xform = validated_data.get('xform')
+        return xform
+
+
+class ProjectMetaDataSerializer(GenericMetaDataSerializer):
+    data_type = serializers.ChoiceField(choices=PROJECT_METADATA_TYPES)
+    project = ProjectRelatedField(queryset=Project.objects.all())
+
+    class Meta(GenericMetaDataSerializer.Meta):
+        fields = ('id', 'project', 'data_value', 'data_type',
+                  'data_file', 'data_file_type', 'media_url', 'file_hash',
+                  'url', 'date_created')
+
+    def get_content_object(self, validated_data):
+        project = validated_data.get('project')
+        return project

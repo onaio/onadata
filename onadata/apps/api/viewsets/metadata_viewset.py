@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from onadata.apps.api.permissions import MetaDataXFormObjectPermissions
 from onadata.apps.api.tools import get_media_file_response
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
+from onadata.libs.serializers.metadata_serializer import (
+    XFormMetaDataSerializer)
 from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
@@ -35,7 +36,7 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
         renderers.JSONRenderer,
         renderers.BrowsableAPIRenderer,
         MediaFileRenderer)
-    serializer_class = MetaDataSerializer
+    serializer_class = XFormMetaDataSerializer
 
     def retrieve(self, request, *args, **kwargs):
         self.object = self.get_object()
