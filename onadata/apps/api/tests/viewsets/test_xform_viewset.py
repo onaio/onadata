@@ -1941,6 +1941,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'patch': 'partial_update',
             })
 
+            # try to replace a file that has a different id_string
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
@@ -1956,6 +1957,23 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(response.data.get(
                     'text'), expected_response)
 
+            # try to replace a file whose id_string hasn't been set
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "tutorial .xls")
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.patch('/', data=post_data, **self.extra)
+                response = view(request, pk=form_id)
+                self.assertEqual(response.status_code, 400)
+                expected_response = (
+                    u"Your updated form's id_string "
+                    "'transportation' must match the existing "
+                    "forms' id_string 'transportation_2011_07_25', if form "
+                    "has submissions.")
+                self.assertEqual(response.data.get(
+                    'text'), expected_response)
+
     def test_update_xform_with_different_id_string_form_with_no_sub(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
@@ -1967,6 +1985,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'patch': 'partial_update',
             })
 
+            # try to replace a file that has a different id_string
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                 "transportation", "transportation_different_id_string.xlsx")
@@ -1974,12 +1993,31 @@ class TestXFormViewSet(TestAbstractViewSet):
                 post_data = {'xls_file': xls_file}
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
-                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.status_code, 400)
+                expected_response = (
+                    u"Your updated form's id_string "
+                    "'transportation_2015_01_07' must match the existing "
+                    "forms' id_string 'transportation_2011_07_25', if form "
+                    "has submissions.")
+                self.assertEqual(response.data.get(
+                    'text'), expected_response)
 
-                self.xform.reload()
-
-                self.assertEqual(self.xform.id_string,
-                                 "transportation_2015_01_07")
+            # try to replace a file whose id_string hasn't been set
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "transportation", "tutorial .xls")
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.patch('/', data=post_data, **self.extra)
+                response = view(request, pk=form_id)
+                self.assertEqual(response.status_code, 400)
+                expected_response = (
+                    u"Your updated form's id_string "
+                    "'transportation' must match the existing "
+                    "forms' id_string 'transportation_2011_07_25', if form "
+                    "has submissions.")
+                self.assertEqual(response.data.get(
+                    'text'), expected_response)
 
     def test_update_xform_xls_file_with_different_model_name(self):
         with HTTMock(enketo_mock):
