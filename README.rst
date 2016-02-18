@@ -15,6 +15,9 @@ Installation
 
 See `install.md <install.md>`_.
 
+
+For development purposes read: `dev_install.md <dev_install.md> _.`
+
 Contributing
 ------------
 

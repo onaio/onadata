@@ -1,0 +1,5 @@
+-e git+https://github.com/onaio/pyxform.git@onaio#egg=pyxform
+-e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
+-e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
+-e git+https://github.com/onaio/django-cors-headers.git@allow-all-for-url#egg=cors-headers
+https://bitbucket.org/fomcl/savreaderwriter/downloads/savReaderWriter-3.3.0.zip

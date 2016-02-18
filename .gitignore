@@ -68,3 +68,4 @@ stunnel.pem
 profile
 bob
 *.db
+*.egg-info
