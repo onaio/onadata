@@ -87,6 +87,10 @@ class Project(BaseModel):
                                   u' use in this account.'
                                   % self.name.lower())
 
+    @property
+    def user(self):
+        return self.created_by
+
 
 def set_object_permissions(sender, instance=None, created=False, **kwargs):
     if created:
@@ -109,9 +113,11 @@ post_save.connect(set_object_permissions, sender=Project,
 
 class ProjectUserObjectPermission(UserObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
+
     content_object = models.ForeignKey(Project)
 
 
 class ProjectGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
+
     content_object = models.ForeignKey(Project)

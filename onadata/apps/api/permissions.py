@@ -165,6 +165,16 @@ class MetaDataXFormObjectPermissions(HasXFormObjectPermissionMixin,
             .has_object_permission(request, view, obj.content_object)
 
 
+class MetaDataProjectObjectPermissions(HasProjectObjectPermissionMixin,
+                                       DjangoObjectPermissions):
+
+    def has_object_permission(self, request, view, obj):
+        view.model = Project
+
+        return super(MetaDataProjectObjectPermissions, self)\
+            .has_object_permission(request, view, obj.content_object)
+
+
 class AttachmentObjectPermissions(DjangoObjectPermissions):
     authenticated_users_only = False
 

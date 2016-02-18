@@ -9,7 +9,7 @@ from rest_framework import filters
 from rest_framework.exceptions import ParseError
 
 
-from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.logger.models import Project, XForm, Instance
 from onadata.apps.api.models import Team, OrganizationProfile
 
 
@@ -170,11 +170,46 @@ class XFormPermissionFilterMixin(object):
         return queryset.filter(**kwarg)
 
 
+class ProjectPermissionFilterMixin(object):
+
+    def _project_filter_queryset(self, request, queryset, view, keyword):
+        """Use Project Permissions"""
+        project_id = request.QUERY_PARAMS.get("project")
+
+        if project_id:
+            try:
+                int(project_id)
+            except ValueError:
+                raise ParseError(
+                    u"Invalid value for projectid %s." % project_id)
+
+            project = get_object_or_404(Project, pk=project_id)
+            project_qs = Project.objects.filter(pk=project.id)
+        else:
+            project_qs = Project.objects.all()
+
+        projects = super(ProjectPermissionFilterMixin, self).filter_queryset(
+            request, project_qs, view)
+
+        kwarg = {"%s__in" % keyword: projects}
+
+        return queryset.filter(**kwarg)
+
+
+
 class MetaDataFilter(XFormPermissionFilterMixin,
                      filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
         return self._xform_filter_queryset(
+            request, queryset, view, 'object_id')
+
+
+class ProjectMetaDataFilter(ProjectPermissionFilterMixin,
+                     filters.DjangoObjectPermissionsFilter):
+
+    def filter_queryset(self, request, queryset, view):
+        return self._project_filter_queryset(
             request, queryset, view, 'object_id')
 
 
