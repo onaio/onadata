@@ -130,6 +130,7 @@ class HasXFormObjectPermissionMixin(object):
         return False
 
 
+# TODO Refactor
 class HasProjectObjectPermissionMixin(object):
     """Use Project permissions for DataView objects"""
 
@@ -155,13 +156,43 @@ class HasProjectObjectPermissionMixin(object):
         return False
 
 
-class MetaDataXFormObjectPermissions(HasXFormObjectPermissionMixin,
-                                     DjangoObjectPermissions):
+class HasObjectPermissionMixin(object):
+    """Use Project permissions for DataView objects"""
+
+    def has_permission(self, request, view):
+        perms = []
+
+        if request.data.get("xform"):
+            perms = self.get_required_permissions(request.method, XForm)
+        elif request.data.get("project"):
+            perms = self.get_required_permissions(request.method, Project)
+        else:
+            perms = self.get_required_permissions(request.method, XForm)
+            perms.extend(self.get_required_permissions(
+                request.method, Project))
+
+        # Workaround to ensure DjangoModelPermissions are not applied
+        # to the root view when using DefaultRouter.
+        if (getattr(view, '_ignore_model_permissions', False)):
+            return True
+
+        if (request.user and
+                (request.user.is_authenticated() or
+                 not self.authenticated_users_only) and
+                request.user.has_perms(perms)):
+
+            return True
+
+        return False
+
+
+class MetaDataObjectPermissions(HasObjectPermissionMixin,
+                                DjangoObjectPermissions):
 
     def has_object_permission(self, request, view, obj):
-        view.model = XForm
+        view.model = obj.content_object.__class__
 
-        return super(MetaDataXFormObjectPermissions, self)\
+        return super(MetaDataObjectPermissions, self)\
             .has_object_permission(request, view, obj.content_object)
 
 
