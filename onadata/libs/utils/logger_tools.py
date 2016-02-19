@@ -451,7 +451,6 @@ def publish_form(callback):
             'text': msg
         }
     except IntegrityError as e:
-        transaction.rollback()
         return {
             'type': 'alert-error',
             'text': _(u'Form with this id or SMS-keyword already exists.'),
@@ -476,7 +475,6 @@ def publish_form(callback):
             'text': _(u'Form validation timeout, please try again.'),
         }
     except Exception as e:
-        transaction.rollback()
         # error in the XLS file; show an error to the user
 
         return {
