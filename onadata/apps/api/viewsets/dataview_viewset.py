@@ -149,7 +149,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         field_name = request.query_params.get('field_name')
         fmt = kwargs.get('format', request.accepted_renderer.format)
-        group_by = request.QUERY_PARAMS.get('group_by')
+        group_by = request.query_params.get('group_by')
 
         if field_name:
             field = get_field_from_field_name(field_name, xform)
