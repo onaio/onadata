@@ -12,8 +12,7 @@ from onadata.apps.logger.models import XForm, Instance
 from onadata.libs.permissions import get_role
 from onadata.libs.permissions import is_organization
 from onadata.libs.serializers.tag_list_serializer import TagListSerializer
-from onadata.libs.serializers.metadata_serializer import (
-    XFormMetaDataSerializer)
+from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.utils.decorators import check_obj
 from onadata.libs.utils.viewer_tools import enketo_url, EnketoError
@@ -200,7 +199,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
             if xform_metadata:
                 return xform_metadata
 
-            xform_metadata = list(XFormMetaDataSerializer(
+            xform_metadata = list(MetaDataSerializer(
                 obj.metadata_set.all(),
                 many=True,
                 context=self.context
