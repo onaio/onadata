@@ -163,7 +163,8 @@ class MetaData(models.Model):
 
     class Meta:
         app_label = 'main'
-        unique_together = ('object_id', 'data_type', 'data_value')
+        unique_together = ('object_id', 'data_type', 'data_value',
+                           'content_type')
 
     def save(self, *args, **kwargs):
         self._set_hash()
