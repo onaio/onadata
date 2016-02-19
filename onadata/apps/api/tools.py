@@ -316,7 +316,7 @@ def publish_project_xform(request, project):
 
         return True
 
-    if 'formid' in request.DATA:
+    if 'formid' in request.data:
         xform = get_object_or_404(XForm, pk=request.data.get('formid'))
         if not ManagerRole.user_has_role(request.user, xform):
             raise exceptions.PermissionDenied(_(
