@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup (
       name="core"
-    , version = "0.0.1" # dev version
+    , version = "1.1.3" # dev version
     , description = "Collect, Analyze and Share Data!"
     , author = "Ona Kenya"
     , author_email = "support@oan.io"
@@ -19,6 +19,7 @@ setup (
     ]
     , install_requires =[
           'numpy'
+        , 'pandas==0.12.0'
         , 'pytz==2015.4'
         , 'simplejson'
         , 'Django >=1.7, <1.8'
