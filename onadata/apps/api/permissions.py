@@ -1,5 +1,6 @@
-from rest_framework.permissions import DjangoObjectPermissions,\
-    DjangoModelPermissionsOrAnonReadOnly
+from django.http import Http404
+from rest_framework.permissions import DjangoObjectPermissions
+from rest_framework.permissions import DjangoModelPermissionsOrAnonReadOnly
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import exceptions
 
@@ -13,6 +14,33 @@ from onadata.apps.api.tools import get_user_profile_or_none, \
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import DataView
+
+SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
+
+
+class AlternateHasObjectPermissionMixin(object):
+
+    def _has_object_permission(self, request, model_cls, user, obj):
+        perms = self.get_required_object_permissions(request.method, model_cls)
+
+        if not user.has_perms(perms, obj):
+            # If the user does not have permissions we need to determine if
+            # they have read permissions to see 403, or not, and simply see
+            # a 404 response.
+
+            if request.method in SAFE_METHODS:
+                # Read permissions already checked and failed, no need
+                # to make another lookup.
+                raise Http404
+
+            read_perms = self.get_required_object_permissions('GET', model_cls)
+            if not user.has_perms(read_perms, obj):
+                raise Http404
+
+            # Has read permissions.
+            return False
+
+        return True
 
 
 class ViewDjangoObjectPermissions(DjangoObjectPermissions):
@@ -161,24 +189,16 @@ class MetaDataObjectPermissions(HasObjectPermissionMixin,
             .has_object_permission(request, view, obj.content_object)
 
 
-class RestServiceObjectPermissions(HasObjectPermissionMixin,
-                                   DjangoObjectPermissions):
-
-    def has_object_permission(self, request, view, obj):
-        view.model = XForm
-
-        return super(RestServiceObjectPermissions, self)\
-            .has_object_permission(request, view, obj.xform)
-
-
-class AttachmentObjectPermissions(DjangoObjectPermissions):
+class AttachmentObjectPermissions(AlternateHasObjectPermissionMixin,
+                                  DjangoObjectPermissions):
     authenticated_users_only = False
 
     def has_object_permission(self, request, view, obj):
-        view.model = XForm
+        model_cls = XForm
+        user = request.user
 
-        return super(AttachmentObjectPermissions, self).has_object_permission(
-            request, view, obj.instance.xform)
+        return self._has_object_permission(request, model_cls, user,
+                                           obj.instance.xform)
 
 
 class ConnectViewsetPermissions(IsAuthenticated):
@@ -203,18 +223,19 @@ class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
             super(UserViewSetPermissions, self).has_permission(request, view)
 
 
-class DataViewViewsetPermissions(ViewDjangoObjectPermissions,
+class DataViewViewsetPermissions(AlternateHasObjectPermissionMixin,
+                                 ViewDjangoObjectPermissions,
                                  AbstractHasObjectPermissionMixin,
                                  DjangoObjectPermissions):
 
     model_classes = [Project]
 
     def has_object_permission(self, request, view, obj):
-        # Override the default Rest Framework model_cls
-        view.model = Project
+        model_cls = Project
+        user = request.user
 
-        return super(DataViewViewsetPermissions, self).has_object_permission(
-            request, view, obj.project)
+        return self._has_object_permission(request, model_cls, user,
+                                           obj.project)
 
 
 class WidgetViewSetPermissions(ViewDjangoObjectPermissions,
