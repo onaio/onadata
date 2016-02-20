@@ -20,6 +20,7 @@ from guardian.models import UserObjectPermissionBase
 from guardian.models import GroupObjectPermissionBase
 
 from onadata.apps.logger.xform_instance_parser import XLSFormError
+from onadata.apps.main.models import MetaData
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.cache_tools import (
     IS_ORG,
@@ -27,8 +28,6 @@ from onadata.libs.utils.cache_tools import (
     PROJ_NUM_DATASET_CACHE,
     PROJ_SUB_DATE_CACHE,
     safe_delete)
-
-from onadata.apps.main.models import MetaData
 
 XFORM_TITLE_LENGTH = 255
 title_pattern = re.compile(r"<h:title>([^<]+)</h:title>")

@@ -15,12 +15,11 @@ from django.db import models, IntegrityError
 from django.conf import settings
 from hashlib import md5
 
-from onadata.libs.utils.cache_tools import (safe_delete, XFORM_METADATA_CACHE)
-from onadata.libs.utils.common_tags import TEXTIT
-
-from onadata.apps.main.models import (
+from onadata.apps.main.models.meta_data_managers import (
     XFormMetaDataManager,
     ProjectMetaDataManager)
+from onadata.libs.utils.cache_tools import safe_delete, XFORM_METADATA_CACHE
+from onadata.libs.utils.common_tags import TEXTIT
 
 CHUNK_SIZE = 1024
 
@@ -153,7 +152,6 @@ class MetaData(models.Model):
     date_created = models.DateTimeField(null=True, auto_now_add=True)
     date_modified = models.DateTimeField(null=True, auto_now=True)
     deleted_at = models.DateTimeField(null=True, default=None)
-
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE,
                                      default=get_default_content_type)
     object_id = models.PositiveIntegerField(null=True, blank=True)
