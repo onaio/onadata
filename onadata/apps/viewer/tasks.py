@@ -33,7 +33,6 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
     username = xform.user.username
     id_string = xform.id_string
 
-    @transaction.commit_on_success
     def _create_export(xform, export_type, options):
         export_options = {
             key: get_boolean_value(value, default=True)
