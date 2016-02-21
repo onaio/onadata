@@ -47,7 +47,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             with open(submission_path) as sf:
                 data = {'xml_submission_file': sf, 'media_file': f}
                 request = self.factory.post(
-                    '%s/submission' % self.user.username, data)
+                    '/%s/submission' % self.user.username, data)
                 request.user = AnonymousUser()
                 response = self.view(request, username=self.user.username)
                 self.assertContains(response, 'Successful submission',
