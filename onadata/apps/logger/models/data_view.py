@@ -185,6 +185,10 @@ class DataView(models.Model):
 
             sql_params = params
             fields = [u'count']
+        else:
+            order_pos = sql.upper().find('ORDER BY')
+            if order_pos == -1:
+                sql += ' ORDER BY id'
 
         cursor.execute(sql, [unicode(i) for i in sql_params])
 
