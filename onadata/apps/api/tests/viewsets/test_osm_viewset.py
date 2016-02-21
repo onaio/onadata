@@ -147,4 +147,4 @@ class TestOSMViewSet(TestAbstractViewSet):
         dataid = self.xform.instances.all().order_by('id')[0].pk
         response = view(request, pk=self.xform.pk, dataid=dataid, format='osm')
         self.assertEqual(response.status_code, 404)
-        self.assertEqual('<error>Not found</error>', response.content)
+        self.assertEqual('<error>Not found.</error>', response.content)

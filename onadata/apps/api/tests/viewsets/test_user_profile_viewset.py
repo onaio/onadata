@@ -213,7 +213,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
             response.data.get('username'),
-            [u'Ensure this field has no more than 3 characters.'])
+            [u'Ensure this field has at least 3 characters.'])
 
     def test_profile_create_anon(self):
         data = _profile_data()
