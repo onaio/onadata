@@ -238,7 +238,8 @@ class DataViewViewsetPermissions(AlternateHasObjectPermissionMixin,
                                            obj.project)
 
 
-class WidgetViewSetPermissions(ViewDjangoObjectPermissions,
+class WidgetViewSetPermissions(AlternateHasObjectPermissionMixin,
+                               ViewDjangoObjectPermissions,
                                AbstractHasObjectPermissionMixin,
                                DjangoObjectPermissions):
 
@@ -254,15 +255,15 @@ class WidgetViewSetPermissions(ViewDjangoObjectPermissions,
                                                                     view)
 
     def has_object_permission(self, request, view, obj):
-        # Override the default Rest Framework model_cls
-        view.model = Project
+        model_cls = Project
+        user = request.user
 
         if not (isinstance(obj.content_object, XForm) or
                 isinstance(obj.content_object, DataView)):
             return False
 
-        return super(WidgetViewSetPermissions, self).has_object_permission(
-            request, view, obj.content_object.project)
+        return self._has_object_permission(request, model_cls, user,
+                                           obj.content_object.project)
 
 
 __permissions__ = [DjangoObjectPermissions, IsAuthenticated]
