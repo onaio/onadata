@@ -178,7 +178,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         after_count = Widget.objects.filter(content_type=ct,
                                             object_id=self.xform.pk).count()
-        self.assertEquals(count-1, after_count)
+        self.assertEquals(count - 1, after_count)
 
     def test_list_widgets(self):
         self._create_widget()

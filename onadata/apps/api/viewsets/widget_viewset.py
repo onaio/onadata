@@ -50,7 +50,6 @@ class WidgetViewSet(AuthenticateHeaderMixin,
         pk = self.kwargs.get('pk')
 
         if pk is not None:
-
             obj = get_object_or_404(Widget, pk=pk)
             self.check_object_permissions(self.request, obj)
         else:
