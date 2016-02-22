@@ -1,0 +1,8 @@
+list name,name,label
+yes_no,0,no
+yes_no,1,yes
+,,
+browsers,firefox,Mozilla Firefox
+browsers,chrome,Google Chrome
+browsers,ie,Internet Explorer
+browsers,safari,Safari
