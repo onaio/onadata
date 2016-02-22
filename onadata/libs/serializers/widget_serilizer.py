@@ -82,12 +82,12 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
     )
     content_object = GenericRelatedField()
     key = serializers.CharField(read_only=True)
-
     data = serializers.SerializerMethodField()
+    order = serializers.IntegerField(required=False)
 
     class Meta:
         model = Widget
-        fields = ('url', 'key', 'title', 'description', 'widget_type',
+        fields = ('url', 'key', 'title', 'description', 'widget_type', 'order',
                   'view_type', 'column', 'group_by', 'content_object', 'data')
 
     def get_data(self, obj):
@@ -110,14 +110,13 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
 
         # Get the form
         if 'content_object' in attrs:
-            if 'content_object' in attrs:
-                content_object = attrs.get('content_object')
+            content_object = attrs.get('content_object')
 
-                if isinstance(content_object, XForm):
-                    xform = content_object
-                elif isinstance(content_object, DataView):
-                    # must be a dataview
-                    xform = content_object.xform
+            if isinstance(content_object, XForm):
+                xform = content_object
+            elif isinstance(content_object, DataView):
+                # must be a dataview
+                xform = content_object.xform
 
             data_dictionary = xform.data_dictionary()
 
@@ -126,10 +125,15 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
                     'column': _(u"'{}' not in the form.".format(column))
                 })
 
+        order = attrs.get('order')
+
+        # Set the order
+        if order:
+            self.instance.to(order)
+
         return attrs
 
     def validate_content_object(self, value):
-
         request = self.context.get('request')
         users = get_users_with_perms(
             value.project, attach_perms=False, with_group_users=False

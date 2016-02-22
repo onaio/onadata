@@ -10,7 +10,7 @@ from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
 from onadata.libs.permissions import ReadOnlyRole
 
 
-class TestWidgetViewset(TestAbstractViewSet):
+class TestWidgetViewSet(TestAbstractViewSet):
     def setUp(self):
         super(self.__class__, self).setUp()
         xlsform_path = os.path.join(
@@ -508,3 +508,25 @@ class TestWidgetViewset(TestAbstractViewSet):
         self.assertEquals(response.status_code, 400)
         self.assertEquals(response.data['detail'],
                           u"Invalid value for dataview %s." % "so_invalid")
+
+    def test_order_widget(self):
+        self._create_widget()
+        self._create_widget()
+        self._create_widget()
+
+        data = {
+            'column': "_submission_time",
+            'order': 1
+        }
+
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, pk=self.widget.pk)
+
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(response.data['order'], 1)
+
+        widget = Widget.objects.all().order_by('pk')[0]
+        self.assertEquals(widget.order, 0)
+
+        widget = Widget.objects.all().order_by('pk')[1]
+        self.assertEquals(widget.order, 2)

@@ -513,6 +513,7 @@ class TestAbstractViewSet(TestCase):
                           if 'description' in data else '')
         self.assertEquals(response.data['group_by'],
                           data['group_by'] if 'group_by' in data else '')
+        self.assertEquals(response.data['order'], self.widget.order)
         self.assertEquals(response.data['data'], [])
 
     def filename_from_disposition(self, content_disposition):

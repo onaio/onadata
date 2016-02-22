@@ -2,6 +2,7 @@ pytz==2015.4
 simplejson
 Django>=1.7,<1.8
 django-guardian==1.2.5
+django-ordered-model==1.1.0
 django-registration-redux==1.1
 django-templated-email==0.4.9
 gdata==2.0.18
