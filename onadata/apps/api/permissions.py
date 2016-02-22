@@ -111,6 +111,7 @@ class AbstractHasObjectPermissionMixin(object):
     def has_permission(self, request, view):
         # Workaround to ensure DjangoModelPermissions are not applied
         # to the root view when using DefaultRouter.
+
         if getattr(view, '_ignore_model_permissions', False):
             return True
 
@@ -209,25 +210,24 @@ class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
 
 
 class DataViewViewsetPermissions(ViewDjangoObjectPermissions,
-                                 HasProjectObjectPermissionMixin,
+                                 AbstractHasObjectPermissionMixin,
                                  DjangoObjectPermissions):
 
-    def has_object_permission(self, request, view, obj):
-        view.model = Project
+    model_classes = [Project]
 
+    def has_object_permission(self, request, view, obj):
         return super(DataViewViewsetPermissions, self).has_object_permission(
             request, view, obj.project)
 
 
 class WidgetViewSetPermissions(ViewDjangoObjectPermissions,
-                               HasProjectObjectPermissionMixin,
+                               AbstractHasObjectPermissionMixin,
                                DjangoObjectPermissions):
 
     authenticated_users_only = False
+    model_classes = [Project]
 
     def has_permission(self, request, view):
-        view.model = Project
-
         # User can access the widget with key
         if 'key' in request.QUERY_PARAMS or view.action == 'list':
             return True
