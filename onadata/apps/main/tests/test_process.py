@@ -53,7 +53,7 @@ class TestProcess(TestBase):
 
     def test_process(self, username=None, password=None):
         self._publish_xls_file()
-        self._check_formList()
+        self._check_formlist()
         self._download_xform()
         self._make_submissions()
         self._update_dynamic_data()
@@ -109,7 +109,7 @@ class TestProcess(TestBase):
             self.assertEqual(XForm.objects.count(), pre_count + 1)
 
     @patch('urllib2.urlopen')
-    def test_url_upload(self,  mock_urlopen):
+    def test_url_upload(self, mock_urlopen):
         if self._internet_on(url="http://google.com"):
             xls_url = 'https://ona.io/examples/forms/tutorial/form.xls'
             pre_count = XForm.objects.count()
@@ -183,7 +183,7 @@ class TestProcess(TestBase):
 
     def _publish_file(self, xls_path, strict=True):
         """
-        Returns False if not strict and publish fails
+        Return False if not strict and publish fails
         """
         pre_count = XForm.objects.count()
         TestBase._publish_xls_file(self, xls_path)
@@ -204,7 +204,7 @@ class TestProcess(TestBase):
         self._publish_file(xls_path)
         self.assertEqual(self.xform.id_string, "transportation_2011_07_25")
 
-    def _check_formList(self):
+    def _check_formlist(self):
         url = '/%s/formList' % self.user.username
         client = DigestClient()
         client.set_authorization('bob', 'bob')
@@ -488,8 +488,9 @@ class TestProcess(TestBase):
 
     def test_publish_bad_xls_with_unicode_in_error(self):
         """
-        Check that publishing a bad xls where the error has a unicode character
-        returns a 200, thus showing a readable error to the user
+        Publish an xls where the error has a unicode character
+
+        Return a 200, thus showing a readable error to the user
         """
         self._create_user_and_login()
         path = os.path.join(
@@ -509,14 +510,15 @@ class TestProcess(TestBase):
         MetaData.media_upload(self.xform, uf)
         # assert successful insert of new metadata record
         self.assertEqual(MetaData.objects.count(), count + 1)
-        md = MetaData.objects.get(xform=self.xform,
+        md = MetaData.objects.get(object_id=self.xform.id,
                                   data_value='screenshot.png')
         # assert checksum string has been generated, hash length > 1
         self.assertTrue(len(md.hash) > 16)
 
     def test_uuid_injection_in_cascading_select(self):
-        """Test that the uuid is injected in the right instance node for
-        forms with a cascading select"""
+        """
+        Uuid is injected in the right instance for forms with cascading select
+        """
         pre_count = XForm.objects.count()
         xls_path = os.path.join(
             self.this_directory, "fixtures", "cascading_selects",
@@ -591,8 +593,7 @@ class TestProcess(TestBase):
 
     def test_multiple_submissions_by_different_users(self):
         """
-        We had a problem when two users published the same form that the
-        CSV export would break.
+        Two users publishing the same form breaks the CSV export.
         """
         TestProcess.test_process(self)
         TestProcess.test_process(self, "doug", "doug")

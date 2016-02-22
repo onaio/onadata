@@ -253,10 +253,11 @@ class MetaData(models.Model):
         data_type = 'media'
         if data_file:
             allowed_types = settings.SUPPORTED_MEDIA_UPLOAD_TYPES
-            content_type = data_file.content_type \
+            data_content_type = data_file.content_type \
                 if data_file.content_type in allowed_types else \
                 mimetypes.guess_type(data_file.name)[0]
-            if content_type in allowed_types:
+
+            if data_content_type in allowed_types:
                 content_type = ContentType.objects.get_for_model(
                     content_object)
 
@@ -265,7 +266,7 @@ class MetaData(models.Model):
                                  object_id=content_object.id,
                                  data_value=data_file.name,
                                  data_file=data_file,
-                                 data_file_type=content_type)
+                                 data_file_type=data_content_type)
                 media.save()
         return media_resources(
             type_for_form(content_object, data_type), download)
