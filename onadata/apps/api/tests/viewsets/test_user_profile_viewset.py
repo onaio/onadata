@@ -129,6 +129,48 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertTrue(user.is_active)
         self.assertTrue(user.check_password(password), password)
 
+    def test_profile_create_with_malfunctioned_email(self):
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        data = {
+            'username': u'nguyenquynh',
+            'first_name': u'Nguy\u1ec5n Th\u1ecb',
+            'last_name': u'Di\u1ec5m Qu\u1ef3nh',
+            'email': u'onademo0+nguyenquynh@gmail.com\ufeff',
+            'city': u'Denoville',
+            'country': u'US',
+            'organization': u'Dono Inc.',
+            'website': u'nguyenquynh.com',
+            'twitter': u'nguyenquynh',
+            'require_auth': False,
+            'password': u'onademo',
+            'is_org': False,
+        }
+
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        password = data['password']
+        del data['password']
+
+        profile = UserProfile.objects.get(user__username=data['username'])
+        data['id'] = profile.user.pk
+        data['gravatar'] = profile.gravatar
+        data['url'] = 'http://testserver/api/v1/profiles/nguyenquynh'
+        data['user'] = 'http://testserver/api/v1/users/nguyenquynh'
+        data['metadata'] = {}
+        data['joined_on'] = profile.user.date_joined
+        data['name'] = "%s %s" % (
+            u'Nguy\u1ec5n Th\u1ecb',  u'Di\u1ec5m Qu\u1ef3nh')
+        self.assertEqual(response.data, data)
+
+        user = User.objects.get(username='nguyenquynh')
+        self.assertTrue(user.is_active)
+        self.assertTrue(user.check_password(password), password)
+
     def test_profile_create_with_invalid_username(self):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
