@@ -82,3 +82,6 @@ sphinx
 # generic relation
 django-query-builder
 
+gspread
+oauth2client
+

@@ -40,6 +40,7 @@ class Export(models.Model):
     SAV_EXPORT = 'sav'
     EXTERNAL_EXPORT = 'external'
     OSM_EXPORT = OSM
+    GSHEETS_EXPORT = 'gsheets'
 
     EXPORT_MIMES = {
         'xls': 'vnd.ms-excel',
@@ -64,6 +65,7 @@ class Export(models.Model):
         (SAV_EXPORT, 'SAV'),
         (EXTERNAL_EXPORT, 'Excel'),
         (OSM, OSM),
+        (GSHEETS_EXPORT, 'Google Sheets'),
     ]
 
     EXPORT_OPTION_FIELDS = [

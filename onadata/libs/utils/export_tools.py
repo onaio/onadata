@@ -667,6 +667,17 @@ class ExportBuilder(object):
 
         csv_builder.export_to(path, dataview=dataview)
 
+    def to_google_sheets(self,  path, data, *args, **kwargs):
+        from onadata.libs.utils.google_sheets import SheetsExportBuilder
+        config = {
+            "spreadsheet_title": "test",
+            "google_token": kwargs.get("options")["google_token"],
+            "flatten_repeated_fields": False,
+            "export_xlsform": False
+        }
+        google_sheets = SheetsExportBuilder(kwargs.get('xform'), config)
+        google_sheets.export(path, data)
+
     def to_zipped_sav(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):
             sav_writer.writerow(
@@ -852,6 +863,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
         Export.CSV_EXPORT: 'to_flat_csv_export',
         Export.CSV_ZIP_EXPORT: 'to_zipped_csv',
         Export.SAV_ZIP_EXPORT: 'to_zipped_sav',
+        Export.GSHEETS_EXPORT: 'to_google_sheets',
     }
 
     if xform is None:
@@ -893,7 +905,8 @@ def generate_export(export_type, xform, export_id=None, options=None):
     try:
         func.__call__(
             temp_file.name, records, username, id_string, filter_query,
-            start=start, end=end, dataview=dataview, xform=xform
+            start=start, end=end, dataview=dataview, xform=xform,
+            options=options
         )
     except NoRecordsFoundError:
         pass
