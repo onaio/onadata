@@ -1,7 +1,6 @@
 import sys
 import hashlib
 from celery import task
-from django.db import transaction
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from requests import ConnectionError
