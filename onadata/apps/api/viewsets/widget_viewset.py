@@ -13,7 +13,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.apps.logger.models.widget import Widget
 from onadata.apps.logger.models.data_view import DataView
-from onadata.libs.serializers.widget_serilizer import WidgetSerializer
+from onadata.libs.serializers.widget_serializer import WidgetSerializer
 from onadata.apps.api.permissions import WidgetViewSetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 
