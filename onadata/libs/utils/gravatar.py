@@ -7,7 +7,7 @@ GRAVATAR_SIZE = str(60)
 
 
 def email_md5(user):
-    return hashlib.md5(user.email.lower()).hexdigest()
+    return hashlib.md5(user.email.lower().encode('utf-8')).hexdigest()
 
 
 def get_gravatar_img_link(user):
