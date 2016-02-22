@@ -294,7 +294,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
-        resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
+        resultset = MetaData.objects.filter(Q(object_id=self.xform.pk), Q(
             data_type='enketo_url') | Q(data_type='enketo_preview_url'))
         url = resultset.get(data_type='enketo_url')
         preview_url = resultset.get(data_type='enketo_preview_url')
