@@ -9,6 +9,7 @@ Where:
 
 Definition
 ^^^^^^^^^^
+- ``id`` - The ID of the widget
 - ``title`` - Title of the widget
 - ``content_object`` - Data source of the widget. XForm/Dataview
 - ``description`` Widget description
@@ -49,6 +50,7 @@ Response
 ::
 
         {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title",
               "description": "new description",
@@ -78,6 +80,7 @@ Response
 ::
 
        {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
@@ -107,6 +110,7 @@ Response
 
     [
         {
+              "id": 1,
               "key": "3e87d40427914e56840fc0c5f17401c6",
               "title": "Tomorrow never comes",
               "description": "Movies",
@@ -120,6 +124,7 @@ Response
               "data": []
         },
         {
+              "id": 2,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
@@ -164,6 +169,7 @@ Response
 ::
 
         {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
@@ -199,6 +205,7 @@ Response
 ::
 
          {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
@@ -244,6 +251,7 @@ Response
 ::
 
        {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
@@ -285,6 +293,7 @@ Response
 ::
 
        {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
@@ -325,6 +334,7 @@ Response
 ::
 
        {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",

@@ -76,6 +76,7 @@ class GenericRelatedField(serializers.HyperlinkedRelatedField):
 
 
 class WidgetSerializer(serializers.HyperlinkedModelSerializer):
+    id = serializers.ReadOnlyField()
     url = serializers.HyperlinkedIdentityField(
         view_name='widgets-detail',
         lookup_field='pk'
@@ -87,9 +88,9 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = Widget
-        fields = ('url', 'key', 'title', 'description', 'widget_type', 'order',
-                  'view_type', 'column', 'group_by', 'content_object', 'data',
-                  'aggregation')
+        fields = ('id', 'url', 'key', 'title', 'description', 'widget_type',
+                  'order', 'view_type', 'column', 'group_by', 'content_object',
+                  'data', 'aggregation')
 
     def get_data(self, obj):
         # Get the request obj

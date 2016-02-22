@@ -478,9 +478,7 @@ class TestAbstractViewSet(TestCase):
             'post': 'create'
         })
 
-        if data:
-            data = data
-        else:
+        if not data:
             data = {
                 'title': "Widget that",
                 'content_object': 'http://testserver/api/v1/forms/%s' %
@@ -492,6 +490,7 @@ class TestAbstractViewSet(TestCase):
                 'column': "age",
                 'group_by': "gender"
             }
+
         count = Widget.objects.all().count()
 
         request = self.factory.post('/', data=data, **self.extra)
@@ -502,6 +501,7 @@ class TestAbstractViewSet(TestCase):
 
         self.widget = Widget.objects.all().order_by('pk').reverse()[0]
 
+        self.assertEquals(response.data['id'], self.widget.id)
         self.assertEquals(response.data['title'],
                           data['title'] if 'title' in data else '')
         self.assertEquals(response.data['content_object'],
