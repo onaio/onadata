@@ -35,6 +35,8 @@ class Widget(OrderedModel):
                              blank=True)
     description = models.CharField(null=True, default=None, max_length=255,
                                    blank=True)
+    aggregation = models.CharField(null=True, default=None, max_length=255,
+                                   blank=True)
     key = models.CharField(db_index=True, unique=True, max_length=32)
 
     date_created = models.DateTimeField(auto_now_add=True)

@@ -130,6 +130,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         data = {
             'title': 'My new title updated',
             'description': 'new description',
+            'aggregation': 'new aggregation',
             'content_object': 'http://testserver/api/v1/forms/%s' %
                               self.xform.pk,
             'widget_type': "charts",
@@ -148,6 +149,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEquals(response.data['key'], key)
         self.assertEquals(response.data['description'],
                           "new description")
+        self.assertEquals(response.data['aggregation'],
+                          "new aggregation")
 
     def test_patch_widget(self):
         self._create_widget()

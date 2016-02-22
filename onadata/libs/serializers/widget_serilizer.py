@@ -88,7 +88,8 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Widget
         fields = ('url', 'key', 'title', 'description', 'widget_type', 'order',
-                  'view_type', 'column', 'group_by', 'content_object', 'data')
+                  'view_type', 'column', 'group_by', 'content_object', 'data',
+                  'aggregation')
 
     def get_data(self, obj):
         # Get the request obj
