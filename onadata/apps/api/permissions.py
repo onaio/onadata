@@ -12,7 +12,7 @@ from onadata.apps.api.tools import get_user_profile_or_none, \
     check_inherit_permission_from_project
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Project
-from onadata.apps.logger.models import DataView
+from onadata.apps.logger.models import DataView, Widget
 
 
 class ViewDjangoObjectPermissions(DjangoObjectPermissions):
@@ -216,6 +216,9 @@ class DataViewViewsetPermissions(ViewDjangoObjectPermissions,
     model_classes = [Project]
 
     def has_object_permission(self, request, view, obj):
+        # Override the default Rest Framework model_cls
+        view.model = Project
+
         return super(DataViewViewsetPermissions, self).has_object_permission(
             request, view, obj.project)
 
@@ -236,6 +239,8 @@ class WidgetViewSetPermissions(ViewDjangoObjectPermissions,
                                                                     view)
 
     def has_object_permission(self, request, view, obj):
+        # Override the default Rest Framework model_cls
+        view.model = Project
 
         if not (isinstance(obj.content_object, XForm) or
                 isinstance(obj.content_object, DataView)):
