@@ -447,13 +447,14 @@ class TestAbstractViewSet(TestCase):
                 'name': "My DataView",
                 'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
                 'project': 'http://testserver/api/v1/projects/%s'
-                            % self.project.pk,
+                           % self.project.pk,
                 'columns': '["name", "age", "gender"]',
                 'query': '[{"column":"age","filter":">","value":"20"},'
                          '{"column":"age","filter":"<","value":"50"}]'
             }
 
         request = self.factory.post('/', data=data, **self.extra)
+
         response = view(request)
 
         self.assertEquals(response.status_code, 201)
@@ -497,7 +498,7 @@ class TestAbstractViewSet(TestCase):
         response = view(request)
 
         self.assertEquals(response.status_code, 201)
-        self.assertEquals(count+1, Widget.objects.all().count())
+        self.assertEquals(count + 1, Widget.objects.all().count())
 
         self.widget = Widget.objects.all().order_by('pk').reverse()[0]
 

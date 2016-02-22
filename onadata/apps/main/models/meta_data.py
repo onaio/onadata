@@ -92,7 +92,7 @@ def unique_type_for_form(content_object,
 
 def type_for_form(content_object, data_type):
     content_type = ContentType.objects.get_for_model(content_object)
-    return MetaData.objects.filter(object_id=content_object,
+    return MetaData.objects.filter(object_id=content_object.id,
                                    content_type=content_type,
                                    data_type=data_type)
 

@@ -15,6 +15,7 @@ from django.db.models import Q
 from datetime import datetime
 from django.utils import timezone
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.files.storage import default_storage
 from django.test.utils import override_settings
@@ -188,6 +189,12 @@ def fixtures_path(filepath):
     return open(os.path.join(
         settings.PROJECT_ROOT, 'libs', 'tests', 'utils', 'fixtures', filepath))
 
+ROLES = [ReadOnlyRole,
+         DataEntryRole,
+         EditorRole,
+         ManagerRole,
+         OwnerRole]
+
 
 class TestXFormViewSet(TestAbstractViewSet):
 
@@ -315,7 +322,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             self.form_data['public'] = True
-            resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
+            resultset = MetaData.objects.filter(Q(object_id=self.xform.pk), Q(
                 data_type='enketo_url') | Q(data_type='enketo_preview_url'))
             url = resultset.get(data_type='enketo_url')
             preview_url = resultset.get(data_type='enketo_preview_url')
@@ -366,7 +373,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = self.view(request)
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
-            resultset = MetaData.objects.filter(Q(xform_id=self.xform.pk), Q(
+            resultset = MetaData.objects.filter(Q(object_id=self.xform.pk), Q(
                 data_type='enketo_url') | Q(data_type='enketo_preview_url'))
             url = resultset.get(data_type='enketo_url')
             preview_url = resultset.get(data_type='enketo_preview_url')
@@ -449,7 +456,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             # should be both bob's and alice's form
             resultset = MetaData.objects.filter(
-                Q(xform_id=self.xform.pk),
+                Q(object_id=self.xform.pk),
                 Q(data_type='enketo_url') |
                 Q(data_type='enketo_preview_url'))
             url = resultset.get(data_type='enketo_url')
@@ -543,7 +550,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             resultset = MetaData.objects.filter(
-                Q(xform_id=self.xform.pk),
+                Q(object_id=self.xform.pk),
                 Q(data_type='enketo_url') |
                 Q(data_type='enketo_preview_url'))
             url = resultset.get(data_type='enketo_url')
@@ -946,10 +953,11 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEquals("owner", response.data['users'][0]['role'])
 
                 self.assertIsNotNone(
-                    MetaData.objects.get(xform=xform, data_type="enketo_url"))
+                    MetaData.objects.get(
+                        object_id=xform.id, data_type="enketo_url"))
                 self.assertIsNotNone(
                     MetaData.objects.get(
-                        xform=xform, data_type="enketo_preview_url"))
+                        object_id=xform.id, data_type="enketo_preview_url"))
 
     def test_publish_xlsforms_with_same_id_string(self):
         with HTTMock(enketo_mock):
@@ -989,10 +997,11 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEquals("owner", response.data['users'][0]['role'])
 
                 self.assertIsNotNone(
-                    MetaData.objects.get(xform=xform, data_type="enketo_url"))
+                    MetaData.objects.get(object_id=xform.id,
+                                         data_type="enketo_url"))
                 self.assertIsNotNone(
                     MetaData.objects.get(
-                        xform=xform, data_type="enketo_preview_url"))
+                        object_id=xform.id, data_type="enketo_preview_url"))
 
             path = os.path.join(
                 settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
@@ -1017,10 +1026,11 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEquals("owner", response.data['users'][0]['role'])
 
                 self.assertIsNotNone(
-                    MetaData.objects.get(xform=xform, data_type="enketo_url"))
+                    MetaData.objects.get(object_id=xform.id,
+                                         data_type="enketo_url"))
                 self.assertIsNotNone(
                     MetaData.objects.get(
-                        xform=xform, data_type="enketo_preview_url"))
+                        object_id=xform.id, data_type="enketo_preview_url"))
 
             xform = XForm.objects.get(id_string='transportation_2011_07_25')
             self.assertIsInstance(xform, XForm)
@@ -1170,7 +1180,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self.assertEqual(meta_count + 3, MetaData.objects.count())
                 xform = self.user.xforms.all()[0]
                 metadata = MetaData.objects.get(
-                    xform=xform, data_value='itemsets.csv')
+                    object_id=xform.id, data_value='itemsets.csv')
                 self.assertIsNotNone(metadata)
                 self.assertTrue(OwnerRole.user_has_role(self.user, xform))
                 self.assertTrue(OwnerRole.user_has_role(self.user, metadata))
@@ -1442,11 +1452,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             })
             formid = self.xform.pk
 
-            ROLES = [ReadOnlyRole,
-                     DataEntryRole,
-                     EditorRole,
-                     ManagerRole,
-                     OwnerRole]
             for role_class in ROLES:
                 self.assertFalse(role_class.user_has_role(alice_profile.user,
                                                           self.xform))
@@ -1604,7 +1609,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             data_value = 'template 1|http://xls_server'
             self._add_form_metadata(self.xform, 'external_export',
                                     data_value)
-            metadata = MetaData.objects.get(xform=self.xform,
+            metadata = MetaData.objects.get(object_id=self.xform.id,
                                             data_type='external_export')
             paths = [os.path.join(
                 self.main_directory, 'fixtures', 'transportation',
@@ -1640,7 +1645,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             data_value = 'template 1|http://xls_server'
             self._add_form_metadata(self.xform, 'external_export',
                                     data_value)
-            metadata = MetaData.objects.get(xform=self.xform,
+            metadata = MetaData.objects.get(object_id=self.xform.id,
                                             data_type='external_export')
             paths = [os.path.join(
                 self.main_directory, 'fixtures', 'transportation',
@@ -1878,7 +1883,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEquals(id_string, self.xform.id_string)
 
     def test_manager_can_update_xform_xls_file(self):
-        """ManagerRole can replace xlsform"""
+        """Manager Role can replace xlsform"""
         self._publish_xls_form_to_project()
         alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
         self._login_user_and_profile(extra_post_data=alice_data)
@@ -2596,7 +2601,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             data_value = 'template 1|http://xls_server'
             self._add_form_metadata(self.xform, 'external_export',
                                     data_value)
-            metadata = MetaData.objects.get(xform=self.xform,
+            metadata = MetaData.objects.get(object_id=self.xform.id,
                                             data_type='external_export')
             paths = [os.path.join(
                 self.main_directory, 'fixtures', 'transportation',
@@ -2637,7 +2642,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             data_value = 'template 1|http://xls_server'
             self._add_form_metadata(self.xform, 'external_export',
                                     data_value)
-            metadata = MetaData.objects.get(xform=self.xform,
+            metadata = MetaData.objects.get(object_id=self.xform.id,
                                             data_type='external_export')
             paths = [os.path.join(
                 self.main_directory, 'fixtures', 'transportation',
@@ -2696,7 +2701,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             data_value = 'template 1|http://xls_server'
             self._add_form_metadata(self.xform, 'external_export',
                                     data_value)
-            metadata = MetaData.objects.get(xform=self.xform,
+            metadata = MetaData.objects.get(object_id=self.xform.id,
                                             data_type='external_export')
             paths = [os.path.join(
                 self.main_directory, 'fixtures', 'transportation',
@@ -2745,7 +2750,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                                            export_type=Export.EXTERNAL_EXPORT)\
                 .count()
 
-            self.assertEquals(count+1, count2)
+            self.assertEquals(count + 1, count2)
 
     def test_different_form_versions(self):
         with HTTMock(enketo_mock):
@@ -2972,7 +2977,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 
-            self.assertEquals(count+1, Export.objects.all().count())
+            self.assertEquals(count + 1, Export.objects.all().count())
 
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
@@ -2994,7 +2999,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
 
             # no new export generated
-            self.assertEquals(count+1, Export.objects.all().count())
+            self.assertEquals(count + 1, Export.objects.all().count())
 
             headers = dict(response.items())
             self.assertEqual(headers['Content-Type'], 'application/csv')
@@ -3070,8 +3075,8 @@ class TestXFormViewSet(TestAbstractViewSet):
         data = {
             'name': "My DataView",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             'columns': '["name", "age", "gender"]',
             'query': '[{"column":"age","filter":">","value":"50"}]'
         }
@@ -3095,11 +3100,15 @@ class TestXFormViewSet(TestAbstractViewSet):
             self._publish_xls_form_to_project()
 
             # an extra obj to induce multiple object exception
-            meta = MetaData(xform=self.xform, data_type="enketo_url",
+            content_type = ContentType.objects.get_for_model(self.xform)
+
+            meta = MetaData(content_type=content_type,
+                            object_id=self.xform.id,
+                            data_type="enketo_url",
                             data_value="http://localtest/enketo_url2")
             meta.save()
 
-            count = MetaData.objects.filter(xform=self.xform,
+            count = MetaData.objects.filter(object_id=self.xform.id,
                                             data_type="enketo_url").count()
             self.assertEquals(2, count)
 
@@ -3167,7 +3176,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             count = Export.objects.all().count()
             response = self._get_date_filtered_export(query_str)
-            self.assertEquals(count+1, Export.objects.all().count())
+            self.assertEquals(count + 1, Export.objects.all().count())
 
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
@@ -3282,7 +3291,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
 
             # no change in count of exports
-            self.assertEquals(count+1, Export.objects.all().count())
+            self.assertEquals(count + 1, Export.objects.all().count())
 
             test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
                                           'viewer', 'tests', 'fixtures',
