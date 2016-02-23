@@ -67,8 +67,6 @@ def find_choice_label(choices, string):
         if choice['name'] == string:
             return choice['label']
 
-    return string
-
 
 def get_choice_label(choices, string):
     """
@@ -89,10 +87,14 @@ def get_choice_label(choices, string):
         if label:
             labels.append(label)
         else:
-            # the unsplit string doesn't exist as a key in choices.
-            for name in string.split(" "):
-                labels.append(find_choice_label(choices, name))
+            # Try to get labels by splitting the string
+            labels = [find_choice_label(choices, name)
+                      for name in string.split(" ")]
 
+            # If any split string does not have a label it is not a multiselect
+            # but a missing label, use string
+            if None in labels:
+                labels = [string]
     elif not choices:
         labels = [string]
 
