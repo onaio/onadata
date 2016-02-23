@@ -77,7 +77,7 @@ def unique_type_for_form(content_object,
     defaults = {'data_value': data_value} if data_value else {}
     content_type = ContentType.objects.get_for_model(content_object)
 
-    result, created = XFormMetaData.objects.update_or_create(
+    result, created = MetaData.objects.update_or_create(
         object_id=content_object.id, content_type=content_type,
         data_type=data_type, defaults=defaults)
 
@@ -379,7 +379,7 @@ class ProjectMetaData(MetaData):
 
 post_save.connect(clear_cached_metadata_instance_object, sender=MetaData,
                   dispatch_uid='clear_cached_metadata_instance_object')
-post_save.connect(update_attached_xform, sender=XFormMetaData,
+post_save.connect(update_attached_xform, sender=MetaData,
                   dispatch_uid='update_attached_xform')
 post_delete.connect(clear_cached_metadata_instance_object, sender=MetaData,
                     dispatch_uid='clear_cached_metadata_instance_delete')
