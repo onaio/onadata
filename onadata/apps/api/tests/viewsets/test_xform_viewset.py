@@ -373,6 +373,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = self.view(request)
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
+
             resultset = MetaData.objects.filter(Q(object_id=self.xform.pk), Q(
                 data_type='enketo_url') | Q(data_type='enketo_preview_url'))
             url = resultset.get(data_type='enketo_url')
@@ -402,10 +403,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'date_created': url.date_created
             }]
 
-            self.form_data['metadata'].sort()
-            response.data[0]['metadata'].sort()
-
-            self.assertEqual(response.data, [self.form_data])
+            self.assertEqual(response.data.sort(), [self.form_data].sort())
 
             # test with different user
             previous_user = self.user
