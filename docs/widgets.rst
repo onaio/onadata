@@ -9,9 +9,12 @@ Where:
 
 Definition
 ^^^^^^^^^^
+- ``id`` - The ID of the widget
 - ``title`` - Title of the widget
 - ``content_object`` - Data source of the widget. XForm/Dataview
 - ``description`` Widget description
+- ``aggregation`` Description of an aggregation used during a group_by
+- ``order`` The order of the widget. The order will be made unique to the XForm/Dataview by linearly reordering
 - ``widget_type`` The Widget type
 - ``view_type``- Stores information to help the widget display the data
 - ``column`` - The column of the data being charted
@@ -33,6 +36,8 @@ Example
         {
             "title": "My new title",
             "description": "new description",
+            "aggregation": "mean",
+            "order": 0,
             "content_object": "https://api.ona.io/api/v1/forms/9929",
             "widget_type": "charts",
             "view_type": "horizontal-bar",
@@ -45,9 +50,12 @@ Response
 ::
 
         {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title",
               "description": "new description",
+              "aggregation": "mean",
+              "order": 0,
               "widget_type": "charts",
               "view_type": "horizontal-bar",
               "column": "age",
@@ -72,9 +80,12 @@ Response
 ::
 
        {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
+              "aggregation": "mean",
+              "order": 0,
               "widget_type": "charts",
               "view_type": "horizontal-bar",
               "column": "age",
@@ -99,9 +110,12 @@ Response
 
     [
         {
+              "id": 1,
               "key": "3e87d40427914e56840fc0c5f17401c6",
               "title": "Tomorrow never comes",
               "description": "Movies",
+              "aggregation": "mean",
+              "order": 0,
               "widget_type": "charts",
               "view_type": "horizontal-bar",
               "column": "gender",
@@ -110,9 +124,12 @@ Response
               "data": []
         },
         {
+              "id": 2,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
+              "aggregation": "mean",
+              "order": 0,
               "widget_type": "charts",
               "view_type": "horizontal-bar",
               "column": "gender",
@@ -138,6 +155,8 @@ Example
         {
             "title": "My new title updated",
             "description": "new description",
+            "aggregation": "mean",
+            "order": 0,
             "content_object": "https://api.ona.io/api/v1/forms/9929",
             "widget_type": "charts",
             "view_type": "horizontal-bar",
@@ -150,9 +169,12 @@ Response
 ::
 
         {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
+              "aggregation": "mean",
+              "order": 0,
               "widget_type": "charts",
               "view_type": "horizontal-bar",
               "column": "age",
@@ -183,9 +205,12 @@ Response
 ::
 
          {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
+              "aggregation": "mean",
+              "order": 0,
               "widget_type": "charts",
               "view_type": "horizontal-bar",
               "column": "gender",
@@ -226,9 +251,12 @@ Response
 ::
 
        {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
+              "aggregation": "mean",
+              "order": 0,
               "widget_type": "charts",
               "view_type": "horizontal-bar",
               "column": "age",
@@ -265,9 +293,12 @@ Response
 ::
 
        {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
+              "aggregation": "mean",
+              "order": 0,
               "widget_type": "charts",
               "view_type": "horizontal-bar",
               "column": "age",
@@ -303,9 +334,12 @@ Response
 ::
 
        {
+              "id": 1,
               "key": "e60c148d19464365b4e9a5d88f52694b",
               "title": "My new title updated",
               "description": "new description",
+              "aggregation": "mean",
+              "order": 0,
               "widget_type": "charts",
               "view_type": "horizontal-bar",
               "column": "age",

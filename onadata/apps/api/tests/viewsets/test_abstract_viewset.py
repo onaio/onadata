@@ -478,19 +478,19 @@ class TestAbstractViewSet(TestCase):
             'post': 'create'
         })
 
-        if data:
-            data = data
-        else:
+        if not data:
             data = {
                 'title': "Widget that",
                 'content_object': 'http://testserver/api/v1/forms/%s' %
                                   self.xform.pk,
                 'description': "Test widget",
+                'aggregation': "Sum",
                 'widget_type': "charts",
                 'view_type': "horizontal-bar",
                 'column': "age",
                 'group_by': "gender"
             }
+
         count = Widget.objects.all().count()
 
         request = self.factory.post('/', data=data, **self.extra)
@@ -501,6 +501,7 @@ class TestAbstractViewSet(TestCase):
 
         self.widget = Widget.objects.all().order_by('pk').reverse()[0]
 
+        self.assertEquals(response.data['id'], self.widget.id)
         self.assertEquals(response.data['title'],
                           data['title'] if 'title' in data else '')
         self.assertEquals(response.data['content_object'],
@@ -511,8 +512,12 @@ class TestAbstractViewSet(TestCase):
         self.assertEquals(response.data['description'],
                           data['description']
                           if 'description' in data else '')
+        self.assertEquals(response.data['aggregation'],
+                          data['aggregation']
+                          if 'aggregation' in data else '')
         self.assertEquals(response.data['group_by'],
                           data['group_by'] if 'group_by' in data else '')
+        self.assertEquals(response.data['order'], self.widget.order)
         self.assertEquals(response.data['data'], [])
 
     def filename_from_disposition(self, content_disposition):

@@ -13,7 +13,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.apps.logger.models.widget import Widget
 from onadata.apps.logger.models.data_view import DataView
-from onadata.libs.serializers.widget_serilizer import WidgetSerializer
+from onadata.libs.serializers.widget_serializer import WidgetSerializer
 from onadata.apps.api.permissions import WidgetViewSetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
 
@@ -47,7 +47,6 @@ class WidgetViewSet(AuthenticateHeaderMixin,
         return super(WidgetViewSet, self).filter_queryset(queryset)
 
     def get_object(self, queryset=None):
-
         pk = self.kwargs.get('pk')
 
         if pk is not None:
@@ -60,7 +59,6 @@ class WidgetViewSet(AuthenticateHeaderMixin,
         return obj
 
     def list(self, request, *args, **kwargs):
-
         if 'key' in request.GET:
             key = request.GET['key']
             obj = get_object_or_404(Widget, key=key)

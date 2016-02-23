@@ -1,8 +1,9 @@
-from querybuilder.query import Query
-from querybuilder.fields import CountField
 from django.contrib.gis.db import models
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from ordered_model.models import OrderedModel
+from querybuilder.query import Query
+from querybuilder.fields import CountField
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
@@ -10,7 +11,7 @@ from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.utils.model_tools import generate_uuid_for_form
 
 
-class Widget(models.Model):
+class Widget(OrderedModel):
     CHARTS = 'charts'
 
     # Other widgets types to be added later
@@ -34,12 +35,15 @@ class Widget(models.Model):
                              blank=True)
     description = models.CharField(null=True, default=None, max_length=255,
                                    blank=True)
+    aggregation = models.CharField(null=True, default=None, max_length=255,
+                                   blank=True)
     key = models.CharField(db_index=True, unique=True, max_length=32)
 
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
+    order_with_respect_to = 'content_type'
 
-    class Meta:
+    class Meta(OrderedModel.Meta):
         app_label = 'logger'
 
     def save(self, *args, **kwargs):
