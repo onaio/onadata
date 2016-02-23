@@ -20,10 +20,14 @@ class TestNoteViewSet(TestBase):
         self.extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
 
+    @property
+    def _first_xform_instance(self):
+        return self.xform.instances.all().order_by('pk')[0]
+
     def _add_notes_to_data_point(self):
         # add a note to a specific data point
         note = {'note': u"Road Warrior"}
-        dataid = self.xform.instances.all()[0].pk
+        dataid = self._first_xform_instance.pk
         note['instance'] = dataid
         request = self.factory.post('/', data=note, **self.extra)
         self.assertTrue(self.xform.instances.count())
@@ -53,8 +57,7 @@ class TestNoteViewSet(TestBase):
 
     def test_add_notes_to_data_point(self):
         self._add_notes_to_data_point()
-        instance = self.xform.instances.all()[0]
-        self.assertEquals(len(instance.json["_notes"]), 1)
+        self.assertEquals(len(self._first_xform_instance.json["_notes"]), 1)
 
     def test_other_user_notes_access(self):
         self._create_user_and_login('lilly', '1234')

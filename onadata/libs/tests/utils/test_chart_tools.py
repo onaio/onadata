@@ -311,9 +311,20 @@ class TestChartTools(TestBase):
                     'name': 'Western Rural',
                     'label': 'Western Rural'},
                    {'control': {},
+                    'name': 'Urban',
+                    'label': 'Urban'},
+                   {'control': {},
                     'name': 'Western Urban',
                     'label': 'Western Urban'}]
         string = 'Banadir'
+
+        self.assertEqual(get_choice_label(choices, string), [string])
+
+        string = 'Banadir Rural'
+
+        self.assertEqual(get_choice_label(choices, string), [string])
+
+        string = 'Banadir Urban'
 
         self.assertEqual(get_choice_label(choices, string), [string])
 
