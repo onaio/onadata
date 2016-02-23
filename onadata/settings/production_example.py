@@ -23,11 +23,7 @@ DATABASES = {
         # the password must be stored in an environment variable
         'PASSWORD': os.environ['FORMHUB_PROD_PW'],
         # the server name may be in env
-        'HOST': os.environ.get("FORMHUB_DB_SERVER", 'dbserver.yourdomain.org'),
-        'OPTIONS': {
-            # note: this option obsolete starting with django 1.6
-            'autocommit': True,
-        }
+        'HOST': os.environ.get("FORMHUB_DB_SERVER", 'dbserver.yourdomain.org')
     },
     'gis': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
@@ -35,10 +31,7 @@ DATABASES = {
         'USER': 'staff',
         # the password must be stored in an environment variable
         'PASSWORD': os.environ['PHIS_PW'],
-        'HOST': 'gisserver.yourdomain.org',
-        'OPTIONS': {
-            'autocommit': True,
-        }
+        'HOST': 'gisserver.yourdomain.org'
     }
 }
 
