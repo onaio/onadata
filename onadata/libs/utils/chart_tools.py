@@ -66,8 +66,8 @@ def find_choice_label(choices, string):
     for choice in choices:
         if choice['name'] == string:
             return choice['label']
-        else:
-            return string
+
+    return string
 
 
 def get_choice_label(choices, string):
