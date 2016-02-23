@@ -31,6 +31,6 @@ class ProjectAdmin(VersionAdmin, admin.ModelAdmin):
         qs = super(ProjectAdmin, self).queryset(request)
         if request.user.is_superuser:
             return qs
-        return qs.filter(user=request.user)
+        return qs.filter(organization=request.user)
 
 admin.site.register(Project, ProjectAdmin)
