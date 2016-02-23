@@ -2,13 +2,11 @@
 This module contains classes responsible for communicating with
 Google Data API and common spreadsheets models.
 """
-import csv
-import gdata.gauth
-import gspread 
+import gspread
 import io
 import json
 import xlrd
-    
+
 from django.conf import settings
 from onadata.libs.utils.export_tools import ExportBuilder,\
     dict_to_joined_export
@@ -20,8 +18,8 @@ from onadata.libs.utils.common_tags import INDEX, PARENT_INDEX,\
 
 
 def update_row(worksheet, index, values):
-    """"Adds a row to the worksheet at the specified index and populates it with values.
-    Widens the worksheet if there are more values than columns.
+    """"Adds a row to the worksheet at the specified index and populates it
+    with values. Widens the worksheet if there are more values than columns.
     :param worksheet: The worksheet to be updated.
     :param index: Index of the row to be updated.
     :param values: List of values for the row.
@@ -35,22 +33,22 @@ def update_row(worksheet, index, values):
         cell = worksheet.cell(index, i)
         cell.value = value
         cell_list.append(cell)
-        
+
     worksheet.update_cells(cell_list)
-        
-        
+
+
 def xldr_format_value(cell):
     """A helper function to format the value of a cell.
-    The xldr stores integers as floats which means that the cell value 
+    The xldr stores integers as floats which means that the cell value
     42 in Excel is returned as 42.0 in Python. This function tries to guess
     if the original value was an integer and returns the proper type.
     """
     value = cell.value
     if cell.ctype == xlrd.XL_CELL_NUMBER and int(value) == value:
         value = int(value)
-    return value     
-        
-        
+    return value
+
+
 class SheetsClient(gspread.client.Client):
     """An instance of this class communicates with Google Data API."""
 
@@ -59,22 +57,23 @@ class SheetsClient(gspread.client.Client):
                            'https://www.googleapis.com/auth/drive.file'])
 
     DRIVE_API_URL = 'https://www.googleapis.com/drive/v2/files'
-    
+
     def new(self, title):
         headers = {'Content-Type': 'application/json'}
         data = {
-            'title': title, 
+            'title': title,
             'mimeType': 'application/vnd.google-apps.spreadsheet'
         }
         r = self.session.request(
-            'POST', SheetsClient.DRIVE_API_URL, headers=headers, data=json.dumps(data))
+            'POST', SheetsClient.DRIVE_API_URL, headers=headers,
+            data=json.dumps(data))
         resp = json.loads(r.read().decode('utf-8'))
         sheet_id = resp['id']
         return self.open_by_key(sheet_id)
 
-
     def add_service_account_to_spreadsheet(self, spreadsheet):
-        url = '%s/%s/permissions' % (SheetsClient.DRIVE_API_URL, spreadsheet.id)
+        url = '%s/%s/permissions' % (SheetsClient.DRIVE_API_URL,
+                                     spreadsheet.id)
         headers = {'Content-Type': 'application/json'}
         data = {
             'role': 'writer',
@@ -87,8 +86,10 @@ class SheetsClient(gspread.client.Client):
 
     @classmethod
     def login_with_service_account(cls):
-        credential = ServiceAccountCredentials(settings.GOOGLE_CLIENT_EMAIL,
-                        settings.GOOGLE_CLIENT_PRIVATE_KEY, scope=SheetsClient.AUTH_SCOPE)
+        credential = \
+                ServiceAccountCredentials(settings.GOOGLE_CLIENT_EMAIL,
+                                          settings.GOOGLE_CLIENT_PRIVATE_KEY,
+                                          scope=SheetsClient.AUTH_SCOPE)
 
         client = SheetsClient(auth=credential)
         client.login()
@@ -124,17 +125,17 @@ class SheetsExportBuilder(ExportBuilder):
     worksheet_titles = {}
     # The URL of the exported sheet.
     url = None
-    
+
     # Configuration options
     spreadsheet_title = None
     flatten_repeated_fields = True
     export_xlsform = True
     google_token = None
-    
+
     # Constants
     SHEETS_BASE_URL = 'https://docs.google.com/spreadsheet/ccc?key=%s&hl'
     FLATTENED_SHEET_TITLE = 'raw'
-    
+
     def __init__(self, xform, config):
         super(SheetsExportBuilder, self).__init__()
         self.spreadsheet_title = config['spreadsheet_title']
@@ -142,38 +143,40 @@ class SheetsExportBuilder(ExportBuilder):
         self.flatten_repeated_fields = config['flatten_repeated_fields']
         self.export_xlsform = config['export_xlsform']
         self.set_survey(xform.data_dictionary().survey)
-   
+
     def export(self, path, data):
         self.client = SheetsClient.login_with_auth_token(self.google_token)
-        
+
         # Create a new sheet
         self.spreadsheet = self.client.new(title=self.spreadsheet_title)
         self.url = self.SHEETS_BASE_URL % self.spreadsheet.id
-        
+
         # Add Service account as editor
         self.client.add_service_account_to_spreadsheet(self.spreadsheet)
 
         # Perform the actual export
         # if self.flatten_repeated_fields:
-        #     #self.export_flattened(path, data, username, id_string, filter_query)
+        #     self.export_flattened(path, data, username, id_string,
+        #                           filter_query)
         # else:
         self.export_tabular(path, data)
-         
+
         # Write XLSForm data
         if self.export_xlsform:
             self._insert_xlsform()
-        
+
         # Delete the default worksheet if it exists
         # NOTE: for some reason self.spreadsheet.worksheets() does not contain
-        #       the default worksheet (Sheet1). We therefore need to fetch an 
+        #       the default worksheet (Sheet1). We therefore need to fetch an
         #       updated list here.
         feed = self.client.get_worksheets_feed(self.spreadsheet)
         for elem in feed.findall(gspread.ns._ns('entry')):
             ws = gspread.Worksheet(self.spreadsheet, elem)
             if ws.title == 'Sheet1':
                 self.client.del_worksheet(ws)
-           
-    # def export_flattened(self, path, data, username, id_string, filter_query):
+
+    # def export_flattened(self, path, data, username, id_string,
+    #                      filter_query):
     #     # Build a flattened CSV
     #     csv_builder = CSVDataFrameBuilder(
     #         username, id_string, filter_query, self.group_delimiter,
@@ -200,29 +203,29 @@ class SheetsExportBuilder(ExportBuilder):
     #     for index, values in enumerate(rows, 1):
     #         update_row(ws, index, values)
     #
-    def export_tabular(self, path, data):        
+    def export_tabular(self, path, data):
         # Add worksheets for export.
         self._create_worksheets()
-        
+
         # Write the headers
         self._insert_headers()
 
         # Write the data
-        self._insert_data(data)    
-    
+        self._insert_data(data)
+
     def _insert_xlsform(self):
         """Exports XLSForm (e.g. survey, choices) to the sheet."""
         assert self.client
         assert self.spreadsheet
         assert self.xform
-        
+
         file_path = self.xform.xls.name
         default_storage = get_storage_class()()
-    
+
         if file_path == '' or not default_storage.exists(file_path):
             # No XLS file for your form
             return
-        
+
         with default_storage.open(file_path) as xlsform_file:
             xlsform_io = io.BytesIO(xlsform_file.read())
             # Open XForm and copy sheets to Google Sheets.
@@ -236,9 +239,9 @@ class SheetsExportBuilder(ExportBuilder):
                     title=wksht_nm, rows=num_rows, cols=num_cols)
                 for row in xrange(num_rows):
                     update_row(destination_ws, row + 1,
-                               [xldr_format_value(source_ws.cell(row, col)) 
-                                for col in xrange(num_cols)] )            
-    
+                               [xldr_format_value(source_ws.cell(row, col))
+                                for col in xrange(num_cols)])
+
     def _insert_data(self, data):
         """Writes data rows for each section."""
         indices = {}
@@ -274,7 +277,7 @@ class SheetsExportBuilder(ExportBuilder):
                         SheetsExportBuilder.write_row(
                             self.pre_process_row(child_row, section),
                             ws, fields, self.worksheet_titles)
-            
+
     def _insert_headers(self):
         """Writes headers for each section."""
         for section in self.sections:
@@ -285,20 +288,20 @@ class SheetsExportBuilder(ExportBuilder):
             # get the worksheet
             ws = self.worksheets[section_name]
             update_row(ws, index=1, values=headers)
-            
+
     def _create_worksheets(self):
         """Creates one worksheet per section."""
         for section in self.sections:
             section_name = section['name']
             work_sheet_title = self.get_valid_sheet_name(
-                "_".join(section_name.split("/")), 
+                "_".join(section_name.split("/")),
                 self.worksheet_titles.values())
             self.worksheet_titles[section_name] = work_sheet_title
             num_cols = len(section['elements']) + len(self.EXTRA_FIELDS)
             self.worksheets[section_name] = self.spreadsheet.add_worksheet(
                 title=work_sheet_title, rows=1, cols=num_cols)
 
-    @classmethod    
+    @classmethod
     def write_row(cls, data, worksheet, fields, worksheet_titles):
         # update parent_table with the generated sheet's title
         data[PARENT_TABLE_NAME] = worksheet_titles.get(

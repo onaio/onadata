@@ -669,13 +669,15 @@ class ExportBuilder(object):
 
     def to_google_sheets(self,  path, data, *args, **kwargs):
         from onadata.libs.utils.google_sheets import SheetsExportBuilder
+
+        xform = kwargs.get('xform')
         config = {
-            "spreadsheet_title": "test",
+            "spreadsheet_title": xform.title,
             "google_token": kwargs.get("options")["google_token"],
             "flatten_repeated_fields": False,
             "export_xlsform": False
         }
-        google_sheets = SheetsExportBuilder(kwargs.get('xform'), config)
+        google_sheets = SheetsExportBuilder(xform, config)
         google_sheets.export(path, data)
 
     def to_zipped_sav(self, path, data, *args, **kwargs):
