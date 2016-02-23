@@ -62,7 +62,8 @@ django-taggit
 django-oauth-toolkit
 
 # spss
-#https://bitbucket.org/fomcl/savreaderwriter/downloads/savReaderWriter-3.3.0.zip
+https://bitbucket.org/fomcl/savreaderwriter/downloads/savReaderWriter-3.3.0.zip
+
 
 # JSON data type support
 jsonfield<1.0
