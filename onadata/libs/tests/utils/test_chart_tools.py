@@ -306,6 +306,17 @@ class TestChartTools(TestBase):
 
         self.assertNotIn(both, get_choice_label(choices, string))
 
+    def test_get_choice_label_when_label_not_in_choice_list(self):
+        choices = [{'control': {},
+                    'name': 'Western Rural',
+                    'label': 'Western Rural'},
+                   {'control': {},
+                    'name': 'Western Urban',
+                    'label': 'Western Urban'}]
+        string = 'Banadir'
+
+        self.assertEqual(get_choice_label(choices, string), [string])
+
 
 class TestChartUtilFunctions(unittest.TestCase):
 
