@@ -196,7 +196,6 @@ class ProjectPermissionFilterMixin(object):
         return queryset.filter(**kwarg)
 
 
-
 class MetaDataFilter(XFormPermissionFilterMixin,
                      filters.DjangoObjectPermissionsFilter):
 
@@ -206,7 +205,7 @@ class MetaDataFilter(XFormPermissionFilterMixin,
 
 
 class ProjectMetaDataFilter(ProjectPermissionFilterMixin,
-                     filters.DjangoObjectPermissionsFilter):
+                            filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
         return self._project_filter_queryset(

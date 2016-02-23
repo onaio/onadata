@@ -12,7 +12,7 @@ from onadata.apps.api.tools import get_user_profile_or_none, \
     check_inherit_permission_from_project
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Project
-from onadata.apps.logger.models import DataView, Widget
+from onadata.apps.logger.models import DataView
 
 
 class ViewDjangoObjectPermissions(DjangoObjectPermissions):

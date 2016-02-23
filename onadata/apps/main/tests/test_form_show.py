@@ -298,8 +298,7 @@ class TestFormShow(TestBase):
 
     def test_xls_replace_markup(self):
         """
-        Check that update form is only shown when there are no submissions
-        and the user is the owner
+        Update form is only shown when no submissions and user = owner
         """
         # when we have 0 submissions, update markup exists
         self.xform.shared = True
