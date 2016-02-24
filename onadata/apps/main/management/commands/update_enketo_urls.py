@@ -52,7 +52,7 @@ class Command(BaseCommand):
             id_string = meta_data.content_object.id_string
             data_type = meta_data.data_type
             data_value = meta_data.data_value
-            xform = meta_data.xform
+            xform = meta_data.content_object
             with open('/tmp/enketo_url', 'a') as f:
 
                 if data_type == 'enketo_url':
