@@ -361,3 +361,43 @@ Response
                ]
         }
 
+Filter Widget Using DataView ID
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. raw:: html
+
+	<pre class="prettyprint">
+	<b>GET</b> /api/v1/widgets?dataview=<code>{dataview id}</code></pre>
+
+Response
+--------
+
+::
+
+       {
+              "id": 1,
+              "key": "e60c148d19464365b4e9a5d88f52694b",
+              "title": "My new title updated",
+              "description": "new description",
+              "aggregation": "mean",
+              "order": 0,
+              "widget_type": "charts",
+              "view_type": "horizontal-bar",
+              "column": "age",
+              "group_by": null,
+              "content_object": "https://api.ona.io/api/v1/dataviews/12",
+              "data": [
+                    {
+                      "count": 2,
+                      "age": "21"
+                    },
+                    {
+                      "count": 3,
+                      "age": "22"
+                    },
+                    {
+                      "count": 1,
+                      "age": "23"
+                    },
+               ]
+        }
