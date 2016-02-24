@@ -6,10 +6,51 @@ from rest_framework import serializers
 from rest_framework.compat import urlparse
 from rest_framework.reverse import reverse
 
+from django.http import Http404
+
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.widget import Widget
 from onadata.libs.utils.string import str2bool
+from onadata.libs.utils.chart_tools import get_field_from_field_name,\
+    DATA_TYPE_MAP, get_field_label
+
+from onadata.libs.utils.common_tags import SUBMISSION_TIME
+
+
+def get_xform_from_widgets(widget):
+    if isinstance(widget.content_object, XForm):
+        xform = widget.content_object
+    elif isinstance(widget.content_object, DataView):
+        # must be a dataview
+        xform = widget.content_object.xform
+
+    return xform
+
+
+def get_widget_column_field(widget):
+    try:
+        xform = get_xform_from_widgets(widget)
+        field = get_field_from_field_name(widget.column,
+                                          xform.data_dictionary())
+
+        if isinstance(field, basestring) and field == SUBMISSION_TIME:
+            # Create a dynamic class that behaves as a normal field
+            def get_abbreviated_xpath(self):
+                return '_submission_time'
+
+            field_dict = {
+                'label': 'Submission Time',
+                'get_abbreviated_xpath': get_abbreviated_xpath,
+                'type': 'datetime'
+            }
+
+            return type('pyxform.question.InputQuestion', (object,),
+                        field_dict)()
+
+        return field
+    except Http404:
+        return None
 
 
 class GenericRelatedField(serializers.HyperlinkedRelatedField):
@@ -85,12 +126,17 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
     key = serializers.CharField(read_only=True)
     data = serializers.SerializerMethodField()
     order = serializers.IntegerField(required=False)
+    field_type = serializers.SerializerMethodField()
+    data_type = serializers.SerializerMethodField()
+    field_xpath = serializers.SerializerMethodField()
+    field_label = serializers.SerializerMethodField()
 
     class Meta:
         model = Widget
         fields = ('id', 'url', 'key', 'title', 'description', 'widget_type',
                   'order', 'view_type', 'column', 'group_by', 'content_object',
-                  'data', 'aggregation')
+                  'data', 'aggregation', 'field_type', 'data_type',
+                  'field_xpath', 'field_label')
 
     def get_data(self, obj):
         # Get the request obj
@@ -147,3 +193,32 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
             ))
 
         return value
+
+    def get_field_type(self, obj):
+        if obj:
+            field = get_widget_column_field(obj)
+            if field:
+                return field.type
+        return None
+
+    def get_data_type(self, obj):
+        if obj:
+
+            field = get_widget_column_field(obj)
+            if field:
+                return DATA_TYPE_MAP.get(field.type, 'categorized')
+        return None
+
+    def get_field_xpath(self, obj):
+        if obj:
+            field = get_widget_column_field(obj)
+            if field:
+                return field.get_abbreviated_xpath()
+        return None
+
+    def get_field_label(self, obj):
+        if obj:
+            field = get_widget_column_field(obj)
+            if field:
+                return get_field_label(field)
+        return None

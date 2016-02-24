@@ -266,6 +266,11 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertIn('gender', response.data.get('data')[0])
         self.assertIn('count', response.data.get('data')[0])
 
+        self.assertEqual(response.data.get('data_type'), 'numeric')
+        self.assertEqual(response.data.get('field_label'), 'How old are you?')
+        self.assertEqual(response.data.get('field_type'), 'integer')
+        self.assertEqual(response.data.get('field_xpath'), 'age')
+
     def test_widget_data_widget(self):
         data = {
             'content_object': 'http://testserver/api/v1/forms/%s' %

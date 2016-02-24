@@ -190,14 +190,7 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
         # TODO: merge choices with results and set 0's on any missing fields,
         # i.e. they didn't have responses
 
-        # check if label is dict i.e. multilang
-        if isinstance(field.label, dict) and len(field.label.keys()) > 0:
-            languages = field.label.keys()
-            language_index = min(language_index, len(languages) - 1)
-            field_label = field.label[languages[language_index]]
-        else:
-            field_label = field.label or field.name
-
+        field_label = get_field_label(field, language_index)
         field_xpath = field.get_abbreviated_xpath()
         field_type = field.type
 
@@ -326,7 +319,7 @@ def build_chart_data_from_widget(widget, language_index=0):
     return data
 
 
-def _get_field_from_field_name(field_name, dd):
+def get_field_from_field_name(field_name, dd):
     # check if its the special _submission_time META
     if field_name == common_tags.SUBMISSION_TIME:
         field = common_tags.SUBMISSION_TIME
@@ -345,7 +338,7 @@ def _get_field_from_field_name(field_name, dd):
     return field
 
 
-def _get_field_from_field_xpath(field_xpath, dd):
+def get_field_from_field_xpath(field_xpath, dd):
     # check if its the special _submission_time META
     if field_xpath == common_tags.SUBMISSION_TIME:
         field = common_tags.SUBMISSION_TIME
@@ -364,6 +357,18 @@ def _get_field_from_field_xpath(field_xpath, dd):
     return field
 
 
+def get_field_label(field, language_index=0):
+    # check if label is dict i.e. multilang
+    if isinstance(field.label, dict) and len(field.label.keys()) > 0:
+        languages = field.label.keys()
+        language_index = min(language_index, len(languages) - 1)
+        field_label = field.label[languages[language_index]]
+    else:
+        field_label = field.label or field.name
+
+    return field_label
+
+
 def get_chart_data_for_field(field_name, xform, accepted_format, group_by,
                              field_xpath=None):
     """
@@ -373,13 +378,13 @@ def get_chart_data_for_field(field_name, xform, accepted_format, group_by,
     dd = xform.data_dictionary()
 
     if field_name:
-        field = _get_field_from_field_name(field_name, dd)
+        field = get_field_from_field_name(field_name, dd)
 
     if group_by:
-        group_by = _get_field_from_field_xpath(group_by, dd)
+        group_by = get_field_from_field_xpath(group_by, dd)
 
     if field_xpath:
-        field = _get_field_from_field_xpath(field_xpath, dd)
+        field = get_field_from_field_xpath(field_xpath, dd)
 
     choices = dd.survey.get('choices')
 
