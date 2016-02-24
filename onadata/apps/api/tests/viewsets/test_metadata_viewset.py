@@ -8,7 +8,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
-from onadata.apps.main.models.meta_data import MetaData, ProjectMetaData
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 
 
@@ -41,24 +41,9 @@ class TestMetaDataViewSet(TestAbstractViewSet):
                 data.update({
                     'data_file': media_file,
                 })
-                self._post_to_viewset(data)
+                self._post_metadata(data)
         else:
-            self._post_to_viewset(data)
-
-    def _post_to_viewset(self, data, test=True):
-        count = ProjectMetaData.objects.count()
-        view = MetaDataViewSet.as_view({"post": "create"})
-        request = self.factory.post('/', data, **self.extra)
-        response = view(request)
-
-        if test:
-            self.assertEqual(response.status_code, 201)
-            another_count = ProjectMetaData.objects.count()
-            self.assertEqual(another_count, count + 1)
-            self.project_metadata = ProjectMetaData.objects.get(
-                pk=response.data['id'])
-
-        return response
+            self._post_metadata(data)
 
     def test_add_metadata_with_file_attachment(self):
         for data_type in ['supporting_doc', 'media', 'source']:
@@ -164,7 +149,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
                 'data_type': 'media',
                 'xform': self.xform.pk
             }
-            self._post_form_metadata(data)
+            self._post_metadata(data)
             self.assertEqual(self.metadata.data_file_type, 'text/csv')
 
     def test_add_media_url(self):
@@ -183,18 +168,18 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             'data_type': 'media',
             'xform': self.xform.pk
         }
-        response = self._post_form_metadata(data, False)
+        response = self._post_metadata(data, False)
         self.assertEqual(response.status_code, 400)
         error = {"data_value": ["Invalid url %s." % data['data_value']]}
         self.assertEqual(response.data, error)
 
     def test_invalid_post(self):
-        response = self._post_form_metadata({}, False)
+        response = self._post_metadata({}, False)
         self.assertEqual(response.status_code, 400)
-        response = self._post_form_metadata({
+        response = self._post_metadata({
             'data_type': 'supporting_doc'}, False)
         self.assertEqual(response.status_code, 400)
-        response = self._post_form_metadata({
+        response = self._post_metadata({
             'data_type': 'supporting_doc',
             'xform': self.xform.pk
         }, False)
@@ -246,10 +231,11 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         # Test json of project metadata
         request = self.factory.get('/', **self.extra)
-        response = self.view(request, pk=self.project_metadata.pk)
+        response = self.view(request, pk=self.metadata.pk)
+        self.assertEqual(response.status_code, 200)
 
         data = dict(response.data)
-        self.assertEqual(data['project'], self.project_metadata.object_id)
+        self.assertEqual(data['project'], self.metadata.object_id)
 
     def test_should_return_both_xform_and_project_metadata(self):
         # delete all existing metadata

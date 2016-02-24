@@ -397,7 +397,7 @@ class TestAbstractViewSet(TestCase):
         attachment = Attachment.objects.all().reverse()[0]
         self.attachment = attachment
 
-    def _post_form_metadata(self, data, test=True):
+    def _post_metadata(self, data, test=True):
         count = MetaData.objects.count()
         view = MetaDataViewSet.as_view({'post': 'create'})
         request = self.factory.post('/', data, **self.extra)
@@ -424,9 +424,9 @@ class TestAbstractViewSet(TestCase):
                 data.update({
                     'data_file': media_file,
                 })
-                self._post_form_metadata(data)
+                self._post_metadata(data)
         else:
-            self._post_form_metadata(data)
+            self._post_metadata(data)
 
     def _get_digest_client(self):
         self.user.profile.require_auth = True
