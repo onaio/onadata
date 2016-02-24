@@ -213,7 +213,7 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
     def manifest(self, request, *args, **kwargs):
         self.object = self.get_object()
         object_list = MetaData.objects.filter(data_type='media',
-                                              xform=self.object)
+                                              object_id=self.object.id)
         context = self.get_serializer_context()
         serializer = XFormManifestSerializer(object_list, many=True,
                                              context=context)
