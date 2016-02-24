@@ -356,10 +356,8 @@ def clear_cached_metadata_instance_object(
         XFORM_METADATA_CACHE, instance.content_object.pk))
 
 
-def update_attached_xform(sender, instance=None, created=False, **kwargs):
-    from onadata.apps.logger.models import XForm
-
-    if instance and isinstance(instance.content_object, XForm):
+def update_attached_object(sender, instance=None, created=False, **kwargs):
+    if instance:
         instance.content_object.save(skip_xls_read=True)
 
 
@@ -379,7 +377,7 @@ class ProjectMetaData(MetaData):
 
 post_save.connect(clear_cached_metadata_instance_object, sender=MetaData,
                   dispatch_uid='clear_cached_metadata_instance_object')
-post_save.connect(update_attached_xform, sender=MetaData,
+post_save.connect(update_attached_object, sender=MetaData,
                   dispatch_uid='update_attached_xform')
 post_delete.connect(clear_cached_metadata_instance_object, sender=MetaData,
                     dispatch_uid='clear_cached_metadata_instance_delete')
