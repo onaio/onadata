@@ -358,7 +358,7 @@ def clear_cached_metadata_instance_object(
 
 def update_attached_object(sender, instance=None, created=False, **kwargs):
     if instance:
-        instance.content_object.save(skip_xls_read=True)
+        instance.content_object.save()
 
 
 class XFormMetaData(MetaData):
