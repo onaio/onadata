@@ -106,7 +106,10 @@ class ProjectPermissions(DjangoObjectPermissions):
 
 
 class AbstractHasObjectPermissionMixin(object):
-    """Use XForm permissions for Attachment objects"""
+    """
+    Checks that the requesting user has permissions to access each of the
+    models in the `model_classes` instance variable.
+    """
 
     def has_permission(self, request, view):
         # Workaround to ensure DjangoModelPermissions are not applied
@@ -130,20 +133,11 @@ class AbstractHasObjectPermissionMixin(object):
         return False
 
 
-class HasXFormObjectPermissionMixin(AbstractHasObjectPermissionMixin):
-    """Use XForm permissions for Attachment objects"""
-
-    model_classes = [XForm]
-
-
-class HasProjectObjectPermissionMixin(AbstractHasObjectPermissionMixin):
-    """Use Project permissions for DataView objects"""
-
-    model_classes = [Project]
-
-
 class HasObjectPermissionMixin(AbstractHasObjectPermissionMixin):
-    """Use Project permissions for DataView objects"""
+    """
+    Use the Project, XForm, or both model classes to check permissions based
+    on the request data keys.
+    """
 
     def has_permission(self, request, view):
         if request.data.get("xform"):
@@ -175,16 +169,6 @@ class RestServiceObjectPermissions(HasObjectPermissionMixin,
 
         return super(RestServiceObjectPermissions, self)\
             .has_object_permission(request, view, obj.xform)
-
-
-class MetaDataProjectObjectPermissions(HasProjectObjectPermissionMixin,
-                                       DjangoObjectPermissions):
-
-    def has_object_permission(self, request, view, obj):
-        view.model = Project
-
-        return super(MetaDataProjectObjectPermissions, self)\
-            .has_object_permission(request, view, obj.content_object)
 
 
 class AttachmentObjectPermissions(DjangoObjectPermissions):
