@@ -232,6 +232,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         # Test json of project metadata
         request = self.factory.get('/', **self.extra)
         response = self.view(request, pk=self.metadata_data['id'])
+
+        print(response.data)
+        print(response.status_code)
+
         self.assertEqual(response.status_code, 200)
 
         data = dict(response.data)
@@ -253,6 +257,8 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = view(request)
 
         self.assertEquals(MetaData.objects.count(), expected_metadata_count)
+
+        print(response.data)
 
         project_metadata = dict(response.data[0])
         xform_metadata = dict(response.data[1])
