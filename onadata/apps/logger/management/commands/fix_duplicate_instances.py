@@ -18,7 +18,7 @@ class Command(BaseCommand):
             yield row
 
     def handle(self, *args, **kwargs):
-        sql = "select xform_id, uuid, COUNT(xform_id || uuid) as a "\
+        sql = "select xform_id, uuid, COUNT(xform_id || uuid) "\
               "from logger_instance group by xform_id, uuid "\
               "HAVING COUNT(xform_id || uuid) > 1;"
         total_count = 0
@@ -33,6 +33,11 @@ class Command(BaseCommand):
             for i in instances[1:]:
                 if i.xml != xml:
                     all_matches = False
+
+            # mspray is a special case because the uuid and xform are duplicate
+            # but the XML differes on xform.uuid while the rest of the data
+            # is a match, let's maintain the submission with the
+            # correct xform.uuid.
             if is_mspray_form and not all_matches:
                 first = instances.filter(xml__contains=i.xform.uuid).first()
                 to_delete = instances.exclude(xml__contains=i.xform.uuid)
@@ -51,11 +56,12 @@ class Command(BaseCommand):
                         attachment.save()
 
             assert delete_count < dupes_count, \
-                "%d should be less than %d." % (delete_count, dupes_count)
+                "# of records to delete %d should be less than total # of "\
+                "duplicates %d." % (delete_count, dupes_count)
             to_delete.delete()
             total_count += dupes_count
             total_deleted += delete_count
-            self.stdout.write("deleting %d: %s (%d of %d)."
+            self.stdout.write("deleted %d: %s (%d of %d)."
                               % (xform, uuid, delete_count, dupes_count))
 
         self.stdout.write("done: deleted %d of %d"
