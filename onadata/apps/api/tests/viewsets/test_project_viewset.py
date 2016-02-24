@@ -27,6 +27,13 @@ from onadata.apps.api import tools
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 
+ROLES = [ReadOnlyRoleNoDownload,
+         ReadOnlyRole,
+         DataEntryRole,
+         EditorRole,
+         ManagerRole,
+         OwnerRole]
+
 
 @urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
 def enketo_mock(url, request):
@@ -52,7 +59,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         })
 
     @patch('urllib2.urlopen')
-    def test_publish_xlsform_using_url_upload(self,  mock_urlopen):
+    def test_publish_xlsform_using_url_upload(self, mock_urlopen):
         with HTTMock(enketo_mock):
             self._project_create()
             view = ProjectViewSet.as_view({
@@ -294,6 +301,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
+
         resultset = MetaData.objects.filter(Q(object_id=self.xform.pk), Q(
             data_type='enketo_url') | Q(data_type='enketo_preview_url'))
         url = resultset.get(data_type='enketo_url')
@@ -322,10 +330,11 @@ class TestProjectViewSet(TestAbstractViewSet):
             'date_created': url.date_created
         }]
 
-        self.form_data['metadata'].sort()
-        response.data[0]['metadata'].sort()
+        # remove date modified
+        self.form_data.pop('date_modified')
+        response.data[0].pop('date_modified')
 
-        self.assertEqual(response.data, [self.form_data])
+        self.assertEqual(response.data[0], self.form_data)
 
     def test_assign_form_to_project(self):
         view = ProjectViewSet.as_view({
@@ -516,12 +525,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_profile = self._create_user_profile(alice_data)
         projectid = self.project.pk
 
-        ROLES = [ReadOnlyRoleNoDownload,
-                 ReadOnlyRole,
-                 DataEntryRole,
-                 EditorRole,
-                 ManagerRole,
-                 OwnerRole]
         for role_class in ROLES:
             self.assertFalse(role_class.user_has_role(alice_profile.user,
                                                       self.project))
@@ -564,11 +567,6 @@ class TestProjectViewSet(TestAbstractViewSet):
         alice_profile = self._create_user_profile(alice_data)
         projectid = self.project.pk
 
-        ROLES = [ReadOnlyRole,
-                 DataEntryRole,
-                 EditorRole,
-                 ManagerRole,
-                 OwnerRole]
         for role_class in ROLES:
             self.assertFalse(role_class.user_has_role(alice_profile.user,
                                                       self.project))
@@ -1559,8 +1557,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         data = {'name': "My DataView",
                 'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-                'project':  'http://testserver/api/v1/projects/%s'
-                            % project2.pk,
+                'project': 'http://testserver/api/v1/projects/%s'
+                           % project2.pk,
                 'columns': columns,
                 'query': '[ ]'}
         self._create_dataview(data)
@@ -1609,8 +1607,8 @@ class TestProjectViewSet(TestAbstractViewSet):
 
         data = {'name': "My DataView",
                 'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-                'project':  'http://testserver/api/v1/projects/%s'
-                            % project2.pk,
+                'project': 'http://testserver/api/v1/projects/%s'
+                           % project2.pk,
                 'columns': '["name", "age", "gender"]',
                 'query': '[{"column":"age","filter":">","value":"20"},'
                          '{"column":"age","filter":"<","value":"50"}]'}
