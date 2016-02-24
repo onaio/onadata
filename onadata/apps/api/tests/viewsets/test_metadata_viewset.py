@@ -231,7 +231,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         # Test json of project metadata
         request = self.factory.get('/', **self.extra)
-        response = self.view(request, pk=self.metadata.pk)
+        response = self.view(request, pk=self.metadata_data['id'])
         self.assertEqual(response.status_code, 200)
 
         data = dict(response.data)
@@ -240,6 +240,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
     def test_should_return_both_xform_and_project_metadata(self):
         # delete all existing metadata
         MetaData.objects.all().delete()
+        expected_metadata_count = 2
 
         self._add_project_metadata(
             self.project, 'media', "check.png", self.path)
@@ -250,6 +251,8 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         view = MetaDataViewSet.as_view({'get': 'list'})
         request = self.factory.get("/", **self.extra)
         response = view(request)
+
+        self.assertEquals(MetaData.objects.count(), expected_metadata_count)
 
         project_metadata = dict(response.data[0])
         xform_metadata = dict(response.data[1])
