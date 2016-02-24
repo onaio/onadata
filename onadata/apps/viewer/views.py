@@ -308,7 +308,7 @@ def create_export(request, username, id_string, export_type):
 
     if export_type == Export.EXTERNAL_EXPORT:
         # check for template before trying to generate a report
-        if not MetaData.external_export(xform=xform):
+        if not MetaData.external_export(xform):
             return HttpResponseForbidden(_(u'No XLS Template set.'))
 
     query = request.POST.get("query")
@@ -400,7 +400,7 @@ def export_list(request, username, id_string, export_type):
 
     if export_type == Export.EXTERNAL_EXPORT:
         # check for template before trying to generate a report
-        if not MetaData.external_export(xform=xform):
+        if not MetaData.external_export(xform):
             return HttpResponseForbidden(_(u'No XLS Template set.'))
     # Get meta and token
     export_token = request.GET.get('token')
@@ -423,7 +423,7 @@ def export_list(request, username, id_string, export_type):
             return HttpResponseBadRequest(
                 _("%s is not a valid export type" % export_type))
 
-    metadata = MetaData.objects.filter(xform=xform,
+    metadata = MetaData.objects.filter(object_id=xform.id,
                                        data_type="external_export")\
         .values('id', 'data_value')
 
