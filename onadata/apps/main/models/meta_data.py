@@ -353,7 +353,7 @@ class MetaData(models.Model):
 def clear_cached_metadata_instance_object(
         sender, instance=None, created=False, **kwargs):
     safe_delete('{}{}'.format(
-        XFORM_METADATA_CACHE, instance.content_object.pk))
+        XFORM_METADATA_CACHE, instance.object_id))
 
 
 def update_attached_object(sender, instance=None, created=False, **kwargs):
