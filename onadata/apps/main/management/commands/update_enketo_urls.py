@@ -48,8 +48,8 @@ class Command(BaseCommand):
         resultset = MetaData.objects.filter(
             Q(data_type='enketo_url') | Q(data_type='enketo_preview_url'))
         for meta_data in resultset:
-            username = meta_data.xform.user.username
-            id_string = meta_data.xform.id_string
+            username = meta_data.content_object.user.username
+            id_string = meta_data.content_object.id_string
             data_type = meta_data.data_type
             data_value = meta_data.data_value
             xform = meta_data.xform
