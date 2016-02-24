@@ -196,6 +196,14 @@ class ProjectPermissionFilterMixin(object):
         return queryset.filter(**kwarg)
 
 
+class RestServiceFilter(XFormPermissionFilterMixin,
+                        filters.DjangoObjectPermissionsFilter):
+
+    def filter_queryset(self, request, queryset, view):
+        return self._xform_filter_queryset(
+            request, queryset, view, 'xform_id')
+
+
 class MetaDataFilter(XFormPermissionFilterMixin,
                      filters.DjangoObjectPermissionsFilter):
 

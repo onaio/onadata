@@ -167,6 +167,16 @@ class MetaDataObjectPermissions(HasObjectPermissionMixin,
             .has_object_permission(request, view, obj.content_object)
 
 
+class RestServiceObjectPermissions(HasObjectPermissionMixin,
+                                   DjangoObjectPermissions):
+
+    def has_object_permission(self, request, view, obj):
+        view.model = XForm
+
+        return super(RestServiceObjectPermissions, self)\
+            .has_object_permission(request, view, obj.xform)
+
+
 class MetaDataProjectObjectPermissions(HasProjectObjectPermissionMixin,
                                        DjangoObjectPermissions):
 

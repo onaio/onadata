@@ -37,7 +37,7 @@ class RestService(models.Model):
 def delete_metadata(sender, instance, **kwargs):
     if instance.name == TEXTIT:
         MetaData.objects.filter(
-            xform=instance.xform, data_type=instance.name).delete()
+            object_id=instance.xform.id, data_type=instance.name).delete()
 
 post_delete.connect(delete_metadata, sender=RestService,
                     dispatch_uid='delete_metadata')

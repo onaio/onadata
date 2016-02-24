@@ -1,6 +1,6 @@
 from rest_framework.viewsets import ModelViewSet
 
-from onadata.apps.api.permissions import MetaDataObjectPermissions
+from onadata.apps.api.permissions import RestServiceObjectPermissions
 from onadata.libs.serializers.textit_serializer import TextItSerializer
 from onadata.apps.restservice.models import RestService
 from onadata.libs import filters
@@ -26,8 +26,8 @@ class RestServicesViewSet(AuthenticateHeaderMixin,
 
     queryset = RestService.objects.select_related('xform')
     serializer_class = RestServiceSerializer
-    permission_classes = [MetaDataObjectPermissions, ]
-    filter_backends = (filters.MetaDataFilter, )
+    permission_classes = [RestServiceObjectPermissions, ]
+    filter_backends = (filters.RestServiceFilter, )
 
     def get_serializer_class(self):
         name = self.request.DATA.get('name')
