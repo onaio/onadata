@@ -179,7 +179,7 @@ class Instance(models.Model):
     json = JSONField(default={}, null=False)
     xml = models.TextField()
     user = models.ForeignKey(User, related_name='instances', null=True)
-    xform = models.ForeignKey(XForm, null=True, related_name='instances')
+    xform = models.ForeignKey(XForm, related_name='instances')
     survey_type = models.ForeignKey(SurveyType)
 
     # shows when we first received this instance
@@ -196,7 +196,7 @@ class Instance(models.Model):
     # we add a fourth status: submitted_via_web
     status = models.CharField(max_length=20,
                               default=u'submitted_via_web')
-    uuid = models.CharField(max_length=249, default=u'')
+    uuid = models.CharField(max_length=249)
     version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True)
 
     # store an geographic objects associated with this instance
@@ -207,6 +207,7 @@ class Instance(models.Model):
 
     class Meta:
         app_label = 'logger'
+        unique_together = ('xform', 'uuid')
 
     @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):

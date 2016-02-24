@@ -137,7 +137,7 @@ class TestInstance(TestBase):
 
         # sort with a json field
         data = [i.get('_id') for i in query_data(
-            self.xform, sort='{"pk": "-1"}')]
+            self.xform, sort='{"_id": "-1"}')]
         self.assertEqual(data[0], latest)
         self.assertEqual(data[len(data) - 1], oldest)
 
