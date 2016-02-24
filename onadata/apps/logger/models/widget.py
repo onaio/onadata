@@ -9,6 +9,9 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.utils.model_tools import generate_uuid_for_form
+from onadata.libs.utils.chart_tools import get_field_from_field_name,\
+    DATA_TYPE_MAP, get_field_label
+from onadata.libs.utils.common_tags import SUBMISSION_TIME
 
 
 class Widget(OrderedModel):
@@ -79,4 +82,22 @@ class Widget(OrderedModel):
 
         records = query.select()
 
-        return records
+        field = get_field_from_field_name(column, xform.data_dictionary())
+        if isinstance(field, basestring) and field == SUBMISSION_TIME:
+            field_label = 'Submission Time'
+            field_xpath = '_submission_time'
+            field_type = 'datetime'
+        else:
+            field_type = field.type
+            data_type = DATA_TYPE_MAP.get(field.type, 'categorized')
+            field_xpath = field.get_abbreviated_xpath()
+            field_label = get_field_label(field)
+
+        return {
+            "field_type": field_type,
+            "data_type": data_type,
+            "field_xpath": field_xpath,
+            "field_label": field_label,
+            "group_by": group_by,
+            "data": records
+        }

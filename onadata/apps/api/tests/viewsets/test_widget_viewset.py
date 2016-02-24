@@ -261,15 +261,17 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.data.get('data'))
-        self.assertEquals(len(response.data.get('data')), 8)
-        self.assertIn('age', response.data.get('data')[0])
-        self.assertIn('gender', response.data.get('data')[0])
-        self.assertIn('count', response.data.get('data')[0])
+        self.assertIn('data', response.data.get('data'))
+        self.assertEquals(len(response.data.get('data')['data']), 8)
+        self.assertIn('age', response.data.get('data')['data'][0])
+        self.assertIn('gender', response.data.get('data')['data'][0])
+        self.assertIn('count', response.data.get('data')['data'][0])
 
-        self.assertEqual(response.data.get('data_type'), 'numeric')
-        self.assertEqual(response.data.get('field_label'), 'How old are you?')
-        self.assertEqual(response.data.get('field_type'), 'integer')
-        self.assertEqual(response.data.get('field_xpath'), 'age')
+        self.assertEqual(response.data.get('data')['data_type'], 'numeric')
+        self.assertEqual(response.data.get('data')['field_label'],
+                         'How old are you?')
+        self.assertEqual(response.data.get('data')['field_type'], 'integer')
+        self.assertEqual(response.data.get('data')['field_xpath'], 'age')
 
     def test_widget_data_widget(self):
         data = {
