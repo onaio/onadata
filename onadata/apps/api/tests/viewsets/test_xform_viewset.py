@@ -495,6 +495,12 @@ class TestXFormViewSet(TestAbstractViewSet):
                 b['metadata'].sort()
 
             self.assertTrue(len(response_data), 2)
+
+            # remove date modified
+            for indx in [0, 1]:
+                response_data[indx].pop("date_modified")
+                expected_data[indx].pop("date_modified")
+
             self.assertEqual(response_data[0], expected_data[0])
             self.assertEqual(response_data[1], expected_data[1])
 
@@ -526,6 +532,11 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             self.form_data['metadata'].sort()
             response.data[0]['metadata'].sort()
+
+            # remove date-modified
+            response.data[0].pop("date_modified")
+            self.form_data.pop("date_modified")
+
             self.assertEqual(response.data, [self.form_data])
 
             # apply filter, see a non existent user
@@ -580,6 +591,10 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.form_data['metadata'].sort()
             response.data['metadata'].sort()
+
+            # remove date modified
+            self.form_data.pop('date_modified')
+            response.data.pop('date_modified')
 
             self.assertEqual(response.data, self.form_data)
 
