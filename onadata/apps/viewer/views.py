@@ -37,7 +37,7 @@ from onadata.libs.utils.export_tools import (
     newest_export_for,
     str_to_bool)
 from onadata.libs.utils.image_tools import image_url
-from onadata.libs.utils.google import google_export_xls, redirect_uri
+from onadata.libs.utils.google import google_flow
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
     generate_content_disposition_header
@@ -47,6 +47,8 @@ from onadata.libs.utils.user_auth import has_permission, get_xform_and_perms,\
     helper_auth_helper
 from xls_writer import XlsWriter
 from onadata.libs.utils.chart_tools import build_chart_data
+from oauth2client.contrib.django_orm import Storage
+from oauth2client import client as google_client
 
 
 def _get_start_end_submission_time(request):
@@ -366,33 +368,31 @@ def create_export(request, username, id_string, export_type):
         )
 
 
-def _get_google_token(request, redirect_to_url):
+def _get_google_credential(request, redirect_to_url):
     token = None
     if request.user.is_authenticated():
-        try:
-            ts = TokenStorageModel.objects.get(id=request.user)
-        except TokenStorageModel.DoesNotExist:
-            pass
-        else:
-            token = ts.token
+        storage = Storage(TokenStorageModel, 'id', request.user, 'credential')
+        credential = storage.get()
     elif request.session.get('access_token'):
-        token = request.session.get('access_token')
-    if token is None:
+        credential = google_client.OAuth2Credentials.from_json(token)
+    if credential is None:
         request.session["google_redirect_url"] = redirect_to_url
-        return HttpResponseRedirect(redirect_uri)
-    return token
+        return HttpResponseRedirect(google_flow.step1_get_authorize_url())
+    return credential
 
 
 def export_list(request, username, id_string, export_type):
-    if export_type == Export.GDOC_EXPORT:
+    credential = None
+    if export_type == Export.GSHEETS_EXPORT:
         redirect_url = reverse(
             export_list,
             kwargs={
                 'username': username, 'id_string': id_string,
                 'export_type': export_type})
-        token = _get_google_token(request, redirect_url)
-        if isinstance(token, HttpResponse):
-            return token
+
+        credential = _get_google_credential(request, redirect_url)
+        if isinstance(credential, HttpResponse):
+            return credential
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
     if not has_permission(xform, owner, request):
@@ -412,6 +412,7 @@ def export_list(request, username, id_string, export_type):
         'binary_select_multiples': False,
         'meta': export_meta,
         'token': export_token,
+        'google_credentials': credential
     }
 
     if should_create_new_export(xform, export_type, options):
@@ -469,30 +470,12 @@ def export_progress(request, username, id_string, export_type):
                 'filename': export.filename
             })
             status['filename'] = export.filename
-            if export.export_type == Export.GDOC_EXPORT and \
+            if export.export_type == Export.GSHEETS_EXPORT and \
                     export.export_url is None:
-                redirect_url = reverse(
-                    export_progress,
-                    kwargs={
-                        'username': username, 'id_string': id_string,
-                        'export_type': export_type})
-                token = _get_google_token(request, redirect_url)
-                if isinstance(token, HttpResponse):
-                    return token
-                status['url'] = None
-                try:
-                    url = google_export_xls(
-                        export.full_filepath, xform.title, token, blob=True)
-                except Exception, e:
-                    status['error'] = True
-                    status['message'] = e.message
-                else:
-                    export.export_url = url
-                    export.save()
-                    status['url'] = url
+                    status['url'] = None
             if export.export_type == Export.EXTERNAL_EXPORT \
                     and export.export_url is None:
-                status['url'] = url
+                status['url'] = None
         # mark as complete if it either failed or succeeded but NOT pending
         if export.status == Export.SUCCESSFUL \
                 or export.status == Export.FAILED:
@@ -513,7 +496,7 @@ def export_download(request, username, id_string, export_type, filename):
     # find the export entry in the db
     export = get_object_or_404(Export, xform=xform, filename=filename)
 
-    if (export_type == Export.GDOC_EXPORT or
+    if (export_type == Export.GSHEETS_EXPORT or
         export_type == Export.EXTERNAL_EXPORT) and \
             export.export_url is not None:
         return HttpResponseRedirect(export.export_url)
@@ -676,7 +659,7 @@ def google_xls_export(request, username, id_string):
         request.session["google_redirect_url"] = reverse(
             google_xls_export,
             kwargs={'username': username, 'id_string': id_string})
-        return HttpResponseRedirect(redirect_uri)
+        return HttpResponseRedirect(google_flow.step1_get_authorize_url())
 
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
@@ -693,7 +676,7 @@ def google_xls_export(request, username, id_string):
     ddw.set_data_dictionary(dd)
     temp_file = ddw.save_workbook_to_file()
     temp_file.close()
-    url = google_export_xls(tmp.name, xform.title, token, blob=True)
+    url = None
     os.unlink(tmp.name)
     audit = {
         "xform": xform.id_string,

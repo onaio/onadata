@@ -1,6 +1,6 @@
 import gspread
 
-from oauth2client.django_orm import Storage
+from oauth2client.contrib.django_orm import Storage
 from oauth2client import client as google_client
 
 from django.core.urlresolvers import reverse
@@ -9,14 +9,15 @@ from django.http import HttpResponseRedirect
 
 from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.main.views import home
-from onadata.libs.utils.google import google_flow, get_refreshed_token
+from onadata.libs.utils.google import google_flow
 
 
 def google_oauth2_request(request):
     token = None
     if request.user.is_authenticated():
         try:
-            storage = Storage(TokenStorageModel, 'id', request.user, 'credential')
+            storage = Storage(TokenStorageModel, 'id', request.user,
+                              'credential')
             credential = storage.get()
         except TokenStorageModel.DoesNotExist:
             pass
@@ -29,7 +30,7 @@ def google_oauth2_request(request):
         gc = gspread.authorize(google_creds)
 
         docs_feed = gc.get_spreadsheets_feed()
-        _l='<ul>'
+        _l = '<ul>'
         for entry in docs_feed.entry:
             _l += '<li>%s</li>' % entry.title.text
             print entry.title.text
@@ -47,6 +48,7 @@ def google_auth_return(request):
                           'credential')
         code = request.REQUEST.get('code')
         google_creds = google_flow.step2_exchange(code)
+        google_creds.set_store(storage)
         storage.put(google_creds)
     else:
         code = request.REQUEST.get('code')
@@ -55,16 +57,3 @@ def google_auth_return(request):
     if request.session.get('google_redirect_url'):
         return HttpResponseRedirect(request.session.get('google_redirect_url'))
     return HttpResponseRedirect(reverse(home))
-
-
-def refresh_access_token(token, user):
-    token = get_refreshed_token(token)
-    if not user.is_authenticated():
-        return token
-    try:
-        ts = TokenStorageModel.objects.get(id=user)
-    except TokenStorageModel.DoesNotExist:
-        ts = TokenStorageModel(id=user)
-    ts.token = gdata.gauth.token_to_blob(token)
-    ts.save()
-    return token

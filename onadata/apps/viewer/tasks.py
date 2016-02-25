@@ -63,7 +63,7 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
 
     export_types = {
         Export.XLS_EXPORT: create_xls_export,
-        Export.GDOC_EXPORT: create_xls_export,
+        Export.GSHEETS_EXPORT: create_google_sheet_export,
         Export.CSV_EXPORT: create_csv_export,
         Export.CSV_ZIP_EXPORT: create_csv_zip_export,
         Export.SAV_ZIP_EXPORT: create_sav_zip_export,
@@ -326,6 +326,33 @@ def create_external_export(username, id_string, export_id, **options):
         # mail admins
         details = _get_export_details(username, id_string, export_id)
         report_exception("External Export Exception: Export ID - "
+                         "%(export_id)s, /%(username)s/%(id_string)s"
+                         % details, e, sys.exc_info())
+        raise
+    else:
+        return gen_export.id
+
+
+@task()
+def create_google_sheet_export(username, id_string, export_id, **options):
+    # we re-query the db instead of passing model objects according to
+    # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
+    export = Export.objects.get(id=export_id)
+    try:
+        # though export is not available when for has 0 submissions, we
+        # catch this since it potentially stops celery
+        gen_export = generate_export(
+            Export.GSHEETS_EXPORT,
+            export.xform,
+            export_id,
+            options
+        )
+    except (Exception, NoRecordsFoundError) as e:
+        export.internal_status = Export.FAILED
+        export.save()
+        # mail admins
+        details = _get_export_details(username, id_string, export_id)
+        report_exception("Google Export Exception: Export ID - "
                          "%(export_id)s, /%(username)s/%(id_string)s"
                          % details, e, sys.exc_info())
         raise
