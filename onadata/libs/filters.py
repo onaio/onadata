@@ -142,7 +142,7 @@ class TagFilter(filters.BaseFilterBackend):
 
 class XFormPermissionFilterMixin(object):
 
-    def _xform_filter_queryset(self, request, queryset, view, keyword):
+    def _xform_filter(self, request, view, keyword):
         """Use XForm permissions"""
         xform = request.QUERY_PARAMS.get('xform')
         if xform:
@@ -165,15 +165,17 @@ class XFormPermissionFilterMixin(object):
             xforms = super(XFormPermissionFilterMixin, self).filter_queryset(
                 request, xform_qs, view)
 
-        kwarg = {"%s__in" % keyword: xforms}
+        return {"%s__in" % keyword: xforms}
+
+    def _xform_filter_queryset(self, request, queryset, view, keyword):
+        kwarg = self._xform_filter(request, view, keyword)
 
         return queryset.filter(**kwarg)
 
 
 class ProjectPermissionFilterMixin(object):
 
-    def _project_filter_queryset(self, request, queryset, view, keyword):
-        """Use Project Permissions"""
+    def _project_filter(self, request, view, keyword):
         project_id = request.QUERY_PARAMS.get("project")
 
         if project_id:
@@ -191,7 +193,11 @@ class ProjectPermissionFilterMixin(object):
         projects = super(ProjectPermissionFilterMixin, self).filter_queryset(
             request, project_qs, view)
 
-        kwarg = {"%s__in" % keyword: projects}
+        return {"%s__in" % keyword: projects}
+
+    def _project_filter_queryset(self, request, queryset, view, keyword):
+        """Use Project Permissions"""
+        kwarg = self._project_filter(request, view, keyword)
 
         return queryset.filter(**kwarg)
 
@@ -204,12 +210,16 @@ class RestServiceFilter(XFormPermissionFilterMixin,
             request, queryset, view, 'xform_id')
 
 
-class MetaDataFilter(XFormPermissionFilterMixin,
+class MetaDataFilter(ProjectPermissionFilterMixin,
+                     XFormPermissionFilterMixin,
                      filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
-        return self._xform_filter_queryset(
-            request, queryset, view, 'object_id')
+        keyword = "object_id"
+        xform_kwarg = self._xform_filter(request, view, keyword)
+        project_kwarg = self._project_filter(request, view, keyword)
+
+        return queryset.filter(Q(**xform_kwarg) | Q(**project_kwarg))
 
 
 class AttachmentFilter(XFormPermissionFilterMixin,

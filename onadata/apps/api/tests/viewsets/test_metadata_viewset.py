@@ -261,13 +261,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         self.assertEquals(MetaData.objects.count(), expected_metadata_count)
 
-        print(response.data)
-
-        project_metadata = dict(response.data[0])
-        xform_metadata = dict(response.data[1])
-
-        self.assertEquals(project_metadata.get('project'), self.project.id)
-        self.assertIsNone(project_metadata.get('xform'))
-
-        self.assertEquals(xform_metadata.get('xform'), self.xform.id)
-        self.assertIsNone(xform_metadata.get('project'))
+        for record in response.data:
+            if record.get("xform"):
+                self.assertEquals(record.get('xform'), self.xform.id)
+                self.assertIsNone(record.get('project'))
+            else:
+                self.assertEquals(record.get('project'), self.project.id)
+                self.assertIsNone(record.get('xform'))
