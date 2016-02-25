@@ -225,6 +225,7 @@ class ExportBuilder(object):
     TRUNCATE_GROUP_TITLE = False
 
     XLS_SHEET_NAME_MAX_CHARS = 31
+    url = None
 
     @classmethod
     def string_to_date_with_xls_validation(cls, date_str):
@@ -652,11 +653,16 @@ class ExportBuilder(object):
 
         wb.save(filename=path)
 
-    def to_flat_csv_export(
-            self, path, data, username, id_string, filter_query,
-            start=None, end=None, dataview=None, xform=None):
+    def to_flat_csv_export(self, path, data, *args, **kwargs):
         # TODO resolve circular import
         from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
+        username = args[0]
+        id_string = args[1]
+        filter_query = args[2]
+        start = kwargs.get("start")
+        end = kwargs.get("end")
+        dataview = kwargs.get("dataview")
+        xform = kwargs.get("xform")
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
@@ -673,12 +679,12 @@ class ExportBuilder(object):
         xform = kwargs.get('xform')
         config = {
             "spreadsheet_title": xform.title,
-            "google_token": kwargs.get("options")["google_token"],
+            "google_credentials": kwargs.get("options")["google_credentials"],
             "flatten_repeated_fields": False,
             "export_xlsform": False
         }
         google_sheets = SheetsExportBuilder(xform, config)
-        google_sheets.export(path, data)
+        self.url = google_sheets.export(path, data)
 
     def to_zipped_sav(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):
@@ -964,6 +970,9 @@ def generate_export(export_type, xform, export_id=None, options=None):
     export.filename = basename
     export.internal_status = Export.SUCCESSFUL
     # do not persist exports that have a filter
+    # Get URL of the exported sheet.
+    if export_type == Export.GSHEETS_EXPORT:
+        export.export_url = export_builder.url
 
     # if we should create a new export is true, we should not save it
     if start is None and end is None:

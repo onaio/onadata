@@ -1,7 +1,7 @@
 import csv
 import os
 
-import gdata.gauth
+from oauth2client.client import AccessTokenCredentials
 
 from django.core.files.storage import get_storage_class
 from django.core.files.temp import NamedTemporaryFile
@@ -10,7 +10,6 @@ from mock import Mock, patch
 
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.export_tools import generate_export
-from onadata.libs.utils.google import oauth2_token
 from onadata.libs.utils.google_sheets import SheetsClient
 from test_base import TestBase
 
@@ -25,12 +24,6 @@ class MockCell():
 class TestExport(TestBase):
 
     def setUp(self):
-        # Prepare a fake token.
-        self.token = oauth2_token
-        self.token.refresh_token = 'foo'
-        self.token.access_token = 'bar'
-        self.token_blob = gdata.gauth.token_to_blob(self.token)
-
         # Files that contain the expected spreadsheet data.
         self.fixture_dir = os.path.join(
             self.this_directory, 'fixtures', 'google_sheets_export')
@@ -113,7 +106,8 @@ class TestExport(TestBase):
         options = {
             "split_select_multiples": True,
             "binary_select_multiples": False,
-            "google_token": self.token_blob
+            "google_credentials": AccessTokenCredentials("fake_token",
+                                                         user_agent="onaio")
         }
 
         # Test Google Sheets export.

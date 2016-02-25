@@ -31,21 +31,3 @@ def get_refreshed_token(token):
     tokens = json.loads(response)
     token.access_token = tokens['access_token']
     return token
-
-
-def google_export_xls(filename, title, token, blob=True):
-    if blob:
-        token = gdata.gauth.token_from_blob(token)
-    if token.refresh_token is not None \
-            and token.access_token is not None:
-        oauth2_token.refresh_token = token.refresh_token
-        working_token = get_refreshed_token(oauth2_token)
-        docs_client = gdata.docs.client.DocsClient(
-            source=oauth2_token.user_agent)
-        docs_client = working_token.authorize(docs_client)
-        xls_doc = gdata.docs.data.Resource(
-            type='spreadsheet', title=title)
-        media = gdata.data.MediaSource()
-        media.SetFileHandle(filename, 'application/vnd.ms-excel')
-        xls_doc = docs_client.CreateResource(xls_doc, media=media)
-        return xls_doc.find_html_link()

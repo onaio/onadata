@@ -12,7 +12,6 @@ from onadata.libs.utils.export_tools import ExportBuilder,\
     dict_to_joined_export
 from django.core.files.storage import get_storage_class
 from oauth2client.service_account import ServiceAccountCredentials
-from onadata.libs.utils.google import get_refreshed_token
 from onadata.libs.utils.common_tags import INDEX, PARENT_INDEX,\
     PARENT_TABLE_NAME
 
@@ -64,10 +63,11 @@ class SheetsClient(gspread.client.Client):
             'title': title,
             'mimeType': 'application/vnd.google-apps.spreadsheet'
         }
+
         r = self.session.request(
             'POST', SheetsClient.DRIVE_API_URL, headers=headers,
             data=json.dumps(data))
-        resp = json.loads(r.read().decode('utf-8'))
+        resp = json.loads(r.content)
         sheet_id = resp['id']
         return self.open_by_key(sheet_id)
 
@@ -85,33 +85,14 @@ class SheetsClient(gspread.client.Client):
             'POST', url, headers=headers, data=json.dumps(data))
 
     @classmethod
-    def login_with_service_account(cls):
-        credential = \
+    def login_with_service_account(cls, credential=None):
+        if not credential:
+            credential = \
                 ServiceAccountCredentials(settings.GOOGLE_CLIENT_EMAIL,
                                           settings.GOOGLE_CLIENT_PRIVATE_KEY,
                                           scope=SheetsClient.AUTH_SCOPE)
 
         client = SheetsClient(auth=credential)
-        client.login()
-        return client
-
-    @classmethod
-    def login_with_auth_token(cls, token_string):
-        # deserialize the token.
-        token = gdata.gauth.token_from_blob(token_string)
-        assert token.refresh_token
-
-        # Refresh OAuth token if necessary.
-        oauth2_token = gdata.gauth.OAuth2Token(
-            client_id=settings.GOOGLE_CLIENT_ID,
-            client_secret=settings.GOOGLE_CLIENT_SECRET,
-            scope=SheetsClient.AUTH_SCOPE,
-            user_agent='onaio')
-        oauth2_token.refresh_token = token.refresh_token
-        refreshed_token = get_refreshed_token(oauth2_token)
-
-        # Create Google Sheet.
-        client = SheetsClient(auth=refreshed_token)
         client.login()
         return client
 
@@ -130,7 +111,7 @@ class SheetsExportBuilder(ExportBuilder):
     spreadsheet_title = None
     flatten_repeated_fields = True
     export_xlsform = True
-    google_token = None
+    google_credentials = None
 
     # Constants
     SHEETS_BASE_URL = 'https://docs.google.com/spreadsheet/ccc?key=%s&hl'
@@ -139,13 +120,14 @@ class SheetsExportBuilder(ExportBuilder):
     def __init__(self, xform, config):
         super(SheetsExportBuilder, self).__init__()
         self.spreadsheet_title = config['spreadsheet_title']
-        self.google_token = config['google_token']
+        self.google_credentials = config['google_credentials']
         self.flatten_repeated_fields = config['flatten_repeated_fields']
         self.export_xlsform = config['export_xlsform']
         self.set_survey(xform.data_dictionary().survey)
 
     def export(self, path, data):
-        self.client = SheetsClient.login_with_auth_token(self.google_token)
+        self.client = \
+            SheetsClient.login_with_service_account(self.google_credentials)
 
         # Create a new sheet
         self.spreadsheet = self.client.new(title=self.spreadsheet_title)
@@ -174,6 +156,8 @@ class SheetsExportBuilder(ExportBuilder):
             ws = gspread.Worksheet(self.spreadsheet, elem)
             if ws.title == 'Sheet1':
                 self.client.del_worksheet(ws)
+
+        return self.url
 
     # def export_flattened(self, path, data, username, id_string,
     #                      filter_query):
