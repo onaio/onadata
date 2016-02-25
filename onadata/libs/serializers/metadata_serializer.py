@@ -104,6 +104,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             data_file_type = CSV_CONTENT_TYPE
 
         content_type = ContentType.objects.get_for_model(content_object)
+        print("[debug] - content_type - {}".format(content_type))
 
         return MetaData.objects.create(
             content_type=content_type,

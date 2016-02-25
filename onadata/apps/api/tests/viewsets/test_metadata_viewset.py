@@ -1,6 +1,7 @@
 import os
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
@@ -28,6 +29,8 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             "transportation"
         )
         self.path = os.path.join(self.fixture_dir, self.data_value)
+
+        ContentType.objects.get_or_create(app_label="logger", model="project")
 
     def _add_project_metadata(self, project, data_type, data_value, path=None):
         data = {
