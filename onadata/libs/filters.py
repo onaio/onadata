@@ -212,14 +212,6 @@ class MetaDataFilter(XFormPermissionFilterMixin,
             request, queryset, view, 'object_id')
 
 
-class ProjectMetaDataFilter(ProjectPermissionFilterMixin,
-                            filters.DjangoObjectPermissionsFilter):
-
-    def filter_queryset(self, request, queryset, view):
-        return self._project_filter_queryset(
-            request, queryset, view, 'object_id')
-
-
 class AttachmentFilter(XFormPermissionFilterMixin,
                        filters.DjangoObjectPermissionsFilter):
 

@@ -15,9 +15,6 @@ from django.db import models, IntegrityError
 from django.conf import settings
 from hashlib import md5
 
-from onadata.apps.main.models.meta_data_managers import (
-    XFormMetaDataManager,
-    ProjectMetaDataManager)
 from onadata.libs.utils.cache_tools import safe_delete, XFORM_METADATA_CACHE
 from onadata.libs.utils.common_tags import TEXTIT
 
@@ -359,20 +356,6 @@ def clear_cached_metadata_instance_object(
 def update_attached_object(sender, instance=None, created=False, **kwargs):
     if instance:
         instance.content_object.save()
-
-
-class XFormMetaData(MetaData):
-    objects = XFormMetaDataManager()
-
-    class Meta:
-        proxy = True
-
-
-class ProjectMetaData(MetaData):
-    objects = ProjectMetaDataManager()
-
-    class Meta:
-        proxy = True
 
 
 post_save.connect(clear_cached_metadata_instance_object, sender=MetaData,
