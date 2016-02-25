@@ -144,13 +144,19 @@ def get_name_from_survey_element(element):
     return element.get_abbreviated_xpath()
 
 
-def _parse_where_json(query, known_integers, or_where, or_params):
+def _parse_where(query, known_integers, or_where, or_params):
+    # using a dictionary here just incase we will need to filter using
+    # other table columns
+    none_json_filter = {'_submission_time': 'date_created'}
     where, where_params = [], []
 
     for field_key, field_value in query.iteritems():
         if isinstance(field_value, dict):
-            json_str = _json_sql_str(
-                field_key, known_integers, KNOWN_DATES)
+            if field_key in none_json_filter:
+                json_str = none_json_filter.get(field_key)
+            else:
+                json_str = _json_sql_str(
+                    field_key, known_integers, KNOWN_DATES)
             for key, value in field_value.iteritems():
                 _v = None
                 if '$gt' == key:
@@ -173,7 +179,10 @@ def _parse_where_json(query, known_integers, or_where, or_params):
                 if field_key in KNOWN_DATES:
                     _v = datetime.datetime.strptime(
                         _v[:19], MONGO_STRFTIME)
-                where_params.extend((field_key, unicode(_v)))
+                if field_key in none_json_filter:
+                    where_params.extend([unicode(_v)])
+                else:
+                    where_params.extend((field_key, unicode(_v)))
         else:
             where.append(u"json->>%s = %s")
             where_params.extend((field_key, unicode(field_value)))
@@ -228,8 +237,8 @@ def get_where_clause(query, form_integer_fields=[]):
 
                 or_where = [u"".join([u"(", u" OR ".join(or_where), u")"])]
 
-            where, where_params = _parse_where_json(query, known_integers,
-                                                    or_where, or_params)
+            where, where_params = _parse_where(query, known_integers,
+                                               or_where, or_params)
 
     except (ValueError, AttributeError) as e:
         if query and isinstance(query, six.string_types) and \
