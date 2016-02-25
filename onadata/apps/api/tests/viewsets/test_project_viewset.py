@@ -334,7 +334,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.form_data.pop('date_modified')
         response.data[0].pop('date_modified')
 
-        self.assertEqual(response.data[0], self.form_data)
+        self.assertDictEqual(dict(response.data[0]), dict(self.form_data))
 
     def test_assign_form_to_project(self):
         view = ProjectViewSet.as_view({
