@@ -306,7 +306,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             data_type='enketo_url') | Q(data_type='enketo_preview_url'))
         url = resultset.get(data_type='enketo_url')
         preview_url = resultset.get(data_type='enketo_preview_url')
-        self.form_data['metadata'] = [{
+        form_metadata = [{
             'id': preview_url.pk,
             'xform': self.xform.pk,
             'data_value': u"https://enketo.ona.io/preview/::YY8M",
@@ -330,7 +330,14 @@ class TestProjectViewSet(TestAbstractViewSet):
             'date_created': url.date_created
         }]
 
-        # remove date modified
+        # test metadata content separately
+        response_metadata = [dict(item)
+                             for item in response.data[0].pop("metadata")]
+
+        self.assertEqual(response_metadata, form_metadata)
+
+        # remove metadata and date_modified
+        self.form_data.pop('metadata')
         self.form_data.pop('date_modified')
         response.data[0].pop('date_modified')
 
