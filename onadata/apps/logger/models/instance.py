@@ -15,7 +15,7 @@ from onadata.apps.logger.models.survey_type import SurveyType
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
-    clean_and_parse_xml, get_uuid_from_xml, parse_xform_instance
+    clean_and_parse_xml, get_uuid_from_xml
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
     UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, STATUS, DURATION, START, END
@@ -171,52 +171,8 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
             xform.save()
 
 
-class Instance(models.Model):
-    """
-    Model representing a single submission to an XForm
-    """
-
-    json = JSONField(default={}, null=False)
-    xml = models.TextField()
-    user = models.ForeignKey(User, related_name='instances', null=True)
-    xform = models.ForeignKey(XForm, related_name='instances')
-    survey_type = models.ForeignKey(SurveyType)
-
-    # shows when we first received this instance
-    date_created = models.DateTimeField(auto_now_add=True)
-
-    # this will end up representing "date last parsed"
-    date_modified = models.DateTimeField(auto_now=True)
-
-    # this will end up representing "date instance was deleted"
-    deleted_at = models.DateTimeField(null=True, default=None)
-
-    # ODK keeps track of three statuses for an instance:
-    # incomplete, submitted, complete
-    # we add a fourth status: submitted_via_web
-    status = models.CharField(max_length=20,
-                              default=u'submitted_via_web')
-    uuid = models.CharField(max_length=249)
-    version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True)
-
-    # store an geographic objects associated with this instance
-    geom = models.GeometryCollectionField(null=True)
-    objects = models.GeoManager()
-
-    tags = TaggableManager()
-
-    class Meta:
-        app_label = 'logger'
-        unique_together = ('xform', 'uuid')
-
-    @classmethod
-    def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):
-        try:
-            instance = cls.objects.get(id=instance_id)
-        except cls.DoesNotExist:
-            pass
-        else:
-            instance.set_deleted(deleted_at)
+class InstanceBaseClass(object):
+    """Interface of functions for Instance and InstanceHistory model"""
 
     def numeric_converter(self, json_dict, numeric_fields=None):
         if numeric_fields is None:
@@ -239,14 +195,6 @@ class Instance(models.Model):
                         value[k] = self.numeric_converter(
                             v, numeric_fields)
         return json_dict
-
-    def _check_active(self, force):
-        """Check that form is active and raise exception if not.
-
-        :param force: Ignore restrictions on saving.
-        """
-        if not force and self.xform and not self.xform.downloadable:
-            raise FormInactiveError()
 
     def _set_geom(self):
         xform = self.xform
@@ -353,6 +301,74 @@ class Instance(models.Model):
         self._set_parser()
         return self._parser.get_root_node_name()
 
+    def get_duration(self):
+        data = self.get_dict()
+        dd = self.xform.data_dictionary()
+        start_name = _get_tag_or_element_type_xpath(dd, START)
+        end_name = _get_tag_or_element_type_xpath(dd, END)
+        start_time, end_time = data.get(start_name), data.get(end_name)
+
+        return calculate_duration(start_time, end_time)
+
+
+class Instance(models.Model, InstanceBaseClass):
+    """
+    Model representing a single submission to an XForm
+    """
+
+    json = JSONField(default={}, null=False)
+    xml = models.TextField()
+    user = models.ForeignKey(User, related_name='instances', null=True)
+    xform = models.ForeignKey(XForm, null=True, related_name='instances')
+    survey_type = models.ForeignKey(SurveyType)
+
+    # shows when we first received this instance
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    # this will end up representing "date last parsed"
+    date_modified = models.DateTimeField(auto_now=True)
+
+    # this will end up representing "date instance was deleted"
+    deleted_at = models.DateTimeField(null=True, default=None)
+
+    # ODK keeps track of three statuses for an instance:
+    # incomplete, submitted, complete
+    # we add a fourth status: submitted_via_web
+    status = models.CharField(max_length=20,
+                              default=u'submitted_via_web')
+    uuid = models.CharField(max_length=249, default=u'')
+    version = models.CharField(max_length=XFORM_TITLE_LENGTH, null=True)
+
+    # store an geographic objects associated with this instance
+    geom = models.GeometryCollectionField(null=True)
+    objects = models.GeoManager()
+
+    tags = TaggableManager()
+
+    class Meta:
+        app_label = 'logger'
+        unique_together = ('xform', 'uuid')
+
+    @classmethod
+    def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):
+        try:
+            instance = cls.objects.get(id=instance_id)
+        except cls.DoesNotExist:
+            pass
+        else:
+            instance.set_deleted(deleted_at)
+
+    def _check_active(self, force):
+        """Check that form is active and raise exception if not.
+
+        :param force: Ignore restrictions on saving.
+        """
+        if not force and self.xform and not self.xform.downloadable:
+            raise FormInactiveError()
+
+    def get_notes(self):
+        return [note['note'] for note in self.notes.values('note')]
+
     @property
     def point(self):
         gc = self.geom
@@ -382,15 +398,6 @@ class Instance(models.Model):
         self.xform.submission_count(force_update=True)
         self.parsed_instance.save()
 
-    def get_duration(self):
-        data = self.get_dict()
-        dd = self.xform.data_dictionary()
-        start_name = _get_tag_or_element_type_xpath(dd, START)
-        end_name = _get_tag_or_element_type_xpath(dd, END)
-        start_time, end_time = data.get(start_name), data.get(end_name)
-
-        return calculate_duration(start_time, end_time)
-
 
 post_save.connect(update_xform_submission_count, sender=Instance,
                   dispatch_uid='update_xform_submission_count')
@@ -414,7 +421,7 @@ def save_full_json(sender, instance=None, created=False, **kwargs):
 post_save.connect(save_full_json, Instance, dispatch_uid='save_full_json')
 
 
-class InstanceHistory(models.Model):
+class InstanceHistory(models.Model, InstanceBaseClass):
 
     class Meta:
         app_label = 'logger'
@@ -428,7 +435,15 @@ class InstanceHistory(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
 
-    def get_dict(self):
-        data_dictionary = self.xform_instance.xform.data_dictionary()
+    @property
+    def xform(self):
+        return self.xform_instance.xform
 
-        return parse_xform_instance(self.xml, data_dictionary)
+    def _set_parser(self):
+        if not hasattr(self, "_parser"):
+            self._parser = XFormInstanceParser(
+                self.xml, self.xform_instance.xform.data_dictionary())
+
+    @classmethod
+    def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):
+        return None

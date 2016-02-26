@@ -101,8 +101,7 @@ class TestFormSubmission(TestBase):
 
     def test_submission_to_require_auth_anon(self):
         """
-        test submission to a private form by non-owner without perm is
-        forbidden.
+        Test submission to private form by non-owner without perm is forbidden
         """
         self.xform.require_auth = True
         self.xform.save()
@@ -124,8 +123,7 @@ class TestFormSubmission(TestBase):
 
     def test_submission_to_require_auth_without_perm(self):
         """
-        test submission to a private form by non-owner without perm is
-        forbidden.
+        Test submission to private form by non-owner without perm is forbidden
         """
         self.xform.require_auth = True
         self.xform.save()
@@ -148,7 +146,7 @@ class TestFormSubmission(TestBase):
 
     def test_submission_to_require_auth_with_perm(self):
         """
-        test submission to a private form by non-owner is forbidden.
+        Test submission to a private form by non-owner is forbidden.
 
         TODO send authentication challenge when xform.require_auth is set.
         This is non-trivial because we do not know the xform until we have
@@ -227,7 +225,7 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
 
-    def test_duplicate_submission_with_same_instanceID(self):
+    def test_duplicate_submission_with_same_instanceid(self):
         """Test duplicate xml submissions
         """
         xml_submission_file_path = os.path.join(
@@ -272,6 +270,9 @@ class TestFormSubmission(TestBase):
         """
         Test submissions that have been edited
         """
+        # Delete all previous instance history objects
+        InstanceHistory.objects.all().delete()
+
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "..", "fixtures", "tutorial", "instances",
@@ -292,6 +293,10 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_submission_file_path)
         self.assertEqual(self.response.status_code, 201)
         self.assertEqual(Instance.objects.count(), num_instances + 1)
+
+        # Take initial instance from DB
+        initial_instance = self.xform.instances.first()
+
         # no new record in instances history
         self.assertEqual(
             InstanceHistory.objects.count(), num_instances_history)
@@ -313,6 +318,15 @@ class TestFormSubmission(TestBase):
         # should be a new record in instances history
         self.assertEqual(
             InstanceHistory.objects.count(), num_instances_history + 1)
+
+        instance_history_1 = InstanceHistory.objects.first()
+        edited_instance = self.xform.instances.first()
+
+        self.assertDictEqual(initial_instance.get_dict(),
+                             instance_history_1.get_dict())
+
+        self.assertNotEqual(edited_instance.uuid, instance_history_1.uuid)
+
         cursor = query_data(**query_args)
         self.assertEqual(cursor[0]['count'], num_data_instances + 1)
         # make sure we edited the mongo db record and NOT added a new row
