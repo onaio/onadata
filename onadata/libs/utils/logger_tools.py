@@ -218,6 +218,28 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
     return instance
 
 
+def get_filtered_instances(kwargs):
+    return Instance.objects.filter(**kwargs)
+
+
+def save_attachment_in_existing_instance(xml, xform, media_files):
+    existing_instance = Instance.objects.filter(
+        xml=xml, xform__user=xform.user)[0]
+
+    if not existing_instance.xform or\
+            existing_instance.xform.has_start_time:
+        # ensure we have saved the extra attachments
+        with transaction.atomic():
+            save_attachments(xform, existing_instance, media_files)
+            existing_instance.save()
+
+        # Ignore submission as a duplicate IFF
+        #  * a submission's XForm collects start time
+        #  * the submitted XML is an exact match with one that
+        #    has already been submitted for that user.
+        return DuplicateInstance()
+
+
 def create_instance(username, xml_file, media_files,
                     status=u'submitted_via_web', uuid=None,
                     date_created_override=None, request=None):
@@ -241,31 +263,26 @@ def create_instance(username, xml_file, media_files,
     xform = get_xform_from_submission(xml, username, uuid)
     check_submission_permissions(request, xform)
 
+<<<<<<< HEAD
     existing_instance_count = Instance.objects.filter(
         xml=xml, xform_id=xform.pk).count()
+=======
+    filtered_instances = get_filtered_instances(
+        {'xml': xml, 'xform__user': xform.user})
+    existing_instance_count = filtered_instances.count()
+>>>>>>> ME: on integrity error, update the attachments of an instance
 
     if existing_instance_count > 0:
-        existing_instance = Instance.objects.filter(
-            xml=xml, xform__user=xform.user)[0]
-        if not existing_instance.xform or\
-                existing_instance.xform.has_start_time:
-            # ensure we have saved the extra attachments
-            with transaction.atomic():
-                save_attachments(xform, existing_instance, media_files)
-                existing_instance.save()
-
-            # Ignore submission as a duplicate IFF
-            #  * a submission's XForm collects start time
-            #  * the submitted XML is an exact match with one that
-            #    has already been submitted for that user.
-            return DuplicateInstance()
+        return save_attachment_in_existing_instance(xml, xform, media_files)
 
     # get new and depracated uuid's
     new_uuid = get_uuid_from_xml(xml)
     history = InstanceHistory.objects.filter(
         xform_instance__xform=xform, uuid=new_uuid
     )
-    duplicate_instances = Instance.objects.filter(uuid=new_uuid, xform=xform)
+
+    duplicate_instances = get_filtered_instances(
+        {'uuid': new_uuid, 'xform': xform})
 
     if duplicate_instances or history:
         duplicate_instance = history[0].xform_instance \
@@ -277,8 +294,21 @@ def create_instance(username, xml_file, media_files,
 
         return DuplicateInstance()
 
-    instance = save_submission(xform, xml, media_files, new_uuid,
-                               submitted_by, status, date_created_override)
+    try:
+        with transaction.atomic():
+            instance = save_submission(
+                xform, xml, media_files, new_uuid, submitted_by, status,
+                date_created_override)
+    except IntegrityError:
+        # if an instance already exists, update attachments related to it
+        existing_instance = Instance.objects.filter(
+            xml=xml, xform__user=xform.user)[0]
+
+        save_attachments(xform, existing_instance, media_files)
+        existing_instance.save()
+
+        instance = DuplicateInstance()
+
     return instance
 
 
