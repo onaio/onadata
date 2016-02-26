@@ -3,7 +3,8 @@ from django.contrib.contenttypes.generic import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from ordered_model.models import OrderedModel
 from querybuilder.query import Query
-from querybuilder.fields import CountField, SimpleField
+from querybuilder.fields import AvgField, CountField, SumField
+
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
@@ -75,13 +76,19 @@ class Widget(OrderedModel):
                    CountField(field="json->>'%s'" % unicode(column),
                               alias='"count"')]
         if group_by:
-            columns += [{group_by: "json->>'%s'" % unicode(group_by)}]
+            columns = [{column: "json->>'%s'" % unicode(column)},
+                       SumField(field="json->>'%s'" % unicode(column),
+                                alias="sum"),
+                       AvgField(field="json->>'%s'" % unicode(column),
+                                alias="mean")]
 
         query = Query().from_table(Instance, columns).where(xform_id=xform.pk,
                                                             deleted_at=None)
-        query.group_by("json->>'%s'" % unicode(column))
+
         if group_by:
             query.group_by("json->>'%s'" % unicode(group_by))
+        else:
+            query.group_by("json->>'%s'" % unicode(column))
 
         records = query.select()
 
