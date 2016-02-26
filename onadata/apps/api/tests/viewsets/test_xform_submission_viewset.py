@@ -1,4 +1,5 @@
 import os
+from mock import patch
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.test import TransactionTestCase
@@ -10,7 +11,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.xform_submission_viewset import\
     XFormSubmissionViewSet
-from onadata.apps.logger.models import Attachment
+from onadata.apps.logger.models import Attachment, Instance
 from onadata.libs.permissions import DataEntryRole
 
 
@@ -22,6 +23,64 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             "post": "create"
         })
         self._publish_xls_form_to_project()
+
+    def test_submission_with_attachment(self):
+        initial_attachment_count = Attachment.objects.count()
+        s = self.surveys[0]
+        # generate submission xml with an image
+        media_file_1 = "1335783522563.jpg"
+        path = os.path.join(self.main_directory, 'fixtures',
+                            'transportation', 'instances', s, media_file_1)
+        attachment_1, attachment_2 = None, None
+
+        with open(path) as f:
+            f = InMemoryUploadedFile(f,
+                                     'media_file',
+                                     media_file_1,
+                                     'image/jpg',
+                                     os.path.getsize(path), None)
+            submission_path = os.path.join(
+                self.main_directory, 'fixtures',
+                'transportation', 'instances', s, s + '.xml')
+            with open(submission_path) as sf:
+                data = {'xml_submission_file': sf, 'media_file': f}
+                request = self.factory.post('/submission', data, **self.extra)
+                response = self.view(request)
+                self.assertEqual(response.status_code, 201)
+                self.assertEqual(
+                    Attachment.objects.count(), initial_attachment_count + 1)
+                attachment_1 = Attachment.objects.last()
+
+        # generate same submission xml with a different image
+        media_file_2 = "1442323232322.jpg"
+        path = os.path.join(self.main_directory, 'fixtures',
+                            'transportation', 'instances', s, media_file_2)
+
+        patch_value = 'onadata.libs.utils.logger_tools.get_filtered_instances'
+        with patch(patch_value) as get_filtered_instances:
+            # using a mock here so that app tries to save the instance
+            get_filtered_instances.return_value = Instance.objects.filter(
+                uuid='#doesnotexist')
+            with open(path) as f:
+                f = InMemoryUploadedFile(f,
+                                         'media_file',
+                                         media_file_1,
+                                         'image/jpg',
+                                         os.path.getsize(path), None)
+                submission_path = os.path.join(
+                    self.main_directory, 'fixtures',
+                    'transportation', 'instances', s, s + '.xml')
+                with open(submission_path) as sf:
+                    data = {'xml_submission_file': sf, 'media_file': f}
+                    request = self.factory.post(
+                            '/submission', data, **self.extra)
+                    response = self.view(request)
+                    self.assertEqual(response.status_code, 202)
+                    self.assertEqual(Attachment.objects.count(),
+                                     initial_attachment_count + 2)
+                    attachment_2 = Attachment.objects.last()
+                    self.assertEqual(
+                        attachment_1.instance, attachment_2.instance)
 
     def test_unique_instanceid_per_form_only(self):
         self._make_submissions()
