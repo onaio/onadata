@@ -87,6 +87,7 @@ class Widget(OrderedModel):
             field_label = 'Submission Time'
             field_xpath = '_submission_time'
             field_type = 'datetime'
+            data_type = DATA_TYPE_MAP.get(field_type, 'categorized')
         else:
             field_type = field.type
             data_type = DATA_TYPE_MAP.get(field.type, 'categorized')
