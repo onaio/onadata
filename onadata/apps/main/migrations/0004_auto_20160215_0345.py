@@ -34,6 +34,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterUniqueTogether(
             name='metadata',
-            unique_together=set([('object_id', 'data_type', 'data_value')]),
+            unique_together=set([('object_id', 'data_type', 'data_value', 'content_type')]),
         ),
     ]
