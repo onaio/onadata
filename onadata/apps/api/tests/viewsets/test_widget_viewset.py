@@ -261,10 +261,17 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.data.get('data'))
-        self.assertEquals(len(response.data.get('data')), 8)
-        self.assertIn('age', response.data.get('data')[0])
-        self.assertIn('gender', response.data.get('data')[0])
-        self.assertIn('count', response.data.get('data')[0])
+        self.assertIn('data', response.data.get('data'))
+        self.assertEquals(len(response.data.get('data')['data']), 8)
+        self.assertIn('age', response.data.get('data')['data'][0])
+        self.assertIn('gender', response.data.get('data')['data'][0])
+        self.assertIn('count', response.data.get('data')['data'][0])
+
+        self.assertEqual(response.data.get('data')['data_type'], 'numeric')
+        self.assertEqual(response.data.get('data')['field_label'],
+                         'How old are you?')
+        self.assertEqual(response.data.get('data')['field_type'], 'integer')
+        self.assertEqual(response.data.get('data')['field_xpath'], 'age')
 
     def test_widget_data_widget(self):
         data = {
@@ -286,8 +293,17 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.data.get('data'))
         self.assertEquals(response.data.get('data'),
-                          [{'count': 7, 'gender': u'male'},
-                           {'count': 1, 'gender': u'female'}])
+                          {
+                              'field_type': u'select one',
+                              'data_type': 'categorized',
+                              'field_xpath': u'gender',
+                              'field_label': u'Gender',
+                              'group_by': u'',
+                              'data': [
+                                  {'count': 7, 'gender': u'male'},
+                                  {'count': 1, 'gender': u'female'}
+                              ]
+                          })
 
     def test_widget_with_key(self):
         self._create_widget()
@@ -305,10 +321,11 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.data.get('data'))
-        self.assertEquals(len(response.data.get('data')), 8)
-        self.assertIn('age', response.data.get('data')[0])
-        self.assertIn('gender', response.data.get('data')[0])
-        self.assertIn('count', response.data.get('data')[0])
+        self.assertIn('data', response.data.get('data'))
+        self.assertEquals(len(response.data.get('data')['data']), 8)
+        self.assertIn('age', response.data.get('data')['data'][0])
+        self.assertIn('gender', response.data.get('data')['data'][0])
+        self.assertIn('count', response.data.get('data')['data'][0])
 
     def test_widget_with_key_anon(self):
         self._create_widget()
@@ -329,10 +346,11 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(response.data.get('data'))
-        self.assertEquals(len(response.data.get('data')), 8)
-        self.assertIn('age', response.data.get('data')[0])
-        self.assertIn('gender', response.data.get('data')[0])
-        self.assertIn('count', response.data.get('data')[0])
+        self.assertIn('data', response.data.get('data'))
+        self.assertEquals(len(response.data.get('data')['data']), 8)
+        self.assertIn('age', response.data.get('data')['data'][0])
+        self.assertIn('gender', response.data.get('data')['data'][0])
+        self.assertIn('count', response.data.get('data')['data'][0])
 
     def test_widget_with_nonexistance_key(self):
         self._create_widget()
