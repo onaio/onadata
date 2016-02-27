@@ -26,9 +26,10 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
     """
     This endpoint provides access to form metadata.
     """
+
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.MetaDataFilter,)
-    queryset = MetaData.objects.select_related('xform')
+    queryset = MetaData.objects.select_related()
     permission_classes = (MetaDataObjectPermissions,)
     renderer_classes = (
         renderers.JSONRenderer,

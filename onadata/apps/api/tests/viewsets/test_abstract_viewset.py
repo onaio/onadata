@@ -397,7 +397,7 @@ class TestAbstractViewSet(TestCase):
         attachment = Attachment.objects.all().reverse()[0]
         self.attachment = attachment
 
-    def _post_form_metadata(self, data, test=True):
+    def _post_metadata(self, data, test=True):
         count = MetaData.objects.count()
         view = MetaDataViewSet.as_view({'post': 'create'})
         request = self.factory.post('/', data, **self.extra)
@@ -416,7 +416,7 @@ class TestAbstractViewSet(TestCase):
         data = {
             'data_type': data_type,
             'data_value': data_value,
-            'xform': xform.pk
+            'xform': xform.id
         }
 
         if path and data_value:
@@ -424,9 +424,9 @@ class TestAbstractViewSet(TestCase):
                 data.update({
                     'data_file': media_file,
                 })
-                self._post_form_metadata(data)
+                self._post_metadata(data)
         else:
-            self._post_form_metadata(data)
+            self._post_metadata(data)
 
     def _get_digest_client(self):
         self.user.profile.require_auth = True
@@ -446,14 +446,15 @@ class TestAbstractViewSet(TestCase):
             data = {
                 'name': "My DataView",
                 'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-                'project':  'http://testserver/api/v1/projects/%s'
-                            % self.project.pk,
+                'project': 'http://testserver/api/v1/projects/%s'
+                           % self.project.pk,
                 'columns': '["name", "age", "gender"]',
                 'query': '[{"column":"age","filter":">","value":"20"},'
                          '{"column":"age","filter":"<","value":"50"}]'
             }
 
         request = self.factory.post('/', data=data, **self.extra)
+
         response = view(request)
 
         self.assertEquals(response.status_code, 201)
@@ -497,7 +498,7 @@ class TestAbstractViewSet(TestCase):
         response = view(request)
 
         self.assertEquals(response.status_code, 201)
-        self.assertEquals(count+1, Widget.objects.all().count())
+        self.assertEquals(count + 1, Widget.objects.all().count())
 
         self.widget = Widget.objects.all().order_by('pk').reverse()[0]
 

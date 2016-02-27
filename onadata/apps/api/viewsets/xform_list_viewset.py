@@ -114,7 +114,7 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
     def manifest(self, request, *args, **kwargs):
         self.object = self.get_object()
         object_list = MetaData.objects.filter(data_type='media',
-                                              xform=self.object)
+                                              object_id=self.object.pk)
         context = self.get_serializer_context()
         serializer = XFormManifestSerializer(object_list, many=True,
                                              context=context)
@@ -130,6 +130,6 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
             raise Http404()
 
         meta_obj = get_object_or_404(
-            MetaData, data_type='media', xform=self.object, pk=pk)
+            MetaData, data_type='media', object_id=self.object.pk, pk=pk)
 
         return get_media_file_response(meta_obj)

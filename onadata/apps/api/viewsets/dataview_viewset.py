@@ -45,6 +45,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
     """
     A simple ViewSet for viewing and editing DataViews.
     """
+
     queryset = DataView.objects.select_related()
     serializer_class = DataViewSerializer
     permission_classes = [DataViewViewsetPermissions]
@@ -67,7 +68,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
     @detail_route(methods=['GET'])
     def data(self, request, format='json', **kwargs):
-        """ Retrieve the data from the xform using this dataview """
+        """Retrieve the data from the xform using this dataview"""
         start = request.GET.get("start")
         limit = request.GET.get("limit")
         count = request.GET.get("count")

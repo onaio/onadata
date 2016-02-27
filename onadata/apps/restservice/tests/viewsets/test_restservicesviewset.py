@@ -64,7 +64,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 201)
         self.assertEquals(count + 1, RestService.objects.all().count())
 
-        meta = MetaData.objects.filter(xform=self.xform, data_type='textit')
+        meta = MetaData.objects.filter(object_id=self.xform.id,
+                                       data_type='textit')
         self.assertEquals(len(meta), 1)
 
         return response.data
@@ -75,15 +76,15 @@ class TestRestServicesViewSet(TestAbstractViewSet):
     def test_delete_textit_service(self):
         rest = self._create_textit_service()
         count = RestService.objects.all().count()
-        meta_count = MetaData.objects.filter(xform=self.xform,
+        meta_count = MetaData.objects.filter(object_id=self.xform.id,
                                              data_type='textit').count()
 
         request = self.factory.delete('/', **self.extra)
         response = self.view(request, pk=rest['id'])
 
         self.assertEquals(response.status_code, 204)
-        self.assertEquals(count-1, RestService.objects.all().count())
-        a_meta_count = MetaData.objects.filter(xform=self.xform,
+        self.assertEquals(count - 1, RestService.objects.all().count())
+        a_meta_count = MetaData.objects.filter(object_id=self.xform.id,
                                                data_type='textit').count()
         self.assertEqual(meta_count - 1, a_meta_count)
 
@@ -120,7 +121,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         response = self.view(request, pk=rest.pk)
 
         self.assertEquals(response.status_code, 204)
-        self.assertEquals(count-1, RestService.objects.all().count())
+        self.assertEquals(count - 1, RestService.objects.all().count())
 
     def test_retrieve(self):
         rest = RestService(name="testservice",

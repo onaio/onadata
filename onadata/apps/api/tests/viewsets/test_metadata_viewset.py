@@ -1,6 +1,7 @@
 import os
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import (
@@ -28,6 +29,24 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             "transportation"
         )
         self.path = os.path.join(self.fixture_dir, self.data_value)
+
+        ContentType.objects.get_or_create(app_label="logger", model="project")
+
+    def _add_project_metadata(self, project, data_type, data_value, path=None):
+        data = {
+            'data_type': data_type,
+            'data_value': data_value,
+            'project': project.id
+        }
+
+        if path and data_value:
+            with open(path) as media_file:
+                data.update({
+                    'data_file': media_file,
+                })
+                self._post_metadata(data)
+        else:
+            self._post_metadata(data)
 
     def test_add_metadata_with_file_attachment(self):
         for data_type in ['supporting_doc', 'media', 'source']:
@@ -133,7 +152,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
                 'data_type': 'media',
                 'xform': self.xform.pk
             }
-            self._post_form_metadata(data)
+            self._post_metadata(data)
             self.assertEqual(self.metadata.data_file_type, 'text/csv')
 
     def test_add_media_url(self):
@@ -152,18 +171,18 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             'data_type': 'media',
             'xform': self.xform.pk
         }
-        response = self._post_form_metadata(data, False)
+        response = self._post_metadata(data, False)
         self.assertEqual(response.status_code, 400)
         error = {"data_value": ["Invalid url %s." % data['data_value']]}
         self.assertEqual(response.data, error)
 
     def test_invalid_post(self):
-        response = self._post_form_metadata({}, False)
+        response = self._post_metadata({}, False)
         self.assertEqual(response.status_code, 400)
-        response = self._post_form_metadata({
+        response = self._post_metadata({
             'data_type': 'supporting_doc'}, False)
         self.assertEqual(response.status_code, 400)
-        response = self._post_form_metadata({
+        response = self._post_metadata({
             'data_type': 'supporting_doc',
             'xform': self.xform.pk
         }, False)
@@ -208,3 +227,44 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         request = self.factory.get('/', data, **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
+
+    def test_project_metadata_has_project_field(self):
+        self._add_project_metadata(
+            self.project, 'supporting_doc', self.data_value, self.path)
+
+        # Test json of project metadata
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=self.metadata_data['id'])
+
+        print(response.data)
+        print(response.status_code)
+
+        self.assertEqual(response.status_code, 200)
+
+        data = dict(response.data)
+        self.assertEqual(data['project'], self.metadata.object_id)
+
+    def test_should_return_both_xform_and_project_metadata(self):
+        # delete all existing metadata
+        MetaData.objects.all().delete()
+        expected_metadata_count = 2
+
+        self._add_project_metadata(
+            self.project, 'media', "check.png", self.path)
+
+        self._add_form_metadata(
+            self.xform, 'supporting_doc', "bla.png", self.path)
+
+        view = MetaDataViewSet.as_view({'get': 'list'})
+        request = self.factory.get("/", **self.extra)
+        response = view(request)
+
+        self.assertEquals(MetaData.objects.count(), expected_metadata_count)
+
+        for record in response.data:
+            if record.get("xform"):
+                self.assertEquals(record.get('xform'), self.xform.id)
+                self.assertIsNone(record.get('project'))
+            else:
+                self.assertEquals(record.get('project'), self.project.id)
+                self.assertIsNone(record.get('xform'))

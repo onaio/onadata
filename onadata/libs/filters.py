@@ -9,7 +9,7 @@ from rest_framework import filters
 from rest_framework.exceptions import ParseError
 
 
-from onadata.apps.logger.models import XForm, Instance
+from onadata.apps.logger.models import Project, XForm, Instance
 from onadata.apps.api.models import Team, OrganizationProfile
 
 
@@ -142,7 +142,7 @@ class TagFilter(filters.BaseFilterBackend):
 
 class XFormPermissionFilterMixin(object):
 
-    def _xform_filter_queryset(self, request, queryset, view, keyword):
+    def _xform_filter(self, request, view, keyword):
         """Use XForm permissions"""
         xform = request.QUERY_PARAMS.get('xform')
         if xform:
@@ -165,16 +165,61 @@ class XFormPermissionFilterMixin(object):
             xforms = super(XFormPermissionFilterMixin, self).filter_queryset(
                 request, xform_qs, view)
 
-        kwarg = {"%s__in" % keyword: xforms}
+        return {"%s__in" % keyword: xforms}
+
+    def _xform_filter_queryset(self, request, queryset, view, keyword):
+        kwarg = self._xform_filter(request, view, keyword)
 
         return queryset.filter(**kwarg)
 
 
-class MetaDataFilter(XFormPermissionFilterMixin,
+class ProjectPermissionFilterMixin(object):
+
+    def _project_filter(self, request, view, keyword):
+        project_id = request.QUERY_PARAMS.get("project")
+
+        if project_id:
+            try:
+                int(project_id)
+            except ValueError:
+                raise ParseError(
+                    u"Invalid value for projectid %s." % project_id)
+
+            project = get_object_or_404(Project, pk=project_id)
+            project_qs = Project.objects.filter(pk=project.id)
+        else:
+            project_qs = Project.objects.all()
+
+        projects = super(ProjectPermissionFilterMixin, self).filter_queryset(
+            request, project_qs, view)
+
+        return {"%s__in" % keyword: projects}
+
+    def _project_filter_queryset(self, request, queryset, view, keyword):
+        """Use Project Permissions"""
+        kwarg = self._project_filter(request, view, keyword)
+
+        return queryset.filter(**kwarg)
+
+
+class RestServiceFilter(XFormPermissionFilterMixin,
+                        filters.DjangoObjectPermissionsFilter):
+
+    def filter_queryset(self, request, queryset, view):
+        return self._xform_filter_queryset(
+            request, queryset, view, 'xform_id')
+
+
+class MetaDataFilter(ProjectPermissionFilterMixin,
+                     XFormPermissionFilterMixin,
                      filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
-        return self._xform_filter_queryset(request, queryset, view, 'xform')
+        keyword = "object_id"
+        xform_kwarg = self._xform_filter(request, view, keyword)
+        project_kwarg = self._project_filter(request, view, keyword)
+
+        return queryset.filter(Q(**xform_kwarg) | Q(**project_kwarg))
 
 
 class AttachmentFilter(XFormPermissionFilterMixin,

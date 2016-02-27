@@ -105,21 +105,23 @@ class ProjectPermissions(DjangoObjectPermissions):
             request, view, obj)
 
 
-class HasXFormObjectPermissionMixin(object):
-
-    """Use XForm permissions for Attachment objects"""
+class AbstractHasObjectPermissionMixin(object):
+    """
+    Checks that the requesting user has permissions to access each of the
+    models in the `model_classes` instance variable.
+    """
 
     def has_permission(self, request, view):
-        model_cls = None
-
         # Workaround to ensure DjangoModelPermissions are not applied
         # to the root view when using DefaultRouter.
-        if (model_cls is None and
-                getattr(view, '_ignore_model_permissions', False)):
+
+        if getattr(view, '_ignore_model_permissions', False):
             return True
 
-        model_cls = XForm
-        perms = self.get_required_permissions(request.method, model_cls)
+        perms = []
+        for model_class in self.model_classes:
+            perms.extend(self.get_required_permissions(
+                request.method, model_class))
 
         if (request.user and
                 (request.user.is_authenticated() or
@@ -131,39 +133,42 @@ class HasXFormObjectPermissionMixin(object):
         return False
 
 
-class HasProjectObjectPermissionMixin(object):
-    """Use Project permissions for DataView objects"""
+class HasObjectPermissionMixin(AbstractHasObjectPermissionMixin):
+    """
+    Use the Project, XForm, or both model classes to check permissions based
+    on the request data keys.
+    """
 
     def has_permission(self, request, view):
-        model_cls = None
+        if request.data.get("xform"):
+            self.model_classes = [XForm]
+        elif request.data.get("project"):
+            self.model_classes = [Project]
+        else:
+            self.model_classes = [Project, XForm]
 
-        # Workaround to ensure DjangoModelPermissions are not applied
-        # to the root view when using DefaultRouter.
-        if (model_cls is None and
-                getattr(view, '_ignore_model_permissions', False)):
-            return True
-
-        model_cls = Project
-        perms = self.get_required_permissions(request.method, model_cls)
-
-        if (request.user and
-                (request.user.is_authenticated() or
-                 not self.authenticated_users_only) and
-                request.user.has_perms(perms)):
-
-            return True
-
-        return False
+        return super(HasObjectPermissionMixin, self).has_permission(
+            request, view)
 
 
-class MetaDataObjectPermissions(HasXFormObjectPermissionMixin,
+class MetaDataObjectPermissions(HasObjectPermissionMixin,
                                 DjangoObjectPermissions):
+
+    def has_object_permission(self, request, view, obj):
+        view.model = obj.content_object.__class__
+
+        return super(MetaDataObjectPermissions, self)\
+            .has_object_permission(request, view, obj.content_object)
+
+
+class RestServiceObjectPermissions(HasObjectPermissionMixin,
+                                   DjangoObjectPermissions):
 
     def has_object_permission(self, request, view, obj):
         view.model = XForm
 
-        return super(MetaDataObjectPermissions, self).has_object_permission(
-            request, view, obj.xform)
+        return super(RestServiceObjectPermissions, self)\
+            .has_object_permission(request, view, obj.xform)
 
 
 class AttachmentObjectPermissions(DjangoObjectPermissions):
@@ -199,10 +204,13 @@ class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
 
 
 class DataViewViewsetPermissions(ViewDjangoObjectPermissions,
-                                 HasProjectObjectPermissionMixin,
+                                 AbstractHasObjectPermissionMixin,
                                  DjangoObjectPermissions):
 
+    model_classes = [Project]
+
     def has_object_permission(self, request, view, obj):
+        # Override the default Rest Framework model_cls
         view.model = Project
 
         return super(DataViewViewsetPermissions, self).has_object_permission(
@@ -210,14 +218,13 @@ class DataViewViewsetPermissions(ViewDjangoObjectPermissions,
 
 
 class WidgetViewSetPermissions(ViewDjangoObjectPermissions,
-                               HasProjectObjectPermissionMixin,
+                               AbstractHasObjectPermissionMixin,
                                DjangoObjectPermissions):
 
     authenticated_users_only = False
+    model_classes = [Project]
 
     def has_permission(self, request, view):
-        view.model = Project
-
         # User can access the widget with key
         if 'key' in request.QUERY_PARAMS or view.action == 'list':
             return True
@@ -226,6 +233,8 @@ class WidgetViewSetPermissions(ViewDjangoObjectPermissions,
                                                                     view)
 
     def has_object_permission(self, request, view, obj):
+        # Override the default Rest Framework model_cls
+        view.model = Project
 
         if not (isinstance(obj.content_object, XForm) or
                 isinstance(obj.content_object, DataView)):

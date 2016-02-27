@@ -29,7 +29,8 @@ from onadata.libs.utils.cache_tools import (XFORM_PERMISSIONS_CACHE,
 
 def _create_enketo_url(request, xform):
     """
-    Generates enketo url for a form
+    Generate enketo url for a form
+
     :param request:
     :param xform:
     :return: enketo url
@@ -52,12 +53,12 @@ def _create_enketo_url(request, xform):
 def _set_cache(cache_key, cache_data, obj):
     """
     Utility function that set the specified info to the provided cache key
+
     :param cache_key:
     :param cache_data:
     :param obj:
     :return: Data that has been cached
     """
-
     cache.set('{}{}'.format(cache_key, obj.pk), cache_data)
     return cache_data
 
@@ -284,8 +285,8 @@ class XFormManifestSerializer(serializers.Serializer):
 
     @check_obj
     def get_url(self, obj):
-        kwargs = {'pk': obj.xform.pk,
-                  'username': obj.xform.user.username,
+        kwargs = {'pk': obj.content_object.pk,
+                  'username': obj.content_object.user.username,
                   'metadata': obj.pk}
         request = self.context.get('request')
         format = obj.data_value[obj.data_value.rindex('.') + 1:]
