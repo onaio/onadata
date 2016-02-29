@@ -222,24 +222,6 @@ def get_filtered_instances(kwargs):
     return Instance.objects.filter(**kwargs)
 
 
-def save_attachment_in_existing_instance(xml, xform, media_files):
-    existing_instance = Instance.objects.filter(
-        xml=xml, xform__user=xform.user)[0]
-
-    if not existing_instance.xform or\
-            existing_instance.xform.has_start_time:
-        # ensure we have saved the extra attachments
-        with transaction.atomic():
-            save_attachments(xform, existing_instance, media_files)
-            existing_instance.save()
-
-        # Ignore submission as a duplicate IFF
-        #  * a submission's XForm collects start time
-        #  * the submitted XML is an exact match with one that
-        #    has already been submitted for that user.
-        return DuplicateInstance()
-
-
 def create_instance(username, xml_file, media_files,
                     status=u'submitted_via_web', uuid=None,
                     date_created_override=None, request=None):
@@ -273,7 +255,21 @@ def create_instance(username, xml_file, media_files,
 >>>>>>> ME: on integrity error, update the attachments of an instance
 
     if existing_instance_count > 0:
-        return save_attachment_in_existing_instance(xml, xform, media_files)
+        existing_instance = get_filtered_instances(
+            {'xml': xml, 'xform__user': xform.user})[0]
+
+        if not existing_instance.xform or\
+                existing_instance.xform.has_start_time:
+            # ensure we have saved the extra attachments
+            with transaction.atomic():
+                save_attachments(xform, existing_instance, media_files)
+                existing_instance.save()
+
+            # Ignore submission as a duplicate IFF
+            #  * a submission's XForm collects start time
+            #  * the submitted XML is an exact match with one that
+            #    has already been submitted for that user.
+            return DuplicateInstance()
 
     # get new and depracated uuid's
     new_uuid = get_uuid_from_xml(xml)
