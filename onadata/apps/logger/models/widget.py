@@ -3,7 +3,7 @@ from django.contrib.contenttypes.generic import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from ordered_model.models import OrderedModel
 from querybuilder.query import Query
-from querybuilder.fields import AvgField, CountField, SumField
+from querybuilder.fields import AvgField, CountField, SimpleField, SumField
 
 
 from onadata.apps.logger.models.xform import XForm
@@ -76,18 +76,30 @@ class Widget(OrderedModel):
                    CountField(field="json->>'%s'" % unicode(column),
                               alias='"count"')]
         if group_by:
-            columns = [{column: "json->>'%s'" % unicode(column)},
-                       SumField(field="json->>'%s'" % unicode(column),
+            # build inner query
+            inner_query_columns = \
+                [SimpleField(field="json->>'%s'" % unicode(group_by),
+                             alias=group_by),
+                 SimpleField(field="json->>'%s'" % unicode(column),
+                             cast="float",
+                             alias=column),
+                 SimpleField(field="xform_id"),
+                 SimpleField(field="deleted_at")]
+            inner_query = Query().from_table(Instance, inner_query_columns)
+
+            # build group-by query
+            columns = [{column: group_by},
+                       SumField(field=column,
                                 alias="sum"),
-                       AvgField(field="json->>'%s'" % unicode(column),
+                       AvgField(field=column,
                                 alias="mean")]
+            query = Query().from_table({'inner_query': inner_query}, columns).\
+                where(xform_id=xform.pk, deleted_at=None)
+            query.group_by(group_by)
 
-        query = Query().from_table(Instance, columns).where(xform_id=xform.pk,
-                                                            deleted_at=None)
-
-        if group_by:
-            query.group_by("json->>'%s'" % unicode(group_by))
         else:
+            query = Query().from_table(Instance, columns).\
+                where(xform_id=xform.pk, deleted_at=None)
             query.group_by("json->>'%s'" % unicode(column))
 
         records = query.select()
