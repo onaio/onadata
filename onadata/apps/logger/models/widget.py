@@ -64,7 +64,7 @@ class Widget(OrderedModel):
 
         # get the columns needed
         column = widget.column
-        group_by = widget.group_by
+        group_by = widget.group_by if widget.group_by else None
 
         if isinstance(widget.content_object, XForm):
             xform = widget.content_object
@@ -121,6 +121,6 @@ class Widget(OrderedModel):
             "data_type": data_type,
             "field_xpath": field_xpath,
             "field_label": field_label,
-            "group_by": group_by,
+            "grouped_by": group_by,
             "data": records
         }
