@@ -551,3 +551,48 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         widget = Widget.objects.all().order_by('pk')[1]
         self.assertEquals(widget.order, 2)
+
+    def test_widget_data_case_sensitive(self):
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "tutorial_2.xls")
+
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        for x in range(1, 9):
+            path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'tutorial_2', 'instances', 'uuid{}'.format(x),
+                'submission.xml')
+            self._make_submission(path)
+            x += 1
+
+        data = {
+            'content_object': 'http://testserver/api/v1/forms/%s' %
+                              self.xform.pk,
+            'widget_type': "charts",
+            'view_type': "horizontal-bar",
+            'column': "Gender",
+        }
+
+        self._create_widget(data)
+
+        data = {
+            "data": True
+        }
+        request = self.factory.get('/', data=data, **self.extra)
+        response = self.view(request, pk=self.widget.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(response.data.get('data'))
+        self.assertEquals(response.data.get('data'),
+                          {
+                              'field_type': u'select one',
+                              'data_type': 'categorized',
+                              'field_xpath': u'Gender',
+                              'field_label': u'Gender',
+                              'group_by': u'',
+                              'data': [
+                                  {'count': 7, 'Gender': u'male'},
+                                  {'count': 1, 'Gender': u'female'}
+                              ]
+                          })
