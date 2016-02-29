@@ -88,7 +88,7 @@ class Widget(OrderedModel):
             inner_query = Query().from_table(Instance, inner_query_columns)
 
             # build group-by query
-            columns = [{column: group_by},
+            columns = [SimpleField(field=group_by),
                        SumField(field=column,
                                 alias="sum"),
                        AvgField(field=column,
