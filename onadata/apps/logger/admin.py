@@ -1,23 +1,26 @@
+from reversion.admin import VersionAdmin
+
 from django.contrib import admin
 
 from onadata.apps.logger.models import XForm, Project
 
 
-class FormAdmin(admin.ModelAdmin):
+class XFormAdmin(VersionAdmin, admin.ModelAdmin):
     exclude = ('user',)
     list_display = ('id_string', 'downloadable', 'shared')
+    search_fields = ('id_string', 'title')
 
     # A user should only see forms that belong to him.
     def get_queryset(self, request):
-        qs = super(FormAdmin, self).queryset(request)
+        qs = super(XFormAdmin, self).queryset(request)
         if request.user.is_superuser:
             return qs
         return qs.filter(user=request.user)
 
-admin.site.register(XForm, FormAdmin)
+admin.site.register(XForm, XFormAdmin)
 
 
-class ProjectAdmin(admin.ModelAdmin):
+class ProjectAdmin(VersionAdmin, admin.ModelAdmin):
     list_max_show_all = 2000
     list_select_related = ('organization',)
     ordering = ['name']
@@ -28,6 +31,6 @@ class ProjectAdmin(admin.ModelAdmin):
         qs = super(ProjectAdmin, self).queryset(request)
         if request.user.is_superuser:
             return qs
-        return qs.filter(user=request.user)
+        return qs.filter(organization=request.user)
 
 admin.site.register(Project, ProjectAdmin)
