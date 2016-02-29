@@ -3,7 +3,7 @@ from django.contrib.contenttypes.generic import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from ordered_model.models import OrderedModel
 from querybuilder.query import Query
-from querybuilder.fields import CountField
+from querybuilder.fields import CountField, SimpleField
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
@@ -68,9 +68,10 @@ class Widget(OrderedModel):
         elif isinstance(widget.content_object, DataView):
             xform = widget.content_object.xform
 
-        columns = [{column: "json->>'%s'" % unicode(column)},
+        columns = [SimpleField(field="json->>'%s'" % unicode(column),
+                               alias='"{}"'.format(column)),
                    CountField(field="json->>'%s'" % unicode(column),
-                              alias="count")]
+                              alias='"count"')]
         if group_by:
             columns += [{group_by: "json->>'%s'" % unicode(group_by)}]
 
