@@ -1227,25 +1227,7 @@ class TestDataViewSet(TestBase):
             self.assertEqual(len(response.data), 4)
 
     def test_data_diff_version(self):
-        # make submission
-        xml_submission_file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..", "fixtures", "tutorial", "instances",
-            "tutorial_2012-06-27_11-27-53_w_uuid.xml"
-        )
-
-        self._make_submission(xml_submission_file_path)
-        self.assertEqual(self.response.status_code, 201)
-
-        # submit the edited instance
-        xml_submission_file_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "..", "fixtures", "tutorial", "instances",
-            "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"
-        )
-        self._make_submission(xml_submission_file_path)
-        self.assertEqual(self.response.status_code, 201)
-
+        self._make_submissions()
         # update the form version
         self.xform.version = "212121211"
         self.xform.save()
