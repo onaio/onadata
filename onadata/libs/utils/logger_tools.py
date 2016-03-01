@@ -296,12 +296,35 @@ def create_instance(username, xml_file, media_files,
                 xform, xml, media_files, new_uuid, submitted_by, status,
                 date_created_override)
     except IntegrityError:
-        # if an instance already exists, update attachments related to it
-        existing_instance = Instance.objects.filter(
-            xml=xml, xform__user=xform.user)[0]
+        instance = Instance.objects.filter(
+            xml=xml, xform__user=xform.user).first()
 
-        save_attachments(xform, existing_instance, media_files)
-        existing_instance.save()
+        if instance:
+            attachment_names = [
+                a.media_file.name.split('/')[-1]
+                for a in Attachment.objects.filter(instance=instance)
+            ]
+            media_file_names = [a.name for a in media_files]
+
+            if attachment_names:
+                if len(media_file_names) > len(attachment_names) or\
+                        len(media_file_names) == len(attachment_names):
+                    unsaved_media_files = list(
+                        set(media_file_names) - set(attachment_names))
+                else:
+                    unsaved_media_files = list(
+                        set(attachment_names) - set(media_file_names))
+
+                if unsaved_media_files:
+                    for a in media_files:
+                        if a.name not in unsaved_media_files:
+                            media_files.remove(a)
+
+                    save_attachments(xform, instance, media_files)
+                    instance.save()
+            else:
+                save_attachments(xform, instance, media_files)
+                instance.save()
 
         instance = DuplicateInstance()
 
