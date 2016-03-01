@@ -1343,12 +1343,26 @@ class TestDataViewSet(TestBase):
         view = DataViewSet.as_view({'get': 'history'})
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.xform.pk, dataid=instance.id)
+        self.assertEqual(response.status_code, 200)
 
         history_instance = InstanceHistory.objects.last()
         instance = Instance.objects.last()
 
         self.assertDictEqual(response.data[0], history_instance.json)
         self.assertNotEqual(response.data[0], instance.json)
+
+    def test_submission_history_not_digit(self):
+        """Test submission json includes has_history key"""
+        # retrieve submission history
+        view = DataViewSet.as_view({'get': 'history'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, dataid="boo!")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['detail'],
+                         u'Data ID should be an integer')
+
+        history_instance_count = InstanceHistory.objects.count()
+        self.assertEqual(history_instance_count, 0)
 
 
 class TestOSM(TestAbstractViewSet):

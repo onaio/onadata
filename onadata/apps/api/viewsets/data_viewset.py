@@ -55,6 +55,14 @@ SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 BaseViewset = get_baseviewset_class()
 
 
+def get_data_and_form(kwargs):
+    data_id = str(kwargs.get('dataid'))
+    if not data_id.isdigit():
+        raise ParseError(_(u"Data ID should be an integer"))
+
+    return (data_id, kwargs.get('format'))
+
+
 class DataViewSet(AnonymousUserPublicFormsMixin,
                   AuthenticateHeaderMixin,
                   ETagsMixin, CacheControlMixin,
@@ -253,65 +261,40 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def retrieve(self, request, *args, **kwargs):
-        data_id = str(kwargs.get('dataid'))
-        _format = kwargs.get('format')
+        data_id, _format = get_data_and_form(kwargs)
+        self.object = instance = self.get_object()
 
-        if not data_id.isdigit():
-            raise ParseError(_(u"Data ID should be an integer"))
+        if _format == 'json' or _format is None or _format == 'debug':
+            return Response(instance.json)
+        elif _format == 'xml':
+            return Response(instance.xml)
+        elif _format == 'geojson':
+            return super(DataViewSet, self)\
+                .retrieve(request, *args, **kwargs)
+        elif _format == Attachment.OSM:
+            serializer = self.get_serializer(instance.osm_data.all())
 
-        try:
-            self.object = instance = self.get_object()
-
-            if _format == 'json' or _format is None or _format == 'debug':
-                return Response(instance.json)
-            elif _format == 'xml':
-                return Response(instance.xml)
-            elif _format == 'geojson':
-                return super(DataViewSet, self)\
-                    .retrieve(request, *args, **kwargs)
-            elif _format == Attachment.OSM:
-                serializer = self.get_serializer(instance.osm_data.all())
-
-                return Response(serializer.data)
-            else:
-                raise ParseError(
-                    _(u"'%(_format)s' format unknown or not implemented!" %
-                      {'_format': _format})
-                )
-        except Instance.DoesNotExist:
+            return Response(serializer.data)
+        else:
             raise ParseError(
-                _(u"data with id '%(data_id)s' not found!" %
-                  {'data_id': data_id})
-            )
+                _(u"'%(_format)s' format unknown or not implemented!" %
+                  {'_format': _format}))
 
     @detail_route(methods=['GET'])
     def history(self, request, *args, **kwargs):
-        data_id = str(kwargs.get('dataid'))
-        _format = kwargs.get('format')
+        data_id, _format = get_data_and_form(kwargs)
+        instance = self.get_object()
 
-        if not data_id.isdigit():
-            raise ParseError(_(u"Data ID should be an integer"))
-
-        try:
-            instance = self.get_object()
-
-            # retrieve all history objects and return them
-
-            if _format == 'json' or _format is None or _format == 'debug':
-                instance_history = instance.submission_history.all()
-                serializer = InstanceHistorySerializer(
-                    instance_history, many=True)
-                return Response(serializer.data)
-            else:
-                raise ParseError(
-                    _(u"'%(_format)s' format unknown or not implemented!" %
-                      {'_format': _format})
-                )
-        except Instance.DoesNotExist:
+        # retrieve all history objects and return them
+        if _format == 'json' or _format is None or _format == 'debug':
+            instance_history = instance.submission_history.all()
+            serializer = InstanceHistorySerializer(
+                instance_history, many=True)
+            return Response(serializer.data)
+        else:
             raise ParseError(
-                _(u"data with id '%(data_id)s' not found!" %
-                  {'data_id': data_id})
-            )
+                _(u"'%(_format)s' format unknown or not implemented!" %
+                  {'_format': _format}))
 
     @profile("get_data.prof")
     def list(self, request, *args, **kwargs):
