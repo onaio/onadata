@@ -146,8 +146,12 @@ class Widget(OrderedModel):
         # use labels if group by
         if group_by:
             group_by_field = get_field_from_field_xpath(group_by, dd)
+            choices = dd.survey.get('choices')
+            if choices:
+                choices = choices.get(column)
             records = _use_labels_from_group_by_name(group_by, group_by_field,
-                                                     data_type, records)
+                                                     data_type, records,
+                                                     choices=choices)
         return {
             "field_type": field_type,
             "data_type": data_type,
