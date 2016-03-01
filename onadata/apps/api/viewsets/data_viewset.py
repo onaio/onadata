@@ -33,7 +33,9 @@ from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.total_header_mixin import TotalHeaderMixin
 from onadata.apps.api.permissions import XFormPermissions
 from onadata.libs.serializers.data_serializer import DataSerializer
-from onadata.libs.serializers.data_serializer import DataInstanceSerializer
+from onadata.libs.serializers.data_serializer import (
+    DataInstanceSerializer,
+    InstanceHistorySerializer)
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
@@ -62,6 +64,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     """
     This endpoint provides access to submitted data.
     """
+
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
         renderers.XLSRenderer,
         renderers.XLSXRenderer,
@@ -269,6 +272,35 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             elif _format == Attachment.OSM:
                 serializer = self.get_serializer(instance.osm_data.all())
 
+                return Response(serializer.data)
+            else:
+                raise ParseError(
+                    _(u"'%(_format)s' format unknown or not implemented!" %
+                      {'_format': _format})
+                )
+        except Instance.DoesNotExist:
+            raise ParseError(
+                _(u"data with id '%(data_id)s' not found!" %
+                  {'data_id': data_id})
+            )
+
+    @detail_route(methods=['GET'])
+    def history(self, request, *args, **kwargs):
+        data_id = str(kwargs.get('dataid'))
+        _format = kwargs.get('format')
+
+        if not data_id.isdigit():
+            raise ParseError(_(u"Data ID should be an integer"))
+
+        try:
+            instance = self.get_object()
+
+            # retrieve all history objects and return them
+
+            if _format == 'json' or _format is None or _format == 'debug':
+                instance_history = instance.submission_history.all()
+                serializer = InstanceHistorySerializer(
+                    instance_history, many=True)
                 return Response(serializer.data)
             else:
                 raise ParseError(
