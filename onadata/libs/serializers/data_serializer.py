@@ -32,10 +32,8 @@ class InstanceHistorySerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         ret = super(
             InstanceHistorySerializer, self).to_representation(instance)
-        if 'json' in ret:
-            ret = ret['json']
 
-        return ret
+        return ret['json'] if 'json' in ret else ret
 
 
 class DataInstanceSerializer(serializers.ModelSerializer):
