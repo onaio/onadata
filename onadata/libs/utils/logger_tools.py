@@ -240,7 +240,7 @@ def create_instance(username, xml_file, media_files,
     check_submission_permissions(request, xform)
 
     existing_instance_count = Instance.objects.filter(
-        xml=xml, xform__user=xform.user).count()
+        xml=xml, xform_id=xform.pk).count()
 
     if existing_instance_count > 0:
         existing_instance = Instance.objects.filter(
