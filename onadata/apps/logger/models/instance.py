@@ -174,6 +174,13 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
 class InstanceBaseClass(object):
     """Interface of functions for Instance and InstanceHistory model"""
 
+    @property
+    def point(self):
+        gc = self.geom
+
+        if gc and len(gc):
+            return gc[0]
+
     def numeric_converter(self, json_dict, numeric_fields=None):
         if numeric_fields is None:
             numeric_fields = get_numeric_fields(self.xform)
@@ -369,13 +376,6 @@ class Instance(models.Model, InstanceBaseClass):
     def get_notes(self):
         return [note['note'] for note in self.notes.values('note')]
 
-    @property
-    def point(self):
-        gc = self.geom
-
-        if gc and len(gc):
-            return gc[0]
-
     def save(self, *args, **kwargs):
         force = kwargs.get('force')
 
@@ -428,16 +428,60 @@ class InstanceHistory(models.Model, InstanceBaseClass):
 
     xform_instance = models.ForeignKey(
         Instance, related_name='submission_history')
+    user = models.ForeignKey(User, null=True)
+
     xml = models.TextField()
     # old instance id
     uuid = models.CharField(max_length=249, default=u'')
 
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
+    geom = models.GeometryCollectionField(null=True)
+    objects = models.GeoManager()
+
+    _json = None
 
     @property
     def xform(self):
         return self.xform_instance.xform
+
+    @property
+    def json(self):
+        if self._json is None:
+            self._json = {}
+            full_dict = self.get_full_dict()
+            self._json = full_dict
+            return self._json
+        else:
+            return self._json
+
+    @property
+    def attachments(self):
+        return self.xform_instance.attachments.all()
+
+    @property
+    def status(self):
+        return self.xform_instance.status
+
+    @property
+    def tags(self):
+        return self.xform_instance.tags
+
+    @property
+    def notes(self):
+        return self.xform_instance.notes.all()
+
+    @property
+    def version(self):
+        return self.xform_instance.version
+
+    @property
+    def osm_data(self):
+        return self.xform_instance.osm_data
+
+    @property
+    def deleted_at(self):
+        return None
 
     def _set_parser(self):
         if not hasattr(self, "_parser"):
