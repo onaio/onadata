@@ -64,7 +64,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             with open(path) as f:
                 f = InMemoryUploadedFile(f,
                                          'media_file',
-                                         media_file_1,
+                                         media_file_2,
                                          'image/jpg',
                                          os.path.getsize(path), None)
                 submission_path = os.path.join(
@@ -81,6 +81,8 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
                     attachment_2 = Attachment.objects.last()
                     self.assertEqual(
                         attachment_1.instance, attachment_2.instance)
+                    self.assertNotEqual(
+                        attachment_1.media_file, attachment_2.media_file)
 
     def test_unique_instanceid_per_form_only(self):
         self._make_submissions()
