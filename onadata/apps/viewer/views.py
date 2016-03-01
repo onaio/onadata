@@ -313,6 +313,17 @@ def create_export(request, username, id_string, export_type):
         if not MetaData.external_export(xform):
             return HttpResponseForbidden(_(u'No XLS Template set.'))
 
+    if export_type == Export.GSHEETS_EXPORT:
+        redirect_url = reverse(
+            export_list,
+            kwargs={
+                'username': username, 'id_string': id_string,
+                'export_type': export_type})
+
+        credential = _get_google_credential(request, redirect_url)
+        if isinstance(credential, HttpResponse):
+            return credential
+
     query = request.POST.get("query")
     force_xlsx = request.POST.get('xls') != 'true'
 
@@ -338,7 +349,8 @@ def create_export(request, username, id_string, export_type):
         'split_select_multiples': split_select_multiples,
         'binary_select_multiples': binary_select_multiples,
         'remove_group_name': str_to_bool(remove_group_name),
-        'meta': meta.replace(",", "") if meta else None
+        'meta': meta.replace(",", "") if meta else None,
+        'google_credentials': credential
     }
 
     try:
