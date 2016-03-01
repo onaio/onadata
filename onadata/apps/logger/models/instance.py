@@ -373,9 +373,6 @@ class Instance(models.Model, InstanceBaseClass):
         if not force and self.xform and not self.xform.downloadable:
             raise FormInactiveError()
 
-    def get_notes(self):
-        return [note['note'] for note in self.notes.values('note')]
-
     def save(self, *args, **kwargs):
         force = kwargs.get('force')
 
