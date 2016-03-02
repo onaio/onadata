@@ -112,14 +112,18 @@ class Widget(OrderedModel):
 
             # build group-by query
             if field_type in NUMERIC_LIST:
-                columns = [SimpleField(field=group_by),
+                columns = [SimpleField(field=group_by,
+                                       alias='"%s"' % group_by),
                            SumField(field=column,
                                     alias="sum"),
                            AvgField(field=column,
                                     alias="mean")]
             elif field_type == SELECT_ONE:
-                columns = [SimpleField(field=group_by),
-                           SimpleField(field=column),
+                columns = [SimpleField(field=column,
+                                       alias='"%s"' % column),
+
+                           SimpleField(field=group_by,
+                                       alias='"%s"' % group_by),
                            CountField(field="*",
                                       alias='"count"')]
 
