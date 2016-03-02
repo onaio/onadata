@@ -246,12 +246,12 @@ def create_instance(username, xml_file, media_files,
     check_submission_permissions(request, xform)
 
     filtered_instances = get_filtered_instances(
-        {'xml': xml, 'xform__user': xform.user})
+        {'xml': xml, 'xform__id': xform.pk})
     existing_instance_count = filtered_instances.count()
 
     if existing_instance_count > 0:
         existing_instance = get_filtered_instances(
-            {'xml': xml, 'xform__user': xform.user})[0]
+            {'xml': xml, 'xform__id': xform.pk})[0]
 
         if not existing_instance.xform or\
                 existing_instance.xform.has_start_time:
@@ -292,7 +292,7 @@ def create_instance(username, xml_file, media_files,
                 date_created_override)
     except IntegrityError:
         instance = Instance.objects.filter(
-            xml=xml, xform__user=xform.user).first()
+            xml=xml, xform__id=xform.pk).first()
 
         if instance:
             attachment_names = [
