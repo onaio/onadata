@@ -95,7 +95,6 @@ class Widget(OrderedModel):
                     field="json->>'%s'" % unicode(column),
                     cast="float",
                     alias=column)
-
             else:
                 column_field = SimpleField(
                     field="json->>'%s'" % unicode(column),
