@@ -206,6 +206,38 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.JWT_SECRET_KEY = 'thesecretkey'
         self.JWT_ALGORITHM = 'HS256'
 
+    def test_replace_form_with_external_choices(self):
+        with HTTMock(enketo_mock):
+            xls_file_path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+                "external_choice_form_v1.xlsx")
+            self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+            self.assertIsNotNone(self.xform.version)
+            form_id = self.xform.pk
+
+            self.view = XFormViewSet.as_view({
+                'get': 'retrieve',
+            })
+
+            request = self.factory.get('/', **self.extra)
+            response = self.view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 200)
+            self.assertNotEqual(response.get('Cache-Control'), None)
+
+            view = XFormViewSet.as_view({
+                'patch': 'partial_update',
+            })
+
+            xls_file_path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+                "external_choice_form_v2.xlsx")
+            with open(xls_file_path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.patch('/', data=post_data, **self.extra)
+                response = view(request, pk=form_id)
+                self.assertEqual(response.status_code, 200)
+
     def test_instances_with_geopoints_true_for_instances_with_geopoints(self):
         with HTTMock(enketo_mock):
             xls_file_path = os.path.join(

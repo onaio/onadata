@@ -236,13 +236,16 @@ class MetaData(models.Model):
         if data_file:
             content_type = ContentType.objects.get_for_model(content_object)
 
-            doc = MetaData(data_type=data_type,
-                           content_type=content_type,
-                           object_id=content_object.id,
-                           data_value=data_file.name,
-                           data_file=data_file,
-                           data_file_type=data_file.content_type)
-            doc.save()
+            doc, created = MetaData.objects.update_or_create(
+                data_type=data_type,
+                content_type=content_type,
+                object_id=content_object.id,
+                data_value=data_file.name,
+                defaults={
+                    'data_file': data_file,
+                    'data_file_type': data_file.content_type
+                })
+
         return type_for_form(content_object, data_type)
 
     @staticmethod
@@ -258,13 +261,15 @@ class MetaData(models.Model):
                 content_type = ContentType.objects.get_for_model(
                     content_object)
 
-                media = MetaData(data_type=data_type,
-                                 content_type=content_type,
-                                 object_id=content_object.id,
-                                 data_value=data_file.name,
-                                 data_file=data_file,
-                                 data_file_type=data_content_type)
-                media.save()
+                media, created = MetaData.objects.update_or_create(
+                    data_type=data_type,
+                    content_type=content_type,
+                    object_id=content_object.id,
+                    data_value=data_file.name,
+                    defaults={
+                        'data_file': data_file,
+                        'data_file_type': data_content_type
+                    })
         return media_resources(
             type_for_form(content_object, data_type), download)
 
@@ -274,10 +279,12 @@ class MetaData(models.Model):
         data_type = 'media'
 
         if is_valid_url(uri):
-            media = MetaData(data_type=data_type,
-                             content_object=content_object,
-                             data_value=uri)
-            media.save()
+            media, created = MetaData.objects.update_or_create(
+                data_type=data_type,
+                data_value=uri,
+                defaults={
+                    'content_object': content_object,
+                })
 
     @staticmethod
     def mapbox_layer_upload(content_object, data=None):
