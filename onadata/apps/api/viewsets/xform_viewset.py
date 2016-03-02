@@ -10,8 +10,8 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.contrib.auth.models import User
 from django.conf import settings
-from django.http import HttpResponseBadRequest, HttpResponseForbidden,\
-    HttpResponseRedirect
+from django.http import HttpResponseBadRequest, HttpResponseRedirect
+from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
@@ -337,7 +337,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if redirect:
                 return redirect
 
-        return HttpResponseForbidden("Authentication failure, cannot redirect")
+        return_url = urlencode({'return_url': return_url})
+        login_url = settings.ZEBRA_LOGIN
+        zebra_login = '{login_url}?{return_url}'.format(**locals())
+        response = HttpResponseRedirect(zebra_login)
+
+        return response
 
     @detail_route()
     def enketo(self, request, **kwargs):
