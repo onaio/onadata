@@ -16,7 +16,7 @@ from onadata.apps.logger.models import OsmData
 from onadata.apps.viewer.models import Export
 
 
-class TestOSM(TestAbstractViewSet):
+class TestOSMViewSet(TestAbstractViewSet):
 
     def setUp(self):
         super(self.__class__, self).setUp()
@@ -41,7 +41,7 @@ class TestOSM(TestAbstractViewSet):
         self.xform.version = '201511091147'
         self.xform.save()
 
-        # look at the forms.json?instances_with_osm=False
+        # look at the forms.json?instances_with_osm=True
         request = self.factory.get('/', {'instances_with_osm': 'True'},
                                    **self.extra)
         view = XFormViewSet.as_view({'get': 'list'})

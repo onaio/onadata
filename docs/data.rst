@@ -264,6 +264,63 @@ Response
         ....
     ]
 
+Get the history of edits made to a submission
+----------------------------------------------
+
+Get a single specific submission json data providing ``pk``
+
+and ``dataid`` as url path parameters, where:
+
+- ``pk`` - is the identifying number for a specific form
+- ``dataid`` - is the unique id of the data, the value of ``_id`` or ``_uuid``
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/history</pre>
+
+Example
+^^^^^^^^^
+::
+
+       curl -X GET https://api.ona.io/api/v1/data/22845/4503/history
+
+Response
+^^^^^^^^^
+::
+
+    [
+        {
+            "_id": 3,
+            "_bamboo_dataset_id": "",
+            "_deleted_at": null,
+            "expense_type": "service",
+            "_xform_id_string": "exp",
+            "_geolocation": [
+                null,
+                null
+            ],
+            "end": "2013-01-03T10:26:25.674+03",
+            "start": "2013-01-03T10:25:17.409+03",
+            "expense_date": "2011-12-23",
+            "_status": "submitted_via_web",
+            "today": "2013-01-03",
+            "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
+            "imei": "351746052013466",
+            "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
+            "kind": "monthly",
+            "_submission_time": "2013-01-03T02:27:19",
+            "_attachments": [],
+            "_notes": [],
+            "item": "Rent",
+            "amount": "35000.0",
+            "deviceid": "351746052013466",
+            "subscriberid": "639027...60317"
+        },
+        ....
+    ]
+
+
 Query submitted data of a specific form
 ----------------------------------------
 Use the `query` parameter to pass in a JSON key/value query.

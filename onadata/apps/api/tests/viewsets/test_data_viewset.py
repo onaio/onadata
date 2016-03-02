@@ -8,6 +8,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.test import RequestFactory
 from django_digest.test import DigestAuth
+from django_digest.test import Client as DigestClient
 from httmock import urlmatch, HTTMock
 
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
@@ -20,6 +21,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.logger_tools import create_instance
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import ReadOnlyRole
 from onadata.libs import permissions as role
@@ -1071,7 +1073,7 @@ class TestDataViewSet(TestBase):
                     }
                 }
             ]
-            }
+        }
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, data)
 
@@ -1226,7 +1228,6 @@ class TestDataViewSet(TestBase):
 
     def test_data_diff_version(self):
         self._make_submissions()
-
         # update the form version
         self.xform.version = "212121211"
         self.xform.save()
@@ -1297,6 +1298,73 @@ class TestDataViewSet(TestBase):
         self.assertEquals(response.status_code, 200)
 
         self.assertNotEquals(etag_hash, response.get('ETag'))
+
+    def test_submission_history(self):
+        """Test submission json includes has_history key"""
+        # create form
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/tutorial.xls"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+
+        # create submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid.xml"
+        )
+
+        self._make_submission(xml_submission_file_path)
+        instance = Instance.objects.last()
+        instance_count = Instance.objects.count()
+        instance_history_count = InstanceHistory.objects.count()
+
+        # edit submission
+        xml_edit_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"
+        )
+        xml_edit_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"
+        )
+        client = DigestClient()
+        client.set_authorization('bob', 'bob', 'Digest')
+        self._make_submission(xml_edit_submission_file_path, client=client)
+
+        self.assertEqual(self.response.status_code, 201)
+
+        self.assertEqual(instance_count, Instance.objects.count())
+        self.assertEqual(instance_history_count + 1,
+                         InstanceHistory.objects.count())
+
+        # retrieve submission history
+        view = DataViewSet.as_view({'get': 'history'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, dataid=instance.id)
+        self.assertEqual(response.status_code, 200)
+
+        history_instance = InstanceHistory.objects.last()
+        instance = Instance.objects.last()
+
+        self.assertDictEqual(response.data[0], history_instance.json)
+        self.assertNotEqual(response.data[0], instance.json)
+
+    def test_submission_history_not_digit(self):
+        """Test submission json includes has_history key"""
+        # retrieve submission history
+        view = DataViewSet.as_view({'get': 'history'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, dataid="boo!")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['detail'],
+                         u'Data ID should be an integer')
+
+        history_instance_count = InstanceHistory.objects.count()
+        self.assertEqual(history_instance_count, 0)
 
 
 class TestOSM(TestAbstractViewSet):

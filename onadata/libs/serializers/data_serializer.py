@@ -3,7 +3,7 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
-from onadata.apps.logger.models.instance import Instance
+from onadata.apps.logger.models.instance import Instance, InstanceHistory
 from onadata.apps.logger.models.xform import XForm
 from onadata.libs.serializers.fields.json_field import JsonField
 
@@ -20,6 +20,20 @@ class DataSerializer(serializers.HyperlinkedModelSerializer):
 class JsonDataSerializer(serializers.Serializer):
     def to_representation(self, obj):
         return obj
+
+
+class InstanceHistorySerializer(serializers.ModelSerializer):
+    json = JsonField()
+
+    class Meta:
+        model = InstanceHistory
+        fields = ('json', )
+
+    def to_representation(self, instance):
+        ret = super(
+            InstanceHistorySerializer, self).to_representation(instance)
+
+        return ret['json'] if 'json' in ret else ret
 
 
 class DataInstanceSerializer(serializers.ModelSerializer):

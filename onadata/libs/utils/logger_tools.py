@@ -73,8 +73,10 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
         # edits
         check_edit_submission_permissions(submitted_by, xform)
         instance = instances[0]
+
         InstanceHistory.objects.create(
-            xml=instance.xml, xform_instance=instance, uuid=old_uuid)
+            xml=instance.xml, xform_instance=instance, uuid=old_uuid,
+            user=submitted_by, geom=instance.geom)
         instance.xml = xml
         instance.uuid = new_uuid
         instance.json = instance.get_dict()
@@ -452,8 +454,8 @@ def publish_form(callback):
 
 
 def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
-    """ Creates or updates a DataDictionary with supplied xls_file,
-        user and optional id_string - if updating
+    """Create or update DataDictionary with xls_file, user
+    id_string is optional when updating
     """
     # get or create DataDictionary based on user and id string
     if id_string:
