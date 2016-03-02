@@ -245,14 +245,9 @@ def create_instance(username, xml_file, media_files,
     xform = get_xform_from_submission(xml, username, uuid)
     check_submission_permissions(request, xform)
 
-<<<<<<< HEAD
-    existing_instance_count = Instance.objects.filter(
-        xml=xml, xform_id=xform.pk).count()
-=======
     filtered_instances = get_filtered_instances(
         {'xml': xml, 'xform__user': xform.user})
     existing_instance_count = filtered_instances.count()
->>>>>>> ME: on integrity error, update the attachments of an instance
 
     if existing_instance_count > 0:
         existing_instance = get_filtered_instances(
