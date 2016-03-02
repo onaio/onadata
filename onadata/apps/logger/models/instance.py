@@ -174,8 +174,6 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
 class InstanceBaseClass(object):
     """Interface of functions for Instance and InstanceHistory model"""
 
-    _json = None
-
     @property
     def point(self):
         gc = self.geom
@@ -230,8 +228,11 @@ class InstanceBaseClass(object):
 
             self.geom = GeometryCollection(points)
 
+    def _set_json(self):
+        self.json = self.get_full_dict()
+
     def get_full_dict(self):
-        doc = self._json or {}
+        doc = self.json or {}
         doc.update(self.get_dict())
 
         if self.id:
@@ -348,7 +349,6 @@ class Instance(models.Model, InstanceBaseClass):
     # store a geographic objects associated with this instance
     geom = models.GeometryCollectionField(null=True)
     objects = models.GeoManager()
-
     tags = TaggableManager()
 
     class Meta:
@@ -381,6 +381,7 @@ class Instance(models.Model, InstanceBaseClass):
         self._check_active(force)
 
         self._set_geom()
+        self._set_json()
         self._set_survey_type()
         self._set_uuid()
         self.version = self.xform.version
@@ -439,16 +440,12 @@ class InstanceHistory(models.Model, InstanceBaseClass):
         return self.xform_instance.xform
 
     @property
-    def json(self):
-        if self._json is None:
-            full_dict = self.get_full_dict()
-            self._json = full_dict
-
-        return self._json
-
-    @property
     def attachments(self):
         return self.xform_instance.attachments.all()
+
+    @property
+    def json(self):
+        return self.xform_instance.json
 
     @property
     def status(self):
