@@ -1307,6 +1307,7 @@ class TestDataViewSet(TestBase):
             "../fixtures/tutorial/tutorial.xls"
         )
         self._publish_xls_file_and_set_xform(xls_file_path)
+
         # create submission
         xml_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -1339,6 +1340,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(instance_count, Instance.objects.count())
         self.assertEqual(instance_history_count + 1,
                          InstanceHistory.objects.count())
+
         # retrieve submission history
         view = DataViewSet.as_view({'get': 'history'})
         request = self.factory.get('/', **self.extra)

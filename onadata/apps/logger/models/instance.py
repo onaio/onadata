@@ -231,8 +231,8 @@ class InstanceBaseClass(object):
     def _set_json(self):
         self.json = self.get_full_dict()
 
-    def get_full_dict(self):
-        doc = self.json or {}
+    def get_full_dict(self, load_existing=True):
+        doc = self.json or {} if load_existing else {}
         doc.update(self.get_dict())
 
         if self.id:
@@ -445,7 +445,7 @@ class InstanceHistory(models.Model, InstanceBaseClass):
 
     @property
     def json(self):
-        return self.xform_instance.json
+        return self.get_full_dict(load_existing=False)
 
     @property
     def status(self):
