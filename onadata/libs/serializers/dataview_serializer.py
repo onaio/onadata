@@ -103,7 +103,6 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             count_dict = cache.get('{}{}'.format(DATAVIEW_COUNT, obj.xform.pk))
 
             if count_dict:
-
                 if obj.pk in count_dict:
                     return count_dict.get(obj.pk)
             else:
