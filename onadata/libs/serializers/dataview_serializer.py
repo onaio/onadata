@@ -100,10 +100,13 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
 
     def get_count(self, obj):
         if obj:
-            count = cache.get('{}{}'.format(DATAVIEW_COUNT, obj.xform.pk))
+            count_dict = cache.get('{}{}'.format(DATAVIEW_COUNT, obj.xform.pk))
 
-            if count:
-                return count
+            if count_dict:
+                if obj.pk in count_dict:
+                    return count_dict.get(obj.pk)
+            else:
+                count_dict = {}
 
             count_rows = DataView.query_data(obj, count=True)
             if 'error' in count_rows:
@@ -112,8 +115,9 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             count_row = count_rows[0]
             if 'count' in count_row:
                 count = count_row.get('count')
+                count_dict.setdefault(obj.pk, count)
                 cache.set('{}{}'.format(DATAVIEW_COUNT, obj.xform.pk),
-                          count)
+                          count_dict)
 
                 return count
 

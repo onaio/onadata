@@ -676,9 +676,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEquals(response.data['last_submission_time'],
                           '2015-03-09T13:34:05')
 
-        self.assertEquals(
-            cache.get('{}{}'.format(DATAVIEW_COUNT, self.data_view.xform.pk)),
-            expected_count)
+        cache_dict = cache.get('{}{}'.format(DATAVIEW_COUNT,
+                                             self.data_view.xform.pk))
+        self.assertEquals(cache_dict.get(self.data_view.pk), expected_count)
         self.assertEquals(cache.get('{}{}'.format(
             DATAVIEW_LAST_SUBMISSION_TIME, self.data_view.xform.pk)),
             expected_last_submission_time)
