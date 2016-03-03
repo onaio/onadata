@@ -301,9 +301,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
                               'group_by': u'',
                               'data': [
                                   {'count': 7, 'gender': u'male'},
-                                  {'count': 1, 'gender': u'female'}
-                              ]
-                          })
+                                  {'count': 1, 'gender': u'female'}]})
 
     def test_widget_with_key(self):
         self._create_widget()
@@ -593,6 +591,4 @@ class TestWidgetViewSet(TestAbstractViewSet):
                               'group_by': u'',
                               'data': [
                                   {'count': 7, 'Gender': u'male'},
-                                  {'count': 1, 'Gender': u'female'}
-                              ]
-                          })
+                                  {'count': 1, 'Gender': u'female'}]})
