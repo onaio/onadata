@@ -241,12 +241,10 @@ def create_instance(username, xml_file, media_files,
     xform = get_xform_from_submission(xml, username, uuid)
     check_submission_permissions(request, xform)
 
-    existing_instance_count = Instance.objects.filter(
-        xml=xml, xform_id=xform.pk).count()
+    existing_instance = Instance.objects.filter(
+        xml=xml, xform_id=xform.pk).first()
 
-    if existing_instance_count > 0:
-        existing_instance = Instance.objects.filter(
-            xml=xml, xform__user=xform.user)[0]
+    if existing_instance:
         if not existing_instance.xform or\
                 existing_instance.xform.has_start_time:
             # ensure we have saved the extra attachments
