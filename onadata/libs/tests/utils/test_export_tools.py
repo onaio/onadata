@@ -10,7 +10,8 @@ from onadata.libs.utils.export_tools import (
     encode_if_str,
     get_attachment_xpath,
     generate_osm_export,
-    should_create_new_export)
+    should_create_new_export,
+    parse_request_export_options)
 from onadata.apps.logger.models import Attachment
 from onadata.apps.api import tests as api_tests
 
@@ -129,3 +130,13 @@ class TestExportTools(TestBase):
         dd = XForm.objects.order_by('pk').reverse()[0].data_dictionary()
         row = {}
         get_attachment_xpath(filename, row, dd)
+
+    def test_parse_request_export_options(self):
+
+        request = self.factory.\
+            get('/export_async',
+                data={"do_not_split_select_multiples": "false"})
+
+        options = parse_request_export_options(request)
+
+        self.assertEqual(options['split_select_multiples'], False)
