@@ -14,7 +14,7 @@ addons:
       - libproj-dev
       - libgdal1-dev
       - gdal-bin
-      - postgresql-9.4-postgis-2.2
+      - postgresql-9.4-postgis-2.1
       - postgresql-9.4-postgis-scripts
       - memcached
       - libmemcached-dev
@@ -25,6 +25,9 @@ cache:
 python:
   - '2.7.10'
 before_install:
+  - export DEBIAN_FRONTEND=noninteractive;
+   sudo -E apt-get -yq update &>> ~/apt-get-update.log;
+   sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install postgresql-9.4-postgis-2.2
   - ./script/database/install_postgis onadata_test postgres 127.0.0.1
 env:
   - TESTFOLDER="onadata/apps/main onadata/apps/api" 
