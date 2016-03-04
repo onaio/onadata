@@ -236,9 +236,6 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = self.view(request, pk=self.metadata_data['id'])
 
-        print(response.data)
-        print(response.status_code)
-
         self.assertEqual(response.status_code, 200)
 
         data = dict(response.data)
