@@ -17,8 +17,8 @@ def recreate_tmp_file(name, path, mime_type):
     return tmp_file
 
 
-@task()
-def publish_xlsform_async(user, post_data, owner, file_data):
+@task(bind=True)
+def publish_xlsform_async(self, user, post_data, owner, file_data):
     try:
         files = MultiValueDict()
         files[u'xls_file'] = \
@@ -37,9 +37,20 @@ def publish_xlsform_async(user, post_data, owner, file_data):
             return {"pk": survey.pk}
 
         return survey
-    except:
-        e = sys.exc_info()[0]
-        return {u'error': str(e)}
+    #     }
+    except Exception, exc:
+        if isinstance(exc, MemoryError) and self.request.retries != 3:
+            self.retry(exc=exc, countdown=1)
+
+        if isinstance(exc, MemoryError):
+            error_message = (
+                u'Service temporarily unavailable, please try to '
+                'publish the form again'
+            )
+        else:
+            error_message = unicode(sys.exc_info()[1])
+
+        return {u'error': error_message}
 
 
 @task()
