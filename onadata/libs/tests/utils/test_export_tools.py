@@ -132,11 +132,32 @@ class TestExportTools(TestBase):
         get_attachment_xpath(filename, row, dd)
 
     def test_parse_request_export_options(self):
+        request = self.factory.get(
+            '/export_async', data={"do_not_split_select_multiples": "false",
+                                   "remove_group_name": "false",
+                                   "include_labels": "false",
+                                   "include_labels_only": "false",
+                                   "include_images": "false"})
 
-        request = self.factory.\
-            get('/export_async',
-                data={"do_not_split_select_multiples": "false"})
+        options = parse_request_export_options(request)
+
+        self.assertEqual(options['split_select_multiples'], True)
+        self.assertEqual(options['include_labels'], False)
+        self.assertEqual(options['include_labels_only'], False)
+        self.assertEqual(options['remove_group_name'], False)
+        self.assertEqual(options['include_images'], False)
+
+        request = self.factory.get(
+            '/export_async', data={"do_not_split_select_multiples": "true",
+                                   "remove_group_name": "true",
+                                   "include_labels": "true",
+                                   "include_labels_only": "true",
+                                   "include_images": "true"})
 
         options = parse_request_export_options(request)
 
         self.assertEqual(options['split_select_multiples'], False)
+        self.assertEqual(options['include_labels'], True)
+        self.assertEqual(options['include_labels_only'], True)
+        self.assertEqual(options['remove_group_name'], True)
+        self.assertEqual(options['include_images'], True)
