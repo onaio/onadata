@@ -265,3 +265,22 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             else:
                 self.assertEquals(record.get('project'), self.project.id)
                 self.assertIsNone(record.get('xform'))
+
+    def test_should_only_return_xform_metadata(self):
+        # delete all existing metadata
+        MetaData.objects.all().delete()
+
+        self._add_project_metadata(
+            self.project, 'media', "check.png", self.path)
+
+        self._add_form_metadata(
+            self.xform, 'supporting_doc', "bla.png", self.path)
+
+        view = MetaDataViewSet.as_view({'get': 'list'})
+        query_data = {"xform": self.xform.id}
+        request = self.factory.get("/", data=query_data, **self.extra)
+        response = view(request)
+
+        self.assertEqual(len(response.data), 1)
+        self.assertIn("xform", response.data[0])
+        self.assertNotIn("project", response.data[0])

@@ -1,3 +1,4 @@
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
@@ -216,9 +217,28 @@ class MetaDataFilter(ProjectPermissionFilterMixin,
 
     def filter_queryset(self, request, queryset, view):
         keyword = "object_id"
-        xform_kwarg = self._xform_filter(request, view, keyword)
-        project_kwarg = self._project_filter(request, view, keyword)
 
+        xform_id = request.QUERY_PARAMS.get('xform')
+        project_id = request.QUERY_PARAMS.get("project")
+
+        # generate queries
+        xform_content_type = ContentType.objects.get_for_model(XForm)
+        xform_kwarg = self._xform_filter(request, view, keyword)
+        xform_kwarg["content_type"] = xform_content_type
+
+        project_content_type = ContentType.objects.get_for_model(Project)
+        project_kwarg = self._project_filter(request, view, keyword)
+        project_kwarg["content_type"] = project_content_type
+
+        # return xform specific metadata
+        if xform_id:
+            return queryset.filter(Q(**xform_kwarg))
+
+        # return project specific metadata
+        elif project_id:
+            return queryset.filter(Q(**project_kwarg))
+
+        # return all project and xform metadata information
         return queryset.filter(Q(**xform_kwarg) | Q(**project_kwarg))
 
 
