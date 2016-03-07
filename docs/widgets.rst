@@ -20,6 +20,7 @@ Definition
 - ``column`` - The column of the data being charted
 - ``group_by`` - This is another column (not equal to column) that the data should be grouped by
 - ``key`` - Unique identifier
+- ``metadata`` - json dict to store extra information.
 
 Create a new Widget
 ^^^^^^^^^^^^^^^^^^^^^

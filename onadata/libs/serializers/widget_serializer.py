@@ -10,6 +10,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.widget import Widget
 from onadata.libs.utils.string import str2bool
+from onadata.libs.serializers.fields.json_field import JsonField
 
 
 class GenericRelatedField(serializers.HyperlinkedRelatedField):
@@ -85,12 +86,13 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
     key = serializers.CharField(read_only=True)
     data = serializers.SerializerMethodField()
     order = serializers.IntegerField(required=False)
+    metadata = JsonField(required=False)
 
     class Meta:
         model = Widget
         fields = ('id', 'url', 'key', 'title', 'description', 'widget_type',
                   'order', 'view_type', 'column', 'group_by', 'content_object',
-                  'data', 'aggregation')
+                  'data', 'aggregation', 'metadata')
 
     def get_data(self, obj):
         # Get the request obj
