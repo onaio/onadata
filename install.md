@@ -18,21 +18,17 @@ Replace username and db name accordingly.
     cd onadata/
     git checkout osm
 
-## Create python virtual environment and activate
-    mkdir ~/.virtualenvs
-    virtualenv ~/.virtualenvs/onadata
-    source ~/.virtualenvs/onadata/bin/activate
+## Set up and start your virtual environment or sandbox.
+    $ virtualenv <.venv>  
+    $ source <.venv>/bin/activate
 
-## Install required python packages
-    pip install -r requirements/base.pip --allow-all-external
-    pip install numpy pandas==0.12.0
+## Create a local_settings.py, update it accordingly.
+Make sure you have a `onadata/settings/local_settings.py` file.
+*This file is usually gitignored.
 
-## Set local_settings.py, update it accordingly
-    cp script/local_settings.py local_settings.py
-
-## Initial db setup
-    python manage.py syncdb --noinput
-    python manage.py migrate
+## Run make to set up core and for initial db setup.
+    $ make
+You may at this point start core with `$ python manage.py runserver --nothreading` or go on and set up the rest.
 
 ## compile api docs
     cd docs

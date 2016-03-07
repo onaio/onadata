@@ -1648,3 +1648,58 @@ class TestProjectViewSet(TestAbstractViewSet):
                                                       self.project))
             self.assertFalse(role_class.user_has_role(self.user,
                                                       self.xform))
+
+    def test_two_dataviews_count(self):
+        self._project_create()
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+
+        view = ProjectViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        data = {'name': "My DataView",
+                'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+                'project': 'http://testserver/api/v1/projects/%s'
+                           % self.project.pk,
+                'columns': '["_submitted_by"]',
+                'query':
+                    '[{"column":"_submitted_by","filter":"=","value":"bob"}]'}
+
+        self._create_dataview(data)
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        # assert count
+        self.assertIn('data_views', response.data)
+        self.assertTrue(len(response.data['data_views']) == 1)
+        self.assertTrue(response.data['data_views'][0]['count'] == 4)
+
+        data = {'name': "My DataView2",
+                'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+                'project': 'http://testserver/api/v1/projects/%s'
+                           % self.project.pk,
+                'columns': '["_submitted_by"]',
+                'query':
+                    '[{"column":"_submitted_by","filter":"=","value":"alic"}]'}
+
+        self._create_dataview(data)
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        # assert count
+        self.assertIn('data_views', response.data)
+        self.assertTrue(len(response.data['data_views']) == 2)
+        self.assertTrue(response.data['data_views'][1]['count'] == 4)
+        self.assertTrue(response.data['data_views'][0]['count'] == 0)
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+
+        # assert count
+        self.assertIn('data_views', response.data)
+        self.assertTrue(len(response.data['data_views']) == 2)
+        self.assertTrue(response.data['data_views'][1]['count'] == 4)
+        self.assertTrue(response.data['data_views'][0]['count'] == 0)
