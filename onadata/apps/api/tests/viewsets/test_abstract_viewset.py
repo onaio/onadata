@@ -494,7 +494,9 @@ class TestAbstractViewSet(TestCase):
 
         count = Widget.objects.all().count()
 
-        request = self.factory.post('/', data=data, **self.extra)
+        request = self.factory.post('/', data=json.dumps(data),
+                                    content_type="application/json",
+                                    **self.extra)
         response = view(request)
 
         self.assertEquals(response.status_code, 201)
@@ -503,23 +505,21 @@ class TestAbstractViewSet(TestCase):
         self.widget = Widget.objects.all().order_by('pk').reverse()[0]
 
         self.assertEquals(response.data['id'], self.widget.id)
-        self.assertEquals(response.data['title'],
-                          data['title'] if 'title' in data else '')
+        self.assertEquals(response.data['title'], data.get('title', None))
         self.assertEquals(response.data['content_object'],
                           data['content_object'])
         self.assertEquals(response.data['widget_type'], data['widget_type'])
         self.assertEquals(response.data['view_type'], data['view_type'])
         self.assertEquals(response.data['column'], data['column'])
         self.assertEquals(response.data['description'],
-                          data['description']
-                          if 'description' in data else '')
+                          data.get('description', None))
         self.assertEquals(response.data['aggregation'],
-                          data['aggregation']
-                          if 'aggregation' in data else '')
+                          data.get('aggregation', None))
         self.assertEquals(response.data['group_by'],
-                          data['group_by'] if 'group_by' in data else '')
+                          data.get('group_by', None))
         self.assertEquals(response.data['order'], self.widget.order)
         self.assertEquals(response.data['data'], [])
+        self.assertEquals(response.data['metadata'], data.get('metadata', {}))
 
     def filename_from_disposition(self, content_disposition):
         filename_pos = content_disposition.index('filename=')

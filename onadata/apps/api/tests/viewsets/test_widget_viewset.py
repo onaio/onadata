@@ -298,7 +298,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
                               'data_type': 'categorized',
                               'field_xpath': u'gender',
                               'field_label': u'Gender',
-                              'group_by': u'',
+                              'group_by': None,
                               'data': [
                                   {'count': 7, 'gender': u'male'},
                                   {'count': 1, 'gender': u'female'}]})
@@ -570,6 +570,9 @@ class TestWidgetViewSet(TestAbstractViewSet):
             'widget_type': "charts",
             'view_type': "horizontal-bar",
             'column': "Gender",
+            'metadata': {
+                "test metadata": "percentage"
+            }
         }
 
         self._create_widget(data)
@@ -588,7 +591,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
                               'data_type': 'categorized',
                               'field_xpath': u'Gender',
                               'field_label': u'Gender',
-                              'group_by': u'',
+                              'group_by': None,
                               'data': [
                                   {'count': 7, 'Gender': u'male'},
                                   {'count': 1, 'Gender': u'female'}]})

@@ -12,6 +12,7 @@ from onadata.libs.utils.model_tools import generate_uuid_for_form
 from onadata.libs.utils.chart_tools import get_field_from_field_name,\
     DATA_TYPE_MAP, get_field_label
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
+from jsonfield import JSONField
 
 
 class Widget(OrderedModel):
@@ -45,6 +46,7 @@ class Widget(OrderedModel):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     order_with_respect_to = 'content_type'
+    metadata = JSONField(default={}, blank=True)
 
     class Meta(OrderedModel.Meta):
         app_label = 'logger'
