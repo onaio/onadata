@@ -313,7 +313,7 @@ class TestProjectViewSet(TestAbstractViewSet):
             'data_type': u'enketo_preview_url',
             'data_file': None,
             'data_file_type': None,
-            u'url': 'http://testserver/api/v1/metadata/%s' % preview_url.pk,
+            u'url': u'http://testserver/api/v1/metadata/%s' % preview_url.pk,
             'file_hash': None,
             'media_url': None,
             'date_created': preview_url.date_created
