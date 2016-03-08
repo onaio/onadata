@@ -53,10 +53,10 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
 
         request.COOKIES['__enketo'] = 'hello'
         response = self.view(request)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 401)
         self.assertEqual(
             response.data.get('detail'),
-            u'Malformed cookie. Clear your cookies then try again')
+            u'JWT DecodeError: Not enough segments')
 
     @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
     def test_get_xform_list_with_shared_forms(self, mock_send_mail):
