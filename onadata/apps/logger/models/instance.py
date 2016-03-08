@@ -17,8 +17,9 @@ from onadata.apps.logger.models.xform import XFORM_TITLE_LENGTH
 from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
     clean_and_parse_xml, get_uuid_from_xml
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
-    DELETEDAT, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, SUBMISSION_TIME, TAGS,\
-    UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, STATUS, DURATION, START, END
+    DELETEDAT, EDITTED, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, \
+    SUBMISSION_TIME, TAGS, UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, \
+    STATUS, DURATION, START, END
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import safe_delete
@@ -262,6 +263,10 @@ class InstanceBaseClass(object):
                 self.date_created = submission_time()
 
             doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
+
+            if hasattr(self, "submission_history"):
+                doc[EDITTED] = (True if self.submission_history.count() > 0
+                                else False)
 
         return doc
 

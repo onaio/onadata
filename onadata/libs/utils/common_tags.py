@@ -44,6 +44,9 @@ INDEX = u"_index"
 PARENT_INDEX = u"_parent_index"
 PARENT_TABLE_NAME = u"_parent_table_name"
 
+# instance flags
+EDITTED = "_editted"
+
 # datetime format that we store in mongo
 MONGO_STRFTIME = '%Y-%m-%dT%H:%M:%S'
 
