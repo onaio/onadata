@@ -474,7 +474,7 @@ class TestAbstractViewSet(TestCase):
                           'http://testserver/api/v1/dataviews/%s'
                           % self.data_view.pk)
 
-    def _create_widget(self, data=None):
+    def _create_widget(self, data=None, group_by=''):
         view = WidgetViewSet.as_view({
             'post': 'create'
         })
@@ -489,7 +489,7 @@ class TestAbstractViewSet(TestCase):
                 'widget_type': "charts",
                 'view_type': "horizontal-bar",
                 'column': "age",
-                'group_by': "gender"
+                'group_by': group_by
             }
 
         count = Widget.objects.all().count()

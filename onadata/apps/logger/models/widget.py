@@ -1,18 +1,20 @@
 from django.contrib.gis.db import models
 from django.contrib.contenttypes.generic import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from jsonfield import JSONField
 from ordered_model.models import OrderedModel
 from querybuilder.query import Query
-from querybuilder.fields import CountField, SimpleField
+from querybuilder.fields import AvgField, CountField, SimpleField, SumField
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.utils.model_tools import generate_uuid_for_form
-from onadata.libs.utils.chart_tools import get_field_from_field_name,\
-    DATA_TYPE_MAP, get_field_label
-from onadata.libs.utils.common_tags import SUBMISSION_TIME
-from jsonfield import JSONField
+from onadata.libs.utils.chart_tools import get_field_from_field_name, \
+    DATA_TYPE_MAP, get_field_label, _flatten_multiple_dict_into_one,\
+    _use_labels_from_group_by_name, get_field_from_field_xpath
+from onadata.libs.utils.common_tags import NUMERIC_LIST, SUBMISSION_TIME, \
+    SELECT_ONE
 
 
 class Widget(OrderedModel):
@@ -60,32 +62,18 @@ class Widget(OrderedModel):
 
     @classmethod
     def query_data(cls, widget):
-
         # get the columns needed
         column = widget.column
-        group_by = widget.group_by
+        group_by = widget.group_by if widget.group_by else None
 
         if isinstance(widget.content_object, XForm):
             xform = widget.content_object
         elif isinstance(widget.content_object, DataView):
             xform = widget.content_object.xform
 
-        columns = [SimpleField(field="json->>'%s'" % unicode(column),
-                               alias='"{}"'.format(column)),
-                   CountField(field="json->>'%s'" % unicode(column),
-                              alias='"count"')]
-        if group_by:
-            columns += [{group_by: "json->>'%s'" % unicode(group_by)}]
+        dd = xform.data_dictionary()
+        field = get_field_from_field_name(column, dd)
 
-        query = Query().from_table(Instance, columns).where(xform_id=xform.pk,
-                                                            deleted_at=None)
-        query.group_by("json->>'%s'" % unicode(column))
-        if group_by:
-            query.group_by("json->>'%s'" % unicode(group_by))
-
-        records = query.select()
-
-        field = get_field_from_field_name(column, xform.data_dictionary())
         if isinstance(field, basestring) and field == SUBMISSION_TIME:
             field_label = 'Submission Time'
             field_xpath = '_submission_time'
@@ -97,11 +85,81 @@ class Widget(OrderedModel):
             field_xpath = field.get_abbreviated_xpath()
             field_label = get_field_label(field)
 
+        columns = [SimpleField(field="json->>'%s'" % unicode(column),
+                               alias='"{}"'.format(column)),
+                   CountField(field="json->>'%s'" % unicode(column),
+                              alias='"count"')]
+        if group_by:
+            if field_type in NUMERIC_LIST:
+                column_field = SimpleField(
+                    field="json->>'%s'" % unicode(column),
+                    cast="float",
+                    alias=column)
+            else:
+                column_field = SimpleField(
+                    field="json->>'%s'" % unicode(column),
+                    alias=column)
+
+            # build inner query
+            inner_query_columns = \
+                [column_field,
+                 SimpleField(field="json->>'%s'" % unicode(group_by),
+                             alias=group_by),
+                 SimpleField(field="xform_id"),
+                 SimpleField(field="deleted_at")]
+            inner_query = Query().from_table(Instance, inner_query_columns)
+
+            # build group-by query
+            if field_type in NUMERIC_LIST:
+                columns = [SimpleField(field=group_by,
+                                       alias='"%s"' % group_by),
+                           SumField(field=column,
+                                    alias="sum"),
+                           AvgField(field=column,
+                                    alias="mean")]
+            elif field_type == SELECT_ONE:
+                columns = [SimpleField(field=column,
+                                       alias='"%s"' % column),
+
+                           SimpleField(field=group_by,
+                                       alias='"%s"' % group_by),
+                           CountField(field="*",
+                                      alias='"count"')]
+
+            query = Query().from_table({'inner_query': inner_query}, columns).\
+                where(xform_id=xform.pk, deleted_at=None)
+
+            if field_type == SELECT_ONE:
+                query.group_by(column).group_by(group_by)
+            else:
+                query.group_by(group_by)
+
+        else:
+            query = Query().from_table(Instance, columns).\
+                where(xform_id=xform.pk, deleted_at=None)
+            query.group_by("json->>'%s'" % unicode(column))
+
+        # run query
+        records = query.select()
+
+        # flatten multiple dict if select one with group by
+        if field_type == SELECT_ONE and group_by:
+            records = _flatten_multiple_dict_into_one(column, group_by,
+                                                      records)
+        # use labels if group by
+        if group_by:
+            group_by_field = get_field_from_field_xpath(group_by, dd)
+            choices = dd.survey.get('choices')
+            if choices:
+                choices = choices.get(column)
+            records = _use_labels_from_group_by_name(group_by, group_by_field,
+                                                     data_type, records,
+                                                     choices=choices)
         return {
             "field_type": field_type,
             "data_type": data_type,
             "field_xpath": field_xpath,
             "field_label": field_label,
-            "group_by": group_by,
+            "grouped_by": group_by,
             "data": records
         }
