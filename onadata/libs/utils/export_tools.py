@@ -1406,7 +1406,10 @@ def parse_request_export_options(request):
     """
     boolean_list = ['true', 'false']
     options = {}
-    params = request.QUERY_PARAMS
+    if hasattr(request, 'QUERY_PARAMS'):
+        params = request.QUERY_PARAMS
+    if hasattr(request, 'GET'):
+        params = request.GET
     remove_group_name = params.get('remove_group_name') and \
         params.get('remove_group_name').lower()
     do_not_split_select_multiples = params.get(
@@ -1430,11 +1433,12 @@ def parse_request_export_options(request):
     else:
         options['group_delimiter'] = DEFAULT_GROUP_DELIMITER
 
-    options['split_select_multiples'] = not do_not_split_select_multiples
+    options['split_select_multiples'] = \
+        not str_to_bool(do_not_split_select_multiples)
 
-    if 'include_images' in request.QUERY_PARAMS:
+    if 'include_images' in params:
         options["include_images"] = str_to_bool(
-            request.QUERY_PARAMS.get("include_images"))
+            params.get("include_images"))
     else:
         options["include_images"] = True
     return options
