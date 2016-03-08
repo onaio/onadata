@@ -10,7 +10,8 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.contrib.auth.models import User
 from django.conf import settings
-from django.http import HttpResponseBadRequest, HttpResponseRedirect
+from django.http import (
+    HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden)
 from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
 from django.utils import six
@@ -176,6 +177,9 @@ def parse_webform_return_url(return_url, request):
             lambda p: p.startswith('jwt'),
             url.query.split('&'))
         jwt_param = jwt_param and jwt_param[0].split('=')[1]
+
+        if not jwt_param:
+            return
     except IndexError:
         pass
 
@@ -337,12 +341,14 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if redirect:
                 return redirect
 
-        return_url = urlencode({'return_url': return_url})
-        login_url = settings.ZEBRA_LOGIN
-        zebra_login = '{login_url}?{return_url}'.format(**locals())
-        response = HttpResponseRedirect(zebra_login)
+            login_vars = {"login_url": settings.ZEBRA_LOGIN,
+                          "return_url": urlencode({'return_url': return_url})}
+            zebra_login = '{login_url}?{return_url}'.format(**login_vars)
 
-        return response
+            return HttpResponseRedirect(zebra_login)
+
+        return HttpResponseForbidden(
+            "Authentication failure, cannot redirect")
 
     @detail_route()
     def enketo(self, request, **kwargs):
