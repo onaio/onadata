@@ -278,6 +278,7 @@ class DataDictionary(XForm):
 
     def save(self, *args, **kwargs):
         skip_xls_read = kwargs.get('skip_xls_read')
+        id_string_changed = None
 
         if self.xls and not skip_xls_read:
             default_name = None \
@@ -306,8 +307,11 @@ class DataDictionary(XForm):
             survey = self._check_version_set(survey)
             # if form is being replaced, don't check for id_string uniqueness
             if self.pk is None:
-                survey['id_string'] = self.get_unique_id_string(
+                new_id_string = self.get_unique_id_string(
                     survey.get('id_string'))
+                if new_id_string != survey.get('id_string'):
+                    id_string_changed = True
+                survey['id_string'] = new_id_string
             elif self.id_string != survey.get('id_string'):
                 raise XLSFormError(_(
                     (u"Your updated form's id_string '%(new_id)s' must match "
@@ -326,6 +330,9 @@ class DataDictionary(XForm):
 
         if 'skip_xls_read' in kwargs:
             del kwargs['skip_xls_read']
+
+        if id_string_changed:
+            kwargs['id_string_changed'] = id_string_changed
 
         super(DataDictionary, self).save(*args, **kwargs)
 
