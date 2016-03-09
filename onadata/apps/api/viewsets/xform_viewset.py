@@ -42,7 +42,8 @@ from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers import renderers
-from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.xform_serializer import (
+    XFormSerializer, XFormCreateSerializer)
 from onadata.libs.serializers.clone_xform_serializer import \
     CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import (
@@ -263,9 +264,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         survey = utils.publish_xlsform(request, owner)
         if isinstance(survey, XForm):
-            xform = XForm.objects.get(pk=survey.pk)
-            serializer = XFormSerializer(
-                xform, context={'request': request})
+            serializer = XFormCreateSerializer(
+                survey, context={'request': request})
             headers = self.get_success_headers(serializer.data)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED,
