@@ -100,7 +100,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         model = XForm
         read_only_fields = (
             'json', 'xml', 'date_created', 'date_modified', 'encrypted',
-            'bamboo_dataset', 'last_submission_time', 'id_string_changed')
+            'bamboo_dataset', 'last_submission_time')
         exclude = ('json', 'xml', 'xls', 'user', 'has_start_time',
                    'shared', 'shared_data', 'deleted_at')
 
@@ -244,6 +244,13 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
             return data_views
         return []
+
+
+class XFormCreateSerializer(XFormSerializer):
+    has_id_string_changed = serializers.SerializerMethodField()
+
+    def get_has_id_string_changed(self, obj):
+        return obj.has_id_string_changed
 
 
 class XFormListSerializer(serializers.Serializer):
