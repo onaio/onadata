@@ -111,8 +111,6 @@ class XForm(BaseModel):
     metadata_set = GenericRelation(MetaData,
                                    content_type_field='content_type_id',
                                    object_id_field="object_id")
-    id_string_changed = models.BooleanField(default=False)
-
     tags = TaggableManager()
 
     class Meta:
