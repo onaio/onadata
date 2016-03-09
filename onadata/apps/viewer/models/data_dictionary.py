@@ -245,6 +245,13 @@ class DataDictionary(XForm):
         app_label = "viewer"
         proxy = True
 
+    @property
+    def has_id_string_changed(self):
+        if hasattr(self, '_id_string_changed'):
+            return self._id_string_changed
+
+        return False
+
     def add_instances(self):
         if not hasattr(self, "_dict_organizer"):
             _dict_organizer = DictOrganizer()
@@ -309,8 +316,8 @@ class DataDictionary(XForm):
             if self.pk is None:
                 new_id_string = self.get_unique_id_string(
                     survey.get('id_string'))
-                if new_id_string != survey.get('id_string'):
-                    id_string_changed = True
+                self._id_string_changed = \
+                    new_id_string != survey.get('id_string')
                 survey['id_string'] = new_id_string
             elif self.id_string != survey.get('id_string'):
                 raise XLSFormError(_(
