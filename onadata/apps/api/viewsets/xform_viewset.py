@@ -341,11 +341,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if redirect:
                 return redirect
 
-            login_vars = {"login_url": settings.ZEBRA_LOGIN,
+            login_vars = {"login_url": settings.ENKETO_CLIENT_LOGIN_URL,
                           "return_url": urlencode({'return_url': return_url})}
-            zebra_login = '{login_url}?{return_url}'.format(**login_vars)
+            client_login = '{login_url}?{return_url}'.format(**login_vars)
 
-            return HttpResponseRedirect(zebra_login)
+            return HttpResponseRedirect(client_login)
 
         return HttpResponseForbidden(
             "Authentication failure, cannot redirect")
