@@ -131,6 +131,13 @@ class EnketoTokenAuthentication(TokenAuthentication):
         except KeyError:
             pass
         except BadSignature:
+            # if the cookie wasn't signed it means zebra might have
+            # generated it
+            cookie_jwt = request.COOKIES.get('__enketo')
+            api_token = get_api_token(cookie_jwt)
+            if getattr(api_token, 'user'):
+                return api_token.user, api_token
+
             raise exceptions.ParseError(
                 _('Malformed cookie. Clear your cookies then try again'))
 

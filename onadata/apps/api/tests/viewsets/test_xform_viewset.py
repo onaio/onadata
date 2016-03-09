@@ -869,6 +869,24 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response.content,
                 "Authentication failure, cannot redirect")
 
+    @override_settings(ZEBRA_LOGIN='http://test.ona.io/login')
+    def test_login_enketo_no_jwt_but_with_return_url(self):
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+            self._publish_xls_form_to_project()
+
+            view = XFormViewSet.as_view({
+                'get': 'login'
+            })
+
+            formid = self.xform.pk
+            url = u"https://enketo.ona.io/::YY8M"
+            query_data = {'return': url}
+            request = self.factory.get('/', data=query_data)
+            response = view(request, pk=formid)
+
+            # user is redirected to the set login page in settings file
+            self.assertEqual(response.status_code, 302)
+
     @patch('onadata.apps.api.viewsets.xform_viewset.settings')
     def test_login_enketo_online_url_bad_token(self, mock_settings):
         mock_settings.JWT_SECRET_KEY = self.JWT_SECRET_KEY
