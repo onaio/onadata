@@ -247,12 +247,9 @@ def create_instance(username, xml_file, media_files,
 
     filtered_instances = get_filtered_instances(
         {'xml': xml, 'xform__id': xform.pk})
-    existing_instance_count = filtered_instances.count()
+    existing_instance = filtered_instances.first()
 
-    if existing_instance_count > 0:
-        existing_instance = get_filtered_instances(
-            {'xml': xml, 'xform__id': xform.pk})[0]
-
+    if existing_instance:
         if not existing_instance.xform or\
                 existing_instance.xform.has_start_time:
             # ensure we have saved the extra attachments
