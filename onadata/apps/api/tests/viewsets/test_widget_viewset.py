@@ -264,7 +264,6 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertIn('data', response.data.get('data'))
         self.assertEquals(len(response.data.get('data')['data']), 8)
         self.assertIn('age', response.data.get('data')['data'][0])
-        self.assertIn('gender', response.data.get('data')['data'][0])
         self.assertIn('count', response.data.get('data')['data'][0])
 
         self.assertEqual(response.data.get('data')['data_type'], 'numeric')
@@ -272,6 +271,24 @@ class TestWidgetViewSet(TestAbstractViewSet):
                          'How old are you?')
         self.assertEqual(response.data.get('data')['field_type'], 'integer')
         self.assertEqual(response.data.get('data')['field_xpath'], 'age')
+
+    def test_widget_data_with_group_by(self):
+        self._create_widget(group_by='gender')
+
+        data = {
+            "data": True
+        }
+
+        request = self.factory.get('/', data=data, **self.extra)
+        response = self.view(request, pk=self.widget.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(response.data.get('data'))
+        self.assertIn('data', response.data.get('data'))
+        self.assertEquals(len(response.data.get('data')['data']), 2)
+        self.assertIn('gender', response.data.get('data')['data'][0])
+        self.assertIn('sum', response.data.get('data')['data'][0])
+        self.assertIn('mean', response.data.get('data')['data'][0])
 
     def test_widget_data_widget(self):
         data = {
@@ -298,7 +315,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
                               'data_type': 'categorized',
                               'field_xpath': u'gender',
                               'field_label': u'Gender',
-                              'group_by': u'',
+                              'grouped_by': None,
                               'data': [
                                   {'count': 7, 'gender': u'male'},
                                   {'count': 1, 'gender': u'female'}]})
@@ -322,7 +339,6 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertIn('data', response.data.get('data'))
         self.assertEquals(len(response.data.get('data')['data']), 8)
         self.assertIn('age', response.data.get('data')['data'][0])
-        self.assertIn('gender', response.data.get('data')['data'][0])
         self.assertIn('count', response.data.get('data')['data'][0])
 
     def test_widget_with_key_anon(self):
@@ -347,7 +363,6 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertIn('data', response.data.get('data'))
         self.assertEquals(len(response.data.get('data')['data']), 8)
         self.assertIn('age', response.data.get('data')['data'][0])
-        self.assertIn('gender', response.data.get('data')['data'][0])
         self.assertIn('count', response.data.get('data')['data'][0])
 
     def test_widget_with_nonexistance_key(self):
@@ -570,6 +585,9 @@ class TestWidgetViewSet(TestAbstractViewSet):
             'widget_type': "charts",
             'view_type': "horizontal-bar",
             'column': "Gender",
+            'metadata': {
+                "test metadata": "percentage"
+            }
         }
 
         self._create_widget(data)
@@ -588,7 +606,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
                               'data_type': 'categorized',
                               'field_xpath': u'Gender',
                               'field_label': u'Gender',
-                              'group_by': u'',
+                              'grouped_by': None,
                               'data': [
                                   {'count': 7, 'Gender': u'male'},
                                   {'count': 1, 'Gender': u'female'}]})
