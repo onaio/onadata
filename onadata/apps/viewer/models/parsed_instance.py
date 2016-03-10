@@ -388,9 +388,8 @@ class ParsedInstance(models.Model):
         if isinstance(self.instance.deleted_at, datetime.datetime):
             data[DELETEDAT] = self.instance.deleted_at.strftime(MONGO_STRFTIME)
 
-        if hasattr(self, "submission_history"):
-            data[EDITED] = (True if self.submission_history.count() > 0
-                             else False)
+        data[EDITED] = (True if self.instance.submission_history.count() > 0
+                        else False)
 
         d.update(data)
 
