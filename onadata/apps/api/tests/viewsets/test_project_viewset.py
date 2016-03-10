@@ -306,14 +306,14 @@ class TestProjectViewSet(TestAbstractViewSet):
             data_type='enketo_url') | Q(data_type='enketo_preview_url'))
         url = resultset.get(data_type='enketo_url')
         preview_url = resultset.get(data_type='enketo_preview_url')
-        form_metadata = [{
+        form_metadata = sorted([{
             'id': preview_url.pk,
             'xform': self.xform.pk,
             'data_value': u"https://enketo.ona.io/preview/::YY8M",
             'data_type': u'enketo_preview_url',
             'data_file': None,
             'data_file_type': None,
-            u'url': u'http://testserver/api/v1/metadata/%s' % preview_url.pk,
+            'url': 'http://testserver/api/v1/metadata/%s' % preview_url.pk,
             'file_hash': None,
             'media_url': None,
             'date_created': preview_url.date_created
@@ -323,16 +323,17 @@ class TestProjectViewSet(TestAbstractViewSet):
             'xform': self.xform.pk,
             'data_file': None,
             'data_type': 'enketo_url',
-            u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
+            'url': 'http://testserver/api/v1/metadata/%s' % url.pk,
             'data_file_type': None,
             'file_hash': None,
             'media_url': None,
             'date_created': url.date_created
-        }]
+        }], key=itemgetter('id'))
 
         # test metadata content separately
-        response_metadata = [dict(item)
-                             for item in response.data[0].pop("metadata")]
+        response_metadata = sorted(
+            [dict(item) for item in response.data[0].pop("metadata")],
+            key=itemgetter('id'))
 
         self.assertEqual(response_metadata, form_metadata)
 
