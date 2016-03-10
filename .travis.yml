@@ -30,8 +30,8 @@ before_install:
    sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install postgresql-9.4-postgis-2.2
   - ./script/database/install_postgis onadata_test postgres 127.0.0.1
 env:
-  - TESTFOLDER="onadata/apps/main"
-  - TESTFOLDER="onadata/apps/api onadata/apps/logger onadata/apps/viewer onadata/apps/restservice onadata/apps/sms_support onadata/libs"
+  - TESTFOLDER="onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer"
+  - TESTFOLDER="onadata/apps/api onadata/apps/logger"
 install:
   - pip install --upgrade pip
   - pip install -r requirements/base.pip --allow-all-external
