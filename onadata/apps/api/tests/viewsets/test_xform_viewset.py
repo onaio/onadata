@@ -869,7 +869,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response.content,
                 "Authentication failure, cannot redirect")
 
-    @override_settings(ZEBRA_LOGIN='http://test.ona.io/login')
+    @override_settings(ENKETO_CLIENT_LOGIN_URL='http://test.ona.io/login')
     def test_login_enketo_no_jwt_but_with_return_url(self):
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()
