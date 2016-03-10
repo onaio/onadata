@@ -18,7 +18,7 @@ from onadata.apps.logger.models.instance import Instance
 from onadata.apps.restservice.tasks import call_service_async
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
-    NOTES, SUBMITTED_BY, VERSION, DURATION, EDITTED
+    NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.libs.utils.osm import save_osm_data_async
 
@@ -389,7 +389,7 @@ class ParsedInstance(models.Model):
             data[DELETEDAT] = self.instance.deleted_at.strftime(MONGO_STRFTIME)
 
         if hasattr(self, "submission_history"):
-            data[EDITTED] = (True if self.submission_history.count() > 0
+            data[EDITED] = (True if self.submission_history.count() > 0
                              else False)
 
         d.update(data)
