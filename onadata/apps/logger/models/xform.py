@@ -111,6 +111,7 @@ class XForm(BaseModel):
     metadata_set = GenericRelation(MetaData,
                                    content_type_field='content_type_id',
                                    object_id_field="object_id")
+
     tags = TaggableManager()
 
     class Meta:
@@ -192,7 +193,6 @@ class XForm(BaseModel):
             kwargs['update_fields'] = list(set(list(
                 kwargs['update_fields']) + ['date_modified']
             ))
-
         self._set_title()
         old_id_string = self.id_string
         self._set_id_string()
