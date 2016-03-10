@@ -32,7 +32,7 @@ class TestKMLExport(TestBase):
 
         self.assertEqual(instances.count(), 2)
 
-        first, second = [str(i.pk) for i in instances]
+        first, second = ["{:,}".format(i.pk) for i in instances]
 
         with open(os.path.join(self.fixtures, 'export.kml')) as f:
             expected_content = f.read()
