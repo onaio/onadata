@@ -285,7 +285,6 @@ class DataDictionary(XForm):
 
     def save(self, *args, **kwargs):
         skip_xls_read = kwargs.get('skip_xls_read')
-        id_string_changed = None
 
         if self.xls and not skip_xls_read:
             default_name = None \
@@ -337,9 +336,6 @@ class DataDictionary(XForm):
 
         if 'skip_xls_read' in kwargs:
             del kwargs['skip_xls_read']
-
-        if id_string_changed:
-            kwargs['id_string_changed'] = id_string_changed
 
         super(DataDictionary, self).save(*args, **kwargs)
 

@@ -192,7 +192,7 @@ class XForm(BaseModel):
             kwargs['update_fields'] = list(set(list(
                 kwargs['update_fields']) + ['date_modified']
             ))
-        self.id_string_changed = kwargs.get('id_string_changed', False)
+
         self._set_title()
         old_id_string = self.id_string
         self._set_id_string()
@@ -224,9 +224,6 @@ class XForm(BaseModel):
 
         if 'skip_xls_read' in kwargs:
             del kwargs['skip_xls_read']
-
-        if 'id_string_changed' in kwargs:
-            del kwargs['id_string_changed']
 
         super(XForm, self).save(*args, **kwargs)
 
