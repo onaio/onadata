@@ -247,10 +247,7 @@ class DataDictionary(XForm):
 
     @property
     def has_id_string_changed(self):
-        if hasattr(self, '_id_string_changed'):
-            return self._id_string_changed
-
-        return False
+        return getattr(self, '_id_string_changed', False)
 
     def add_instances(self):
         if not hasattr(self, "_dict_organizer"):
