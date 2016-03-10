@@ -435,6 +435,7 @@ class TestCSVDataFrameBuilder(TestBase):
             u'gps': u'-1.2626156 36.7923571 0.0 30.0',
             u'_geolocation': [-1.2626156, 36.7923571],
             u'_duration': '',
+            u'_edited': False,
             u'_gps_latitude': u'-1.2626156',
             u'_gps_longitude': u'36.7923571',
             u'_gps_altitude': u'0.0',

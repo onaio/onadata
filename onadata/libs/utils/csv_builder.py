@@ -17,7 +17,7 @@ from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
-    DURATION
+    DURATION, EDITED
 from onadata.libs.utils.export_tools import current_site_url
 from onadata.apps.viewer.models.data_dictionary import\
     question_types_to_exclude
@@ -149,7 +149,7 @@ def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
 
 class AbstractDataFrameBuilder(object):
     IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ID, ATTACHMENTS, GEOLOCATION,
-                       BAMBOO_DATASET_ID, DELETEDAT]
+                       BAMBOO_DATASET_ID, DELETEDAT, EDITED]
     # fields NOT within the form def that we want to include
     ADDITIONAL_COLUMNS = [
         UUID, SUBMISSION_TIME, TAGS, NOTES, VERSION, DURATION,
