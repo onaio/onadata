@@ -30,8 +30,8 @@ before_install:
    sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install postgresql-9.4-postgis-2.2
   - ./script/database/install_postgis onadata_test postgres 127.0.0.1
 env:
-  - TESTFOLDER="onadata/apps/main onadata/apps/api" 
-  - TESTFOLDER="onadata/apps/logger onadata/apps/viewer onadata/apps/restservice onadata/apps/sms_support onadata/libs"
+  - TESTFOLDER="onadata/apps/main"
+  - TESTFOLDER="onadata/apps/api onadata/apps/logger onadata/apps/viewer onadata/apps/restservice onadata/apps/sms_support onadata/libs"
 install:
   - pip install --upgrade pip
   - pip install -r requirements/base.pip --allow-all-external
@@ -39,12 +39,12 @@ install:
   - python manage.py migrate --noinput --settings=onadata.settings.travis_test
   # make ~/tmp dir writable for npm downloads
   - mkdir -p "$HOME/tmp"
-  - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then chmod a+w $HOME/tmp ; fi
-  - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then  npm install ; fi
-  - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then bower install --force-latest ; fi
+  # - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then chmod a+w $HOME/tmp ; fi
+  # - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then  npm install ; fi
+  # - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then bower install --force-latest ; fi
 script:
   - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test
-  - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then karma start onadata/libs/javascript/tests/karma.conf.js ; fi
+  # - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then karma start onadata/libs/javascript/tests/karma.conf.js ; fi
 notifications:
   email:
     - tech+travis@ona.io
