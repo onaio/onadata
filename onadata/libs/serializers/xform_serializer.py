@@ -246,6 +246,13 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
         return []
 
 
+class XFormCreateSerializer(XFormSerializer):
+    has_id_string_changed = serializers.SerializerMethodField()
+
+    def get_has_id_string_changed(self, obj):
+        return obj.has_id_string_changed
+
+
 class XFormListSerializer(serializers.Serializer):
     formID = serializers.ReadOnlyField(source='id_string')
     name = serializers.ReadOnlyField(source='title')

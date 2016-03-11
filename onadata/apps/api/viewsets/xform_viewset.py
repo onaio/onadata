@@ -10,8 +10,9 @@ from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.contrib.auth.models import User
 from django.conf import settings
-from django.http import HttpResponseBadRequest, HttpResponseForbidden,\
-    HttpResponseRedirect
+from django.http import (
+    HttpResponseBadRequest, HttpResponseRedirect, HttpResponseForbidden)
+from django.utils.http import urlencode
 from django.utils.translation import ugettext as _
 from django.utils import six
 from django.utils import timezone
@@ -41,7 +42,8 @@ from onadata.libs.mixins.labels_mixin import LabelsMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers import renderers
-from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.xform_serializer import (
+    XFormSerializer, XFormCreateSerializer)
 from onadata.libs.serializers.clone_xform_serializer import \
     CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import (
@@ -176,6 +178,9 @@ def parse_webform_return_url(return_url, request):
             lambda p: p.startswith('jwt'),
             url.query.split('&'))
         jwt_param = jwt_param and jwt_param[0].split('=')[1]
+
+        if not jwt_param:
+            return
     except IndexError:
         pass
 
@@ -259,9 +264,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         survey = utils.publish_xlsform(request, owner)
         if isinstance(survey, XForm):
-            xform = XForm.objects.get(pk=survey.pk)
-            serializer = XFormSerializer(
-                xform, context={'request': request})
+            serializer = XFormCreateSerializer(
+                survey, context={'request': request})
             headers = self.get_success_headers(serializer.data)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED,
@@ -337,7 +341,14 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if redirect:
                 return redirect
 
-        return HttpResponseForbidden("Authentication failure, cannot redirect")
+            login_vars = {"login_url": settings.ENKETO_CLIENT_LOGIN_URL,
+                          "return_url": urlencode({'return_url': return_url})}
+            client_login = '{login_url}?{return_url}'.format(**login_vars)
+
+            return HttpResponseRedirect(client_login)
+
+        return HttpResponseForbidden(
+            "Authentication failure, cannot redirect")
 
     @detail_route()
     def enketo(self, request, **kwargs):

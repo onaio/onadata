@@ -245,6 +245,10 @@ class DataDictionary(XForm):
         app_label = "viewer"
         proxy = True
 
+    @property
+    def has_id_string_changed(self):
+        return getattr(self, '_id_string_changed', False)
+
     def add_instances(self):
         if not hasattr(self, "_dict_organizer"):
             _dict_organizer = DictOrganizer()
@@ -306,8 +310,11 @@ class DataDictionary(XForm):
             survey = self._check_version_set(survey)
             # if form is being replaced, don't check for id_string uniqueness
             if self.pk is None:
-                survey['id_string'] = self.get_unique_id_string(
+                new_id_string = self.get_unique_id_string(
                     survey.get('id_string'))
+                self._id_string_changed = \
+                    new_id_string != survey.get('id_string')
+                survey['id_string'] = new_id_string
             elif self.id_string != survey.get('id_string'):
                 raise XLSFormError(_(
                     (u"Your updated form's id_string '%(new_id)s' must match "

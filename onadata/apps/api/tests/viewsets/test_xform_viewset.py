@@ -22,7 +22,7 @@ from django.test.utils import override_settings
 from django.utils.dateparse import parse_datetime
 from django_digest.test import DigestAuth
 from httmock import urlmatch, HTTMock
-from mock import patch
+from mock import patch, Mock
 from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
 from xml.dom import minidom, Node
@@ -869,6 +869,24 @@ class TestXFormViewSet(TestAbstractViewSet):
                 response.content,
                 "Authentication failure, cannot redirect")
 
+    @override_settings(ENKETO_CLIENT_LOGIN_URL='http://test.ona.io/login')
+    def test_login_enketo_no_jwt_but_with_return_url(self):
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
+            self._publish_xls_form_to_project()
+
+            view = XFormViewSet.as_view({
+                'get': 'login'
+            })
+
+            formid = self.xform.pk
+            url = u"https://enketo.ona.io/::YY8M"
+            query_data = {'return': url}
+            request = self.factory.get('/', data=query_data)
+            response = view(request, pk=formid)
+
+            # user is redirected to the set login page in settings file
+            self.assertEqual(response.status_code, 302)
+
     @patch('onadata.apps.api.viewsets.xform_viewset.settings')
     def test_login_enketo_online_url_bad_token(self, mock_settings):
         mock_settings.JWT_SECRET_KEY = self.JWT_SECRET_KEY
@@ -1034,7 +1052,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                 xform = self.user.xforms.all()[0]
                 data.update({
                     'url':
-                    'http://testserver/api/v1/forms/%s' % xform.pk
+                    'http://testserver/api/v1/forms/%s' % xform.pk,
+                    'has_id_string_changed': False,
                 })
 
                 self.assertDictContainsSubset(data, response.data)
@@ -1063,7 +1082,8 @@ class TestXFormViewSet(TestAbstractViewSet):
                     'url': 'http://testserver/api/v1/forms/%s' % xform.pk,
                     'id_string': u'Transportation_2011_07_25_1',
                     'title': u'Transportation_2011_07_25',
-                    'sms_id_string': u'Transportation_2011_07_25'
+                    'sms_id_string': u'Transportation_2011_07_25',
+                    'has_id_string_changed': True,
                 })
 
                 self.assertDictContainsSubset(data, response.data)
@@ -2443,6 +2463,77 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 202)
         self.assertEquals(response.data, {'job_status': 'PENDING'})
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.tasks.tools.do_publish_xlsform',
+           side_effect=[MemoryError(), MemoryError(), Mock()])
+    @patch('onadata.apps.api.tasks.get_async_status')
+    def test_publish_form_async_trigger_memory_error_then_published(
+            self, mock_get_status, mock_publish_xlsform):
+        mock_get_status.return_value = {'job_status': 'PENDING'}
+
+        view = XFormViewSet.as_view({
+            'post': 'create_async',
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation.xls")
+
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+
+            self.assertTrue(mock_publish_xlsform.called)
+            # `do_publish_xlsform` function should be called 3 times as that's
+            # the size of the side_effect list - the function will be retried 3
+            # times (fail twice and succeed on the third call)
+            self.assertEqual(mock_publish_xlsform.call_count, 3)
+            self.assertEqual(response.status_code, 202)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.apps.api.tasks.tools.do_publish_xlsform',
+           side_effect=[MemoryError(), MemoryError(), MemoryError()])
+    @patch('onadata.apps.api.tasks.get_async_status')
+    def test_failed_form_publishing_after_maximum_retries(
+            self, mock_get_status, mock_publish_xlsform):
+        error_message = {
+            u'error': (u'Service temporarily unavailable, please try to '
+                       'publish the form again')
+        }
+        mock_get_status.return_value = error_message
+
+        view = XFormViewSet.as_view({
+            'post': 'create_async',
+            'get': 'create_async'
+        })
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "transportation", "transportation.xls")
+
+        get_data = None
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request)
+
+            self.assertTrue(mock_publish_xlsform.called)
+            # `do_publish_xlsform` function should be called 4 times as the
+            # 4th triggers `MemoryError` exception which is not retried and
+            # that's where we return a custom message
+            self.assertEqual(mock_publish_xlsform.call_count, 4)
+            self.assertEqual(response.status_code, 202)
+            self.assertTrue('job_uuid' in response.data)
+            get_data = {'job_uuid': response.data.get('job_uuid')}
+
+        if get_data:
+            request = self.factory.get('/', data=get_data, **self.extra)
+            response = view(request)
+
+            self.assertEqual(response.status_code, 202)
+            self.assertEquals(response.data, error_message)
 
     def test_survey_preview_endpoint(self):
         view = XFormViewSet.as_view({
