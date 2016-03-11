@@ -55,6 +55,28 @@ class TestNoteViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertDictContainsSubset(self.note, response.data)
 
+    def test_get_note_for_specific_instance(self):
+        self._add_notes_to_data_point()
+        view = NoteViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        instance = self.xform.instances.first()
+
+        query_params = {"instance": instance.id}
+        request = self.factory.get('/', data=query_params, **self.extra)
+        response = view(request, pk=self.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertDictContainsSubset(self.note, response.data)
+
+        second_instance = self.xform.instances.last()
+        query_params = {"instance": second_instance.id}
+        request = self.factory.get('/', data=query_params, **self.extra)
+        response = view(request, pk=self.pk)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(response.data, [])
+
     def test_add_notes_to_data_point(self):
         self._add_notes_to_data_point()
         self.assertEquals(len(self._first_xform_instance.json["_notes"]), 1)

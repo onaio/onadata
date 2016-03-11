@@ -338,3 +338,20 @@ class WidgetFilter(XFormPermissionFilterMixin,
 
         return super(WidgetFilter, self).filter_queryset(request, queryset,
                                                          view)
+
+
+class NoteFilter(filters.BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        instance_id = request.QUERY_PARAMS.get('instance')
+
+        if instance_id:
+            try:
+                int(instance_id)
+            except ValueError:
+                raise ParseError(
+                    u"Invalid value for instance %s." % instance_id)
+
+            instance = get_object_or_404(Instance, pk=instance_id)
+            queryset = queryset.filter(instance=instance)
+
+        return queryset
