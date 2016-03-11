@@ -86,7 +86,7 @@ class TestNoteViewSet(TestBase):
         extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
         note = {'note': u"Road Warrior"}
-        dataid = self.xform.instances.all()[0].pk
+        dataid = self.xform.instances.first().pk
         note['instance'] = dataid
 
         # Other user 'lilly' should not be able to create notes
@@ -105,13 +105,16 @@ class TestNoteViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
 
         self.assertEqual(response.data, [])
-        # Other user 'lilly' should not have access to bob's instance notes
+
+        # Other user 'lilly' sees an empty list when accessing bob's notes
         view = NoteViewSet.as_view({
             'get': 'retrieve'
         })
-        request = self.factory.get('/', **extra)
+        query_params = {"instance": dataid}
+        request = self.factory.get('/', data=query_params, **extra)
         response = view(request, pk=self.pk)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])
 
     def test_delete_note(self):
         self._add_notes_to_data_point()
