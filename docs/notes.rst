@@ -1,10 +1,10 @@
 Notes
 *********
 
-View notes for specific fields in a form.
+View notes for specific submission.
 
-List all notes to submissions
------------------------------
+List all notes
+--------------
 .. raw:: html
 
     <pre class="prettyprint">
@@ -21,11 +21,43 @@ Response
 ::
 
         [{
-            "id": 4240,
-            "id_string": "dhis2form",
-            "form": "https://api.ona.io/api/v1/form/1",
+            "created_by": 1,
+            "date_created": "2016-03-10T13:38:47.868430Z",
+            "date_modified": "2016-03-10T13:38:47.868466Z",
+            "id": 1,
+            "instance": 1234,
+            "instance_field": "",
+            "note": "This is a test note"
         }
         ...
+
+
+List all notes to a submission
+------------------------------
+To view notes associated with a submission:
+- ``instance``: The submission ID whose notes you want to list
+
+Example
+^^^^^^^^
+::
+
+       curl -X GET https://api.ona.io/api/v1/notes?instance=1234
+
+Response
+^^^^^^^^^
+::
+
+        [{
+            "created_by": 1,
+            "date_created": "2016-03-10T13:38:47.868430Z",
+            "date_modified": "2016-03-10T13:38:47.868466Z",
+            "id": 1,
+            "instance": 1234,
+            "instance_field": "",
+            "note": "This is a test note"
+        }
+        ...
+
 
 Add a note to a submission
 --------------------------
