@@ -52,7 +52,9 @@ class TestNoteViewSet(TestBase):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.pk)
+
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['owner'], self.user.username)
         self.assertDictContainsSubset(self.note, response.data)
 
     def test_get_note_for_specific_instance(self):

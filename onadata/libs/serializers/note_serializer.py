@@ -7,8 +7,16 @@ from onadata.apps.logger.models import Note
 
 
 class NoteSerializer(serializers.ModelSerializer):
+    owner = serializers.SerializerMethodField()
+
     class Meta:
         model = Note
+
+    def get_owner(self, obj):
+        if obj:
+            return obj.created_by.username
+
+        return None
 
     def create(self, validated_data):
         request = self.context.get('request')
