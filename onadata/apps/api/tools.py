@@ -301,7 +301,7 @@ def publish_project_xform(request, project):
                     request.user, xform)))
 
         # if the target project and xform aren't in the same account
-        if project.organization != xform.user:
+        if project.created_by != xform.user:
             msg = 'Form with the same id_string already exists in this account'
             if id_string_exists_in_account():
                 raise exceptions.ParseError(_(msg))
