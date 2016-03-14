@@ -526,6 +526,29 @@ class TestProjectViewSet(TestAbstractViewSet):
             u'Form with the same id_string already exists in this account')
 
     @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_allow_form_transfer_if_org_is_owned_by_user(
+            self, mock_send_mail):
+        # create bob's project and publish a form to it
+        self._publish_xls_form_to_project()
+
+        # create an organization with a project
+        self._org_create()
+        self._project_create({
+            'name': u'organization_project',
+            'owner': 'http://testserver/api/v1/users/denoinc',
+            'public': False
+        })
+
+        # try transfering bob's form to an organization project he created
+        view = ProjectViewSet.as_view({
+            'post': 'forms',
+        })
+        post_data = {'formid': self.xform.id}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=self.project.id)
+        self.assertEqual(response.status_code, 201)
+
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
     def test_project_share_endpoint(self, mock_send_mail):
         # create project and publish form to project
         self._publish_xls_form_to_project()
