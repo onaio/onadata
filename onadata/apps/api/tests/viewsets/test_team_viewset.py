@@ -371,7 +371,7 @@ class TestTeamViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 404)
 
-    def test_none_owners_should_be_able_to_change_member_permissions(self):
+    def test_non_owners_should_be_able_to_change_member_permissions(self):
         self._org_create()
         self._publish_xls_form_to_project()
 
