@@ -104,6 +104,23 @@ class TestDataViewSet(TestBase):
         self.assertIsInstance(response.data, dict)
         self.assertDictContainsSubset(data, response.data)
 
+    def test_catch_data_error(self):
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        query_str = [(u'\'{"_submission_time":{'
+                      '"$and":[{"$gte":"2015-11-15T00:00:00"},'
+                      '{"$lt":"2015-11-16T00:00:00"}]}}')]
+
+        data = {
+            'query': query_str,
+        }
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data.get('detail'),
+            u'invalid regular expression: invalid character range\n')
+
     def test_data_list_with_xform_in_delete_async_queue(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})

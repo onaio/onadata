@@ -1,6 +1,7 @@
 import types
 
 from django.db.models import Q
+from django.db.utils import DataError
 from django.http import Http404
 from django.utils import six
 from django.utils.translation import ugettext as _
@@ -378,6 +379,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                                    start_index=start, limit=limit,
                                    fields=fields)
         except ValueError, e:
+            raise ParseError(unicode(e))
+        except DataError, e:
             raise ParseError(unicode(e))
 
         if not isinstance(self.object_list, types.GeneratorType):
