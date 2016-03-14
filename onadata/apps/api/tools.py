@@ -4,6 +4,7 @@ import importlib
 from datetime import datetime
 
 from guardian.shortcuts import assign_perm, remove_perm
+from guardian.shortcuts import get_perms_for_model
 from django import forms
 from django.conf import settings
 from django.core.files.storage import get_storage_class
@@ -39,6 +40,7 @@ from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import ManagerRole
 from onadata.libs.permissions import get_role_in_org
 from onadata.libs.baseviewset import DefaultBaseViewset
+
 
 DECIMAL_PRECISION = 2
 
@@ -170,6 +172,14 @@ def remove_user_from_team(team, user):
     # remove the permission
     remove_perm('view_team', user, team)
 
+    # if team is owners team remove more perms
+    if team.name.find(Team.OWNER_TEAM_NAME) > 0:
+        owners_team = get_organization_owners_team(team.organization.profile)
+        members_team = get_organization_members_team(team.organization.profile)
+        for perm in get_perms_for_model(Team):
+            remove_perm(perm.codename, user, owners_team)
+            remove_perm(perm.codename, user, members_team)
+
 
 def add_user_to_organization(organization, user):
     """Add a user to an organization"""
@@ -182,6 +192,18 @@ def add_user_to_team(team, user):
 
     # give the user perms to view the team
     assign_perm('view_team', user, team)
+
+    # if team is owners team assign more perms
+    if team.name.find(Team.OWNER_TEAM_NAME) > 0:
+        _assign_organization_team_perms(team.organization, user)
+
+
+def _assign_organization_team_perms(organization, user):
+    owners_team = get_organization_owners_team(organization.profile)
+    members_team = get_organization_members_team(organization.profile)
+    for perm in get_perms_for_model(Team):
+        assign_perm(perm.codename, user, owners_team)
+        assign_perm(perm.codename, user, members_team)
 
 
 def get_organization_members(organization):
@@ -301,7 +323,7 @@ def publish_project_xform(request, project):
                     request.user, xform)))
 
         # if the target project and xform aren't in the same account
-        if project.organization != xform.user:
+        if project.created_by != xform.user:
             msg = 'Form with the same id_string already exists in this account'
             if id_string_exists_in_account():
                 raise exceptions.ParseError(_(msg))
