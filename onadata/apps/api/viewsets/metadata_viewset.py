@@ -1,7 +1,7 @@
 from rest_framework import renderers
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework.exceptions import ParseError
+from rest_framework import status
 
 from django.db.utils import IntegrityError
 
@@ -45,7 +45,8 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
             response = super(MetaDataViewSet, self).create(
                 request, *args, **kwargs)
         except IntegrityError, e:
-            raise ParseError(e)
+            response = Response(
+                unicode(e.message), status=status.HTTP_400_BAD_REQUEST)
 
         return response
 
