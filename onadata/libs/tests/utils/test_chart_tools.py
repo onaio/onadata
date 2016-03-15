@@ -108,7 +108,7 @@ class TestChartTools(TestBase):
         self.assertEqual(data['grouped_by'], 'pizza_type')
         self.assertEqual(data['data_type'], 'numeric')
         self.assertEqual(data['data'], [{'sum': 150000.0,
-                                         'pizza_type': None,
+                                         'pizza_type': [],
                                          'mean': 75000.0}])
 
     def test_build_chart_data_calculate_field_group_by_category_field(self):
@@ -124,7 +124,7 @@ class TestChartTools(TestBase):
         self.assertEqual(data['grouped_by'], 'pizza_fan')
         self.assertEqual(data['data_type'], 'numeric')
         self.assertEqual(data['data'], [{'sum': 150000.0,
-                                        'pizza_fan': u'no',
+                                        'pizza_fan': [u'No'],
                                          'mean': 75000.0}])
 
     def test_build_chart_data_for_category_field_group_by_category_field(self):

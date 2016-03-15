@@ -222,8 +222,9 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
                                          choices=choices)
 
     if group_by:
+        group_by_data_type = DATA_TYPE_MAP.get(group_by.type, 'categorized')
         result = _use_labels_from_group_by_name(group_by_name, group_by,
-                                                data_type, result,
+                                                group_by_data_type, result,
                                                 choices=choices)
 
     if not group_by:
