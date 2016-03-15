@@ -497,7 +497,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 400)
         self.assertEquals(response.data['content_object'],
-                          [u"You don't have permission to the XForm."])
+                          [u"You don't have permission to the Project."])
 
     def test_filter_widgets_by_dataview(self):
         self._create_widget()
@@ -617,6 +617,8 @@ class TestWidgetViewSet(TestAbstractViewSet):
                                   {'count': 1, 'Gender': u'female'}]})
 
     def test_widget_create_by_org_admin(self):
+        self.project.organization = self.organization.user
+        self.project.save()
         chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
         chuck_profile = self._create_user_profile(chuck_data)
 
