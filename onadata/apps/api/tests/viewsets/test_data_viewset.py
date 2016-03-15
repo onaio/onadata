@@ -491,6 +491,29 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
+    def test_filter_by_submission_time_and_submitted_by_with_data_arg(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        formid = self.xform.pk
+        instance = self.xform.instances.all().order_by('pk')[0]
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        submission_time = instance.date_created.strftime(MONGO_STRFTIME)
+        query_str = ('{"_submission_time": {"$gte": "%s"},'
+                     ' "_submitted_by": "%s"}' % (submission_time, 'bob'))
+        data = {
+            'data': query_str,
+            'limit': 2,
+            'sort': []
+        }
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
     def test_data_with_query_parameter(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})

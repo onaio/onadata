@@ -323,7 +323,7 @@ Response
 
 Query submitted data of a specific form
 ----------------------------------------
-Use the `query` parameter to pass in a JSON key/value query.
+Use the `query` or `data` parameter to pass in a JSON key/value query.
 
 Example I
 ^^^^^^^
