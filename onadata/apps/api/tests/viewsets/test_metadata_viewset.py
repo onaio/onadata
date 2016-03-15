@@ -286,3 +286,27 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(len(response.data), 1)
         self.assertIn("xform", response.data[0])
         self.assertNotIn("project", response.data[0])
+
+    def _create_metadata_object(self):
+        view = MetaDataViewSet.as_view({'post': 'create'})
+        with open(self.path) as media_file:
+            data = {
+                'data_type': 'media',
+                'data_value': 'check.png',
+                'data_file': media_file,
+                'project': self.project.id
+            }
+            request = self.factory.post('/', data, **self.extra)
+            response = view(request)
+
+            return response
+
+    def test_integrity_error_is_handled(self):
+        count = MetaData.objects.count()
+
+        response = self._create_metadata_object()
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(count + 1, MetaData.objects.count())
+
+        response = self._create_metadata_object()
+        self.assertEqual(response.status_code, 400)
