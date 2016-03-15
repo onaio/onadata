@@ -296,20 +296,10 @@ def create_instance(username, xml_file, media_files,
                 a.media_file.name.split('/')[-1]
                 for a in Attachment.objects.filter(instance=instance)
             ]
-            media_file_names = [a.name for a in media_files]
 
-            if attachment_names:
-                if len(media_file_names) >= len(attachment_names):
-                    unsaved_media_files = list(
-                        set(media_file_names) - set(attachment_names))
-                else:
-                    unsaved_media_files = list(
-                        set(attachment_names) - set(media_file_names))
-
-                if unsaved_media_files:
-                    for a in media_files:
-                        if a.name in attachment_names:
-                            media_files.remove(a)
+            for a in media_files:
+                if a.name in attachment_names:
+                    media_files.remove(a)
 
             save_attachments(xform, instance, media_files)
             instance.save()
