@@ -246,7 +246,7 @@ def create_instance(username, xml_file, media_files,
     check_submission_permissions(request, xform)
 
     filtered_instances = get_filtered_instances(
-        {'xml': xml, 'xform__id': xform.pk})
+        {'xml': xml, 'xform_id': xform.pk})
     existing_instance = filtered_instances.first()
 
     if existing_instance:
@@ -270,7 +270,7 @@ def create_instance(username, xml_file, media_files,
     )
 
     duplicate_instances = get_filtered_instances(
-        {'uuid': new_uuid, 'xform': xform})
+        {'uuid': new_uuid, 'xform_id': xform.id})
 
     if duplicate_instances or history:
         duplicate_instance = history[0].xform_instance \
