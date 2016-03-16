@@ -3563,8 +3563,9 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'get': 'retrieve'
             })
 
+            data = {"include_images": True}
             # request for export again
-            request = self.factory.get('/', **self.extra)
+            request = self.factory.get('/', data=data, **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 

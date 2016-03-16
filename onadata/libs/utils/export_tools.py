@@ -1440,5 +1440,5 @@ def parse_request_export_options(request):
         options["include_images"] = str_to_bool(
             params.get("include_images"))
     else:
-        options["include_images"] = True
+        options["include_images"] = settings.EXPORT_WITH_IMAGE_DEFAULT
     return options

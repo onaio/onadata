@@ -218,6 +218,10 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
     return instance
 
 
+def get_filtered_instances(kwargs):
+    return Instance.objects.filter(**kwargs)
+
+
 def create_instance(username, xml_file, media_files,
                     status=u'submitted_via_web', uuid=None,
                     date_created_override=None, request=None):
@@ -241,8 +245,9 @@ def create_instance(username, xml_file, media_files,
     xform = get_xform_from_submission(xml, username, uuid)
     check_submission_permissions(request, xform)
 
-    existing_instance = Instance.objects.filter(
-        xml=xml, xform_id=xform.pk).first()
+    filtered_instances = get_filtered_instances(
+        {'xml': xml, 'xform_id': xform.pk})
+    existing_instance = filtered_instances.first()
 
     if existing_instance:
         if not existing_instance.xform or\
@@ -263,7 +268,9 @@ def create_instance(username, xml_file, media_files,
     history = InstanceHistory.objects.filter(
         xform_instance__xform=xform, uuid=new_uuid
     )
-    duplicate_instances = Instance.objects.filter(uuid=new_uuid, xform=xform)
+
+    duplicate_instances = get_filtered_instances(
+        {'uuid': new_uuid, 'xform_id': xform.id})
 
     if duplicate_instances or history:
         duplicate_instance = history[0].xform_instance \
@@ -275,8 +282,30 @@ def create_instance(username, xml_file, media_files,
 
         return DuplicateInstance()
 
-    instance = save_submission(xform, xml, media_files, new_uuid,
-                               submitted_by, status, date_created_override)
+    try:
+        with transaction.atomic():
+            instance = save_submission(
+                xform, xml, media_files, new_uuid, submitted_by, status,
+                date_created_override)
+    except IntegrityError:
+        instance = Instance.objects.filter(
+            xml=xml, xform__id=xform.pk).first()
+
+        if instance:
+            attachment_names = [
+                a.media_file.name.split('/')[-1]
+                for a in Attachment.objects.filter(instance=instance)
+            ]
+
+            for a in media_files:
+                if a.name in attachment_names:
+                    media_files.remove(a)
+
+            save_attachments(xform, instance, media_files)
+            instance.save()
+
+        instance = DuplicateInstance()
+
     return instance
 
 

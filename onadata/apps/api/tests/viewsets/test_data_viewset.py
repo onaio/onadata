@@ -3,6 +3,7 @@ import json
 import os
 import requests
 import datetime
+from mock import patch
 
 from datetime import timedelta
 from django.utils import timezone
@@ -835,6 +836,74 @@ class TestDataViewSet(TestBase):
         dataid = self.xform.instances.all().order_by('id')[0].pk
         data = _data_instance(dataid)
         self.assertDictContainsSubset(data, sorted(response.data)[0])
+
+    def test_same_submission_with_different_attachments(self):
+        self._submit_transport_instance_w_attachment()
+
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 200)
+        formid = self.xform.pk
+        data = _data_list(formid)
+        self.assertEqual(response.data, data)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+
+        data = {
+            u'_bamboo_dataset_id': u'',
+            u'_attachments': [{
+                'download_url': get_attachment_url(self.attachment),
+                'small_download_url':
+                get_attachment_url(self.attachment, 'small'),
+                'medium_download_url':
+                get_attachment_url(self.attachment, 'medium'),
+                u'mimetype': self.attachment.mimetype,
+                u'instance': self.attachment.instance.pk,
+                u'filename': self.attachment.media_file.name,
+                u'id': self.attachment.pk,
+                u'xform': self.xform.id}
+            ],
+            u'_geolocation': [None, None],
+            u'_xform_id_string': u'transportation_2011_07_25',
+            u'transport/available_transportation_types_to_referral_facility':
+            u'none',
+            u'_status': u'submitted_via_web',
+            u'_id': dataid
+        }
+        self.assertDictContainsSubset(data, sorted(response.data)[0])
+
+        patch_value = 'onadata.libs.utils.logger_tools.get_filtered_instances'
+        with patch(patch_value) as get_filtered_instances:
+            get_filtered_instances.return_value = Instance.objects.filter(
+                uuid='#doesnotexist')
+            s = self.surveys[0]
+            media_file = "1442323232322.jpg"
+            self._make_submission_w_attachment(os.path.join(
+                self.this_directory, 'fixtures',
+                'transportation', 'instances', s, s + '.xml'),
+                os.path.join(self.this_directory, 'fixtures',
+                             'transportation', 'instances', s, media_file))
+            self.attachment = Attachment.objects.last()
+            self.attachment_media_file = self.attachment.media_file
+
+            data['_attachments'] = [{
+                 'download_url': get_attachment_url(self.attachment),
+                 'small_download_url':
+                 get_attachment_url(self.attachment, 'small'),
+                 'medium_download_url':
+                 get_attachment_url(self.attachment, 'medium'),
+                 u'mimetype': self.attachment.mimetype,
+                 u'instance': self.attachment.instance.pk,
+                 u'filename': self.attachment.media_file.name,
+                 u'id': self.attachment.pk,
+                 u'xform': self.xform.id
+            }] + data.get('_attachments')
+            response = view(request, pk=formid)
+            self.assertDictContainsSubset(data, sorted(response.data)[0])
+            self.assertEqual(response.status_code, 200)
 
     def test_data_w_attachment(self):
         self._submit_transport_instance_w_attachment()
