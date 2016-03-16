@@ -64,6 +64,9 @@ class KMLRenderer(BaseRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data
 
+class GSHEETSRenderer(XLSRenderer):
+    format = 'gsheets'
+
 
 class MediaFileContentNegotiation(negotiation.DefaultContentNegotiation):
     def filter_renderers(self, renderers, format):

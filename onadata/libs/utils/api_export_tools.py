@@ -15,10 +15,14 @@ from rest_framework.reverse import reverse
 
 from celery.result import AsyncResult
 
+from oauth2client.contrib.django_orm import Storage
+from oauth2client import client as google_client
+
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.utils.export_tools import should_create_new_export
 from onadata.libs.utils.common_tags import OSM
 from onadata.libs.utils import log
+from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.viewer import tasks as viewer_task
 from onadata.libs.exceptions import NoRecordsFoundError, J2XException
 from onadata.libs.utils.export_tools import newest_export_for
@@ -32,6 +36,7 @@ from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.utils.common_tags import SUBMISSION_TIME,\
     GROUPNAME_REMOVED_FLAG, DATAVIEW_EXPORT
+from onadata.libs.utils.google import google_flow
 
 # Supported external exports
 external_export_types = ['xls']
@@ -45,7 +50,8 @@ EXPORT_EXT = {
     'uuid': Export.EXTERNAL_EXPORT,
     'kml': Export.KML_EXPORT,
     'zip': Export.ZIP_EXPORT,
-    OSM: Export.OSM_EXPORT
+    OSM: Export.OSM_EXPORT,
+    'gsheets': Export.GSHEETS_EXPORT
 }
 
 EXPORT_SUCCESS = "Success"
@@ -84,6 +90,12 @@ def custom_response_handler(request, xform, query, export_type,
     if export_id:
         export = get_object_or_404(Export, id=export_id, xform=xform)
     else:
+        if export_type == Export.GSHEETS_EXPORT:
+            credential = _get_google_credential(request)
+
+        if isinstance(credential, HttpResponseRedirect):
+            return credential
+
         # check if we need to re-generate,
         # we always re-generate if a filter is specified
         def new_export():
@@ -129,6 +141,10 @@ def _generate_new_export(request, xform, query, export_type,
                "query": query}
 
     options["dataview_pk"] = dataview_pk
+    if export_type == Export.GSHEETS_EXPORT:
+        credential = _get_google_credential(request)
+
+    options['google_credentials']= credential
 
     try:
         if export_type == Export.EXTERNAL_EXPORT:
@@ -308,6 +324,12 @@ def process_async_export(request, xform, export_type, options=None):
                 export_type = Export.EXTERNAL_EXPORT
 
     dataview_pk = options.get('dataview_pk')
+    if export_type == Export.GSHEETS_EXPORT:
+        credential = _get_google_credential(request)
+
+        if isinstance(credential, HttpResponseRedirect):
+            return credential
+    options['google_credentials']= credential
 
     if should_create_new_export(xform, export_type, options, request=request)\
             or export_type == Export.EXTERNAL_EXPORT:
@@ -360,7 +382,8 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
     :return: response dict
     """
     if export.status == Export.SUCCESSFUL:
-        if export.export_type != Export.EXTERNAL_EXPORT:
+        if export.export_type not in [Export.EXTERNAL_EXPORT,
+                                      Export.GSHEETS_EXPORT]:
             export_url = reverse(
                 'export-detail',
                 kwargs={'pk': export.pk},
@@ -416,3 +439,15 @@ def response_for_format(data, format=None):
     else:
         formatted_data = json.loads(data.json)
     return Response(formatted_data)
+
+
+def _get_google_credential(request):
+    token = None
+    if request.user.is_authenticated():
+        storage = Storage(TokenStorageModel, 'id', request.user, 'credential')
+        credential = storage.get()
+    elif request.session.get('access_token'):
+        credential = google_client.OAuth2Credentials.from_json(token)
+    if credential is None:
+        return HttpResponseRedirect(google_flow.step1_get_authorize_url())
+    return credential

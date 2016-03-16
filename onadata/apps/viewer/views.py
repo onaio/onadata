@@ -388,7 +388,6 @@ def _get_google_credential(request, redirect_to_url):
     elif request.session.get('access_token'):
         credential = google_client.OAuth2Credentials.from_json(token)
     if credential is None:
-        request.session["google_redirect_url"] = redirect_to_url
         return HttpResponseRedirect(google_flow.step1_get_authorize_url())
     return credential
 

@@ -232,7 +232,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         renderers.SAVZIPRenderer,
         renderers.SurveyRenderer,
         renderers.OSMExportRenderer,
-        renderers.ZipRenderer
+        renderers.ZipRenderer,
+        renderers.GSHEETSRenderer
     ]
     queryset = XForm.objects.select_related().prefetch_related(Prefetch(
         'xformuserobjectpermission_set',
