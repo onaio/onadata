@@ -337,8 +337,8 @@ def create_external_export(username, id_string, export_id, **options):
 def create_google_sheet_export(username, id_string, export_id, **options):
     # we re-query the db instead of passing model objects according to
     # http://docs.celeryproject.org/en/latest/userguide/tasks.html#state
-    export = Export.objects.get(id=export_id)
     try:
+        export = Export.objects.get(id=export_id)
         # though export is not available when for has 0 submissions, we
         # catch this since it potentially stops celery
         gen_export = generate_export(

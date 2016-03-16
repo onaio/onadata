@@ -36,6 +36,36 @@ def update_row(worksheet, index, values):
     worksheet.update_cells(cell_list)
 
 
+def update_rows(worksheet, index, rows):
+    """"Adds a batch of rows to the worksheet at the specified index and
+     populates it with values. Widens the worksheet if there are more values
+     than columns.
+    :param worksheet: The worksheet to be updated.
+    :param index: Index of the row to be updated.
+    :param rows: List of values for the row.
+    """
+
+    for row in rows:
+        data_width = len(row)
+        if worksheet.col_count < data_width:
+            worksheet.resize(cols=data_width)
+
+        cell_list = []
+        for i, value in enumerate(row, start=1):
+            cell = worksheet.cell(index, i)
+            cell.value = value
+            cell_list.append(cell)
+        index += 1
+
+    worksheet.update_cells(cell_list)
+
+
+def batch(iterable, n=1):
+    l = len(iterable)
+    for ndx in range(0, l, n):
+        yield iterable[ndx:min(ndx + n, l)]
+
+
 def xldr_format_value(cell):
     """A helper function to format the value of a cell.
     The xldr stores integers as floats which means that the cell value
@@ -125,7 +155,7 @@ class SheetsExportBuilder(ExportBuilder):
         self.export_xlsform = config['export_xlsform']
         self.set_survey(xform.data_dictionary().survey)
 
-    def export(self, path, data):
+    def export(self, path, data, username, xform=None, filter_query=None):
         self.client = \
             SheetsClient.login_with_service_account(self.google_credentials)
 
@@ -137,11 +167,11 @@ class SheetsExportBuilder(ExportBuilder):
         self.client.add_service_account_to_spreadsheet(self.spreadsheet)
 
         # Perform the actual export
-        # if self.flatten_repeated_fields:
-        #     self.export_flattened(path, data, username, id_string,
-        #                           filter_query)
-        # else:
-        self.export_tabular(path, data)
+        if self.flatten_repeated_fields:
+            self.export_flattened(path, data, username, xform,
+                                  filter_query)
+        else:
+            self.export_tabular(path, data)
 
         # Write XLSForm data
         if self.export_xlsform:
@@ -159,34 +189,36 @@ class SheetsExportBuilder(ExportBuilder):
 
         return self.url
 
-    # def export_flattened(self, path, data, username, id_string,
-    #                      filter_query):
-    #     # Build a flattened CSV
-    #     csv_builder = CSVDataFrameBuilder(
-    #         username, id_string, filter_query, self.group_delimiter,
-    #         self.split_select_multiples, self.binary_select_multiples)
-    #     csv_builder.export_to(path)
-    #
-    #     # Read CSV back in and filter n/a entries
-    #     rows = []
-    #     with open(path) as f:
-    #         reader = csv.reader(f)
-    #         for row in reader:
-    #             filtered_rows = [x if x != 'n/a' else '' for x in row]
-    #             rows.append(filtered_rows)
-    #
-    #     # Create a worksheet for flattened data
-    #     num_rows = len(rows)
-    #     if not num_rows:
-    #         return
-    #     num_cols = len(rows[0])
-    #     ws = self.spreadsheet.add_worksheet(
-    #         title=self.FLATTENED_SHEET_TITLE, rows=num_rows, cols=num_cols)
-    #
-    #     # Write data row by row
-    #     for index, values in enumerate(rows, 1):
-    #         update_row(ws, index, values)
-    #
+    def export_flattened(self, path, data, username, xform,
+                         filter_query=None):
+        from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
+        import csv
+        # Build a flattened CSV
+        csv_builder = CSVDataFrameBuilder(
+            username, xform.id_string, filter_query)
+        csv_builder.export_to(path)
+
+        # Read CSV back in and filter n/a entries
+        rows = []
+        with open(path) as f:
+            reader = csv.reader(f)
+            for row in reader:
+                filtered_rows = [x if x != 'n/a' else '' for x in row]
+                rows.append(filtered_rows)
+
+        # Create a worksheet for flattened data
+        num_rows = len(rows)
+        if not num_rows:
+            return
+        num_cols = len(rows[0])
+        ws = self.spreadsheet.add_worksheet(
+            title=self.FLATTENED_SHEET_TITLE, rows=num_rows, cols=num_cols)
+
+        # Write data row by row
+        for index, values in enumerate(rows, 1):
+            update_row(ws, index, values)
+
+
     def export_tabular(self, path, data):
         # Add worksheets for export.
         self._create_worksheets()
