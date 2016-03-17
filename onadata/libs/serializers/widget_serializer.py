@@ -144,11 +144,12 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
             value.project, attach_perms=False, with_group_users=False
         )
 
+        profile = value.project.organization.profile
         # Shared or an admin in the organization
         if request.user not in users and not\
-            is_organization(value.project.organization.profile) and not\
-                OwnerRole.user_has_role(request.user,
-                                        value.project.organization.profile):
+            is_organization(profile) and not\
+            OwnerRole.user_has_role(request.user,
+                                    profile):
             raise serializers.ValidationError(_(
                 u"You don't have permission to the Project."
             ))
