@@ -11,6 +11,7 @@ from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.widget import Widget
 from onadata.libs.utils.string import str2bool
 from onadata.libs.serializers.fields.json_field import JsonField
+from onadata.libs.permissions import OwnerRole, is_organization
 
 
 class GenericRelatedField(serializers.HyperlinkedRelatedField):
@@ -143,9 +144,14 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
             value.project, attach_perms=False, with_group_users=False
         )
 
-        if request.user not in users:
+        profile = value.project.organization.profile
+        # Shared or an admin in the organization
+        if request.user not in users and not\
+            is_organization(profile) and not\
+            OwnerRole.user_has_role(request.user,
+                                    profile):
             raise serializers.ValidationError(_(
-                u"You don't have permission to the XForm."
+                u"You don't have permission to the Project."
             ))
 
         return value

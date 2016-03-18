@@ -1,4 +1,5 @@
 import os
+import json
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -8,6 +9,10 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
 from onadata.libs.permissions import ReadOnlyRole
+from onadata.libs.permissions import OwnerRole
+from onadata.apps.api.tools import get_organization_owners_team
+from onadata.apps.api.viewsets.organization_profile_viewset import\
+    OrganizationProfileViewSet
 
 
 class TestWidgetViewSet(TestAbstractViewSet):
@@ -16,7 +21,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         xlsform_path = os.path.join(
             settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
             "tutorial.xls")
-
+        self._org_create()
         self._publish_xls_form_to_project(xlsform_path=xlsform_path)
         for x in range(1, 9):
             path = os.path.join(
@@ -492,7 +497,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 400)
         self.assertEquals(response.data['content_object'],
-                          [u"You don't have permission to the XForm."])
+                          [u"You don't have permission to the Project."])
 
     def test_filter_widgets_by_dataview(self):
         self._create_widget()
@@ -610,3 +615,48 @@ class TestWidgetViewSet(TestAbstractViewSet):
                               'data': [
                                   {'count': 7, 'Gender': u'male'},
                                   {'count': 1, 'Gender': u'female'}]})
+
+    def test_widget_create_by_org_admin(self):
+        self.project.organization = self.organization.user
+        self.project.save()
+        chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
+        chuck_profile = self._create_user_profile(chuck_data)
+
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+
+        data = {'username': chuck_profile.user.username,
+                'role': OwnerRole.name}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user=self.organization.user.username)
+
+        self.assertEqual(response.status_code, 201)
+
+        owners_team = get_organization_owners_team(self.organization)
+        self.assertIn(chuck_profile.user, owners_team.user_set.all())
+
+        extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % chuck_profile.user.auth_token}
+
+        view = WidgetViewSet.as_view({
+            'post': 'create'
+        })
+
+        data = {
+            'content_object': 'http://testserver/api/v1/dataviews/%s' %
+                              self.data_view.pk,
+            'widget_type': "charts",
+            'view_type': "horizontal-bar",
+            'column': "_submission_time",
+        }
+
+        request = self.factory.post('/', data=json.dumps(data),
+                                    content_type="application/json",
+                                    **extra)
+        response = view(request)
+
+        self.assertEquals(response.status_code, 201)
