@@ -154,7 +154,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         if field_name and field_name in dataview.columns:
             data = get_chart_data_for_field(
-                field_name, xform, fmt, group_by)
+                field_name, xform, fmt, group_by, data_view=dataview)
             return Response(data, template_name='chart_detail.html')
 
         if fmt != 'json' and field_name is None:

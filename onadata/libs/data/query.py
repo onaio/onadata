@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import connection
 
 from onadata.libs.utils.common_tags import SUBMISSION_TIME
+from onadata.apps.logger.models.data_view import DataView
 
 
 def _dictfetchall(cursor):
@@ -34,47 +35,80 @@ def _get_fields_of_type(xform, types):
     return k
 
 
+def _additional_data_view_filters(data_view):
+    where, where_params = DataView._get_where_clause(data_view)
+
+    if where:
+        data_view_where = u" AND " + u" AND ".join(where)
+
+    for it in where_params:
+        data_view_where = data_view_where.replace('%s', "'{}'".format(it), 1)
+
+    return data_view_where
+
+
 def _json_query(field):
     return "json->>'%s'" % field
 
 
-def _postgres_count_group_field_n_group_by(field, name, xform, group_by):
+def _postgres_count_group_field_n_group_by(field, name, xform, group_by,
+                                           data_view):
     string_args = _query_args(field, name, xform, group_by)
     if is_date_field(xform, field):
         string_args['json'] = "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY"\
                               "-MM-DD')" % string_args
+
+    additional_filters = ""
+    if data_view:
+        additional_filters = _additional_data_view_filters(data_view)
+
     query = "SELECT %(json)s AS \"%(name)s\", "\
             "%(group_by)s AS \"%(group_name)s\", "\
             "count(*) as count "\
             "FROM %(table)s WHERE %(restrict_field)s=%(restrict_value)s " \
-            "AND deleted_at IS NULL " \
-            "GROUP BY %(json)s, %(group_by)s" % string_args
+            "AND deleted_at IS NULL " + additional_filters + \
+            " GROUP BY %(json)s, %(group_by)s"
+    query = query % string_args
 
     return query
 
 
-def _postgres_count_group(field, name, xform):
+def _postgres_count_group(field, name, xform, data_view=None):
     string_args = _query_args(field, name, xform)
     if is_date_field(xform, field):
         string_args['json'] = "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY"\
                               "-MM-DD')" % string_args
 
-    return "SELECT %(json)s AS \"%(name)s\", COUNT(*) AS count FROM "\
-           "%(table)s WHERE %(restrict_field)s=%(restrict_value)s "\
-           " AND deleted_at IS NULL GROUP BY %(json)s" % string_args
+    additional_filters = ""
+    if data_view:
+        additional_filters = _additional_data_view_filters(data_view)
+
+    sql_query = "SELECT %(json)s AS \"%(name)s\", COUNT(*) AS count FROM "" \
+    ""%(table)s WHERE %(restrict_field)s=%(restrict_value)s "" \
+    "" AND deleted_at IS NULL " + additional_filters + " GROUP BY %(json)s"
+    sql_query = sql_query % string_args
+
+    return sql_query
 
 
-def _postgres_aggregate_group_by(field, name, xform, group_by):
+def _postgres_aggregate_group_by(field, name, xform, group_by, data_view=None):
     string_args = _query_args(field, name, xform, group_by)
     if is_date_field(xform, field):
         string_args['json'] = "to_char(to_date(%(json)s, 'YYYY-MM-DD'), 'YYYY"\
                               "-MM-DD')" % string_args
+
+    additional_filters = ""
+    if data_view:
+        additional_filters = _additional_data_view_filters(data_view)
+
     query = "SELECT %(group_by)s AS \"%(group_name)s\","\
             "SUM((%(json)s)::numeric) AS sum, " \
             "AVG((%(json)s)::numeric) AS mean  " \
             "FROM %(table)s WHERE %(restrict_field)s=%(restrict_value)s " \
-            "AND deleted_at IS NULL " \
-            "GROUP BY %(group_by)s" % string_args
+            "AND deleted_at IS NULL " + additional_filters + \
+            " GROUP BY %(group_by)s"
+
+    query = query % string_args
 
     return query
 
@@ -123,34 +157,38 @@ def get_field_records(field, xform):
     return [float(i[0]) for i in result if i[0] is not None]
 
 
-def get_form_submissions_grouped_by_field(xform, field, name=None):
+def get_form_submissions_grouped_by_field(xform, field, name=None,
+                                          data_view=None):
     """Number of submissions grouped by field"""
     if not name:
         name = field
 
-    return _execute_query(_postgres_count_group(field, name, xform))
+    return _execute_query(_postgres_count_group(field, name, xform, data_view))
 
 
-def get_form_submissions_aggregated_by_select_one(xform, field,
-                                                  name=None, group_by=None):
+def get_form_submissions_aggregated_by_select_one(xform, field, name=None,
+                                                  group_by=None,
+                                                  data_view=None):
     """Number of submissions grouped and aggregated by select_one field"""
     if not name:
         name = field
     return _execute_query(_postgres_aggregate_group_by(field,
                                                        name,
                                                        xform,
-                                                       group_by))
+                                                       group_by,
+                                                       data_view))
 
 
 def get_form_submissions_grouped_by_select_one(xform, field, group_by,
-                                               name=None):
+                                               name=None, data_view=None):
     """Number of submissions disaggregated by select_one field"""
     if not name:
         name = field
     return _execute_query(_postgres_count_group_field_n_group_by(field,
                                                                  name,
                                                                  xform,
-                                                                 group_by))
+                                                                 group_by,
+                                                                 data_view))
 
 
 def get_numeric_fields(xform):
