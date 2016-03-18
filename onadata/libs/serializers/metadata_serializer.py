@@ -58,12 +58,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                   'url', 'date_created')
 
     def get_media_url(self, obj):
-        if (obj.data_type == MEDIA_TYPE or obj.data_type == DOC_TYPE)\
-            and getattr(obj, "data_file") \
-                and getattr(obj.data_file, "url"):
+        if obj.data_type in [DOC_TYPE, MEDIA_TYPE] and\
+                getattr(obj, "data_file") and getattr(obj.data_file, "url"):
             return obj.data_file.url
-
-        return None
 
     def validate(self, attrs):
         """
