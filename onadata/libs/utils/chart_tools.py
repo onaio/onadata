@@ -180,7 +180,7 @@ def _use_labels_from_group_by_name(field_name, field, data_type, data,
 
 
 def build_chart_data_for_field(xform, field, language_index=0, choices=None,
-                               group_by=None):
+                               group_by=None, data_view=None):
     # check if its the special _submission_time META
     if isinstance(field, basestring) and field == common_tags.SUBMISSION_TIME:
         field_label = 'Submission Time'
@@ -204,7 +204,7 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
         if field_type == common_tags.SELECT_ONE \
                 and group_by.type == common_tags.SELECT_ONE:
             result = get_form_submissions_grouped_by_select_one(
-                xform, field_xpath, group_by_name, field_name)
+                xform, field_xpath, group_by_name, field_name, data_view)
 
             result = _flatten_multiple_dict_into_one(field_name,
                                                      group_by_name,
@@ -213,10 +213,10 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
         if field_type in common_tags.NUMERIC_LIST \
                 and group_by.type == common_tags.SELECT_ONE:
             result = get_form_submissions_aggregated_by_select_one(
-                xform, field_xpath, field_name, group_by_name)
+                xform, field_xpath, field_name, group_by_name, data_view)
     else:
         result = get_form_submissions_grouped_by_field(
-            xform, field_xpath, field_name)
+            xform, field_xpath, field_name, data_view)
 
     result = _use_labels_from_field_name(field_name, field, data_type, result,
                                          choices=choices)
@@ -371,7 +371,7 @@ def get_field_label(field, language_index=0):
 
 
 def get_chart_data_for_field(field_name, xform, accepted_format, group_by,
-                             field_xpath=None):
+                             field_xpath=None, data_view=None):
     """
     Get chart data for a given xlsform field.
     """
@@ -394,7 +394,8 @@ def get_chart_data_for_field(field_name, xform, accepted_format, group_by,
 
     try:
         data = build_chart_data_for_field(
-            xform, field, choices=choices, group_by=group_by)
+            xform, field, choices=choices, group_by=group_by,
+            data_view=data_view)
     except DataError as e:
         raise ParseError(unicode(e))
     else:
