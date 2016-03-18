@@ -239,6 +239,8 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
 
         data = dict(response.data)
+
+        self.assertIsNotNone(data['media_url'])
         self.assertEqual(data['project'], self.metadata.object_id)
 
     def test_should_return_both_xform_and_project_metadata(self):

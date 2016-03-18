@@ -15,6 +15,7 @@ from onadata.libs.serializers.fields.project_related_field import (
 
 CSV_CONTENT_TYPE = 'text/csv'
 MEDIA_TYPE = 'media'
+DOC_TYPE = 'supporting_doc'
 METADATA_TYPES = (
     ('data_license', _(u"Data License")),
     ('enketo_preview_url', _(u"Enketo Preview URL")),
@@ -24,7 +25,7 @@ METADATA_TYPES = (
     (MEDIA_TYPE, _(u"Media")),
     ('public_link', _(u"Public Link")),
     ('source', _(u"Source")),
-    ('supporting_doc', _(u"Supporting Document")),
+    (DOC_TYPE, _(u"Supporting Document")),
     ('external_export', _(u"External Export")),
     ('textit', _(u"External Export"))
 )
@@ -57,7 +58,8 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                   'url', 'date_created')
 
     def get_media_url(self, obj):
-        if obj.data_type == MEDIA_TYPE and getattr(obj, "data_file") \
+        if (obj.data_type == MEDIA_TYPE or obj.data_type == DOC_TYPE)\
+            and getattr(obj, "data_file") \
                 and getattr(obj.data_file, "url"):
             return obj.data_file.url
 
