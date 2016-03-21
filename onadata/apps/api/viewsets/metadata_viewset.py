@@ -1,9 +1,6 @@
 from rest_framework import renderers
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework import status
-
-from django.db.utils import IntegrityError
 
 from onadata.apps.api.permissions import MetaDataObjectPermissions
 from onadata.apps.api.tools import get_media_file_response
@@ -39,16 +36,6 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
         renderers.BrowsableAPIRenderer,
         MediaFileRenderer)
     serializer_class = MetaDataSerializer
-
-    def create(self, request, *args, **kwargs):
-        try:
-            response = super(MetaDataViewSet, self).create(
-                request, *args, **kwargs)
-        except IntegrityError, e:
-            response = Response(
-                unicode(e.message), status=status.HTTP_400_BAD_REQUEST)
-
-        return response
 
     def retrieve(self, request, *args, **kwargs):
         self.object = self.get_object()
