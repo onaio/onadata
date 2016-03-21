@@ -2,6 +2,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
+from django.db.utils import IntegrityError
 
 from rest_framework import serializers
 
@@ -104,14 +105,17 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
         content_type = ContentType.objects.get_for_model(content_object)
 
-        return MetaData.objects.create(
-            content_type=content_type,
-            data_type=data_type,
-            data_value=data_value,
-            data_file=data_file,
-            data_file_type=data_file_type,
-            object_id=content_object.id
-        )
+        try:
+            return MetaData.objects.create(
+                content_type=content_type,
+                data_type=data_type,
+                data_value=data_value,
+                data_file=data_file,
+                data_file_type=data_file_type,
+                object_id=content_object.id
+            )
+        except IntegrityError, e:
+            raise serializers.ValidationError(_(e.message))
 
     def to_internal_value(self, data):
 
