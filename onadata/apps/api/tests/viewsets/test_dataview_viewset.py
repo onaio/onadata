@@ -18,6 +18,7 @@ from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
     DATAVIEW_LAST_SUBMISSION_TIME,
     PROJECT_LINKED_DATAVIEWS)
+from onadata.libs.utils.common_tags import EDITED
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 
 
@@ -440,7 +441,9 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 8)
+
         self.assertIn("_id", response.data[0])
+        self.assertIn(EDITED, response.data[0])
 
     def test_csv_export_dataview(self):
         self._create_dataview()
