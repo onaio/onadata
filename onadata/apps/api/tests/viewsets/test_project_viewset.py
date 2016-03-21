@@ -549,6 +549,35 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 201)
 
     @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_handle_integrity_error_on_form_transfer(self, mock_send_mail):
+        # create bob's project and publish a form to it
+        self._publish_xls_form_to_project()
+        xform = self.xform
+
+        # create an organization with a project
+        self._org_create()
+        self._project_create({
+            'name': u'organization_project',
+            'owner': 'http://testserver/api/v1/users/denoinc',
+            'public': False
+        })
+
+        # publish form to organization project
+        self._publish_xls_form_to_project()
+
+        # try transfering bob's form to an organization project he created
+        view = ProjectViewSet.as_view({
+            'post': 'forms',
+        })
+        post_data = {'formid': xform.id}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=self.project.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data.get('detail'),
+            u'Form with the same id_string already exists in this account')
+
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
     def test_project_share_endpoint(self, mock_send_mail):
         # create project and publish form to project
         self._publish_xls_form_to_project()
