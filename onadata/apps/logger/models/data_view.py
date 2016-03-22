@@ -10,6 +10,7 @@ from onadata.apps.logger.models.project import Project
 from jsonfield import JSONField
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
+    EDITED,
     MONGO_STRFTIME,
     ID,
     GEOLOCATION,
@@ -22,7 +23,7 @@ from onadata.libs.utils.cache_tools import (
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 ATTACHMENT_TYPES = ['photo', 'audio', 'video']
-DEFAULT_COLUMNS = [ID, SUBMISSION_TIME]
+DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED]
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
@@ -82,6 +83,7 @@ class DataView(models.Model):
     """
     Model to provide filtered access to the underlying data of an XForm
     """
+
     name = models.CharField(max_length=255)
     xform = models.ForeignKey(XForm)
     project = models.ForeignKey(Project)
