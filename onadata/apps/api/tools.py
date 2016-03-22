@@ -13,6 +13,8 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.db.models import Q
+from django.db.utils import IntegrityError
+from django.db import transaction
 from django.http import HttpResponseNotFound
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext as _
@@ -292,6 +294,7 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
 
 
 def publish_project_xform(request, project):
+
     def set_form():
         props = {
             'project': project.pk,
@@ -323,13 +326,17 @@ def publish_project_xform(request, project):
                 "{} has no manager/owner role to the form {}". format(
                     request.user, xform)))
 
-        # if the target project and xform aren't in the same account
-        if project.organization != xform.user:
-            msg = 'Form with the same id_string already exists in this account'
-            if id_string_exists_in_account():
-                raise exceptions.ParseError(_(msg))
+        msg = 'Form with the same id_string already exists in this account'
+        if id_string_exists_in_account():
+            raise exceptions.ParseError(_(msg))
+        xform.user = project.organization
         xform.project = project
-        xform.save()
+
+        try:
+            with transaction.atomic():
+                xform.save()
+        except IntegrityError:
+            raise exceptions.ParseError(_(msg))
         set_project_perms_to_xform(xform, project)
     else:
         xform = publish_form(set_form)
