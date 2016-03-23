@@ -327,7 +327,11 @@ def publish_project_xform(request, project):
                     request.user, xform)))
 
         msg = 'Form with the same id_string already exists in this account'
-        if id_string_exists_in_account():
+        # Without this check, a user can't transfer a form to projects that
+        # he/she owns because `id_string_exists_in_account` will always
+        # return true
+        if project.organization != xform.user and \
+                id_string_exists_in_account():
             raise exceptions.ParseError(_(msg))
         xform.user = project.organization
         xform.project = project
