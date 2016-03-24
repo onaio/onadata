@@ -384,6 +384,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             }]
             del self.form_data['date_modified']
             del response.data[0]['date_modified']
+            self.form_data.pop('has_id_string_changed')
             self.form_data['metadata'].sort()
             response.data[0]['metadata'].sort()
             self.assertEqual(response.data, [self.form_data])
@@ -517,6 +518,7 @@ class TestXFormViewSet(TestAbstractViewSet):
                 'date_created': url.date_created
             }]
 
+            self.form_data.pop('has_id_string_changed')
             response_data = sorted(response.data)
             expected_data = sorted([OrderedDict(bobs_form_data),
                                     OrderedDict(self.form_data)])
@@ -627,6 +629,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             # remove date modified
             self.form_data.pop('date_modified')
             response.data.pop('date_modified')
+            self.form_data.pop('has_id_string_changed')
 
             self.assertEqual(response.data, self.form_data)
 
