@@ -341,6 +341,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.form_data.pop('metadata')
         self.form_data.pop('date_modified')
         response.data[0].pop('date_modified')
+        self.form_data.pop('has_id_string_changed')
 
         self.assertDictEqual(dict(response.data[0]), dict(self.form_data))
 

@@ -22,7 +22,8 @@ from onadata.libs.serializers.project_serializer import (
     ProjectSerializer)
 from onadata.libs.serializers.share_project_serializer import\
     ShareProjectSerializer, RemoveUserFromProjectSerializer
-from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.xform_serializer import XFormCreateSerializer,\
+    XFormSerializer
 from onadata.apps.api import tools as utils
 from onadata.apps.api.permissions import ProjectPermissions
 from onadata.apps.logger.models import Project
@@ -83,10 +84,13 @@ class ProjectViewSet(AuthenticateHeaderMixin,
             survey = utils.publish_project_xform(request, project)
 
             if isinstance(survey, XForm):
-                xform = XForm.objects.get(pk=survey.pk)
-                serializer = XFormSerializer(
-                    xform, context={'request': request})
+                if 'formid' in request.DATA:
+                    serializer_cls = XFormSerializer
+                else:
+                    serializer_cls = XFormCreateSerializer
 
+                serializer = serializer_cls(survey,
+                                            context={'request': request})
                 return Response(serializer.data,
                                 status=status.HTTP_201_CREATED)
 
