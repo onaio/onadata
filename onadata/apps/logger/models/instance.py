@@ -408,11 +408,11 @@ post_delete.connect(update_xform_submission_count_delete, sender=Instance,
                     dispatch_uid='update_xform_submission_count_delete')
 
 
-
 def save_full_json(sender, instance=None, created=False, **kwargs):
+    """set json data, ensure the primary key is part of the json data"""
     if created:
         instance.json = instance.get_full_dict()
-        instance.save()
+        instance.save(update_fields=['json'])
 
 post_save.connect(save_full_json, Instance, dispatch_uid='save_full_json')
 
