@@ -137,25 +137,27 @@ def parse_osm(osm_xml, include_osm_id=False):
 
 
 @task()
-def save_osm_data_async(parsed_instance):
-    save_osm_data(parsed_instance)
+def save_osm_data_async(instance_id):
+    save_osm_data(instance_id)
 
 
-def save_osm_data(parsed_instance):
-    from onadata.apps.viewer.models.parsed_instance import ParsedInstance
-    try:
-        parsed_instance = ParsedInstance.objects.get(pk=parsed_instance)
-        dd = parsed_instance.instance.xform.data_dictionary()
+def save_osm_data(instance_id):
+    from onadata.apps.logger.models.instance import Instance
+
+    instance = Instance.objects.filter(pk=instance_id).first()
+    osm_attachments = instance.attachments.filter(extension=Attachment.OSM)
+
+    if instance and osm_attachments:
+        dd = instance.xform.data_dictionary()
         fields = [f.get_abbreviated_xpath()
                   for f in dd.get_survey_elements_of_type('osm')]
         osm_filenames = {}
         for field in fields:
-            filename = parsed_instance.instance.json.get(field)
+            filename = instance.json.get(field)
             if filename:
                 osm_filenames.update({field: filename})
 
-        for osm in parsed_instance.instance.attachments.filter(
-                extension=Attachment.OSM):
+        for osm in osm_attachments:
                 osm_xml = osm.media_file.read()
                 filename = None
                 field_name = None
@@ -178,7 +180,7 @@ def save_osm_data(parsed_instance):
 
                     try:
                         osm_data = OsmData(
-                            instance=parsed_instance.instance,
+                            instance=instance,
                             xml=osm_xml,
                             osm_id=osm_id,
                             osm_type=osm_type,
@@ -190,7 +192,7 @@ def save_osm_data(parsed_instance):
                         osm_data.save()
                     except IntegrityError:
                         osm_data = OsmData.objects.get(
-                            instance=parsed_instance.instance,
+                            instance=instance,
                             field_name=field_name
                         )
                         osm_data.xml = osm_xml
@@ -200,9 +202,6 @@ def save_osm_data(parsed_instance):
                         osm_data.geom = geom
                         osm_data.filename = filename
                         osm_data.save()
-        parsed_instance.instance.save()
-    except ParsedInstance.DoesNotExist:
-        pass
 
 
 def osm_flat_dict(instance_id):

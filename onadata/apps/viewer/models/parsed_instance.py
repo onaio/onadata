@@ -18,7 +18,6 @@ from onadata.apps.restservice.tasks import call_service_async
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
     NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED
-from onadata.apps.logger.models.attachment import Attachment
 from onadata.libs.utils.osm import save_osm_data_async
 
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -476,12 +475,10 @@ def rest_service_form_submission(sender, **kwargs):
             countdown=1
         )
 
-        if parsed_instance.instance.attachments.filter(
-                extension=Attachment.OSM).count() > 0:
-            save_osm_data_async.apply_async(
-                args=[parsed_instance.pk],
-                countdown=1
-            )
+        save_osm_data_async.apply_async(
+            args=[parsed_instance.instance_id],
+            countdown=1
+        )
 
 
 post_save.connect(rest_service_form_submission, sender=ParsedInstance)
