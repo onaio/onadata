@@ -465,7 +465,7 @@ class ParsedInstance(models.Model):
         return notes
 
 
-def rest_service_form_submission(sender, **kwargs):
+def post_save_submission(sender, **kwargs):
     parsed_instance = kwargs.get('instance')
     created = kwargs.get('created')
 
@@ -481,4 +481,4 @@ def rest_service_form_submission(sender, **kwargs):
         )
 
 
-post_save.connect(rest_service_form_submission, sender=ParsedInstance)
+post_save.connect(post_save_submission, sender=ParsedInstance)
