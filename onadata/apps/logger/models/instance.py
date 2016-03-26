@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from django.contrib.gis.db import models
+from django.db import connection
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.db.models.signals import post_delete
@@ -118,25 +119,27 @@ def submission_time():
 @transaction.atomic()
 def update_xform_submission_count(sender, instance, created, **kwargs):
     if created:
-        xform = XForm.objects.select_related().select_for_update()\
-            .get(pk=instance.xform.pk)
-        xform.num_of_submissions += 1
-        xform.last_submission_time = instance.date_created
-        xform.save(
-            update_fields=['num_of_submissions', 'last_submission_time']
+        # update xform.num_of_submissions
+        cursor = connection.cursor()
+        sql = (
+            'UPDATE logger_xform SET '
+            'num_of_submissions = num_of_submissions + 1, '
+            'last_submission_time = %s '
+            'WHERE id = %s'
         )
-        profile_qs = User.profile.get_queryset()
-        try:
-            profile = profile_qs.select_for_update()\
-                .get(pk=xform.user.profile.pk)
-        except profile_qs.model.DoesNotExist:
-            pass
-        else:
-            profile.num_of_submissions += 1
-            profile.save()
+        params = [instance.date_created, instance.xform_id]
 
-        safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, xform.pk))
-        safe_delete('{}{}'.format(DATAVIEW_COUNT, xform.pk))
+        # update user profile.num_of_submissions
+        cursor.execute(sql, params)
+        sql = (
+            'UPDATE main_userprofile SET '
+            'num_of_submissions = num_of_submissions + 1 '
+            'WHERE user_id = %s'
+        )
+        cursor.execute(sql, [instance.xform.user_id])
+
+        safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, instance.xform_id))
+        safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform_id))
 
 
 def update_xform_submission_count_delete(sender, instance, **kwargs):
