@@ -420,6 +420,16 @@ def save_full_json(sender, instance=None, created=False, **kwargs):
 post_save.connect(save_full_json, Instance, dispatch_uid='save_full_json')
 
 
+def update_project_date_modified(sender, instance=None, created=False,
+                                 **kwargs):
+    # update the date modified field of the project which will change
+    # the etag value of the projects endpoint
+    instance.xform.project.save(update_fields=['date_modified'])
+
+post_save.connect(update_project_date_modified, Instance,
+                  dispatch_uid='update_project_date_modified')
+
+
 class InstanceHistory(models.Model, InstanceBaseClass):
 
     class Meta:
