@@ -336,7 +336,7 @@ post_save.connect(set_object_permissions, sender=XForm,
 
 
 def save_project(sender, instance=None, created=False, **kwargs):
-    instance.project.save()
+    instance.project.save(update_fields=['date_modified'])
 
 pre_save.connect(save_project, sender=XForm,
                  dispatch_uid='save_project_xform')
