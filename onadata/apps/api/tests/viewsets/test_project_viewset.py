@@ -26,6 +26,7 @@ from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 from onadata.apps.api import tools
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
+from onadata.apps.api.tools import get_organization_owners_team
 
 ROLES = [ReadOnlyRoleNoDownload,
          ReadOnlyRole,
@@ -546,6 +547,193 @@ class TestProjectViewSet(TestAbstractViewSet):
         post_data = {'formid': self.xform.id}
         request = self.factory.post('/', data=post_data, **self.extra)
         response = view(request, pk=self.project.id)
+        self.assertEqual(response.status_code, 201)
+
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_handle_integrity_error_on_form_transfer(self, mock_send_mail):
+        # create bob's project and publish a form to it
+        self._publish_xls_form_to_project()
+        xform = self.xform
+
+        # create an organization with a project
+        self._org_create()
+        self._project_create({
+            'name': u'organization_project',
+            'owner': 'http://testserver/api/v1/users/denoinc',
+            'public': False
+        })
+
+        # publish form to organization project
+        self._publish_xls_form_to_project()
+
+        # try transfering bob's form to an organization project he created
+        view = ProjectViewSet.as_view({
+            'post': 'forms',
+        })
+        post_data = {'formid': xform.id}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=self.project.id)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data.get('detail'),
+            u'Form with the same id_string already exists in this account')
+
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_form_transfer_when_org_creator_creates_project(
+            self, mock_send_mail):
+        projects_count = Project.objects.count()
+        xform_count = XForm.objects.count()
+        user_bob = self.user
+
+        # create user alice with a project
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        self._login_user_and_profile(alice_data)
+        self._project_create({
+            'name': u'alice\'s project',
+            'owner': ('http://testserver/api/v1/users/%s'
+                      % alice_profile.user.username),
+            'public': False,
+        }, merge=False)
+        self.assertEqual(self.project.created_by, alice_profile.user)
+        alice_project = self.project
+
+        # create org owned by bob then make alice admin
+        self._login_user_and_profile(
+            {'username': user_bob.username, 'email': user_bob.email})
+        self._org_create()
+        self.assertEqual(self.organization.created_by, user_bob)
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+        data = {'username': alice_profile.user.username,
+                'role': OwnerRole.name}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, user=self.organization.user.username)
+        self.assertEqual(response.status_code, 201)
+
+        owners_team = get_organization_owners_team(self.organization)
+        self.assertIn(alice_profile.user, owners_team.user_set.all())
+
+        # let bob create a project in org
+        self._project_create({
+            'name': u'organization_project',
+            'owner': 'http://testserver/api/v1/users/denoinc',
+            'public': False,
+        })
+        self.assertEqual(self.project.created_by, user_bob)
+        org_project = self.project
+        self.assertEqual(Project.objects.count(), projects_count + 2)
+
+        # let alice create a form in her personal project
+        self._login_user_and_profile(alice_data)
+        self.project = alice_project
+        data = {
+            'owner': ('http://testserver/api/v1/users/%s'
+                      % alice_profile.user.username),
+            'public': True,
+            'public_data': True,
+            'description': u'transportation_2011_07_25',
+            'downloadable': True,
+            'allows_sms': False,
+            'encrypted': False,
+            'sms_id_string': u'transportation_2011_07_25',
+            'id_string': u'transportation_2011_07_25',
+            'title': u'transportation_2011_07_25',
+            'bamboo_dataset': u''
+        }
+        self._publish_xls_form_to_project(publish_data=data, merge=False)
+        self.assertEqual(self.xform.created_by, alice_profile.user)
+        self.assertEqual(XForm.objects.count(), xform_count + 1)
+
+        # let alice transfer the form to the organization project
+        view = ProjectViewSet.as_view({
+            'post': 'forms',
+        })
+        post_data = {'formid': self.xform.id}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=org_project.id)
+        self.assertEqual(response.status_code, 201)
+
+    @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
+    def test_form_transfer_when_org_admin_not_creator_creates_project(
+            self, mock_send_mail):
+        projects_count = Project.objects.count()
+        xform_count = XForm.objects.count()
+        user_bob = self.user
+
+        # create user alice with a project
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+        self._login_user_and_profile(alice_data)
+        self._project_create({
+            'name': u'alice\'s project',
+            'owner': ('http://testserver/api/v1/users/%s'
+                      % alice_profile.user.username),
+            'public': False,
+        }, merge=False)
+        self.assertEqual(self.project.created_by, alice_profile.user)
+        alice_project = self.project
+
+        # create org owned by bob then make alice admin
+        self._login_user_and_profile(
+            {'username': user_bob.username, 'email': user_bob.email})
+        self._org_create()
+        self.assertEqual(self.organization.created_by, user_bob)
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+        data = {'username': alice_profile.user.username,
+                'role': OwnerRole.name}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, user=self.organization.user.username)
+        self.assertEqual(response.status_code, 201)
+
+        owners_team = get_organization_owners_team(self.organization)
+        self.assertIn(alice_profile.user, owners_team.user_set.all())
+
+        # let alice create a project in org
+        self._login_user_and_profile(alice_data)
+        self._project_create({
+            'name': u'organization_project',
+            'owner': 'http://testserver/api/v1/users/denoinc',
+            'public': False,
+        })
+        self.assertEqual(self.project.created_by, alice_profile.user)
+        org_project = self.project
+        self.assertEqual(Project.objects.count(), projects_count + 2)
+
+        # let alice create a form in her personal project
+        self.project = alice_project
+        data = {
+            'owner': ('http://testserver/api/v1/users/%s'
+                      % alice_profile.user.username),
+            'public': True,
+            'public_data': True,
+            'description': u'transportation_2011_07_25',
+            'downloadable': True,
+            'allows_sms': False,
+            'encrypted': False,
+            'sms_id_string': u'transportation_2011_07_25',
+            'id_string': u'transportation_2011_07_25',
+            'title': u'transportation_2011_07_25',
+            'bamboo_dataset': u''
+        }
+        self._publish_xls_form_to_project(publish_data=data, merge=False)
+        self.assertEqual(self.xform.created_by, alice_profile.user)
+        self.assertEqual(XForm.objects.count(), xform_count + 1)
+
+        # let alice transfer the form to the organization project
+        view = ProjectViewSet.as_view({
+            'post': 'forms',
+        })
+        post_data = {'formid': self.xform.id}
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = view(request, pk=org_project.id)
         self.assertEqual(response.status_code, 201)
 
     @patch('onadata.apps.api.viewsets.project_viewset.send_mail')
