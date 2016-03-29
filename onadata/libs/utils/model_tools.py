@@ -1,8 +1,6 @@
 import gc
 import uuid
 
-from onadata.apps.logger.models.xform import XForm, DuplicateUUIDError
-
 
 def generate_uuid_for_form():
     return uuid.uuid4().hex
@@ -36,6 +34,8 @@ def queryset_iterator(queryset, chunksize=100):
 
 
 def update_xform_uuid(username, id_string, new_uuid):
+    from onadata.apps.logger.models.xform import XForm, DuplicateUUIDError
+
     xform = XForm.objects.get(user__username=username, id_string=id_string)
     # check for duplicate uuid
     count = XForm.objects.filter(uuid=new_uuid).count()
