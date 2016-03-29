@@ -1,3 +1,4 @@
+from celery import task
 from datetime import datetime
 
 from django.contrib.gis.db import models
@@ -116,30 +117,38 @@ def submission_time():
     return timezone.now()
 
 
+@task
 @transaction.atomic()
-def update_xform_submission_count(sender, instance, created, **kwargs):
+def update_xform_submission_count(instance_id, created):
     if created:
-        # update xform.num_of_submissions
-        cursor = connection.cursor()
-        sql = (
-            'UPDATE logger_xform SET '
-            'num_of_submissions = num_of_submissions + 1, '
-            'last_submission_time = %s '
-            'WHERE id = %s'
-        )
-        params = [instance.date_created, instance.xform_id]
+        try:
+            instance = Instance.objects.select_related(
+                'xform__user__id'
+            ).get(pk=instance_id)
+        except Instance.DoesNotExist:
+            pass
+        else:
+            # update xform.num_of_submissions
+            cursor = connection.cursor()
+            sql = (
+                'UPDATE logger_xform SET '
+                'num_of_submissions = num_of_submissions + 1, '
+                'last_submission_time = %s '
+                'WHERE id = %s'
+            )
+            params = [instance.date_created, instance.xform_id]
 
-        # update user profile.num_of_submissions
-        cursor.execute(sql, params)
-        sql = (
-            'UPDATE main_userprofile SET '
-            'num_of_submissions = num_of_submissions + 1 '
-            'WHERE user_id = %s'
-        )
-        cursor.execute(sql, [instance.xform.user_id])
+            # update user profile.num_of_submissions
+            cursor.execute(sql, params)
+            sql = (
+                'UPDATE main_userprofile SET '
+                'num_of_submissions = num_of_submissions + 1 '
+                'WHERE user_id = %s'
+            )
+            cursor.execute(sql, [instance.xform.user_id])
 
-        safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, instance.xform_id))
-        safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform_id))
+            safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, instance.xform_id))
+            safe_delete('{}{}'.format(DATAVIEW_COUNT, instance.xform_id))
 
 
 def update_xform_submission_count_delete(sender, instance, **kwargs):
@@ -174,6 +183,33 @@ def update_xform_submission_count_delete(sender, instance, **kwargs):
         if xform.instances.exclude(geom=None).count() < 1:
             xform.instances_with_geopoints = False
             xform.save()
+
+
+@task
+def save_full_json(instance_id, created):
+    """set json data, ensure the primary key is part of the json data"""
+    if created:
+        try:
+            instance = Instance.objects.get(pk=instance_id)
+        except Instance.DoesNotExist:
+            pass
+        else:
+            instance.json = instance.get_full_dict()
+            instance.save(update_fields=['json'])
+
+
+@task
+def update_project_date_modified(instance_id, created):
+    # update the date modified field of the project which will change
+    # the etag value of the projects endpoint
+    try:
+        instance = Instance.objects.select_related(
+            'xform__project__date_modified'
+        ).get(pk=instance_id)
+    except Instance.DoesNotExist:
+        pass
+    else:
+        instance.xform.project.save(update_fields=['date_modified'])
 
 
 class InstanceBaseClass(object):
@@ -404,30 +440,16 @@ class Instance(models.Model, InstanceBaseClass):
         self.parsed_instance.save()
 
 
-post_save.connect(update_xform_submission_count, sender=Instance,
-                  dispatch_uid='update_xform_submission_count')
+def post_save_submission(sender, instance=None, created=False, **kwargs):
+    update_xform_submission_count.apply_async(args=[instance.pk, created])
+    save_full_json.apply_async(args=[instance.pk, created])
+    update_project_date_modified.apply_async(args=[instance.pk, created])
+
+post_save.connect(post_save_submission, sender=Instance,
+                  dispatch_uid='post_save_submission')
 
 post_delete.connect(update_xform_submission_count_delete, sender=Instance,
                     dispatch_uid='update_xform_submission_count_delete')
-
-
-def save_full_json(sender, instance=None, created=False, **kwargs):
-    """set json data, ensure the primary key is part of the json data"""
-    if created:
-        instance.json = instance.get_full_dict()
-        instance.save(update_fields=['json'])
-
-post_save.connect(save_full_json, Instance, dispatch_uid='save_full_json')
-
-
-def update_project_date_modified(sender, instance=None, created=False,
-                                 **kwargs):
-    # update the date modified field of the project which will change
-    # the etag value of the projects endpoint
-    instance.xform.project.save(update_fields=['date_modified'])
-
-post_save.connect(update_project_date_modified, Instance,
-                  dispatch_uid='update_project_date_modified')
 
 
 class InstanceHistory(models.Model, InstanceBaseClass):
