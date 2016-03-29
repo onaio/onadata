@@ -16,6 +16,7 @@ from django.core.mail import mail_admins
 from django.core.servers.basehttp import FileWrapper
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseNotFound, \
     StreamingHttpResponse
 from django.shortcuts import get_object_or_404
@@ -218,8 +219,15 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
     return instance
 
 
-def get_filtered_instances(kwargs):
-    return Instance.objects.filter(**kwargs)
+def get_filtered_instances(*args, **kwargs):
+    """Get filtered instances - mainly to allow mocking in tests"""
+
+    return Instance.objects.filter(*args, **kwargs)\
+        .select_related(
+            'user__username',
+            'xform__user__username',
+            'xform__has_start_time'
+        )
 
 
 def create_instance(username, xml_file, media_files,
@@ -245,36 +253,32 @@ def create_instance(username, xml_file, media_files,
     xform = get_xform_from_submission(xml, username, uuid)
     check_submission_permissions(request, xform)
 
+    new_uuid = get_uuid_from_xml(xml)
     filtered_instances = get_filtered_instances(
-        {'xml': xml, 'xform_id': xform.pk})
+        Q(xml=xml) | Q(uuid=new_uuid), xform_id=xform.pk
+    )
     existing_instance = filtered_instances.first()
 
-    if existing_instance:
-        if not existing_instance.xform or\
-                existing_instance.xform.has_start_time:
-            # ensure we have saved the extra attachments
-            with transaction.atomic():
-                save_attachments(xform, existing_instance, media_files)
-                existing_instance.save()
+    if existing_instance and \
+            (new_uuid or existing_instance.xform.has_start_time):
+        # ensure we have saved the extra attachments
+        with transaction.atomic():
+            save_attachments(xform, existing_instance, media_files)
+            existing_instance.save(update_fields=['json', 'date_modified'])
 
-            # Ignore submission as a duplicate IFF
-            #  * a submission's XForm collects start time
-            #  * the submitted XML is an exact match with one that
-            #    has already been submitted for that user.
-            return DuplicateInstance()
+        # Ignore submission as a duplicate IFF
+        #  * a submission's XForm collects start time
+        #  * the submitted XML is an exact match with one that
+        #    has already been submitted for that user.
+        return DuplicateInstance()
 
     # get new and depracated uuid's
-    new_uuid = get_uuid_from_xml(xml)
     history = InstanceHistory.objects.filter(
-        xform_instance__xform=xform, uuid=new_uuid
-    )
+        xform_instance__xform_id=xform.pk, uuid=new_uuid
+    ).first()
 
-    duplicate_instances = get_filtered_instances(
-        {'uuid': new_uuid, 'xform_id': xform.id})
-
-    if duplicate_instances or history:
-        duplicate_instance = history[0].xform_instance \
-            if history else duplicate_instances[0]
+    if history:
+        duplicate_instance = history.xform_instance
         # ensure we have saved the extra attachments
         with transaction.atomic():
             save_attachments(xform, duplicate_instance, media_files)
