@@ -339,9 +339,6 @@ class XFormMixin(object):
 
         return len(geo_xpaths) > 0 and geo_xpaths[0]
 
-    def has_instances_with_geopoints(self):
-        return self.geocoded_submission_count() > 0
-
     def xpaths(self, prefix='', survey_element=None, result=None,
                repeat_iterations=4):
         """
