@@ -63,18 +63,19 @@ uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
 
 
 def _get_instance(xml, new_uuid, submitted_by, status, xform):
+    history = None
+    instance = None
     # check if its an edit submission
     old_uuid = get_deprecated_uuid_from_xml(xml)
     if old_uuid:
-        instances = Instance.objects.filter(uuid=old_uuid)
+        instance = Instance.objects.filter(uuid=old_uuid).first()
         history = InstanceHistory.objects.filter(
             xform_instance__xform=xform, uuid=new_uuid
         ).only('xform_instance').first()
 
-        if instances:
+        if instance:
             # edits
             check_edit_submission_permissions(submitted_by, xform)
-            instance = instances[0]
 
             InstanceHistory.objects.create(
                 xml=instance.xml, xform_instance=instance, uuid=old_uuid,
@@ -84,7 +85,7 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
             instance.save()
         elif history:
             instance = history.xform_instance
-    else:
+    if old_uuid is None or (instance is None and history is None):
         # new submission
         instance = Instance.objects.create(
             xml=xml, user=submitted_by, status=status, xform=xform)
