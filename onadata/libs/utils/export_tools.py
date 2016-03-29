@@ -40,9 +40,8 @@ from onadata.libs.utils.common_tags import (
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
     DATAVIEW_EXPORT, KNOWN_MEDIA_TYPES)
 from onadata.libs.utils.osm import get_combined_osm
+from onadata.apps.logger.models.xform import QUESTION_TYPES_TO_EXCLUDE
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.apps.viewer.models.data_dictionary import\
-    QUESTION_TYPES_TO_EXCLUDE
 from onadata.libs.utils.model_tools import queryset_iterator
 
 

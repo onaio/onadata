@@ -14,6 +14,7 @@ from django.utils.translation import ugettext as _
 from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.instance import _get_attachments_from_instance
 from onadata.apps.logger.models.instance import Instance
+from onadata.apps.logger.models.xform import _encode_for_mongo
 from onadata.apps.restservice.tasks import call_service_async
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
@@ -63,11 +64,6 @@ def dict_for_mongo(d):
             del d[key]
             d[_encode_for_mongo(key)] = value
     return d
-
-
-def _encode_for_mongo(key):
-    return reduce(lambda s, c: re.sub(c[0], base64.b64encode(c[1]), s),
-                  [(r'^\$', '$'), (r'\.', '.')], key)
 
 
 def _decode_from_mongo(key):
