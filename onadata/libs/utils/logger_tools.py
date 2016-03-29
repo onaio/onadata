@@ -65,25 +65,25 @@ uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
 def _get_instance(xml, new_uuid, submitted_by, status, xform):
     # check if its an edit submission
     old_uuid = get_deprecated_uuid_from_xml(xml)
-    instances = Instance.objects.filter(uuid=old_uuid)
-    history = InstanceHistory.objects.filter(
-        xform_instance__xform=xform, uuid=new_uuid
-    )
+    if old_uuid:
+        instances = Instance.objects.filter(uuid=old_uuid)
+        history = InstanceHistory.objects.filter(
+            xform_instance__xform=xform, uuid=new_uuid
+        ).only('xform_instance').first()
 
-    if instances:
-        # edits
-        check_edit_submission_permissions(submitted_by, xform)
-        instance = instances[0]
+        if instances:
+            # edits
+            check_edit_submission_permissions(submitted_by, xform)
+            instance = instances[0]
 
-        InstanceHistory.objects.create(
-            xml=instance.xml, xform_instance=instance, uuid=old_uuid,
-            user=submitted_by, geom=instance.geom)
-        instance.xml = xml
-        instance.uuid = new_uuid
-        instance.json = instance.get_dict()
-        instance.save()
-    elif history:
-        instance = history[0].xform_instance
+            InstanceHistory.objects.create(
+                xml=instance.xml, xform_instance=instance, uuid=old_uuid,
+                user=submitted_by, geom=instance.geom)
+            instance.xml = xml
+            instance.uuid = new_uuid
+            instance.save()
+        elif history:
+            instance = history.xform_instance
     else:
         # new submission
         instance = Instance.objects.create(
@@ -275,7 +275,7 @@ def create_instance(username, xml_file, media_files,
     # get new and depracated uuid's
     history = InstanceHistory.objects.filter(
         xform_instance__xform_id=xform.pk, uuid=new_uuid
-    ).first()
+    ).only('xform_instance').first()
 
     if history:
         duplicate_instance = history.xform_instance
