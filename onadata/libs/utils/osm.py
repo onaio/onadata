@@ -11,6 +11,7 @@ from lxml import etree
 
 from onadata.apps.logger.models.osmdata import OsmData
 from onadata.apps.logger.models.attachment import Attachment
+from onadata.apps.logger.models.instance import Instance
 
 
 def _get_xml_obj(xml):
@@ -142,10 +143,9 @@ def save_osm_data_async(instance_id):
 
 
 def save_osm_data(instance_id):
-    from onadata.apps.logger.models.instance import Instance
-
     instance = Instance.objects.filter(pk=instance_id).first()
-    osm_attachments = instance.attachments.filter(extension=Attachment.OSM)
+    osm_attachments = instance.attachments.filter(extension=Attachment.OSM) \
+        if instance else None
 
     if instance and osm_attachments:
         dd = instance.xform.data_dictionary()
