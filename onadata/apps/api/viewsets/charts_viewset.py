@@ -69,15 +69,13 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin,
     permission_classes = [XFormPermissions, ]
 
     def retrieve(self, request, *args, **kwargs):
-        xform = self.get_object()
-        serializer = self.get_serializer(xform)
-        dd = xform.data_dictionary()
-
         field_name = request.QUERY_PARAMS.get('field_name')
         field_xpath = request.QUERY_PARAMS.get('field_xpath')
         fields = request.QUERY_PARAMS.get('fields')
-        group_by = request.QUERY_PARAMS.get('group_by')
         fmt = kwargs.get('format')
+        group_by = request.QUERY_PARAMS.get('group_by')
+        xform = self.get_object()
+        serializer = self.get_serializer(xform)
 
         if fields:
             if fmt is not None and fmt != 'json':
@@ -100,7 +98,7 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin,
 
         data = serializer.data
         data["fields"] = {}
-        for field in dd.survey_elements:
+        for field in xform.survey_elements:
             field_url = get_form_field_chart_url(data["url"], field.name)
             data["fields"][field.name] = field_url
 

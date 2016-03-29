@@ -127,9 +127,9 @@ class TestExportTools(TestBase):
         self._publish_xls_file(os.path.join(self.this_directory, "fixtures",
                                             "photos", "tutorial.xls"))
         filename = "filename"
-        dd = XForm.objects.order_by('pk').reverse()[0].data_dictionary()
+        xform = XForm.objects.order_by('pk').reverse()[0]
         row = {}
-        get_attachment_xpath(filename, row, dd)
+        get_attachment_xpath(filename, row, xform)
 
     def test_parse_request_export_options(self):
         request = self.factory.get(

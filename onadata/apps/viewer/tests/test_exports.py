@@ -1094,8 +1094,7 @@ class TestExports(TestBase):
         survey_name = 'survey'
         indices = {survey_name: 0}
         output = dict_to_joined_export(data, 1, indices, survey_name,
-                                       self.xform.data_dictionary()
-                                       .get_survey())
+                                       self.xform.get_survey())
         self.assertEqual(output[survey_name], expected_output[survey_name])
         # 1st level
         self.assertEqual(len(output['children']), 3)
@@ -1186,7 +1185,7 @@ class TestExports(TestBase):
         survey_name = 'tutorial'
         indices = {survey_name: 0}
         data = dict_to_joined_export(submission, 1, indices, survey_name,
-                                     self.xform.data_dictionary().get_survey())
+                                     self.xform.get_survey())
         expected_data = {
             'tutorial': {
                 '_id': 579828,

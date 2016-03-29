@@ -2148,9 +2148,9 @@ class TestXFormViewSet(TestAbstractViewSet):
                 request = self.factory.patch('/', data=post_data, **self.extra)
                 response = view(request, pk=form_id)
                 self.assertEqual(response.status_code, 200)
-                dd = XForm.objects.get(pk=form_id).data_dictionary()
+                xform = XForm.objects.get(pk=form_id)
                 self.assertEqual('transportation',
-                                 dd.survey.xml_instance().tagName)
+                                 xform.survey.xml_instance().tagName)
 
     def test_id_strings_should_be_unique_in_each_account(self):
         with HTTMock(enketo_mock):
@@ -2288,9 +2288,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertNotEquals(version, self.xform.version)
             self.assertNotEquals(xform_json, self.xform.json)
             self.assertNotEquals(xform_xml, self.xform.xml)
-            data_dictionary = self.xform.data_dictionary()
             is_updated_form = len([e.name
-                                   for e in data_dictionary.survey_elements
+                                   for e in self.xform.survey_elements
                                    if e.name == u'preferred_means']) > 0
             self.assertTrue(is_updated_form)
 

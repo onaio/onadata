@@ -349,10 +349,9 @@ class TestFormShow(TestBase):
             self.client.post(xform_update_url, post_data)
         self.assertEqual(XForm.objects.count(), count)
         self.xform = XForm.objects.order_by('id').reverse()[0]
-        data_dictionary = self.xform.data_dictionary()
         # look for the preferred_means question
         # which is only in the updated xls
-        is_updated_form = len([e.name for e in data_dictionary.survey_elements
+        is_updated_form = len([e.name for e in self.xform.survey_elements
                                if e.name == u'preferred_means']) > 0
         self.assertTrue(is_updated_form)
 
@@ -381,10 +380,9 @@ class TestFormShow(TestBase):
         # Count should stay the same
         self.assertEqual(XForm.objects.count(), count + 1)
         self.xform = XForm.objects.order_by('id').reverse()[0]
-        data_dictionary = self.xform.data_dictionary()
         # look for the preferred_means question
         # which is only in the updated xls
-        is_updated_form = len([e.name for e in data_dictionary.survey_elements
+        is_updated_form = len([e.name for e in self.xform.survey_elements
                                if e.name == u'preferred_means']) > 0
         self.assertTrue(is_updated_form)
 

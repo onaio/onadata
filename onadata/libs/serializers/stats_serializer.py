@@ -50,12 +50,11 @@ class SubmissionStatsInstanceSerializer(serializers.Serializer):
             raise exceptions.ParseError(detail=e.message)
         else:
             if data:
-                dd = obj.data_dictionary()
-                element = dd.get_survey_element(field)
+                element = obj.get_survey_element(field)
 
                 if element and element.type in SELECT_FIELDS:
                     for record in data:
-                        label = dd.get_choice_label(element, record[name])
+                        label = obj.get_choice_label(element, record[name])
                         record[name] = label
 
         return data
@@ -85,7 +84,7 @@ class StatsInstanceSerializer(serializers.Serializer):
         method = request.QUERY_PARAMS.get('method', None)
         field = request.QUERY_PARAMS.get('field', None)
 
-        if field and field not in obj.data_dictionary().get_keys():
+        if field and field not in obj.get_keys():
             raise exceptions.ParseError(detail=_("Field not in XForm."))
 
         stats_function = STATS_FUNCTIONS.get(method and method.lower(),

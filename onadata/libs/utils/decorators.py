@@ -65,10 +65,10 @@ def apply_form_field_names(func):
                 'username' in kwargs:
             username = kwargs.get('username')
             id_string = kwargs.get('id_string')
-            dd = XForm.objects.get(
+            xform = XForm.objects.get(
                 id_string=id_string, user__username=username)
             records = []
-            field_names = dd.data_dictionary().get_mongo_field_names_dict()
+            field_names = xform.get_mongo_field_names_dict()
             for record in cursor:
                 records.append(_get_decoded_record(record))
             return records

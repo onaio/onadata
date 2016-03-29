@@ -144,9 +144,6 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         dataview = self.get_object()
         xform = dataview.xform
         serializer = self.get_serializer(dataview)
-        # serializer = DataViewChartSerializer(xform,
-        #                                      context={'request': request})
-        dd = xform.data_dictionary()
 
         field_name = request.QUERY_PARAMS.get('field_name')
         fmt = kwargs.get('format', request.accepted_renderer.format)
@@ -162,7 +159,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         data = serializer.data
         data["fields"] = {}
-        for field in dd.survey_elements:
+        for field in xform.survey_elements:
             if field.name in dataview.columns:
                 url = reverse('dataviews-charts', kwargs={'pk': dataview.pk},
                               request=request, format=fmt)

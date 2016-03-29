@@ -264,11 +264,10 @@ def calculate_ranges(page, items_per_page, total_items):
 
 
 def build_chart_data(xform, language_index=0, page=0):
-    dd = xform.data_dictionary()
     # only use chart-able fields
 
     fields = filter(
-        lambda f: f.type in CHART_FIELDS, [e for e in dd.survey_elements])
+        lambda f: f.type in CHART_FIELDS, [e for e in xform.survey_elements])
 
     # prepend submission time
     fields[:0] = [common_tags.SUBMISSION_TIME]
@@ -289,7 +288,6 @@ def build_chart_data_from_widget(widget, language_index=0):
         xform = widget.content_object.xform
     else:
         raise ParseError("Model not supported")
-    dd = xform.data_dictionary()
 
     field_name = widget.column
 
@@ -300,14 +298,14 @@ def build_chart_data_from_widget(widget, language_index=0):
         # use specified field to get summary
         fields = filter(
             lambda f: f.name == field_name,
-            [e for e in dd.survey_elements])
+            [e for e in xform.survey_elements])
 
         if len(fields) == 0:
             raise ParseError(
                 "Field %s does not not exist on the form" % field_name)
 
         field = fields[0]
-    choices = dd.survey.get('choices')
+    choices = xform.survey.get('choices')
 
     if choices:
         choices = choices.get(field_name)
@@ -320,7 +318,7 @@ def build_chart_data_from_widget(widget, language_index=0):
     return data
 
 
-def get_field_from_field_name(field_name, dd):
+def get_field_from_field_name(field_name, xform):
     # check if its the special _submission_time META
     if field_name == common_tags.SUBMISSION_TIME:
         field = common_tags.SUBMISSION_TIME
@@ -328,7 +326,7 @@ def get_field_from_field_name(field_name, dd):
         # use specified field to get summary
         fields = filter(
             lambda f: f.name == field_name,
-            [e for e in dd.survey_elements])
+            [e for e in xform.survey_elements])
 
         if len(fields) == 0:
             raise Http404(
@@ -339,7 +337,7 @@ def get_field_from_field_name(field_name, dd):
     return field
 
 
-def get_field_from_field_xpath(field_xpath, dd):
+def get_field_from_field_xpath(field_xpath, xform):
     # check if its the special _submission_time META
     if field_xpath == common_tags.SUBMISSION_TIME:
         field = common_tags.SUBMISSION_TIME
@@ -347,7 +345,7 @@ def get_field_from_field_xpath(field_xpath, dd):
         # use specified field to get summary
         fields = filter(
             lambda f: f.get_abbreviated_xpath() == field_xpath,
-            [e for e in dd.survey_elements])
+            [e for e in xform.survey_elements])
 
         if len(fields) == 0:
             raise Http404(
@@ -376,18 +374,17 @@ def get_chart_data_for_field(field_name, xform, accepted_format, group_by,
     Get chart data for a given xlsform field.
     """
     data = {}
-    dd = xform.data_dictionary()
 
     if field_name:
-        field = get_field_from_field_name(field_name, dd)
+        field = get_field_from_field_name(field_name, xform)
 
     if group_by:
-        group_by = get_field_from_field_xpath(group_by, dd)
+        group_by = get_field_from_field_xpath(group_by, xform)
 
     if field_xpath:
-        field = get_field_from_field_xpath(field_xpath, dd)
+        field = get_field_from_field_xpath(field_xpath, xform)
 
-    choices = dd.survey.get('choices')
+    choices = xform.survey.get('choices')
 
     if choices:
         choices = choices.get(field_name)

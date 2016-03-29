@@ -143,6 +143,16 @@ def get_forms_shared_with_user(user):
 
 
 class XFormMixin(object):
+
+    GEODATA_SUFFIXES = [
+        'latitude',
+        'longitude',
+        'altitude',
+        'precision'
+    ]
+
+    PREFIX_NAME_REGEX = re.compile(r'(?P<prefix>.+/)(?P<name>[^/]+)$')
+
     def _set_uuid_in_xml(self, file_name=None):
         """
         Add bind to automatically set UUID node in XML.
@@ -652,11 +662,6 @@ class XForm(XFormMixin, BaseModel):
                 "id_string": self.id_string
             }
         )
-
-    def data_dictionary(self):
-        from onadata.apps.viewer.models.data_dictionary import\
-            DataDictionary
-        return DataDictionary.objects.get(pk=self.pk)
 
     @property
     def has_instances_with_geopoints(self):

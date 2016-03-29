@@ -123,9 +123,7 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
                 # must be a dataview
                 xform = content_object.xform
 
-            data_dictionary = xform.data_dictionary()
-
-            if column not in data_dictionary.get_headers():
+            if column not in xform.get_headers():
                 raise serializers.ValidationError({
                     'column': _(u"'{}' not in the form.".format(column))
                 })

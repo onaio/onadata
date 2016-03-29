@@ -1772,8 +1772,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self._project_create(data)
         project2 = self.project
 
-        dd = self.xform.data_dictionary()
-        columns = json.dumps(dd.get_field_name_xpaths_only())
+        columns = json.dumps(self.xform.get_field_name_xpaths_only())
 
         data = {'name': "My DataView",
                 'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,

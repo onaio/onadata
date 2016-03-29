@@ -1,6 +1,5 @@
 import csv
 import os
-import re
 import xlrd
 
 from cStringIO import StringIO
@@ -71,15 +70,6 @@ def upload_to(instance, filename, username=None):
 
 
 class DataDictionary(XForm):
-
-    GEODATA_SUFFIXES = [
-        'latitude',
-        'longitude',
-        'altitude',
-        'precision'
-    ]
-
-    PREFIX_NAME_REGEX = re.compile(r'(?P<prefix>.+/)(?P<name>[^/]+)$')
 
     def __init__(self, *args, **kwargs):
         self.instances_for_export = lambda d: d.instances.all()

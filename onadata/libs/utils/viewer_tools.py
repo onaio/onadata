@@ -221,7 +221,7 @@ def generate_enketo_form_defaults(xform, **kwargs):
 
     if kwargs:
         for name, value in kwargs.iteritems():
-            field = xform.data_dictionary().get_survey_element(name)
+            field = xform.get_survey_element(name)
             if field:
                 defaults["defaults[{}]".format(field.get_xpath())] = value
 

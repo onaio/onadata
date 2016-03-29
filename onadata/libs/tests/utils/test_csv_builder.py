@@ -134,7 +134,6 @@ class TestCSVDataFrameBuilder(TestBase):
         self.maxDiff = None
         self._publish_single_level_repeat_form()
         self._submit_fixture_instance("new_repeats", "01")
-        self.xform.data_dictionary()
         data_0 = self._csv_data_for_dataframe()[0]
         # remove AbstractDataFrameBuilder.INTERNAL_FIELDS
         for key in AbstractDataFrameBuilder.IGNORED_COLUMNS:
@@ -165,14 +164,14 @@ class TestCSVDataFrameBuilder(TestBase):
 
     def test_split_select_multiples(self):
         self._publish_nested_repeats_form()
-        dd = self.xform.data_dictionary()
         self._submit_fixture_instance("nested_repeats", "01")
         csv_df_builder = CSVDataFrameBuilder(self.user.username,
                                              self.xform.id_string,
                                              include_images=False)
         cursor = [k for k in csv_df_builder._query_data()]
         record = cursor[0]
-        select_multiples = CSVDataFrameBuilder._collect_select_multiples(dd)
+        select_multiples = \
+            CSVDataFrameBuilder._collect_select_multiples(self.xform)
         result = CSVDataFrameBuilder._split_select_multiples(record,
                                                              select_multiples)
         expected_result = {
@@ -332,7 +331,7 @@ class TestCSVDataFrameBuilder(TestBase):
         # get submission xml str
         with open(submission_path, "r") as f:
             xml_str = f.read()
-        dict = xform_instance_to_dict(xml_str, self.xform.data_dictionary())
+        dict = xform_instance_to_dict(xml_str, self.xform)
         expected_dict = {
             u'test_item_name_matches_repeat': {
                 u'formhub': {
@@ -401,8 +400,7 @@ class TestCSVDataFrameBuilder(TestBase):
     def test_csv_column_indices_in_groups_within_repeats(self):
         self._publish_xls_fixture_set_xform("groups_in_repeats")
         self._submit_fixture_instance("groups_in_repeats", "01")
-        dd = self.xform.data_dictionary()
-        dd.get_keys()
+        self.xform.get_keys()
         data_0 = self._csv_data_for_dataframe()[0]
         # remove dynamic fields
         ignore_list = [

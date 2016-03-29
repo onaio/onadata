@@ -24,9 +24,8 @@ def _execute_query(query, to_dict=True):
 
 def _get_fields_of_type(xform, types):
     k = []
-    dd = xform.data_dictionary()
     survey_elements = flatten(
-        [dd.get_survey_elements_of_type(t) for t in types])
+        [xform.get_survey_elements_of_type(t) for t in types])
 
     for element in survey_elements:
         name = element.get_abbreviated_xpath()

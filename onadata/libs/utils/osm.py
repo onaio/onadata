@@ -148,9 +148,9 @@ def save_osm_data(instance_id):
         if instance else None
 
     if instance and osm_attachments:
-        dd = instance.xform.data_dictionary()
+        xform = instance.xform
         fields = [f.get_abbreviated_xpath()
-                  for f in dd.get_survey_elements_of_type('osm')]
+                  for f in xform.get_survey_elements_of_type('osm')]
         osm_filenames = {}
         for field in fields:
             filename = instance.json.get(field)

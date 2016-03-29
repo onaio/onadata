@@ -13,15 +13,15 @@ from onadata.libs.utils.chart_tools import (
 from onadata.apps.logger.models import XForm
 
 
-def find_field_by_name(dd, field_name):
+def find_field_by_name(xform, field_name):
     return filter(
-        lambda f: f.name == field_name, [e for e in dd.survey_elements])[0]
+        lambda f: f.name == field_name, [e for e in xform.survey_elements])[0]
 
 
-def find_field_by_xpath(dd, field_xpath):
+def find_field_by_xpath(xform, field_xpath):
     return filter(
         lambda f: f.get_abbreviated_xpath() == field_xpath,
-        [e for e in dd.survey_elements])[0]
+        [e for e in xform.survey_elements])[0]
 
 
 class TestChartTools(TestBase):
@@ -58,23 +58,21 @@ class TestChartTools(TestBase):
         xform = XForm.objects.all()[0]
         self.assertEqual(xform.title, "sample_accent")
 
-        dd = xform.data_dictionary()
-        field = find_field_by_name(dd, u'tête')
+        field = find_field_by_name(xform, u'tête')
         data = build_chart_data_for_field(self.xform, field)
         self.assertEqual(data['field_name'], u'words_with_accents-tête')
 
-        field = find_field_by_name(dd, u'té')
+        field = find_field_by_name(xform, u'té')
         data = build_chart_data_for_field(self.xform, field)
         self.assertEqual(data['field_name'], u'words_with_accents-té')
 
-        field = find_field_by_name(dd, u'père')
+        field = find_field_by_name(xform, u'père')
         data = build_chart_data_for_field(self.xform, field)
         self.assertEqual(data['field_name'], u'words_with_accents-père')
 
     def test_build_chart_data_for_field_on_select_one(self):
         field_name = 'gender'
-        dd = self.xform.data_dictionary()
-        field = find_field_by_name(dd, field_name)
+        field = find_field_by_name(self.xform, field_name)
         data = build_chart_data_for_field(self.xform, field)
         self.assertEqual(data['field_name'], field_name)
         self.assertEqual(data['field_type'], 'select one')
@@ -87,8 +85,7 @@ class TestChartTools(TestBase):
             self.assertEqual(count, 1)
 
     def test_build_chart_data_for_field_on_grouped_field(self):
-        dd = self.xform.data_dictionary()
-        field = find_field_by_xpath(dd, 'a_group/a_text')
+        field = find_field_by_xpath(self.xform, 'a_group/a_text')
         data = build_chart_data_for_field(self.xform, field)
         self.assertEqual(data['field_name'], 'a_group-a_text')
         self.assertEqual(data['field_xpath'], 'a_text')
@@ -96,9 +93,8 @@ class TestChartTools(TestBase):
         self.assertEqual(data['data_type'], 'categorized')
 
     def test_build_chart_data_for_numeric_field_group_by_category_field(self):
-        dd = self.xform.data_dictionary()
-        field = find_field_by_name(dd, 'net_worth')
-        group_by_field = find_field_by_xpath(dd, 'pizza_type')
+        field = find_field_by_name(self.xform, 'net_worth')
+        group_by_field = find_field_by_xpath(self.xform, 'pizza_type')
         data = build_chart_data_for_field(self.xform, field,
                                           group_by=group_by_field)
 
@@ -112,9 +108,8 @@ class TestChartTools(TestBase):
                                          'mean': 75000.0}])
 
     def test_build_chart_data_calculate_field_group_by_category_field(self):
-        dd = self.xform.data_dictionary()
-        field = find_field_by_name(dd, 'networth_calc')
-        group_by_field = find_field_by_name(dd, 'pizza_fan')
+        field = find_field_by_name(self.xform, 'networth_calc')
+        group_by_field = find_field_by_name(self.xform, 'pizza_fan')
         data = build_chart_data_for_field(self.xform, field,
                                           group_by=group_by_field)
 
@@ -128,9 +123,8 @@ class TestChartTools(TestBase):
                                          'mean': 75000.0}])
 
     def test_build_chart_data_for_category_field_group_by_category_field(self):
-        dd = self.xform.data_dictionary()
-        field = find_field_by_name(dd, 'gender')
-        group_by_field = find_field_by_name(dd, 'pizza_fan')
+        field = find_field_by_name(self.xform, 'gender')
+        group_by_field = find_field_by_name(self.xform, 'pizza_fan')
         data = build_chart_data_for_field(self.xform, field,
                                           group_by=group_by_field)
 
@@ -149,10 +143,8 @@ class TestChartTools(TestBase):
             }])
 
     def test_build_chart_category_field_group_by_category_field_in_group(self):
-        dd = self.xform.data_dictionary()
-
-        field = find_field_by_name(dd, 'gender')
-        group_by_field = find_field_by_xpath(dd, 'a_group/grouped')
+        field = find_field_by_name(self.xform, 'gender')
+        group_by_field = find_field_by_xpath(self.xform, 'a_group/grouped')
         data = build_chart_data_for_field(self.xform, field,
                                           group_by=group_by_field)
 
@@ -184,8 +176,7 @@ class TestChartTools(TestBase):
                             "apps", "api", "tests", "fixtures", "forms",
                             "tutorial", "instances", "3.xml")
         self._make_submission(path)
-        dd = self.xform.data_dictionary()
-        field = find_field_by_name(dd, 'date')
+        field = find_field_by_name(self.xform, 'date')
         data = build_chart_data_for_field(self.xform, field)
         # create a list with comparisons to the dict values
         values = [d['date'] is not None for d in data['data']]
@@ -200,8 +191,7 @@ class TestChartTools(TestBase):
                             "apps", "main", "tests", "fixtures",
                             "good_eats_multilang", "1.xml")
         self._make_submission(path)
-        dd = self.xform.data_dictionary()
-        field = find_field_by_name(dd, 'food_type')
+        field = find_field_by_name(self.xform, 'food_type')
         data = build_chart_data_for_field(self.xform, field, language_index=1)
         self.assertEqual(data['field_label'], u"Type of Eat")
 
@@ -214,8 +204,7 @@ class TestChartTools(TestBase):
                             "apps", "main", "tests", "fixtures",
                             "good_eats_multilang", "1.xml")
         self._make_submission(path)
-        dd = self.xform.data_dictionary()
-        field = find_field_by_name(dd, 'submit_date')
+        field = find_field_by_name(self.xform, 'submit_date')
         data = build_chart_data_for_field(self.xform, field, language_index=1)
         self.assertEqual(data['field_label'], 'submit_date')
 
@@ -225,8 +214,7 @@ class TestChartTools(TestBase):
                             "apps", "api", "tests", "fixtures", "forms",
                             "tutorial", "instances", "3.xml")
         self._make_submission(path)
-        dd = self.xform.data_dictionary()
-        field = find_field_by_name(dd, 'date')
+        field = find_field_by_name(self.xform, 'date')
         field.name = 'informed_consent/pas_denfants_elig/q7b'
 
         data = build_chart_data_for_field(self.xform, field)
@@ -240,8 +228,7 @@ class TestChartTools(TestBase):
                             "apps", "api", "tests", "fixtures", "forms",
                             "tutorial", "instances", "3.xml")
         self._make_submission(path)
-        dd = self.xform.data_dictionary()
-        field = find_field_by_name(dd, 'date')
+        field = find_field_by_name(self.xform, 'date')
         field.name = 'a' * 65
 
         data = build_chart_data_for_field(self.xform, field)

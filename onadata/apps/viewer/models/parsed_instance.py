@@ -262,10 +262,9 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
     sort = ['id'] if sort is None else sort_from_mongo_sort_str(sort)
 
     sql_where = u""
-    data_dictionary = xform.data_dictionary()
     known_integers = [
         get_name_from_survey_element(e)
-        for e in data_dictionary.get_survey_elements_of_type('integer')]
+        for e in xform.get_survey_elements_of_type('integer')]
     where, where_params = get_where_clause(query, known_integers)
 
     if fields and isinstance(fields, six.string_types):
@@ -413,17 +412,6 @@ class ParsedInstance(models.Model):
         for item in datadict['children']:
             if type(item) == dict and item.get(u'type') == type_value:
                 return item['name']
-
-    def get_data_dictionary(self):
-        # TODO: fix hack to get around a circular import
-        from onadata.apps.viewer.models.data_dictionary import\
-            DataDictionary
-        return DataDictionary.objects.get(
-            user=self.instance.xform.user,
-            id_string=self.instance.xform.id_string
-        )
-
-    data_dictionary = property(get_data_dictionary)
 
     # TODO: figure out how much of this code should be here versus
     # data_dictionary.py.

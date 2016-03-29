@@ -139,8 +139,7 @@ def submit_csv(username, xform, csv_file):
         return {'error': u'CSV file fieldnames should not contain spaces'}
 
     # Get the data dictionary
-    dd = xform.data_dictionary()
-    xform_header = dd.get_headers()
+    xform_header = xform.get_headers()
 
     missing_col = set(xform_header).difference(csv_header)
     addition_col = set(csv_header).difference(xform_header)
@@ -162,7 +161,7 @@ def submit_csv(username, xform, csv_file):
     # ignore if is multiple select question
     for col in csv_header:
         # this col is a multiple select question
-        survey_element = dd.get_survey_element(col)
+        survey_element = xform.get_survey_element(col)
         if survey_element and \
                 survey_element.get('type') == MULTIPLE_SELECT_TYPE:
             # remove from the missing and additional list

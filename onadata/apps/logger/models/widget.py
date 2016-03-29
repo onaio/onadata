@@ -71,8 +71,7 @@ class Widget(OrderedModel):
         elif isinstance(widget.content_object, DataView):
             xform = widget.content_object.xform
 
-        dd = xform.data_dictionary()
-        field = get_field_from_field_name(column, dd)
+        field = get_field_from_field_name(column, xform)
 
         if isinstance(field, basestring) and field == SUBMISSION_TIME:
             field_label = 'Submission Time'
@@ -148,8 +147,8 @@ class Widget(OrderedModel):
                                                       records)
         # use labels if group by
         if group_by:
-            group_by_field = get_field_from_field_xpath(group_by, dd)
-            choices = dd.survey.get('choices')
+            group_by_field = get_field_from_field_xpath(group_by, xform)
+            choices = xform.survey.get('choices')
             if choices:
                 choices = choices.get(column)
             records = _use_labels_from_group_by_name(group_by, group_by_field,

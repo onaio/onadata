@@ -22,7 +22,7 @@ def match_columns(data, instance=None):
     xform = data.get('xform', instance.xform if instance else None)
     columns = data.get('columns', instance.columns if instance else None)
     if xform and columns:
-        fields = xform.data_dictionary().get_field_name_xpaths_only()
+        fields = xform.get_field_name_xpaths_only()
         matched = [col for col in columns if col in fields]
         matches_parent = len(matched) == len(columns) == len(fields)
         data['matches_parent'] = matches_parent

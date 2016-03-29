@@ -72,7 +72,7 @@ def current_site_url(path):
     return url
 
 
-def get_attachment_xpath(file_name, row, data_dictionary):
+def get_attachment_xpath(file_name, row, xform):
     """
     Gets the xpath of the attachment using the file name
     :param file_name: attachment filename
@@ -82,7 +82,7 @@ def get_attachment_xpath(file_name, row, data_dictionary):
     """
 
     # get all known media types for this form
-    media_types = [data_dictionary.get_survey_elements_of_type(e)
+    media_types = [xform.get_survey_elements_of_type(e)
                    for e in KNOWN_MEDIA_TYPES]
 
     # convert to single array
@@ -874,7 +874,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
 
     export_builder.INCLUDE_IMAGES \
         = options.get("include_images", settings.EXPORT_WITH_IMAGE_DEFAULT)
-    export_builder.set_survey(xform.data_dictionary().survey)
+    export_builder.set_survey(xform.survey)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
 
@@ -1130,13 +1130,8 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
 
 
 def kml_export_data(id_string, user, xform=None):
-    # TODO resolve circular import
-    from onadata.apps.viewer.models.data_dictionary import DataDictionary
-
     if xform is None:
-        dd = DataDictionary.objects.get(id_string=id_string, user=user)
-    else:
-        dd = xform.data_dictionary()
+        xform = XForm.objects.get(id_string=id_string, user=user)
 
     instances = Instance.objects.filter(
         xform__user=user, xform__id_string=id_string, geom__isnull=False
@@ -1148,14 +1143,14 @@ def kml_export_data(id_string, user, xform=None):
     def cached_get_labels(xpath):
         if xpath in labels.keys():
             return labels[xpath]
-        labels[xpath] = dd.get_label(xpath)
+        labels[xpath] = xform.get_label(xpath)
         return labels[xpath]
 
     for instance in queryset_iterator(instances):
         # read the survey instances
         data_for_display = instance.get_dict()
         xpaths = data_for_display.keys()
-        xpaths.sort(cmp=instance.xform.data_dictionary().get_xpath_cmp())
+        xpaths.sort(cmp=instance.xform.get_xpath_cmp())
         label_value_pairs = [
             (cached_get_labels(xpath), data_for_display[xpath]) for xpath in
             xpaths if not xpath.startswith(u"_")]

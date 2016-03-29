@@ -50,12 +50,12 @@ def append_where_list(comp, t_list, json_str):
     return t_list
 
 
-def get_elements_of_type(data_dictionary, field_type):
+def get_elements_of_type(xform, field_type):
     """
     This function returns a list of column names of a specified type
     """
     return [f.get('name')
-            for f in data_dictionary.get_survey_elements_of_type(field_type)]
+            for f in xform.get_survey_elements_of_type(field_type)]
 
 
 def has_attachments_fields(data_view):
@@ -64,12 +64,12 @@ def has_attachments_fields(data_view):
     photo, video or audio (attachments fields). It returns a boolean
     value.
     """
-    dd = data_view.xform.data_dictionary()
+    xform = data_view.xform
 
-    if dd:
+    if xform:
         attachments = []
         for element_type in ATTACHMENT_TYPES:
-            attachments += get_elements_of_type(dd, element_type)
+            attachments += get_elements_of_type(xform, element_type)
 
         if attachments:
             for a in data_view.columns:
@@ -111,8 +111,7 @@ class DataView(models.Model):
 
         # Get the form geo xpaths
         xform = self.xform
-        data_dictionary = xform.data_dictionary()
-        geo_xpaths = data_dictionary.geopoint_xpaths()
+        geo_xpaths = xform.geopoint_xpaths()
 
         set_geom = set(geo_xpaths)
         set_columns = set(self.columns)
@@ -219,14 +218,14 @@ class DataView(models.Model):
 
             sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
 
-        data_dictionary = data_view.xform.data_dictionary()
+        xform = data_view.xform
         known_integers = [
             get_name_from_survey_element(e)
-            for e in data_dictionary.get_survey_elements_of_type('integer')]
+            for e in xform.get_survey_elements_of_type('integer')]
 
         known_dates = [
             get_name_from_survey_element(e)
-            for e in data_dictionary.get_survey_elements_of_type('date')]
+            for e in xform.get_survey_elements_of_type('date')]
 
         where, where_params = cls._get_where_clause(data_view, known_integers,
                                                     known_dates)

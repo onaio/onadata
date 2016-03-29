@@ -67,8 +67,9 @@ def _get_attachments_from_instance(instance):
     return attachments
 
 
-def _get_tag_or_element_type_xpath(dd, tag):
-    elems = dd.get_survey_elements_of_type(tag)
+def _get_tag_or_element_type_xpath(xform, tag):
+    elems = xform.get_survey_elements_of_type(tag)
+
     return elems[0].get_abbreviated_xpath() if elems else tag
 
 
@@ -250,8 +251,7 @@ class InstanceBaseClass(object):
 
     def _set_geom(self):
         xform = self.xform
-        data_dictionary = xform.data_dictionary()
-        geo_xpaths = data_dictionary.geopoint_xpaths()
+        geo_xpaths = xform.geopoint_xpaths()
         doc = self.get_dict()
         points = []
 
@@ -316,8 +316,7 @@ class InstanceBaseClass(object):
 
     def _set_parser(self):
         if not hasattr(self, "_parser"):
-            self._parser = XFormInstanceParser(
-                self.xml, self.xform.data_dictionary())
+            self._parser = XFormInstanceParser(self.xml, self.xform)
 
     def _set_survey_type(self):
         self.survey_type, created = \
@@ -360,9 +359,8 @@ class InstanceBaseClass(object):
 
     def get_duration(self):
         data = self.get_dict()
-        dd = self.xform.data_dictionary()
-        start_name = _get_tag_or_element_type_xpath(dd, START)
-        end_name = _get_tag_or_element_type_xpath(dd, END)
+        start_name = _get_tag_or_element_type_xpath(self.xform, START)
+        end_name = _get_tag_or_element_type_xpath(self.xform, END)
         start_time, end_time = data.get(start_name), data.get(end_name)
 
         return calculate_duration(start_time, end_time)
@@ -519,7 +517,8 @@ class InstanceHistory(models.Model, InstanceBaseClass):
     def _set_parser(self):
         if not hasattr(self, "_parser"):
             self._parser = XFormInstanceParser(
-                self.xml, self.xform_instance.xform.data_dictionary())
+                self.xml, self.xform_instance.xform
+            )
 
     @classmethod
     def set_deleted_at(cls, instance_id, deleted_at=timezone.now()):
