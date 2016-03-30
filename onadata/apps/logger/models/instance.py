@@ -6,6 +6,7 @@ from django.db import connection
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.db.models.signals import post_delete
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import GeometryCollection, Point
 from django.core.urlresolvers import reverse
@@ -32,6 +33,9 @@ from onadata.libs.utils.cache_tools import PROJ_NUM_DATASET_CACHE,\
     XFORM_DATA_VERSIONS, DATAVIEW_COUNT
 from onadata.libs.utils.dict_tools import get_values_matching_key
 from onadata.libs.utils.timing import calculate_duration
+
+ASYNC_POST_SUBMISSION = \
+    getattr(settings, 'ASYNC_POST_SUBMISSION_SIGNALS', False)
 
 
 def get_attachment_url(attachment, suffix=None):
@@ -441,9 +445,14 @@ class Instance(models.Model, InstanceBaseClass):
 
 
 def post_save_submission(sender, instance=None, created=False, **kwargs):
-    update_xform_submission_count.apply_async(args=[instance.pk, created])
-    save_full_json.apply_async(args=[instance.pk, created])
-    update_project_date_modified.apply_async(args=[instance.pk, created])
+    if ASYNC_POST_SUBMISSION:
+        update_xform_submission_count.apply_async(args=[instance.pk, created])
+        save_full_json.apply_async(args=[instance.pk, created])
+        update_project_date_modified.apply_async(args=[instance.pk, created])
+    else:
+        update_xform_submission_count(instance.pk, created)
+        save_full_json(instance.pk, created)
+        update_project_date_modified(instance.pk, created)
 
 post_save.connect(post_save_submission, sender=Instance,
                   dispatch_uid='post_save_submission')

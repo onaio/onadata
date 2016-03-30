@@ -326,6 +326,43 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data[0]['submission_count_for_today'], 1)
             self.assertEqual(response.data[0]['num_of_submissions'], 1)
 
+    @override_settings(ASYNC_POST_SUBMISSION_SIGNALS=True)
+    def test_submission_count_for_today_in_form_list_async_count(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            request = self.factory.get('/', **self.extra)
+            response = self.view(request)
+            self.assertNotEqual(response.get('Cache-Control'), None)
+            self.assertEqual(response.status_code, 200)
+            self.assertIn(
+                'submission_count_for_today', response.data[0].keys())
+            self.assertEqual(response.data[0]['submission_count_for_today'], 0)
+            self.assertEqual(response.data[0]['num_of_submissions'], 0)
+
+            paths = [os.path.join(
+                self.main_directory, 'fixtures', 'transportation',
+                'instances_w_uuid', s, s + '.xml')
+                for s in ['transport_2011-07-25_19-05-36']]
+
+            # instantiate date that is NOT naive; timezone is enabled
+            current_timzone_name = timezone.get_current_timezone_name()
+            current_timezone = pytz.timezone(current_timzone_name)
+            today = datetime.today()
+            current_date = current_timezone.localize(
+                datetime(today.year,
+                         today.month,
+                         today.day))
+            self._make_submission(
+                paths[0], forced_submission_time=current_date)
+            self.assertEqual(self.response.status_code, 201)
+
+            request = self.factory.get('/', **self.extra)
+            response = self.view(request)
+            self.assertNotEqual(response.get('Cache-Control'), None)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data[0]['submission_count_for_today'], 1)
+            self.assertEqual(response.data[0]['num_of_submissions'], 1)
+
     def test_form_list_anon(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
