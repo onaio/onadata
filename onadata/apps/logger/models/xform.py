@@ -189,30 +189,35 @@ class XForm(BaseModel):
         super(XForm, self).save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
-        if 'update_fields' in kwargs:
-            kwargs['update_fields'] = list(set(list(
-                kwargs['update_fields']) + ['date_modified']
+        update_fields = kwargs.get('update_fields')
+        if update_fields:
+            kwargs['update_fields'] = list(set(
+                list(update_fields) + ['date_modified']
             ))
-        self._set_title()
-        old_id_string = self.id_string
-        self._set_id_string()
-        self._set_encrypted_field()
-        # check if we have an existing id_string,
-        # if so, the one must match but only if xform is NOT new
-        if self.pk and old_id_string and old_id_string != self.id_string and \
-                self.num_of_submissions > 0:
-            raise XLSFormError(
-                _(u"Your updated form's id_string '%(new_id)s' must match "
-                  "the existing forms' id_string '%(old_id)s', if form has "
-                  "submissions." %
-                  {'new_id': self.id_string, 'old_id': old_id_string}))
+        if update_fields is None or 'title' in update_fields:
+            self._set_title()
+        if update_fields is None or 'encryted' in update_fields:
+            self._set_encrypted_field()
+        if update_fields is None or 'id_string' in update_fields:
+            old_id_string = self.id_string
+            self._set_id_string()
+            # check if we have an existing id_string,
+            # if so, the one must match but only if xform is NOT new
+            if self.pk and old_id_string and old_id_string != self.id_string \
+                    and self.num_of_submissions > 0:
+                raise XLSFormError(
+                    _(u"Your updated form's id_string '%(new_id)s' must match "
+                      "the existing forms' id_string '%(old_id)s', if form has"
+                      " submissions." %
+                      {'new_id': self.id_string, 'old_id': old_id_string}))
 
-        if getattr(settings, 'STRICT', True) and \
-                not re.search(r"^[\w-]+$", self.id_string):
-            raise XLSFormError(_(u'In strict mode, the XForm ID must be a '
-                                 'valid slug and contain no spaces.'))
+            if getattr(settings, 'STRICT', True) and \
+                    not re.search(r"^[\w-]+$", self.id_string):
+                raise XLSFormError(_(u'In strict mode, the XForm ID must be a '
+                                     'valid slug and contain no spaces.'))
 
-        if not self.sms_id_string:
+        if not self.sms_id_string and (update_fields is None or
+                                       'id_string' in update_fields):
             try:
                 # try to guess the form's wanted sms_id_string
                 # from it's json rep (from XLSForm)
@@ -331,7 +336,7 @@ post_save.connect(set_object_permissions, sender=XForm,
 
 
 def save_project(sender, instance=None, created=False, **kwargs):
-    instance.project.save()
+    instance.project.save(update_fields=['date_modified'])
 
 pre_save.connect(save_project, sender=XForm,
                  dispatch_uid='save_project_xform')

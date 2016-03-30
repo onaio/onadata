@@ -43,6 +43,7 @@ from onadata.libs.utils.osm import get_combined_osm
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.data_dictionary import\
     QUESTION_TYPES_TO_EXCLUDE
+from onadata.libs.utils.model_tools import queryset_iterator
 
 
 # the bind type of select multiples that we use to compare
@@ -1151,7 +1152,7 @@ def kml_export_data(id_string, user, xform=None):
         labels[xpath] = dd.get_label(xpath)
         return labels[xpath]
 
-    for instance in instances:
+    for instance in queryset_iterator(instances):
         # read the survey instances
         data_for_display = instance.get_dict()
         xpaths = data_for_display.keys()

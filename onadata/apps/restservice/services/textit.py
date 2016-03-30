@@ -12,16 +12,16 @@ class ServiceDefinition(RestServiceInterface):
     id = TEXTIT
     verbose_name = u'TextIt POST'
 
-    def send(self, url, parsed_instance):
+    def send(self, url, submission_instance):
         """
         Sends the submission to the configured rest service
         :param url:
-        :param parsed_instance:
+        :param submission_instance:
         :return:
         """
-        extra_data = self.clean_keys_of_slashes(parsed_instance.instance.json)
+        extra_data = self.clean_keys_of_slashes(submission_instance.json)
 
-        meta = MetaData.textit(parsed_instance.instance.xform)
+        meta = MetaData.textit(submission_instance.xform)
 
         token, flow_uuid, contacts = meta.data_value.split(METADATA_SEPARATOR)
         post_data = {

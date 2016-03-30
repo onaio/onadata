@@ -12,14 +12,12 @@ from django.db.models.signals import post_save
 from django.utils.translation import ugettext as _
 
 from onadata.apps.logger.models.note import Note
-from onadata.apps.restservice.models import RestService
 from onadata.apps.logger.models.instance import _get_attachments_from_instance
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.restservice.tasks import call_service_async
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
     NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED
-from onadata.apps.logger.models.attachment import Attachment
 from onadata.libs.utils.osm import save_osm_data_async
 
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -467,25 +465,20 @@ class ParsedInstance(models.Model):
         return notes
 
 
-def rest_service_form_submission(sender, **kwargs):
+def post_save_submission(sender, **kwargs):
     parsed_instance = kwargs.get('instance')
     created = kwargs.get('created')
 
     if created:
-        # Check if any rest service is set
-        if RestService.objects.filter(xform=parsed_instance.instance.xform)\
-                .count() > 0:
-            call_service_async.apply_async(
-                args=[parsed_instance.pk],
-                countdown=1
-            )
+        call_service_async.apply_async(
+            args=[parsed_instance.instance_id],
+            countdown=1
+        )
 
-        if parsed_instance.instance.attachments.filter(
-                extension=Attachment.OSM).count() > 0:
-            save_osm_data_async.apply_async(
-                args=[parsed_instance.pk],
-                countdown=1
-            )
+        save_osm_data_async.apply_async(
+            args=[parsed_instance.instance_id],
+            countdown=1
+        )
 
 
-post_save.connect(rest_service_form_submission, sender=ParsedInstance)
+post_save.connect(post_save_submission, sender=ParsedInstance)
