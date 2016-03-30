@@ -36,6 +36,14 @@ Forms
    submissions
    restservices
 
+Submission Stats
+----------------
+
+.. toctree::
+   :maxdepth: 2
+
+   submission_stats
+
 Users and Organizations
 -----------------------
 
