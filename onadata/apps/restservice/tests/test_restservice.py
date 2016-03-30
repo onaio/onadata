@@ -12,6 +12,7 @@ from onadata.apps.main.models import MetaData
 from onadata.apps.restservice.views import add_service, delete_service
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 from onadata.apps.restservice.models import RestService
+from onadata.apps.restservice.services.textit import ServiceDefinition
 
 
 class RestServiceTest(TestBase):
@@ -145,3 +146,22 @@ class RestServiceTest(TestBase):
         self._make_submission(xml_submission)
         self.assertFalse(mock_http.called)
         self.assertEquals(mock_http.call_count, 0)
+
+    def test_clean_keys_of_slashes(self):
+        service = ServiceDefinition()
+
+        test_data = {
+            "hh/group/data_set": "22",
+            "empty_column": "",
+            "false_column": False,
+            "zero_column": 0
+        }
+
+        expected_data = {
+            "hh_group_data_set": "22",
+            "false_column": "False",
+            "zero_column": "0"
+        }
+
+        self.assertEquals(expected_data,
+                          service.clean_keys_of_slashes(test_data))

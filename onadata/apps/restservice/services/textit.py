@@ -60,4 +60,5 @@ class ServiceDefinition(RestServiceInterface):
                 for v in value:
                     self.clean_keys_of_slashes(v)
 
-        return record
+        # remove elements with no value
+        return dict((k, v) for k, v in record.iteritems() if v)
