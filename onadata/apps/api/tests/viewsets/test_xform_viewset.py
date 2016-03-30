@@ -326,7 +326,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data[0]['submission_count_for_today'], 1)
             self.assertEqual(response.data[0]['num_of_submissions'], 1)
 
-    @override_settings(ASYNC_POST_SUBMISSION_SIGNALS=True)
+    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
     def test_submission_count_for_today_in_form_list_async_count(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
