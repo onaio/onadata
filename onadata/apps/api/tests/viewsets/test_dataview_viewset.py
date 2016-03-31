@@ -532,6 +532,26 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['data_type'], 'numeric')
         self.assertEqual(len(response.data['data']), len(data_view_data))
 
+    def test_get_charts_data_for_grouped_field(self):
+        self._create_dataview()
+        self.view = DataViewViewSet.as_view({
+            'get': 'charts',
+        })
+
+        request = self.factory.get('/charts', **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+        data = {'field_name': 'grouped'}
+        request = self.factory.get('/charts', data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'select one')
+        self.assertEqual(response.data['field_name'], 'a_group-grouped')
+        self.assertEqual(response.data['data_type'], 'categorized')
+        self.assertEqual(len(response.data['data']), 2)
+
     def test_geopoint_dataview(self):
         # Dataview with geolocation column selected.
         # -> instances_with_geopoints= True
