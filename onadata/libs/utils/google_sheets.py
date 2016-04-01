@@ -218,7 +218,6 @@ class SheetsExportBuilder(ExportBuilder):
         for index, values in enumerate(rows, 1):
             update_row(ws, index, values)
 
-
     def export_tabular(self, path, data):
         # Add worksheets for export.
         self._create_worksheets()

@@ -20,7 +20,7 @@ class TestExportTasks(TestBase):
                    "remove_group_name": False,
                    "split_select_multiples": True}
         export_types = ((Export.XLS_EXPORT, {}),
-                        (Export.GDOC_EXPORT, {}),
+                        (Export.GSHEETS_EXPORT, {}),
                         (Export.CSV_EXPORT, {}),
                         (Export.CSV_ZIP_EXPORT, {}),
                         (Export.SAV_ZIP_EXPORT, {}),

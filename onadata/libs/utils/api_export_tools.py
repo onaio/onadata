@@ -93,8 +93,8 @@ def custom_response_handler(request, xform, query, export_type,
         if export_type == Export.GSHEETS_EXPORT:
             credential = _get_google_credential(request)
 
-        if isinstance(credential, HttpResponseRedirect):
-            return credential
+            if isinstance(credential, HttpResponseRedirect):
+                return credential
 
         # check if we need to re-generate,
         # we always re-generate if a filter is specified
@@ -144,7 +144,7 @@ def _generate_new_export(request, xform, query, export_type,
     if export_type == Export.GSHEETS_EXPORT:
         credential = _get_google_credential(request)
 
-    options['google_credentials']= credential
+        options['google_credentials'] = credential
 
     try:
         if export_type == Export.EXTERNAL_EXPORT:
@@ -329,7 +329,7 @@ def process_async_export(request, xform, export_type, options=None):
 
         if isinstance(credential, HttpResponseRedirect):
             return credential
-    options['google_credentials']= credential
+        options['google_credentials'] = credential
 
     if should_create_new_export(xform, export_type, options, request=request)\
             or export_type == Export.EXTERNAL_EXPORT:

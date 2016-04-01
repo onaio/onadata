@@ -97,8 +97,7 @@ class TestExport(TestBase):
                                    mock_account_add_service_account,
                                    mock_new):
         expected_files, result_files, csv_writers = self._setup_result_files(
-            ['expected_tutorial_w_repeats.csv',
-             'expected_children.csv'
+            ['expected_tutorial_w_repeats.csv'
              ])
         mock_urlopen.return_value.read.return_value = '{"access_token": "baz"}'
         mock_new.return_value = self._mock_spreadsheet(csv_writers)

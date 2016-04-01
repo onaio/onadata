@@ -68,14 +68,6 @@ class TestExportList(TestBase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
 
-    def test_gdoc_export_list(self):
-        kwargs = {'username': self.user.username,
-                  'id_string': self.xform.id_string,
-                  'export_type': Export.GDOC_EXPORT}
-        url = reverse(export_list, kwargs=kwargs)
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
-
     def test_csv_zip_export_list(self):
         kwargs = {'username': self.user.username,
                   'id_string': self.xform.id_string,
