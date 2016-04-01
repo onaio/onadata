@@ -64,6 +64,7 @@ class KMLRenderer(BaseRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data
 
+
 class GSHEETSRenderer(XLSRenderer):
     format = 'gsheets'
 

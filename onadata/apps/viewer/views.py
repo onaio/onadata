@@ -313,6 +313,7 @@ def create_export(request, username, id_string, export_type):
         if not MetaData.external_export(xform):
             return HttpResponseForbidden(_(u'No XLS Template set.'))
 
+    credential = None
     if export_type == Export.GSHEETS_EXPORT:
         redirect_url = reverse(
             export_list,
