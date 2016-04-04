@@ -238,6 +238,16 @@ class DataViewViewsetPermissions(AlternateHasObjectPermissionMixin,
                                            obj.project)
 
 
+class RestServiceObjectPermissions(AlternateHasObjectPermissionMixin,
+                                   DjangoObjectPermissions):
+
+    def has_object_permission(self, request, view, obj):
+        model_cls = XForm
+        user = request.user
+
+        return self._has_object_permission(request, model_cls, user, obj.xform)
+
+
 class WidgetViewSetPermissions(AlternateHasObjectPermissionMixin,
                                ViewDjangoObjectPermissions,
                                AbstractHasObjectPermissionMixin,
