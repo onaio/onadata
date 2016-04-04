@@ -238,9 +238,9 @@ class XFormMixin(object):
 
     def add_instances(self):
         _get_observation_from_dict = DictOrganizer().get_observation_from_dict
-        instances = self.get_list_of_parsed_instances(flat=True)
 
-        return [_get_observation_from_dict(d) for d in instances]
+        return [_get_observation_from_dict(d)
+                for d in self.get_list_of_parsed_instances(flat=False)]
 
     def _id_string_already_exists_in_account(self, id_string):
         try:
