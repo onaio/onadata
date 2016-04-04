@@ -344,9 +344,10 @@ class InstanceBaseClass(object):
 
     def get_notes(self):
         return [{"id": note.id,
-                 "field": note.instance_field,
+                 "owner": note.created_by.username,
                  "note": note.note,
-                 "user": note.created_by.username if note.created_by else None}
+                 "instance_field": note.instance_field,
+                 "created_by": note.created_by.id}
                 for note in self.notes.all()]
 
     def get_root_node(self):

@@ -143,7 +143,7 @@ class TestNoteViewSet(TestBase):
         self.assertEquals(len(instance.json["_notes"]), 1)
 
         note = instance.json["_notes"][0]
-        self.assertEquals(note['field'], field)
+        self.assertEquals(note['instance_field'], field)
 
     def test_only_add_question_notes_to_existing_fields(self):
         field = "bla"
