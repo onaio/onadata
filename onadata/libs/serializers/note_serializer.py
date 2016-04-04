@@ -36,9 +36,10 @@ class NoteSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         instance = attrs.get('instance')
         request = self.context.get('request')
+
         if request and \
-                not request.user.has_perm('change_xform', instance.xform):
-            raise exceptions.PermissionDenied(_(
+                not request.user.has_perm('view_xform', instance.xform):
+            raise exceptions.ParseError(_(
                 u"You are not authorized to add/change notes on this form."
             ))
 
