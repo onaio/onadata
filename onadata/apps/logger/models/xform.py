@@ -334,7 +334,7 @@ class XFormMixin(object):
 
         return len(geo_xpaths) and geo_xpaths[0]
 
-    def xpaths(self, prefix='', survey_element=None, result=[],
+    def xpaths(self, prefix='', survey_element=None, result=None,
                repeat_iterations=4):
         """
         Return a list of XPaths for this survey that will be used as
@@ -345,7 +345,9 @@ class XFormMixin(object):
         elif question_types_to_exclude(survey_element.type):
             return []
 
+        result = [] if result is None else result
         path = '/'.join([prefix, unicode(survey_element.name)])
+
         if survey_element.children is not None:
             # add xpaths to result for each child
             indices = [''] if type(survey_element) != RepeatingSection else \
