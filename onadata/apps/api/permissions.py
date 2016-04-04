@@ -133,7 +133,7 @@ class ProjectPermissions(DjangoObjectPermissions):
             request, view, obj)
 
 
-class AbstractHasObjectPermissionMixin(object):
+class AbstractHasPermissionMixin(object):
     """
     Checks that the requesting user has permissions to access each of the
     models in the `model_classes` instance variable.
@@ -161,7 +161,7 @@ class AbstractHasObjectPermissionMixin(object):
         return False
 
 
-class HasObjectPermissionMixin(AbstractHasObjectPermissionMixin):
+class HasProjectOrXFormPermissionMixin(AbstractHasPermissionMixin):
     """
     Use the Project, XForm, or both model classes to check permissions based
     on the request data keys.
@@ -175,18 +175,20 @@ class HasObjectPermissionMixin(AbstractHasObjectPermissionMixin):
         else:
             self.model_classes = [Project, XForm]
 
-        return super(HasObjectPermissionMixin, self).has_permission(
+        return super(HasProjectOrXFormPermissionMixin, self).has_permission(
             request, view)
 
 
-class MetaDataObjectPermissions(HasObjectPermissionMixin,
+class MetaDataObjectPermissions(AlternateHasObjectPermissionMixin,
+                                HasProjectOrXFormPermissionMixin,
                                 DjangoObjectPermissions):
 
     def has_object_permission(self, request, view, obj):
-        view.model = obj.content_object.__class__
+        model_cls = obj.content_object.__class__
+        user = request.user
 
-        return super(MetaDataObjectPermissions, self)\
-            .has_object_permission(request, view, obj.content_object)
+        return self._has_object_permission(request, model_cls, user,
+                                           obj.content_object)
 
 
 class AttachmentObjectPermissions(AlternateHasObjectPermissionMixin,
@@ -225,7 +227,7 @@ class UserViewSetPermissions(DjangoModelPermissionsOrAnonReadOnly):
 
 class DataViewViewsetPermissions(AlternateHasObjectPermissionMixin,
                                  ViewDjangoObjectPermissions,
-                                 AbstractHasObjectPermissionMixin,
+                                 AbstractHasPermissionMixin,
                                  DjangoObjectPermissions):
 
     model_classes = [Project]
@@ -250,7 +252,7 @@ class RestServiceObjectPermissions(AlternateHasObjectPermissionMixin,
 
 class WidgetViewSetPermissions(AlternateHasObjectPermissionMixin,
                                ViewDjangoObjectPermissions,
-                               AbstractHasObjectPermissionMixin,
+                               AbstractHasPermissionMixin,
                                DjangoObjectPermissions):
 
     authenticated_users_only = False
