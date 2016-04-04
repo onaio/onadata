@@ -1,4 +1,5 @@
 from django.test import RequestFactory
+from guardian.shortcuts import assign_perm
 
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.main.tests.test_base import TestBase
@@ -96,7 +97,7 @@ class TestNoteViewSet(TestBase):
         request = self.factory.post('/', data=note, **extra)
         self.assertTrue(self.xform.instances.count())
         response = self.view(request)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 400)
 
         # save some notes
         self._add_notes_to_data_point()
@@ -117,6 +118,36 @@ class TestNoteViewSet(TestBase):
         response = view(request, pk=self.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [])
+
+    def test_collaborator_with_readonly_permission_can_add_comment(self):
+        self._create_user_and_login('lilly', '1234')
+        extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+
+        # save some notes
+        self._add_notes_to_data_point()
+
+        # post note to submission as lilly without permissions
+        note = {'note': u"Road Warrior"}
+        dataid = self._first_xform_instance.pk
+        note['instance'] = dataid
+        request = self.factory.post('/', data=note, **extra)
+        self.assertTrue(self.xform.instances.count())
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 400)
+
+        # post note to submission with permissions to form
+        assign_perm('view_xform', self.user, self._first_xform_instance.xform)
+
+        note = {'note': u"Road Warrior"}
+        dataid = self._first_xform_instance.pk
+        note['instance'] = dataid
+        request = self.factory.post('/', data=note, **extra)
+        self.assertTrue(self.xform.instances.count())
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, 201)
 
     def test_delete_note(self):
         self._add_notes_to_data_point()
