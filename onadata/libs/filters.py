@@ -177,7 +177,7 @@ class XFormPermissionFilterMixin(object):
 class ProjectPermissionFilterMixin(object):
 
     def _project_filter(self, request, view, keyword):
-        project_id = request.QUERY_PARAMS.get("project")
+        project_id = request.query_params.get("project")
 
         if project_id:
             try:
@@ -218,8 +218,8 @@ class MetaDataFilter(ProjectPermissionFilterMixin,
     def filter_queryset(self, request, queryset, view):
         keyword = "object_id"
 
-        xform_id = request.QUERY_PARAMS.get('xform')
-        project_id = request.QUERY_PARAMS.get("project")
+        xform_id = request.query_params.get('xform')
+        project_id = request.query_params.get("project")
 
         # generate queries
         xform_content_type = ContentType.objects.get_for_model(XForm)
@@ -354,7 +354,7 @@ class UserProfileFilter(filters.BaseFilterBackend):
 
 class NoteFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
-        instance_id = request.QUERY_PARAMS.get('instance')
+        instance_id = request.query_params.get('instance')
 
         if instance_id:
             try:
