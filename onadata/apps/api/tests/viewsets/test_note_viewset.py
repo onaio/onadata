@@ -97,7 +97,7 @@ class TestNoteViewSet(TestBase):
         request = self.factory.post('/', data=note, **extra)
         self.assertTrue(self.xform.instances.count())
         response = self.view(request)
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 400)
 
         # save some notes
         self._add_notes_to_data_point()
