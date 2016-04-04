@@ -84,7 +84,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
             survey = utils.publish_project_xform(request, project)
 
             if isinstance(survey, XForm):
-                if 'formid' in request.DATA:
+                if 'formid' in request.data:
                     serializer_cls = XFormSerializer
                 else:
                     serializer_cls = XFormCreateSerializer
