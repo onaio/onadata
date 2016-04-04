@@ -30,6 +30,7 @@ from xml.dom import Node
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main.models import MetaData
+from onadata.apps.viewer.models.column_rename import ColumnRename
 from onadata.libs.models.base_model import BaseModel
 from onadata.libs.utils.cache_tools import (
     IS_ORG,
@@ -494,13 +495,12 @@ class XFormMixin(object):
         header = self._headers[i]
 
         if not hasattr(self, "_variable_names"):
-            from onadata.apps.viewer.models.data_dictionary import ColumnRename
-
             self._variable_names = ColumnRename.get_dict()
             assert type(self._variable_names) == dict
 
         if header in self._variable_names and self._variable_names[header]:
             return self._variable_names[header]
+
         return header
 
     def get_list_of_parsed_instances(self, flat=True):

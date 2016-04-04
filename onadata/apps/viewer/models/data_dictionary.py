@@ -3,7 +3,6 @@ import os
 import xlrd
 
 from cStringIO import StringIO
-from django.db import models
 from django.db.models.signals import post_save, pre_save
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
@@ -45,18 +44,6 @@ def sheet_to_csv(xls_content, sheet_name):
         writer.writerow([v for v, m in zip(sheet.row_values(r), mask) if m])
 
     return csv_file
-
-
-class ColumnRename(models.Model):
-    xpath = models.CharField(max_length=255, unique=True)
-    column_name = models.CharField(max_length=32)
-
-    class Meta:
-        app_label = "viewer"
-
-    @classmethod
-    def get_dict(cls):
-        return dict([(cr.xpath, cr.column_name) for cr in cls.objects.all()])
 
 
 def upload_to(instance, filename, username=None):
