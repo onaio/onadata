@@ -31,18 +31,3 @@ def queryset_iterator(queryset, chunksize=100):
         start += chunksize
         end += chunksize
         gc.collect()
-
-
-def update_xform_uuid(username, id_string, new_uuid):
-    from onadata.apps.logger.models.xform import XForm, DuplicateUUIDError
-
-    xform = XForm.objects.get(user__username=username, id_string=id_string)
-    # check for duplicate uuid
-    count = XForm.objects.filter(uuid=new_uuid).count()
-
-    if count > 0:
-        raise DuplicateUUIDError(
-            "An xform with uuid: %s already exists" % new_uuid)
-
-    xform.uuid = new_uuid
-    xform.save()

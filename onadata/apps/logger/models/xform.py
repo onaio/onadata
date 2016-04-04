@@ -869,3 +869,16 @@ class XFormGroupObjectPermission(GroupObjectPermissionBase):
     """Guardian model to create direct foreign keys."""
 
     content_object = models.ForeignKey(XForm)
+
+
+def update_xform_uuid(username, id_string, new_uuid):
+    xform = XForm.objects.get(user__username=username, id_string=id_string)
+    # check for duplicate uuid
+    count = XForm.objects.filter(uuid=new_uuid).count()
+
+    if count > 0:
+        raise DuplicateUUIDError(
+            "An xform with uuid: %s already exists" % new_uuid)
+
+    xform.uuid = new_uuid
+    xform.save()
