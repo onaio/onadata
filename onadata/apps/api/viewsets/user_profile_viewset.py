@@ -4,7 +4,7 @@ from django.conf import settings
 
 from rest_framework import serializers
 from rest_framework import status
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import detail_route, list_route
 from rest_framework.exceptions import ParseError
 from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
@@ -141,3 +141,10 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
 
         return super(UserProfileViewSet, self).partial_update(request, *args,
                                                               **kwargs)
+
+    @list_route(methods=['GET'])
+    def user_profile_list(self, request, **kwargs):
+        usernames = request.GET.get('usernames').split(',')
+        queryset = self.queryset.filter(user__username__in=usernames)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
