@@ -34,9 +34,6 @@ urlpatterns = patterns(
     url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
 
     # google urls
-    url(r'^gauthtest/$',
-        'onadata.apps.main.google_export.google_oauth2_request',
-        name='google-auth'),
     url(r'^gwelcome/$',
         'onadata.apps.main.google_export.google_auth_return',
         name='google-auth-welcome'),

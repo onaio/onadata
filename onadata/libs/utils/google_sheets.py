@@ -14,6 +14,7 @@ from django.core.files.storage import get_storage_class
 from oauth2client.service_account import ServiceAccountCredentials
 from onadata.libs.utils.common_tags import INDEX, PARENT_INDEX,\
     PARENT_TABLE_NAME
+from onadata.libs.utils.common_tags import ID
 
 
 def update_row(worksheet, index, values):
@@ -101,6 +102,9 @@ class SheetsClient(gspread.client.Client):
         sheet_id = resp['id']
         return self.open_by_key(sheet_id)
 
+    def create_or_get_spreadsheet(self, title):
+        return self.open(title)
+
     def add_service_account_to_spreadsheet(self, spreadsheet):
         url = '%s/%s/permissions' % (SheetsClient.DRIVE_API_URL,
                                      spreadsheet.id)
@@ -142,6 +146,7 @@ class SheetsExportBuilder(ExportBuilder):
     flatten_repeated_fields = True
     export_xlsform = True
     google_credentials = None
+    update = False
 
     # Constants
     SHEETS_BASE_URL = 'https://docs.google.com/spreadsheet/ccc?key=%s&hl'
@@ -159,23 +164,34 @@ class SheetsExportBuilder(ExportBuilder):
         self.client = \
             SheetsClient.login_with_service_account(self.google_credentials)
 
-        # Create a new sheet
-        self.spreadsheet = self.client.new(title=self.spreadsheet_title)
+        # Create a new sheet from new or update existing one
+        if self.update:
+            self.spreadsheet = \
+                self.client.get_spreadsheet(title=self.spreadsheet_title)
+        else:
+            self.spreadsheet = self.client.new(title=self.spreadsheet_title)
+
         self.url = self.SHEETS_BASE_URL % self.spreadsheet.id
 
         # Add Service account as editor
         self.client.add_service_account_to_spreadsheet(self.spreadsheet)
 
-        # Perform the actual export
-        if self.flatten_repeated_fields:
-            self.export_flattened(path, data, username, xform,
-                                  filter_query)
-        else:
-            self.export_tabular(path, data)
+        if self.update:
+            if not self._update_spreadsheet(data, xform):
+                self.export_tabular(path, data)
 
-        # Write XLSForm data
-        if self.export_xlsform:
-            self._insert_xlsform()
+        else:
+
+            # Perform the actual export
+            if self.flatten_repeated_fields:
+                self.export_flattened(path, data, username, xform,
+                                      filter_query)
+            else:
+                self.export_tabular(path, data)
+
+            # Write XLSForm data
+            if self.export_xlsform:
+                self._insert_xlsform()
 
         # Delete the default worksheet if it exists
         # NOTE: for some reason self.spreadsheet.worksheets() does not contain
@@ -315,6 +331,29 @@ class SheetsExportBuilder(ExportBuilder):
             num_cols = len(section['elements']) + len(self.EXTRA_FIELDS)
             self.worksheets[section_name] = self.spreadsheet.add_worksheet(
                 title=work_sheet_title, rows=1, cols=num_cols)
+
+    def _update_spreadsheet(self, data, xform):
+
+        try:
+            self.worksheets[xform.id_string] \
+                = self.spreadsheet.worksheet(xform.id_string)
+            worksheet = self.worksheets[xform.id_string]
+
+            # get the id cell
+            id_cell = worksheet.find(ID)
+
+            # retrieve all the ids
+            ids_col_list = worksheet.col_values(id_cell.col)
+            ids_col_list = [s for s in ids_col_list if s.isdigit()]
+            ids_col_list.sort(reverse=True)
+            last_id = ids_col_list[0]
+            filtered_data = filter(lambda x: x.get(ID) > int(last_id), data)
+
+            self._insert_data(filtered_data)
+        except Exception:
+            return False
+
+        return True
 
     @classmethod
     def write_row(cls, data, worksheet, fields, worksheet_titles):
