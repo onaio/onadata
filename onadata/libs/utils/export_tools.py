@@ -1327,7 +1327,7 @@ def generate_external_export(export_type, username, id_string, export_id=None,
                                        deleted_at=None,
                                        pk=data_id)
 
-        instances = [inst[0].get_dict() if inst else {}]
+        instances = [inst[0].json if inst else {}]
     else:
         instances = query_data(xform, query=filter_query)
 
