@@ -191,6 +191,9 @@ ROLES = [ReadOnlyRole,
          ManagerRole,
          OwnerRole]
 
+JWT_SECRET_KEY = 'thesecretkey'
+JWT_ALGORITHM = 'HS256'
+
 
 class TestXFormViewSet(TestAbstractViewSet):
 
@@ -199,8 +202,6 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.view = XFormViewSet.as_view({
             'get': 'list',
         })
-        self.JWT_SECRET_KEY = 'thesecretkey'
-        self.JWT_ALGORITHM = 'HS256'
 
     def test_replace_form_with_external_choices(self):
         with HTTMock(enketo_mock):
@@ -923,10 +924,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             # user is redirected to the set login page in settings file
             self.assertEqual(response.status_code, 302)
 
-    @patch('onadata.apps.api.viewsets.xform_viewset.settings')
-    def test_login_enketo_online_url_bad_token(self, mock_settings):
-        mock_settings.JWT_SECRET_KEY = self.JWT_SECRET_KEY
-        mock_settings.JWT_ALGORITHM = self.JWT_ALGORITHM
+    @override_settings(JWT_SECRET_KEY=JWT_SECRET_KEY,
+                       JWT_ALGORITHM=JWT_ALGORITHM)
+    def test_login_enketo_online_url_bad_token(self):
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
@@ -946,10 +946,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data.get('detail'),
                              u'JWT DecodeError: Not enough segments')
 
-    @patch('onadata.apps.api.viewsets.xform_viewset.settings')
-    def test_login_enketo_offline_url_using_jwt(self, mock_settings):
-        mock_settings.JWT_SECRET_KEY = self.JWT_SECRET_KEY
-        mock_settings.JWT_ALGORITHM = self.JWT_ALGORITHM
+    @override_settings(JWT_SECRET_KEY=JWT_SECRET_KEY,
+                       JWT_ALGORITHM=JWT_ALGORITHM)
+    def test_login_enketo_offline_url_using_jwt(self):
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
@@ -962,8 +961,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             }
 
             encoded_payload = jwt.encode(
-                payload, self.JWT_SECRET_KEY,
-                algorithm=self.JWT_ALGORITHM)
+                payload, JWT_SECRET_KEY,
+                algorithm=JWT_ALGORITHM)
 
             return_url = u"https://enketo.ona.io/_/#YY8M"
             url = u"https://enketo.ona.io/_/?jwt=%s#YY8M" % encoded_payload
@@ -986,10 +985,9 @@ class TestXFormViewSet(TestAbstractViewSet):
                 self._publish_xls_form_to_project()
                 self.assertTrue(mock_jwt_decode.called)
 
-    @patch('onadata.apps.api.viewsets.xform_viewset.settings')
-    def test_login_enketo_online_url_using_jwt(self, mock_settings):
-        mock_settings.JWT_SECRET_KEY = self.JWT_SECRET_KEY
-        mock_settings.JWT_ALGORITHM = self.JWT_ALGORITHM
+    @override_settings(JWT_SECRET_KEY=JWT_SECRET_KEY,
+                       JWT_ALGORITHM=JWT_ALGORITHM)
+    def test_login_enketo_online_url_using_jwt(self):
         with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             self._publish_xls_form_to_project()
             view = XFormViewSet.as_view({
@@ -1002,8 +1000,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             }
 
             encoded_payload = jwt.encode(
-                payload, self.JWT_SECRET_KEY,
-                algorithm=self.JWT_ALGORITHM)
+                payload, JWT_SECRET_KEY,
+                algorithm=JWT_ALGORITHM)
 
             return_url = u"https://enketo.ona.io/::YY8M"
             url = u"%s?jwt=%s" % (return_url, encoded_payload)
@@ -2756,7 +2754,8 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertTrue(async_result.called)
             self.assertEqual(response.status_code, 503)
-            self.assertEqual(response.status_text, u'SERVICE UNAVAILABLE')
+            self.assertEqual(response.status_text.upper(),
+                             u'SERVICE UNAVAILABLE')
             self.assertEqual(response.data['detail'],
                              u'Error opening socket: a socket error occurred')
             export = Export.objects.get(task_id=task_id)
