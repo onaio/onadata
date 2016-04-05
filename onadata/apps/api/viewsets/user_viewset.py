@@ -23,7 +23,9 @@ class UserViewSet(AuthenticateHeaderMixin,
     """
     This endpoint allows you to list and retrieve user's first and last names.
     """
-    queryset = User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
+    queryset = User.objects.exclude(
+        username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+    )
     serializer_class = UserSerializer
     lookup_field = 'username'
     permission_classes = [permissions.UserViewSetPermissions]

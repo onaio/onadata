@@ -174,7 +174,9 @@ class BaseProjectSerializer(serializers.HyperlinkedModelSerializer):
     owner = serializers.HyperlinkedRelatedField(
         view_name='user-detail', source='organization',
         lookup_field='username',
-        queryset=User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
     )
     created_by = serializers.HyperlinkedRelatedField(
         view_name='user-detail',
@@ -228,7 +230,9 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
     owner = serializers.HyperlinkedRelatedField(
         view_name='user-detail', source='organization',
         lookup_field='username',
-        queryset=User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
     )
     created_by = serializers.HyperlinkedRelatedField(
         view_name='user-detail',

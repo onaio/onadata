@@ -175,7 +175,7 @@ TEMPLATE_DIRS = (
 )
 
 # needed by guardian
-ANONYMOUS_USER_ID = -1
+ANONYMOUS_DEFAULT_USERNAME = 'AnonymousUser'
 
 INSTALLED_APPS = (
     'django.contrib.auth',

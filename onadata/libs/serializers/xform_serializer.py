@@ -74,11 +74,15 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     metadata = serializers.SerializerMethodField()
     owner = serializers.HyperlinkedRelatedField(
         view_name='user-detail', source='user', lookup_field='username',
-        queryset=User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
     )
     created_by = serializers.HyperlinkedRelatedField(
         view_name='user-detail', lookup_field='username',
-        queryset=User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
     )
     public = serializers.BooleanField(source='shared')
     public_data = serializers.BooleanField(source='shared_data')

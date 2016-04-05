@@ -62,8 +62,10 @@ class Command(BaseCommand):
                                      app_label=model._meta.app_label)
 
         # Get all the users
-        users = User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)\
-            .order_by('username')
+        users = User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        ).order_by('username')
+
         for user in queryset_iterator(users):
             self.stdout.write(
                 "Processing: {} - {}".format(user.pk, user.username)
