@@ -16,10 +16,6 @@ from rest_framework.authtoken.models import Token
 from onadata.apps.api.models.temp_token import TempToken
 from onadata.libs.utils.common_tags import API_TOKEN
 
-JWT_SECRET_KEY = getattr(settings, 'JWT_SECRET_KEY', 'jwt')
-JWT_ALGORITHM = getattr(settings, 'JWT_ALGORITHM', 'HS256')
-TEMP_TOKEN_EXPIRY_TIME = getattr(settings, 'DEFAULT_TEMP_TOKEN_EXPIRY_TIME')
-
 
 def expired(time_token_created):
     """Checks if the time between when time_token_created and current time
@@ -28,6 +24,8 @@ def expired(time_token_created):
     :params time_token_created: The time the token we are checking was created.
     :returns: Boolean True if not passed expired time, otherwise False.
     """
+    TEMP_TOKEN_EXPIRY_TIME = getattr(settings,
+                                     'DEFAULT_TEMP_TOKEN_EXPIRY_TIME')
     time_diff = (timezone.now() - time_token_created).total_seconds()
     token_expiry_time = TEMP_TOKEN_EXPIRY_TIME
 
@@ -35,6 +33,11 @@ def expired(time_token_created):
 
 
 def get_api_token(json_web_token):
+    """Get API Token from JSON Web Token"""
+    # having this here allows the values to be mocked easily as oppossed to
+    # being on the global scope
+    JWT_SECRET_KEY = getattr(settings, 'JWT_SECRET_KEY', 'jwt')
+    JWT_ALGORITHM = getattr(settings, 'JWT_ALGORITHM', 'HS256')
     try:
         jwt_payload = jwt.decode(json_web_token,
                                  JWT_SECRET_KEY,
