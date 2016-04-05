@@ -684,7 +684,7 @@ class ExportBuilder(object):
         config = {
             "spreadsheet_title": spreadsheet_title,
             "google_credentials": kwargs.get("options")["google_credentials"],
-            "flatten_repeated_fields": False,
+            "flatten_repeated_fields": True,
             "export_xlsform": False
         }
         google_sheets = SheetsExportBuilder(xform, config)
