@@ -54,12 +54,9 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
 
-        view = UserProfileViewSet.as_view({
-            'get': 'user_profile_list'
-        })
-        data = {"usernames": "bob,deno"}
+        data = {"users": "bob,deno"}
         request = self.factory.get('/', data=data, **self.extra)
-        response = view(request)
+        response = self.view(request)
 
         deno_profile_data = _profile_data()
         deno_profile_data.pop('password', None)
