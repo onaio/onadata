@@ -92,8 +92,13 @@ def get_attachment_xpath(file_name, row, xform):
     for m in media_types:
         type_in_row = row.get(m.get('type'))
 
-        if type_in_row and file_name.endswith(type_in_row):
-            return m.get('type')
+        try:
+            if type_in_row and file_name.endswith(type_in_row):
+                return m.get('type')
+        except TypeError, e:
+            raise (
+                "Value of media type should be of type basetring, str or typle"
+            )
 
 
 def get_data_dictionary_from_survey(survey):
