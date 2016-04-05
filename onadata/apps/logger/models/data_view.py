@@ -12,6 +12,7 @@ from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     EDITED,
     MONGO_STRFTIME,
+    NOTES,
     ID,
     GEOLOCATION,
     SUBMISSION_TIME)
@@ -23,7 +24,7 @@ from onadata.libs.utils.cache_tools import (
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 ATTACHMENT_TYPES = ['photo', 'audio', 'video']
-DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED]
+DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED, NOTES]
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
@@ -250,15 +251,10 @@ class DataView(models.Model):
             sql += u" LIMIT 1"
 
         try:
-            records = []
-            # iterate through records and get instance notes
-            for record in DataView.query_iterator(sql, columns, params, count):
-                instance_id = record.get('_id')
-                instance = data_view.xform.instances.get(id=instance_id) if \
-                    instance_id else None
-                record[u'_notes'] = instance.get_notes() if instance else []
-                records.append(record)
-
+            records = [record for record in DataView.query_iterator(sql,
+                                                                    columns,
+                                                                    params,
+                                                                    count)]
         except Exception as e:
             return {"error": _(e.message)}
 
