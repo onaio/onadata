@@ -131,6 +131,15 @@ class TestExportTools(TestBase):
         row = {}
         get_attachment_xpath(filename, row, xform)
 
+    def test_handle_type_error(self):
+        self._publish_xls_file(os.path.join(self.this_directory, "fixtures",
+                                            "photos", "tutorial.xls"))
+        filename = "filename"
+        xform = XForm.objects.order_by('pk').reverse()[0]
+        row = {u'photo': [1, 2]}
+        with self.assertRaises(TypeError):
+            get_attachment_xpath(filename, row, xform)
+
     def test_parse_request_export_options(self):
         request = self.factory.get(
             '/export_async', data={"do_not_split_select_multiples": "false",
