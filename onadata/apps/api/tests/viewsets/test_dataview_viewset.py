@@ -801,7 +801,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         view = NoteViewSet.as_view({
             'post': 'create'
         })
-        note = {'note': u"Dataview note"}
+        comment = u"Dataview note"
+        note = {'note': comment}
         data_id = self.xform.instances.all().order_by('pk')[0].pk
         note['instance'] = data_id
         request = self.factory.post('/', data=note, **self.extra)
@@ -825,9 +826,12 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = view(request, pk=self.data_view.pk)
         self.assertEquals(response.status_code, 200)
         self.assertEquals(len(response.data), 8)
-        self.assertIn("_notes", response.data[0])
-        self.assertEquals([{'created_by': 1,
+        data_with_notes = \
+            (d for d in response.data if d["_id"] == data_id).next()
+        self.assertIn("_notes", data_with_notes)
+        self.assertEquals([{'created_by': self.user.id,
                             'id': 1,
                             'instance_field': u'',
-                            'note': u'Dataview note',
-                            'owner': u'bob'}], response.data[0]["_notes"])
+                            'note': comment,
+                            'owner': self.user.username}],
+                          data_with_notes["_notes"])
