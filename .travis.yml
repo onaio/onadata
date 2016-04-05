@@ -14,29 +14,33 @@ addons:
       - libproj-dev
       - libgdal1-dev
       - gdal-bin
-      - postgresql-9.4-postgis-2.2
-      - postgresql-9.4-postgis-scripts
       - memcached
       - libmemcached-dev
+
 cache:
   apt: true
   directories:
     - $HOME/.pip-cache/
 python:
   - '2.7.10'
-before_install:
-  - export DEBIAN_FRONTEND=noninteractive;
-   sudo -E apt-get -yq update &>> ~/apt-get-update.log;
-   sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install postgresql-9.4-postgis-2.2
-  - ./script/database/install_postgis onadata_test postgres 127.0.0.1
+
+services:
+  - postgresql
+
 env:
   - TESTFOLDER="onadata/libs onadata/apps/main onadata/apps/restservice onadata/apps/sms_support onadata/apps/viewer"
   - TESTFOLDER="onadata/apps/api onadata/apps/logger"
+
+before_install:
+  - export DEBIAN_FRONTEND=noninteractive;
+  - sudo -E apt-get -yq update &>> ~/apt-get-update.log;
+  - sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install postgresql-9.4-postgis-2.2
+  - ./script/database/install_postgis onadata_test postgres 127.0.0.1
+
 install:
   - pip install --upgrade pip
   - pip install -r requirements/base.pip
   - pip install flake8
-  - python manage.py migrate --noinput --settings=onadata.settings.travis_test
   # make ~/tmp dir writable for npm downloads
   # - mkdir -p "$HOME/tmp"
   # - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then chmod a+w $HOME/tmp ; fi
