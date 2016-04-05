@@ -139,16 +139,14 @@ def external_mock(url, request):
 
 @urlmatch(netloc=r'(.*\.)?xls_server$')
 def external_mock_single_instance(url, request, uuid=None):
-    json_str = '[{"transport_loop_over_transport_types_frequency_ambulance' \
-               '_frequency_to_referral_facility": "daily",' \
-               ' "transport_available_transportation_types_to_referral' \
-               '_facility": "ambulance bicycle",' \
-               ' "meta_instanceID": "uuid:7a9ba167019a4152a31e46049587d672",' \
-               ' "transport_loop_over_transport_types_frequency_bicycle' \
-               '_frequency_to_referral_facility": "weekly",' \
-               ' "_xform_id_string": "transportation_2011_07_25"}]'
-
-    assert request.body == json_str, "json payload not as expected"
+    payload = json.loads(request.body)
+    assert payload
+    assert len(payload) == 1
+    assert '_id' in payload[0]
+    assert 'transport_loop_over_transport_types_frequency_ambulance_' \
+           'frequency_to_referral_facility' in payload[0]
+    assert payload[0].get('transport_available_transportation_types_to'
+                          '_referral_facility') == "ambulance bicycle"
     response = requests.Response()
     response.status_code = 201
     response._content = \
@@ -158,16 +156,14 @@ def external_mock_single_instance(url, request, uuid=None):
 
 @urlmatch(netloc=r'(.*\.)?xls_server$')
 def external_mock_single_instance2(url, request, uuid=None):
-    json_str = '[{"transport_loop_over_transport_types_frequency_ambulance' \
-               '_frequency_to_referral_facility": "daily",' \
-               ' "transport_available_transportation_types_to_referral' \
-               '_facility": "ambulance bicycle",' \
-               ' "meta_instanceID": "uuid:7a9ba167019a4152a31e46049587d672",' \
-               ' "transport_loop_over_transport_types_frequency_bicycle' \
-               '_frequency_to_referral_facility": "weekly",' \
-               ' "_xform_id_string": "transportation_2011_07_25"}]'
-
-    assert request.body == json_str, "json payload not as expected"
+    payload = json.loads(request.body)
+    assert payload
+    assert len(payload) == 1
+    assert '_id' in payload[0]
+    assert 'transport_loop_over_transport_types_frequency_ambulance_' \
+           'frequency_to_referral_facility' in payload[0]
+    assert payload[0].get('transport_available_transportation_types_to'
+                          '_referral_facility') == "ambulance bicycle"
     response = requests.Response()
     response.status_code = 201
     response._content = \
