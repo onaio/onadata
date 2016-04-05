@@ -250,10 +250,15 @@ class DataView(models.Model):
             sql += u" LIMIT 1"
 
         try:
-            records = [record for record in DataView.query_iterator(sql,
-                                                                    columns,
-                                                                    params,
-                                                                    count)]
+            records = []
+            # iterate through records and get instance notes
+            for record in DataView.query_iterator(sql, columns, params, count):
+                instance_id = record.get('_id')
+                instance = data_view.xform.instances.get(id=instance_id) if \
+                    instance_id else None
+                record[u'_notes'] = instance.get_notes() if instance else []
+                records.append(record)
+
         except Exception as e:
             return {"error": _(e.message)}
 
