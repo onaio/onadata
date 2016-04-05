@@ -142,9 +142,11 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
         return super(UserProfileViewSet, self).partial_update(request, *args,
                                                               **kwargs)
 
-    @list_route(methods=['GET'])
-    def user_profile_list(self, request, **kwargs):
-        usernames = request.GET.get('usernames').split(',')
-        queryset = self.queryset.filter(user__username__in=usernames)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+    def list(self, request, *args, **kwargs):
+        users = request.GET.get('users').split(',')
+        if users:
+            queryset = self.queryset.filter(user__username__in=users)
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+        return super(UserProfileViewSet, self).list(request, *args, **kwargs)
