@@ -925,7 +925,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertIn("_notes", data_with_notes)
         self.assertEquals([{'created_by': self.user.id,
                             'id': 1,
-                            'instance_field': u'',
+                            'instance_field': None,
                             'note': comment,
                             'owner': self.user.username}],
                           data_with_notes["_notes"])
