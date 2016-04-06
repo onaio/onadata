@@ -4,7 +4,7 @@ from django.conf import settings
 
 from rest_framework import serializers
 from rest_framework import status
-from rest_framework.decorators import detail_route, list_route
+from rest_framework.decorators import detail_route
 from rest_framework.exceptions import ParseError
 from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
