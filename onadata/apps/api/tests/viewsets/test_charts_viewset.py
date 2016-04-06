@@ -84,7 +84,7 @@ class TestChartsViewSet(TestBase):
             pk=self.xform.id
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.status_text, u'BAD REQUEST')
+        self.assertEqual(response.status_text.upper(), u'BAD REQUEST')
 
     def test_get_on_date_field(self):
         data = {'field_name': 'date'}
