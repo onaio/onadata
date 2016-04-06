@@ -1,4 +1,5 @@
 from rest_framework import status
+from rest_framework.filters import DjangoObjectPermissionsFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -9,7 +10,6 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs import filters
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.mixins.view_permission_mixin import ViewPermissionMixin
 from onadata.libs.serializers.note_serializer import NoteSerializer
 from onadata.apps.logger.models import Note
 from onadata.apps.api.tools import get_baseviewset_class
@@ -20,11 +20,10 @@ BaseViewset = get_baseviewset_class()
 class NoteViewSet(AuthenticateHeaderMixin,
                   CacheControlMixin,
                   ETagsMixin,
-                  ViewPermissionMixin,
                   BaseViewset,
                   ModelViewSet):
     queryset = Note.objects.all()
-    filter_backends = (filters.NoteFilter,)
+    filter_backends = (filters.NoteFilter, DjangoObjectPermissionsFilter)
     serializer_class = NoteSerializer
     permission_classes = [permissions.ViewDjangoObjectPermissions,
                           permissions.IsAuthenticated, ]
