@@ -13,6 +13,7 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
+from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
@@ -794,3 +795,43 @@ class TestDataViewViewSet(TestAbstractViewSet):
         response = self.view(request, pk=self.data_view.pk)
 
         self.assertEquals(response.status_code, 400)
+
+    def test_dataview_notes_added_to_data(self):
+        # Create note
+        view = NoteViewSet.as_view({
+            'post': 'create'
+        })
+        comment = u"Dataview note"
+        note = {'note': comment}
+        data_id = self.xform.instances.all().order_by('pk')[0].pk
+        note['instance'] = data_id
+        request = self.factory.post('/', data=note, **self.extra)
+        self.assertTrue(self.xform.instances.count())
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+
+        # Get dataview with added notes
+        data = {
+            'name': "My Dataview",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
+            'columns': '["age"]',
+        }
+        self._create_dataview(data=data)
+        view = DataViewViewSet.as_view({
+            'get': 'data'
+        })
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response.data), 8)
+        data_with_notes = \
+            (d for d in response.data if d["_id"] == data_id).next()
+        self.assertIn("_notes", data_with_notes)
+        self.assertEquals([{'created_by': self.user.id,
+                            'id': 1,
+                            'instance_field': u'',
+                            'note': comment,
+                            'owner': self.user.username}],
+                          data_with_notes["_notes"])

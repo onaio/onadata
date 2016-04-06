@@ -12,6 +12,7 @@ from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     EDITED,
     MONGO_STRFTIME,
+    NOTES,
     ID,
     GEOLOCATION,
     SUBMISSION_TIME)
@@ -23,7 +24,7 @@ from onadata.libs.utils.cache_tools import (
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 ATTACHMENT_TYPES = ['photo', 'audio', 'video']
-DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED]
+DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED, NOTES]
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):

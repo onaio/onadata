@@ -94,10 +94,10 @@ class TestNoteViewSet(TestBase):
 
         # Other user 'lilly' should not be able to create notes
         # to xform instance owned by 'bob'
-        request = self.factory.post('/', data=note, **extra)
+        request = self.factory.post('/', data=note)
         self.assertTrue(self.xform.instances.count())
         response = self.view(request)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 401)
 
         # save some notes
         self._add_notes_to_data_point()
@@ -131,11 +131,11 @@ class TestNoteViewSet(TestBase):
         note = {'note': u"Road Warrior"}
         dataid = self._first_xform_instance.pk
         note['instance'] = dataid
-        request = self.factory.post('/', data=note, **extra)
+        request = self.factory.post('/', data=note)
         self.assertTrue(self.xform.instances.count())
         response = self.view(request)
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 401)
 
         # post note to submission with permissions to form
         assign_perm('view_xform', self.user, self._first_xform_instance.xform)
