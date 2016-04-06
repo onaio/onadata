@@ -609,6 +609,15 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         else:
             resp = process_async_export(request, xform, export_type, options)
 
+            if isinstance(resp, HttpResponseRedirect):
+                payload = {
+                    "details": _("Google authorization needed"),
+                    "url": resp.url
+                }
+                return Response(data=payload,
+                                status=status.HTTP_403_FORBIDDEN,
+                                content_type="application/json")
+
         self.etag_data = '{}'.format(timezone.now())
 
         return Response(data=resp,

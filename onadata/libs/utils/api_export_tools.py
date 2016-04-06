@@ -94,7 +94,13 @@ def custom_response_handler(request, xform, query, export_type,
             credential = _get_google_credential(request)
 
             if isinstance(credential, HttpResponseRedirect):
-                return credential
+                payload = {
+                    "details": _("Google authorization needed"),
+                    "url": credential.url
+                }
+                return Response(data=payload,
+                                status=status.HTTP_403_FORBIDDEN,
+                                content_type="application/json")
 
         # check if we need to re-generate,
         # we always re-generate if a filter is specified
