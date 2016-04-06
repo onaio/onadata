@@ -158,7 +158,7 @@ class SheetsExportBuilder(ExportBuilder):
         self.google_credentials = config['google_credentials']
         self.flatten_repeated_fields = config['flatten_repeated_fields']
         self.export_xlsform = config['export_xlsform']
-        self.set_survey(xform.data_dictionary().survey)
+        self.set_survey(xform.survey)
 
     def export(self, path, data, username, xform=None, filter_query=None):
         self.client = \
