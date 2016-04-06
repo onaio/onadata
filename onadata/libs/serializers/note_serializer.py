@@ -44,7 +44,7 @@ class NoteSerializer(serializers.ModelSerializer):
 
         attrs['created_by'] = request.user
 
-        field = attrs['instance_field']
+        field = attrs.get('instance_field')
 
         if field and instance.xform.get_label(field) is None:
             raise exceptions.ValidationError(
