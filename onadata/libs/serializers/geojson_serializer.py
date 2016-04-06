@@ -1,4 +1,5 @@
 import geojson
+import json
 
 from rest_framework_gis import serializers
 
@@ -76,7 +77,17 @@ def geometry_from_string(points):
     return geometry
 
 
+class GeometryField(serializers.GeometryField):
+    def to_representation(self, value):
+        if isinstance(value, dict) or value is None:
+            return None
+
+        return json.loads(value.geojson)
+
+
 class GeoJsonSerializer(serializers.GeoFeatureModelSerializer):
+
+    geom = GeometryField()
 
     class Meta:
         model = Instance
