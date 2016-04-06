@@ -2013,8 +2013,12 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = view(request, pk=form_id)
             self.assertEqual(response.status_code, 403)
 
-            # assign manager role
-            ManagerRole.add(self.user, self.xform.project)
+        # assign manager role
+        ManagerRole.add(self.user, self.xform.project)
+
+        with open(path) as xls_file:
+            post_data = {'xls_file': xls_file}
+            request = self.factory.patch('/', data=post_data, **self.extra)
             response = view(request, pk=form_id)
             self.assertEqual(response.status_code, 200)
 
