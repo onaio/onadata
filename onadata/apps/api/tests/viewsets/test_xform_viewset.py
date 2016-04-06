@@ -1457,7 +1457,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.xform.reload()
             self.assertFalse(self.xform.__getattribute__(key))
-            shared = [u"`String` is not a valid boolean."]
+            shared = [u'"String" is not a valid boolean.']
             self.assertEqual(response.data, {'public': shared})
 
     def test_set_form_bad_key(self):
@@ -2450,7 +2450,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 400)
             self.assertEqual(response.get('Cache-Control'), None)
             self.assertEquals(response.data,
-                              {'title': [u'This field may not be blank.']})
+                              {'title': [u'This field is required.']})
 
     def test_public_xform_accessible_by_authenticated_users(self):
         with HTTMock(enketo_mock):
