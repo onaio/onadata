@@ -11,7 +11,6 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.core.files.storage import get_storage_class
-from django.core.servers.basehttp import FileWrapper
 from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponseForbidden, HttpResponseRedirect, HttpResponseNotFound,
@@ -21,6 +20,7 @@ from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_POST
+from wsgiref.util import FileWrapper
 
 from onadata.apps.main.models import UserProfile, MetaData, TokenStorageModel
 from onadata.apps.logger.models import XForm, Attachment
