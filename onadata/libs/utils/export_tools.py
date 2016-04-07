@@ -72,33 +72,25 @@ def current_site_url(path):
     return url
 
 
-def get_attachment_xpath(file_name, row, xform):
-    """
-    Gets the xpath of the attachment using the file name
-    :param file_name: attachment filename
-    :param row: current records row
-    :param data_dictionary: form structure
-    :return: field_xpath
-    """
+def get_attachment_val_or_attchment_url(
+        key, value, row, data_dictionary, include_images,
+        attachment_list=None):
+    if not include_images:
+        return value
 
-    # get all known media types for this form
-    media_types = [xform.get_survey_elements_of_type(e)
-                   for e in KNOWN_MEDIA_TYPES]
-
-    # convert to single array
-    media_types = sum(media_types, [])
-
-    # test the media type to find the correct attachment xpath
-    for m in media_types:
-        type_in_row = row.get(m.get('type'))
-
-        try:
-            if type_in_row and file_name.endswith(type_in_row):
-                return m.get('type')
-        except TypeError, e:
-            raise (
-                "Value of media type should be of type basetring, str or typle"
+    survey_element = data_dictionary.get_survey_element(key)
+    if survey_element and survey_element.type in KNOWN_MEDIA_TYPES:
+        attachments = [
+            a
+            for a in row.get(ATTACHMENTS, attachment_list or [])
+            if a.get('filename') and a.get('filename').endswith(value)
+        ]
+        if attachments:
+            value = current_site_url(
+                attachments[0].get('download_url', '')
             )
+
+    return value
 
 
 def get_data_dictionary_from_survey(survey):
@@ -136,7 +128,7 @@ def str_to_bool(s):
         return False
 
 
-def dict_to_joined_export(data, index, indices, name, survey,
+def dict_to_joined_export(data, index, indices, name, survey, row,
                           include_images=True):
     """
     Converts a dict into one or more tabular datasets
@@ -154,7 +146,7 @@ def dict_to_joined_export(data, index, indices, name, survey,
                     indices[key] += 1
                     child_index = indices[key]
                     new_output = dict_to_joined_export(
-                        child, child_index, indices, key, survey,
+                        child, child_index, indices, key, survey, row,
                         include_images)
                     d = {INDEX: child_index, PARENT_INDEX: index,
                          PARENT_TABLE_NAME: name}
@@ -177,18 +169,12 @@ def dict_to_joined_export(data, index, indices, name, survey,
                     note_list = [v if isinstance(v, six.string_types)
                                  else v['note'] for v in val]
                     output[name][key] = "\r\n".join(note_list)
-                elif key in [ATTACHMENTS]:
-                    # Overwrite the default photo column with the url
-                    if include_images:
-                        for v in val:
-                            url = current_site_url(v.get('download_url', ''))
-                            data_dictionary = \
-                                get_data_dictionary_from_survey(survey)
-                            output[name][
-                                get_attachment_xpath(v.get('filename'), data,
-                                                     data_dictionary)] = url
                 else:
-                    output[name][key] = val
+                    data_dictionary = get_data_dictionary_from_survey(survey)
+                    output[name][key] = get_attachment_val_or_attchment_url(
+                        key, val, data, data_dictionary, include_images,
+                        row and row.get(ATTACHMENTS)
+                    )
 
     return output
 
@@ -503,7 +489,7 @@ class ExportBuilder(object):
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
-                                                  self.survey,
+                                                  self.survey, d,
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
@@ -613,7 +599,7 @@ class ExportBuilder(object):
         for d in data:
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
-                                                  self.survey,
+                                                  self.survey, d,
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
@@ -706,7 +692,7 @@ class ExportBuilder(object):
             # decode mongo section names
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
-                                                  self.survey,
+                                                  self.survey, d,
                                                   self.INCLUDE_IMAGES)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
