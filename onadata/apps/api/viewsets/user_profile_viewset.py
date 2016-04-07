@@ -143,8 +143,9 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
                                                               **kwargs)
 
     def list(self, request, *args, **kwargs):
-        users = request.GET.get('users').split(',')
+        users = request.GET.get('users')
         if users:
+            users = users.split(',')
             queryset = self.queryset.filter(user__username__in=users)
             serializer = self.get_serializer(queryset, many=True)
             return Response(data=serializer.data, status=status.HTTP_200_OK)
