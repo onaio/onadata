@@ -1,7 +1,7 @@
 import django
 
 from django.conf import settings
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url, i18n
 from django.contrib.staticfiles import views as staticfiles_views
 from django.views.generic import RedirectView
 
@@ -14,6 +14,9 @@ from onadata.apps.api.urls import BriefcaseViewset
 from onadata.apps.logger import views as logger_views
 from onadata.apps.main import google_export
 from onadata.apps.main import views as main_views
+from onadata.apps.main.registration_urls import (
+    urlpatterns as registration_patterns
+)
 from onadata.apps.restservice import views as restservice_views
 from onadata.apps.sms_support import views as sms_support_views
 from onadata.apps.viewer import views as viewer_views
@@ -23,10 +26,9 @@ from django.contrib import admin
 
 admin.autodiscover()
 
-urlpatterns = patterns(
-    '',
+urlpatterns = [
     # change Language
-    (r'^i18n/', include('django.conf.urls.i18n')),
+    url(r'^i18n/', include(i18n)),
     url('^api/v1/', include(router.urls)),
     url('^api/v1/dataviews/(?P<pk>[^/]+)/(?P<action>[^/]+).'
         '(?P<format>[a-z]+[0-9]*)$', DataViewViewSet,
@@ -38,7 +40,7 @@ urlpatterns = patterns(
     url(r'^api/v1', RedirectView.as_view(url='/api/v1/', permanent=True)),
 
     # django default stuff
-    url(r'^accounts/', include('onadata.apps.main.registration_urls')),
+    url(r'^accounts/', include(registration_patterns)),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
@@ -253,13 +255,10 @@ urlpatterns = patterns(
         viewer_views.stats_tables),
 
     # static media
-    url(r'^media/(?P<path>.*)$', 'django.views.static.serve',
+    url(r'^media/(?P<path>.*)$', django.views.static.serve,
         {'document_root': settings.MEDIA_ROOT}),
     url(r'^favicon\.ico',
         RedirectView.as_view(url='/static/images/favicon.ico',
-                             permanent=True)))
-
-urlpatterns += patterns(
-    '',
+                             permanent=True)),
     url(r'^static/(?P<path>.*)$', staticfiles_views.serve)
-)
+]
