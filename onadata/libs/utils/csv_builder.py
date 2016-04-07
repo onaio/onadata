@@ -19,8 +19,7 @@ from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
     DURATION, EDITED
-from onadata.libs.utils.export_tools import current_site_url
-from onadata.libs.utils.export_tools import get_attachment_xpath
+from onadata.libs.utils.export_tools import get_attachment_val_or_attchment_url
 
 
 # the bind type of select multiples that we use to compare
@@ -388,22 +387,23 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             if key in ordered_columns.keys():
                                 if new_xpath not in ordered_columns[key]:
                                     ordered_columns[key].append(new_xpath)
-                            d[new_xpath] = nested_val
+                            d[new_xpath] = get_attachment_val_or_attchment_url(
+                                nested_key, nested_val, row, data_dictionary,
+                                include_images
+                            )
                 else:
-                    d[key] = value
+                    d[key] = get_attachment_val_or_attchment_url(
+                        key, value, row, data_dictionary, include_images
+                    )
         else:
             # anything that's not a list will be in the top level dict so its
             # safe to simply assign
             if key == NOTES:
                 d[key] = u"\r\n".join(value)
-            elif key == ATTACHMENTS:
-                if include_images:
-                    for v in value:
-                        url = current_site_url(v.get('download_url', ''))
-                        d[get_attachment_xpath(v.get('filename'), row,
-                                               data_dictionary)] = url
             else:
-                d[key] = value
+                d[key] = get_attachment_val_or_attchment_url(
+                    key, value, row, data_dictionary, include_images
+                )
         return d
 
     @classmethod
