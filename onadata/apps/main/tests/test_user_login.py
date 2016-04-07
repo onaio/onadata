@@ -1,5 +1,3 @@
-from django.contrib.auth.models import User
-
 from test_base import TestBase
 
 
