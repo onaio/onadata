@@ -552,6 +552,35 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['data_type'], 'categorized')
         self.assertEqual(len(response.data['data']), 2)
 
+    def test_get_charts_data_with_empty_query(self):
+        data = {
+            'name': "My DataView",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
+            'columns': '["name", "age", "gender"]',
+            'query': '[]'
+        }
+        self._create_dataview(data)
+        self.view = DataViewViewSet.as_view({
+            'get': 'charts',
+        })
+        data_view_data = DataView.query_data(self.data_view)
+
+        request = self.factory.get('/charts', **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+        data = {'field_name': 'age'}
+        request = self.factory.get('/charts', data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'integer')
+        self.assertEqual(response.data['field_name'], 'age')
+        self.assertEqual(response.data['data_type'], 'numeric')
+        self.assertEqual(len(response.data['data']), len(data_view_data))
+
     def test_geopoint_dataview(self):
         # Dataview with geolocation column selected.
         # -> instances_with_geopoints= True

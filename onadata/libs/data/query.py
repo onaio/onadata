@@ -37,6 +37,7 @@ def _get_fields_of_type(xform, types):
 def _additional_data_view_filters(data_view):
     where, where_params = DataView._get_where_clause(data_view)
 
+    data_view_where = ""
     if where:
         data_view_where = u" AND " + u" AND ".join(where)
 
