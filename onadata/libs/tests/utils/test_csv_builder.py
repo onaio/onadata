@@ -124,7 +124,6 @@ class TestCSVDataFrameBuilder(TestBase):
             AbstractDataFrameBuilder.IGNORED_COLUMNS
         try:
             expected_columns.remove(u'_deleted_at')
-            expected_columns.remove(u'_attachments')
         except ValueError:
             pass
         self.maxDiff = None
@@ -438,6 +437,7 @@ class TestCSVDataFrameBuilder(TestBase):
             u'_gps_longitude': u'36.7923571',
             u'_gps_altitude': u'0.0',
             u'_gps_precision': u'30.0',
+            u'_attachments': []
         }
         self.maxDiff = None
         self.assertEqual(data_0, expected_data_0)
