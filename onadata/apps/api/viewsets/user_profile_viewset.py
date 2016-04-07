@@ -10,6 +10,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 
+from onadata.libs import filters
 from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
@@ -68,6 +69,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
     serializer_class = serializer_from_settings()
     lookup_field = 'user'
     permission_classes = [UserProfilePermissions]
+    filter_backends = (filters.UserProfileFilter,)
     ordering = ('user__username', )
 
     def get_object(self, queryset=None):
@@ -141,13 +143,3 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
 
         return super(UserProfileViewSet, self).partial_update(request, *args,
                                                               **kwargs)
-
-    def list(self, request, *args, **kwargs):
-        users = request.GET.get('users')
-        if users:
-            users = users.split(',')
-            queryset = self.queryset.filter(user__username__in=users)
-            serializer = self.get_serializer(queryset, many=True)
-            return Response(data=serializer.data, status=status.HTTP_200_OK)
-
-        return super(UserProfileViewSet, self).list(request, *args, **kwargs)
