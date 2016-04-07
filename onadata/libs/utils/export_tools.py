@@ -1414,7 +1414,7 @@ def upload_template_for_external_export(server, file_obj):
     return str(status_code) + '|' + response
 
 
-def parse_request_export_options(request):
+def parse_request_export_options(params):
     """
     Parse export options in the request object into values returned in a
     list. The list represents a boolean for whether the group name should be
@@ -1423,7 +1423,6 @@ def parse_request_export_options(request):
     """
     boolean_list = ['true', 'false']
     options = {}
-    params = request.query_params
     remove_group_name = params.get('remove_group_name') and \
         params.get('remove_group_name').lower()
     do_not_split_select_multiples = params.get(

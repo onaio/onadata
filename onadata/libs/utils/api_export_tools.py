@@ -72,7 +72,7 @@ def custom_response_handler(request, xform, query, export_type,
             (token is not None) or (meta is not None):
         export_type = Export.EXTERNAL_EXPORT
 
-    options = parse_request_export_options(request)
+    options = parse_request_export_options(request.query_params)
 
     options["dataview_pk"] = dataview_pk
     options['query'] = query
@@ -164,7 +164,7 @@ def _generate_new_export(request, xform, query, export_type,
                 None,
                 options, xform=xform)
         else:
-            options.update(parse_request_export_options(request))
+            options.update(parse_request_export_options(request.query_params))
 
             export = generate_export(
                 export_type,

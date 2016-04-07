@@ -186,7 +186,7 @@ class TestExportTools(TestBase):
                                    "include_labels_only": "false",
                                    "include_images": "false"})
 
-        options = parse_request_export_options(request)
+        options = parse_request_export_options(request.GET)
 
         self.assertEqual(options['split_select_multiples'], True)
         self.assertEqual(options['include_labels'], False)
@@ -201,7 +201,7 @@ class TestExportTools(TestBase):
                                    "include_labels_only": "true",
                                    "include_images": "true"})
 
-        options = parse_request_export_options(request)
+        options = parse_request_export_options(request.GET)
 
         self.assertEqual(options['split_select_multiples'], False)
         self.assertEqual(options['include_labels'], True)

@@ -594,7 +594,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         token = request.query_params.get('token')
         meta = request.query_params.get('meta')
         data_id = request.query_params.get('data_id')
-        options = parse_request_export_options(request)
+        options = parse_request_export_options(request.query_params)
 
         options.update({
             'meta': meta,
