@@ -1,14 +1,14 @@
 import os
 from datetime import date, datetime
 from django.core.files.storage import default_storage
+from django.contrib.sites.models import Site
 
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models import XForm
 from onadata.apps.viewer.models.export import Export
 
 from onadata.libs.utils.export_tools import (
     encode_if_str,
-    get_attachment_xpath,
+    get_attachment_val_or_attchment_url,
     generate_osm_export,
     should_create_new_export,
     parse_request_export_options)
@@ -123,22 +123,59 @@ class TestExportTools(TestBase):
 
         self.assertTrue(will_create_new_export)
 
-    def test_should_get_attachment_xpath_with_no_photos(self):
-        self._publish_xls_file(os.path.join(self.this_directory, "fixtures",
-                                            "photos", "tutorial.xls"))
-        filename = "filename"
-        xform = XForm.objects.order_by('pk').reverse()[0]
-        row = {}
-        get_attachment_xpath(filename, row, xform)
+    def test_get_attachment_val_or_attchment_url(self):
+        path = os.path.join(
+            os.path.dirname(__file__),
+            'fixtures', 'photo_type_in_repeat_group.xlsx')
+        self._publish_xls_file_and_set_xform(path)
 
-    def test_handle_type_error(self):
-        self._publish_xls_file(os.path.join(self.this_directory, "fixtures",
-                                            "photos", "tutorial.xls"))
-        filename = "filename"
-        xform = XForm.objects.order_by('pk').reverse()[0]
-        row = {u'photo': [1, 2]}
-        with self.assertRaises(TypeError):
-            get_attachment_xpath(filename, row, xform)
+        filename = u'bob/attachments/123.jpg'
+        download_url = u'/api/v1/files/1?filename=%s' % filename
+
+        # used a smaller version of row because we only using _attachmets key
+        row = {
+            u'_attachments': [{
+                u'mimetype': u'image/jpeg',
+                u'medium_download_url': u'%s&suffix=medium' % download_url,
+                u'download_url': download_url,
+                u'filename': filename,
+                u'instance': 1,
+                u'small_download_url': u'%s&suffix=small' % download_url,
+                u'id': 1,
+                u'xform': 1
+            }]
+        }
+
+        # when include_images is True, you get the attachment url
+        include_images = True
+        attachment_list = None
+        key = 'photo'
+        value = u'123.jpg'
+        val_or_url = get_attachment_val_or_attchment_url(
+            key, value, row, self.xform, include_images, attachment_list)
+        self.assertTrue(val_or_url)
+
+        current_site = Site.objects.get_current()
+        url = 'http://%s%s' % (current_site.domain, download_url)
+        self.assertEqual(url, val_or_url)
+
+        # when include_images is False, you get the value
+        include_images = False
+        val_or_url = get_attachment_val_or_attchment_url(
+            key, value, row, self.xform, include_images, attachment_list)
+        self.assertTrue(val_or_url)
+        self.assertEqual(value, val_or_url)
+
+        # test that when row is an empty dict, the function still returns a
+        # value
+        row.pop('_attachments', None)
+        self.assertEqual(row, {})
+
+        include_images = True
+        val_or_url = get_attachment_val_or_attchment_url(
+            key, value, row, self.xform, include_images, attachment_list)
+        self.assertTrue(val_or_url)
+        self.assertEqual(value, val_or_url)
 
     def test_parse_request_export_options(self):
         request = self.factory.get(
