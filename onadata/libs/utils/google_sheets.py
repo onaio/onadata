@@ -3,14 +3,12 @@ This module contains classes responsible for communicating with
 Google Data API and common spreadsheets models.
 """
 import gspread
-import io
 import json
 import xlrd
 
 from django.conf import settings
 from onadata.libs.utils.export_tools import ExportBuilder,\
     dict_to_joined_export
-from django.core.files.storage import get_storage_class
 from oauth2client.service_account import ServiceAccountCredentials
 from onadata.libs.utils.common_tags import INDEX, PARENT_INDEX,\
     PARENT_TABLE_NAME
@@ -144,9 +142,8 @@ class SheetsExportBuilder(ExportBuilder):
     # Configuration options
     spreadsheet_title = None
     flatten_repeated_fields = True
-    export_xlsform = True
     google_credentials = None
-    update = False
+    live_update = False
 
     # Constants
     SHEETS_BASE_URL = 'https://docs.google.com/spreadsheet/ccc?key=%s&hl'
@@ -157,7 +154,6 @@ class SheetsExportBuilder(ExportBuilder):
         self.spreadsheet_title = config['spreadsheet_title']
         self.google_credentials = config['google_credentials']
         self.flatten_repeated_fields = config['flatten_repeated_fields']
-        self.export_xlsform = config['export_xlsform']
         self.set_survey(xform.survey)
 
     def export(self, path, data, username, xform=None, filter_query=None):
@@ -165,7 +161,8 @@ class SheetsExportBuilder(ExportBuilder):
             SheetsClient.login_with_service_account(self.google_credentials)
 
         # Create a new sheet from new or update existing one
-        if self.update:
+        if self.live_update:
+            self.spreadsheet_title += "_live"
             self.spreadsheet = \
                 self.client.get_spreadsheet(title=self.spreadsheet_title)
         else:
@@ -176,7 +173,7 @@ class SheetsExportBuilder(ExportBuilder):
         # Add Service account as editor
         self.client.add_service_account_to_spreadsheet(self.spreadsheet)
 
-        if self.update:
+        if self.live_update:
             if not self._update_spreadsheet(data, xform):
                 self.export_tabular(path, data)
 
@@ -188,10 +185,6 @@ class SheetsExportBuilder(ExportBuilder):
                                       filter_query)
             else:
                 self.export_tabular(path, data)
-
-            # Write XLSForm data
-            if self.export_xlsform:
-                self._insert_xlsform()
 
         # Delete the default worksheet if it exists
         # NOTE: for some reason self.spreadsheet.worksheets() does not contain
@@ -243,35 +236,6 @@ class SheetsExportBuilder(ExportBuilder):
 
         # Write the data
         self._insert_data(data)
-
-    def _insert_xlsform(self):
-        """Exports XLSForm (e.g. survey, choices) to the sheet."""
-        assert self.client
-        assert self.spreadsheet
-        assert self.xform
-
-        file_path = self.xform.xls.name
-        default_storage = get_storage_class()()
-
-        if file_path == '' or not default_storage.exists(file_path):
-            # No XLS file for your form
-            return
-
-        with default_storage.open(file_path) as xlsform_file:
-            xlsform_io = io.BytesIO(xlsform_file.read())
-            # Open XForm and copy sheets to Google Sheets.
-            workbook = xlrd.open_workbook(file_contents=xlsform_io.read(),
-                                          formatting_info=True)
-            for wksht_nm in workbook.sheet_names():
-                source_ws = workbook.sheet_by_name(wksht_nm)
-                num_cols = source_ws.ncols
-                num_rows = source_ws.nrows
-                destination_ws = self.spreadsheet.add_worksheet(
-                    title=wksht_nm, rows=num_rows, cols=num_cols)
-                for row in xrange(num_rows):
-                    update_row(destination_ws, row + 1,
-                               [xldr_format_value(source_ws.cell(row, col))
-                                for col in xrange(num_cols)])
 
     def _insert_data(self, data):
         """Writes data rows for each section."""
