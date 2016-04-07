@@ -219,7 +219,7 @@ def profile(request, username):
             "/%s" % request.user.username)
         url = request_url.replace('http://', 'https://')
         xforms = XForm.objects.filter(user=content_user)\
-            .select_related('user', 'instances')
+            .select_related('user')
         user_xforms = xforms
         # forms shared with user
         forms_shared_with = get_forms_shared_with_user(content_user)
