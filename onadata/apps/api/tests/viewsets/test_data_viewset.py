@@ -588,7 +588,7 @@ class TestDataViewSet(TestBase):
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data), 1)
 
     def test_anon_data_list(self):
         self._make_submissions()
