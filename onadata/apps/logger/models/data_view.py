@@ -2,12 +2,12 @@ import datetime
 
 from django.utils.translation import ugettext as _
 from django.contrib.gis.db import models
+from django.contrib.postgres.fields import JSONField
 from django.db import connection
 from django.db.models.signals import post_delete, post_save
 
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.project import Project
-from jsonfield import JSONField
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     EDITED,
@@ -90,7 +90,7 @@ class DataView(models.Model):
     project = models.ForeignKey(Project)
 
     columns = JSONField()
-    query = JSONField(default={}, blank=True)
+    query = JSONField(default=dict, blank=True)
     instances_with_geopoints = models.BooleanField(default=False)
     matches_parent = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)

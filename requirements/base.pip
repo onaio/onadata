@@ -1,6 +1,6 @@
 pytz
 simplejson
-Django>=1.8,<1.9
+Django>=1.8,<1.10
 django-guardian
 django-ordered-model
 django-registration-redux
@@ -64,9 +64,6 @@ django-oauth-toolkit
 # spss
 https://bitbucket.org/fomcl/savreaderwriter/downloads/savReaderWriter-3.3.0.zip
 
-
-# JSON data type support
-jsonfield<1.0
 django-db-readonly
 
 # memcached support

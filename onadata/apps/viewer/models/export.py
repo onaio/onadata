@@ -1,14 +1,11 @@
 import os
-from collections import OrderedDict
-
 from tempfile import NamedTemporaryFile
 
 from django.core.files.storage import get_storage_class
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import post_delete
 from django.utils.translation import ugettext as _
-
-from jsonfield import JSONField
 
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.common_tags import OSM
@@ -111,9 +108,7 @@ class Export(models.Model):
     internal_status = models.SmallIntegerField(default=PENDING)
     export_url = models.URLField(null=True, default=None)
 
-    options = JSONField(
-        default={}, null=False,
-        load_kwargs={'object_pairs_hook': OrderedDict})
+    options = JSONField(default=dict, null=False)
 
     class Meta:
         app_label = "viewer"

@@ -1,6 +1,5 @@
-from jsonfield import JSONField
-
 from django.contrib.gis.db import models
+from django.contrib.postgres.fields import JSONField
 
 from onadata.apps.logger.models.instance import Instance
 
@@ -13,7 +12,7 @@ class OsmData(models.Model):
     xml = models.TextField()
     osm_id = models.CharField(max_length=10)
     osm_type = models.CharField(max_length=10, default='way')
-    tags = JSONField(default={}, null=False)
+    tags = JSONField(default=dict, null=False)
     geom = models.GeometryCollectionField()
     filename = models.CharField(max_length=255)
     field_name = models.CharField(max_length=255, blank=True, default='')
