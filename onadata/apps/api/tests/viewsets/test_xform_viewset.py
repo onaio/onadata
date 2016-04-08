@@ -27,7 +27,11 @@ from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
 from xml.dom import minidom, Node
 from datetime import timedelta
+from django.http import HttpResponseRedirect
+from oauth2client.contrib.django_orm import Storage
+from oauth2client.client import AccessTokenCredentials
 
+from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.logger.models import Project
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet, get_response_content, filename_from_disposition
@@ -48,6 +52,7 @@ from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE)
 from onadata.libs.utils.cache_tools import XFORM_PERMISSIONS_CACHE
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
+from onadata.libs.utils.google_sheets import SheetsExportBuilder
 
 
 @urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
@@ -3713,3 +3718,118 @@ class TestXFormViewSet(TestAbstractViewSet):
                                           'transportation.csv')
             with open(test_file_path, 'r') as test_file:
                 self.assertEqual(content, test_file.read())
+
+    def test_xform_gsheet_exports_disabled_sync_mode(self):
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "tutorial.xls")
+
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        for x in range(1, 9):
+            path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'tutorial', 'instances', 'uuid{}'.format(x), 'submission.xml')
+            self._make_submission(path)
+            x += 1
+
+        view = XFormViewSet.as_view({
+            'get': 'retrieve',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, format='gsheets')
+
+        text_response = \
+            '{"details": "Sheets export only supported in async mode"}'
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data, text_response)
+
+    @patch('onadata.libs.utils.api_export_tools._get_google_credential')
+    def test_xform_gsheet_exports_authorization_url(self, mock_google_creds):
+        redirect_url = "https://google.com/api/example/authorization_url"
+        mock_google_creds.return_value = \
+            HttpResponseRedirect(redirect_to=redirect_url)
+
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+
+        view = XFormViewSet.as_view({
+            'get': 'export_async',
+        })
+
+        data = {
+            "format": "gsheets"
+        }
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertTrue(mock_google_creds.called)
+
+        expected_response = {
+            "details": "Google authorization needed",
+            "url": redirect_url
+        }
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data, expected_response)
+
+    @patch.object(SheetsExportBuilder, 'export')
+    @patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    def test_xform_gsheets_export_async_mode(self, mock_async,
+                                             mock_sheet_builder):
+        # user authorized and credentials saved in the db
+        storage = Storage(TokenStorageModel, 'id', self.user, 'credential')
+        google_creds = AccessTokenCredentials("fake_token", user_agent="onaio")
+        google_creds.set_store(storage)
+        storage.put(google_creds)
+
+        gsheets_export_url = "https://google.com/fake/export_url"
+
+        mock_sheet_builder.return_value = gsheets_export_url
+
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+
+        view = XFormViewSet.as_view({
+            'get': 'export_async',
+        })
+
+        export_view = XFormViewSet.as_view({
+            'get': 'export_async',
+        })
+
+        data = {
+            "format": "gsheets"
+        }
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertIsNotNone(response.data)
+        self.assertEqual(response.status_code, 202)
+        self.assertTrue('job_uuid' in response.data)
+        task_id = response.data.get('job_uuid')
+        get_data = {'job_uuid': task_id}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = export_view(request, pk=self.xform.pk)
+
+        self.assertTrue(mock_async.called)
+        self.assertTrue(mock_sheet_builder.called)
+        self.assertEqual(response.status_code, 202)
+
+        export = Export.objects.get(task_id=task_id)
+        self.assertTrue(export.is_successful)
+        self.assertEqual(export.export_url, gsheets_export_url)
+
+        job = type('AsyncResultMock', (),
+                   {'state': 'SUCCESS', 'result': export.pk})
+
+        mock_async.return_value = job
+
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = export_view(request, pk=self.xform.pk)
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.data,
+                         {u'job_status': 'Success',
+                          u'export_url': gsheets_export_url
+                          })

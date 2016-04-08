@@ -91,14 +91,11 @@ def custom_response_handler(request, xform, query, export_type,
         export = get_object_or_404(Export, id=export_id, xform=xform)
     else:
         if export_type == Export.GSHEETS_EXPORT:
-            credential = _get_google_credential(request)
 
-            if isinstance(credential, HttpResponseRedirect):
                 payload = {
-                    "details": _("Google authorization needed"),
-                    "url": credential.url
+                    "details": _("Sheets export only supported in async mode")
                 }
-                return Response(data=payload,
+                return Response(data=json.dumps(payload),
                                 status=status.HTTP_403_FORBIDDEN,
                                 content_type="application/json")
 
