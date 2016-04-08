@@ -25,7 +25,7 @@ django-celery
 librabbitmq
 -e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
 python-digest
--e git+https://github.com/dimagi/django-digest.git#egg=django-digest
+-e git+https://github.com/onaio/django-digest.git@django-1.9-fixes#egg=django-digest
 -e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
 python-dateutil
 
