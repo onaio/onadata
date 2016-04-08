@@ -75,6 +75,16 @@ def current_site_url(path):
 def get_attachment_val_or_attchment_url(
         key, value, row, data_dictionary, include_images,
         attachment_list=None):
+    """
+     Gets either the attachment value or the attachment url
+     :param key: used to retrieve survey element
+     :param value: filename
+     :param row: current records row
+     :param data_dictionary: form structure
+     :param include_images: boolean value to either inlcude images or not
+     :param attachment_list: to be used incase row doesn't have ATTACHMENTS key
+     :return: value
+    """
     if not include_images:
         return value
 
@@ -132,6 +142,12 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
                           include_images=True):
     """
     Converts a dict into one or more tabular datasets
+    :param data: current record which can be changed or updated
+    :param index: keeps count of record number
+    :param indices: a dictionary storing list values if data is a dict
+    :param name: the name of the survey
+    :param survey: the survey
+    :param row: current record that remains unchanged on this function's recall
     """
     output = {}
     # TODO: test for _geolocation and attachment lists
