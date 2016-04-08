@@ -125,9 +125,10 @@ class ProjectPermissions(DjangoObjectPermissions):
 
     def has_object_permission(self, request, view, obj):
         if view.action == 'share' and request.method == 'PUT':
-            if request.data.get('remove'):
-                if request.user.username == request.data.get('username'):
-                    return True
+            remove = request.data.get('remove')
+            username = request.data.get('username', '')
+            if remove and request.user.username.lower() == username.lower():
+                return True
 
         return super(ProjectPermissions, self).has_object_permission(
             request, view, obj)
