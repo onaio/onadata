@@ -340,6 +340,18 @@ class WidgetFilter(XFormPermissionFilterMixin,
                                                          view)
 
 
+class UserProfileFilter(filters.BaseFilterBackend):
+
+    def filter_queryset(self, request, queryset, view):
+        if view.action == 'list' and request.GET.get('users'):
+            users = request.GET.get('users')
+            if users:
+                users = users.split(',')
+                return queryset.filter(user__username__in=users)
+
+        return queryset
+
+
 class NoteFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
         instance_id = request.QUERY_PARAMS.get('instance')

@@ -47,6 +47,34 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.user_profile_data()])
 
+    def test_user_profile_list(self):
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(_profile_data()),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
+        data = {"users": "bob,deno"}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = self.view(request)
+
+        deno_profile_data = _profile_data()
+        deno_profile_data.pop('password', None)
+        user_deno = User.objects.get(username='deno')
+        deno_profile_data.update({
+            'id': user_deno.pk,
+            'url': 'http://testserver/api/v1/profiles/%s' % user_deno.username,
+            'user': 'http://testserver/api/v1/users/%s' % user_deno.username,
+            'gravatar': user_deno.profile.gravatar,
+            'metadata': {},
+            'joined_on': user_deno.date_joined
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data,
+                         [self.user_profile_data(), deno_profile_data])
+        self.assertEqual(len(response.data), 2)
+
     def test_profiles_get(self):
         """Test get user profile"""
         view = UserProfileViewSet.as_view({
