@@ -533,7 +533,15 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(len(response.data['data']), len(data_view_data))
 
     def test_get_charts_data_for_grouped_field(self):
-        self._create_dataview()
+        data = {
+            'name': "My DataView",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
+            'columns': '["name", "age", "gender", "a_group/grouped"]',
+            'query': '[{"column":"age","filter":">","value":"20"}]'
+        }
+        self._create_dataview(data)
         self.view = DataViewViewSet.as_view({
             'get': 'charts',
         })
@@ -551,6 +559,18 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['field_name'], 'a_group-grouped')
         self.assertEqual(response.data['data_type'], 'categorized')
         self.assertEqual(len(response.data['data']), 2)
+
+    def test_get_charts_data_field_not_in_dataview_columns(self):
+
+        self._create_dataview()
+        self.view = DataViewViewSet.as_view({
+            'get': 'charts',
+        })
+
+        data = {'field_name': 'grouped'}
+        request = self.factory.get('/charts', data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 404)
 
     def test_get_charts_data_with_empty_query(self):
         data = {

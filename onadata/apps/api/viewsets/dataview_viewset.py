@@ -1,4 +1,4 @@
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, Http404
 from django.db.models.signals import post_save, post_delete
 
 from celery.result import AsyncResult
@@ -25,7 +25,8 @@ from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.api_export_tools import _export_async_export_response
 from onadata.libs.utils.api_export_tools import process_async_export
 from onadata.libs.utils.api_export_tools import response_for_format
-from onadata.libs.utils.chart_tools import get_chart_data_for_field
+from onadata.libs.utils.chart_tools import get_chart_data_for_field, \
+    get_field_from_field_name
 from onadata.libs.utils.export_tools import str_to_bool
 from onadata.apps.api.tools import get_baseviewset_class
 from onadata.libs.utils.cache_tools import (
@@ -150,9 +151,16 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         group_by = request.QUERY_PARAMS.get('group_by')
 
         if field_name:
-            data = get_chart_data_for_field(
-                field_name, xform, fmt, group_by, data_view=dataview)
-            return Response(data, template_name='chart_detail.html')
+            field_xpath = get_field_from_field_name(field_name, xform)\
+                .get_abbreviated_xpath()
+
+            if field_xpath not in dataview.columns:
+                raise Http404(
+                    "Field %s does not not exist on the dataview" % field_name)
+            else:
+                data = get_chart_data_for_field(
+                    field_name, xform, fmt, group_by, data_view=dataview)
+                return Response(data, template_name='chart_detail.html')
 
         if fmt != 'json' and field_name is None:
             raise ParseError("Not supported")
@@ -160,7 +168,8 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         data = serializer.data
         data["fields"] = {}
         for field in xform.survey_elements:
-            if field.name in dataview.columns:
+            field_xpath = field.get_abbreviated_xpath()
+            if field_xpath in dataview.columns:
                 url = reverse('dataviews-charts', kwargs={'pk': dataview.pk},
                               request=request, format=fmt)
                 field_url = get_form_field_chart_url(url, field.name)
