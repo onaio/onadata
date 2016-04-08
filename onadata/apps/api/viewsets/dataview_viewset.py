@@ -94,12 +94,13 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
     @detail_route(methods=['GET'])
     def export_async(self, request, *args, **kwargs):
-        job_uuid = request.query_params.get('job_uuid')
-        export_type = request.query_params.get('format')
+        params = request.query_params
+        job_uuid = params.get('job_uuid')
+        export_type = params.get('format')
         dataview = self.get_object()
         xform = dataview.xform
 
-        remove_group_name = request.query_params.get('remove_group_name')
+        remove_group_name = params.get('remove_group_name', False)
 
         options = {
             'remove_group_name': remove_group_name,
