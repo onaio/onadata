@@ -305,7 +305,7 @@ class ProjectSerializer(serializers.HyperlinkedModelSerializer):
             organization=validated_data.get('organization'),
             created_by=created_by,
             shared=validated_data.get('shared', False),
-            metadata=validated_data.get('metadata')
+            metadata=validated_data.get('metadata', dict())
         )
 
         project.xform_set.exclude(shared=project.shared)\

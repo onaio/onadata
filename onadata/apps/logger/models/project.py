@@ -64,7 +64,7 @@ class Project(BaseModel):
         )
 
     name = models.CharField(max_length=255)
-    metadata = JSONField(blank=True)
+    metadata = JSONField(default=dict)
     organization = models.ForeignKey(User, related_name='project_org')
     created_by = models.ForeignKey(User, related_name='project_owner')
     user_stars = models.ManyToManyField(User, related_name='project_stars')
