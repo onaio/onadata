@@ -15,6 +15,8 @@ from onadata.libs.serializers.fields.xform_related_field import (
 from onadata.libs.serializers.fields.project_related_field import (
     ProjectRelatedField,)
 
+UNIQUE_TOGETHER_ERROR = "Object already exists"
+
 CSV_CONTENT_TYPE = 'text/csv'
 MEDIA_TYPE = 'media'
 DOC_TYPE = 'supporting_doc'
@@ -125,5 +127,5 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                 data_file_type=data_file_type,
                 object_id=content_object.id
             )
-        except IntegrityError, e:
-            raise serializers.ValidationError(_(e.message))
+        except IntegrityError:
+            raise serializers.ValidationError(_(UNIQUE_TOGETHER_ERROR))

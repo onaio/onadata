@@ -11,6 +11,7 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.metadata_serializer import UNIQUE_TOGETHER_ERROR
 
 
 class TestMetaDataViewSet(TestAbstractViewSet):
@@ -63,7 +64,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = self._add_form_metadata(self.xform, data_type,
                                            self.data_value, self.path, False)
         self.assertEquals(response.status_code, 400)
-        self.assertIn("duplicate key", response.data['detail'])
+        self.assertIn(UNIQUE_TOGETHER_ERROR, response.data['detail'])
 
     def test_forms_endpoint_with_metadata(self):
         date_modified = self.xform.date_modified
