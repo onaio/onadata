@@ -53,6 +53,18 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             self._add_form_metadata(self.xform, data_type,
                                     self.data_value, self.path)
 
+    def test_parse_error_is_raised(self):
+        """Parse error is raised when duplicate media is uploaded"""
+        data_type = "supporting_doc"
+
+        self._add_form_metadata(self.xform, data_type,
+                                self.data_value, self.path)
+        # Duplicate upload
+        response = self._add_form_metadata(self.xform, data_type,
+                                           self.data_value, self.path, False)
+        self.assertEquals(response.status_code, 400)
+        self.assertIn("duplicate key", response.data['detail'])
+
     def test_forms_endpoint_with_metadata(self):
         date_modified = self.xform.date_modified
         for data_type in ['supporting_doc', 'media', 'source']:

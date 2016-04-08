@@ -412,7 +412,8 @@ class TestAbstractViewSet(TestCase):
 
         return response
 
-    def _add_form_metadata(self, xform, data_type, data_value, path=None):
+    def _add_form_metadata(self, xform, data_type, data_value,
+                           path=None, test=True):
         data = {
             'data_type': data_type,
             'data_value': data_value,
@@ -424,9 +425,9 @@ class TestAbstractViewSet(TestCase):
                 data.update({
                     'data_file': media_file,
                 })
-                self._post_metadata(data)
+                return self._post_metadata(data, test)
         else:
-            self._post_metadata(data)
+            return self._post_metadata(data, test)
 
     def _get_digest_client(self):
         self.user.profile.require_auth = True
