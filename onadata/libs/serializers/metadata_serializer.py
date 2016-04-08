@@ -15,7 +15,7 @@ from onadata.libs.serializers.fields.xform_related_field import (
 from onadata.libs.serializers.fields.project_related_field import (
     ProjectRelatedField,)
 
-UNIQUE_TOGETHER_ERROR = "Object already exists"
+UNIQUE_TOGETHER_ERROR = _(u"Object already exists")
 
 CSV_CONTENT_TYPE = 'text/csv'
 MEDIA_TYPE = 'media'
