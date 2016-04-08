@@ -794,29 +794,24 @@ def get_export_options(options):
     return export_options
 
 
-def generate_options_query(query, options):
+def get_export_options_query_kwargs(options):
     """
-    Add option filters to Export query
+    Get dict with options JSONField lookups for export options field
     """
-    query_with_filter = query
+    options_kwargs = {}
     for field in Export.EXPORT_OPTION_FIELDS:
         if field in options:
             field_value = options.get(field)
 
-            if isinstance(field_value, bool):
-                field_value = json.dumps(field_value)
-            elif field == EXPORT_QUERY_KEY:
+            if field == EXPORT_QUERY_KEY:
                 query_str = str(format(field_value))
 
-                field_value = '"{}"'.format(md5hash(query_str))
-            else:
-                field_value = '"{}"'.format(field_value)
+                field_value = md5hash(query_str)
 
-            option_field_query = '"{}":{}'.format(field, field_value)
-            query_with_filter = query_with_filter.filter(
-                options__contains=option_field_query)
+            key = 'options__{}'.format(field)
+            options_kwargs[key] = field_value
 
-    return query_with_filter
+    return options_kwargs
 
 
 def get_boolean_value(str_var, default=None):
@@ -983,8 +978,12 @@ def should_create_new_export(xform,
             not split_select_multiples:
         return True
 
-    export_query = Export.objects.filter(xform=xform, export_type=export_type)
-    export_query = generate_options_query(export_query, options)
+    export_options_kwargs = get_export_options_query_kwargs(options)
+    export_query = Export.objects.filter(
+        xform=xform,
+        export_type=export_type,
+        **export_options_kwargs
+    )
 
     if export_query.count() == 0 or\
        Export.exports_outdated(xform, export_type):
@@ -1006,8 +1005,12 @@ def newest_export_for(xform, export_type, options):
         binary_select_multiples: boolean flag
     """
 
-    export_query = Export.objects.filter(xform=xform, export_type=export_type)
-    export_query = generate_options_query(export_query, options)
+    export_options_kwargs = get_export_options_query_kwargs(options)
+    export_query = Export.objects.filter(
+        xform=xform,
+        export_type=export_type,
+        **export_options_kwargs
+    )
 
     return export_query.latest('created_on')
 
