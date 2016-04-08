@@ -349,8 +349,7 @@ class UserProfileFilter(filters.BaseFilterBackend):
                 users = users.split(',')
                 return queryset.filter(user__username__in=users)
 
-        return super(UserProfileFilter, self).filter_queryset(
-            request, queryset, view)
+        return queryset
 
 
 class NoteFilter(filters.BaseFilterBackend):
