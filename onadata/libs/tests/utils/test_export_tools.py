@@ -8,7 +8,7 @@ from onadata.apps.viewer.models.export import Export
 
 from onadata.libs.utils.export_tools import (
     encode_if_str,
-    get_attachment_val_or_attchment_url,
+    get_attachment_value_or_uri,
     generate_osm_export,
     should_create_new_export,
     parse_request_export_options)
@@ -123,7 +123,7 @@ class TestExportTools(TestBase):
 
         self.assertTrue(will_create_new_export)
 
-    def test_get_attachment_val_or_attchment_url(self):
+    def test_get_attachment_value_or_uri(self):
         path = os.path.join(
             os.path.dirname(__file__),
             'fixtures', 'photo_type_in_repeat_group.xlsx')
@@ -151,7 +151,7 @@ class TestExportTools(TestBase):
         attachment_list = None
         key = 'photo'
         value = u'123.jpg'
-        val_or_url = get_attachment_val_or_attchment_url(
+        val_or_url = get_attachment_value_or_uri(
             key, value, row, self.xform, include_images, attachment_list)
         self.assertTrue(val_or_url)
 
@@ -161,7 +161,7 @@ class TestExportTools(TestBase):
 
         # when include_images is False, you get the value
         include_images = False
-        val_or_url = get_attachment_val_or_attchment_url(
+        val_or_url = get_attachment_value_or_uri(
             key, value, row, self.xform, include_images, attachment_list)
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)
@@ -172,7 +172,7 @@ class TestExportTools(TestBase):
         self.assertEqual(row, {})
 
         include_images = True
-        val_or_url = get_attachment_val_or_attchment_url(
+        val_or_url = get_attachment_value_or_uri(
             key, value, row, self.xform, include_images, attachment_list)
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)

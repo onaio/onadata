@@ -72,7 +72,7 @@ def current_site_url(path):
     return url
 
 
-def get_attachment_val_or_attchment_url(
+def get_attachment_value_or_uri(
         key, value, row, data_dictionary, include_images,
         attachment_list=None):
     """
@@ -187,7 +187,7 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
                     output[name][key] = "\r\n".join(note_list)
                 else:
                     data_dictionary = get_data_dictionary_from_survey(survey)
-                    output[name][key] = get_attachment_val_or_attchment_url(
+                    output[name][key] = get_attachment_value_or_uri(
                         key, val, data, data_dictionary, include_images,
                         row and row.get(ATTACHMENTS)
                     )
@@ -205,7 +205,7 @@ class ExportBuilder(object):
     SPLIT_SELECT_MULTIPLES = True
     BINARY_SELECT_MULTIPLES = False
 
-    # column group delimiters
+    # column group delimitersget_attachment_value_or_uri
     GROUP_DELIMITER_SLASH = '/'
     GROUP_DELIMITER_DOT = '.'
     GROUP_DELIMITER = GROUP_DELIMITER_SLASH
