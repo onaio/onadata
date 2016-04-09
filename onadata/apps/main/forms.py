@@ -111,6 +111,11 @@ class UserProfileForm(ModelForm):
         exclude = ('user', 'created_by', 'num_of_submissions')
     email = forms.EmailField(widget=forms.TextInput())
 
+    def clean_metadata(self):
+        metadata = self.cleaned_data.get('metadata')
+
+        return metadata if metadata is not None else dict()
+
 
 class UserProfileFormRegister(forms.Form):
 
