@@ -47,7 +47,7 @@ install:
   # - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then  npm install ; fi
   # - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then bower install --force-latest ; fi
 script:
-  - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test
+  - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test --parallel
   # - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then karma start onadata/libs/javascript/tests/karma.conf.js ; fi
 notifications:
   email:
