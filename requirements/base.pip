@@ -66,6 +66,9 @@ https://bitbucket.org/fomcl/savreaderwriter/downloads/savReaderWriter-3.3.0.zip
 
 django-db-readonly
 
+# JSON data type support, keeping it around for previous migration
+jsonfield<1.0
+
 # memcached support
 pylibmc
 kombu
