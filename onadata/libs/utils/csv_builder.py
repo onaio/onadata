@@ -19,7 +19,7 @@ from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     ATTACHMENTS, GEOLOCATION, UUID, SUBMISSION_TIME, NA_REP,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
     DURATION, EDITED
-from onadata.libs.utils.export_tools import get_attachment_value_or_uri
+from onadata.libs.utils.export_tools import get_value_or_attachment_uri
 
 
 # the bind type of select multiples that we use to compare
@@ -387,12 +387,12 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                             if key in ordered_columns.keys():
                                 if new_xpath not in ordered_columns[key]:
                                     ordered_columns[key].append(new_xpath)
-                            d[new_xpath] = get_attachment_value_or_uri(
+                            d[new_xpath] = get_value_or_attachment_uri(
                                 nested_key, nested_val, row, data_dictionary,
                                 include_images
                             )
                 else:
-                    d[key] = get_attachment_value_or_uri(
+                    d[key] = get_value_or_attachment_uri(
                         key, value, row, data_dictionary, include_images
                     )
         else:
@@ -401,7 +401,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             if key == NOTES:
                 d[key] = u"\r\n".join(value)
             else:
-                d[key] = get_attachment_value_or_uri(
+                d[key] = get_value_or_attachment_uri(
                     key, value, row, data_dictionary, include_images
                 )
         return d
