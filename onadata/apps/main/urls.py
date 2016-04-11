@@ -182,7 +182,7 @@ urlpatterns = [
         '/$', viewer_views.export_list),
     url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
         '/(?P<filename>[^/]+)$',
-        viewer_views.export_download),
+        viewer_views.export_download, name='export-download'),
 
     # odk data urls
     url(r'^submission$',

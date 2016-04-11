@@ -77,7 +77,7 @@
         <td>
             {% if not export.is_pending %}
                 {% if export.is_successful %}
-                    <a href="{% url "onadata.apps.viewer.views.export_download" username xform.id_string export.export_type export.filename %}">{{ export.filename }}</a>
+                    <a href="{% url "export-download" username xform.id_string export.export_type export.filename %}">{{ export.filename }}</a>
                 {% else %}
                     Failed
                 {% endif %}
