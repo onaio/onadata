@@ -532,6 +532,22 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['data_type'], 'numeric')
         self.assertEqual(len(response.data['data']), len(data_view_data))
 
+    def test_get_charts_data_for_submission_time_field(self):
+        self._create_dataview()
+        self.view = DataViewViewSet.as_view({
+            'get': 'charts',
+        })
+
+        data = {'field_name': '_submission_time'}
+        request = self.factory.get('/charts', data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'datetime')
+        self.assertEqual(response.data['field_name'], '_submission_time')
+        self.assertEqual(response.data['data_type'], 'time_based')
+
     def test_get_charts_data_for_grouped_field(self):
         data = {
             'name': "My DataView",
