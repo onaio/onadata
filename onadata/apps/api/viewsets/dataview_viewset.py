@@ -151,8 +151,9 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         group_by = request.QUERY_PARAMS.get('group_by')
 
         if field_name:
-            field_xpath = get_field_from_field_name(field_name, xform)\
-                .get_abbreviated_xpath()
+            field = get_field_from_field_name(field_name, xform)
+            field_xpath = field_name if isinstance(field, basestring) \
+                else field.get_abbreviated_xpath()
 
             if field_xpath not in dataview.columns:
                 raise Http404(
