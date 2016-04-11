@@ -21,6 +21,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
+from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.api_export_tools import _export_async_export_response
 from onadata.libs.utils.api_export_tools import process_async_export
@@ -151,10 +152,12 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         group_by = request.QUERY_PARAMS.get('group_by')
 
         if field_name:
-            field_xpath = get_field_from_field_name(field_name, xform)\
-                .get_abbreviated_xpath()
+            field = get_field_from_field_name(field_name, xform)
+            field_xpath = field_name if isinstance(field, basestring) \
+                else field.get_abbreviated_xpath()
 
-            if field_xpath not in dataview.columns:
+            if field_xpath not in dataview.columns and \
+                    field_xpath != common_tags.SUBMISSION_TIME:
                 raise Http404(
                     "Field %s does not not exist on the dataview" % field_name)
             else:
