@@ -173,11 +173,11 @@ urlpatterns = [
     url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/view-data',
         viewer_views.data_view),
     url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
-        '/new$', viewer_views.create_export),
+        '/new$', viewer_views.create_export, name='new-export'),
     url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
-        '/delete$', viewer_views.delete_export),
+        '/delete$', viewer_views.delete_export, name='delete-export'),
     url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
-        '/progress$', viewer_views.export_progress),
+        '/progress$', viewer_views.export_progress, name='export-progress'),
     url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
         '/$', viewer_views.export_list),
     url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
