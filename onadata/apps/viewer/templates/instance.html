@@ -6,7 +6,7 @@
     <h1>{% trans "Browse Form Data" %}
         <small><a href="{% url "form-show" username id_string %}">{{ xform.title }}</a></small>
         <small> | </small>
-        <small><a href="{% url "onadata.apps.viewer.views.data_view" username id_string %}">{% trans "Data View" %}</a></small>
+        <small><a href="{% url "data-view" username id_string %}">{% trans "Data View" %}</a></small>
     </h1>
 </div>
 

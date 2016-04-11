@@ -570,7 +570,7 @@ class TestProcess(TestBase):
         csv_text = '\n'.join([
             'survey,,', ',type,name,label',
             ',text,whatsyourname,"What is your name?"', 'choices,,'])
-        url = reverse('onadata.apps.main.views.profile',
+        url = reverse('user_profile',
                       kwargs={'username': self.user.username})
         num_xforms = XForm.objects.count()
         params = {

@@ -43,7 +43,7 @@
         var mongoAPIUrl = "{% url "onadata.apps.main.views.api" owner.username xform.id_string %}";
         var views, sideBarViews, multiView, slickView;
         var numDefaultColumns = 30;//number of columns to show by default
-        var instance_view_url = "{% url "onadata.apps.viewer.views.instance" owner.username xform.id_string %}";
+        var instance_view_url = "{% url "submission-instance" owner.username xform.id_string %}";
         var dataView;
 
         $(document).ready(function () {

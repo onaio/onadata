@@ -66,9 +66,9 @@ urlpatterns = [
     url(r'^resources/$', main_views.resources, name='resources'),
     url(r'^forms/$', main_views.form_gallery, name='forms_list'),
     url(r'^forms/(?P<uuid>[^/]+)$', main_views.show, name='form-show'),
-    url(r'^people/$', main_views.members_list),
+    url(r'^people/$', main_views.members_list, name='members-list'),
     url(r'^xls2xform/$', main_views.xls2xform),
-    url(r'^support/$', main_views.support),
+    url(r'^support/$', main_views.support, name='support'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/stats$',
         viewer_views.charts, name='form-stats'),
     url(r'^login_redirect/$', main_views.login_redirect),
@@ -81,12 +81,17 @@ urlpatterns = [
     url(r'^(?P<username>[^/]+)/$', main_views.profile, name='user_profile'),
     url(r'^(?P<username>[^/]+)/profile$', main_views.public_profile,
         name='public_profile'),
-    url(r'^(?P<username>[^/]+)/settings', main_views.profile_settings),
+    url(r'^(?P<username>[^/]+)/settings', main_views.profile_settings,
+        name='profile-settings'),
     url(r'^(?P<username>[^/]+)/cloneform$', main_views.clone_xlsform),
-    url(r'^(?P<username>[^/]+)/activity$', main_views.activity),
-    url(r'^(?P<username>[^/]+)/activity/api$', main_views.activity_api),
-    url(r'^activity/fields$', main_views.activity_fields),
-    url(r'^(?P<username>[^/]+)/api-token$', main_views.api_token),
+    url(r'^(?P<username>[^/]+)/activity$', main_views.activity,
+        name='activity'),
+    url(r'^(?P<username>[^/]+)/activity/api$', main_views.activity_api,
+        name='activity-api'),
+    url(r'^activity/fields$', main_views.activity_fields,
+        name='activity-fields'),
+    url(r'^(?P<username>[^/]+)/api-token$', main_views.api_token,
+        name='api-token'),
 
     # form specific
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)$', main_views.show,
@@ -100,11 +105,11 @@ urlpatterns = [
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/delete_data$',
         main_views.delete_data, name='delete_data'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/edit$',
-        main_views.edit),
+        main_views.edit, name='xform-edit'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/perms$',
-        main_views.set_perm),
+        main_views.set_perm, name='set-xform-permissions'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/photos',
-        main_views.form_photos),
+        main_views.form_photos, name='form-photos'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/doc/(?P<data_id>\d+)'
         '', main_views.download_metadata),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/delete-doc/(?P<data_'
@@ -117,9 +122,9 @@ urlpatterns = [
         restservice_views.delete_service,
         name='delete_restservice'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/update$',
-        main_views.update_xform),
+        main_views.update_xform, name='update-xform'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/preview$',
-        main_views.enketo_preview),
+        main_views.enketo_preview, name='enketo-preview'),
 
     # briefcase api urls
     url(r'^(?P<username>\w+)/view/submissionList$',
@@ -149,7 +154,7 @@ urlpatterns = [
         viewer_views.data_export, name='sav_zip_export',
         kwargs={'export_type': 'sav_zip'}),
     url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.kml$',
-        viewer_views.kml_export),
+        viewer_views.kml_export, name='kml-export'),
     url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/data\.zip',
         viewer_views.zip_export),
     url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/gdocs$',
@@ -157,9 +162,9 @@ urlpatterns = [
     url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/map_embed',
         viewer_views.map_embed_view),
     url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/map',
-        viewer_views.map_view),
+        viewer_views.map_view, name='map-view'),
     url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/instance',
-        viewer_views.instance),
+        viewer_views.instance, name='submission-instance'),
     url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/enter-data',
         logger_views.enter_data, name='enter_data'),
     url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/add-submission-with',
@@ -171,7 +176,7 @@ urlpatterns = [
     url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/edit-data/(?P<data_id>'
         '\d+)$', logger_views.edit_data, name='edit_data'),
     url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/view-data',
-        viewer_views.data_view),
+        viewer_views.data_view, name='data-view'),
     url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
         '/new$', viewer_views.create_export, name='new-export'),
     url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
@@ -179,7 +184,7 @@ urlpatterns = [
     url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
         '/progress$', viewer_views.export_progress, name='export-progress'),
     url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
-        '/$', viewer_views.export_list),
+        '/$', viewer_views.export_list, name='export-list'),
     url(r'^(?P<username>\w+)/exports/(?P<id_string>[^/]+)/(?P<export_type>\w+)'
         '/(?P<filename>[^/]+)$',
         viewer_views.export_download, name='export-download'),
@@ -226,7 +231,7 @@ urlpatterns = [
         logger_views.download_jsonform,
         name='download_jsonform'),
     url(r'^(?P<username>\w+)/delete/(?P<id_string>[^/]+)/$',
-        logger_views.delete_xform),
+        logger_views.delete_xform, name='delete-xform'),
     url(r'^(?P<username>\w+)/(?P<id_string>[^/]+)/toggle_downloadable/$',
         logger_views.toggle_downloadable),
 
@@ -253,7 +258,7 @@ urlpatterns = [
 
     # Stats tables
     url(r'^(?P<username>\w+)/forms/(?P<id_string>[^/]+)/tables',
-        viewer_views.stats_tables),
+        viewer_views.stats_tables, name='stats-tables'),
 
     # static media
     url(r'^media/(?P<path>.*)$', django.views.static.serve,
