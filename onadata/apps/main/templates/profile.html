@@ -75,7 +75,7 @@
         {% for form in forms %}
             <tr>
                 <td>
-                    <a href="{% url "onadata.apps.main.views.show" content_user.username form.id_string %}">
+                    <a href="{% url "form-show" content_user.username form.id_string %}">
                         {{ form.title }}
                     <a/>
                 </td>

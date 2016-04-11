@@ -65,7 +65,7 @@ urlpatterns = [
     url(r'^tos/$', main_views.tos, name='tos'),
     url(r'^resources/$', main_views.resources, name='resources'),
     url(r'^forms/$', main_views.form_gallery, name='forms_list'),
-    url(r'^forms/(?P<uuid>[^/]+)$', main_views.show),
+    url(r'^forms/(?P<uuid>[^/]+)$', main_views.show, name='form-show'),
     url(r'^people/$', main_views.members_list),
     url(r'^xls2xform/$', main_views.xls2xform),
     url(r'^support/$', main_views.support),
@@ -89,7 +89,8 @@ urlpatterns = [
     url(r'^(?P<username>[^/]+)/api-token$', main_views.api_token),
 
     # form specific
-    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)$', main_views.show),
+    url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)$', main_views.show,
+        name='form-show'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/qrcode$',
         main_views.qrcode, name='get_qrcode'),
     url(r'^(?P<username>[^/]+)/forms/(?P<id_string>[^/]+)/api$',

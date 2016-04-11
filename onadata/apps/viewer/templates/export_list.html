@@ -6,7 +6,7 @@
 
 <section id="export-downloads">
   <div class="page-header">
-    <h1>{{ export_type_name|upper }} {% blocktrans %}Exports{% endblocktrans %} (<a href="{% url "onadata.apps.main.views.show" username xform.id_string %}">{{ xform.id_string }}</a>)</h1>
+    <h1>{{ export_type_name|upper }} {% blocktrans %}Exports{% endblocktrans %} (<a href="{% url "form-show" username xform.id_string %}">{{ xform.id_string }}</a>)</h1>
   </div>
 
     {% if user.is_authenticated %}

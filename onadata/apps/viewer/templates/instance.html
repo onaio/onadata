@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-header">
     <h1>{% trans "Browse Form Data" %}
-        <small><a href="{% url "onadata.apps.main.views.show" username id_string %}">{{ xform.title }}</a></small>
+        <small><a href="{% url "form-show" username id_string %}">{{ xform.title }}</a></small>
         <small> | </small>
         <small><a href="{% url "onadata.apps.viewer.views.data_view" username id_string %}">{% trans "Data View" %}</a></small>
     </h1>

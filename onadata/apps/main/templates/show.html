@@ -592,7 +592,7 @@
         <div>
             <h3>{% trans "Sharing" %}</h3>
             {% if public_link %}
-            {% url "onadata.apps.main.views.show" xform.uuid as form_url %}
+            {% url "form-show" xform.uuid as form_url %}
             {% blocktrans %}Sharing by link is <strong>on with URL <a href="{{ form_url }}">{{ base_url }}{{ form_url }}</a></strong>{% endblocktrans %}
             {% else %}
             {% blocktrans %}Sharing by link is <strong>off</strong>{% endblocktrans %}
