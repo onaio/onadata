@@ -194,6 +194,15 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
     return output
 
 
+def get_columns_with_hxl(include_hxl, survey_elements):
+    return {
+        se.get('name'): val.get('hxl')
+        for se in survey_elements
+        for key, val in se.items()
+        if key == 'instance' and val and 'hxl' in val
+    } if include_hxl else None
+
+
 class ExportBuilder(object):
     IGNORED_COLUMNS = [XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION,
                        BAMBOO_DATASET_ID, DELETEDAT]
@@ -615,6 +624,24 @@ class ExportBuilder(object):
         media_xpaths = [] if not self.INCLUDE_IMAGES \
             else self.dd.get_media_survey_xpaths()
 
+        # write hxl header
+        if self.INCLUDE_HXL:
+            for section in self.sections:
+                section_name = section['name']
+                headers = self.get_fields(dataview, section, 'title')
+
+                # get the worksheet
+                ws = work_sheets[section_name]
+                columns_with_hxl = kwargs.get('columns_with_hxl')
+
+                if columns_with_hxl:
+                    hxl_row = [
+                        columns_with_hxl.get(col)
+                        if col in columns_with_hxl else ''
+                        for col in headers
+                    ]
+                    hxl_row and ws.append(hxl_row)
+
         index = 1
         indices = {}
         survey_name = self.survey.name
@@ -891,12 +918,16 @@ def generate_export(export_type, xform, export_id=None, options=None):
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
 
+    columns_with_hxl = get_columns_with_hxl(
+        export_builder.INCLUDE_HXL, xform.survey_elements)
+
     # get the export function by export type
     func = getattr(export_builder, export_type_func_map[export_type])
     try:
         func.__call__(
             temp_file.name, records, username, id_string, filter_query,
-            start=start, end=end, dataview=dataview, xform=xform
+            start=start, end=end, dataview=dataview, xform=xform,
+            columns_with_hxl=columns_with_hxl
         )
     except NoRecordsFoundError:
         pass
