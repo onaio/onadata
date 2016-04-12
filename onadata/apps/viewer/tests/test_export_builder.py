@@ -428,6 +428,21 @@ class TestExportBuilder(TestBase):
         self.assertFalse(data[u'children.info/fav_colors/pink\u2019s'])
         temp_xls_file.close()
 
+    def test_xls_export_with_hxl_works_with_unicode(self):
+        xlsform_path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "hxl_test", "hxl_example.xlsx")
+        survey = create_survey_from_xls(xlsform_path)
+        export_builder = ExportBuilder()
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+
+        export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
+        temp_xls_file.seek(0)
+        wb = load_workbook(temp_xls_file.name)
+        children_sheet = wb.get_sheet_by_name("hxl_example")
+        self.assertTrue(children_sheet)
+
     def test_generation_of_multi_selects_works(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
