@@ -17,7 +17,8 @@ class Command(BaseCommand):
             writer = csv.writer(csvfile)
             writer.writerow(fieldnames)
 
-            for instance in queryset_iterator(Instance.objects.all()[:200]):
+            for instance in queryset_iterator(
+                    Instance.objects.exclude(geom__isnull=True)):
                 if hasattr(instance, 'point') and instance.point is not None:
                     longitude = instance.point.coords[0]
                     latitude = instance.point.coords[1]
