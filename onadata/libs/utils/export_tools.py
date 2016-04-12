@@ -212,6 +212,7 @@ class ExportBuilder(object):
 
     INCLUDE_LABELS = False
     INCLUDE_LABELS_ONLY = False
+    INCLUDE_HXL = False
     INCLUDE_IMAGES = settings.EXPORT_WITH_IMAGE_DEFAULT
 
     TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
@@ -662,7 +663,8 @@ class ExportBuilder(object):
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
-            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES
+            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
+            self.INCLUDE_HXL
         )
 
         csv_builder.export_to(path, dataview=dataview)
@@ -881,6 +883,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
     export_builder.INCLUDE_LABELS_ONLY = options.get(
         'include_labels_only', False
     )
+    export_builder.INCLUDE_HXL = options.get('include_hxl', False)
 
     export_builder.INCLUDE_IMAGES \
         = options.get("include_images", settings.EXPORT_WITH_IMAGE_DEFAULT)
@@ -1432,12 +1435,16 @@ def parse_request_export_options(params):
         'do_not_split_select_multiples')
     include_labels = params.get('include_labels', False)
     include_labels_only = params.get('include_labels_only', False)
+    include_hxl = params.get('include_hxl', False)
 
     if include_labels is not None:
         options['include_labels'] = str_to_bool(include_labels)
 
     if include_labels_only is not None:
         options['include_labels_only'] = str_to_bool(include_labels_only)
+
+    if include_hxl is not None:
+        options['include_hxl'] = str_to_bool(include_hxl)
 
     if remove_group_name in boolean_list:
         options["remove_group_name"] = str_to_bool(remove_group_name)

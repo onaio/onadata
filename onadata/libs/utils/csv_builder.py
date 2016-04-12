@@ -506,12 +506,12 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                                 field.get_abbreviated_xpath(),
                                                 include_prefix=True)
 
-            columns_with_hxl = {
-                se.get('name'): val.get('hxl')
-                for se in self.dd.survey_elements
-                for key, val in se.items()
-                if key == 'instance' and val and 'hxl' in val
-            } if self.include_hxl else None
+        columns_with_hxl = {
+            se.get('name'): val.get('hxl')
+            for se in self.dd.survey_elements
+            for key, val in se.items()
+            if key == 'instance' and val and 'hxl' in val
+        } if self.include_hxl else None
 
         write_to_csv(path, data, columns,
                      columns_with_hxl=columns_with_hxl,
