@@ -23,6 +23,9 @@ from onadata.libs.utils.osm import save_osm_data_async
 
 from onadata.libs.utils.model_tools import queryset_iterator
 
+ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = \
+    getattr(settings, 'ASYNC_POST_SUBMISSION_PROCESSING_ENABLED', False)
+
 
 # this is Mongo Collection where we will store the parsed submissions
 key_whitelist = ['$or', '$and', '$exists', '$in', '$gt', '$gte',
@@ -454,15 +457,19 @@ def post_save_submission(sender, **kwargs):
     created = kwargs.get('created')
 
     if created:
-        call_service_async.apply_async(
-            args=[parsed_instance.instance_id],
-            countdown=1
-        )
+        if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
+            call_service_async.apply_async(
+                args=[parsed_instance.instance_id],
+                countdown=1
+            )
 
-        save_osm_data_async.apply_async(
-            args=[parsed_instance.instance_id],
-            countdown=1
-        )
+            save_osm_data_async.apply_async(
+                args=[parsed_instance.instance_id],
+                countdown=1
+            )
+        else:
+            call_service_async(parsed_instance.instance_id)
+            save_osm_data_async(parsed_instance.instance_id)
 
 
 post_save.connect(post_save_submission, sender=ParsedInstance)
