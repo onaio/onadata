@@ -456,9 +456,9 @@ NA_REP = 'n/a'
 
 if isinstance(TEMPLATE_OVERRIDE_ROOT_DIR, basestring):
     # site templates overrides
-    TEMPLATES[0]['DIRS'] = (
+    TEMPLATES[0]['DIRS'] = [
         os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'templates'),
-    ) + TEMPLATES[0]['DIRS']
+    ] + TEMPLATES[0]['DIRS']
     # site static files path
     STATICFILES_DIRS += (
         os.path.join(PROJECT_ROOT, TEMPLATE_OVERRIDE_ROOT_DIR, 'static'),
