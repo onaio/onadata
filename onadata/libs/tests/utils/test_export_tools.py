@@ -11,7 +11,8 @@ from onadata.libs.utils.export_tools import (
     get_value_or_attachment_uri,
     generate_osm_export,
     should_create_new_export,
-    parse_request_export_options)
+    parse_request_export_options,
+    generate_export)
 from onadata.apps.logger.models import Attachment
 from onadata.apps.api import tests as api_tests
 
@@ -207,3 +208,23 @@ class TestExportTools(TestBase):
         self.assertEqual(options['include_labels_only'], True)
         self.assertEqual(options['remove_group_name'], True)
         self.assertEqual(options['include_images'], True)
+
+    def test_export_not_found(self):
+        export_type = "csv"
+        options = {"group_delimiter": "/",
+                   "remove_group_name": False,
+                   "split_select_multiples": True}
+
+        self._publish_transportation_form_and_submit_instance()
+        self._create_old_export(self.xform, export_type, options)
+        export = Export(xform=self.xform, export_type=export_type,
+                        options=options)
+        export.save()
+        export_id = export.pk
+
+        export.delete()
+        export = generate_export(export_type, self.xform, export_id, options)
+
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+        self.assertNotEqual(export_id, export.pk)

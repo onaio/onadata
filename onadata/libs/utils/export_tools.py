@@ -929,11 +929,13 @@ def generate_export(export_type, xform, export_id=None, options=None):
 
     # get or create export object
     if export_id:
-        export = Export.objects.get(id=export_id)
+        try:
+            export = Export.objects.get(id=export_id)
+        except Export.DoesNotExist:
+            export = create_export_object(xform, export_type, options)
+
     else:
-        export_options = get_export_options(options)
-        export = Export(
-            xform=xform, export_type=export_type, options=export_options)
+        export = create_export_object(xform, export_type, options)
 
     export.filedir = dir_name
     export.filename = basename
@@ -944,6 +946,11 @@ def generate_export(export_type, xform, export_id=None, options=None):
     if start is None and end is None:
         export.save()
     return export
+
+
+def create_export_object(xform, export_type, options):
+    export_options = get_export_options(options)
+    return Export(xform=xform, export_type=export_type, options=export_options)
 
 
 def should_create_new_export(xform,
