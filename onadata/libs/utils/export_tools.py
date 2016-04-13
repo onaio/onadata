@@ -651,14 +651,14 @@ class ExportBuilder(object):
             else self.dd.get_media_survey_xpaths()
 
         # write hxl header
-        if self.INCLUDE_HXL:
+        columns_with_hxl = kwargs.get('columns_with_hxl')
+        if self.INCLUDE_HXL and columns_with_hxl:
             for section in self.sections:
                 section_name = section['name']
                 headers = self.get_fields(dataview, section, 'title')
 
                 # get the worksheet
                 ws = work_sheets[section_name]
-                columns_with_hxl = kwargs.get('columns_with_hxl')
 
                 if columns_with_hxl:
                     hxl_row = [
