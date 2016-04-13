@@ -517,6 +517,25 @@ class ExportBuilder(object):
 
         media_xpaths = [] if not self.INCLUDE_IMAGES \
             else self.dd.get_media_survey_xpaths()
+
+        # write hxl row
+        if self.INCLUDE_HXL:
+            for section in self.sections:
+                fields = [
+                    f.encode('utf-8')
+                    for f in self.get_fields(dataview, section, 'title')
+                ]
+                columns_with_hxl = kwargs.get('columns_with_hxl')
+                if columns_with_hxl:
+                    hxl_row = [
+                        columns_with_hxl.get(col)
+                        if col in columns_with_hxl else ''
+                        for col in fields
+                    ]
+                    if hxl_row:
+                        writer = csv_defs[section['name']]['csv_writer']
+                        writer.writerow(hxl_row)
+
         index = 1
         indices = {}
         survey_name = self.survey.name
