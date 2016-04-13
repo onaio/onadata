@@ -38,7 +38,7 @@ from onadata.libs.utils.common_tags import (
     ID, XFORM_ID_STRING, STATUS, ATTACHMENTS, GEOLOCATION, BAMBOO_DATASET_ID,
     DELETEDAT, INDEX, PARENT_INDEX, PARENT_TABLE_NAME, GROUPNAME_REMOVED_FLAG,
     SUBMISSION_TIME, UUID, TAGS, NOTES, VERSION, SUBMITTED_BY, DURATION,
-    DATAVIEW_EXPORT, KNOWN_MEDIA_TYPES)
+    DATAVIEW_EXPORT)
 from onadata.libs.utils.osm import get_combined_osm
 from onadata.apps.logger.models.xform import QUESTION_TYPES_TO_EXCLUDE
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
@@ -73,7 +73,7 @@ def current_site_url(path):
 
 
 def get_value_or_attachment_uri(
-        key, value, row, data_dictionary, include_images,
+        key, value, row, data_dictionary, media_xpaths,
         attachment_list=None):
     """
      Gets either the attachment value or the attachment url
@@ -85,11 +85,10 @@ def get_value_or_attachment_uri(
      :param attachment_list: to be used incase row doesn't have ATTACHMENTS key
      :return: value
     """
-    if not include_images:
+    if not media_xpaths:
         return value
 
-    survey_element = data_dictionary.get_survey_element(key)
-    if survey_element and survey_element.type in KNOWN_MEDIA_TYPES:
+    if key in media_xpaths:
         attachments = [
             a
             for a in row.get(ATTACHMENTS, attachment_list or [])
@@ -139,7 +138,7 @@ def str_to_bool(s):
 
 
 def dict_to_joined_export(data, index, indices, name, survey, row,
-                          include_images=True):
+                          media_xpaths=[]):
     """
     Converts a dict into one or more tabular datasets
     :param data: current record which can be changed or updated
@@ -163,7 +162,7 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
                     child_index = indices[key]
                     new_output = dict_to_joined_export(
                         child, child_index, indices, key, survey, row,
-                        include_images)
+                        media_xpaths)
                     d = {INDEX: child_index, PARENT_INDEX: index,
                          PARENT_TABLE_NAME: name}
                     # iterate over keys within new_output and append to
@@ -188,7 +187,7 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
                 else:
                     data_dictionary = get_data_dictionary_from_survey(survey)
                     output[name][key] = get_value_or_attachment_uri(
-                        key, val, data, data_dictionary, include_images,
+                        key, val, data, data_dictionary, media_xpaths,
                         row and row.get(ATTACHMENTS)
                     )
 
@@ -361,6 +360,7 @@ class ExportBuilder(object):
             field_list[
                 current_section_name][xpath] = xpaths
 
+        self.dd = dd
         self.survey = survey
         self.select_multiples = {}
         self.gps_fields = {}
@@ -498,6 +498,8 @@ class ExportBuilder(object):
                 csv_defs[section['name']]['csv_writer'].writerow(
                     [f.encode('utf-8') for f in fields])
 
+        media_xpaths = [] if not self.INCLUDE_IMAGES \
+            else self.dd.get_media_survey_xpaths()
         index = 1
         indices = {}
         survey_name = self.survey.name
@@ -506,7 +508,7 @@ class ExportBuilder(object):
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
                                                   self.survey, d,
-                                                  self.INCLUDE_IMAGES)
+                                                  media_xpaths)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
             # attach meta fields (index, parent_index, parent_table)
@@ -609,6 +611,9 @@ class ExportBuilder(object):
                 ws = work_sheets[section_name]
                 ws.append(labels)
 
+        media_xpaths = [] if not self.INCLUDE_IMAGES \
+            else self.dd.get_media_survey_xpaths()
+
         index = 1
         indices = {}
         survey_name = self.survey.name
@@ -616,7 +621,7 @@ class ExportBuilder(object):
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
                                                   self.survey, d,
-                                                  self.INCLUDE_IMAGES)
+                                                  media_xpaths)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
             # attach meta fields (index, parent_index, parent_table)
@@ -701,6 +706,9 @@ class ExportBuilder(object):
             sav_defs[section['name']] = {
                 'sav_file': sav_file, 'sav_writer': sav_writer}
 
+        media_xpaths = [] if not self.INCLUDE_IMAGES \
+            else self.dd.get_media_survey_xpaths()
+
         index = 1
         indices = {}
         survey_name = self.survey.name
@@ -709,7 +717,7 @@ class ExportBuilder(object):
             joined_export = dict_to_joined_export(d, index, indices,
                                                   survey_name,
                                                   self.survey, d,
-                                                  self.INCLUDE_IMAGES)
+                                                  media_xpaths)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
             # attach meta fields (index, parent_index, parent_table)

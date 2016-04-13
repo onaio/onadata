@@ -148,12 +148,12 @@ class TestExportTools(TestBase):
         }
 
         # when include_images is True, you get the attachment url
-        include_images = True
+        media_xpaths = ['photo']
         attachment_list = None
         key = 'photo'
         value = u'123.jpg'
         val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, include_images, attachment_list)
+            key, value, row, self.xform, media_xpaths, attachment_list)
         self.assertTrue(val_or_url)
 
         current_site = Site.objects.get_current()
@@ -161,9 +161,9 @@ class TestExportTools(TestBase):
         self.assertEqual(url, val_or_url)
 
         # when include_images is False, you get the value
-        include_images = False
+        media_xpaths = []
         val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, include_images, attachment_list)
+            key, value, row, self.xform, media_xpaths, attachment_list)
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)
 
@@ -172,9 +172,9 @@ class TestExportTools(TestBase):
         row.pop('_attachments', None)
         self.assertEqual(row, {})
 
-        include_images = True
+        media_xpaths = ['photo']
         val_or_url = get_value_or_attachment_uri(
-            key, value, row, self.xform, include_images, attachment_list)
+            key, value, row, self.xform, media_xpaths, attachment_list)
         self.assertTrue(val_or_url)
         self.assertEqual(value, val_or_url)
 

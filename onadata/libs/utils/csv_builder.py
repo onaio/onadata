@@ -446,6 +446,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             gps_xpaths = self.dd.get_additional_geopoint_xpaths(key)
             self.ordered_columns[key] = [key] + gps_xpaths
         data = []
+        image_xpaths = [] if not self.include_images \
+            else self.dd.get_media_survey_xpaths()
 
         for record in cursor:
             # split select multiples
@@ -462,7 +464,7 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             for key, value in record.iteritems():
                 reindexed = self._reindex(key, value, self.ordered_columns,
                                           record, self.dd,
-                                          include_images=self.include_images)
+                                          include_images=image_xpaths)
                 flat_dict.update(reindexed)
 
             data.append(flat_dict)
