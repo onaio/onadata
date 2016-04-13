@@ -208,10 +208,19 @@ Response
 Export form data asynchronously
 -------------------------------
 
+Supported formats for exports are:
+
+- ``csv``
+- ``xls``
+- ``savzip``
+- ``csvzip``
+- ``kml``
+- ``osm``
+
 .. raw:: html
 
 	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/<code>{pk}</code>/export_async
+	<b>GET</b> /api/v1/forms/<code>{pk}</code>/export_async?format=<code>{format}</code>
 	</pre>
 
 Example
@@ -317,8 +326,8 @@ Example
      curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&do_not_split_select_multiples
 
 
-Include labels in CSV, SAV, XLS and zipped CSV exports
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Include labels in CSV, SAVZIP, XLS and zipped CSV exports
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 By default labels are not included in exports. To include labels in the exports, use
  the `include_labels` param, acceptable values are `true` and `false`.
 
@@ -331,8 +340,8 @@ Example
      curl -X GET https://api.ona.io/api/v1/forms/28058.xls?include_labels=true
 
 
-Include labels as column headers in CSV, SAV, XLS and zipped CSV exports
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Include labels as column headers in CSV, SAVZIP, XLS and zipped CSV exports
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 By default labels are not included in exports. To include labels as column headers in the exports, use
  the `include_labels_only` param, acceptable values are `true` and `false`.
 
@@ -347,7 +356,7 @@ Example
 
 CSV and XLS exports with either '.' or '/' group delimiter in header names
 
-Include image links in CSV, SAV, XLS and zipped CSV exports
+Include image links in CSV, SAVZIP, XLS and zipped CSV exports
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 By default image links are included in exports. To exclude the image links in the exports, use
  the `include_images` param, acceptable values are `true` and `false`.
@@ -696,7 +705,7 @@ Get form data exported as xls, csv, csv zip, sav zip format.
 Where:
 
 - ``pk`` - is the form unique identifier
-- ``format`` - is the data export format i.e csv, xls, csvzip, savzip
+- ``format`` - is the data export format i.e csv, xls, csvzip, savzip, osm
 
 Params for the custom xls report
 
