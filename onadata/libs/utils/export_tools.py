@@ -195,12 +195,19 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
 
 
 def get_columns_with_hxl(include_hxl, survey_elements):
-    return {
+    '''
+    Returns a dictionary whose keys are xform field names and values are
+    `instance::hxl` values set on the xform
+    :param include_hxl - boolean value
+    :param survey_elements - survey elements of an xform
+    return dictionary or None
+    '''
+    return include_hxl and survey_elements and {
         se.get('name'): val.get('hxl')
         for se in survey_elements
         for key, val in se.items()
         if key == 'instance' and val and 'hxl' in val
-    } if include_hxl else None
+    }
 
 
 class ExportBuilder(object):
@@ -681,10 +688,13 @@ class ExportBuilder(object):
         wb.save(filename=path)
 
     def to_flat_csv_export(
-            self, path, data, username, id_string, filter_query,
-            start=None, end=None, dataview=None, xform=None):
+            self, path, data, username, id_string, filter_query, **kwargs):
         # TODO resolve circular import
         from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
+        start = kwargs.get('start')
+        end = kwargs.get('end')
+        dataview = kwargs.get('dataview')
+        xform = kwargs.get('xform')
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
