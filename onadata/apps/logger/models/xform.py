@@ -38,7 +38,7 @@ from onadata.libs.utils.cache_tools import (
     PROJ_SUB_DATE_CACHE,
     safe_delete)
 from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES,\
-    VERSION, DURATION, SUBMITTED_BY
+    VERSION, DURATION, SUBMITTED_BY, KNOWN_MEDIA_TYPES
 from onadata.libs.utils.model_tools import queryset_iterator
 
 
@@ -548,6 +548,15 @@ class XFormMixin(object):
     def get_survey_elements_of_type(self, element_type):
         return [e for e in self.get_survey_elements()
                 if e.type == element_type]
+
+    def get_media_survey_xpaths(self):
+        return [
+            e.get_abbreviated_xpath() for e in sum(
+                [self.get_survey_elements_of_type(m)
+                 for m in KNOWN_MEDIA_TYPES],
+                []
+            )
+        ]
 
     def _check_version_set(self, survey):
         """
