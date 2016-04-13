@@ -660,13 +660,12 @@ class ExportBuilder(object):
                 # get the worksheet
                 ws = work_sheets[section_name]
 
-                if columns_with_hxl:
-                    hxl_row = [
-                        columns_with_hxl.get(col)
-                        if col in columns_with_hxl else ''
-                        for col in headers
-                    ]
-                    hxl_row and ws.append(hxl_row)
+                hxl_row = [
+                    columns_with_hxl.get(col)
+                    if col in columns_with_hxl else ''
+                    for col in headers
+                ]
+                hxl_row and ws.append(hxl_row)
 
         index = 1
         indices = {}
