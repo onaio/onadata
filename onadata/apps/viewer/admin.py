@@ -9,7 +9,7 @@ class DataDictionaryAdmin(VersionAdmin, admin.ModelAdmin):
     exclude = ('user',)
 
     def get_queryset(self, request):
-        qs = super(DataDictionaryAdmin, self).queryset(request)
+        qs = super(DataDictionaryAdmin, self).get_queryset(request)
         if request.user.is_superuser:
             return qs
         return qs.filter(user=request.user)
