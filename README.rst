@@ -73,3 +73,14 @@ Django Debug Toolbar
 * `$ pip install django-debug-toolbar`
 * Use/see `onadata/settings/debug_toolbar_settings/py`
 * Access api endpoint on the browser and use `.debug` as the format extension e.g `/api/v1/projects.debug`
+
+Upgrading existing installation to django 1.9+
+----------------------------------------------
+
+Fake initial migration of `gurdian`, `django_digest`, `registration`.
+
+.. code-block:: sh
+
+    $ python manage.py migrate --fake-initial django_digest
+    $ python manage.py migrate --fake-initial guardian
+    $ python manage.py migrate --fake-initial registration
