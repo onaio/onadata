@@ -84,3 +84,4 @@ Fake initial migration of `gurdian`, `django_digest`, `registration`.
     $ python manage.py migrate --fake-initial django_digest
     $ python manage.py migrate --fake-initial guardian
     $ python manage.py migrate --fake-initial registration
+    $ python manage.py migrate
