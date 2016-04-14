@@ -142,7 +142,7 @@ def write_to_csv(path, rows, columns, columns_with_hxl=None,
             writer.writerow(labels)
 
         if include_hxl and columns_with_hxl:
-            hxl_row = [columns_with_hxl.get(col, '') for col in new_cols]
+            hxl_row = [columns_with_hxl.get(col, '') for col in columns]
             hxl_row and writer.writerow(hxl_row)
 
         for row in rows:
