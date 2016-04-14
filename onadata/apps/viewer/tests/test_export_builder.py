@@ -444,8 +444,8 @@ class TestExportBuilder(TestBase):
             if survey_item[0] == u'children'
         ][0]
 
-        columns_with_hxl = get_columns_with_hxl(
-            export_builder.INCLUDE_HXL, survey_elements
+        columns_with_hxl = export_builder.INCLUDE_HXL and get_columns_with_hxl(
+            survey_elements
         )
 
         export_builder.to_xls_export(

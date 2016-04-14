@@ -194,7 +194,7 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
     return output
 
 
-def get_columns_with_hxl(include_hxl, survey_elements):
+def get_columns_with_hxl(survey_elements):
     '''
     Returns a dictionary whose keys are xform field names and values are
     `instance::hxl` values set on the xform
@@ -202,7 +202,7 @@ def get_columns_with_hxl(include_hxl, survey_elements):
     :param survey_elements - survey elements of an xform
     return dictionary or None
     '''
-    return include_hxl and survey_elements and {
+    return survey_elements and {
         se.get('name'): val.get('hxl')
         for se in survey_elements
         for key, val in se.items()
@@ -521,17 +521,12 @@ class ExportBuilder(object):
         # write hxl row
         if self.INCLUDE_HXL:
             for section in self.sections:
-                fields = [
-                    f.encode('utf-8')
-                    for f in self.get_fields(dataview, section, 'title')
-                ]
+                fields = [f.encode('utf-8')
+                          for f in self.get_fields(dataview, section, 'title')]
                 columns_with_hxl = kwargs.get('columns_with_hxl')
                 if columns_with_hxl:
-                    hxl_row = [
-                        columns_with_hxl.get(col)
-                        if col in columns_with_hxl else ''
-                        for col in fields
-                    ]
+                    hxl_row = [columns_with_hxl.get(col, '')
+                               for col in fields]
                     if hxl_row:
                         writer = csv_defs[section['name']]['csv_writer']
                         writer.writerow(hxl_row)
@@ -660,11 +655,8 @@ class ExportBuilder(object):
                 # get the worksheet
                 ws = work_sheets[section_name]
 
-                hxl_row = [
-                    columns_with_hxl.get(col)
-                    if col in columns_with_hxl else ''
-                    for col in headers
-                ]
+                hxl_row = [columns_with_hxl.get(col, '')
+                           for col in headers]
                 hxl_row and ws.append(hxl_row)
 
         index = 1
@@ -946,8 +938,8 @@ def generate_export(export_type, xform, export_id=None, options=None):
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
 
-    columns_with_hxl = get_columns_with_hxl(
-        export_builder.INCLUDE_HXL, xform.survey_elements)
+    columns_with_hxl = export_builder.INCLUDE_HXL and get_columns_with_hxl(
+        xform.survey_elements)
 
     # get the export function by export type
     func = getattr(export_builder, export_type_func_map[export_type])

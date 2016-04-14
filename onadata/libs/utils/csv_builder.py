@@ -142,10 +142,7 @@ def write_to_csv(path, rows, columns, columns_with_hxl=None,
             writer.writerow(labels)
 
         if include_hxl and columns_with_hxl:
-            hxl_row = [
-                columns_with_hxl.get(col) if col in columns_with_hxl else ''
-                for col in new_cols
-            ]
+            hxl_row = [columns_with_hxl.get(col, '') for col in new_cols]
             hxl_row and writer.writerow(hxl_row)
 
         for row in rows:
@@ -507,8 +504,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                                 field.get_abbreviated_xpath(),
                                                 include_prefix=True)
 
-        columns_with_hxl = get_columns_with_hxl(
-            self.include_hxl, self.dd.survey_elements)
+        columns_with_hxl = self.include_hxl and get_columns_with_hxl(
+            self.dd.survey_elements)
 
         write_to_csv(path, data, columns,
                      columns_with_hxl=columns_with_hxl,
