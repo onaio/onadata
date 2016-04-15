@@ -65,7 +65,7 @@ class KMLRenderer(BaseRenderer):
         return data
 
 
-class GSHEETSRenderer(XLSRenderer):
+class GoogleSheetsRenderer(XLSRenderer):
     format = 'gsheets'
 
 

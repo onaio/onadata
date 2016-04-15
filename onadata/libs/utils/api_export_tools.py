@@ -51,7 +51,7 @@ EXPORT_EXT = {
     'kml': Export.KML_EXPORT,
     'zip': Export.ZIP_EXPORT,
     OSM: Export.OSM_EXPORT,
-    'gsheets': Export.GSHEETS_EXPORT
+    'gsheets': Export.GOOGLE_SHEETS_EXPORT
 }
 
 EXPORT_SUCCESS = "Success"
@@ -90,7 +90,7 @@ def custom_response_handler(request, xform, query, export_type,
     if export_id:
         export = get_object_or_404(Export, id=export_id, xform=xform)
     else:
-        if export_type == Export.GSHEETS_EXPORT:
+        if export_type == Export.GOOGLE_SHEETS_EXPORT:
 
                 payload = {
                     "details": _("Sheets export only supported in async mode")
@@ -144,10 +144,8 @@ def _generate_new_export(request, xform, query, export_type,
                "query": query}
 
     options["dataview_pk"] = dataview_pk
-    if export_type == Export.GSHEETS_EXPORT:
-        credential = _get_google_credential(request)
-
-        options['google_credentials'] = credential
+    if export_type == Export.GOOGLE_SHEETS_EXPORT:
+        options['google_credentials'] = _get_google_credential(request)
 
     try:
         if export_type == Export.EXTERNAL_EXPORT:
@@ -327,7 +325,7 @@ def process_async_export(request, xform, export_type, options=None):
                 export_type = Export.EXTERNAL_EXPORT
 
     dataview_pk = options.get('dataview_pk')
-    if export_type == Export.GSHEETS_EXPORT:
+    if export_type == Export.GOOGLE_SHEETS_EXPORT:
         credential = _get_google_credential(request)
 
         if isinstance(credential, HttpResponseRedirect):
@@ -386,7 +384,7 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
     """
     if export.status == Export.SUCCESSFUL:
         if export.export_type not in [Export.EXTERNAL_EXPORT,
-                                      Export.GSHEETS_EXPORT]:
+                                      Export.GOOGLE_SHEETS_EXPORT]:
             export_url = reverse(
                 'export-detail',
                 kwargs={'pk': export.pk},

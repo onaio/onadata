@@ -110,7 +110,7 @@ class TestExport(TestBase):
         }
 
         # Test Google Sheets export.
-        export = generate_export(export_type=Export.GSHEETS_EXPORT,
+        export = generate_export(export_type=Export.GOOGLE_SHEETS_EXPORT,
                                  xform=self.xform,
                                  options=options)
         self.assertStorageExists(export)

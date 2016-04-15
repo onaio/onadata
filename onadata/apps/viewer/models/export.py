@@ -34,13 +34,12 @@ class Export(models.Model):
     CSV_EXPORT = 'csv'
     KML_EXPORT = 'kml'
     ZIP_EXPORT = 'zip'
-    GDOC_EXPORT = 'gdoc'
     CSV_ZIP_EXPORT = 'csv_zip'
     SAV_ZIP_EXPORT = 'sav_zip'
     SAV_EXPORT = 'sav'
     EXTERNAL_EXPORT = 'external'
     OSM_EXPORT = OSM
-    GSHEETS_EXPORT = 'gsheets'
+    GOOGLE_SHEETS_EXPORT = 'gsheets'
 
     EXPORT_MIMES = {
         'xls': 'vnd.ms-excel',
@@ -57,7 +56,6 @@ class Export(models.Model):
     EXPORT_TYPES = [
         (XLS_EXPORT, 'Excel'),
         (CSV_EXPORT, 'CSV'),
-        (GDOC_EXPORT, 'GDOC'),
         (ZIP_EXPORT, 'ZIP'),
         (KML_EXPORT, 'kml'),
         (CSV_ZIP_EXPORT, 'CSV ZIP'),
@@ -65,7 +63,7 @@ class Export(models.Model):
         (SAV_EXPORT, 'SAV'),
         (EXTERNAL_EXPORT, 'Excel'),
         (OSM, OSM),
-        (GSHEETS_EXPORT, 'Google Sheets'),
+        (GOOGLE_SHEETS_EXPORT, 'Google Sheets'),
     ]
 
     EXPORT_OPTION_FIELDS = [

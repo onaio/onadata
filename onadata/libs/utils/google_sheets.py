@@ -43,7 +43,6 @@ def update_rows(worksheet, index, rows):
     :param index: Index of the row to be updated.
     :param rows: List of values for the row.
     """
-
     for row in rows:
         data_width = len(row)
         if worksheet.col_count < data_width:
