@@ -314,15 +314,10 @@ def create_export(request, username, id_string, export_type):
             return HttpResponseForbidden(_(u'No XLS Template set.'))
 
     credential = None
-    if export_type == Export.GSHEETS_EXPORT:
-        redirect_url = reverse(
-            export_list,
-            kwargs={
-                'username': username, 'id_string': id_string,
-                'export_type': export_type})
+    if export_type == Export.GOOGLE_SHEETS_EXPORT:
 
-        credential = _get_google_credential(request, redirect_url)
-        if isinstance(credential, HttpResponse):
+        credential = _get_google_credential(request)
+        if isinstance(credential, HttpResponseRedirect):
             return credential
 
     query = request.POST.get("query")
@@ -381,29 +376,24 @@ def create_export(request, username, id_string, export_type):
         )
 
 
-def _get_google_credential(request, redirect_to_url):
+def _get_google_credential(request):
     token = None
     if request.user.is_authenticated():
         storage = Storage(TokenStorageModel, 'id', request.user, 'credential')
         credential = storage.get()
     elif request.session.get('access_token'):
         credential = google_client.OAuth2Credentials.from_json(token)
-    if credential is None:
-        return HttpResponseRedirect(google_flow.step1_get_authorize_url())
-    return credential
+
+    return credential or HttpResponseRedirect(
+        google_flow.step1_get_authorize_url())
 
 
 def export_list(request, username, id_string, export_type):
     credential = None
-    if export_type == Export.GSHEETS_EXPORT:
-        redirect_url = reverse(
-            export_list,
-            kwargs={
-                'username': username, 'id_string': id_string,
-                'export_type': export_type})
-
-        credential = _get_google_credential(request, redirect_url)
-        if isinstance(credential, HttpResponse):
+    if export_type == Export.GOOGLE_SHEETS_EXPORT:
+        # Retrieve  google creds or redirect to google authorization page
+        credential = _get_google_credential(request)
+        if isinstance(credential, HttpResponseRedirect):
             return credential
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
@@ -482,7 +472,7 @@ def export_progress(request, username, id_string, export_type):
                 'filename': export.filename
             })
             status['filename'] = export.filename
-            if export.export_type == Export.GSHEETS_EXPORT and \
+            if export.export_type == Export.GOOGLE_SHEETS_EXPORTT and \
                     export.export_url is None:
                     status['url'] = None
             if export.export_type == Export.EXTERNAL_EXPORT \
@@ -508,7 +498,7 @@ def export_download(request, username, id_string, export_type, filename):
     # find the export entry in the db
     export = get_object_or_404(Export, xform=xform, filename=filename)
 
-    if (export_type == Export.GSHEETS_EXPORT or
+    if (export_type == Export.GOOGLE_SHEETS_EXPORT or
         export_type == Export.EXTERNAL_EXPORT) and \
             export.export_url is not None:
         return HttpResponseRedirect(export.export_url)

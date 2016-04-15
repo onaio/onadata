@@ -656,9 +656,8 @@ class ExportBuilder(object):
     def to_flat_csv_export(self, path, data, *args, **kwargs):
         # TODO resolve circular import
         from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
-        username = args[0]
-        id_string = args[1]
-        filter_query = args[2]
+
+        username, id_string, filter_query = args[:3]
         start = kwargs.get("start")
         end = kwargs.get("end")
         dataview = kwargs.get("dataview")
@@ -879,7 +878,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
         Export.CSV_EXPORT: 'to_flat_csv_export',
         Export.CSV_ZIP_EXPORT: 'to_zipped_csv',
         Export.SAV_ZIP_EXPORT: 'to_zipped_sav',
-        Export.GSHEETS_EXPORT: 'to_google_sheets',
+        Export.GOOGLE_SHEETS_EXPORT: 'to_google_sheets',
     }
 
     if xform is None:
@@ -974,7 +973,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
     export.internal_status = Export.SUCCESSFUL
     # do not persist exports that have a filter
     # Get URL of the exported sheet.
-    if export_type == Export.GSHEETS_EXPORT:
+    if export_type == Export.GOOGLE_SHEETS_EXPORT:
         export.export_url = export_builder.url
 
     # if we should create a new export is true, we should not save it
