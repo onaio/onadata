@@ -308,7 +308,10 @@ class InstanceBaseClass(object):
 
             doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
 
-            edited = self.last_edited is not None
+            edited = False
+            if hasattr(self, 'last_edited'):
+                edited = self.last_edited is not None
+
             doc[EDITED] = edited
             edited and doc.update({LAST_EDITED: self.last_edited})
 
