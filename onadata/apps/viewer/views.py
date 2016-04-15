@@ -472,7 +472,7 @@ def export_progress(request, username, id_string, export_type):
                 'filename': export.filename
             })
             status['filename'] = export.filename
-            if export.export_type == Export.GOOGLE_SHEETS_EXPORTT and \
+            if export.export_type == Export.GOOGLE_SHEETS_EXPORT and \
                     export.export_url is None:
                     status['url'] = None
             if export.export_type == Export.EXTERNAL_EXPORT \
