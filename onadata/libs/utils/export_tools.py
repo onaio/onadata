@@ -42,7 +42,8 @@ from onadata.libs.utils.common_tags import (
 from onadata.libs.utils.osm import get_combined_osm
 from onadata.apps.logger.models.xform import QUESTION_TYPES_TO_EXCLUDE
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.libs.utils.model_tools import (
+    queryset_iterator, get_columns_with_hxl)
 
 
 # the bind type of select multiples that we use to compare
@@ -192,22 +193,6 @@ def dict_to_joined_export(data, index, indices, name, survey, row,
                     )
 
     return output
-
-
-def get_columns_with_hxl(survey_elements):
-    '''
-    Returns a dictionary whose keys are xform field names and values are
-    `instance::hxl` values set on the xform
-    :param include_hxl - boolean value
-    :param survey_elements - survey elements of an xform
-    return dictionary or None
-    '''
-    return survey_elements and {
-        se.get('name'): val.get('hxl')
-        for se in survey_elements
-        for key, val in se.items()
-        if key == 'instance' and val and 'hxl' in val
-    }
 
 
 class ExportBuilder(object):

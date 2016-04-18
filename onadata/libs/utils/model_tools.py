@@ -31,3 +31,19 @@ def queryset_iterator(queryset, chunksize=100):
         start += chunksize
         end += chunksize
         gc.collect()
+
+
+def get_columns_with_hxl(survey_elements):
+    '''
+    Returns a dictionary whose keys are xform field names and values are
+    `instance::hxl` values set on the xform
+    :param include_hxl - boolean value
+    :param survey_elements - survey elements of an xform
+    return dictionary or None
+    '''
+    return survey_elements and {
+        se.get('name'): val.get('hxl')
+        for se in survey_elements
+        for key, val in se.items()
+        if key == 'instance' and val and 'hxl' in val
+    }
