@@ -217,6 +217,13 @@ def update_project_date_modified(instance_id, created):
         instance.xform.project.save(update_fields=['date_modified'])
 
 
+def convert_to_serializable_date(date):
+    if hasattr(date, 'isoformat'):
+        return date.isoformat()
+
+    return date
+
+
 class InstanceBaseClass(object):
     """Interface of functions for Instance and InstanceHistory model"""
 
@@ -313,7 +320,9 @@ class InstanceBaseClass(object):
                 edited = self.last_edited is not None
 
             doc[EDITED] = edited
-            edited and doc.update({LAST_EDITED: self.last_edited})
+            edited and doc.update({
+                LAST_EDITED: convert_to_serializable_date(self.last_edited)
+            })
 
         return doc
 
