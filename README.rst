@@ -77,7 +77,7 @@ Django Debug Toolbar
 Upgrading existing installation to django 1.9+
 ----------------------------------------------
 
-Fake initial migration of `gurdian`, `django_digest`, `registration`.
+Fake initial migration of `guardian`, `django_digest`, `registration`.
 
 .. code-block:: sh
 
