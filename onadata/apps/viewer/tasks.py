@@ -347,10 +347,7 @@ def create_google_sheet_export(username, id_string, export_id, **options):
             export_id,
             options
         )
-    except NoRecordsFoundError:
-        # no need to email this to the admins
-        pass
-    except Exception as e:
+    except (Exception, NoRecordsFoundError, ConnectionError) as e:
         export.internal_status = Export.FAILED
         export.save()
         # mail admins
