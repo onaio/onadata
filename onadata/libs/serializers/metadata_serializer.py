@@ -4,7 +4,6 @@ from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
 from django.db.utils import IntegrityError
 
-from rest_framework import exceptions
 from rest_framework import serializers
 
 from onadata.apps.logger.models import XForm, Project
