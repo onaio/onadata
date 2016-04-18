@@ -39,7 +39,8 @@ from onadata.libs.utils.cache_tools import (
     safe_delete)
 from onadata.libs.utils.common_tags import UUID, SUBMISSION_TIME, TAGS, NOTES,\
     VERSION, DURATION, SUBMITTED_BY, KNOWN_MEDIA_TYPES
-from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.libs.utils.model_tools import (
+    queryset_iterator, get_columns_with_hxl)
 
 
 QUESTION_TYPES_TO_EXCLUDE = [
@@ -235,6 +236,13 @@ class XFormMixin(object):
     @property
     def has_id_string_changed(self):
         return getattr(self, '_id_string_changed', False)
+
+    @property
+    def has_hxl_support(self):
+        if get_columns_with_hxl(self.get_survey_elements()):
+            return True
+
+        return False
 
     def add_instances(self):
         _get_observation_from_dict = DictOrganizer().get_observation_from_dict
