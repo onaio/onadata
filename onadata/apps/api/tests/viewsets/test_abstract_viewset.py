@@ -425,8 +425,9 @@ class TestAbstractViewSet(TestCase):
                 data.update({
                     'data_file': media_file,
                 })
-
-        return self._post_metadata(data, test)
+                return self._post_metadata(data, test)
+        else:
+            return self._post_metadata(data, test)
 
     def _get_digest_client(self):
         self.user.profile.require_auth = True
