@@ -64,7 +64,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = self._add_form_metadata(self.xform, data_type,
                                            self.data_value, self.path, False)
         self.assertEquals(response.status_code, 400)
-        self.assertIn(UNIQUE_TOGETHER_ERROR, response.data['detail'])
+        self.assertIn(UNIQUE_TOGETHER_ERROR, response.data)
 
     def test_forms_endpoint_with_metadata(self):
         date_modified = self.xform.date_modified
