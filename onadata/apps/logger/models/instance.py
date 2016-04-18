@@ -9,10 +9,10 @@ from django.db.models.signals import post_delete
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.gis.geos import GeometryCollection, Point
+from django.contrib.postgres.fields import JSONField
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-from jsonfield import JSONField
 from taggit.managers import TaggableManager
 
 from onadata.apps.logger.models.survey_type import SurveyType
@@ -371,7 +371,7 @@ class Instance(models.Model, InstanceBaseClass):
     Model representing a single submission to an XForm
     """
 
-    json = JSONField(default={}, null=False)
+    json = JSONField(default=dict, null=False)
     xml = models.TextField()
     user = models.ForeignKey(User, related_name='instances', null=True)
     xform = models.ForeignKey(XForm, null=True, related_name='instances')
@@ -396,7 +396,7 @@ class Instance(models.Model, InstanceBaseClass):
 
     # store a geographic objects associated with this instance
     geom = models.GeometryCollectionField(null=True)
-    objects = models.GeoManager()
+
     tags = TaggableManager()
 
     class Meta:

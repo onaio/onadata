@@ -78,14 +78,14 @@ def custom_response_handler(request, xform, query, export_type,
             (token is not None) or (meta is not None):
         export_type = Export.EXTERNAL_EXPORT
 
-    options = parse_request_export_options(request)
+    options = parse_request_export_options(request.query_params)
 
     options["dataview_pk"] = dataview_pk
     options['query'] = query
 
     remove_group_name = options.get("remove_group_name")
 
-    export_id = request.QUERY_PARAMS.get("export_id")
+    export_id = request.query_params.get("export_id")
 
     if export_id:
         export = get_object_or_404(Export, id=export_id, xform=xform)
@@ -181,7 +181,7 @@ def _generate_new_export(request, xform, query, export_type,
                 None,
                 options, xform=xform)
         else:
-            options.update(parse_request_export_options(request))
+            options.update(parse_request_export_options(request.query_params))
 
             export = generate_export(
                 export_type,

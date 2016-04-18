@@ -125,18 +125,14 @@ class TestFormPermissions(TestBase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(MetaData.public_link(self.xform), True)
         response = self.anon.get(self.show_url)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['Location'],
-                         '%s%s' % (self.base_url, self.show_normal_url))
+        self.assertRedirects(response, self.show_normal_url)
 
     def test_private_set_link_to_share_off(self):
         response = self.client.post(self.perm_url, {'for_user': 'all',
                                     'perm_type': 'link'})
         self.assertEqual(MetaData.public_link(self.xform), True)
         response = self.anon.get(self.show_url)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['Location'],
-                         '%s%s' % (self.base_url, self.show_normal_url))
+        self.assertRedirects(response, self.show_normal_url)
         response = self.client.post(self.perm_url, {'for_user': 'none',
                                     'perm_type': 'link'})
         self.assertEqual(MetaData.public_link(self.xform), False)
@@ -161,8 +157,7 @@ class TestFormPermissions(TestBase):
             'id_string': xform_2.id_string
         })
         response = self.anon.get(url_2)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response["Location"], "%s/" % self.base_url)
+        self.assertRedirects(response, "/")
 
     def test_public_with_link_to_share_toggle_on(self):
         response = self.client.post(self.perm_url, {'for_user': 'toggle',
@@ -170,9 +165,7 @@ class TestFormPermissions(TestBase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(MetaData.public_link(self.xform), True)
         response = self.anon.get(self.show_url)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['Location'],
-                         '%s%s' % (self.base_url, self.show_normal_url))
+        self.assertRedirects(response,  self.show_normal_url)
         response = self.anon.get(self.show_normal_url)
         self.assertEqual(response.status_code, 200)
 
@@ -181,9 +174,7 @@ class TestFormPermissions(TestBase):
                                     'perm_type': 'link'})
         self.assertEqual(MetaData.public_link(self.xform), True)
         response = self.anon.get(self.show_url)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['Location'],
-                         '%s%s' % (self.base_url, self.show_normal_url))
+        self.assertRedirects(response,  self.show_normal_url)
         response = self.client.post(self.perm_url, {'for_user': 'none',
                                     'perm_type': 'link'})
         self.assertEqual(MetaData.public_link(self.xform), False)

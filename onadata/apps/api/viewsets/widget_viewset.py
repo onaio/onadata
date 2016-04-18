@@ -29,7 +29,7 @@ class WidgetViewSet(AuthenticateHeaderMixin,
     filter_backends = (filters.WidgetFilter,)
 
     def filter_queryset(self, queryset):
-        dataviewid = self.request.QUERY_PARAMS.get('dataview')
+        dataviewid = self.request.query_params.get('dataview')
 
         if dataviewid:
             try:

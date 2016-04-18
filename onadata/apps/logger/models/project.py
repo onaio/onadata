@@ -2,11 +2,11 @@ from django.db import models
 from django.db.models import Prefetch
 from django.db.models.signals import post_save
 from django.contrib.auth.models import User
+from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
 from guardian.models import UserObjectPermissionBase
 from guardian.models import GroupObjectPermissionBase
 from guardian.shortcuts import assign_perm, get_perms_for_model
-from jsonfield import JSONField
 from taggit.managers import TaggableManager
 
 from onadata.libs.models.base_model import BaseModel
@@ -22,7 +22,7 @@ class PrefetchManager(models.Manager):
         ).prefetch_related(
             Prefetch('xform_set',
                      queryset=XForm.objects.filter(deleted_at__isnull=True)
-                     .select_related('user', 'dataview_set', 'metadata_set')
+                     .select_related('user')
                      .prefetch_related('user')
                      .prefetch_related('dataview_set')
                      .prefetch_related('metadata_set')
@@ -64,7 +64,7 @@ class Project(BaseModel):
         )
 
     name = models.CharField(max_length=255)
-    metadata = JSONField(blank=True)
+    metadata = JSONField(default=dict)
     organization = models.ForeignKey(User, related_name='project_org')
     created_by = models.ForeignKey(User, related_name='project_owner')
     user_stars = models.ManyToManyField(User, related_name='project_stars')

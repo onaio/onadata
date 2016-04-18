@@ -277,7 +277,7 @@ class BriefcaseClient(object):
                 self.resumption_cursor = cursor
                 self.download_instances(form_id, cursor)
 
-    @transaction.autocommit
+    @transaction.atomic
     def _upload_xform(self, path, file_name):
         xml_file = default_storage.open(path)
         xml_file.name = file_name

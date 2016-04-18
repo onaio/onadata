@@ -1138,7 +1138,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         # does not exists
         response = view(request, pk=11111)
         self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.data, {u'detail': u'Not found'})
+        self.assertEqual(response.data, {u'detail': u'Not found.'})
 
         # invalid id
         response = view(request, pk='1w')

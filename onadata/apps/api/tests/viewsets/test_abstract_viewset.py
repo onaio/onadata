@@ -505,18 +505,17 @@ class TestAbstractViewSet(TestCase):
         self.widget = Widget.objects.all().order_by('pk').reverse()[0]
 
         self.assertEquals(response.data['id'], self.widget.id)
-        self.assertEquals(response.data['title'], data.get('title', None))
+        self.assertEquals(response.data['title'], data.get('title'))
         self.assertEquals(response.data['content_object'],
                           data['content_object'])
         self.assertEquals(response.data['widget_type'], data['widget_type'])
         self.assertEquals(response.data['view_type'], data['view_type'])
         self.assertEquals(response.data['column'], data['column'])
         self.assertEquals(response.data['description'],
-                          data.get('description', None))
+                          data.get('description'))
+        self.assertEquals(response.data['group_by'], data.get('group_by'))
         self.assertEquals(response.data['aggregation'],
-                          data.get('aggregation', None))
-        self.assertEquals(response.data['group_by'],
-                          data.get('group_by', None))
+                          data.get('aggregation'))
         self.assertEquals(response.data['order'], self.widget.order)
         self.assertEquals(response.data['data'], [])
         self.assertEquals(response.data['metadata'], data.get('metadata', {}))

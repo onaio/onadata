@@ -90,11 +90,11 @@ def _remove_username_to_organization(organization, username):
 def _compose_send_email(request, organization, username):
     user = User.objects.get(username=username)
 
-    email_msg = request.DATA.get('email_msg') \
-        or request.QUERY_PARAMS.get('email_msg')
+    email_msg = request.data.get('email_msg') \
+        or request.query_params.get('email_msg')
 
-    email_subject = request.DATA.get('email_subject') \
-        or request.QUERY_PARAMS.get('email_subject')
+    email_subject = request.data.get('email_subject') \
+        or request.query_params.get('email_subject')
 
     if not email_subject:
         email_subject = SHARE_ORG_SUBJECT.format(user.username,
@@ -112,7 +112,7 @@ def _check_set_role(request, organization, username, required=False):
     Confirms the role and assigns the role to the organization
     """
 
-    role = request.DATA.get('role')
+    role = request.data.get('role')
     role_cls = ROLES.get(role)
 
     if not role or not role_cls:
@@ -175,7 +175,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
         organization = self.get_object()
         status_code = status.HTTP_200_OK
         data = []
-        username = request.DATA.get('username') or request.QUERY_PARAMS.get(
+        username = request.data.get('username') or request.query_params.get(
             'username')
 
         if request.method in ['DELETE', 'POST', 'PUT'] and not username:
@@ -185,12 +185,12 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
             data, status_code = _add_username_to_organization(
                 organization, username)
 
-            if ('email_msg' in request.DATA or
-                    'email_msg' in request.QUERY_PARAMS) \
+            if ('email_msg' in request.data or
+                    'email_msg' in request.query_params) \
                     and status_code == 201:
                 _compose_send_email(request, organization, username)
 
-            if 'role' in request.DATA:
+            if 'role' in request.data:
                 status_code, data = _check_set_role(request,
                                                     organization,
                                                     username)

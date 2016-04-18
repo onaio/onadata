@@ -1,16 +1,16 @@
 import json
 
-from rest_framework import negotiation
+from cStringIO import StringIO
+from django.utils.encoding import smart_text
 from django.utils.xmlutils import SimplerXMLGenerator
 
-from rest_framework.compat import StringIO
+from rest_framework import negotiation
 from rest_framework.compat import six
-from rest_framework.compat import smart_text
 from rest_framework.renderers import BaseRenderer
 from rest_framework.renderers import JSONRenderer
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.renderers import StaticHTMLRenderer
-from rest_framework.renderers import XMLRenderer
+from rest_framework_xml.renderers import XMLRenderer
 
 from onadata.libs.utils.osm import get_combined_osm
 

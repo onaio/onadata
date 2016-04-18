@@ -1,5 +1,6 @@
 from onadata.apps.logger.models import XForm
 from rest_framework import serializers
+from rest_framework.fields import SkipField
 
 
 class XFormRelatedField(serializers.RelatedField):
@@ -7,10 +8,10 @@ class XFormRelatedField(serializers.RelatedField):
 
     def get_attribute(self, instance):
         # xform is not an attribute of the MetaData object
-        if instance:
-            instance = instance.content_object
+        if instance and isinstance(instance.content_object, XForm):
+            return instance.content_object
 
-        return instance
+        raise SkipField()
 
     def to_internal_value(self, data):
         try:
@@ -20,7 +21,4 @@ class XFormRelatedField(serializers.RelatedField):
 
     def to_representation(self, instance):
         """Serialize xform object"""
-        if isinstance(instance, XForm):
-            return instance.id
-
-        raise Exception("XForm instance not found")
+        return instance.pk

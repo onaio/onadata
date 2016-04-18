@@ -484,7 +484,7 @@ class TestProcess(TestBase):
         url = reverse('submissions')
         response = self.client.get(url)
         self.assertContains(
-            response, "Method 'GET' not allowed", status_code=405)
+            response, 'Method "GET" not allowed', status_code=405)
 
     def test_publish_bad_xls_with_unicode_in_error(self):
         """
@@ -570,7 +570,7 @@ class TestProcess(TestBase):
         csv_text = '\n'.join([
             'survey,,', ',type,name,label',
             ',text,whatsyourname,"What is your name?"', 'choices,,'])
-        url = reverse('onadata.apps.main.views.profile',
+        url = reverse('user_profile',
                       kwargs={'username': self.user.username})
         num_xforms = XForm.objects.count()
         params = {

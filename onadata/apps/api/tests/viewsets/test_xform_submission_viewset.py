@@ -47,7 +47,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             with open(submission_path) as sf:
                 data = {'xml_submission_file': sf, 'media_file': f}
                 request = self.factory.post(
-                    '%s/submission' % self.user.username, data)
+                    '/%s/submission' % self.user.username, data)
                 request.user = AnonymousUser()
                 response = self.view(request, username=self.user.username)
                 self.assertContains(response, 'Successful submission',
@@ -187,31 +187,6 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             response = self.view(request)
             self.assertContains(response, 'Incorrect format',
                                 status_code=400)
-            self.assertTrue(response.has_header('X-OpenRosa-Version'))
-            self.assertTrue(
-                response.has_header('X-OpenRosa-Accept-Content-Length'))
-            self.assertTrue(response.has_header('Date'))
-            self.assertEqual(response['Content-Type'],
-                             'application/json')
-            self.assertEqual(response['Location'],
-                             'http://testserver/submission')
-
-    def test_post_submission_authenticated_json_with_geo(self):
-        path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            '..',
-            'fixtures',
-            'movie_form_submission.json')
-        with open(path) as f:
-            data = json.loads(f.read())
-            request = self.factory.post('/submission', data, format='json')
-            response = self.view(request)
-            self.assertEqual(response.status_code, 401)
-
-            auth = DigestAuth('bob', 'bobbob')
-            request.META.update(auth(request.META, response))
-            response = self.view(request)
-            self.assertContains(response, 'Improperly', status_code=400)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(
                 response.has_header('X-OpenRosa-Accept-Content-Length'))

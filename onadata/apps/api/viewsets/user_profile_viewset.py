@@ -65,7 +65,8 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
     List, Retrieve, Update, Create/Register users.
     """
     queryset = UserProfile.objects.select_related().exclude(
-        user__pk=settings.ANONYMOUS_USER_ID)
+        user__username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+    )
     serializer_class = serializer_from_settings()
     lookup_field = 'user'
     permission_classes = [UserProfilePermissions]
@@ -109,8 +110,8 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
     @detail_route(methods=['POST'])
     def change_password(self, request, *args, **kwargs):
         user_profile = self.get_object()
-        current_password = request.DATA.get('current_password', None)
-        new_password = request.DATA.get('new_password', None)
+        current_password = request.data.get('current_password', None)
+        new_password = request.data.get('new_password', None)
 
         if new_password:
             if user_profile.user.check_password(current_password):
@@ -124,12 +125,12 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
     def partial_update(self, request, *args, **kwargs):
         profile = self.get_object()
         metadata = profile.metadata or {}
-        if request.DATA.get('overwrite') == 'false':
-            if isinstance(request.DATA.get('metadata'), basestring):
+        if request.data.get('overwrite') == 'false':
+            if isinstance(request.data.get('metadata'), basestring):
                 metadata_items = json.loads(
-                    request.DATA.get('metadata')).items()
+                    request.data.get('metadata')).items()
             else:
-                metadata_items = request.DATA.get('metadata').items()
+                metadata_items = request.data.get('metadata').items()
 
             for a, b in metadata_items:
                 if check_if_key_exists(a, metadata):

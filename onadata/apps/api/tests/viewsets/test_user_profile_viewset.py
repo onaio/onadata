@@ -213,7 +213,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(
             response.data.get('username'),
-            [u'Ensure this field has no more than 3 characters.'])
+            [u'Ensure this field has at least 3 characters.'])
 
     def test_profile_create_anon(self):
         data = _profile_data()
@@ -276,7 +276,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
     def test_partial_updates_empty_metadata(self):
         profile = UserProfile.objects.get(user=self.user)
-        profile.metadata = None
+        profile.metadata = dict()
         profile.save()
         metadata = {u"zebra": {u"key1": "value1", u"key2": "value2"}}
         json_metadata = json.dumps(metadata)

@@ -55,6 +55,22 @@ def dict_lists2strings(d):
     return d
 
 
+def dict_paths2dict(d):
+    result = {}
+
+    for k, v in d.items():
+        if k.find('/') > 0:
+            parts = k.split('/')
+            if len(parts) > 1:
+                k = parts[0]
+                for p in parts[1:]:
+                    v = {p: v}
+
+        result[k] = v
+
+    return result
+
+
 def create_instance_from_xml(username, request):
     xml_file_list = request.FILES.pop('xml_submission_file', [])
     xml_file = xml_file_list[0] if len(xml_file_list) else None
@@ -66,7 +82,7 @@ def create_instance_from_xml(username, request):
 def create_instance_from_json(username, request):
     request.accepted_renderer = JSONRenderer()
     request.accepted_media_type = JSONRenderer.media_type
-    dict_form = request.DATA
+    dict_form = request.data
     submission = dict_form.get('submission')
 
     if submission is None:
@@ -74,7 +90,7 @@ def create_instance_from_json(username, request):
         return [_(u"No submission key provided."), None]
 
     # convert lists in submission dict to joined strings
-    submission_joined = dict_lists2strings(submission)
+    submission_joined = dict_paths2dict(dict_lists2strings(submission))
     xml_string = dict2xform(submission_joined, dict_form.get('id'))
 
     xml_file = StringIO.StringIO(xml_string)

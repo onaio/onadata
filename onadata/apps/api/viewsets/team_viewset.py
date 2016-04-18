@@ -45,8 +45,8 @@ class TeamViewSet(AuthenticateHeaderMixin,
         status_code = status.HTTP_200_OK
 
         if request.method in ['DELETE', 'POST']:
-            username = request.DATA.get('username') or\
-                request.QUERY_PARAMS.get('username')
+            username = request.data.get('username') or\
+                request.query_params.get('username')
 
             if username:
                 try:
@@ -74,7 +74,7 @@ class TeamViewSet(AuthenticateHeaderMixin,
     @detail_route(methods=['POST'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
-        data = dict(request.DATA.items() + [('team', self.object.pk)])
+        data = dict(request.data.items() + [('team', self.object.pk)])
 
         if data.get("remove"):
             serializer = RemoveTeamFromProjectSerializer(data=data)

@@ -8,11 +8,7 @@ DATABASES = {
         'NAME': 'onadata_test',
         'USER': 'postgres',
         'PASSWORD': '',
-        'HOST': '127.0.0.1',
-        'OPTIONS': {
-            # note: this option obsolete starting with django 1.6
-            'autocommit': True,
-        }
+        'HOST': '127.0.0.1'
     }
 }
 
@@ -43,7 +39,7 @@ PASSWORD_HASHERS = (
 )
 
 DEBUG = False
-TEMPLATE_DEBUG = DEBUG
+TEMPLATES[0]['OPTIONS']['debug'] = DEBUG
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -51,6 +47,5 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.transaction.TransactionMiddleware',
     'onadata.libs.utils.middleware.HTTPResponseNotAllowedMiddleware',
 )

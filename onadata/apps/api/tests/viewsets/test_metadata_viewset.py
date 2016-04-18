@@ -187,6 +187,11 @@ class TestMetaDataViewSet(TestAbstractViewSet):
             'xform': self.xform.pk
         }, False)
         self.assertEqual(response.status_code, 400)
+        response = self._post_metadata({
+            'data_type': 'supporting_doc',
+            'data_value': 'supporting.doc'
+        }, False)
+        self.assertEqual(response.status_code, 400)
 
     def _add_test_metadata(self):
         for data_type in ['supporting_doc', 'media', 'source']:

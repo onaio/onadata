@@ -22,9 +22,6 @@ from django.shortcuts import get_object_or_404
 from django.core.validators import ValidationError
 from registration.models import RegistrationProfile
 from rest_framework import exceptions
-from rest_framework import serializers
-from rest_framework.pagination import BasePaginationSerializer
-from rest_framework.utils.serializer_helpers import ReturnList
 from taggit.forms import TagField
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
@@ -261,7 +258,7 @@ def add_team_to_project(team, project):
 
 def publish_xlsform(request, owner, id_string=None, project=None):
     return do_publish_xlsform(
-        request.user, request.DATA, request.FILES, owner, id_string,
+        request.user, request.data, request.FILES, owner, id_string,
         project)
 
 
@@ -298,10 +295,10 @@ def publish_project_xform(request, project):
     def set_form():
         props = {
             'project': project.pk,
-            'dropbox_xls_url': request.DATA.get('dropbox_xls_url'),
-            'xls_url': request.DATA.get('xls_url'),
-            'csv_url': request.DATA.get('csv_url'),
-            'text_xls_form': request.DATA.get('text_xls_form')
+            'dropbox_xls_url': request.data.get('dropbox_xls_url'),
+            'xls_url': request.data.get('xls_url'),
+            'csv_url': request.data.get('csv_url'),
+            'text_xls_form': request.data.get('text_xls_form')
         }
 
         form = QuickConverter(props, request.FILES)
@@ -319,8 +316,8 @@ def publish_project_xform(request, project):
 
         return True
 
-    if 'formid' in request.DATA:
-        xform = get_object_or_404(XForm, pk=request.DATA.get('formid'))
+    if 'formid' in request.data:
+        xform = get_object_or_404(XForm, pk=request.data.get('formid'))
         if not ManagerRole.user_has_role(request.user, xform):
             raise exceptions.PermissionDenied(_(
                 "{} has no manager/owner role to the form {}". format(
@@ -381,7 +378,7 @@ def add_tags_to_instance(request, instance):
     class TagForm(forms.Form):
         tags = TagField()
 
-    form = TagForm(request.DATA)
+    form = TagForm(request.data)
 
     if form.is_valid():
         tags = form.cleaned_data.get('tags', None)
@@ -466,19 +463,3 @@ def get_baseviewset_class():
     """
     return load_class(settings.BASE_VIEWSET) \
         if settings.BASE_VIEWSET else DefaultBaseViewset
-
-
-class CustomPaginationSerializer(BasePaginationSerializer):
-    def to_representation(self, data):
-        ret = super(CustomPaginationSerializer, self).to_representation(data)
-        if 'results' in ret:
-            return ret['results']
-
-        return ret
-
-    @property
-    def data(self):
-        # hack: use Serializer class data
-        ret = super(serializers.Serializer, self).data
-
-        return ReturnList(ret, serializer=self)

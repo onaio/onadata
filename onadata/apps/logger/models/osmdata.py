@@ -1,6 +1,5 @@
-from jsonfield import JSONField
-
 from django.contrib.gis.db import models
+from django.contrib.postgres.fields import JSONField
 
 from onadata.apps.logger.models.instance import Instance
 
@@ -13,7 +12,7 @@ class OsmData(models.Model):
     xml = models.TextField()
     osm_id = models.CharField(max_length=10)
     osm_type = models.CharField(max_length=10, default='way')
-    tags = JSONField(default={}, null=False)
+    tags = JSONField(default=dict, null=False)
     geom = models.GeometryCollectionField()
     filename = models.CharField(max_length=255)
     field_name = models.CharField(max_length=255, blank=True, default='')
@@ -29,7 +28,7 @@ class OsmData(models.Model):
     @classmethod
     def get_tag_keys(cls, xform, field_path, include_prefix=False):
         query = OsmData.objects.raw(
-            '''SELECT DISTINCT JSON_OBJECT_KEYS(tags) as id FROM "logger_osmdata" INNER JOIN "logger_instance" ON ( "logger_osmdata"."instance_id" = "logger_instance"."id" ) WHERE "logger_instance"."xform_id" = %s AND field_name = %s''',  # noqa
+            '''SELECT DISTINCT JSONB_OBJECT_KEYS(tags) as id FROM "logger_osmdata" INNER JOIN "logger_instance" ON ( "logger_osmdata"."instance_id" = "logger_instance"."id" ) WHERE "logger_instance"."xform_id" = %s AND field_name = %s''',  # noqa
             [xform.pk, field_path]
         )
         prefix = field_path + u':' if include_prefix else u''

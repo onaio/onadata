@@ -228,7 +228,7 @@ class TestConnectViewSet(TestAbstractViewSet):
         response = view(request)
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.data['detail'],
-                         u"Invalid username/password")
+                         u"Invalid username/password.")
         auth = BasicAuth('bob', 'bobbob')
         request.META.update(auth(request.META))
         request.session = self.client.session

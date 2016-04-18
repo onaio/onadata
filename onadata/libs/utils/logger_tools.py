@@ -2,6 +2,7 @@ from datetime import datetime
 import os
 import pytz
 import re
+import sys
 import tempfile
 import traceback
 from xml.dom import Node
@@ -13,7 +14,6 @@ from django.core.exceptions import (
     ValidationError, PermissionDenied, MultipleObjectsReturned)
 from django.core.files.storage import get_storage_class
 from django.core.mail import mail_admins
-from django.core.servers.basehttp import FileWrapper
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -26,7 +26,7 @@ from django.utils import timezone
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
-import sys
+from wsgiref.util import FileWrapper
 
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
@@ -451,7 +451,6 @@ def publish_form(callback):
             'text': msg
         }
     except IntegrityError as e:
-        transaction.rollback()
         return {
             'type': 'alert-error',
             'text': _(u'Form with this id or SMS-keyword already exists.'),
@@ -476,7 +475,6 @@ def publish_form(callback):
             'text': _(u'Form validation timeout, please try again.'),
         }
     except Exception as e:
-        transaction.rollback()
         # error in the XLS file; show an error to the user
 
         return {

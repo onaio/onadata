@@ -1,7 +1,7 @@
 from django.contrib.gis.db import models
-from django.contrib.contenttypes.generic import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from jsonfield import JSONField
+from django.contrib.postgres.fields import JSONField
 from ordered_model.models import OrderedModel
 from querybuilder.query import Query
 from querybuilder.fields import AvgField, CountField, SimpleField, SumField
@@ -48,7 +48,7 @@ class Widget(OrderedModel):
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
     order_with_respect_to = 'content_type'
-    metadata = JSONField(default={}, blank=True)
+    metadata = JSONField(default=dict, blank=True)
 
     class Meta(OrderedModel.Meta):
         app_label = 'logger'

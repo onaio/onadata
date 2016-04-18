@@ -84,7 +84,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
             survey = utils.publish_project_xform(request, project)
 
             if isinstance(survey, XForm):
-                if 'formid' in request.DATA:
+                if 'formid' in request.data:
                     serializer_cls = XFormSerializer
                 else:
                     serializer_cls = XFormCreateSerializer
@@ -105,7 +105,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
     @detail_route(methods=['PUT'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
-        data = dict(request.DATA.items() + [('project', self.object.pk)])
+        data = dict(request.data.items() + [('project', self.object.pk)])
         if data.get("remove"):
             serializer = RemoveUserFromProjectSerializer(data=data)
         else:
@@ -154,7 +154,7 @@ class ProjectViewSet(AuthenticateHeaderMixin,
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def list(self, request, *args, **kwargs):
-        owner = request.QUERY_PARAMS.get('owner')
+        owner = request.query_params.get('owner')
 
         if owner:
             kwargs = {'organization__username__iexact': owner}

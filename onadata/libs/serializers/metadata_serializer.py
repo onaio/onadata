@@ -38,8 +38,14 @@ PROJECT_METADATA_TYPES = (
 
 class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     id = serializers.ReadOnlyField()
-    xform = XFormRelatedField(queryset=XForm.objects.all())
-    project = ProjectRelatedField(queryset=Project.objects.all())
+    xform = XFormRelatedField(
+        queryset=XForm.objects.all(),
+        required=False
+    )
+    project = ProjectRelatedField(
+        queryset=Project.objects.all(),
+        required=False
+    )
     data_value = serializers.CharField(max_length=255,
                                        required=True)
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
@@ -70,6 +76,10 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         value = attrs.get('data_value')
         media = attrs.get('data_type')
         data_file = attrs.get('data_file')
+        if 'project' not in attrs and 'xform' not in attrs:
+            raise serializers.ValidationError({
+                'missing_field': _(u"`xform` or `project` field is required.")
+            })
 
         if media == 'media' and data_file is None:
             try:
@@ -116,38 +126,3 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             )
         except IntegrityError, e:
             raise serializers.ValidationError(_(e.message))
-
-    def to_internal_value(self, data):
-
-        if data.get("xform"):
-            self._project_field = self.fields.fields.pop("project")
-
-            if self.fields.fields.get("xform") is None:
-                self.fields.fields['xform'] = self._xform_field
-
-        if data.get("project"):
-            self._xform_field = self.fields.fields.pop("xform")
-
-            if self.fields.fields.get("project") is None:
-                self.fields.fields['project'] = self._project_field
-
-        return super(MetaDataSerializer, self).to_internal_value(data)
-
-    def to_representation(self, instance):
-        fields = self.fields.fields
-
-        if isinstance(instance.content_object, XForm)\
-                and fields.get("project"):
-            self._project_field = self.fields.fields.pop("project")
-
-            if self.fields.fields.get("xform") is None:
-                self.fields.fields['xform'] = self._xform_field
-
-        elif isinstance(instance.content_object, Project)\
-                and fields.get("xform"):
-            self._xform_field = self.fields.fields.pop("xform")
-
-            if self.fields.fields.get("project") is None:
-                self.fields.fields['project'] = self._project_field
-
-        return super(MetaDataSerializer, self).to_representation(instance)

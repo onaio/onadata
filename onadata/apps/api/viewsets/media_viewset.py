@@ -41,7 +41,7 @@ class MediaViewSet(AuthenticateHeaderMixin,
         except ValueError:
             raise Http404()
         else:
-            filename = request.QUERY_PARAMS.get('filename')
+            filename = request.query_params.get('filename')
             attachments = Attachment.objects.all()
             obj = get_object_or_404(attachments, pk=pk)
 
@@ -51,7 +51,7 @@ class MediaViewSet(AuthenticateHeaderMixin,
             url = None
 
             if obj.mimetype.startswith('image'):
-                suffix = request.QUERY_PARAMS.get('suffix')
+                suffix = request.query_params.get('suffix')
 
                 if suffix:
                     if suffix in settings.THUMB_CONF.keys():

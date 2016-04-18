@@ -104,7 +104,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 400)
         self.assertEquals(count, Widget.objects.all().count())
         self.assertEquals(response.data['column'],
-                          [u"This field may not be blank."])
+                          [u"This field is required."])
 
     def test_create_unsupported_widget_type(self):
 
@@ -124,7 +124,7 @@ class TestWidgetViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 400)
         self.assertEquals(count, Widget.objects.all().count())
         self.assertEquals(response.data['widget_type'],
-                          [u"`%s` is not a valid choice."
+                          [u'"%s" is not a valid choice.'
                            % data['widget_type']])
 
     def test_update_widget(self):

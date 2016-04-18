@@ -50,7 +50,7 @@ var mapDescription = '<table class="table table-condensed table-striped"><tr><th
 
 var csv_url = "{% url "csv_export" content_user.username xform.id_string %}";
 var xls_url = "{% url "xls_export" content_user.username xform.id_string %}";
-var kml_url = "{% url "onadata.apps.viewer.views.kml_export" content_user.username xform.id_string %}";
+var kml_url = "{% url "kml-export" content_user.username xform.id_string %}";
 
 $(document).ready(function() {
     setMapHeight();

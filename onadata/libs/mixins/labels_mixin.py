@@ -19,7 +19,7 @@ def _labels_post(request, instance):
     :param instance: The instance to set tags on.
     :returns: A HTTP status code or None.
     """
-    form = TagForm(request.DATA)
+    form = TagForm(request.data)
 
     if form.is_valid():
         tags = form.cleaned_data.get('tags', None)

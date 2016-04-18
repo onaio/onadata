@@ -1,7 +1,6 @@
 import sys
 import hashlib
 from celery import task
-from django.db import transaction
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from requests import ConnectionError
@@ -33,7 +32,6 @@ def create_async_export(xform, export_type, query, force_xlsx, options=None):
     username = xform.user.username
     id_string = xform.id_string
 
-    @transaction.commit_on_success
     def _create_export(xform, export_type, options):
         export_options = {
             key: get_boolean_value(value, default=True)

@@ -69,11 +69,12 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin,
     permission_classes = [XFormPermissions, ]
 
     def retrieve(self, request, *args, **kwargs):
-        field_name = request.QUERY_PARAMS.get('field_name')
-        field_xpath = request.QUERY_PARAMS.get('field_xpath')
-        fields = request.QUERY_PARAMS.get('fields')
+        field_name = request.query_params.get('field_name')
+        field_xpath = request.query_params.get('field_xpath')
+        fields = request.query_params.get('fields')
+        group_by = request.query_params.get('group_by')
         fmt = kwargs.get('format')
-        group_by = request.QUERY_PARAMS.get('group_by')
+
         xform = self.get_object()
         serializer = self.get_serializer(xform)
 

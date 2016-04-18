@@ -355,7 +355,7 @@ class ParsedInstance(models.Model):
         """
         Checks if any field in sort_list is not a field in the Instance model
         """
-        fields = Instance._meta.get_all_field_names()
+        fields = [f.name for f in Instance._meta.get_fields()]
 
         return any([i for i in sort_list if i.lstrip('-') not in fields])
 

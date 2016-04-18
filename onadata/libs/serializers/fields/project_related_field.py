@@ -1,5 +1,6 @@
 from onadata.apps.logger.models import Project
 from rest_framework import serializers
+from rest_framework.fields import SkipField
 
 
 class ProjectRelatedField(serializers.RelatedField):
@@ -7,20 +8,17 @@ class ProjectRelatedField(serializers.RelatedField):
 
     def get_attribute(self, instance):
         # xform is not an attribute of the MetaData object
-        if instance:
-            instance = instance.content_object
+        if instance and isinstance(instance.content_object, Project):
+            return instance.content_object
 
-        return instance
+        raise SkipField()
 
     def to_internal_value(self, data):
         try:
-            return Project.objects.get(id=data)
+            return Project.objects.get(pk=data)
         except ValueError:
             raise Exception("project id should be an integer")
 
     def to_representation(self, instance):
         """Serialize project object"""
-        if isinstance(instance, Project):
-            return instance.id
-
-        raise Exception("Project instance not found")
+        return instance.pk

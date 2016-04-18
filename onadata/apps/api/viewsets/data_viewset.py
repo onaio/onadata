@@ -16,7 +16,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ParseError
 from rest_framework.settings import api_settings
 
-from onadata.libs.utils.api_export_tools import custom_response_handler
+from onadata.apps.api.permissions import XFormPermissions
 from onadata.apps.api.tools import add_tags_to_instance
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models import OsmData
@@ -32,7 +32,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.total_header_mixin import TotalHeaderMixin
-from onadata.apps.api.permissions import XFormPermissions
+from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import DataSerializer
 from onadata.libs.serializers.data_serializer import (
     DataInstanceSerializer,
@@ -42,13 +42,12 @@ from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs import filters
 from onadata.libs.permissions import CAN_DELETE_SUBMISSION
-from onadata.libs.utils.viewer_tools import (
-    EnketoError,
-    get_enketo_edit_url)
+from onadata.libs.utils.viewer_tools import EnketoError
+from onadata.libs.utils.viewer_tools import get_enketo_edit_url
+from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.data import parse_int
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.apps.api.tools import CustomPaginationSerializer
 from onadata.libs.mixins.profiler_mixin import ProfilerMixin
 from onadata.libs.utils.profiler import profile
 
@@ -95,10 +94,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
     lookup_fields = ('pk', 'dataid')
     extra_lookup_fields = None
     public_data_endpoint = 'public'
-    pagination_serializer_class = CustomPaginationSerializer
-    paginate_by = 1000000
-    paginate_by_param = 'page_size'
-    page_kwarg = 'page'
+    pagination_class = StandardPageNumberPagination
 
     queryset = XForm.objects.filter()
 
@@ -173,8 +169,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             else:
                 qs = self._filtered_or_shared_qs(qs, pk)
         else:
-            tags = self.request.QUERY_PARAMS.get('tags')
-            not_tagged = self.request.QUERY_PARAMS.get('not_tagged')
+            tags = self.request.query_params.get('tags')
+            not_tagged = self.request.query_params.get('not_tagged')
 
             if tags and isinstance(tags, six.string_types):
                 tags = tags.split(',')
@@ -229,7 +225,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             raise ParseError(_(u"Data id not provided."))
         elif(isinstance(self.object, Instance)):
             if request.user.has_perm("change_xform", self.object.xform):
-                return_url = request.QUERY_PARAMS.get('return_url')
+                return_url = request.query_params.get('return_url')
                 if not return_url:
                     raise ParseError(_(u"return_url not provided."))
 
@@ -321,8 +317,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             qs = self.filter_queryset(self.get_queryset())
             self.object_list = Instance.objects.filter(xform__in=qs,
                                                        deleted_at=None)
-            tags = self.request.QUERY_PARAMS.get('tags')
-            not_tagged = self.request.QUERY_PARAMS.get('not_tagged')
+            tags = self.request.query_params.get('tags')
+            not_tagged = self.request.query_params.get('not_tagged')
 
             if tags and isinstance(tags, six.string_types):
                 tags = tags.split(',')
@@ -342,7 +338,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if export_type == Attachment.OSM:
             osm_list = OsmData.objects.filter(instance__xform=xform)
             page = self.paginate_queryset(osm_list)
-            serializer = self.get_pagination_serializer(page)
+            serializer = self.get_serializer(page)
 
             return Response(serializer.data)
 
@@ -383,12 +379,13 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         except DataError, e:
             raise ParseError(unicode(e))
 
+        page = None
         if not isinstance(self.object_list, types.GeneratorType):
             page = self.paginate_queryset(self.object_list)
-            serializer = self.get_pagination_serializer(page)
-        else:
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+        if page is None:
             serializer = self.get_serializer(self.object_list, many=True)
-            page = None
 
         return Response(serializer.data)
 

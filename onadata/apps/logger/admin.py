@@ -12,7 +12,7 @@ class XFormAdmin(VersionAdmin, admin.ModelAdmin):
 
     # A user should only see forms that belong to him.
     def get_queryset(self, request):
-        qs = super(XFormAdmin, self).queryset(request)
+        qs = super(XFormAdmin, self).get_queryset(request)
         if request.user.is_superuser:
             return qs
         return qs.filter(user=request.user)
@@ -28,7 +28,7 @@ class ProjectAdmin(VersionAdmin, admin.ModelAdmin):
 
     # A user should only see projects that belong to him.
     def get_queryset(self, request):
-        qs = super(ProjectAdmin, self).queryset(request)
+        qs = super(ProjectAdmin, self).get_queryset(request)
         if request.user.is_superuser:
             return qs
         return qs.filter(organization=request.user)

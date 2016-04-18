@@ -5,16 +5,15 @@ import requests
 from urlparse import urlparse
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.core.validators import URLValidator
 from django.forms import ModelForm
 from django.utils.translation import ugettext as _, ugettext_lazy
-from django.conf import settings
 from recaptcha.client import captcha
 from registration.forms import RegistrationFormUniqueEmail
-from registration.models import RegistrationProfile
 
 from onadata.apps.main.models import UserProfile
 from onadata.apps.logger.models import Project
@@ -112,6 +111,11 @@ class UserProfileForm(ModelForm):
         exclude = ('user', 'created_by', 'num_of_submissions')
     email = forms.EmailField(widget=forms.TextInput())
 
+    def clean_metadata(self):
+        metadata = self.cleaned_data.get('metadata')
+
+        return metadata if metadata is not None else dict()
+
 
 class UserProfileFormRegister(forms.Form):
 
@@ -139,7 +143,7 @@ class UserProfileFormRegister(forms.Form):
     recaptcha_response_field = forms.CharField(
         max_length=100, required=settings.REGISTRATION_REQUIRE_CAPTCHA)
 
-    def save(self, new_user):
+    def save_user_profile(self, new_user):
         new_profile = \
             UserProfile(user=new_user, name=self.cleaned_data['first_name'],
                         city=self.cleaned_data['city'],
@@ -154,8 +158,6 @@ class UserProfileFormRegister(forms.Form):
 # order of inheritance control order of form display
 class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
                                   UserProfileFormRegister):
-    class Meta:
-        pass
     _reserved_usernames = settings.RESERVED_USERNAMES
     username = forms.CharField(widget=forms.TextInput(), max_length=30)
     email = forms.EmailField(widget=forms.TextInput())
@@ -195,14 +197,6 @@ class RegistrationFormUserProfile(RegistrationFormUniqueEmail,
         except User.DoesNotExist:
             return username
         raise forms.ValidationError(_(u'%s already exists') % username)
-
-    def save(self, profile_callback=None):
-        new_user = RegistrationProfile.objects.create_inactive_user(
-            username=self.cleaned_data['username'],
-            password=self.cleaned_data['password1'],
-            email=self.cleaned_data['email'])
-        UserProfileFormRegister.save(self, new_user)
-        return new_user
 
 
 class SourceForm(forms.Form):

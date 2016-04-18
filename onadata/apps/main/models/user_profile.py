@@ -1,5 +1,5 @@
-from django.utils import timezone
 from django.contrib.auth.models import User
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy
@@ -7,7 +7,6 @@ from guardian.shortcuts import get_perms_for_model, assign_perm
 from guardian.models import UserObjectPermissionBase
 from guardian.models import GroupObjectPermissionBase
 from rest_framework.authtoken.models import Token
-from jsonfield import JSONField
 from onadata.libs.utils.country_field import COUNTRIES
 from onadata.libs.utils.gravatar import get_gravatar_img_link, gravatar_exists
 from onadata.apps.main.signals import set_api_permissions
@@ -32,8 +31,8 @@ class UserProfile(models.Model):
     phonenumber = models.CharField(max_length=30, blank=True)
     created_by = models.ForeignKey(User, null=True, blank=True)
     num_of_submissions = models.IntegerField(default=0)
-    metadata = JSONField(default={}, blank=True)
-    date_modified = models.DateTimeField(auto_now=True, default=timezone.now)
+    metadata = JSONField(default=dict, blank=True)
+    date_modified = models.DateTimeField(auto_now=True)
 
     def __unicode__(self):
         return u'%s[%s]' % (self.name, self.user.username)

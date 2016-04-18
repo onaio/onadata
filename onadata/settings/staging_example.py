@@ -13,11 +13,7 @@ DATABASES = {
         'NAME': 'formhub_dev',
         'USER': 'formhub_dev',
         'PASSWORD': '12345678',
-        'HOST': 'localhost',
-        # NOTE: this option becomes obsolete in django 1.6
-        'OPTIONS': {
-            'autocommit': True,
-        }
+        'HOST': 'localhost'
     },
 }
 

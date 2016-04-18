@@ -97,7 +97,7 @@ def _get_user(username):
 
 
 def _get_owner(request):
-    owner = request.DATA.get('owner') or request.user
+    owner = request.data.get('owner') or request.user
 
     if isinstance(owner, six.string_types):
         owner_obj = _get_user(owner)
@@ -283,7 +283,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         if request.method == 'GET':
             self.etag_data = '{}'.format(timezone.now())
             survey = tasks.get_async_status(
-                request.QUERY_PARAMS.get('job_uuid'))
+                request.query_params.get('job_uuid'))
 
             if 'pk' in survey:
                 xform = XForm.objects.get(pk=survey.get('pk'))
@@ -334,7 +334,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
     @list_route(methods=['GET'])
     def login(self, request, **kwargs):
-        return_url = request.QUERY_PARAMS.get('return')
+        return_url = request.query_params.get('return')
 
         if return_url:
             redirect = parse_webform_return_url(return_url, request)
@@ -385,7 +385,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             if not username:
                 raise ParseError("User has to be authenticated")
 
-            csv_data = request.DATA.get('body')
+            csv_data = request.data.get('body')
             if csv_data:
                 rand_name = "survey_draft_%s.csv" % ''.join(
                     random.sample("abcdefghijklmnopqrstuvwxyz0123456789", 6))
@@ -406,8 +406,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 raise ParseError('Missing body')
 
         if request.method.upper() == 'GET':
-            filename = request.QUERY_PARAMS.get('filename')
-            username = request.QUERY_PARAMS.get('username')
+            filename = request.query_params.get('filename')
+            username = request.query_params.get('username')
 
             if not username:
                 raise ParseError('Username not provided')
@@ -442,7 +442,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
         xform = self.get_object()
         export_type = kwargs.get('format')
-        query = request.QUERY_PARAMS.get("query", {})
+        query = request.query_params.get("query", {})
         token = request.GET.get('token')
         meta = request.GET.get('meta')
 
@@ -462,7 +462,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         self.object = self.get_object()
 
         data = {}
-        for key, val in request.DATA.iteritems():
+        for key, val in request.data.iteritems():
             data[key] = val
         data.update({'xform': self.object.pk})
 
@@ -480,8 +480,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     def clone(self, request, *args, **kwargs):
         self.object = self.get_object()
         data = {'xform': self.object.pk,
-                'username': request.DATA.get('username')}
-        project = request.DATA.get('project_id')
+                'username': request.data.get('username')}
+        project = request.data.get('project_id')
         if project:
             data['project'] = project
         serializer = CloneXFormSerializer(data=data)
@@ -523,7 +523,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         if request.method == 'GET':
             try:
                 resp.update(get_async_csv_submission_status(
-                    request.QUERY_PARAMS.get('job_uuid')))
+                    request.query_params.get('job_uuid')))
                 self.last_modified_date = timezone.now()
             except ValueError:
                 raise ParseError(('The instance of the result is not a '
@@ -557,8 +557,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         owner = self.object.user
 
         # updating the file
-        if request.FILES or 'xls_url' in request.DATA \
-                or 'dropbox_xls_url' in request.DATA:
+        if request.FILES or 'xls_url' in request.data \
+                or 'dropbox_xls_url' in request.data:
             return _try_update_xlsform(request, self.object, owner)
 
         return super(XFormViewSet, self).partial_update(request, *args,
@@ -578,7 +578,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             resp_code = status.HTTP_202_ACCEPTED
 
         elif request.method == 'GET':
-            job_uuid = request.QUERY_PARAMS.get('job_uuid')
+            job_uuid = request.query_params.get('job_uuid')
             resp = tasks.get_async_status(job_uuid)
             resp_code = status.HTTP_202_ACCEPTED
             self.etag_data = '{}'.format(timezone.now())
@@ -587,15 +587,15 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
     @detail_route(methods=['GET'])
     def export_async(self, request, *args, **kwargs):
-        job_uuid = request.QUERY_PARAMS.get('job_uuid')
-        export_type = request.QUERY_PARAMS.get('format')
-        query = request.QUERY_PARAMS.get("query")
+        job_uuid = request.query_params.get('job_uuid')
+        export_type = request.query_params.get('format')
+        query = request.query_params.get("query")
         xform = self.get_object()
 
-        token = request.QUERY_PARAMS.get('token')
-        meta = request.QUERY_PARAMS.get('meta')
-        data_id = request.QUERY_PARAMS.get('data_id')
-        options = parse_request_export_options(request)
+        token = request.query_params.get('token')
+        meta = request.query_params.get('meta')
+        data_id = request.query_params.get('data_id')
+        options = parse_request_export_options(request.query_params)
 
         options.update({
             'meta': meta,

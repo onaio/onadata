@@ -292,9 +292,7 @@ class TestFormShow(TestBase):
         self.xform = XForm.objects.get(pk=self.xform.id)
         response = self.client.get(reverse(show, kwargs={
             'uuid': self.xform.uuid}))
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['Location'],
-                         '%s%s' % (self.base_url, self.url))
+        self.assertRedirects(response, self.url)
 
     def test_xls_replace_markup(self):
         """

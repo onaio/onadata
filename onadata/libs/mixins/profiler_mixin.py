@@ -4,30 +4,27 @@ from django.conf import settings
 from django.core.signals import request_started, request_finished
 from django.http import StreamingHttpResponse
 
+from rest_framework.fields import empty
+
 
 project_viewset_profiler = logging.getLogger('profiler_logger')
 
 
 class ProfilerMixin(object):
 
-    def get_serializer(self, instance=None, data=None, many=False,
-                       partial=False, allow_add_remove=False):
+    def get_serializer(self, instance=None, data=empty, **kwargs):
         serializer_class = self.get_serializer_class()
-        context = self.get_serializer_context()
+        kwargs['context'] = self.get_serializer_context()
 
         if settings.PROFILE_API_ACTION_FUNCTION:
             global serializer_time
             serializer_start = time.time()
 
-            serializer = serializer_class(
-                instance, data=data, many=many, partial=partial,
-                context=context)
+            serializer = serializer_class(instance, data=data, **kwargs)
             serializer_time = time.time() - serializer_start
             return serializer
 
-        return serializer_class(
-            instance, data=data, many=many, partial=partial,
-            context=context)
+        return serializer_class(instance, data=data, **kwargs)
 
     def dispatch(self, request, *args, **kwargs):
         global render_time
