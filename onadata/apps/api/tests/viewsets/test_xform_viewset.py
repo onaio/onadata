@@ -2981,10 +2981,17 @@ class TestXFormViewSet(TestAbstractViewSet):
                     settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
                     "hxl_test", "hxl_example.xml"),
                 forced_submission_time=_submission_time)
+            self.assertTrue(self.xform.has_hxl_support)
 
             view = XFormViewSet.as_view({
                 'get': 'retrieve'
             })
+
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk)
+            # check that response has property 'has_hxl_support' which is true
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.data.get('has_hxl_support'))
 
             data = {'include_hxl': False}
             request = self.factory.get('/', data=data, **self.extra)
