@@ -77,7 +77,7 @@ def _get_instance(xml, new_uuid, submitted_by, status, xform):
             # edits
             check_edit_submission_permissions(submitted_by, xform)
 
-            last_edited = datetime.utcnow()
+            last_edited = timezone.now()
             InstanceHistory.objects.create(
                 xml=instance.xml, xform_instance=instance, uuid=old_uuid,
                 user=submitted_by, geom=instance.geom,
