@@ -32,3 +32,10 @@ class TestExportViewSet(TestBase):
         force_authenticate(request, user=self.user)
         response = self.view(request, pk=export.pk)
         self.assertIn(filename, response.get('Content-Disposition'))
+
+    def test_export_format_renderers_present(self):
+        formats = ['csv', 'osm', 'xls', 'xlsx', 'csvzip', 'savzip']
+        renderer_formats = [rc.format for rc in self.view.cls.renderer_classes]
+
+        for f in formats:
+            self.assertIn(f, renderer_formats)
