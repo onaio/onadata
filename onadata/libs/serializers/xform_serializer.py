@@ -99,7 +99,6 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     num_of_submissions = serializers.ReadOnlyField()
     form_versions = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
-    has_hxl_support = serializers.SerializerMethodField()
 
     class Meta:
         model = XForm
@@ -116,9 +115,6 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                     return m.data_value
         else:
             return obj.metadata_set.all()
-
-    def get_has_hxl_support(self, obj):
-        return obj.has_hxl_support
 
     def get_instances_with_geopoints(self, obj):
         if not obj.instances_with_geopoints and obj.num_of_submissions:
