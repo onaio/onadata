@@ -31,8 +31,8 @@ class ExportViewSet(ReadOnlyModelViewSet):
     ]
     serializer_class = ExportSerializer
 
-    def retrieve(self, request, pk=None):
-        export = Export.objects.get(pk=pk)
+    def retrieve(self, request, *args, **kwargs):
+        export = self.get_object()
         filename, extension = os.path.splitext(export.filename)
         extension = extension[1:]
 
