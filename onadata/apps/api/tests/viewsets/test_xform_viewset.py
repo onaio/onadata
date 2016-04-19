@@ -1696,7 +1696,8 @@ class TestXFormViewSet(TestAbstractViewSet):
             'version': u'',
             'project': None,
             'created_by': None,
-            'instances_with_osm': False
+            'instances_with_osm': False,
+            'has_hxl_support': False
         }
         self.assertEqual(data, XFormSerializer(None).data)
 
