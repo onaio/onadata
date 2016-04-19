@@ -14,12 +14,12 @@ class TestExportViewSet(TestBase):
 
     def setUp(self):
         super(self.__class__, self).setUp()
-        self._create_user_and_login()
-        self._publish_transportation_form()
-        self.factory = APIRequestFactory()
         self.view = ExportViewSet.as_view({'get': 'retrieve'})
 
     def test_generates_expected_response(self):
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        self.factory = APIRequestFactory()
         temp_dir = settings.MEDIA_ROOT
         dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
         filename = os.path.basename(dummy_export_file.name)
