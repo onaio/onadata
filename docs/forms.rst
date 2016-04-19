@@ -264,16 +264,23 @@ Google Sheet Authorization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 Optional `redirect_uri` can be provided in this step.
 This `redirect_uri` will recieve `code` from google and with this code pass it to this 
-url `https://api.ona.io/gwelcome` to finish the authorization steps.
-`return_back_url` can also be included when passing the code to `https://api.ona.io/gwelcome`.
-This is the url to redirect to after authorization.
+url `https://api.ona.io/api/v1/googleoauth/google_auth` to finish the authorization steps.
 
-Example `return_back_url`
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Example
+^^^^^^^
 
 ::
 
-    curl -X GET https://api.ona.io/gwelcome?code=<code from google>&return_back_url=<url to redirect to after authorization>
+    curl -X GET https://api.ona.io/api/v1/googleoauth/google_auth?code=<code from google>
+
+
+
+Response
+^^^^^^^^
+
+::
+
+          HTTP 201 Created
 
 
 Export submitted data of a specific form version
@@ -290,7 +297,7 @@ Querying data with a specific version
 
 
 Example
-^^^^^^^^
+^^^^^^^
 ::
 
        curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&query={"_version": "2014111"}
