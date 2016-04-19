@@ -23,7 +23,7 @@ from onadata.apps.logger.xform_instance_parser import XFormInstanceParser,\
 from onadata.libs.utils.common_tags import ATTACHMENTS, BAMBOO_DATASET_ID,\
     DELETEDAT, EDITED, GEOLOCATION, ID, MONGO_STRFTIME, NOTES, \
     SUBMISSION_TIME, TAGS, UUID, XFORM_ID_STRING, SUBMITTED_BY, VERSION, \
-    STATUS, DURATION, START, END
+    STATUS, DURATION, START, END, LAST_EDITED
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.data.query import get_numeric_fields
 from onadata.libs.utils.cache_tools import safe_delete
@@ -217,6 +217,13 @@ def update_project_date_modified(instance_id, created):
         instance.xform.project.save(update_fields=['date_modified'])
 
 
+def convert_to_serializable_date(date):
+    if hasattr(date, 'isoformat'):
+        return date.isoformat()
+
+    return date
+
+
 class InstanceBaseClass(object):
     """Interface of functions for Instance and InstanceHistory model"""
 
@@ -308,9 +315,14 @@ class InstanceBaseClass(object):
 
             doc[SUBMISSION_TIME] = self.date_created.strftime(MONGO_STRFTIME)
 
-            if hasattr(self, "submission_history"):
-                doc[EDITED] = (True if self.submission_history.count() > 0
-                               else False)
+            edited = False
+            if hasattr(self, 'last_edited'):
+                edited = self.last_edited is not None
+
+            doc[EDITED] = edited
+            edited and doc.update({
+                LAST_EDITED: convert_to_serializable_date(self.last_edited)
+            })
 
         return doc
 
@@ -385,6 +397,9 @@ class Instance(models.Model, InstanceBaseClass):
 
     # this will end up representing "date instance was deleted"
     deleted_at = models.DateTimeField(null=True, default=None)
+
+    # this will be edited when we need to create a new InstanceHistory object
+    last_edited = models.DateTimeField(null=True, default=None)
 
     # ODK keeps track of three statuses for an instance:
     # incomplete, submitted, complete
@@ -475,6 +490,7 @@ class InstanceHistory(models.Model, InstanceBaseClass):
 
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
+    submission_date = models.DateTimeField(null=True, default=None)
     geom = models.GeometryCollectionField(null=True)
     objects = models.GeoManager()
 

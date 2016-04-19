@@ -16,7 +16,7 @@ from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.viewer.models.parsed_instance import query_data
-from onadata.libs.utils.common_tags import GEOLOCATION
+from onadata.libs.utils.common_tags import GEOLOCATION, LAST_EDITED
 
 
 class TestFormSubmission(TestBase):
@@ -297,6 +297,9 @@ class TestFormSubmission(TestBase):
         # Take initial instance from DB
         initial_instance = self.xform.instances.first()
 
+        # check that '_last_edited' key is not in the json
+        self.assertIsNone(initial_instance.json.get(LAST_EDITED))
+
         # no new record in instances history
         self.assertEqual(
             InstanceHistory.objects.count(), num_instances_history)
@@ -327,6 +330,13 @@ class TestFormSubmission(TestBase):
 
         self.assertNotEqual(edited_instance.uuid, instance_history_1.uuid)
 
+        # check that instance history's submission_date is equal to instance's
+        # date_created - last_edited by default is null for an instance
+        self.assertEquals(edited_instance.date_created,
+                          instance_history_1.submission_date)
+        # check that '_last_edited' key is not in the json
+        self.assertIn(LAST_EDITED, edited_instance.json)
+
         cursor = query_data(**query_args)
         self.assertEqual(cursor[0]['count'], num_data_instances + 1)
         # make sure we edited the mongo db record and NOT added a new row
@@ -338,6 +348,7 @@ class TestFormSubmission(TestBase):
         xml_str = clean_and_parse_xml(xml_str).toxml()
         edited_name = re.match(ur"^.+?<name>(.+?)</name>", xml_str).groups()[0]
         self.assertEqual(record['name'], edited_name)
+        instance_before_second_edit = edited_instance
         xml_edit_submission_file_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "..", "fixtures", "tutorial", "instances",
@@ -346,6 +357,12 @@ class TestFormSubmission(TestBase):
         self._make_submission(xml_edit_submission_file_path)
         cursor = query_data(**query_args)
         record = cursor[0]
+        edited_instance = self.xform.instances.first()
+        instance_history_2 = InstanceHistory.objects.last()
+        self.assertEquals(instance_before_second_edit.last_edited,
+                          instance_history_2.submission_date)
+        # check that '_last_edited' key is not in the json
+        self.assertIn(LAST_EDITED, edited_instance.json)
         self.assertEqual(record['name'], 'Tom and Jerry')
         self.assertEqual(
             InstanceHistory.objects.count(), num_instances_history + 2)

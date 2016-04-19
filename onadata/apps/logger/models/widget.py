@@ -33,8 +33,8 @@ class Widget(OrderedModel):
     widget_type = models.CharField(max_length=25, choices=WIDGETS_TYPES,
                                    default=CHARTS)
     view_type = models.CharField(max_length=50)
-    column = models.CharField(max_length=50)
-    group_by = models.CharField(null=True, default=None, max_length=50,
+    column = models.CharField(max_length=255)
+    group_by = models.CharField(null=True, default=None, max_length=255,
                                 blank=True)
 
     title = models.CharField(null=True, default=None, max_length=50,

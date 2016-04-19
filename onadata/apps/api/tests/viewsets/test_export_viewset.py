@@ -14,12 +14,12 @@ class TestExportViewSet(TestBase):
 
     def setUp(self):
         super(self.__class__, self).setUp()
-        self._create_user_and_login()
-        self._publish_transportation_form()
-        self.factory = APIRequestFactory()
         self.view = ExportViewSet.as_view({'get': 'retrieve'})
 
     def test_generates_expected_response(self):
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        self.factory = APIRequestFactory()
         temp_dir = settings.MEDIA_ROOT
         dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
         filename = os.path.basename(dummy_export_file.name)
@@ -32,3 +32,10 @@ class TestExportViewSet(TestBase):
         force_authenticate(request, user=self.user)
         response = self.view(request, pk=export.pk)
         self.assertIn(filename, response.get('Content-Disposition'))
+
+    def test_export_format_renderers_present(self):
+        formats = ['csv', 'osm', 'xls', 'xlsx', 'csvzip', 'savzip']
+        renderer_formats = [rc.format for rc in self.view.cls.renderer_classes]
+
+        for f in formats:
+            self.assertIn(f, renderer_formats)

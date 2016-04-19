@@ -46,7 +46,7 @@ PARENT_TABLE_NAME = u"_parent_table_name"
 
 # instance flags
 EDITED = "_edited"
-
+LAST_EDITED = "_last_edited"
 # datetime format that we store in mongo
 MONGO_STRFTIME = '%Y-%m-%dT%H:%M:%S'
 
