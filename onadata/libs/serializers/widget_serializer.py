@@ -90,8 +90,6 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
     data = serializers.SerializerMethodField()
     order = serializers.IntegerField(required=False)
     metadata = JsonField(required=False)
-    column = serializers.CharField(max_length=255)
-    group_by = serializers.CharField(max_length=255)
 
     class Meta:
         model = Widget
