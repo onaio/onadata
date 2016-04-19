@@ -3013,8 +3013,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             basename, ext = os.path.splitext(filename)
             self.assertEqual(ext, '.csv')
 
-            data = {'include_hxl': True}
-            request = self.factory.get('/', data=data, **self.extra)
+            request = self.factory.get('/', **self.extra)
             response = view(request, pk=self.xform.pk, format='csv')
             self.assertEqual(response.status_code, 200)
 
