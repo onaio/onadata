@@ -11,6 +11,7 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.metadata_serializer import UNIQUE_TOGETHER_ERROR
 
 
 class TestMetaDataViewSet(TestAbstractViewSet):
@@ -52,6 +53,18 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         for data_type in ['supporting_doc', 'media', 'source']:
             self._add_form_metadata(self.xform, data_type,
                                     self.data_value, self.path)
+
+    def test_parse_error_is_raised(self):
+        """Parse error is raised when duplicate media is uploaded"""
+        data_type = "supporting_doc"
+
+        self._add_form_metadata(self.xform, data_type,
+                                self.data_value, self.path)
+        # Duplicate upload
+        response = self._add_form_metadata(self.xform, data_type,
+                                           self.data_value, self.path, False)
+        self.assertEquals(response.status_code, 400)
+        self.assertIn(UNIQUE_TOGETHER_ERROR, response.data)
 
     def test_forms_endpoint_with_metadata(self):
         date_modified = self.xform.date_modified
