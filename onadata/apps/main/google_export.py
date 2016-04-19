@@ -24,6 +24,6 @@ def google_auth_return(request):
         code = request.GET.get('code')
         google_creds = google_flow.step2_exchange(code)
         request.session["access_token"] = google_creds.to_json()
-    if request.session.get('google_redirect_url'):
-        return HttpResponseRedirect(request.session.get('google_redirect_url'))
+    if request.GET.get('return_back_url'):
+        return HttpResponseRedirect(request.GET.get('return_back_url'))
     return HttpResponseRedirect(reverse(home))

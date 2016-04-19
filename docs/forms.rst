@@ -216,6 +216,7 @@ Supported formats for exports are:
 - ``csvzip``
 - ``kml``
 - ``osm``
+- ``gsheets``
 
 .. raw:: html
 
@@ -235,6 +236,45 @@ Response
 
        HTTP 202 Accepted
        {"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
+
+GOOGLE SHEETS EXPORT
+--------------------
+Google sheets export works similar to the normal async export but with one more step google authorization step.
+The first time generating google sheets export google authorization is required.
+
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=gsheets&redirect_uri=<redirect_uri>
+
+Response
+^^^^^^^^
+
+::
+
+    HTTP 403 Forbidden
+    {
+        "url":"https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A%2F%2Fdocs.google.com%2Ffeeds%2F+https%3A%2F%2Fspreadsheets.google.com%2Ffeeds%2F+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.file&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fgwelcome&response_type=code&client_id=example-clientid-df9rktjc2iga992b6p33vasdasdasd.apps.googleusercontent.com&access_type=offline",
+        "details":"Google authorization needed"
+    }
+
+Use that url for authorization.
+
+Google Sheet Authorization
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Optional `redirect_uri` can be provided in this step.
+This `redirect_uri` will recieve `code` from google and with this code pass it to this 
+url `https://api.ona.io/gwelcome` to finish the authorization steps.
+`return_back_url` can also be included when passing the code to `https://api.ona.io/gwelcome`.
+This is the url to redirect to after authorization.
+
+Example `return_back_url`
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+::
+
+    curl -X GET https://api.ona.io/gwelcome?code=<code from google>&return_back_url=<url to redirect to after authorization>
+
 
 Export submitted data of a specific form version
 ------------------------------------------------

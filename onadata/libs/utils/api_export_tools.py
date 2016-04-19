@@ -36,7 +36,8 @@ from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.utils.common_tags import SUBMISSION_TIME,\
     GROUPNAME_REMOVED_FLAG, DATAVIEW_EXPORT
-from onadata.libs.utils.google import google_flow
+from oauth2client.client import OAuth2WebServerFlow
+from django.conf import settings
 
 # Supported external exports
 external_export_types = ['xls']
@@ -444,11 +445,24 @@ def response_for_format(data, format=None):
 
 def _get_google_credential(request):
     token = None
+    credential = None
     if request.user.is_authenticated():
         storage = Storage(TokenStorageModel, 'id', request.user, 'credential')
         credential = storage.get()
     elif request.session.get('access_token'):
         credential = google_client.OAuth2Credentials.from_json(token)
-    if credential is None:
+    if not credential:
+        if 'redirect_uri' in request.GET:
+            redirect_uri = request.GET.get('redirect_uri')
+        else:
+            redirect_uri = settings.GOOGLE_STEP2_URI
+        google_flow = OAuth2WebServerFlow(
+            client_id=settings.GOOGLE_CLIENT_ID,
+            client_secret=settings.GOOGLE_CLIENT_SECRET,
+            scope=' '.join(
+                ['https://docs.google.com/feeds/',
+                 'https://spreadsheets.google.com/feeds/',
+                 'https://www.googleapis.com/auth/drive.file']),
+            redirect_uri=redirect_uri)
         return HttpResponseRedirect(google_flow.step1_get_authorize_url())
     return credential
