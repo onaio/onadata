@@ -1,4 +1,4 @@
-Ona Platform
+  Ona Platform
 =================
 Collect, Analyze and Share Data!
 
@@ -86,6 +86,16 @@ Django Debug Toolbar
 Upgrading existing installation to django 1.9+
 ----------------------------------------------
 
+**Requirements**
+* Postgres 9.4 or higher
+* xcode-select version 2343 or higher
+
+**Upgrading from a pervious Ona setup**
+Ensure you upgrade all your pip requirements using the following command:
+
+.. code-block:: sh
+    pip install -r requirements/base.pip --upgrade
+
 Fake initial migration of `guardian`, `django_digest`, `registration`.
 
 .. code-block:: sh
@@ -94,3 +104,7 @@ Fake initial migration of `guardian`, `django_digest`, `registration`.
     $ python manage.py migrate --fake-initial guardian
     $ python manage.py migrate --fake-initial registration
     $ python manage.py migrate
+
+
+**Major django changes affecting Ona**
+* The DATABASES settings key depricates the use of the *autocommit* setting in the *OPTIONS* dictionary.
