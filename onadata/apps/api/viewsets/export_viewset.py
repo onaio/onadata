@@ -3,6 +3,9 @@ import os
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.settings import api_settings
 from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.decorators import list_route
 
 from onadata.apps.viewer.models.export import Export
 from onadata.libs.renderers import renderers
@@ -12,6 +15,8 @@ from onadata.libs.authentication import (
     TempTokenAuthentication,
     TempTokenURLParameterAuthentication)
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
+from onadata.libs.serializers.google_serializer import \
+    GoogleCredentialSerializer
 
 
 class ExportViewSet(ReadOnlyModelViewSet):
@@ -42,3 +47,27 @@ class ExportViewSet(ReadOnlyModelViewSet):
             extension=extension,
             file_path=export.filepath,
             show_date=False)
+
+    @list_route()
+    def google_auth(self, request, *args, **kwargs):
+        """
+        Google Oauth2 return url endpoint
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+
+        # For authenticated users only
+        if request.user and request.user.is_authenticated():
+            data = {
+                'code': self.request.GET.get('code')
+            }
+            serializer = GoogleCredentialSerializer(data=data,
+                                                    context={
+                                                        'request': request
+                                                    })
+            serializer.save()
+            return Response(status=status.HTTP_201_CREATED)
+        else:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)

@@ -264,7 +264,7 @@ Google Sheet Authorization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 Optional `redirect_uri` can be provided in this step.
 This `redirect_uri` will recieve `code` from google and with this code pass it to this 
-url `https://api.ona.io/api/v1/googleoauth/google_auth` to finish the authorization steps.
+url `https://api.ona.io/api/v1/export/google_auth` to finish the authorization steps.
 
 Example
 ^^^^^^^
