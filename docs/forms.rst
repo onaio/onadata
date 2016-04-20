@@ -271,7 +271,7 @@ Example
 
 ::
 
-    curl -X GET https://api.ona.io/api/v1/googleoauth/google_auth?code=<code from google>
+    curl -X GET https://api.ona.io/api/v1/export/google_auth?code=<code from google>
 
 
 

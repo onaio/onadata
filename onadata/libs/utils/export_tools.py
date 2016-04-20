@@ -678,10 +678,12 @@ class ExportBuilder(object):
         username = args[0]
         filter_query = args[2]
         xform = kwargs.get('xform')
+        options = kwargs.get("options")
+        google_credentials = options and options.get("google_credentials")
 
         config = {
             "spreadsheet_title": xform.id_string,
-            "google_credentials": kwargs.get("options")["google_credentials"],
+            "google_credentials": google_credentials,
             "flatten_repeated_fields": True
         }
         google_sheets = SheetsExportBuilder(xform, config)
