@@ -1,0 +1,90 @@
+Django
+django-guardian
+django-ordered-model
+django-registration-redux
+django-templated-email
+django-reversion
+django-filter
+
+# generic relation
+django-query-builder
+
+django-db-readonly
+
+celery
+django-celery
+librabbitmq
+
+# cors
+-e git+https://github.com/onaio/django-cors-headers.git@allow-all-for-url#egg=cors-headers
+
+python-digest
+-e git+https://github.com/onaio/django-digest.git@django-1.9-fixes#egg=django-digest
+
+# oath2 support
+django-oauth-toolkit
+oauth2client
+
+# jwt
+PyJWT
+
+# captcha
+recaptcha-client
+
+# API support
+djangorestframework
+djangorestframework-csv
+djangorestframework-gis
+djangorestframework-jsonp
+djangorestframework-xml
+
+geojson
+
+# tagging
+django-taggit
+
+# database
+psycopg2
+pymongo
+
+# sms support
+dict2xml
+lxml
+-e git+https://github.com/onaio/pyxform.git@onaio#egg=pyxform
+
+# spss
+-e git+https://bitbucket.org/fomcl/savreaderwriter.git@v3.4.2#egg=savreaderwriter
+
+unicodecsv
+xlrd
+xlwt
+openpyxl
+-e git+https://github.com/onaio/python-json2xlsclient.git#egg=j2xclient
+
+# tests
+mock
+httmock
+-e git+https://github.com/jbalogh/django-nose.git#egg=django-nose
+
+# JSON data type support, keeping it around for previous migration
+jsonfield<1.0
+
+# memcached support
+pylibmc
+python-memcached
+
+# docs
+sphinx
+Markdown
+
+dpath
+elaphe
+gspread
+httplib2
+modilabs-python-utils
+numpy
+Pillow
+python-dateutil
+pytz
+requests
+simplejson
