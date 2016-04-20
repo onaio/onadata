@@ -9,7 +9,6 @@ import xlrd
 from django.conf import settings
 from onadata.libs.utils.export_tools import ExportBuilder,\
     dict_to_joined_export
-from oauth2client.service_account import ServiceAccountCredentials
 from onadata.libs.utils.common_tags import INDEX, PARENT_INDEX,\
     PARENT_TABLE_NAME
 from onadata.libs.utils.common_tags import ID
@@ -117,12 +116,6 @@ class SheetsClient(gspread.client.Client):
 
     @classmethod
     def login_with_service_account(cls, credential=None):
-        if not credential:
-            credential = \
-                ServiceAccountCredentials(settings.GOOGLE_CLIENT_EMAIL,
-                                          settings.GOOGLE_CLIENT_PRIVATE_KEY,
-                                          scope=SheetsClient.AUTH_SCOPE)
-
         client = SheetsClient(auth=credential)
         client.login()
         return client
@@ -148,11 +141,21 @@ class SheetsExportBuilder(ExportBuilder):
     SHEETS_BASE_URL = 'https://docs.google.com/spreadsheet/ccc?key=%s&hl'
     FLATTENED_SHEET_TITLE = 'raw'
 
-    def __init__(self, xform, config):
+    def __init__(self, xform, google_credentials, config):
+        """
+        Class constructor,
+        :param xform:
+        :param google_credentials:
+        :param config: dict with export settings
+        """
         super(SheetsExportBuilder, self).__init__()
-        self.spreadsheet_title = config['spreadsheet_title']
-        self.google_credentials = config['google_credentials']
-        self.flatten_repeated_fields = config['flatten_repeated_fields']
+
+        self.google_credentials = google_credentials
+
+        self.spreadsheet_title = \
+            config.get('spreadsheet_title', xform.id_string)
+        self.flatten_repeated_fields = \
+            config.get('flatten_repeated_fields', True)
         self.set_survey(xform.survey)
 
     def export(self, path, data, username, xform=None, filter_query=None):

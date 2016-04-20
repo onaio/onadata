@@ -683,10 +683,9 @@ class ExportBuilder(object):
 
         config = {
             "spreadsheet_title": xform.id_string,
-            "google_credentials": google_credentials,
             "flatten_repeated_fields": True
         }
-        google_sheets = SheetsExportBuilder(xform, config)
+        google_sheets = SheetsExportBuilder(xform, google_credentials, config)
         self.url = google_sheets.export(path, data, username, xform,
                                         filter_query)
 
