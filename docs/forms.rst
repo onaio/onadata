@@ -372,7 +372,7 @@ Example
 
 Include hxl column row
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-By default the hxl column row is not included in exports. To include the hxl column row in the exports, use
+By default the hxl column row is included in exports. To exclude the hxl column row in the exports, use
  the `include_hxl` param, acceptable values are `true` and `false`.
 
 Example
@@ -380,8 +380,8 @@ Example
 
 ::
 
-     curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&include_hxl=true
-     curl -X GET https://api.ona.io/api/v1/forms/28058.xls?include_hxl=true
+     curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&include_hxl=false
+     curl -X GET https://api.ona.io/api/v1/forms/28058.xls?include_hxl=false
 
 
 Delete an XLS form asynchronously
