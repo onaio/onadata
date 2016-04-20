@@ -1469,7 +1469,7 @@ def parse_request_export_options(params):
         'do_not_split_select_multiples')
     include_labels = params.get('include_labels', False)
     include_labels_only = params.get('include_labels_only', False)
-    include_hxl = params.get('include_hxl', 'True')
+    include_hxl = params.get('include_hxl', True)
 
     if include_labels is not None:
         options['include_labels'] = str_to_bool(include_labels)
