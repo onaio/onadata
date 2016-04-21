@@ -34,7 +34,7 @@ class TestExportViewSet(TestBase):
         self.assertIn(filename, response.get('Content-Disposition'))
 
     def test_export_format_renderers_present(self):
-        formats = ['csv', 'osm', 'xls', 'xlsx', 'csvzip', 'savzip']
+        formats = ['csv', 'csvzip', 'kml', 'osm', 'savzip', 'xls', 'xlsx']
         renderer_formats = [rc.format for rc in self.view.cls.renderer_classes]
 
         for f in formats:
