@@ -26,12 +26,13 @@ class ExportViewSet(ReadOnlyModelViewSet):
                               BasicAuthentication)
     queryset = Export.objects.filter()
     renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES + [
-        renderers.XLSRenderer,
-        renderers.XLSXRenderer,
         renderers.CSVRenderer,
         renderers.CSVZIPRenderer,
-        renderers.SAVZIPRenderer,
+        renderers.KMLRenderer,
         renderers.OSMExportRenderer,
+        renderers.SAVZIPRenderer,
+        renderers.XLSRenderer,
+        renderers.XLSXRenderer,
         renderers.ZipRenderer
     ]
     serializer_class = ExportSerializer
