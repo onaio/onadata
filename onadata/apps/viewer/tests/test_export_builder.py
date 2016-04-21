@@ -19,8 +19,7 @@ from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
 from onadata.libs.utils.export_tools import (
-    dict_to_joined_export,
-    ExportBuilder)
+    dict_to_joined_export, ExportBuilder, get_columns_with_hxl)
 from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
 from onadata.libs.utils.csv_builder import get_labels_from_columns
 
@@ -427,6 +426,38 @@ class TestExportBuilder(TestBase):
         self.assertTrue(data[u'children.info/fav_colors/blue\u2019s'])
         self.assertFalse(data[u'children.info/fav_colors/pink\u2019s'])
         temp_xls_file.close()
+
+    def test_xls_export_with_hxl_adds_extra_row(self):
+        # hxl_example.xlsx contains `instance::hxl` column whose value is #age
+        xlsform_path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "hxl_test", "hxl_example.xlsx")
+        survey = create_survey_from_xls(xlsform_path)
+        export_builder = ExportBuilder()
+        export_builder.INCLUDE_HXL = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+
+        survey_elements = [
+            survey_item[1]
+            for survey_item in survey.items()
+            if survey_item[0] == u'children'
+        ][0]
+
+        columns_with_hxl = export_builder.INCLUDE_HXL and get_columns_with_hxl(
+            survey_elements
+        )
+
+        export_builder.to_xls_export(
+            temp_xls_file.name, self.data_utf8,
+            columns_with_hxl=columns_with_hxl)
+        temp_xls_file.seek(0)
+        wb = load_workbook(temp_xls_file.name)
+        children_sheet = wb.get_sheet_by_name("hxl_example")
+        self.assertTrue(children_sheet)
+        # we pick the second row because the first row has xform fieldnames
+        hxl_row = [a.value for a in children_sheet.rows[1]]
+        self.assertIn(u'#age', hxl_row)
 
     def test_generation_of_multi_selects_works(self):
         survey = self._create_childrens_survey()

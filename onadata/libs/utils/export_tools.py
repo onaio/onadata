@@ -42,7 +42,8 @@ from onadata.libs.utils.common_tags import (
 from onadata.libs.utils.osm import get_combined_osm
 from onadata.apps.logger.models.xform import QUESTION_TYPES_TO_EXCLUDE
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
-from onadata.libs.utils.model_tools import queryset_iterator
+from onadata.libs.utils.model_tools import (
+    queryset_iterator, get_columns_with_hxl)
 
 
 # the bind type of select multiples that we use to compare
@@ -212,6 +213,7 @@ class ExportBuilder(object):
 
     INCLUDE_LABELS = False
     INCLUDE_LABELS_ONLY = False
+    INCLUDE_HXL = False
     INCLUDE_IMAGES = settings.EXPORT_WITH_IMAGE_DEFAULT
 
     TYPES_TO_CONVERT = ['int', 'decimal', 'date']  # , 'dateTime']
@@ -501,6 +503,18 @@ class ExportBuilder(object):
 
         media_xpaths = [] if not self.INCLUDE_IMAGES \
             else self.dd.get_media_survey_xpaths()
+
+        columns_with_hxl = kwargs.get('columns_with_hxl')
+        # write hxl row
+        if self.INCLUDE_HXL and columns_with_hxl:
+            for section in self.sections:
+                fields = self.get_fields(dataview, section, 'title')
+                hxl_row = [columns_with_hxl.get(col, '')
+                           for col in fields]
+                if hxl_row:
+                    writer = csv_defs[section['name']]['csv_writer']
+                    writer.writerow(hxl_row)
+
         index = 1
         indices = {}
         survey_name = self.survey.name
@@ -615,6 +629,20 @@ class ExportBuilder(object):
         media_xpaths = [] if not self.INCLUDE_IMAGES \
             else self.dd.get_media_survey_xpaths()
 
+        # write hxl header
+        columns_with_hxl = kwargs.get('columns_with_hxl')
+        if self.INCLUDE_HXL and columns_with_hxl:
+            for section in self.sections:
+                section_name = section['name']
+                headers = self.get_fields(dataview, section, 'title')
+
+                # get the worksheet
+                ws = work_sheets[section_name]
+
+                hxl_row = [columns_with_hxl.get(col, '')
+                           for col in headers]
+                hxl_row and ws.append(hxl_row)
+
         index = 1
         indices = {}
         survey_name = self.survey.name
@@ -653,21 +681,21 @@ class ExportBuilder(object):
 
         wb.save(filename=path)
 
-    def to_flat_csv_export(self, path, data, *args, **kwargs):
+    def to_flat_csv_export(
+            self, path, data, username, id_string, filter_query, **kwargs):
         # TODO resolve circular import
         from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
-
-        username, id_string, filter_query = args[:3]
-        start = kwargs.get("start")
-        end = kwargs.get("end")
-        dataview = kwargs.get("dataview")
-        xform = kwargs.get("xform")
+        start = kwargs.get('start')
+        end = kwargs.get('end')
+        dataview = kwargs.get('dataview')
+        xform = kwargs.get('xform')
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
-            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES
+            self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
+            self.INCLUDE_HXL
         )
 
         csv_builder.export_to(path, dataview=dataview)
@@ -904,6 +932,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
     export_builder.INCLUDE_LABELS_ONLY = options.get(
         'include_labels_only', False
     )
+    export_builder.INCLUDE_HXL = options.get('include_hxl', False)
 
     export_builder.INCLUDE_IMAGES \
         = options.get("include_images", settings.EXPORT_WITH_IMAGE_DEFAULT)
@@ -911,13 +940,16 @@ def generate_export(export_type, xform, export_id=None, options=None):
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
 
+    columns_with_hxl = export_builder.INCLUDE_HXL and get_columns_with_hxl(
+        xform.survey_elements)
+
     # get the export function by export type
     func = getattr(export_builder, export_type_func_map[export_type])
     try:
         func.__call__(
             temp_file.name, records, username, id_string, filter_query,
             start=start, end=end, dataview=dataview, xform=xform,
-            options=options
+            options=options, columns_with_hxl=columns_with_hxl
         )
     except NoRecordsFoundError:
         pass
@@ -1459,12 +1491,16 @@ def parse_request_export_options(params):
         'do_not_split_select_multiples')
     include_labels = params.get('include_labels', False)
     include_labels_only = params.get('include_labels_only', False)
+    include_hxl = params.get('include_hxl', True)
 
     if include_labels is not None:
         options['include_labels'] = str_to_bool(include_labels)
 
     if include_labels_only is not None:
         options['include_labels_only'] = str_to_bool(include_labels_only)
+
+    if include_hxl is not None:
+        options['include_hxl'] = str_to_bool(include_hxl)
 
     if remove_group_name in boolean_list:
         options["remove_group_name"] = str_to_bool(remove_group_name)

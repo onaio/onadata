@@ -630,6 +630,7 @@ class XForm(XFormMixin, BaseModel):
     metadata_set = GenericRelation(MetaData,
                                    content_type_field='content_type_id',
                                    object_id_field="object_id")
+    has_hxl_support = models.BooleanField(default=False)
 
     tags = TaggableManager()
 

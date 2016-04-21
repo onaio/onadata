@@ -73,6 +73,7 @@ class Export(models.Model):
         "include_images",
         "include_labels",
         "include_labels_only",
+        "include_hxl",
         "query",
         "remove_group_name",
         "split_select_multiples"

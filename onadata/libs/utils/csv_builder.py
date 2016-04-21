@@ -20,6 +20,7 @@ from onadata.libs.utils.common_tags import ID, XFORM_ID_STRING, STATUS,\
     BAMBOO_DATASET_ID, DELETEDAT, TAGS, NOTES, SUBMITTED_BY, VERSION,\
     DURATION, EDITED
 from onadata.libs.utils.export_tools import get_value_or_attachment_uri
+from onadata.libs.utils.export_tools import get_columns_with_hxl
 
 
 # the bind type of select multiples that we use to compare
@@ -112,9 +113,10 @@ class UnicodeWriter:
             self.writerow(row)
 
 
-def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
+def write_to_csv(path, rows, columns, columns_with_hxl=None,
+                 remove_group_name=False, dd=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER, include_labels=False,
-                 include_labels_only=False):
+                 include_labels_only=False, include_hxl=False):
     na_rep = getattr(settings, 'NA_REP', NA_REP)
     with open(path, 'wb') as csvfile:
         writer = UnicodeWriter(csvfile, lineterminator='\n')
@@ -139,6 +141,10 @@ def write_to_csv(path, rows, columns, remove_group_name=False, dd=None,
             labels = get_labels_from_columns(columns, dd, group_delimiter)
             writer.writerow(labels)
 
+        if include_hxl and columns_with_hxl:
+            hxl_row = [columns_with_hxl.get(col, '') for col in columns]
+            hxl_row and writer.writerow(hxl_row)
+
         for row in rows:
             for col in AbstractDataFrameBuilder.IGNORED_COLUMNS:
                 row.pop(col, None)
@@ -162,7 +168,7 @@ class AbstractDataFrameBuilder(object):
                  split_select_multiples=True, binary_select_multiples=False,
                  start=None, end=None, remove_group_name=False, xform=None,
                  include_labels=False, include_labels_only=False,
-                 include_images=True):
+                 include_images=True, include_hxl=False):
 
         self.username = username
         self.id_string = id_string
@@ -182,6 +188,7 @@ class AbstractDataFrameBuilder(object):
         self.include_labels = include_labels
         self.include_labels_only = include_labels_only
         self.include_images = include_images
+        self.include_hxl = include_hxl
         self._setup()
 
     def _setup(self):
@@ -327,12 +334,12 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  split_select_multiples=True, binary_select_multiples=False,
                  start=None, end=None, remove_group_name=False, xform=None,
                  include_labels=False, include_labels_only=False,
-                 include_images=False):
+                 include_images=False, include_hxl=False):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
             remove_group_name, xform, include_labels, include_labels_only,
-            include_images
+            include_images, include_hxl
         )
         self.ordered_columns = OrderedDict()
 
@@ -497,8 +504,13 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                                                 field.get_abbreviated_xpath(),
                                                 include_prefix=True)
 
+        columns_with_hxl = self.include_hxl and get_columns_with_hxl(
+            self.dd.survey_elements)
+
         write_to_csv(path, data, columns,
+                     columns_with_hxl=columns_with_hxl,
                      remove_group_name=self.remove_group_name,
                      dd=self.dd, group_delimiter=self.group_delimiter,
                      include_labels=self.include_labels,
-                     include_labels_only=self.include_labels_only)
+                     include_labels_only=self.include_labels_only,
+                     include_hxl=self.include_hxl)

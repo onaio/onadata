@@ -417,6 +417,19 @@ Example
      curl -X GET https://api.ona.io/api/v1/forms/28058.xls?include_images=false
 
 
+Include HXL row in exports
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+By default the HXL row is included for forms that have instance::HXL in exports. To exclude the HXL row in the exports, use
+ the `include_hxl` param, acceptable values are `true` and `false`.
+
+Example
+^^^^^^^
+
+::
+
+     curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=xls&include_hxl=false
+     curl -X GET https://api.ona.io/api/v1/forms/28058.xls?include_hxl=false
+
 
 Delete an XLS form asynchronously
 -----------------------------------
@@ -864,7 +877,7 @@ Response
 Preview a survey draft
 ----------------------------------
 
-This endpoint used to retrieve an xml representation of a survey draft. You will need to make a `POST` request 
+This endpoint used to retrieve an xml representation of a survey draft. You will need to make a `POST` request
 with the survey draft data in a `body` variable for a survey draft file to be created. The repsonse is a json
 object with 2 keys, `unique_string` and `username`. The `unique_string`'s value is the name of the survey draft
 file created and the `username` is the user's username. Both should be added as query params when making a

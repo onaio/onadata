@@ -1,7 +1,7 @@
 from common import *  # nopep8
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
+TEMPLATES[0]['OPTIONS']['debug'] = DEBUG
 TEMPLATE_STRING_IF_INVALID = ''
 
 # see: http://docs.djangoproject.com/en/dev/ref/settings/#databases

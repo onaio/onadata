@@ -14,6 +14,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.utils.model_tools import set_uuid
 from onadata.libs.utils.cache_tools import PROJ_FORMS_CACHE, safe_delete
+from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 
 # adopted from pyxform.utils.sheet_to_csv
@@ -90,6 +91,8 @@ class DataDictionary(XForm):
                 self.has_external_choices = True
             survey = create_survey_element_from_dict(survey_dict)
             survey = self._check_version_set(survey)
+            if get_columns_with_hxl(survey.get('children')):
+                self.has_hxl_support = True
             # if form is being replaced, don't check for id_string uniqueness
             if self.pk is None:
                 new_id_string = self.get_unique_id_string(
