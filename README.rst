@@ -21,8 +21,17 @@ Contributing
 If you would like to contribute code please read
 `Contributing Code to Ona Data <https://github.com/onaio/onadata/wiki/Contributing-Code-to-OnaData>`_.
 
+Edit top level requirements in the file `requirements/base.in <requirements/base.in>`_. Use
+ `pip-compile <https://github.com/nvie/pip-tools>`_ to update `requirements/base.pip <requirements/base.pip>`_,
+
+.. code-block:: sh
+
+    $ pip-compile --output-file requirements/base.pip requirements/base.in
+
 Code Structure
 --------------
+
+* **api** - This app provides the API functionality mostly made up of viewsets
 
 * **logger** - This app serves XForms to and receives submissions from
   ODK Collect and Enketo.
