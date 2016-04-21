@@ -132,10 +132,15 @@ def encode_if_str(row, key, encode_dates=False):
 
 
 def str_to_bool(s):
-    if s in ['True', 'true', 'TRUE']:
-        return True
-    else:
-        return False
+    """Return boolean True or False if string s represents a boolean value"""
+    # no need to convert boolean values otherwise it will always be false
+    if isinstance(s, bool):
+        return s
+
+    TRUE_VALUES = ['TRUE', 'T', '1', 1]
+    s = s.upper() if isinstance(s, six.string_types) else s
+
+    return s in TRUE_VALUES
 
 
 def dict_to_joined_export(data, index, indices, name, survey, row,

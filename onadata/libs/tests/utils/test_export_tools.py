@@ -6,13 +6,13 @@ from django.contrib.sites.models import Site
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 
-from onadata.libs.utils.export_tools import (
-    encode_if_str,
-    get_value_or_attachment_uri,
-    generate_osm_export,
-    should_create_new_export,
-    parse_request_export_options,
-    generate_export)
+from onadata.libs.utils.export_tools import encode_if_str
+from onadata.libs.utils.export_tools import generate_export
+from onadata.libs.utils.export_tools import generate_osm_export
+from onadata.libs.utils.export_tools import get_value_or_attachment_uri
+from onadata.libs.utils.export_tools import parse_request_export_options
+from onadata.libs.utils.export_tools import should_create_new_export
+from onadata.libs.utils.export_tools import str_to_bool
 from onadata.apps.logger.models import Attachment
 from onadata.apps.api import tests as api_tests
 
@@ -228,3 +228,20 @@ class TestExportTools(TestBase):
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
         self.assertNotEqual(export_id, export.pk)
+
+    def test_str_to_bool(self):
+        self.assertTrue(str_to_bool(True))
+        self.assertTrue(str_to_bool('True'))
+        self.assertTrue(str_to_bool('TRUE'))
+        self.assertTrue(str_to_bool('true'))
+        self.assertTrue(str_to_bool('t'))
+        self.assertTrue(str_to_bool('1'))
+        self.assertTrue(str_to_bool(1))
+
+        self.assertFalse(str_to_bool(False))
+        self.assertFalse(str_to_bool('False'))
+        self.assertFalse(str_to_bool('F'))
+        self.assertFalse(str_to_bool('random'))
+        self.assertFalse(str_to_bool(234))
+        self.assertFalse(str_to_bool(0))
+        self.assertFalse(str_to_bool('0'))
