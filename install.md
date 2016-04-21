@@ -1,8 +1,6 @@
 # Ubuntu installation instructions
 ## Prepare Os
-
-    sudo apt-get update
-    sudo apt-get install  postgresql-9.3-postgis-2.1 binutils libproj-dev gdal-bin memcached libmemcached-dev build-essential python-pip python-virtualenv python-dev git libssl-dev libpq-dev gfortran libatlas-base-dev libjpeg-dev libxml2-dev libxslt-dev zlib1g-dev python-software-properties ghostscript python-celery python-sphinx openjdk-7-jdk openjdk-7-jre postgresql-9.3-postgis-2.1 postgresql-9.3-postgis-2.1-scripts
+    $ ./script/install/ubuntu
 
 ## Database setup
 Replace username and db name accordingly.
@@ -14,12 +12,10 @@ Replace username and db name accordingly.
     sudo su postgres -c "psql -d onadata -c \"CREATE EXTENSION IF NOT EXISTS postgis_topology;\""
 
 ## Get the code
-    git clone https://github.com/onaio/onadata.git onadata
-    cd onadata/
-    git checkout osm
+    git clone https://github.com/onaio/onadata.git
 
 ## Set up and start your virtual environment or sandbox.
-    $ virtualenv <.venv>  
+    $ virtualenv <.venv>
     $ source <.venv>/bin/activate
 
 ## Create a local_settings.py, update it accordingly.
