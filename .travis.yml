@@ -41,14 +41,8 @@ install:
   - pip install --upgrade pip
   - pip install -r requirements/base.pip
   - pip install flake8
-  # make ~/tmp dir writable for npm downloads
-  # - mkdir -p "$HOME/tmp"
-  # - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then chmod a+w $HOME/tmp ; fi
-  # - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then  npm install ; fi
-  # - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then bower install --force-latest ; fi
 script:
-  - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test --parallel
-  # - if [[ "$TESTFOLDER" == onadata/apps/logger* ]] ; then karma start onadata/libs/javascript/tests/karma.conf.js ; fi
+  - python manage.py test $TESTFOLDER --noinput --settings=onadata.settings.travis_test --parallel 4
 notifications:
   email:
     - tech+travis@ona.io
