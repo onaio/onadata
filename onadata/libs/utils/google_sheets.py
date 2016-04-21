@@ -147,6 +147,8 @@ class SheetsExportBuilder(ExportBuilder):
         :param xform:
         :param google_credentials:
         :param config: dict with export settings
+               config params: spreadsheet_title defaults to form id_string
+                            : flatten_repeated_field default is True
         """
         super(SheetsExportBuilder, self).__init__()
 
