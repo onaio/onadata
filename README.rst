@@ -1,5 +1,6 @@
-  Ona Platform
+Ona Platform
 =================
+
 Collect, Analyze and Share Data!
 
 .. image:: https://magnum.travis-ci.com/onaio/core.svg?token=zuW2DmA3xKoPXEdebzpS&branch=master
@@ -87,6 +88,7 @@ Upgrading existing installation to django 1.9+
 ----------------------------------------------
 
 **Requirements**
+
 * Postgres 9.4 or higher
 * xcode-select version 2343 or higher
 
