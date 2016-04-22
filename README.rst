@@ -94,12 +94,13 @@ Upgrading existing installation to django 1.9+
 Ensure you upgrade all your pip requirements using the following command:
 
 .. code-block:: sh
-    pip install -r requirements/base.pip --upgrade
+    pip install -r requirements/base.pip
 
-Fake initial migration of `guardian`, `django_digest`, `registration`.
+Fake initial migration of `guardian`, `django_digest`, `registration`. Migrate `contenttypes` app first.
 
 .. code-block:: sh
 
+    $ python manage.py migrate contenttypes
     $ python manage.py migrate --fake-initial django_digest
     $ python manage.py migrate --fake-initial guardian
     $ python manage.py migrate --fake-initial registration
