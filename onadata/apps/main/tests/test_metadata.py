@@ -21,6 +21,22 @@ class TestMetaData(TestBase):
         self.assertEquals(count + 1, len(MetaData.objects.filter(
             object_id=self.xform.id, data_type='enketo_url')))
 
+    def test_create_gsheet_metadata_object(self):
+        count = len(MetaData.objects.filter(object_id=self.xform.id,
+                    data_type='gsheets'))
+        gsheets_actions = (
+            'GSHEET_TITLE test_sheet | '
+            'UPDATE_OR_DELETE_GSHEET_DATA True'
+        )
+        MetaData.set_gsheet_details(self.xform, gsheets_actions)
+        self.assertEquals(count + 1, len(MetaData.objects.filter(
+            object_id=self.xform.id, data_type='gsheets')))
+
+        gsheet_details = MetaData.get_gsheet_details(self.xform)
+        self.assertEqual({
+            'GSHEET_TITLE': 'test_sheet',
+            'UPDATE_OR_DELETE_GSHEET_DATA': 'True'}, gsheet_details)
+
     def test_saving_same_metadata_object_doesnt_trigger_integrity_error(self):
         count = len(MetaData.objects.filter(object_id=self.xform.id,
                     data_type='enketo_url'))
