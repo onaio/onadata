@@ -23,7 +23,9 @@ If you would like to contribute code please read
 `Contributing Code to Ona Data <https://github.com/onaio/onadata/wiki/Contributing-Code-to-OnaData>`_.
 
 Edit top level requirements in the file `requirements/base.in <requirements/base.in>`_. Use
- `pip-compile <https://github.com/nvie/pip-tools>`_ to update `requirements/base.pip <requirements/base.pip>`_,
+ `pip-compile <https://github.com/nvie/pip-tools>`_ to update `requirements/base.pip <requirements/base.pip>`_.
+ You will need to update `requirements.pip` and set `lxml==3.6.0`, for some unknown reason `pip-compile` seems to
+ pick a lower version of lxml when `openpyxl` requires `lxml>=3.3.4`.
 
 .. code-block:: sh
 

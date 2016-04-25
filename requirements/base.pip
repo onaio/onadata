@@ -53,7 +53,7 @@ Jinja2==2.8               # via sphinx
 jsonfield==0.9.23
 kombu==3.0.35             # via celery
 librabbitmq==1.6.1
-lxml==2.3.4
+lxml==3.6.0
 Markdown==2.6.6
 MarkupSafe==0.23          # via jinja2
 mock==2.0.0
