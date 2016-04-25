@@ -38,4 +38,3 @@ class GoogleSheetsSerializer(serializers.Serializer):
         instance.save()
 
         return instance
-
