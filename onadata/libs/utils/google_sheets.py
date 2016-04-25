@@ -135,7 +135,6 @@ class SheetsExportBuilder(ExportBuilder):
     spreadsheet_title = None
     flatten_repeated_fields = True
     google_credentials = None
-    live_update = False
 
     # Constants
     SHEETS_BASE_URL = 'https://docs.google.com/spreadsheet/ccc?key=%s&hl'
@@ -160,35 +159,33 @@ class SheetsExportBuilder(ExportBuilder):
             config.get('flatten_repeated_fields', True)
         self.set_survey(xform.survey)
 
+    def live_update(self, path, data, xform):
+        self.client = \
+            SheetsClient.login_with_service_account(self.google_credentials)
+
+        self.spreadsheet = \
+            self.client.get_spreadsheet(title=self.spreadsheet_title)
+
+        if not self._update_spreadsheet(data, xform):
+            self.export_tabular(path, data)
+
     def export(self, path, data, username, xform=None, filter_query=None):
         self.client = \
             SheetsClient.login_with_service_account(self.google_credentials)
 
-        # Create a new sheet from new or update existing one
-        if self.live_update:
-            self.spreadsheet_title += "_live"
-            self.spreadsheet = \
-                self.client.get_spreadsheet(title=self.spreadsheet_title)
-        else:
-            self.spreadsheet = self.client.new(title=self.spreadsheet_title)
+        self.spreadsheet = self.client.new(title=self.spreadsheet_title)
 
         self.url = self.SHEETS_BASE_URL % self.spreadsheet.id
 
         # Add Service account as editor
         self.client.add_service_account_to_spreadsheet(self.spreadsheet)
 
-        if self.live_update:
-            if not self._update_spreadsheet(data, xform):
-                self.export_tabular(path, data)
-
+        # Perform the actual export
+        if self.flatten_repeated_fields:
+            self.export_flattened(path, data, username, xform,
+                                  filter_query)
         else:
-
-            # Perform the actual export
-            if self.flatten_repeated_fields:
-                self.export_flattened(path, data, username, xform,
-                                      filter_query)
-            else:
-                self.export_tabular(path, data)
+            self.export_tabular(path, data)
 
         # Delete the default worksheet if it exists
         # NOTE: for some reason self.spreadsheet.worksheets() does not contain

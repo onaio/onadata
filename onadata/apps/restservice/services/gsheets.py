@@ -16,14 +16,12 @@ class ServiceDefinition(RestServiceInterface):
             submission_instance.xform)
         config = {
             "spreadsheet_title": spreadsheet_title.get(GSHEET_TITLE),
-            "flatten_repeated_fields": True
+            "flatten_repeated_fields": False
         }
         google_credentials = None
         xform = submission_instance.xform
         path = None
-        username = None
-        filter_query = None
-        data = None
+        data = submission_instance.instance.json
 
         google_sheets = SheetsExportBuilder(xform, google_credentials, config)
-        google_sheets.export(path, data, username, xform, filter_query)
+        google_sheets.live_update(path, data, xform)

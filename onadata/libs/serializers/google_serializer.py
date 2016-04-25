@@ -1,11 +1,13 @@
 from oauth2client.contrib.django_orm import Storage
 
+from django.http import HttpResponseRedirect
 from rest_framework import serializers
 
 from onadata.apps.main.models import TokenStorageModel
 from onadata.libs.utils.google import google_flow
 from onadata.libs.serializers.fields.xform_field import XFormField
 from onadata.libs.models.google_sheet_webhook import GoogleSheetService
+from onadata.libs.utils.api_export_tools import _get_google_credential
 
 
 class GoogleCredentialSerializer(serializers.Serializer):
@@ -32,9 +34,26 @@ class GoogleSheetsSerializer(serializers.Serializer):
     send_existing_data = serializers.BooleanField(default=True)
     sync_updates = serializers.BooleanField(default=True)
 
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request and request.user and not request.user.is_anonymous():
+            response = _get_google_credential(request)
+            if isinstance(response, HttpResponseRedirect):
+                error = {
+                    u"details": u"Google Authorization needed",
+                    u"url": response.url
+                 }
+                raise serializers.ValidationError(error)
+        else:
+            raise serializers.ValidationError(u"Authentication required")
+
+        return attrs
+
     def save(self):
         self.is_valid(raise_exception=True)
-        instance = GoogleSheetService(**self.validated_data)
+        # Get the authenticated user
+        request = self.context.get('request')
+        instance = GoogleSheetService(user=request.user, **self.validated_data)
         instance.save()
 
         return instance

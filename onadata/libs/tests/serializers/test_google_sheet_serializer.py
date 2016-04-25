@@ -1,5 +1,12 @@
 from rest_framework.test import APIRequestFactory
+from rest_framework.serializers import ValidationError
 
+from django.contrib.auth.models import AnonymousUser
+
+from oauth2client.contrib.django_orm import Storage
+from oauth2client.client import AccessTokenCredentials
+
+from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.restservice.models import RestService
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
@@ -16,6 +23,13 @@ class TestGoogleSheetSerializer(TestAbstractViewSet):
     def test_create_google_sheet_webhook(self):
         # create a project with a form
         self._publish_xls_form_to_project()
+        storage = Storage(TokenStorageModel, 'id', self.user, 'credential')
+        google_creds = AccessTokenCredentials("fake_token", user_agent="onaio")
+        google_creds.set_store(storage)
+        storage.put(google_creds)
+
+        request = self.factory.post('/', **self.extra)
+        request.user = self.user
 
         pre_count = RestService.objects.filter(xform=self.xform).count()
 
@@ -27,7 +41,8 @@ class TestGoogleSheetSerializer(TestAbstractViewSet):
             "sync_updates": False
         }
 
-        serializer = GoogleSheetsSerializer(data=data)
+        serializer = GoogleSheetsSerializer(data=data,
+                                            context={'request': request})
         serializer.save()
 
         count = RestService.objects.filter(xform=self.xform).count()
@@ -35,6 +50,64 @@ class TestGoogleSheetSerializer(TestAbstractViewSet):
         self.assertEqual(pre_count + 1, count)
 
         gsheet_details = MetaData.get_gsheet_details(self.xform)
-        self.assertEqual({
-            'GSHEET_TITLE': 'Data-sync',
-            'UPDATE_OR_DELETE_GSHEET_DATA': 'False'}, gsheet_details)
+        self.assertEqual(gsheet_details.get('USER_ID'),
+                         '{}'.format(self.user.pk))
+        self.assertEqual(gsheet_details.get('GSHEET_TITLE'), "Data-sync")
+        self.assertEqual(gsheet_details.get('UPDATE_OR_DELETE_GSHEET_DATA'),
+                         'False')
+
+    def test_create_google_sheet_webhook_with_no_google_credential(self):
+        # create a project with a form
+        self._publish_xls_form_to_project()
+
+        request = self.factory.post('/', **self.extra)
+        request.user = self.user
+
+        pre_count = RestService.objects.filter(xform=self.xform).count()
+
+        data = {
+            "xform": self.xform.pk,
+            "name": "googlesheets",
+            "google_sheet_title": "Data-sync",
+            "send_existing_data": False,
+            "sync_updates": False
+        }
+
+        serializer = GoogleSheetsSerializer(data=data,
+                                            context={'request': request})
+        with self.assertRaises(ValidationError):
+            serializer.save()
+
+        count = RestService.objects.filter(xform=self.xform).count()
+
+        self.assertEqual(pre_count, count)
+        gsheet_details = MetaData.get_gsheet_details(self.xform)
+        self.assertIsNone(gsheet_details)
+
+    def test_create_google_sheet_webhook_without_auth(self):
+        # create a project with a form
+        self._publish_xls_form_to_project()
+
+        request = self.factory.post('/')
+        request.user = AnonymousUser()
+
+        pre_count = RestService.objects.filter(xform=self.xform).count()
+
+        data = {
+            "xform": self.xform.pk,
+            "name": "googlesheets",
+            "google_sheet_title": "Data-sync",
+            "send_existing_data": False,
+            "sync_updates": False
+        }
+
+        serializer = GoogleSheetsSerializer(data=data,
+                                            context={'request': request})
+        with self.assertRaises(ValidationError):
+            serializer.save()
+
+        count = RestService.objects.filter(xform=self.xform).count()
+
+        self.assertEqual(pre_count, count)
+        gsheet_details = MetaData.get_gsheet_details(self.xform)
+        self.assertIsNone(gsheet_details)
