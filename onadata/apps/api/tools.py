@@ -19,6 +19,7 @@ from django.http import HttpResponseNotFound
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.shortcuts import get_object_or_404
+from django.core.validators import URLValidator
 from django.core.validators import ValidationError
 from registration.models import RegistrationProfile
 from rest_framework import exceptions
@@ -29,7 +30,9 @@ from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
+from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.project_utils import set_project_perms_to_xform
@@ -390,7 +393,16 @@ def add_tags_to_instance(request, instance):
         raise exceptions.ParseError(form.errors)
 
 
-def get_media_file_response(metadata):
+def get_media_file_response(metadata, request=None):
+
+    def get_data_value_objects(value):
+        if value.startswith('xform'):
+            parts = value.split()
+            if len(parts) > 1:
+                name = parts[2] if len(parts) > 2 else None
+
+                return (get_object_or_404(XForm, pk=parts[1]), name)
+
     if metadata.data_file:
         file_path = metadata.data_file.name
         filename, extension = os.path.splitext(file_path.split('/')[-1])
@@ -407,6 +419,15 @@ def get_media_file_response(metadata):
         else:
             return HttpResponseNotFound()
     else:
+        try:
+            URLValidator()(metadata.data_value)
+        except ValidationError:
+            xform, filename = get_data_value_objects(metadata.data_value)
+
+            return custom_response_handler(
+                request, xform, {}, Export.CSV_EXPORT, filename=filename
+            )
+
         return HttpResponseRedirect(metadata.data_value)
 
 

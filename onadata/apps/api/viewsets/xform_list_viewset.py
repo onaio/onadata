@@ -132,4 +132,4 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
         meta_obj = get_object_or_404(
             MetaData, data_type='media', object_id=self.object.pk, pk=pk)
 
-        return get_media_file_response(meta_obj)
+        return get_media_file_response(meta_obj, request)

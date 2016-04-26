@@ -43,7 +43,7 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
         if isinstance(request.accepted_renderer, MediaFileRenderer) \
                 and self.object.data_file is not None:
 
-            return get_media_file_response(self.object)
+            return get_media_file_response(self.object, request)
 
         serializer = self.get_serializer(self.object)
 
