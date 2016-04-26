@@ -1,12 +1,16 @@
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
-from django.utils.translation import ugettext as _
 from django.db.utils import IntegrityError
+from django.shortcuts import get_object_or_404
+from django.utils.translation import ugettext as _
+
 from rest_framework import serializers
 
 from onadata.apps.logger.models import XForm, Project, Instance
 from onadata.apps.main.models import MetaData
+
+from onadata.libs.permissions import ManagerRole
 from onadata.libs.serializers.fields.xform_related_field import (
     XFormRelatedField,)
 from onadata.libs.serializers.fields.project_related_field import (
@@ -92,9 +96,30 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             try:
                 URLValidator()(value)
             except ValidationError:
-                raise serializers.ValidationError({
-                    'data_value': _(u"Invalid url %s." % value)
-                })
+                if value.startswith('xform'):
+                    parts = value.split()
+                    if len(parts) > 1:
+                        try:
+                            pk = int(parts[1])
+                        except ValueError:
+                            serializers.ValidationError({
+                                'data_value': _(u"Invalid form id %s." % value)
+                            })
+                        else:
+                            xform = get_object_or_404(XForm, pk=pk)
+                            request = self.context['request']
+                            user_has_role = ManagerRole.user_has_role
+                            has_perm = user_has_role(request.user, xform) or \
+                                user_has_role(request.user, xform.project)
+                            if not has_perm:
+                                raise serializers.ValidationError({
+                                    'data_value':
+                                    _(u"User has no permission to the form.")
+                                })
+                else:
+                    raise serializers.ValidationError({
+                        'data_value': _(u"Invalid url %s." % value)
+                    })
 
         return attrs
 
