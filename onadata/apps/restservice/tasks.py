@@ -27,7 +27,7 @@ def initial_google_sheet_export(xform_pk, google_credentials,
         "spreadsheet_title": spreadsheet_title,
         "flatten_repeated_fields": False
     }
-    xform = XForm.object.get(pk=xform_pk)
+    xform = XForm.objects.get(pk=xform_pk)
     path = None
     data = query_data(xform)
 

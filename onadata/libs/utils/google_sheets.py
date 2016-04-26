@@ -3,6 +3,7 @@ This module contains classes responsible for communicating with
 Google Data API and common spreadsheets models.
 """
 import gspread
+from gspread import SpreadsheetNotFound, WorksheetNotFound
 import json
 import xlrd
 
@@ -99,7 +100,20 @@ class SheetsClient(gspread.client.Client):
         return self.open_by_key(sheet_id)
 
     def create_or_get_spreadsheet(self, title):
-        return self.open(title)
+        try:
+            return self.open(title)
+        except SpreadsheetNotFound:
+
+            headers = {'Content-Type': 'application/json'}
+            data = {
+                'title': title,
+                'mimeType': 'application/vnd.google-apps.spreadsheet'
+            }
+
+            self.session.request('POST', SheetsClient.DRIVE_API_URL,
+                                 headers=headers, data=json.dumps(data))
+
+            return self.open(title)
 
     def add_service_account_to_spreadsheet(self, spreadsheet):
         url = '%s/%s/permissions' % (SheetsClient.DRIVE_API_URL,
@@ -164,7 +178,10 @@ class SheetsExportBuilder(ExportBuilder):
             SheetsClient.login_with_service_account(self.google_credentials)
 
         self.spreadsheet = \
-            self.client.get_spreadsheet(title=self.spreadsheet_title)
+            self.client.create_or_get_spreadsheet(title=self.spreadsheet_title)
+
+        # Add Service account as editor
+        self.client.add_service_account_to_spreadsheet(self.spreadsheet)
 
         if not self._update_spreadsheet(data, xform):
             self.export_tabular(path, data)
@@ -238,13 +255,23 @@ class SheetsExportBuilder(ExportBuilder):
         # Write the data
         self._insert_data(data)
 
+        # Delete the default worksheet if it exists
+        # NOTE: for some reason self.spreadsheet.worksheets() does not contain
+        #       the default worksheet (Sheet1). We therefore need to fetch an
+        #       updated list here.
+        feed = self.client.get_worksheets_feed(self.spreadsheet)
+        for elem in feed.findall(gspread.ns._ns('entry')):
+            ws = gspread.Worksheet(self.spreadsheet, elem)
+            if ws.title == 'Sheet1':
+                self.client.del_worksheet(ws)
+
     def _insert_data(self, data):
         """Writes data rows for each section."""
         indices = {}
         survey_name = self.survey.name
         for index, d in enumerate(data, 1):
             joined_export = dict_to_joined_export(
-                d, index, indices, survey_name, self.survey)
+                d, index, indices, survey_name, self.survey, d)
             output = ExportBuilder.decode_mongo_encoded_section_names(
                 joined_export)
             # attach meta fields (index, parent_index, parent_table)
@@ -283,7 +310,9 @@ class SheetsExportBuilder(ExportBuilder):
                 section['elements']] + self.EXTRA_FIELDS
             # get the worksheet
             ws = self.worksheets[section_name]
-            update_row(ws, index=1, values=headers)
+            # Only create headers if there is none
+            if ws.row_count() < 1:
+                update_row(ws, index=1, values=headers)
 
     def _create_worksheets(self):
         """Creates one worksheet per section."""
@@ -294,8 +323,12 @@ class SheetsExportBuilder(ExportBuilder):
                 self.worksheet_titles.values())
             self.worksheet_titles[section_name] = work_sheet_title
             num_cols = len(section['elements']) + len(self.EXTRA_FIELDS)
-            self.worksheets[section_name] = self.spreadsheet.add_worksheet(
-                title=work_sheet_title, rows=1, cols=num_cols)
+            try:
+                self.worksheets[section_name] = \
+                    self.spreadsheet.worksheet(work_sheet_title)
+            except WorksheetNotFound:
+                self.worksheets[section_name] = self.spreadsheet.add_worksheet(
+                    title=work_sheet_title, rows=1, cols=num_cols)
 
     def _update_spreadsheet(self, data, xform):
 

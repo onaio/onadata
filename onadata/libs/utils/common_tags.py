@@ -79,5 +79,6 @@ NUMERIC_LIST = [u'integer', u'decimal', u'calculate']
 SELECT_ONE = u'select one'
 
 # gsheets
+GOOGLESHEET = u'googlesheets'
 GSHEET_TITLE = u'GSHEET_TITLE'
 UPDATE_OR_DELETE_GSHEET_DATA = u'UPDATE_OR_DELETE_GSHEET_DATA'

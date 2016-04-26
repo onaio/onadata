@@ -3,6 +3,7 @@ from rest_framework.response import Response
 
 from onadata.apps.api.permissions import RestServiceObjectPermissions
 from onadata.libs.serializers.textit_serializer import TextItSerializer
+from onadata.libs.serializers.google_serializer import GoogleSheetsSerializer
 from onadata.apps.restservice.models import RestService
 from onadata.libs import filters
 from onadata.libs.serializers.restservices_serializer import \
@@ -11,7 +12,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
-from onadata.libs.utils.common_tags import TEXTIT
+from onadata.libs.utils.common_tags import TEXTIT, GOOGLESHEET
 from onadata.apps.api.tools import get_baseviewset_class
 
 
@@ -35,6 +36,9 @@ class RestServicesViewSet(AuthenticateHeaderMixin,
 
         if name == TEXTIT:
             return TextItSerializer
+
+        if name == GOOGLESHEET:
+            return GoogleSheetsSerializer
 
         return super(RestServicesViewSet, self).get_serializer_class()
 
