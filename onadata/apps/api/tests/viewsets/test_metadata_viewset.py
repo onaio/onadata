@@ -213,6 +213,17 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response['Location'], data_value)
 
+    def test_add_media_xform_link(self):
+        data_type = 'media'
+        data_value = 'xform {} transportation'.format(self.xform.pk)
+        self._add_form_metadata(self.xform, data_type, data_value)
+        request = self.factory.get('/', **self.extra)
+        ext = self.data_value[self.data_value.rindex('.') + 1:]
+        response = self.view(request, pk=self.metadata.pk, format=ext)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Disposition'],
+                         'attachment; filename=transportation.csv')
+
     def test_add_invalid_media_url(self):
         data = {
             'data_value': 'httptracfieldtrips.csv',
