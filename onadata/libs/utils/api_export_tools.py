@@ -73,7 +73,8 @@ def _get_export_type(export_type):
 
 
 def custom_response_handler(request, xform, query, export_type,
-                            token=None, meta=None, dataview_pk=False):
+                            token=None, meta=None, dataview_pk=False,
+                            filename=None):
     export_type = _get_export_type(export_type)
     if export_type in external_export_types and \
             (token is not None) or (meta is not None):
@@ -125,10 +126,14 @@ def custom_response_handler(request, xform, query, export_type,
     path, ext = os.path.splitext(export.filename)
     ext = ext[1:]
 
-    id_string = _generate_filename(request, xform, remove_group_name,
-                                   dataview_pk=dataview_pk)
+    show_date = True
+    if filename is None:
+        filename = _generate_filename(request, xform, remove_group_name,
+                                      dataview_pk=dataview_pk)
+    else:
+        show_date = False
     response = response_with_mimetype_and_name(
-        Export.EXPORT_MIMES[ext], id_string, extension=ext,
+        Export.EXPORT_MIMES[ext], filename, extension=ext, show_date=show_date,
         file_path=export.filepath)
 
     return response
