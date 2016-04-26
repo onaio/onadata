@@ -4,7 +4,6 @@ from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.restservice.models import RestService
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.restservice.tasks import initial_google_sheet_export
-from onadata.libs.utils.api_export_tools import _get_google_credential
 
 
 class GoogleSheetService(object):

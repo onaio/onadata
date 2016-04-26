@@ -1,6 +1,11 @@
+from django.contrib.auth.models import User
+from oauth2client.contrib.django_orm import Storage
+
 from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 from onadata.apps.main.models import MetaData
 from onadata.libs.utils.google_sheets import SheetsExportBuilder
+from onadata.apps.main.models import TokenStorageModel
+from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.utils.common_tags import (
     GSHEET_TITLE,
     # UPDATE_OR_DELETE_GSHEET_DATA
@@ -8,20 +13,23 @@ from onadata.libs.utils.common_tags import (
 
 
 class ServiceDefinition(RestServiceInterface):
-    id = u'gsheets'
-    verbose_name = u'Gsheet export'
+    id = u'googlesheets'
+    verbose_name = u'Google Sheet Export'
 
     def send(self, url, submission_instance):
-        spreadsheet_title = MetaData.get_gsheet_details(
+        spreadsheet_details = MetaData.get_gsheet_details(
             submission_instance.xform)
         config = {
-            "spreadsheet_title": spreadsheet_title.get(GSHEET_TITLE),
+            "spreadsheet_title": spreadsheet_details.get(GSHEET_TITLE),
             "flatten_repeated_fields": False
         }
-        google_credentials = None
+        user_id = spreadsheet_details.get('USER_ID')
+        user = User.objects.get(pk=user_id)
+        storage = Storage(TokenStorageModel, 'id', user, 'credential')
+
+        google_credentials = storage.get()
         xform = submission_instance.xform
         path = None
-        data = submission_instance.instance.json
-
+        data = [submission_instance.json]
         google_sheets = SheetsExportBuilder(xform, google_credentials, config)
         google_sheets.live_update(path, data, xform)

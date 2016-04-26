@@ -186,6 +186,16 @@ class SheetsExportBuilder(ExportBuilder):
         if not self._update_spreadsheet(data, xform):
             self.export_tabular(path, data)
 
+        # Delete the default worksheet if it exists
+        # NOTE: for some reason self.spreadsheet.worksheets() does not contain
+        #       the default worksheet (Sheet1). We therefore need to fetch an
+        #       updated list here.
+        feed = self.client.get_worksheets_feed(self.spreadsheet)
+        for elem in feed.findall(gspread.ns._ns('entry')):
+            ws = gspread.Worksheet(self.spreadsheet, elem)
+            if ws.title == 'Sheet1':
+                self.client.del_worksheet(ws)
+
     def export(self, path, data, username, xform=None, filter_query=None):
         self.client = \
             SheetsClient.login_with_service_account(self.google_credentials)
@@ -255,16 +265,6 @@ class SheetsExportBuilder(ExportBuilder):
         # Write the data
         self._insert_data(data)
 
-        # Delete the default worksheet if it exists
-        # NOTE: for some reason self.spreadsheet.worksheets() does not contain
-        #       the default worksheet (Sheet1). We therefore need to fetch an
-        #       updated list here.
-        feed = self.client.get_worksheets_feed(self.spreadsheet)
-        for elem in feed.findall(gspread.ns._ns('entry')):
-            ws = gspread.Worksheet(self.spreadsheet, elem)
-            if ws.title == 'Sheet1':
-                self.client.del_worksheet(ws)
-
     def _insert_data(self, data):
         """Writes data rows for each section."""
         indices = {}
@@ -311,8 +311,7 @@ class SheetsExportBuilder(ExportBuilder):
             # get the worksheet
             ws = self.worksheets[section_name]
             # Only create headers if there is none
-            if ws.row_count() < 1:
-                update_row(ws, index=1, values=headers)
+            update_row(ws, index=1, values=headers)
 
     def _create_worksheets(self):
         """Creates one worksheet per section."""
@@ -331,7 +330,6 @@ class SheetsExportBuilder(ExportBuilder):
                     title=work_sheet_title, rows=1, cols=num_cols)
 
     def _update_spreadsheet(self, data, xform):
-
         try:
             self.worksheets[xform.id_string] \
                 = self.spreadsheet.worksheet(xform.id_string)
