@@ -5,11 +5,7 @@ from onadata.apps.restservice.RestServiceInterface import RestServiceInterface
 from onadata.apps.main.models import MetaData
 from onadata.libs.utils.google_sheets import SheetsExportBuilder
 from onadata.apps.main.models import TokenStorageModel
-from onadata.apps.viewer.models.parsed_instance import query_data
-from onadata.libs.utils.common_tags import (
-    GSHEET_TITLE,
-    # UPDATE_OR_DELETE_GSHEET_DATA
-)
+from onadata.libs.utils.common_tags import GSHEET_TITLE, USER_ID
 
 
 class ServiceDefinition(RestServiceInterface):
@@ -23,7 +19,7 @@ class ServiceDefinition(RestServiceInterface):
             "spreadsheet_title": spreadsheet_details.get(GSHEET_TITLE),
             "flatten_repeated_fields": False
         }
-        user_id = spreadsheet_details.get('USER_ID')
+        user_id = spreadsheet_details.get(USER_ID)
         user = User.objects.get(pk=user_id)
         storage = Storage(TokenStorageModel, 'id', user, 'credential')
 
