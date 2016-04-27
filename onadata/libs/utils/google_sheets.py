@@ -3,7 +3,7 @@ This module contains classes responsible for communicating with
 Google Data API and common spreadsheets models.
 """
 import gspread
-from gspread import SpreadsheetNotFound, WorksheetNotFound
+from gspread import SpreadsheetNotFound, WorksheetNotFound, CellNotFound
 import json
 import xlrd
 
@@ -183,7 +183,8 @@ class SheetsExportBuilder(ExportBuilder):
         # Add Service account as editor
         self.client.add_service_account_to_spreadsheet(self.spreadsheet)
 
-        if not self._update_spreadsheet(data, xform):
+        value = self._update_spreadsheet(data, xform)
+        if isinstance(value, bool) and not value:
             self.export_tabular(path, data)
 
         # Delete the default worksheet if it exists
@@ -344,12 +345,12 @@ class SheetsExportBuilder(ExportBuilder):
             ids_col_list.sort(reverse=True)
             last_id = ids_col_list[0]
             filtered_data = filter(lambda x: x.get(ID) > int(last_id), data)
+            if filtered_data:
+                self._insert_data(filtered_data)
+                return True
 
-            self._insert_data(filtered_data)
-        except Exception:
+        except CellNotFound:
             return False
-
-        return True
 
     @classmethod
     def write_row(cls, data, worksheet, fields, worksheet_titles):
