@@ -7,7 +7,10 @@ from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
 
-from onadata.apps.logger.models import XForm, Project, Instance
+from onadata.apps.logger.models import DataView
+from onadata.apps.logger.models import Project
+from onadata.apps.logger.models import Instance
+from onadata.apps.logger.models import XForm
 from onadata.apps.main.models import MetaData
 
 from onadata.libs.permissions import ManagerRole
@@ -96,7 +99,28 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             try:
                 URLValidator()(value)
             except ValidationError:
-                if value.startswith('xform'):
+                if value.startswith('dataview'):
+                    parts = value.split()
+                    if len(parts) > 1:
+                        try:
+                            pk = int(parts[1])
+                        except ValueError:
+                            serializers.ValidationError({
+                                'data_value': _(u"Invalid form id %s." % value)
+                            })
+                        else:
+                            dataview = get_object_or_404(DataView, pk=pk)
+                            request = self.context['request']
+                            user_has_role = ManagerRole.user_has_role
+                            has_perm = user_has_role(
+                                request.user, dataview.xform) or \
+                                user_has_role(request.user, dataview.project)
+                            if not has_perm:
+                                raise serializers.ValidationError({
+                                    'data_value':
+                                    _(u"User has no permission to the form.")
+                                })
+                elif value.startswith('xform'):
                     parts = value.split()
                     if len(parts) > 1:
                         try:

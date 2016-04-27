@@ -28,6 +28,7 @@ from taggit.forms import TagField
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
+from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.viewer.models.export import Export
@@ -396,12 +397,20 @@ def add_tags_to_instance(request, instance):
 def get_media_file_response(metadata, request=None):
 
     def get_data_value_objects(value):
-        if value.startswith('xform'):
+        if value.startswith('dataview'):
+            parts = value.split()
+            if len(parts) > 1:
+                name = parts[2] if len(parts) > 2 else None
+
+                return (get_object_or_404(DataView, pk=parts[1]), name)
+        elif value.startswith('xform'):
             parts = value.split()
             if len(parts) > 1:
                 name = parts[2] if len(parts) > 2 else None
 
                 return (get_object_or_404(XForm, pk=parts[1]), name)
+
+        return (None, None)
 
     if metadata.data_file:
         file_path = metadata.data_file.name
@@ -422,11 +431,18 @@ def get_media_file_response(metadata, request=None):
         try:
             URLValidator()(metadata.data_value)
         except ValidationError:
-            xform, filename = get_data_value_objects(metadata.data_value)
-
-            return custom_response_handler(
-                request, xform, {}, Export.CSV_EXPORT, filename=filename
-            )
+            obj, filename = get_data_value_objects(metadata.data_value)
+            if obj:
+                if isinstance(obj, DataView):
+                    dataview_pk = obj.pk
+                    xform = obj.xform
+                else:
+                    xform = obj
+                    dataview_pk = False
+                return custom_response_handler(
+                    request, xform, {}, Export.CSV_EXPORT, filename=filename,
+                    dataview_pk=dataview_pk
+                )
 
         return HttpResponseRedirect(metadata.data_value)
 
