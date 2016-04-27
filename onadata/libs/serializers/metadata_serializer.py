@@ -40,9 +40,37 @@ METADATA_TYPES = (
     ('textit', _(u"External Export"))
 )
 
+DATAVIEW_TAG = 'dataview'
+XFORM_TAG = 'xform'
+
 PROJECT_METADATA_TYPES = (
     (MEDIA_TYPE, _(u"Media")),
     ('supporting_doc', _(u"Supporting Document")))
+
+
+def get_linked_object(parts):
+    """Returns an XForm or DataView object
+
+    Raises 404 Exception if object  is not found.
+    Raises serializers.ValidationError if the format of the linked
+    object is not valid.
+    """
+    if isinstance(parts, list) and len(parts):
+        obj_type = parts[0]
+        if obj_type in [DATAVIEW_TAG, XFORM_TAG] and len(parts) > 1:
+            pk = parts[1]
+            try:
+                pk = int(pk)
+            except ValueError:
+                serializers.ValidationError({
+                    'data_value':
+                    _(u"Invalid %s id %s." % (obj_type, pk))
+                })
+            else:
+                if obj_type == DATAVIEW_TAG:
+                    return get_object_or_404(DataView, pk=pk)
+                else:
+                    return get_object_or_404(XForm, pk=pk)
 
 
 class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
@@ -99,47 +127,19 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             try:
                 URLValidator()(value)
             except ValidationError:
-                if value.startswith('dataview'):
-                    parts = value.split()
-                    if len(parts) > 1:
-                        try:
-                            pk = int(parts[1])
-                        except ValueError:
-                            serializers.ValidationError({
-                                'data_value': _(u"Invalid form id %s." % value)
-                            })
-                        else:
-                            dataview = get_object_or_404(DataView, pk=pk)
-                            request = self.context['request']
-                            user_has_role = ManagerRole.user_has_role
-                            has_perm = user_has_role(
-                                request.user, dataview.xform) or \
-                                user_has_role(request.user, dataview.project)
-                            if not has_perm:
-                                raise serializers.ValidationError({
-                                    'data_value':
-                                    _(u"User has no permission to the form.")
-                                })
-                elif value.startswith('xform'):
-                    parts = value.split()
-                    if len(parts) > 1:
-                        try:
-                            pk = int(parts[1])
-                        except ValueError:
-                            serializers.ValidationError({
-                                'data_value': _(u"Invalid form id %s." % value)
-                            })
-                        else:
-                            xform = get_object_or_404(XForm, pk=pk)
-                            request = self.context['request']
-                            user_has_role = ManagerRole.user_has_role
-                            has_perm = user_has_role(request.user, xform) or \
-                                user_has_role(request.user, xform.project)
-                            if not has_perm:
-                                raise serializers.ValidationError({
-                                    'data_value':
-                                    _(u"User has no permission to the form.")
-                                })
+                obj = get_linked_object(value.split())
+                if obj:
+                    xform = obj.xform if isinstance(obj, DataView) else obj
+                    request = self.context['request']
+                    user_has_role = ManagerRole.user_has_role
+                    has_perm = user_has_role(request.user, xform) or \
+                        user_has_role(request.user, obj.project)
+                    if not has_perm:
+                        raise serializers.ValidationError({
+                            'data_value':
+                            _(u"User has no permission to "
+                                "the dataview.")
+                        })
                 else:
                     raise serializers.ValidationError({
                         'data_value': _(u"Invalid url %s." % value)
