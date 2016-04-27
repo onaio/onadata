@@ -205,6 +205,15 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
     def test_add_media_url(self):
         data_type = 'media'
+
+        data_value = 'some thing random here'
+        with self.assertRaises(AssertionError) as e:
+            self._add_form_metadata(self.xform, data_type, data_value)
+        expected_exception = {
+            'data_value': [u"Invalid url 'some thing random here'."]
+        }
+        self.assertEqual(e.exception.message, expected_exception)
+
         data_value = 'https://devtrac.ona.io/fieldtrips.csv'
         self._add_form_metadata(self.xform, data_type, data_value)
         request = self.factory.get('/', **self.extra)
@@ -215,6 +224,17 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
     def test_add_media_xform_link(self):
         data_type = 'media'
+
+        data_value = 'xform {}'.format(self.xform.pk)
+        with self.assertRaises(AssertionError) as e:
+            self._add_form_metadata(self.xform, data_type, data_value)
+        expected_exception = {
+            'data_value': [
+                u"Expecting 'xform [xform id] [media name]' or "
+                "'dataview [dataview id] [media name]' or a valid URL."]
+        }
+        self.assertEqual(e.exception.message, expected_exception)
+
         data_value = 'xform {} transportation'.format(self.xform.pk)
         self._add_form_metadata(self.xform, data_type, data_value)
         request = self.factory.get('/', **self.extra)

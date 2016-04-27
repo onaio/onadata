@@ -62,7 +62,7 @@ def get_linked_object(parts):
             try:
                 pk = int(pk)
             except ValueError:
-                serializers.ValidationError({
+                raise serializers.ValidationError({
                     'data_value':
                     _(u"Invalid %s id %s." % (obj_type, pk))
                 })
@@ -127,7 +127,16 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             try:
                 URLValidator()(value)
             except ValidationError:
-                obj = get_linked_object(value.split())
+                parts = value.split()
+                if len(parts) < 3:
+                    raise serializers.ValidationError({
+                        'data_value': _(
+                            u"Expecting 'xform [xform id] [media name]' "
+                            "or 'dataview [dataview id] [media name]' "
+                            "or a valid URL."
+                        )
+                    })
+                obj = get_linked_object(parts)
                 if obj:
                     xform = obj.xform if isinstance(obj, DataView) else obj
                     request = self.context['request']
@@ -142,7 +151,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
                         })
                 else:
                     raise serializers.ValidationError({
-                        'data_value': _(u"Invalid url %s." % value)
+                        'data_value': _(u"Invalid url '%s'." % value)
                     })
 
         return attrs
