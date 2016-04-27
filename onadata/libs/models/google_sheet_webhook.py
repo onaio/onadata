@@ -50,7 +50,6 @@ class GoogleSheetService(object):
                 countdown=1
             )
 
-
     def retrieve(self):
         gsheet_details = MetaData.get_gsheet_details(self.xform)
 

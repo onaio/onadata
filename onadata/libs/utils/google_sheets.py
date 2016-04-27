@@ -3,11 +3,14 @@ This module contains classes responsible for communicating with
 Google Data API and common spreadsheets models.
 """
 import gspread
-from gspread import SpreadsheetNotFound, WorksheetNotFound, CellNotFound
 import json
 import xlrd
+import httplib2
 
+from gspread import SpreadsheetNotFound, WorksheetNotFound, CellNotFound
+from apiclient import discovery
 from django.conf import settings
+
 from onadata.libs.utils.export_tools import ExportBuilder,\
     dict_to_joined_export
 from onadata.libs.utils.common_tags import INDEX, PARENT_INDEX,\
@@ -89,7 +92,8 @@ class SheetsClient(gspread.client.Client):
         headers = {'Content-Type': 'application/json'}
         data = {
             'title': title,
-            'mimeType': 'application/vnd.google-apps.spreadsheet'
+            'mimeType': 'application/vnd.google-apps.spreadsheet',
+            'parents': [{'id': self.get_sheets_folderId(self.auth)}]
         }
 
         r = self.session.request(
@@ -99,6 +103,32 @@ class SheetsClient(gspread.client.Client):
         sheet_id = resp['id']
         return self.open_by_key(sheet_id)
 
+    def create_sheet_folder(self, folder_name="onadata"):
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            'title': folder_name,
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+
+        r = self.session.request(
+            'POST', SheetsClient.DRIVE_API_URL, headers=headers,
+            data=json.dumps(data))
+        resp = json.loads(r.content)
+        return resp['id']
+
+    def get_sheets_folderId(self, credentials, folder_name="onadata"):
+        http = httplib2.Http()
+        drive = discovery.build("drive", "v2",
+                                http=credentials.authorize(http))
+
+        response = drive.files().list(
+            q="title = '{}' and trashed = false".format(folder_name)).execute()
+
+        if len(response.get('items')) > 0:
+            return response.get('items')[0].get('id')
+
+        return self.create_sheet_folder(folder_name)
+
     def create_or_get_spreadsheet(self, title):
         try:
             return self.open(title)
@@ -107,7 +137,8 @@ class SheetsClient(gspread.client.Client):
             headers = {'Content-Type': 'application/json'}
             data = {
                 'title': title,
-                'mimeType': 'application/vnd.google-apps.spreadsheet'
+                'mimeType': 'application/vnd.google-apps.spreadsheet',
+                'parents': [{'id': self.get_sheets_folderId(self.auth)}]
             }
 
             self.session.request('POST', SheetsClient.DRIVE_API_URL,

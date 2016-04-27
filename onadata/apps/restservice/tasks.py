@@ -18,6 +18,7 @@ def call_service_async(instance_pk):
     else:
         call_service(instance)
 
+
 @task()
 def initial_google_sheet_export(xform_pk, google_credentials,
                                 spreadsheet_title):

@@ -88,3 +88,4 @@ python-dateutil
 pytz
 requests
 simplejson
+google-api-python-client
