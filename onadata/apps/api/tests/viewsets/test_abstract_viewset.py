@@ -405,7 +405,7 @@ class TestAbstractViewSet(TestCase):
         response = view(request)
 
         if test:
-            self.assertEqual(response.status_code, 201)
+            self.assertEqual(response.status_code, 201, response.data)
             another_count = MetaData.objects.count()
             self.assertEqual(another_count, count + 1)
             self.metadata = MetaData.objects.get(pk=response.data['id'])
