@@ -3,7 +3,6 @@ This module contains classes responsible for communicating with
 Google Data API and common spreadsheets models.
 """
 import gspread
-from gspread import SpreadsheetNotFound, WorksheetNotFound, CellNotFound
 import json
 import xlrd
 import httplib2
