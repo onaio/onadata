@@ -3,8 +3,8 @@ from onadata.apps.restservice.models import RestService
 
 def call_service(submission_instance):
     # lookup service
-    services = RestService.objects.filter(
-        xform_id=submission_instance.xform_id
+    services = RestService.objects.exclude(
+        xform_id=submission_instance.xform_id, name='googlesheet'
     )
     # call service send with url and data parameters
     for sv in services:
