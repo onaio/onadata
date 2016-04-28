@@ -19,8 +19,6 @@ from onadata.apps.logger.models import (
 from onadata.apps.main.models import MetaData
 from onadata.libs.utils.common_tags import USER_ID, GOOGLE_SHEET_ID
 
-from onadata.apps.logger.models.xform import XForm
-
 
 @task()
 def call_service_async(instance_pk):
