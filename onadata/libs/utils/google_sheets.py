@@ -10,6 +10,9 @@ import httplib2
 from gspread import SpreadsheetNotFound, WorksheetNotFound, CellNotFound
 from apiclient import discovery
 from django.conf import settings
+from oauth2client.contrib.django_orm import Storage
+
+from onadata.apps.main.models import TokenStorageModel
 
 from onadata.libs.utils.export_tools import ExportBuilder,\
     dict_to_joined_export
@@ -79,6 +82,16 @@ def xldr_format_value(cell):
     return value
 
 
+def get_google_sheet_id(user, title):
+    storage = Storage(TokenStorageModel, 'id', user, 'credential')
+    google_credentials = storage.get()
+
+    client = SheetsClient.login_with_service_account(google_credentials)
+
+    return client.get_google_sheet_id(title)
+
+
+
 class SheetsClient(gspread.client.Client):
     """An instance of this class communicates with Google Data API."""
 
@@ -93,7 +106,7 @@ class SheetsClient(gspread.client.Client):
         data = {
             'title': title,
             'mimeType': 'application/vnd.google-apps.spreadsheet',
-            'parents': [{'id': self.get_sheets_folderId(self.auth)}]
+            'parents': [{'id': self.get_sheets_folder_id(self.auth)}]
         }
 
         r = self.session.request(
@@ -116,7 +129,7 @@ class SheetsClient(gspread.client.Client):
         resp = json.loads(r.content)
         return resp['id']
 
-    def get_sheets_folderId(self, credentials, folder_name="onadata"):
+    def get_sheets_folder_id(self, credentials, folder_name="onadata"):
         http = httplib2.Http()
         drive = discovery.build("drive", "v2",
                                 http=credentials.authorize(http))
@@ -129,6 +142,20 @@ class SheetsClient(gspread.client.Client):
 
         return self.create_sheet_folder(folder_name)
 
+    def get_google_sheet_id(self, title):
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            'title': title,
+            'mimeType': 'application/vnd.google-apps.spreadsheet',
+            'parents': [{'id': self.get_sheets_folder_id(self.auth)}]
+        }
+
+        r = self.session.request(
+            'POST', SheetsClient.DRIVE_API_URL, headers=headers,
+            data=json.dumps(data))
+        resp = json.loads(r.content)
+        return resp['id']
+
     def create_or_get_spreadsheet(self, title):
         try:
             return self.open(title)
@@ -138,7 +165,7 @@ class SheetsClient(gspread.client.Client):
             data = {
                 'title': title,
                 'mimeType': 'application/vnd.google-apps.spreadsheet',
-                'parents': [{'id': self.get_sheets_folderId(self.auth)}]
+                'parents': [{'id': self.get_sheets_folder_id(self.auth)}]
             }
 
             self.session.request('POST', SheetsClient.DRIVE_API_URL,
@@ -164,6 +191,10 @@ class SheetsClient(gspread.client.Client):
         client = SheetsClient(auth=credential)
         client.login()
         return client
+
+    def get_googlesheet_title(self, spreadsheet_id):
+        spreadsheet = self.open_by_key(spreadsheet_id)
+        return spreadsheet.title()
 
 
 class SheetsExportBuilder(ExportBuilder):
@@ -204,12 +235,15 @@ class SheetsExportBuilder(ExportBuilder):
             config.get('flatten_repeated_fields', True)
         self.set_survey(xform.survey)
 
-    def live_update(self, path, data, xform):
+    def live_update(self, path, data, xform, spreadsheet_id=None):
         self.client = \
             SheetsClient.login_with_service_account(self.google_credentials)
 
-        self.spreadsheet = \
-            self.client.create_or_get_spreadsheet(title=self.spreadsheet_title)
+        if spreadsheet_id:
+            self.spreadsheet = self.client.open_by_key(spreadsheet_id)
+        else:
+            self.spreadsheet = \
+                self.client.create_or_get_spreadsheet(title=self.spreadsheet_title)
 
         # Add Service account as editor
         self.client.add_service_account_to_spreadsheet(self.spreadsheet)
@@ -380,7 +414,7 @@ class SheetsExportBuilder(ExportBuilder):
                 self._insert_data(filtered_data)
                 return True
 
-        except CellNotFound:
+        except (CellNotFound, WorksheetNotFound):
             return False
 
     @classmethod

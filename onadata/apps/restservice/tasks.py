@@ -59,7 +59,7 @@ def call_google_sheet_service(instance_pk):
 
 @task()
 def initial_google_sheet_export(xform_pk, google_credentials,
-                                spreadsheet_title):
+                                spreadsheet_title, spreadsheet_id):
     from onadata.libs.utils.google_sheets import SheetsExportBuilder
     from onadata.apps.viewer.models.parsed_instance import query_data
     config = {
@@ -71,4 +71,4 @@ def initial_google_sheet_export(xform_pk, google_credentials,
     data = query_data(xform)
 
     google_sheets = SheetsExportBuilder(xform, google_credentials, config)
-    google_sheets.live_update(path, data, xform)
+    google_sheets.live_update(path, data, xform, spreadsheet_id)
