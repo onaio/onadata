@@ -40,7 +40,7 @@ class GoogleSheetService(object):
 
         self.pk = rs.pk
 
-        if self.send_existing_data:
+        if self.send_existing_data and self.xform.instances.count() > 0:
             storage = Storage(TokenStorageModel, 'id', self.user,
                               'credential')
             google_credentials = storage.get()

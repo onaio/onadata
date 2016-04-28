@@ -1,13 +1,18 @@
 from mock import patch
 
 from django.test.utils import override_settings
+from oauth2client.contrib.django_orm import Storage
+from oauth2client.client import AccessTokenCredentials
 
+from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 from onadata.apps.main.models.meta_data import MetaData
+from onadata.libs.utils.common_tags import GOOGLESHEET
+from onadata.libs.utils.google_sheets import SheetsExportBuilder
 
 
 class TestRestServicesViewSet(TestAbstractViewSet):
@@ -193,3 +198,61 @@ class TestRestServicesViewSet(TestAbstractViewSet):
                                                      "ksadaskjdajsda"))
         self.assertFalse(mock_http.called)
         self._make_submissions()
+
+    def _create_googlesheet_service(self, data=None):
+        storage = Storage(TokenStorageModel, 'id', self.user, 'credential')
+        google_creds = AccessTokenCredentials("fake_token", user_agent="onaio")
+        google_creds.set_store(storage)
+        storage.put(google_creds)
+
+        count = RestService.objects.all().count()
+
+        post_data = {
+            "name": GOOGLESHEET,
+            "xform": self.xform.pk,
+            "google_sheet_title": "Data-sync",
+            "send_existing_data": False,
+            "sync_updates": False
+        }
+
+        if data:
+            post_data.update(data)
+
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = self.view(request)
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(count + 1, RestService.objects.all().count())
+
+        gsheet_details = MetaData.get_gsheet_details(self.xform)
+        self.assertIsNotNone(gsheet_details)
+
+        return response.data
+
+    @patch.object(SheetsExportBuilder, 'live_update')
+    def test_create_googlesheets_service(self, mock_sheet_builder):
+        self._create_googlesheet_service()
+
+        self.assertFalse(mock_sheet_builder.called)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch.object(SheetsExportBuilder, 'live_update')
+    def test_create_gsheets_service_with_initial_upload(self,
+                                                        mock_sheet_builder):
+        self._make_submissions()
+        self._create_googlesheet_service({"send_existing_data": True})
+
+        self.assertTrue(mock_sheet_builder.called)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch.object(SheetsExportBuilder, 'live_update')
+    def test_create_gsheets_service_submission(self, mock_sheet_builder):
+        self._create_googlesheet_service({"send_existing_data": True})
+
+        # should not be called because we dont have submission
+        self.assertFalse(mock_sheet_builder.called)
+
+        self._make_submissions()
+
+        # called four times
+        self.assertEqual(4, mock_sheet_builder.call_count)
