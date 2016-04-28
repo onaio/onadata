@@ -206,6 +206,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
     def test_add_media_url(self):
         data_type = 'media'
 
+        # test invalid URL
         data_value = 'some thing random here'
         with self.assertRaises(AssertionError) as e:
             self._add_form_metadata(self.xform, data_type, data_value)
@@ -214,6 +215,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         }
         self.assertEqual(e.exception.message, expected_exception)
 
+        # test valid URL
         data_value = 'https://devtrac.ona.io/fieldtrips.csv'
         self._add_form_metadata(self.xform, data_type, data_value)
         request = self.factory.get('/', **self.extra)
@@ -225,6 +227,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
     def test_add_media_xform_link(self):
         data_type = 'media'
 
+        # test missing parameters
         data_value = 'xform {}'.format(self.xform.pk)
         with self.assertRaises(AssertionError) as e:
             self._add_form_metadata(self.xform, data_type, data_value)
@@ -255,17 +258,6 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Disposition'],
                          'attachment; filename=transportation.csv')
-
-    def test_add_invalid_media_url(self):
-        data = {
-            'data_value': 'httptracfieldtrips.csv',
-            'data_type': 'media',
-            'xform': self.xform.pk
-        }
-        response = self._post_metadata(data, False)
-        self.assertEqual(response.status_code, 400)
-        error = {"data_value": ["Invalid url %s." % data['data_value']]}
-        self.assertEqual(response.data, error)
 
     def test_invalid_post(self):
         response = self._post_metadata({}, False)
