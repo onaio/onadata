@@ -188,9 +188,16 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
             url = self._get_metadata(obj, 'enketo_preview_url')
             if url is None:
-                url = get_enketo_preview_url(self.context.get('request'),
-                                             obj.user.username, obj.id_string)
-                MetaData.enketo_preview_url(obj, url)
+                try:
+                    url = get_enketo_preview_url(
+                        self.context.get('request'),
+                        obj.user.username,
+                        obj.id_string
+                    )
+                except:
+                    return url
+                else:
+                    MetaData.enketo_preview_url(obj, url)
 
             return _set_cache(ENKETO_PREVIEW_URL_CACHE, url, obj)
 
