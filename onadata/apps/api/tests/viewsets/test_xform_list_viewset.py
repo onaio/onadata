@@ -409,3 +409,22 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request, pk=self.xform.pk,
                              metadata=self.metadata.pk, format='png')
         self.assertEqual(response.status_code, 401)
+
+    def test_retrieve_xform_media_linked_xform(self):
+        data_type = 'media'
+        data_value = 'xform {} transportation'.format(self.xform.pk)
+        self._add_form_metadata(self.xform, data_type, data_value)
+        self.view = XFormListViewSet.as_view({
+            "get": "media"
+        })
+        request = self.factory.head('/')
+        response = self.view(request, pk=self.xform.pk,
+                             metadata=self.metadata.pk, format='csv')
+        auth = DigestAuth('bob', 'bobbob')
+        request = self.factory.get('/')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, pk=self.xform.pk,
+                             metadata=self.metadata.pk, format='csv')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Disposition'],
+                         'attachment; filename=transportation.csv')
