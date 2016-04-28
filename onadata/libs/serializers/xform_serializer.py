@@ -307,10 +307,13 @@ class XFormManifestSerializer(serializers.Serializer):
                   'username': obj.content_object.user.username,
                   'metadata': obj.pk}
         request = self.context.get('request')
-        format = obj.data_value[obj.data_value.rindex('.') + 1:]
+        try:
+            fmt = obj.data_value[obj.data_value.rindex('.') + 1:]
+        except ValueError:
+            fmt = 'csv'
 
         return reverse('xform-media', kwargs=kwargs,
-                       request=request, format=format.lower())
+                       request=request, format=fmt.lower())
 
     @check_obj
     def get_hash(self, obj):
