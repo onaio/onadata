@@ -78,6 +78,31 @@ def initial_google_sheet_export(xform_pk, google_credentials,
 
 
 @task()
+def sync_delete_googlesheets(instance_pk, xform_pk):
+    from onadata.libs.utils.google_sheets import SheetsExportBuilder
+
+    xform = XForm.objects.get(pk=xform_pk)
+    spreadsheet_details = MetaData.get_gsheet_details(xform)
+
+    config = {
+        "spreadsheet_title": xform.id_string,
+        "flatten_repeated_fields": False
+    }
+    user_id = spreadsheet_details.get(USER_ID)
+    spreadsheet_id = spreadsheet_details.get(GOOGLE_SHEET_ID)
+    user = User.objects.get(pk=user_id)
+    storage = Storage(TokenStorageModel, 'id', user, 'credential')
+
+    google_credentials = storage.get()
+
+    path = None
+    data = instance_pk
+
+    google_sheets = SheetsExportBuilder(xform, google_credentials, config)
+    google_sheets.live_update(path, data, xform, spreadsheet_id=spreadsheet_id,
+                              delete=True)
+
+@task()
 def sync_update_googlesheets(instance_pk, xform_pk):
     from onadata.libs.utils.google_sheets import SheetsExportBuilder
 

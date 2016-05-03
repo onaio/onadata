@@ -419,8 +419,6 @@ class SheetsExportBuilder(ExportBuilder):
                 id_cell = worksheet.find(regex_text)
 
                 self._insert_data(data, row_index=id_cell.row)
-                return True
-
         except (CellNotFound, WorksheetNotFound):
             return False
 
