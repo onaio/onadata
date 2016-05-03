@@ -1,4 +1,5 @@
 import os
+from mock import patch
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -12,6 +13,8 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.metadata_serializer import UNIQUE_TOGETHER_ERROR
+from onadata.libs.utils.google_sheets import SheetsClient
+from onadata.libs.utils.common_tags import GOOGLE_SHEET_TITLE
 
 
 class TestMetaDataViewSet(TestAbstractViewSet):
@@ -128,6 +131,50 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = view(request, pk=self.project.pk)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [data])
+
+    @patch.object(SheetsClient, 'get_googlesheet_title')
+    def test_get_gsheet_title(self, mock_get_googlesheet_title):
+        new_google_sheet_name = 'New Googlesheet Title'
+        mock_get_googlesheet_title.return_value = new_google_sheet_name
+        view = MetaDataViewSet.as_view({
+            'get': 'google_sheet_title'
+        })
+        self._add_form_metadata(
+            self.xform, "enketo_url", 'http://localhost:8005/_/#YYUU')
+        self.xform.reload()
+
+        formid = self.xform.pk
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data,
+                         "Google export hasn't been enabled for this form")
+
+        data_value = (
+            'GOOGLE_SHEET_ID {google_sheet_id} | '
+            'UPDATE_OR_DELETE_GSHEET_DATA {update_or_delete_gsheet_data} | '
+            'USER_ID {user_id} | '
+            'GOOGLE_SHEET_TITLE {google_sheet_title}'
+        )
+        self.data_value = data_value.format(
+            **{'google_sheet_id': 'ABC100',
+               'update_or_delete_gsheet_data': 'True',
+               'user_id': self.user.id,
+               'google_sheet_title': 'Current Gsheet Title'})
+
+        self._add_form_metadata(
+            self.xform, "google_sheet", self.data_value)
+        self.xform.reload()
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.get('title'), new_google_sheet_name)
+        metadata_details = MetaData.get_gsheet_details(self.xform)
+
+        self.assertEqual(
+            metadata_details.get(GOOGLE_SHEET_TITLE),
+            new_google_sheet_name
+        )
 
     def test_get_metadata_with_file_attachment(self):
         for data_type in ['supporting_doc', 'media', 'source']:
