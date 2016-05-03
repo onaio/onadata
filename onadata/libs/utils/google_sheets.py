@@ -91,7 +91,6 @@ def get_google_sheet_id(user, title):
     return client.get_google_sheet_id(title)
 
 
-
 class SheetsClient(gspread.client.Client):
     """An instance of this class communicates with Google Data API."""
 
@@ -242,8 +241,8 @@ class SheetsExportBuilder(ExportBuilder):
         if spreadsheet_id:
             self.spreadsheet = self.client.open_by_key(spreadsheet_id)
         else:
-            self.spreadsheet = \
-                self.client.create_or_get_spreadsheet(title=self.spreadsheet_title)
+            self.spreadsheet = self.client.create_or_get_spreadsheet(
+                title=self.spreadsheet_title)
 
         # Add Service account as editor
         self.client.add_service_account_to_spreadsheet(self.spreadsheet)
