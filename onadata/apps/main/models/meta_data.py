@@ -213,20 +213,21 @@ class MetaData(models.Model):
 
     @staticmethod
     def set_gsheet_details(content_object, data_value=None):
-        data_type = 'gsheets'
+        data_type = 'google_sheet'
         return unique_type_for_form(content_object, data_type, data_value)
 
     @staticmethod
     def get_gsheet_details(content_object):
         metadata = MetaData.objects.filter(
-            object_id=content_object.id, data_type='gsheets').first()
+            object_id=content_object.id, data_type='google_sheet').first()
         if metadata:
             data_list = metadata.data_value.split('|')
             if data_list:
-                # the data_list format is something like ['A a', 'B b'] and the
-                # list comprehension and dict cast results to
-                # {'A': 'a', 'B': 'b'}
-                return dict([tuple(a.strip().split(' ')) for a in data_list])
+                # the data_list format is something like ['A a', 'B b c'] and
+                # the list comprehension and dict cast results to
+                # {'A': 'a', 'B': 'b c'}
+                return dict(
+                    [tuple(a.strip().split(' ', 1)) for a in data_list])
 
     @staticmethod
     def enketo_url(content_object, data_value=None):
