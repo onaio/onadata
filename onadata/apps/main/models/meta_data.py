@@ -218,6 +218,13 @@ class MetaData(models.Model):
 
     @staticmethod
     def get_gsheet_details(content_object):
+        '''
+        Converts a metadata google sheet value, which contains data that is
+        pipe separated, to a dictionary e.g 'valueA a | valueB b' to
+        { 'valueA': 'a', 'valueB': 'b'}
+        :param content_object: xform
+        :return dictionary containing google sheet details
+        '''
         metadata = MetaData.objects.filter(
             object_id=content_object.id, data_type='google_sheet').first()
         if metadata:
