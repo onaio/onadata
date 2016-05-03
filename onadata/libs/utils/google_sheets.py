@@ -7,7 +7,9 @@ import json
 import xlrd
 import httplib2
 
+from xml.etree import ElementTree
 from gspread import SpreadsheetNotFound, WorksheetNotFound, CellNotFound
+from gspread.ns import _ns
 from apiclient import discovery
 from django.conf import settings
 from oauth2client.contrib.django_orm import Storage
@@ -19,6 +21,7 @@ from onadata.libs.utils.export_tools import ExportBuilder,\
 from onadata.libs.utils.common_tags import INDEX, PARENT_INDEX,\
     PARENT_TABLE_NAME
 from onadata.libs.utils.common_tags import ID
+from onadata.libs.utils.googlesheets_urls import construct_url
 
 
 def update_row(worksheet, index, values):
@@ -234,7 +237,8 @@ class SheetsExportBuilder(ExportBuilder):
             config.get('flatten_repeated_fields', True)
         self.set_survey(xform.survey)
 
-    def live_update(self, path, data, xform, spreadsheet_id=None):
+    def live_update(self, path, data, xform, spreadsheet_id=None,
+                    delete=False, update=False):
         self.client = \
             SheetsClient.login_with_service_account(self.google_credentials)
 
@@ -247,7 +251,13 @@ class SheetsExportBuilder(ExportBuilder):
         # Add Service account as editor
         self.client.add_service_account_to_spreadsheet(self.spreadsheet)
 
-        value = self._update_spreadsheet(data, xform)
+        if update:
+            return self.update_spreadsheet_row(data, xform)
+
+        if delete:
+            return self.delete_row(data, xform)
+
+        value = self.append_spreadsheet_row(data, xform)
         if isinstance(value, bool) and not value:
             self.export_tabular(path, data)
 
@@ -394,7 +404,23 @@ class SheetsExportBuilder(ExportBuilder):
                 self.worksheets[section_name] = self.spreadsheet.add_worksheet(
                     title=work_sheet_title, rows=1, cols=num_cols)
 
-    def _update_spreadsheet(self, data, xform):
+    def update_spreadsheet_row(self, data, xform):
+        try:
+            self.worksheets[xform.id_string] \
+                = self.spreadsheet.worksheet(xform.id_string)
+            worksheet = self.worksheets[xform.id_string]
+
+            for d in data:
+                data_id = d.get(ID)
+                # get the id cell
+                id_cell = worksheet.find(data_id)
+                update_row(worksheet, id_cell.row, d)
+                return True
+
+        except (CellNotFound, WorksheetNotFound):
+            return False
+
+    def append_spreadsheet_row(self, data, xform):
         try:
             self.worksheets[xform.id_string] \
                 = self.spreadsheet.worksheet(xform.id_string)
@@ -422,3 +448,30 @@ class SheetsExportBuilder(ExportBuilder):
         data[PARENT_TABLE_NAME] = worksheet_titles.get(
             data.get(PARENT_TABLE_NAME))
         worksheet.append_row([data.get(f) for f in fields])
+
+    def delete_row(self, data_id, xform):
+        try:
+            self.worksheets[xform.id_string] \
+                = self.spreadsheet.worksheet(xform.id_string)
+            worksheet = self.worksheets[xform.id_string]
+
+            id_cell = worksheet.find(str(data_id))
+
+            list_rows_url = construct_url('list', worksheet)
+            list_response = self.client.session.get(list_rows_url)
+
+            feed = ElementTree.fromstring(list_response.content)
+
+            all_rows = feed.findall(_ns('entry'))
+
+            row_to_delete = all_rows[id_cell.row - 2]
+            # get the edit link
+            for link in row_to_delete.findall(_ns('link')):
+                if link.get('rel') == 'edit':
+                    edit_link = link.get('href')
+
+            r = self.client.session.delete(edit_link)
+
+            return True
+        except (CellNotFound, WorksheetNotFound):
+            return False

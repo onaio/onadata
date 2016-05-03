@@ -8,16 +8,18 @@ from dateutil import parser
 from django.conf import settings
 from django.db import connection
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.utils.translation import ugettext as _
 
 from onadata.apps.logger.models.note import Note
 from onadata.apps.logger.models.instance import _get_attachments_from_instance
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import _encode_for_mongo
-from onadata.apps.restservice.tasks import call_service_async
+
 from onadata.libs.models.sorting import (
     json_order_by, json_order_by_params, sort_from_mongo_sort_str)
+from onadata.apps.restservice.tasks import call_service_async, \
+    sync_delete_googlesheets, sync_update_googlesheets
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
     NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED
@@ -428,5 +430,26 @@ def post_save_submission(sender, **kwargs):
             call_service_async(parsed_instance.instance_id)
             save_osm_data_async(parsed_instance.instance_id)
 
+    xform = parsed_instance.instance.xform
+
+    if xform.metadata_set.filter(data_type="googlesheets").count() > 0:
+        sync_update_googlesheets.apply_async(
+            args=[parsed_instance.instance_id, xform.pk],
+            countdown=1
+        )
+
+
+def delete_googlesheets(sender, **kwargs):
+    parsed_instance = kwargs.get('instance')
+    xform = parsed_instance.instance.xform
+
+    if xform.metadata_set.filter(data_type="googlesheets").count() >0:
+        sync_delete_googlesheets.apply_async(
+            args=[parsed_instance.instance_id, xform.pk],
+            countdown=1
+        )
+
+
 
 post_save.connect(post_save_submission, sender=ParsedInstance)
+post_delete.connect(delete_googlesheets, sender=ParsedInstance)
