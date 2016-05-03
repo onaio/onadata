@@ -31,6 +31,12 @@ BaseViewset = get_baseviewset_class()
 
 
 def get_new_google_sheet_metadata_value(gsheet_details, new_details):
+    '''
+    Returns an updated google sheet metadata string value (data_value)
+    :param gsheet_details - dict with current details
+    :param new_details - dict with new details
+    :return string
+    '''
     new_list = []
     for key, val in gsheet_details.items():
         if key in new_details:
