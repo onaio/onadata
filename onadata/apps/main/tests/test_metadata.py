@@ -23,19 +23,22 @@ class TestMetaData(TestBase):
 
     def test_create_gsheet_metadata_object(self):
         count = len(MetaData.objects.filter(object_id=self.xform.id,
-                    data_type='gsheets'))
+                    data_type='google_sheet'))
         gsheets_actions = (
-            'GSHEET_TITLE test_sheet | '
-            'UPDATE_OR_DELETE_GSHEET_DATA True'
+            'GOOGLESHEET_ID ABC100 | '
+            'UPDATE_OR_DELETE_GSHEET_DATA True | '
+            'USER_ID 123'
         )
         MetaData.set_gsheet_details(self.xform, gsheets_actions)
-        self.assertEquals(count + 1, len(MetaData.objects.filter(
-            object_id=self.xform.id, data_type='gsheets')))
+        # change
+        self.assertEquals(count + 1, MetaData.objects.filter(
+            object_id=self.xform.id, data_type='google_sheet').count())
 
         gsheet_details = MetaData.get_gsheet_details(self.xform)
         self.assertEqual({
-            'GSHEET_TITLE': 'test_sheet',
-            'UPDATE_OR_DELETE_GSHEET_DATA': 'True'}, gsheet_details)
+            'GOOGLESHEET_ID': 'ABC100',
+            'UPDATE_OR_DELETE_GSHEET_DATA': 'True',
+            'USER_ID': '123'}, gsheet_details)
 
     def test_saving_same_metadata_object_doesnt_trigger_integrity_error(self):
         count = len(MetaData.objects.filter(object_id=self.xform.id,
