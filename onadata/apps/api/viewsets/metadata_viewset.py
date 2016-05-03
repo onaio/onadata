@@ -30,6 +30,17 @@ from onadata.apps.api.tools import get_baseviewset_class
 BaseViewset = get_baseviewset_class()
 
 
+def get_new_google_sheet_metadata_value(gsheet_details, new_details):
+    new_list = []
+    for key, val in gsheet_details.items():
+        if key in new_details:
+            new_list.append('%s %s' % (key, new_details.get(key)))
+        else:
+            new_list.append('%s %s' % (key, val))
+
+    return ' | '.join(new_list)
+
+
 class MetaDataViewSet(AuthenticateHeaderMixin,
                       CacheControlMixin,
                       ETagsMixin,
