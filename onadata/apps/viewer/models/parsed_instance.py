@@ -432,7 +432,7 @@ def post_save_submission(sender, **kwargs):
 
     xform = parsed_instance.instance.xform
 
-    if xform.metadata_set.filter(data_type="googlesheets").count() > 0:
+    if xform.metadata_set.filter(data_type="google_sheet").count() > 0:
         sync_update_googlesheets.apply_async(
             args=[parsed_instance.instance_id, xform.pk],
             countdown=1
@@ -442,8 +442,7 @@ def post_save_submission(sender, **kwargs):
 def delete_googlesheets(sender, **kwargs):
     parsed_instance = kwargs.get('instance')
     xform = parsed_instance.instance.xform
-
-    if xform.metadata_set.filter(data_type="googlesheets").count() >0:
+    if xform.metadata_set.filter(data_type="google_sheet").count() > 0:
         sync_delete_googlesheets.apply_async(
             args=[parsed_instance.instance_id, xform.pk],
             countdown=1

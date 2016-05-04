@@ -456,6 +456,16 @@ class Instance(models.Model, InstanceBaseClass):
         self.parsed_instance.save()
 
 
+def delete_googlesheets(sender, **kwargs):
+    instance = kwargs.get('instance')
+    xform = instance.xform
+    if xform.metadata_set.filter(data_type="google_sheet").count() > 0:
+        sync_delete_googlesheets.apply_async(
+            args=[instance.instance_id, xform.pk],
+            countdown=1
+        )
+
+
 def post_save_submission(sender, instance=None, created=False, **kwargs):
     if ASYNC_POST_SUBMISSION_PROCESSING_ENABLED:
         update_xform_submission_count.apply_async(args=[instance.pk, created])

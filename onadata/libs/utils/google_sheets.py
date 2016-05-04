@@ -6,6 +6,7 @@ import gspread
 import json
 import xlrd
 import httplib2
+import re
 
 from xml.etree import ElementTree
 from gspread import SpreadsheetNotFound, WorksheetNotFound, CellNotFound
@@ -340,7 +341,7 @@ class SheetsExportBuilder(ExportBuilder):
         # Write the data
         self._insert_data(data)
 
-    def _insert_data(self, data):
+    def _insert_data(self, data, row_index=None):
         """Writes data rows for each section."""
         indices = {}
         survey_name = self.survey.name
@@ -368,13 +369,14 @@ class SheetsExportBuilder(ExportBuilder):
                 row = output.get(section_name, None)
                 if type(row) == dict:
                     SheetsExportBuilder.write_row(
-                        self.pre_process_row(row, section),
-                        ws, fields, self.worksheet_titles)
+                        self.pre_process_row(row, section), ws, fields,
+                        self.worksheet_titles, row_index=row_index)
                 elif type(row) == list:
                     for child_row in row:
                         SheetsExportBuilder.write_row(
                             self.pre_process_row(child_row, section),
-                            ws, fields, self.worksheet_titles)
+                            ws, fields, self.worksheet_titles,
+                            row_index=row_index)
 
     def _insert_headers(self):
         """Writes headers for each section."""
@@ -410,11 +412,13 @@ class SheetsExportBuilder(ExportBuilder):
                 = self.spreadsheet.worksheet(xform.id_string)
             worksheet = self.worksheets[xform.id_string]
 
-            for d in data:
-                data_id = d.get(ID)
+            if data:
+                data_id = data[0].get(ID)
                 # get the id cell
-                id_cell = worksheet.find(data_id)
-                update_row(worksheet, id_cell.row, d)
+                regex_text = re.compile('^{}$'.format(data_id))
+                id_cell = worksheet.find(regex_text)
+
+                self._insert_data(data, row_index=id_cell.row)
                 return True
 
         except (CellNotFound, WorksheetNotFound):
@@ -443,11 +447,16 @@ class SheetsExportBuilder(ExportBuilder):
             return False
 
     @classmethod
-    def write_row(cls, data, worksheet, fields, worksheet_titles):
+    def write_row(
+            cls, data, worksheet, fields, worksheet_titles, row_index=None):
         # update parent_table with the generated sheet's title
         data[PARENT_TABLE_NAME] = worksheet_titles.get(
             data.get(PARENT_TABLE_NAME))
-        worksheet.append_row([data.get(f) for f in fields])
+        values = [data.get(f) for f in fields]
+        if row_index:
+            update_row(worksheet, row_index, values)
+        else:
+            worksheet.append_row(values)
 
     def delete_row(self, data_id, xform):
         try:
