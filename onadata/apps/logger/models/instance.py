@@ -456,8 +456,8 @@ class Instance(models.Model, InstanceBaseClass):
         self.parsed_instance.save()
 
 
-def delete_googlesheets(sender, **kwargs):
-    instance = kwargs.get('instance')
+def delete_googlesheets(instance):
+    from onadata.apps.logger.tasks import sync_delete_googlesheets
     xform = instance.xform
     if xform.metadata_set.filter(data_type="google_sheet").count() > 0:
         sync_delete_googlesheets.apply_async(
@@ -475,6 +475,12 @@ def post_save_submission(sender, instance=None, created=False, **kwargs):
         update_xform_submission_count(instance.pk, created)
         save_full_json(instance.pk, created)
         update_project_date_modified(instance.pk, created)
+
+    update_field = kwargs.get("update_field")
+
+    if update_field == 'deleted_at':
+        delete_googlesheets(instance)
+
 
 post_save.connect(post_save_submission, sender=Instance,
                   dispatch_uid='post_save_submission')

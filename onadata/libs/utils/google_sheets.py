@@ -464,7 +464,8 @@ class SheetsExportBuilder(ExportBuilder):
                 = self.spreadsheet.worksheet(xform.id_string)
             worksheet = self.worksheets[xform.id_string]
 
-            id_cell = worksheet.find(str(data_id))
+            regex_text = re.compile('^{}$'.format(data_id))
+            id_cell = worksheet.find(regex_text)
 
             list_rows_url = construct_url('list', worksheet)
             list_response = self.client.session.get(list_rows_url)
@@ -479,7 +480,7 @@ class SheetsExportBuilder(ExportBuilder):
                 if link.get('rel') == 'edit':
                     edit_link = link.get('href')
 
-            r = self.client.session.delete(edit_link)
+            self.client.session.delete(edit_link)
 
             return True
         except (CellNotFound, WorksheetNotFound):
