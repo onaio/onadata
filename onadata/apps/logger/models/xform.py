@@ -132,13 +132,12 @@ def get_forms_shared_with_user(user):
     """
     Return forms shared with a user
     """
-    xfs = user.xformuserobjectpermission_set.all()
-    shared_forms_pks = list(set([xf.content_object.pk for xf in xfs]))
-    forms_shared_with_user = XForm.objects.filter(
-        pk__in=shared_forms_pks).exclude(user=user)\
-        .select_related('user')
+    xforms = XForm.objects.filter(
+        pk__in=user.xformuserobjectpermission_set.values_list(
+            'content_object_id', flat=True
+        ).distinct(), downloadable=True)
 
-    return forms_shared_with_user
+    return xforms.exclude(user=user).select_related('user')
 
 
 class XFormMixin(object):
