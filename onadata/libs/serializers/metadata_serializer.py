@@ -38,7 +38,7 @@ METADATA_TYPES = (
     (DOC_TYPE, _(u"Supporting Document")),
     ('external_export', _(u"External Export")),
     ('textit', _(u"External Export")),
-    ('google_sheet', _(u"Google Sheet"))
+    ('google_sheets', _(u"Google Sheet"))
 )
 
 DATAVIEW_TAG = 'dataview'

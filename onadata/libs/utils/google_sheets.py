@@ -195,7 +195,7 @@ class SheetsClient(gspread.client.Client):
         client.login()
         return client
 
-    def get_googlesheet_title(self, spreadsheet_id):
+    def get_google_sheet_title(self, spreadsheet_id):
         spreadsheet = self.open_by_key(spreadsheet_id)
         return spreadsheet.title()
 

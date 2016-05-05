@@ -6,7 +6,7 @@ from rest_framework import serializers
 from onadata.apps.main.models import TokenStorageModel
 from onadata.libs.utils.google import google_flow
 from onadata.libs.serializers.fields.xform_field import XFormField
-from onadata.libs.models.google_sheet_webhook import GoogleSheetService
+from onadata.libs.models.google_sheet_service import GoogleSheetService
 from onadata.libs.utils.api_export_tools import _get_google_credential
 
 

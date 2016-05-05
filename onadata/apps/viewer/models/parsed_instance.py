@@ -22,7 +22,7 @@ from onadata.apps.restservice.tasks import call_service_async,\
     sync_update_google_sheets, sync_delete_google_sheets
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
-    NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED
+    NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED, GOOGLE_SHEET_DATA_TYPE
 from onadata.libs.utils.osm import save_osm_data_async
 
 from onadata.libs.utils.model_tools import queryset_iterator
@@ -432,7 +432,8 @@ def post_save_submission(sender, **kwargs):
     else:
         # update signal. Check for google_sheet metadata
         xform = parsed_instance.instance.xform
-        if xform.metadata_set.filter(data_type="google_sheet").count() > 0:
+        if xform.metadata_set\
+                .filter(data_type=GOOGLE_SHEET_DATA_TYPE).count() > 0:
 
             # soft delete detected, sync google sheet
             if parsed_instance.instance.deleted_at:

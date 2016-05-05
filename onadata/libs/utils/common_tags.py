@@ -78,10 +78,10 @@ KNOWN_MEDIA_TYPES = ['photo', 'image', 'audio', 'video']
 NUMERIC_LIST = [u'integer', u'decimal', u'calculate']
 SELECT_ONE = u'select one'
 
-# gsheets
-GOOGLESHEET = u'googlesheets'
+# google_sheets
+GOOGLE_SHEET = u'google_sheets'
 GOOGLE_SHEET_ID = u'GOOGLE_SHEET_ID'
 GOOGLE_SHEET_TITLE = u'GOOGLE_SHEET_TITLE'
-GOOGLE_SHEET_DATA_TYPE = u'google_sheet'
-UPDATE_OR_DELETE_GSHEET_DATA = u'UPDATE_OR_DELETE_GSHEET_DATA'
+GOOGLE_SHEET_DATA_TYPE = u'google_sheets'
+UPDATE_OR_DELETE_GOOGLE_SHEET_DATA = u'UPDATE_OR_DELETE_GOOGLE_SHEET_DATA'
 USER_ID = u'USER_ID'

@@ -212,12 +212,12 @@ class MetaData(models.Model):
             return False
 
     @staticmethod
-    def set_gsheet_details(content_object, data_value=None):
-        data_type = 'google_sheet'
+    def set_google_sheet_details(content_object, data_value=None):
+        data_type = GOOGLE_SHEET_DATA_TYPE
         return unique_type_for_form(content_object, data_type, data_value)
 
     @staticmethod
-    def get_gsheet_details(content_object):
+    def get_google_sheet_details(content_object):
         '''
         Converts a metadata google sheet value, which contains data that is
         pipe separated, to a dictionary e.g 'valueA a | valueB b' to

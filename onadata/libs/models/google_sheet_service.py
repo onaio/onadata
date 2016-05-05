@@ -5,6 +5,8 @@ from onadata.apps.restservice.models import RestService
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.restservice.tasks import initial_google_sheet_export
 from onadata.libs.utils.google_sheets import get_google_sheet_id
+from onadata.libs.utils.common_tags import GOOGLE_SHEET_ID,\
+    UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, USER_ID
 
 
 class GoogleSheetService(object):
@@ -34,13 +36,14 @@ class GoogleSheetService(object):
         spreadsheet_id = \
             get_google_sheet_id(self.user, self.google_sheet_title)
 
-        gsheets_metadata = \
-            'GOOGLE_SHEET_ID {} | '\
-            'UPDATE_OR_DELETE_GOOGLESHEET_DATA {}|'\
-            'USER_ID {} '\
-            .format(spreadsheet_id, self.sync_updates, self.user.pk)
+        google_sheets_metadata = \
+            '{} {} | {} {}| {} {} '.format(
+                GOOGLE_SHEET_ID, spreadsheet_id,
+                UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, self.sync_updates,
+                USER_ID, self.user.pk
+            )
 
-        MetaData.set_gsheet_details(self.xform, gsheets_metadata)
+        MetaData.set_google_sheet_details(self.xform, google_sheets_metadata)
 
         self.pk = rs.pk
 
@@ -55,8 +58,9 @@ class GoogleSheetService(object):
             )
 
     def retrieve(self):
-        gsheet_details = MetaData.get_gsheet_details(self.xform)
+        google_sheet_details = MetaData.get_google_sheet_details(self.xform)
 
-        self.google_sheet_title = gsheet_details.get('GOOGLE_SHEET_ID')
-        self.sync_updates = gsheet_details.get('UPDATE_OR_DELETE_GSHEET_DATA')
+        self.google_sheet_title = google_sheet_details.get(GOOGLE_SHEET_ID)
+        self.sync_updates = \
+            google_sheet_details.get(UPDATE_OR_DELETE_GOOGLE_SHEET_DATA)
         self.send_existing_data = False

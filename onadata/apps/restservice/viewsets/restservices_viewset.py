@@ -12,7 +12,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
-from onadata.libs.utils.common_tags import TEXTIT, GOOGLESHEET
+from onadata.libs.utils.common_tags import TEXTIT, GOOGLE_SHEET
 from onadata.apps.api.tools import get_baseviewset_class
 
 
@@ -37,7 +37,7 @@ class RestServicesViewSet(AuthenticateHeaderMixin,
         if name == TEXTIT:
             return TextItSerializer
 
-        if name == GOOGLESHEET:
+        if name == GOOGLE_SHEET:
             return GoogleSheetsSerializer
 
         return super(RestServicesViewSet, self).get_serializer_class()

@@ -1,9 +1,12 @@
 from test_base import TestBase
+
 from onadata.apps.logger.models import Instance, Project, XForm
 from onadata.apps.main.models.meta_data import (
     MetaData,
     unique_type_for_form,
     upload_to)
+from onadata.libs.utils.common_tags import GOOGLE_SHEET_DATA_TYPE,\
+    GOOGLE_SHEET_ID, USER_ID, UPDATE_OR_DELETE_GOOGLE_SHEET_DATA
 
 
 class TestMetaData(TestBase):
@@ -21,24 +24,24 @@ class TestMetaData(TestBase):
         self.assertEquals(count + 1, len(MetaData.objects.filter(
             object_id=self.xform.id, data_type='enketo_url')))
 
-    def test_create_gsheet_metadata_object(self):
+    def test_create_google_sheet_metadata_object(self):
         count = len(MetaData.objects.filter(object_id=self.xform.id,
-                    data_type='google_sheet'))
-        gsheets_actions = (
-            'GOOGLE_SHEET_ID ABC100 | '
-            'UPDATE_OR_DELETE_GSHEET_DATA True | '
-            'USER_ID 123'
-        )
-        MetaData.set_gsheet_details(self.xform, gsheets_actions)
+                    data_type=GOOGLE_SHEET_DATA_TYPE))
+        google_sheets_actions = (
+            '{} ABC100| '
+            '{} True | '
+            '{} 123'
+        ).format(GOOGLE_SHEET_ID, UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, USER_ID)
+        MetaData.set_google_sheet_details(self.xform, google_sheets_actions)
         # change
         self.assertEquals(count + 1, MetaData.objects.filter(
-            object_id=self.xform.id, data_type='google_sheet').count())
+            object_id=self.xform.id, data_type=GOOGLE_SHEET_DATA_TYPE).count())
 
-        gsheet_details = MetaData.get_gsheet_details(self.xform)
+        gsheet_details = MetaData.get_google_sheet_details(self.xform)
         self.assertEqual({
-            'GOOGLE_SHEET_ID': 'ABC100',
-            'UPDATE_OR_DELETE_GSHEET_DATA': 'True',
-            'USER_ID': '123'}, gsheet_details)
+            GOOGLE_SHEET_ID: 'ABC100',
+            UPDATE_OR_DELETE_GOOGLE_SHEET_DATA: 'True',
+            USER_ID: '123'}, gsheet_details)
 
     def test_saving_same_metadata_object_doesnt_trigger_integrity_error(self):
         count = len(MetaData.objects.filter(object_id=self.xform.id,

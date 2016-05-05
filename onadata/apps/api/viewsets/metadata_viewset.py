@@ -61,7 +61,7 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
 
         return Response(serializer.data)
 
-    def get_google_sheet_title(self, gsheet_details):
+    def get_google_sheet_title(self, google_sheet_details):
         '''
         Returns a dictionary with the 'name' and 'updated' keys representing
         the name of the title and a boolean value of whether the title has been
@@ -69,17 +69,17 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
         :param gsheet_details: google sheet metadata dict
         return dict
         '''
-        spreadsheet_id = gsheet_details.get(GOOGLE_SHEET_ID)
-        user_id = gsheet_details.get(USER_ID)
+        spreadsheet_id = google_sheet_details.get(GOOGLE_SHEET_ID)
+        user_id = google_sheet_details.get(USER_ID)
         user = User.objects.get(pk=user_id)
         storage = Storage(TokenStorageModel, 'id', user, 'credential')
         credential = storage.get()
         sheets_client = SheetsClient(auth=credential)
-        title = sheets_client.get_googlesheet_title(spreadsheet_id)
+        title = sheets_client.get_google_sheet_title(spreadsheet_id)
 
         return {
             'name': title,
-            'updated': title != gsheet_details.get(GOOGLE_SHEET_TITLE)
+            'updated': title != google_sheet_details.get(GOOGLE_SHEET_TITLE)
         }
 
     def get_new_google_sheet_metadata_value(self, gsheet_details, new_details):
@@ -104,14 +104,15 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
         self.object = MetaData.objects.filter(
             data_type=GOOGLE_SHEET_DATA_TYPE, object_id=pk).first()
         if self.object and self.object.data_type == GOOGLE_SHEET_DATA_TYPE:
-            gsheet_details = MetaData.get_gsheet_details(
+            google_sheet_details = MetaData.get_google_sheet_details(
                 self.object.content_object)
-            title = self.get_google_sheet_title(gsheet_details)
+            title = self.get_google_sheet_title(google_sheet_details)
 
             if title.get('updated'):
                 self.object.data_value = self.\
                     get_new_google_sheet_metadata_value(
-                        gsheet_details, {GOOGLE_SHEET_TITLE: title.get('name')}
+                        google_sheet_details,
+                        {GOOGLE_SHEET_TITLE: title.get('name')}
                     )
                 self.object.save()
 

@@ -16,7 +16,7 @@ from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.common_tags import GOOGLESHEET
+from onadata.libs.utils.common_tags import GOOGLE_SHEET
 from onadata.libs.utils.google_sheets import SheetsExportBuilder, SheetsClient
 
 
@@ -213,7 +213,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         count = RestService.objects.all().count()
 
         post_data = {
-            "name": GOOGLESHEET,
+            "name": GOOGLE_SHEET,
             "xform": self.xform.pk,
             "google_sheet_title": "Data-sync",
             "send_existing_data": False,
@@ -229,7 +229,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 201)
         self.assertEquals(count + 1, RestService.objects.all().count())
 
-        google_sheet_details = MetaData.get_gsheet_details(self.xform)
+        google_sheet_details = MetaData.get_google_sheet_details(self.xform)
         self.assertIsNotNone(google_sheet_details)
 
         return response.data
