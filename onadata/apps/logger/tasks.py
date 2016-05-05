@@ -9,7 +9,7 @@ from onadata.apps.logger.import_tools import django_file
 from onadata.libs.utils.logger_tools import create_instance
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models import MetaData
-from onadata.libs.utils.common_tags import USER_ID, GOOGLESHEET_ID
+from onadata.libs.utils.common_tags import USER_ID, GOOGLE_SHEET_ID
 
 
 @task(ignore_result=True)
@@ -48,7 +48,7 @@ def sync_delete_googlesheets(instance_pk, xform_pk):
         "flatten_repeated_fields": False
     }
     user_id = spreadsheet_details.get(USER_ID)
-    spreadsheet_id = spreadsheet_details.get(GOOGLESHEET_ID)
+    spreadsheet_id = spreadsheet_details.get(GOOGLE_SHEET_ID)
     user = User.objects.get(pk=user_id)
     storage = Storage(TokenStorageModel, 'id', user, 'credential')
 

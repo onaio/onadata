@@ -25,7 +25,7 @@ class TestMetaData(TestBase):
         count = len(MetaData.objects.filter(object_id=self.xform.id,
                     data_type='google_sheet'))
         gsheets_actions = (
-            'GOOGLESHEET_ID ABC100 | '
+            'GOOGLE_SHEET_ID ABC100 | '
             'UPDATE_OR_DELETE_GSHEET_DATA True | '
             'USER_ID 123'
         )
@@ -36,7 +36,7 @@ class TestMetaData(TestBase):
 
         gsheet_details = MetaData.get_gsheet_details(self.xform)
         self.assertEqual({
-            'GOOGLESHEET_ID': 'ABC100',
+            'GOOGLE_SHEET_ID': 'ABC100',
             'UPDATE_OR_DELETE_GSHEET_DATA': 'True',
             'USER_ID': '123'}, gsheet_details)
 

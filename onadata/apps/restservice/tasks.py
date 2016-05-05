@@ -17,7 +17,7 @@ from onadata.apps.logger.models import (
     XForm
 )
 from onadata.apps.main.models import MetaData
-from onadata.libs.utils.common_tags import USER_ID, GOOGLESHEET_ID
+from onadata.libs.utils.common_tags import USER_ID, GOOGLE_SHEET_ID
 
 
 @task()
@@ -89,7 +89,7 @@ def sync_update_googlesheets(instance_pk, xform_pk):
         "flatten_repeated_fields": False
     }
     user_id = spreadsheet_details.get(USER_ID)
-    spreadsheet_id = spreadsheet_details.get(GOOGLESHEET_ID)
+    spreadsheet_id = spreadsheet_details.get(GOOGLE_SHEET_ID)
     user = User.objects.get(pk=user_id)
     storage = Storage(TokenStorageModel, 'id', user, 'credential')
 

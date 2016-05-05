@@ -16,7 +16,7 @@ from django.conf import settings
 from hashlib import md5
 
 from onadata.libs.utils.cache_tools import safe_delete, XFORM_METADATA_CACHE
-from onadata.libs.utils.common_tags import TEXTIT
+from onadata.libs.utils.common_tags import TEXTIT, GOOGLE_SHEET_DATA_TYPE
 
 CHUNK_SIZE = 1024
 INSTANCE_MODEL_NAME = "instance"
@@ -226,7 +226,8 @@ class MetaData(models.Model):
         :return dictionary containing google sheet details
         '''
         metadata = MetaData.objects.filter(
-            object_id=content_object.id, data_type='google_sheet').first()
+            object_id=content_object.id, data_type=GOOGLE_SHEET_DATA_TYPE
+        ).first()
         if metadata:
             data_list = metadata.data_value.split('|')
             if data_list:

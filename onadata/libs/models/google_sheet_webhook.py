@@ -35,7 +35,7 @@ class GoogleSheetService(object):
             get_google_sheet_id(self.user, self.google_sheet_title)
 
         gsheets_metadata = \
-            'GOOGLESHEET_ID {} | '\
+            'GOOGLE_SHEET_ID {} | '\
             'UPDATE_OR_DELETE_GOOGLESHEET_DATA {}|'\
             'USER_ID {} '\
             .format(spreadsheet_id, self.sync_updates, self.user.pk)
@@ -57,6 +57,6 @@ class GoogleSheetService(object):
     def retrieve(self):
         gsheet_details = MetaData.get_gsheet_details(self.xform)
 
-        self.google_sheet_title = gsheet_details.get('GOOGLESHEET_ID')
+        self.google_sheet_title = gsheet_details.get('GOOGLE_SHEET_ID')
         self.sync_updates = gsheet_details.get('UPDATE_OR_DELETE_GSHEET_DATA')
         self.send_existing_data = False
