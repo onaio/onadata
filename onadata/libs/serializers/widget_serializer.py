@@ -2,6 +2,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import resolve, get_script_prefix, Resolver404
 from django.utils.translation import ugettext as _
 from django.utils.six.moves.urllib import parse as urlparse
+from django.http import Http404
 
 from guardian.shortcuts import get_users_with_perms
 
@@ -126,8 +127,13 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
                 # must be a dataview
                 xform = content_object.xform
 
-            # Check if column exists in xform
-            get_field_from_field_xpath(column, xform)
+            try:
+                # Check if column exists in xform
+                get_field_from_field_xpath(column, xform)
+            except Http404:
+                raise serializers.ValidationError({
+                    'column': (u"'{}' not in the form.".format(column))
+                })
 
         order = attrs.get('order')
 
