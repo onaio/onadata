@@ -19,31 +19,15 @@ from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
     MediaFileRenderer
 from onadata.libs.utils.google_sheets import SheetsClient
 from onadata.libs.utils.common_tags import (
-    GOOGLESHEET_ID,
+    GOOGLE_SHEET_ID,
     GOOGLE_SHEET_TITLE,
+    GOOGLE_SHEET_DATA_TYPE,
     USER_ID
 )
 from onadata.apps.api.tools import get_baseviewset_class
 
 
 BaseViewset = get_baseviewset_class()
-
-
-def get_new_google_sheet_metadata_value(gsheet_details, new_details):
-    '''
-    Returns an updated google sheet metadata string value (data_value)
-    :param gsheet_details - dict with current details
-    :param new_details - dict with new details
-    :return string
-    '''
-    new_list = []
-    for key, val in gsheet_details.items():
-        if key in new_details:
-            new_list.append('%s %s' % (key, new_details.get(key)))
-        else:
-            new_list.append('%s %s' % (key, val))
-
-    return ' | '.join(new_list)
 
 
 class MetaDataViewSet(AuthenticateHeaderMixin,
@@ -77,28 +61,60 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
 
         return Response(serializer.data)
 
+    def get_google_sheet_title(self, gsheet_details):
+        '''
+        Returns a dictionary with the 'name' and 'updated' keys representing
+        the name of the title and a boolean value of whether the title has been
+        updated or not
+        :param gsheet_details: google sheet metadata dict
+        return dict
+        '''
+        spreadsheet_id = gsheet_details.get(GOOGLE_SHEET_ID)
+        user_id = gsheet_details.get(USER_ID)
+        user = User.objects.get(pk=user_id)
+        storage = Storage(TokenStorageModel, 'id', user, 'credential')
+        credential = storage.get()
+        sheets_client = SheetsClient(auth=credential)
+        title = sheets_client.get_googlesheet_title(spreadsheet_id)
+
+        return {
+            'name': title,
+            'updated': title != gsheet_details.get(GOOGLE_SHEET_TITLE)
+        }
+
+    def get_new_google_sheet_metadata_value(self, gsheet_details, new_details):
+        '''
+        Returns an updated google sheet metadata string value (data_value)
+        :param gsheet_details - dict with current details
+        :param new_details - dict with new details
+        :return string
+        '''
+        new_list = []
+        for key, val in gsheet_details.items():
+            if key in new_details:
+                new_list.append('%s %s' % (key, new_details.get(key)))
+            else:
+                new_list.append('%s %s' % (key, val))
+
+        return ' | '.join(new_list)
+
     @detail_route(methods=['GET'])
     def google_sheet_title(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
         self.object = MetaData.objects.filter(
-            data_type='google_sheet', object_id=pk).first()
-        if self.object and self.object.data_type == 'google_sheet':
+            data_type=GOOGLE_SHEET_DATA_TYPE, object_id=pk).first()
+        if self.object and self.object.data_type == GOOGLE_SHEET_DATA_TYPE:
             gsheet_details = MetaData.get_gsheet_details(
                 self.object.content_object)
-            spreadsheet_id = gsheet_details.get(GOOGLESHEET_ID)
-            user_id = gsheet_details.get(USER_ID)
-            user = User.objects.get(pk=user_id)
-            storage = Storage(TokenStorageModel, 'id', user, 'credential')
-            credential = storage.get()
-            sheets_client = SheetsClient(auth=credential)
-            title = sheets_client.get_googlesheet_title(spreadsheet_id)
+            title = self.get_google_sheet_title(gsheet_details)
 
-            if title != gsheet_details.get(GOOGLE_SHEET_TITLE):
-                self.object.data_value = get_new_google_sheet_metadata_value(
-                    gsheet_details, {GOOGLE_SHEET_TITLE: title}
-                )
+            if title.get('updated'):
+                self.object.data_value = self.\
+                    get_new_google_sheet_metadata_value(
+                        gsheet_details, {GOOGLE_SHEET_TITLE: title.get('name')}
+                    )
                 self.object.save()
 
-            return Response({'title': title})
+            return Response({'title': title.get('name')})
 
         return Response("Google export hasn't been enabled for this form")
