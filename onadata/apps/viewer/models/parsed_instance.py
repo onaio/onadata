@@ -19,7 +19,7 @@ from onadata.apps.logger.models.xform import _encode_for_mongo
 from onadata.libs.models.sorting import (
     json_order_by, json_order_by_params, sort_from_mongo_sort_str)
 from onadata.apps.restservice.tasks import call_service_async,\
-    sync_update_googlesheets
+    sync_update_google_sheets, sync_delete_google_sheets
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
     NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED
@@ -429,13 +429,23 @@ def post_save_submission(sender, **kwargs):
         else:
             call_service_async(parsed_instance.instance_id)
             save_osm_data_async(parsed_instance.instance_id)
+    else:
+        # update signal. Check for google_sheet metadata
+        xform = parsed_instance.instance.xform
+        if xform.metadata_set.filter(data_type="google_sheet").count() > 0:
 
-    xform = parsed_instance.instance.xform
-    if xform.metadata_set.filter(data_type="google_sheet").count() > 0:
-        sync_update_googlesheets.apply_async(
-            args=[parsed_instance.instance_id, xform.pk],
-            countdown=1
-        )
+            # soft delete detected, sync google sheet
+            if parsed_instance.instance.deleted_at:
+                sync_delete_google_sheets.apply_async(
+                    args=[parsed_instance.instance_id, xform.pk],
+                    countdown=1
+                )
+            else:
+                # normal update
+                sync_update_google_sheets.apply_async(
+                    args=[parsed_instance.instance_id, xform.pk],
+                    countdown=1
+                )
 
 
 post_save.connect(post_save_submission, sender=ParsedInstance)

@@ -34,12 +34,23 @@ SPREADSHEETS_FEED_URL = 'https://%s/%s/' % (SPREADSHEETS_SERVER, 'feeds')
 _feed_types = \
     {
         'spreadsheets': 'spreadsheets/{visibility}/{projection}',
+
         'worksheets': 'worksheets/{spreadsheet_id}/{visibility}/{projection}',
-        'worksheet': 'worksheets/{spreadsheet_id}/{visibility}/{projection}/{worksheet_id}/{version}',
-        'list': 'list/{spreadsheet_id}/{worksheet_id}/{visibility}/{projection}',
-        'cells': 'cells/{spreadsheet_id}/{worksheet_id}/{visibility}/{projection}',
-        'cells_batch': 'cells/{spreadsheet_id}/{worksheet_id}/{visibility}/{projection}/batch',
-        'cells_cell_id': 'cells/{spreadsheet_id}/{worksheet_id}/{visibility}/{projection}/{cell_id}'
+
+        'worksheet': 'worksheets/{spreadsheet_id}/{visibility}/{projection}/'
+                     '{worksheet_id}/{version}',
+
+        'list': 'list/{spreadsheet_id}/{worksheet_id}/{visibility}/'
+                '{projection}',
+
+        'cells': 'cells/{spreadsheet_id}/{worksheet_id}/{visibility}/'
+                 '{projection}',
+
+        'cells_batch': 'cells/{spreadsheet_id}/{worksheet_id}/{visibility}/'
+                       '{projection}/batch',
+
+        'cells_cell_id': 'cells/{spreadsheet_id}/{worksheet_id}/{visibility}/'
+                         '{projection}/{cell_id}'
     }
 
 _fields_cache = {}
