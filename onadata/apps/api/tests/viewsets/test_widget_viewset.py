@@ -475,10 +475,9 @@ class TestWidgetViewSet(TestAbstractViewSet):
         request = self.factory.post('/', data=data, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.status_code, 404)
         self.assertEquals(count, Widget.objects.all().count())
-        self.assertEquals(response.data['column'],
-                          [u"'doesnotexists' not in the form."])
+        self.assertEquals(response.data, {u'detail': u'Not found.'})
 
     def test_create_widget_with_xform_no_perms(self):
         data = {

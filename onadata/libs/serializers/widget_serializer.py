@@ -14,6 +14,7 @@ from onadata.apps.logger.models.widget import Widget
 from onadata.libs.utils.string import str2bool
 from onadata.libs.serializers.fields.json_field import JsonField
 from onadata.libs.permissions import OwnerRole, is_organization
+from onadata.libs.utils.chart_tools import get_field_from_field_xpath
 
 
 class GenericRelatedField(serializers.HyperlinkedRelatedField):
@@ -125,10 +126,8 @@ class WidgetSerializer(serializers.HyperlinkedModelSerializer):
                 # must be a dataview
                 xform = content_object.xform
 
-            if column not in xform.get_headers():
-                raise serializers.ValidationError({
-                    'column': _(u"'{}' not in the form.".format(column))
-                })
+            # Check if column exists in xform
+            get_field_from_field_xpath(column, xform)
 
         order = attrs.get('order')
 

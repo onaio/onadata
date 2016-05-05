@@ -341,6 +341,8 @@ def get_field_from_field_xpath(field_xpath, xform):
     # check if its the special _submission_time META
     if field_xpath == common_tags.SUBMISSION_TIME:
         field = common_tags.SUBMISSION_TIME
+    elif field_xpath == common_tags.SUBMITTED_BY:
+        field = common_tags.SUBMITTED_BY
     else:
         # use specified field to get summary
         fields = filter(
