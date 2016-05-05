@@ -91,11 +91,10 @@ class TestExport(TestBase):
     @patch.object(SheetsClient, 'add_service_account_to_spreadsheet')
     @patch.object(SheetsClient, 'get_worksheets_feed')
     @patch('urllib2.urlopen')
-    def test_gsheets_export_output(self,
-                                   mock_urlopen,
-                                   mock_get_worksheets,
-                                   mock_account_add_service_account,
-                                   mock_new):
+    def test_google_sheets_export_output(self, mock_urlopen,
+                                         mock_get_worksheets,
+                                         mock_account_add_service_account,
+                                         mock_new):
         expected_files, result_files, csv_writers = self._setup_result_files(
             ['expected_tutorial_w_repeats.csv'
              ])

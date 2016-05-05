@@ -6,7 +6,7 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.restservice.tasks import initial_google_sheet_export
 from onadata.libs.utils.google_sheets import get_google_sheet_id
 from onadata.libs.utils.common_tags import GOOGLE_SHEET_ID,\
-    UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, USER_ID
+    UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, USER_ID, GOOGLE_SHEET_TITLE
 
 
 class GoogleSheetService(object):
@@ -37,10 +37,11 @@ class GoogleSheetService(object):
             get_google_sheet_id(self.user, self.google_sheet_title)
 
         google_sheets_metadata = \
-            '{} {} | {} {}| {} {} '.format(
+            '{} {} | {} {}| {} {} | {} {}'.format(
                 GOOGLE_SHEET_ID, spreadsheet_id,
                 UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, self.sync_updates,
-                USER_ID, self.user.pk
+                USER_ID, self.user.pk,
+                GOOGLE_SHEET_TITLE, self.google_sheet_title
             )
 
         MetaData.set_google_sheet_details(self.xform, google_sheets_metadata)

@@ -240,6 +240,18 @@ class SheetsExportBuilder(ExportBuilder):
 
     def live_update(self, path, data, xform, spreadsheet_id=None,
                     delete=False, update=False):
+        """
+            Method for creating a new spread sheet, sending data to an existing
+            sheet, sending edits and deletes
+        :param path:
+        :param data:
+        :param xform:
+        :param spreadsheet_id: google sheent id that receives sync data
+        :param delete: boolean value indicating if its a delete sync
+        defaults False
+        :param update: boolean value indicating its an edit sync default False
+        :return:
+        """
         self.client = \
             SheetsClient.login_with_service_account(self.google_credentials)
 

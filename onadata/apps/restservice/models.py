@@ -6,7 +6,7 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.main.models import MetaData
 from onadata.apps.restservice import SERVICE_CHOICES
 
-from onadata.libs.utils.common_tags import TEXTIT
+from onadata.libs.utils.common_tags import TEXTIT, GOOGLE_SHEET
 
 
 class RestService(models.Model):
@@ -35,9 +35,10 @@ class RestService(models.Model):
 
 
 def delete_metadata(sender, instance, **kwargs):
-    if instance.name == TEXTIT:
+    if instance.name in [TEXTIT, GOOGLE_SHEET]:
         MetaData.objects.filter(
             object_id=instance.xform.id, data_type=instance.name).delete()
+
 
 post_delete.connect(delete_metadata, sender=RestService,
                     dispatch_uid='delete_metadata')
