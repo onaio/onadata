@@ -854,6 +854,35 @@ class TestXFormViewSet(TestAbstractViewSet):
             data = {"enketo_url": url, "enketo_preview_url": preview_url}
             self.assertEqual(response.data, data)
 
+    def test_handle_memory_error_on_form_replacement(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+            form_id = self.xform.pk
+
+            with patch(
+                'onadata.apps.api.tools.QuickConverter.publish'
+            ) as mock_func:
+                mock_func.side_effect = MemoryError()
+                view = XFormViewSet.as_view({
+                    'patch': 'partial_update',
+                })
+
+                path = os.path.join(
+                    settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                    "transportation", "transportation_version.xls")
+                with open(path) as xls_file:
+                    post_data = {'xls_file': xls_file}
+                    request = self.factory.patch(
+                        '/', data=post_data, **self.extra)
+                    response = view(request, pk=form_id)
+                    self.assertEqual(response.status_code, 400)
+                    self.assertEqual(
+                        response.data,
+                        {'text': (u'An error occurred while publishing the '
+                                  'form. Please try again.'),
+                         'type': 'alert-error'}
+                    )
+
     def test_enketo_urls_remain_the_same_after_form_replacement(self):
         with HTTMock(enketo_mock):
             self._publish_xls_form_to_project()
