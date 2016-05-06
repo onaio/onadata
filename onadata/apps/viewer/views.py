@@ -14,7 +14,7 @@ from django.core.files.storage import get_storage_class
 from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponseForbidden, HttpResponseRedirect, HttpResponseNotFound,
-    HttpResponseBadRequest, HttpResponse, Http404)
+    HttpResponseBadRequest, HttpResponse)
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -392,7 +392,9 @@ def export_list(request, username, id_string, export_type):
     credential = None
 
     if export_type not in Export.EXPORT_TYPE_DICT:
-        raise Http404('Export type "%s" is not supported.' % export_type)
+        return HttpResponseBadRequest(
+            _(u'Export type "%s" is not supported.' % export_type)
+        )
 
     if export_type == Export.GOOGLE_SHEETS_EXPORT:
         # Retrieve  google creds or redirect to google authorization page

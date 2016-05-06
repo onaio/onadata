@@ -400,7 +400,7 @@ class TestExports(TestBase):
             'export_type': 'invalid'
         })
         response = self.client.get(export_list_url)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 400)
         # test create url
         create_export_url = reverse(create_export, kwargs={
             'username': self.user.username,

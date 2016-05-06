@@ -40,7 +40,7 @@ class TestExportList(TestBase):
                   'export_type': 'gdoc'}
         url = reverse(export_list, kwargs=kwargs)
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 400)
 
     def test_csv_export_list(self):
         kwargs = {'username': self.user.username.upper(),
