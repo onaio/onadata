@@ -477,6 +477,14 @@ def publish_form(callback):
             'type': 'alert-error',
             'text': _(u'Form validation timeout, please try again.'),
         }
+    except (MemoryError, OSError) as e:
+        return {
+            'type': 'alert-error',
+            'text': _((
+                u'An error occurred while publishing the form. '
+                'Please try again.'
+            )),
+        }
     except Exception as e:
         # error in the XLS file; show an error to the user
 
