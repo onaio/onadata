@@ -110,6 +110,21 @@ class TestInstance(TestBase):
 
         self.assertTrue(xform.instances_with_geopoints)
 
+    @patch('onadata.apps.logger.models.instance.get_values_matching_key')
+    def test_instances_with_malformed_geopoints_dont_trigger_value_error(
+            self, mock_get_values_matching_key):
+        mock_get_values_matching_key.return_value = '40.81101715564728'
+        xls_path = self._fixture_path("gps", "gps.xls")
+        self._publish_xls_file_and_set_xform(xls_path)
+
+        self.assertFalse(self.xform.instances_with_geopoints)
+
+        path = self._fixture_path(
+            'gps', 'instances', 'gps_1980-01-23_20-52-08.xml')
+        self._make_submission(path)
+        xform = XForm.objects.get(pk=self.xform.pk)
+        self.assertFalse(xform.instances_with_geopoints)
+
     def test_get_id_string_from_xml_str(self):
         submission = """<?xml version="1.0" encoding="UTF-8" ?>
         <submission xmlns:orx="http://openrosa.org/xforms">
