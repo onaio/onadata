@@ -203,6 +203,34 @@ class ProjectPermissionFilterMixin(object):
         return queryset.filter(**kwarg)
 
 
+class InstancePermissionFilterMixin(object):
+
+    def _instance_filter(self, request, view, keyword):
+        instance_id = request.query_params.get("instance")
+
+        if instance_id:
+            try:
+                int(instance_id)
+            except ValueError:
+                raise ParseError(
+                    u"Invalid value for instanceid %s." % instance_id)
+
+            instance = get_object_or_404(Instance, pk=instance_id)
+            instance_qs = Instance.objects.filter(pk=instance.id)
+        else:
+            instance_qs = Instance.objects.all()
+
+        instances = super(InstancePermissionFilterMixin, self).filter_queryset(
+            request, instance_qs, view)
+
+        return {"%s__in" % keyword: instances}
+
+    def _instance_filter_queryset(self, request, queryset, view, keyword):
+        kwarg = self._instance_filter(request, view, keyword)
+
+        return queryset.filter(**kwarg)
+
+
 class RestServiceFilter(XFormPermissionFilterMixin,
                         filters.DjangoObjectPermissionsFilter):
 
@@ -213,6 +241,7 @@ class RestServiceFilter(XFormPermissionFilterMixin,
 
 class MetaDataFilter(ProjectPermissionFilterMixin,
                      XFormPermissionFilterMixin,
+                     InstancePermissionFilterMixin,
                      filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
@@ -220,6 +249,7 @@ class MetaDataFilter(ProjectPermissionFilterMixin,
 
         xform_id = request.query_params.get('xform')
         project_id = request.query_params.get("project")
+        instance_id = request.query_params.get("instance")
 
         # generate queries
         xform_content_type = ContentType.objects.get_for_model(XForm)
@@ -230,6 +260,10 @@ class MetaDataFilter(ProjectPermissionFilterMixin,
         project_kwarg = self._project_filter(request, view, keyword)
         project_kwarg["content_type"] = project_content_type
 
+        instance_content_type = ContentType.objects.get_for_model(Instance)
+        instance_kwarg = self._instance_filter(request, view, keyword)
+        instance_kwarg["content_type"] = instance_content_type
+
         # return xform specific metadata
         if xform_id:
             return queryset.filter(Q(**xform_kwarg))
@@ -237,6 +271,10 @@ class MetaDataFilter(ProjectPermissionFilterMixin,
         # return project specific metadata
         elif project_id:
             return queryset.filter(Q(**project_kwarg))
+
+        # return instance specific metadata
+        elif instance_id:
+            return queryset.filter(Q(**instance_kwarg))
 
         # return all project and xform metadata information
         return queryset.filter(Q(**xform_kwarg) | Q(**project_kwarg))
