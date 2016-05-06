@@ -267,12 +267,10 @@ class InstanceBaseClass(object):
                 for gps in get_values_matching_key(doc, xpath):
                     try:
                         geometry = [float(s) for s in gps.split()]
+                        lat, lng = geometry[0:2]
+                        points.append(Point(lng, lat))
                     except ValueError:
                         return
-
-                    if len(geometry):
-                        lat, lng = geometry[0:2]
-                    points.append(Point(lng, lat))
 
             if not xform.instances_with_geopoints and len(points):
                 xform.instances_with_geopoints = True
