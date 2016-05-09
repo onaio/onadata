@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
+from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models import Attachment
 from onadata.libs.mixins.authenticate_header_mixin import \
@@ -55,7 +56,10 @@ class MediaViewSet(AuthenticateHeaderMixin,
 
                 if suffix:
                     if suffix in settings.THUMB_CONF.keys():
-                        url = image_url(obj, suffix)
+                        try:
+                            url = image_url(obj, suffix)
+                        except Exception, e:
+                            raise ParseError(e.message)
                     else:
                         raise Http404()
 
