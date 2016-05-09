@@ -225,7 +225,7 @@ class InstancePermissionFilterMixin(XFormPermissionFilterMixin):
                            self).filter_queryset(
                 request, xform_qs, view)
 
-            instances = [x.instances.all() for x in xforms]
+            instances = xforms[0].instances.all()
 
             return {"%s__in" % keyword: instances}
         else:
