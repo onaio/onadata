@@ -157,6 +157,19 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertTrue(user.is_active)
         self.assertTrue(user.check_password(password), password)
 
+    def test_profile_create_without_last_name(self):
+        data = {
+            'username': u'deno',
+            'first_name': u'Dennis',
+            'email': u'deno@columbia.edu',
+        }
+
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
     def test_profile_create_with_malfunctioned_email(self):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
@@ -192,7 +205,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         data['metadata'] = {}
         data['joined_on'] = profile.user.date_joined
         data['name'] = "%s %s" % (
-            u'Nguy\u1ec5n Th\u1ecb',  u'Di\u1ec5m Qu\u1ef3nh')
+            u'Nguy\u1ec5n Th\u1ecb', u'Di\u1ec5m Qu\u1ef3nh')
         self.assertEqual(response.data, data)
 
         user = User.objects.get(username='nguyenquynh')
