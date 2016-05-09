@@ -433,12 +433,9 @@ def get_media_file_response(metadata, request=None):
         except ValidationError:
             obj, filename = get_data_value_objects(metadata.data_value)
             if obj:
-                if isinstance(obj, DataView):
-                    dataview_pk = obj.pk
-                    xform = obj.xform
-                else:
-                    xform = obj
-                    dataview_pk = False
+                dataview_pk = obj.pk if isinstance(obj, DataView) else False
+                xform = obj.xform if isinstance(obj, DataView) else obj
+
                 return custom_response_handler(
                     request, xform, {}, Export.CSV_EXPORT, filename=filename,
                     dataview_pk=dataview_pk
