@@ -5,13 +5,12 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
 from django.http import Http404
 from django.utils import six
-
 from rest_framework import filters
-from rest_framework.exceptions import ParseError
 
 
-from onadata.apps.logger.models import Project, XForm, Instance
 from onadata.apps.api.models import Team, OrganizationProfile
+from onadata.apps.logger.models import Project, XForm, Instance
+from onadata.libs.utils.numeric import int_or_parse_error
 
 
 class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
@@ -26,10 +25,7 @@ class AnonDjangoObjectPermissionFilter(filters.DjangoObjectPermissionsFilter):
             return queryset
 
         if form_id:
-            try:
-                int(form_id)
-            except ValueError:
-                raise ParseError(u'Invalid form ID: %s' % form_id)
+            int_or_parse_error(form_id, u'Invalid form ID: %s')
 
             # check if form is public and return it
             try:
@@ -108,12 +104,9 @@ class AnonUserProjectFilter(filters.DjangoObjectPermissionsFilter):
             return queryset.filter(Q(shared=True))
 
         if project_id:
-            try:
-                int(project_id)
-            except ValueError:
-                raise ParseError(
-                    u"Invalid value for project_id '%s' must be a positive "
-                    "integer." % project_id)
+            int_or_parse_error(project_id,
+                               u"Invalid value for project_id '%s' must be a"
+                               " positive integer.")
 
             # check if project is public and return it
             try:
@@ -147,19 +140,14 @@ class XFormPermissionFilterMixin(object):
         """Use XForm permissions"""
         xform = request.query_params.get('xform')
         if xform:
-            try:
-                int(xform)
-            except ValueError:
-                raise ParseError(
-                    u"Invalid value for formid %s." % xform)
+            int_or_parse_error(xform, u"Invalid value for formid %s.")
             xform = get_object_or_404(XForm, pk=xform)
             xform_qs = XForm.objects.filter(pk=xform.pk)
         else:
-            # if view.action == 'list':
-            #     raise ParseError(_(u"`xform` GET parameter required'"))
-
             xform_qs = XForm.objects.all()
+
         xform_qs = xform_qs.filter(deleted_at=None)
+
         if request.user.is_anonymous():
             xforms = xform_qs.filter(shared_data=True)
         else:
@@ -180,11 +168,7 @@ class ProjectPermissionFilterMixin(object):
         project_id = request.query_params.get("project")
 
         if project_id:
-            try:
-                int(project_id)
-            except ValueError:
-                raise ParseError(
-                    u"Invalid value for projectid %s." % project_id)
+            int_or_parse_error(project_id, u"Invalid value for projectid %s.")
 
             project = get_object_or_404(Project, pk=project_id)
             project_qs = Project.objects.filter(pk=project.id)
@@ -209,11 +193,8 @@ class InstancePermissionFilterMixin(XFormPermissionFilterMixin):
         instance_id = request.query_params.get("instance")
 
         if instance_id:
-            try:
-                int(instance_id)
-            except ValueError:
-                raise ParseError(
-                    u"Invalid value for instanceid %s." % instance_id)
+            int_or_parse_error(instance_id,
+                               u"Invalid value for instanceid %s.")
 
             instance = get_object_or_404(Instance, pk=instance_id)
             xform = instance.xform
@@ -295,11 +276,8 @@ class AttachmentFilter(XFormPermissionFilterMixin,
                                                'instance__xform')
         instance_id = request.query_params.get('instance')
         if instance_id:
-            try:
-                int(instance_id)
-            except ValueError:
-                raise ParseError(
-                    u"Invalid value for instance %s." % instance_id)
+            int_or_parse_error(instance_id,
+                               u"Invalid value for instance %s.")
             instance = get_object_or_404(Instance, pk=instance_id)
             queryset = queryset.filter(instance=instance)
 
@@ -401,11 +379,8 @@ class NoteFilter(filters.BaseFilterBackend):
         instance_id = request.query_params.get('instance')
 
         if instance_id:
-            try:
-                int(instance_id)
-            except ValueError:
-                raise ParseError(
-                    u"Invalid value for instance %s." % instance_id)
+            int_or_parse_error(instance_id,
+                               u"Invalid value for instance %s.")
 
             instance = get_object_or_404(Instance, pk=instance_id)
             queryset = queryset.filter(instance=instance)
