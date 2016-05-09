@@ -129,8 +129,7 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
             if first_name:
                 params['first_name'] = first_name
 
-            if last_name:
-                params['last_name'] = last_name
+            params['last_name'] = last_name or ''
 
         # For backward compatibility, Users who still use only name
         if name:
