@@ -12,7 +12,6 @@ from onadata.libs.permissions import (
 from onadata.apps.api.tools import get_user_profile_or_none, \
     check_inherit_permission_from_project
 
-from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import DataView
@@ -171,14 +170,12 @@ class HasMetadataPermissionMixin(AbstractHasPermissionMixin):
     """
 
     def has_permission(self, request, view):
-        if request.data.get("xform"):
+        if request.data.get("xform") or request.data.get("instance"):
             self.model_classes = [XForm]
-        elif request.data.get("instance"):
-            self.model_classes = [Instance]
         elif request.data.get("project"):
             self.model_classes = [Project]
         else:
-            self.model_classes = [Project, XForm, Instance]
+            self.model_classes = [Project, XForm]
 
         return super(HasMetadataPermissionMixin, self).has_permission(
             request, view)

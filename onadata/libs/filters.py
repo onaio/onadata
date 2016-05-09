@@ -203,7 +203,7 @@ class ProjectPermissionFilterMixin(object):
         return queryset.filter(**kwarg)
 
 
-class InstancePermissionFilterMixin(object):
+class InstancePermissionFilterMixin(XFormPermissionFilterMixin):
 
     def _instance_filter(self, request, view, keyword):
         instance_id = request.query_params.get("instance")
@@ -216,14 +216,20 @@ class InstancePermissionFilterMixin(object):
                     u"Invalid value for instanceid %s." % instance_id)
 
             instance = get_object_or_404(Instance, pk=instance_id)
-            instance_qs = Instance.objects.filter(pk=instance.id)
+            xform = instance.xform
+            xform_qs = XForm.objects.filter(pk=xform.pk).filter(
+                deleted_at=None)
+
+            # test if user has permission to xform
+            xforms = super(InstancePermissionFilterMixin,
+                           self).filter_queryset(
+                request, xform_qs, view)
+
+            instances = [x.instances.all() for x in xforms]
+
+            return {"%s__in" % keyword: instances}
         else:
-            instance_qs = Instance.objects.all()
-
-        instances = super(InstancePermissionFilterMixin, self).filter_queryset(
-            request, instance_qs, view)
-
-        return {"%s__in" % keyword: instances}
+            return {}
 
     def _instance_filter_queryset(self, request, queryset, view, keyword):
         kwarg = self._instance_filter(request, view, keyword)
@@ -240,7 +246,6 @@ class RestServiceFilter(XFormPermissionFilterMixin,
 
 
 class MetaDataFilter(ProjectPermissionFilterMixin,
-                     XFormPermissionFilterMixin,
                      InstancePermissionFilterMixin,
                      filters.DjangoObjectPermissionsFilter):
 
@@ -276,8 +281,9 @@ class MetaDataFilter(ProjectPermissionFilterMixin,
         elif instance_id:
             return queryset.filter(Q(**instance_kwarg))
 
-        # return all project and xform metadata information
-        return queryset.filter(Q(**xform_kwarg) | Q(**project_kwarg))
+        # return all project,instance and xform metadata information
+        return queryset.filter(Q(**xform_kwarg) | Q(**project_kwarg) |
+                               Q(**instance_kwarg))
 
 
 class AttachmentFilter(XFormPermissionFilterMixin,
