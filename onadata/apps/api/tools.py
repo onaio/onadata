@@ -397,18 +397,18 @@ def add_tags_to_instance(request, instance):
 def get_media_file_response(metadata, request=None):
 
     def get_data_value_objects(value):
+        model = None
         if value.startswith('dataview'):
-            parts = value.split()
-            if len(parts) > 1:
-                name = parts[2] if len(parts) > 2 else None
-
-                return (get_object_or_404(DataView, pk=parts[1]), name)
+            model = DataView
         elif value.startswith('xform'):
+            model = XForm
+
+        if model:
             parts = value.split()
             if len(parts) > 1:
                 name = parts[2] if len(parts) > 2 else None
 
-                return (get_object_or_404(XForm, pk=parts[1]), name)
+                return (get_object_or_404(model, pk=parts[1]), name)
 
         return (None, None)
 

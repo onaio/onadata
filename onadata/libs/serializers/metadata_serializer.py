@@ -67,10 +67,9 @@ def get_linked_object(parts):
                     _(u"Invalid %s id %s." % (obj_type, pk))
                 })
             else:
-                if obj_type == DATAVIEW_TAG:
-                    return get_object_or_404(DataView, pk=pk)
-                else:
-                    return get_object_or_404(XForm, pk=pk)
+                model = DataView if obj_type == DATAVIEW_TAG else XForm
+
+                return get_object_or_404(model, pk=pk)
 
 
 class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
