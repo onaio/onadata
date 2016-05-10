@@ -2,12 +2,13 @@ from oauth2client.contrib.django_orm import Storage
 
 from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.restservice.models import RestService
+from onadata.libs.utils.common_tags import GOOGLE_SHEET
 
 
 def call_service(submission_instance):
-    # lookup service
-    services = RestService.objects.filter(
-        xform_id=submission_instance.xform_id)
+    # lookup service which is not google sheet service
+    services = RestService.objects.exclude(
+        xform_id=submission_instance.xform_id, name=GOOGLE_SHEET)
     # call service send with url and data parameters
     for sv in services:
         # TODO: Queue service

@@ -19,7 +19,8 @@ from onadata.apps.logger.models.xform import _encode_for_mongo
 from onadata.libs.models.sorting import (
     json_order_by, json_order_by_params, sort_from_mongo_sort_str)
 from onadata.apps.restservice.tasks import call_service_async,\
-    sync_update_google_sheets, sync_delete_google_sheets
+    sync_update_google_sheets, sync_delete_google_sheets,\
+    call_google_sheet_service
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
     NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED, GOOGLE_SHEET_DATA_TYPE
@@ -426,9 +427,15 @@ def post_save_submission(sender, **kwargs):
                 args=[parsed_instance.instance_id],
                 countdown=1
             )
+
+            call_google_sheet_service.apply_async(
+                args=[parsed_instance.instance_id],
+                countdown=1
+            )
         else:
             call_service_async(parsed_instance.instance_id)
             save_osm_data_async(parsed_instance.instance_id)
+            call_google_sheet_service(parsed_instance.instance_id)
     else:
         # update signal. Check for google_sheet metadata
         xform = parsed_instance.instance.xform

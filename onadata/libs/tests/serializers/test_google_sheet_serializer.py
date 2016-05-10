@@ -160,6 +160,8 @@ class TestGoogleSheetSerializer(TestAbstractViewSet):
             "send_existing_data": True,
             "sync_updates": True
         }
+        mock_sheet_client.reset()
+        mock_sheet_client.return_value = "very_mocked_id_2"
 
         rest_service = RestService.objects.get(xform=self.xform)
 

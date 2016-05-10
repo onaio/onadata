@@ -446,10 +446,12 @@ class SheetsExportBuilder(ExportBuilder):
 
             # retrieve all the ids
             ids_col_list = worksheet.col_values(id_cell.col)
-            ids_col_list = [s for s in ids_col_list if s.isdigit()]
-            ids_col_list.sort(reverse=True)
-            last_id = ids_col_list[0]
-            filtered_data = filter(lambda x: x.get(ID) > int(last_id), data)
+            ids_col_list = [int(s) for s in ids_col_list if s.isdigit()]
+
+            # filter data that are not in the sheet already.
+            # Using generator expression which is more memory efficient than
+            # list expression
+            filtered_data = (a for a in data if a.get(ID) not in ids_col_list)
             if filtered_data:
                 self._insert_data(filtered_data)
                 return True

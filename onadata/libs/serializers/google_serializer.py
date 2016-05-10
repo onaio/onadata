@@ -78,6 +78,6 @@ class GoogleSheetsSerializer(serializers.Serializer):
         instance = GoogleSheetService(user, xform, service_url, name,
                                       google_sheet_title, send_existing_data,
                                       sync_updates, pk)
-        instance.save()
+        instance.save(update=True)
 
         return instance

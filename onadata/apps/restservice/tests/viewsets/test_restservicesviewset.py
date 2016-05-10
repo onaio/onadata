@@ -1,6 +1,7 @@
 import os
 
-from mock import patch
+from mock import patch, Mock
+from ssl import SSLError
 
 from django.utils import timezone
 from django.conf import settings
@@ -366,3 +367,63 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         mock_sheet_builder.assert_called_with(None, instance.pk, self.xform,
                                               spreadsheet_id=u'very_mocked_id',
                                               delete=True)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch.object(SheetsExportBuilder, 'live_update',
+                  side_effect=[SSLError(), SSLError(), Mock()])
+    @patch.object(SheetsClient, 'get_google_sheet_id')
+    def test_google_sheets_service_retries(self, mock_sheet_client,
+                                           mock_sheet_builder):
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "logger",
+            "fixtures", "tutorial", "tutorial.xls"
+        )
+
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+        mock_sheet_client.return_value = "very_mocked_id"
+        self._create_google_sheet_service()
+
+        self.assertTrue(mock_sheet_client.called)
+
+        xml_submission_file_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+            "tutorial",
+            "instances", "tutorial_2012-06-27_11-27-53_w_uuid.xml"
+        )
+
+        self._make_submission(xml_submission_file_path)
+
+        self.assertEqual(3, mock_sheet_builder.call_count)
+        instance = self.xform.instances.last()
+        mock_sheet_builder.assert_called_with(None, [instance.json],
+                                              self.xform,
+                                              spreadsheet_id=u'very_mocked_id')
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch.object(SheetsExportBuilder, 'live_update',
+                  side_effect=[SSLError(), SSLError(), SSLError()])
+    @patch.object(SheetsClient, 'get_google_sheet_id')
+    def test_google_sheets_service_retries_all_fail(self, mock_sheet_client,
+                                           mock_sheet_builder):
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "logger",
+            "fixtures", "tutorial", "tutorial.xls"
+        )
+
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+        mock_sheet_client.return_value = "very_mocked_id"
+        self._create_google_sheet_service()
+
+        self.assertTrue(mock_sheet_client.called)
+
+        xml_submission_file_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+            "tutorial",
+            "instances", "tutorial_2012-06-27_11-27-53_w_uuid.xml"
+        )
+
+        self._make_submission(xml_submission_file_path)
+
+        self.assertEqual(4, mock_sheet_builder.call_count)

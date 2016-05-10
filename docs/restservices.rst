@@ -153,3 +153,50 @@ Where:
             service_url: "https://textit.in/api/v1/runs.json"
         }
 
+Adding Google Sheet Sync:
+^^^^^^^^^^^^^^^^^^^^^^^^^
+.. raw:: html
+
+	<pre class="prettyprint">POST /api/v1/restservices</pre>
+
+*Payload*
+::
+
+        {
+            "xform": 62548,
+            "name": "google_sheets",
+            "google_sheet_title": "population-sync",
+            "send_existing_data": true,
+            "sync_updates": false
+        }
+
+Where:
+
+- ``google_sheet_title`` - Title of the google sheet sync file.
+- ``send_existing_data`` - Boolean flag indicating whether existing data should be synced.
+- ``sync_updates`` - Boolean flag indicating whether submission edits should be synced
+- ``name`` - Service which is being configured.
+- ``xform`` - The form id.
+
+::
+
+        curl -X POST -d "{"xform": 62548, "name": "google_sheets", "google_sheet_title": "population-sync","send_existing_data": true,"sync_updates": false}" https://api.ona.io/api/v1/restservices/236/textit -H "Content-Type: appliction/json"
+
+::
+
+        HTTP 201 CREATED
+
+
+Pushing Data To An Already linked Google Sheet
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. raw:: html
+
+	<pre class="prettyprint">PATCH /api/v1/restservices/<code>pk</code></pre>
+
+*Payload*
+::
+
+        {
+            "send_existing_data": true
+        }
+

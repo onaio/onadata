@@ -33,8 +33,13 @@ class GoogleSheetService(object):
         rs.xform = self.xform
         rs.save()
 
-        spreadsheet_id = \
-            get_google_sheet_id(self.user, self.google_sheet_title)
+        # Check if its an update and retrieve the google sheet id
+        if kwargs.get('update'):
+            google_details = MetaData.get_google_sheet_details(self.xform)
+            spreadsheet_id = google_details.get(GOOGLE_SHEET_ID)
+        else:
+            spreadsheet_id = \
+                get_google_sheet_id(self.user, self.google_sheet_title)
 
         google_sheets_metadata = \
             '{} {} | {} {}| {} {} | {} {}'.format(
