@@ -3,16 +3,16 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
 from django.db.utils import IntegrityError
-
 from rest_framework import serializers
 
-from onadata.apps.logger.models import XForm, Project
+from onadata.apps.logger.models import XForm, Project, Instance
 from onadata.apps.main.models import MetaData
-
 from onadata.libs.serializers.fields.xform_related_field import (
     XFormRelatedField,)
 from onadata.libs.serializers.fields.project_related_field import (
     ProjectRelatedField,)
+from onadata.libs.serializers.fields.instance_related_field import (
+    InstanceRelatedField,)
 
 UNIQUE_TOGETHER_ERROR = u"Object already exists"
 
@@ -48,6 +48,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         queryset=Project.objects.all(),
         required=False
     )
+    instance = InstanceRelatedField(
+        queryset=Instance.objects.all(),
+        required=False)
     data_value = serializers.CharField(max_length=255,
                                        required=True)
     data_type = serializers.ChoiceField(choices=METADATA_TYPES)
@@ -62,9 +65,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = MetaData
-        fields = ('id', 'xform', 'project', 'data_value', 'data_type',
-                  'data_file', 'data_file_type', 'media_url', 'file_hash',
-                  'url', 'date_created')
+        fields = ('id', 'xform', 'project', 'instance', 'data_value',
+                  'data_type', 'data_file', 'data_file_type', 'media_url',
+                  'file_hash', 'url', 'date_created')
 
     def get_media_url(self, obj):
         if obj.data_type in [DOC_TYPE, MEDIA_TYPE] and\
@@ -78,9 +81,11 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         value = attrs.get('data_value')
         media = attrs.get('data_type')
         data_file = attrs.get('data_file')
-        if 'project' not in attrs and 'xform' not in attrs:
+
+        if not ('project' in attrs or 'xform' in attrs or 'instance' in attrs):
             raise serializers.ValidationError({
-                'missing_field': _(u"`xform` or `project` field is required.")
+                'missing_field': _(u"`xform` or `project` or `instance`"
+                                   "field is required.")
             })
 
         if media == 'media' and data_file is None:
@@ -96,7 +101,9 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
     def get_content_object(self, validated_data):
 
         if validated_data:
-            return validated_data.get('xform') or validated_data.get('project')
+            return (validated_data.get('xform') or
+                    validated_data.get('project') or
+                    validated_data.get('instance'))
 
     def create(self, validated_data):
         data_type = validated_data.get('data_type')

@@ -32,12 +32,47 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.path = os.path.join(self.fixture_dir, self.data_value)
 
         ContentType.objects.get_or_create(app_label="logger", model="project")
+        ContentType.objects.get_or_create(app_label="logger", model="instance")
 
     def _add_project_metadata(self, project, data_type, data_value, path=None):
         data = {
             'data_type': data_type,
             'data_value': data_value,
             'project': project.id
+        }
+
+        if path and data_value:
+            with open(path) as media_file:
+                data.update({
+                    'data_file': media_file,
+                })
+                self._post_metadata(data)
+        else:
+            self._post_metadata(data)
+
+    def _add_instance_metadata(self,
+                               data_type,
+                               data_value,
+                               path=None):
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+            "tutorial", "tutorial.xls")
+
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+        xml_submission_file_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+            "tutorial", "instances", "tutorial_2012-06-27_11-27-53.xml")
+
+        self._make_submission(xml_submission_file_path,
+                              username=self.user.username)
+        self.xform.reload()
+        self.instance = self.xform.instances.first()
+
+        data = {
+            'data_type': data_type,
+            'data_value': data_value,
+            'instance': self.instance.id
         }
 
         if path and data_value:
@@ -260,6 +295,21 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         self.assertIsNotNone(data['media_url'])
         self.assertEqual(data['project'], self.metadata.object_id)
+
+    def test_instance_metadata_has_instance_field(self):
+        self._add_instance_metadata(
+            'supporting_doc', self.data_value, self.path)
+
+        # Test json of project metadata
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=self.metadata_data['id'])
+
+        self.assertEqual(response.status_code, 200)
+
+        data = dict(response.data)
+
+        self.assertIsNotNone(data['media_url'])
+        self.assertEqual(data['instance'], self.metadata.object_id)
 
     def test_should_return_both_xform_and_project_metadata(self):
         # delete all existing metadata
