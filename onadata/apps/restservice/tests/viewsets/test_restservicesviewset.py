@@ -405,7 +405,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
                   side_effect=[SSLError(), SSLError(), SSLError()])
     @patch.object(SheetsClient, 'get_google_sheet_id')
     def test_google_sheets_service_retries_all_fail(self, mock_sheet_client,
-                                           mock_sheet_builder):
+                                                    mock_sheet_builder):
         xls_file_path = os.path.join(
             settings.PROJECT_ROOT, "apps", "logger",
             "fixtures", "tutorial", "tutorial.xls"

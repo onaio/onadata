@@ -38,16 +38,17 @@ def call_google_sheet_service(self, instance_pk):
     ).first()
 
     # call service send with url and data parameters
-    try:
-        service = sv.get_service_definition()()
-        service.send(sv.service_url, instance)
-        # TODO: check that the sent service is successful so that the instance
-        # bucket can be updated
-    except ssl.SSLError, exc:
-        if self.request.retries < 3:
-            self.retry(exc=exc, countdown=60)
-        else:
-            raise exc
+    if sv:
+        try:
+            service = sv.get_service_definition()()
+            service.send(sv.service_url, instance)
+            # TODO: check that the sent service is successful so that the instance
+            # bucket can be updated
+        except ssl.SSLError, exc:
+            if self.request.retries < 3:
+                self.retry(exc=exc, countdown=60)
+            else:
+                raise exc
 
 
 @task(bind=True)
@@ -70,6 +71,7 @@ def initial_google_sheet_export(self, xform_pk, google_credentials,
             self.retry(exc=exc, countdown=60)
         else:
             raise exc
+
 
 @task(bind=True)
 def sync_update_google_sheets(self, instance_pk, xform_pk):
