@@ -3,19 +3,16 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.utils.translation import ugettext as _
 from django.db.utils import IntegrityError
-
 from rest_framework import serializers
 
 from onadata.apps.logger.models import XForm, Project, Instance
 from onadata.apps.main.models import MetaData
-
 from onadata.libs.serializers.fields.xform_related_field import (
     XFormRelatedField,)
 from onadata.libs.serializers.fields.project_related_field import (
     ProjectRelatedField,)
-
 from onadata.libs.serializers.fields.instance_related_field import (
-    InstanceRelatedField, )
+    InstanceRelatedField,)
 
 UNIQUE_TOGETHER_ERROR = u"Object already exists"
 
@@ -85,9 +82,7 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         media = attrs.get('data_type')
         data_file = attrs.get('data_file')
 
-        if ('project' not in attrs and
-            'xform' not in attrs and
-                'instance' not in attrs):
+        if not ('project' in attrs or 'xform' in attrs or 'instance' in attrs):
             raise serializers.ValidationError({
                 'missing_field': _(u"`xform` or `project` or `instance`"
                                    "field is required.")
