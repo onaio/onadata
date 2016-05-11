@@ -21,7 +21,7 @@ Returns a list of metadata across all forms requesting user has access to.
 
 .. raw:: html
 
-	<pre class="prettyprint">GET /api/v1/metadata</pre>
+    <pre class="prettyprint">GET /api/v1/metadata</pre>
 
 ::
 
@@ -58,8 +58,8 @@ parameter ``xform`` with the `formid` as the value.
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	GET /api/v1/metadata?<code>xform=formid</code></pre>
+    <pre class="prettyprint">
+    GET /api/v1/metadata?<code>xform=formid</code></pre>
 
 ::
 
@@ -82,8 +82,8 @@ Get a specific metadata
 ------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	GET /api/v1/metadata/<code>{pk}</code></pre>
+    <pre class="prettyprint">
+    GET /api/v1/metadata/<code>{pk}</code></pre>
 
 ::
 
@@ -109,8 +109,8 @@ return the file itself e.g:
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	GET /api/v1/metadata/<code>{pk}.{format}</code></pre>
+    <pre class="prettyprint">
+    GET /api/v1/metadata/<code>{pk}.{format}</code></pre>
 
 ::
 
@@ -121,7 +121,7 @@ content type of the file the file would be returned e.g
 
 .. raw:: html
 
-	<pre class="prettyprint">GET /api/v1/metadata/<code>{pk}</code> Accept: image/png </pre>
+    <pre class="prettyprint">GET /api/v1/metadata/<code>{pk}</code> Accept: image/png </pre>
 
 ::
 
@@ -131,13 +131,13 @@ Add metadata or media file to a form
 -------------------------------------
 .. raw:: html
 
-	<pre class="prettyprint">POST /api/v1/metadata</pre>
+    <pre class="prettyprint">POST /api/v1/metadata</pre>
 
 *Payload*
 ::
 
-	       {"xform": <formid>, "data_type": "<data_type>", \
-	"data_value": "<data_value>"}
+           {"xform": <formid>, "data_type": "<data_type>", \
+    "data_value": "<data_value>"}
 
 Where:
 
@@ -171,8 +171,8 @@ Media upload example:
 ::
 
 
-	        curl -X POST -F 'data_type=media' -F 'data_value=demo.jpg' \
-	-F 'xform=320' -F "data_file=@folder.jpg" https://api.ona.io/api/v1/metadata.json
+            curl -X POST -F 'data_type=media' -F 'data_value=demo.jpg' \
+    -F 'xform=320' -F "data_file=@folder.jpg" https://api.ona.io/api/v1/metadata.json
 
 ::
 
@@ -189,9 +189,45 @@ Media upload example:
         }
 
 
+Link XForm or Dataview as a media to a form
+-------------------------------------------
+
+It is possible to link another form or a dataview as a csv media resource to a form,
+the linked form will be downloadable by ODK Collect and Enketo as media. The ``data_type`` parameter
+will be 'media'm the ``xform`` parameter will be the form id you are adding the
+media to and the ``data_value`` param is a string of the form
+`"xform [form id] [filename]"` or `"dataview [dataview id] [filename]"`.
+
+Where:
+
+- ``[form id]`` - is the numeric id of the form
+- ``[dataview id]`` - is the numeric id of the dataview
+- ``[filename]`` - name of file for the linked resource, e.g `fruits` -> `fruits.csv`
+
+
+Link XForm or Dataview as a media example:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+::
+
+
+        curl -X POST -F 'data_type=media' -F 'xform=320' -F 'data_value="xform 328 places"' https://api.ona.io/api/v1/metadata.json
+
+::
+
+        HTTP 201 CREATED
+
+        {
+        "id": 7121,
+        "xform": 320,
+        "data_value": "xform 328 places",
+        "data_type": "media",
+        "url": "https://api.ona.io/api/v1/metadata/7121.json"
+        }
+
+
 Delete Metadata
 ^^^^^^^^^^^^^^^^
 .. raw:: html
 
-	<pre class="prettyprint">DELETE /api/v1/metadata/<code>{pk}</code></pre>
+    <pre class="prettyprint">DELETE /api/v1/metadata/<code>{pk}</code></pre>
 
