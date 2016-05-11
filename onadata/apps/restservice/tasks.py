@@ -43,8 +43,7 @@ def call_google_sheet_service(self, instance_pk):
             service = sv.get_service_definition()()
             service.send(sv.service_url, instance)
         except SSLError, exc:
-            if self.request.retries < 3:
-                self.retry(exc=exc, countdown=60)
+           self.retry(exc=exc, countdown=10, max_retries=3)
 
 
 @task(bind=True)
@@ -63,8 +62,7 @@ def initial_google_sheet_export(self, xform_pk, google_credentials,
 
         google_sheets.live_update(path, data, xform, spreadsheet_id)
     except SSLError, exc:
-        if self.request.retries < 3:
-            self.retry(exc=exc, countdown=60)
+        self.retry(exc=exc, countdown=10, max_retries=3)
 
 
 @task(bind=True)
@@ -86,8 +84,7 @@ def sync_update_google_sheets(self, instance_pk, xform_pk):
         google_sheets.live_update(path, data, xform,
                                   spreadsheet_id=spreadsheet_id, update=True)
     except SSLError, exc:
-        if self.request.retries < 3:
-            self.retry(exc=exc, countdown=60)
+        self.retry(exc=exc, countdown=10, max_retries=3)
 
 
 @task(bind=True)
@@ -107,5 +104,4 @@ def sync_delete_google_sheets(self, instance_pk, xform_pk):
         google_sheets.live_update(path, data, xform,
                                   spreadsheet_id=spreadsheet_id, delete=True)
     except SSLError, exc:
-        if self.request.retries < 3:
-            self.retry(exc=exc, countdown=60)
+        self.retry(exc=exc, countdown=10, max_retries=3)
