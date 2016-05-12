@@ -1,5 +1,10 @@
 from test_base import TestBase
-from onadata.apps.main.models.meta_data import MetaData, unique_type_for_form
+from django.contrib.auth.models import User
+from onadata.apps.logger.models import Instance
+from onadata.apps.main.models.meta_data import (
+    MetaData,
+    unique_type_for_form,
+    upload_to)
 
 
 class TestMetaData(TestBase):
@@ -45,3 +50,21 @@ class TestMetaData(TestBase):
         self.assertNotEqual(metadata.data_value, metadata_1.data_value)
         self.assertEqual(metadata.data_type, metadata_1.data_type)
         self.assertEqual(metadata.content_object, metadata_1.content_object)
+
+    def test_upload_to(self):
+        instance = Instance(user=self.user)
+        metadata = MetaData(data_type="media")
+        metadata.content_object = instance
+        filename = "filename"
+        self.assertEquals(upload_to(metadata, filename),
+                          "{}/{}/{}".format(self.user.username,
+                                            'formid-media',
+                                            filename))
+        # test instance with anonymous user
+        anonymous_username = User.get_anonymous().username.lower()
+        instance_without_user = Instance()
+        metadata.content_object = instance_without_user
+        self.assertEquals(upload_to(metadata, filename),
+                          "{}/{}/{}".format(anonymous_username,
+                                            'formid-media',
+                                            filename))
