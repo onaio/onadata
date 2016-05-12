@@ -117,7 +117,8 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
 
         xform = get_object_or_404(queryset, id_string__iexact=formId)
         self.check_object_permissions(self.request, xform)
-        instances = Instance.objects.filter(xform=xform).order_by('pk')
+        instances = Instance.objects.filter(
+            xform=xform, deleted_at__isnull=True).order_by('pk')
         num_entries = self.request.GET.get('numEntries')
         cursor = self.request.GET.get('cursor')
 
