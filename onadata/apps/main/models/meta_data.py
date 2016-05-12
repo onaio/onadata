@@ -5,6 +5,7 @@ import logging
 
 from contextlib import closing
 from django.db.models.signals import post_save, post_delete
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
@@ -33,14 +34,19 @@ def is_valid_url(uri):
 
 
 def upload_to(instance, filename):
+    anonymous_username = User.get_anonymous().username.lower()
+    username_or_anonymous = (
+        instance.content_object.user.username
+        if instance.content_object.user else anonymous_username)
+
     if instance.data_type == 'media':
         return os.path.join(
-            instance.content_object.user.username,
+            username_or_anonymous,
             'formid-media',
             filename
         )
     return os.path.join(
-        instance.content_object.user.username,
+        username_or_anonymous,
         'docs',
         filename
     )
