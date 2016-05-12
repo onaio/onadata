@@ -2,6 +2,7 @@ import os
 import shutil
 import codecs
 
+from django.utils import timezone
 from django.core.urlresolvers import reverse
 from django.core.files.storage import get_storage_class
 from django_digest.test import DigestAuth
@@ -90,6 +91,35 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
                 expected_submission_list.replace(
                     '{{resumptionCursor}}', '%s' % last_index)
             self.assertContains(response, expected_submission_list)
+
+    def test_view_submission_list_w_soft_deleted_submission(self):
+        view = BriefcaseViewset.as_view({'get': 'list'})
+        self._publish_xml_form()
+        self._make_submissions()
+        uuid = 'f3d8dc65-91a6-4d0f-9e97-802128083390'
+
+        # soft delete submission
+        instance = Instance.objects.filter(uuid=uuid).first()
+        instance.set_deleted(deleted_at=timezone.now())
+        instance.save()
+
+        request = self.factory.get(
+            self._submission_list_url,
+            data={'formId': self.xform.id_string})
+        response = view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth(self.login_username, self.login_password)
+        request.META.update(auth(request.META, response))
+        response = view(request, username=self.user.username)
+
+        self.assertEqual(response.status_code, 200)
+        # check that number of instances returned by response is equal to
+        # number of instances that have not been soft deleted
+        self.assertEqual(
+            response.data.get('instances').count(),
+            Instance.objects.filter(
+                xform=self.xform, deleted_at__isnull=True).count()
+        )
 
     def test_view_submission_list_w_deleted_submission(self):
         view = BriefcaseViewset.as_view({'get': 'list'})
