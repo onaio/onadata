@@ -43,7 +43,7 @@ def call_google_sheet_service(self, instance_pk):
             service = sv.get_service_definition()()
             service.send(sv.service_url, instance)
         except SSLError, exc:
-           self.retry(exc=exc, countdown=10, max_retries=3)
+            self.retry(exc=exc, countdown=10, max_retries=3)
 
 
 @task(bind=True)

@@ -18,14 +18,16 @@ from onadata.apps.logger.models.xform import _encode_for_mongo
 
 from onadata.libs.models.sorting import (
     json_order_by, json_order_by_params, sort_from_mongo_sort_str)
+from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.restservice.tasks import call_service_async,\
     sync_update_google_sheets, sync_delete_google_sheets,\
     call_google_sheet_service
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
-    NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED, GOOGLE_SHEET_DATA_TYPE
+    NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED,\
+    UPDATE_OR_DELETE_GOOGLE_SHEET_DATA
 from onadata.libs.utils.osm import save_osm_data_async
-
+from onadata.libs.utils.common_tools import get_boolean_value
 from onadata.libs.utils.model_tools import queryset_iterator
 
 ASYNC_POST_SUBMISSION_PROCESSING_ENABLED = \
@@ -412,6 +414,38 @@ class ParsedInstance(models.Model):
         return notes
 
 
+def google_sync_post_save_signal(parsed_instance, created):
+    xform = parsed_instance.instance.xform
+    google_sheets_details = MetaData.get_google_sheet_details(xform)
+
+    # Check whethe google sheet is configured for this form
+    if google_sheets_details:
+        if created:
+            # Always run in async mode
+            call_google_sheet_service.apply_async(
+                args=[parsed_instance.instance_id],
+                countdown=1
+            )
+        else:
+            should_sync_updates = \
+                google_sheets_details.get(UPDATE_OR_DELETE_GOOGLE_SHEET_DATA)
+            # update signal. Check for google_sheet metadata
+            if get_boolean_value(should_sync_updates):
+
+                # soft delete detected, sync google sheet
+                if parsed_instance.instance.deleted_at:
+                    sync_delete_google_sheets.apply_async(
+                        args=[parsed_instance.instance_id, xform.pk],
+                        countdown=1
+                    )
+                else:
+                    # normal update
+                    sync_update_google_sheets.apply_async(
+                        args=[parsed_instance.instance_id, xform.pk],
+                        countdown=1
+                    )
+
+
 def post_save_submission(sender, **kwargs):
     parsed_instance = kwargs.get('instance')
     created = kwargs.get('created')
@@ -427,33 +461,11 @@ def post_save_submission(sender, **kwargs):
                 args=[parsed_instance.instance_id],
                 countdown=1
             )
-
-            call_google_sheet_service.apply_async(
-                args=[parsed_instance.instance_id],
-                countdown=1
-            )
         else:
             call_service_async(parsed_instance.instance_id)
             save_osm_data_async(parsed_instance.instance_id)
-            call_google_sheet_service(parsed_instance.instance_id)
-    else:
-        # update signal. Check for google_sheet metadata
-        xform = parsed_instance.instance.xform
-        if xform.metadata_set\
-                .filter(data_type=GOOGLE_SHEET_DATA_TYPE).count() > 0:
 
-            # soft delete detected, sync google sheet
-            if parsed_instance.instance.deleted_at:
-                sync_delete_google_sheets.apply_async(
-                    args=[parsed_instance.instance_id, xform.pk],
-                    countdown=1
-                )
-            else:
-                # normal update
-                sync_update_google_sheets.apply_async(
-                    args=[parsed_instance.instance_id, xform.pk],
-                    countdown=1
-                )
+    google_sync_post_save_signal(parsed_instance, created)
 
 
 post_save.connect(post_save_submission, sender=ParsedInstance)
