@@ -5,7 +5,6 @@ import logging
 
 from contextlib import closing
 from django.db.models.signals import post_save, post_delete
-from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
@@ -23,6 +22,8 @@ CHUNK_SIZE = 1024
 
 urlvalidate = URLValidator()
 
+ANONYMOUS_USERNAME = "anonymous"
+
 
 def is_valid_url(uri):
     try:
@@ -34,10 +35,9 @@ def is_valid_url(uri):
 
 
 def upload_to(instance, filename):
-    anonymous_username = User.get_anonymous().username.lower()
     username_or_anonymous = (
         instance.content_object.user.username
-        if instance.content_object.user else anonymous_username)
+        if instance.content_object.user else ANONYMOUS_USERNAME)
 
     if instance.data_type == 'media':
         return os.path.join(
