@@ -710,7 +710,7 @@ class XForm(XFormMixin, BaseModel):
             ))
         if update_fields is None or 'title' in update_fields:
             self._set_title()
-        if update_fields is None or 'encryted' in update_fields:
+        if update_fields is None or 'encrypted' in update_fields:
             self._set_encrypted_field()
         if update_fields is None or 'id_string' in update_fields:
             old_id_string = self.id_string
