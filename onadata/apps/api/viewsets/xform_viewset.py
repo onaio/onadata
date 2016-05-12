@@ -567,14 +567,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     @detail_route(methods=['DELETE', 'GET'])
     def delete_async(self, request, *args, **kwargs):
         if request.method == 'DELETE':
-            time_async_triggered = datetime.now()
-            self.object = self.get_object()
-            self.object.deleted_at = time_async_triggered
-            self.object.save()
-            xform = self.object
+            xform = self.get_object()
+            xform.soft_delete()
             resp = {
                 u'job_uuid': tasks.delete_xform_async.delay(xform).task_id,
-                u'time_async_triggered': time_async_triggered}
+                u'time_async_triggered': datetime.now()}
             resp_code = status.HTTP_202_ACCEPTED
 
         elif request.method == 'GET':

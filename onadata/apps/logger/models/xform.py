@@ -714,7 +714,8 @@ class XForm(XFormMixin, BaseModel):
             self._set_encrypted_field()
         if update_fields is None or 'id_string' in update_fields:
             old_id_string = self.id_string
-            self._set_id_string()
+            if not self.deleted_at:
+                self._set_id_string()
             # check if we have an existing id_string,
             # if so, the one must match but only if xform is NOT new
             if self.pk and old_id_string and old_id_string != self.id_string \
@@ -748,6 +749,21 @@ class XForm(XFormMixin, BaseModel):
 
     def __unicode__(self):
         return getattr(self, "id_string", "")
+
+    def soft_delete(self):
+        """
+        Return the soft deletion timestamp
+        Mark the XForm as soft deleted, appending a timestamped suffix to the
+        id_string and sms_id_string to make the initial values available
+        without violating the uniqueness constraint.
+        """
+
+        soft_deletion_time = datetime.now()
+        deletion_suffix = soft_deletion_time.strftime('-deleted-at-%s')
+        self.deleted_at = soft_deletion_time
+        self.id_string = self.id_string + deletion_suffix
+        self.sms_id_string = self.sms_id_string + deletion_suffix
+        self.save()
 
     def submission_count(self, force_update=False):
         if self.num_of_submissions == 0 or force_update:

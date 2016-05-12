@@ -51,3 +51,23 @@ class TestXForm(TestBase):
         xform.save()
 
         self.assertTrue(len(xform.version) > 12)
+
+    def test_soft_delete_sets_deleted_at(self):
+        self._publish_transportation_form_and_submit_instance()
+        xform = XForm.objects.get(pk=self.xform.id)
+        self.assertIsNone(xform.deleted_at)
+
+        xform.soft_delete()
+
+        self.assertIsNotNone(xform.deleted_at)
+
+    def test_soft_delete_sets_deletion_suffix_on_id_strings(self):
+        self._publish_transportation_form_and_submit_instance()
+        xform = XForm.objects.get(pk=self.xform.id)
+        self.assertNotIn("-deleted-at-", xform.id_string)
+        self.assertNotIn("-deleted-at-", xform.sms_id_string)
+
+        xform.soft_delete()
+
+        self.assertIn("-deleted-at-", xform.id_string)
+        self.assertIn("-deleted-at-", xform.sms_id_string)
