@@ -14,7 +14,7 @@ from django.core.files.storage import get_storage_class
 from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponseForbidden, HttpResponseRedirect, HttpResponseNotFound,
-    HttpResponseBadRequest, HttpResponse)
+    HttpResponseBadRequest, HttpResponse, Http404)
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -53,7 +53,7 @@ from oauth2client import client as google_client
 
 def get_form(kwargs):
     xform = XForm.objects.filter(**kwargs).first()
-    return xform or HttpResponseBadRequest("XForm does not exist.")
+    return xform or Http404("XForm does not exist.")
 
 
 def _get_start_end_submission_time(request):

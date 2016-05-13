@@ -14,7 +14,7 @@ from django.core.files.storage import get_storage_class
 from django.core.files import File
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
-    HttpResponseRedirect, HttpResponseForbidden
+    HttpResponseRedirect, HttpResponseForbidden, Http404
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.template import loader
@@ -57,7 +57,7 @@ IO_ERROR_STRINGS = [
 
 def get_form(kwargs):
     xform = XForm.objects.filter(**kwargs).first()
-    return xform or HttpResponseBadRequest("XForm does not exist.")
+    return xform or Http404("XForm does not exist.")
 
 
 def _bad_request(e):

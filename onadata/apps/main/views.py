@@ -19,6 +19,7 @@ from django.http import HttpResponseForbidden
 from django.http import HttpResponseNotFound
 from django.http import HttpResponseRedirect
 from django.http import HttpResponseServerError
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.template import loader, RequestContext
@@ -66,7 +67,7 @@ from onadata.libs.utils.user_auth import get_user_default_project
 
 def get_form(kwargs):
     xform = XForm.objects.filter(**kwargs).first()
-    return xform or HttpResponseBadRequest("XForm does not exist.")
+    return xform or Http404("XForm does not exist.")
 
 
 def home(request):
