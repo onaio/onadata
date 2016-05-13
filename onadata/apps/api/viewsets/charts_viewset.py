@@ -17,6 +17,7 @@ from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.chart_serializer import (
     ChartSerializer, FieldsChartSerializer)
 from onadata.libs.utils.chart_tools import get_chart_data_for_field
+from onadata.libs.renderers.renderers import DecimalJSONRenderer
 
 
 def get_form_field_chart_url(url, field):
@@ -62,7 +63,7 @@ class ChartsViewSet(AnonymousUserPublicFormsMixin,
     queryset = XForm.objects.all()
     serializer_class = ChartSerializer
     lookup_field = 'pk'
-    renderer_classes = (JSONRenderer,
+    renderer_classes = (DecimalJSONRenderer,
                         ChartBrowsableAPIRenderer,
                         TemplateHTMLRenderer,
                         )
