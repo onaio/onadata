@@ -171,4 +171,4 @@ class TestFormEnterData(TestBase):
             'id_string': 'random_id_string'
         })
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)

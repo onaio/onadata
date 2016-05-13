@@ -39,4 +39,4 @@ class TestFormPublicAPI(TestBase):
         })
 
         response = self.client.get(self.public_api_url, {})
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)

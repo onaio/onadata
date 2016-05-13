@@ -227,7 +227,7 @@ class TestExports(TestBase):
         })
 
         response = self.client.post(create_export_url)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
     def test_create_export_url(self):
         self._publish_transportation_form()
@@ -257,7 +257,7 @@ class TestExports(TestBase):
         })
 
         response = self.client.post(create_export_url)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
     def test_delete_export_url(self):
         self._publish_transportation_form()
@@ -296,7 +296,7 @@ class TestExports(TestBase):
             'export_type': 'xls'
         })
         response = self.client.post(delete_url, post_data)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
     def test_export_progress_output(self):
         self._publish_transportation_form()
@@ -320,7 +320,7 @@ class TestExports(TestBase):
             'export_type': 'xls'
         })
         response = self.client.get(progress_url, get_data)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
         # progress for multiple exports
         progress_url = reverse(export_progress, kwargs={
@@ -517,7 +517,7 @@ class TestExports(TestBase):
             "filename": export.filename
         })
         response = self.client.get(csv_export_url)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
         csv_export_url = reverse(export_download, kwargs={
             "username": self.user.username,

@@ -82,7 +82,7 @@ class TestFormShow(TestBase):
             'username': self.user.username,
             'id_string': 'random_id_string'
         }))
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
     def test_dl_xls_to_anon_if_public(self):
         self.xform.shared = True
@@ -118,7 +118,7 @@ class TestFormShow(TestBase):
             'username': self.user.username,
             'id_string': 'random_id_string'
         }))
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
     def test_dl_jsonp_to_anon_if_public(self):
         self.xform.shared = True
@@ -189,6 +189,7 @@ class TestFormShow(TestBase):
             'username': 'bob',
             'id_string': 'random_id_string'
         }))
+        self.assertEqual(response.status_code, 404)
 
     def test_show_private_if_shared_but_not_data(self):
         self.xform.shared = True
@@ -216,14 +217,14 @@ class TestFormShow(TestBase):
             'id_string': 'random_string'
         })
         response = self.client.get(map_url)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
         map_url = reverse(data_export, kwargs={
             'username': self.user.username,
             'id_string': 'random_string'
         })
         response = self.client.get(map_url)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
     def test_show_link_if_owner(self):
         self._submit_transport_instance()
@@ -439,7 +440,7 @@ class TestFormShow(TestBase):
             'id_string': 'random_id_string'
         })
         response = self.client.post(xform_delete_url)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
     @mock.patch('onadata.apps.logger.views.get_object_or_404',
                 side_effect=raise_multiple_objects_returned_error)
