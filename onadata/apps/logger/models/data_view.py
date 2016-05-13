@@ -11,6 +11,7 @@ from onadata.apps.logger.models.project import Project
 from onadata.libs.utils.common_tags import (
     ATTACHMENTS,
     EDITED,
+    LAST_EDITED,
     MONGO_STRFTIME,
     NOTES,
     ID,
@@ -24,7 +25,7 @@ from onadata.libs.utils.cache_tools import (
 
 SUPPORTED_FILTERS = ['=', '>', '<', '>=', '<=', '<>', '!=']
 ATTACHMENT_TYPES = ['photo', 'audio', 'video']
-DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED, NOTES]
+DEFAULT_COLUMNS = [ID, SUBMISSION_TIME, EDITED, LAST_EDITED, NOTES]
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
