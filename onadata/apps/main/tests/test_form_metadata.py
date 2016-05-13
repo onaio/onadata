@@ -54,6 +54,35 @@ class TestFormMetadata(TestBase):
                 'data_id': self.doc.id})
         return name
 
+    def test_views_with_unavailable_id_string(self):
+        path = os.path.join(
+            self.this_directory, "fixtures", "transportation",
+            'transportation.xls'
+        )
+
+        with open(path) as doc_file:
+            self.post_data = {}
+            self.post_data['doc'] = doc_file
+            self.client.post(self.edit_url, self.post_data)
+
+        self.doc = MetaData.objects.all().reverse()[0]
+
+        download_metadata_url = reverse(download_metadata, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string',
+            'data_id': self.doc.id})
+
+        response = self.client.get(download_metadata_url)
+        self.assertEqual(response.status_code, 400)
+
+        delete_metadata_url = reverse(delete_metadata, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string',
+            'data_id': self.doc.id})
+
+        response = self.client.get(delete_metadata_url + '?del=true')
+        self.assertEqual(response.status_code, 400)
+
     def test_adds_supporting_doc_on_submit(self):
         count = len(MetaData.objects.filter(object_id=self.xform.id,
                     data_type='supporting_doc'))

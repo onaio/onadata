@@ -164,3 +164,11 @@ class TestFormEnterData(TestBase):
         })
         response = self.anon.get(url)
         self.assertEqual(response.status_code, 404)
+
+    def test_enter_data_with_unavailable_id_string(self):
+        url = reverse(enter_data, kwargs={
+            'username': self.user,
+            'id_string': 'random_id_string'
+        })
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 400)

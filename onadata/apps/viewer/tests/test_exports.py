@@ -216,6 +216,19 @@ class TestExports(TestBase):
         exports = Export.objects.filter(id=first_export.id)
         self.assertEqual(len(exports), 0)
 
+    def test_create_export_url_with_unavailable_id_string(self):
+        self._publish_transportation_form()
+        self._submit_transport_instance()
+
+        create_export_url = reverse(create_export, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string',
+            'export_type': Export.XLS_EXPORT
+        })
+
+        response = self.client.post(create_export_url)
+        self.assertEqual(response.status_code, 400)
+
     def test_create_export_url(self):
         self._publish_transportation_form()
         self._submit_transport_instance()
@@ -235,6 +248,16 @@ class TestExports(TestBase):
         response = self.client.post(create_export_url)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Export.objects.count(), num_exports + 1)
+
+        # test with unavailable id_string
+        create_export_url = reverse(create_export, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string',
+            'export_type': Export.XLS_EXPORT
+        })
+
+        response = self.client.post(create_export_url)
+        self.assertEqual(response.status_code, 400)
 
     def test_delete_export_url(self):
         self._publish_transportation_form()
@@ -266,6 +289,15 @@ class TestExports(TestBase):
         exports = Export.objects.filter(id=export.id)
         self.assertEqual(len(exports), 0)
 
+        # test with unavailable id_string
+        delete_url = reverse(delete_export, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string',
+            'export_type': 'xls'
+        })
+        response = self.client.post(delete_url, post_data)
+        self.assertEqual(response.status_code, 400)
+
     def test_export_progress_output(self):
         self._publish_transportation_form()
         self._submit_transport_instance()
@@ -279,13 +311,23 @@ class TestExports(TestBase):
                 None,
                 self.options)
         self.assertEqual(Export.objects.count(), 2)
+        get_data = {'export_ids': [e.id for e in Export.objects.all()]}
+
+        # test with unavailable id_string
+        progress_url = reverse(export_progress, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string',
+            'export_type': 'xls'
+        })
+        response = self.client.get(progress_url, get_data)
+        self.assertEqual(response.status_code, 400)
+
         # progress for multiple exports
         progress_url = reverse(export_progress, kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
             'export_type': 'xls'
         })
-        get_data = {'export_ids': [e.id for e in Export.objects.all()]}
         response = self.client.get(progress_url, get_data)
         content = json.loads(response.content)
         self.assertEqual(len(content), 2)
@@ -466,6 +508,17 @@ class TestExports(TestBase):
             self.xform,
             None,
             self.options)
+
+        # test with unavailable id_string
+        csv_export_url = reverse(export_download, kwargs={
+            "username": self.user.username,
+            "id_string": 'random_id_string',
+            "export_type": Export.CSV_EXPORT,
+            "filename": export.filename
+        })
+        response = self.client.get(csv_export_url)
+        self.assertEqual(response.status_code, 400)
+
         csv_export_url = reverse(export_download, kwargs={
             "username": self.user.username,
             "id_string": self.xform.id_string,
@@ -474,8 +527,8 @@ class TestExports(TestBase):
         })
         response = self.client.get(csv_export_url)
         self.assertEqual(response.status_code, 200)
-        # test xls
 
+        # test xls
         self.options["extension"] = "xls"
         export = generate_export(
             Export.XLS_EXPORT,

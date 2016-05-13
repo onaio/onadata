@@ -31,3 +31,12 @@ class TestFormPublicAPI(TestBase):
 
         self.assertEqual(data.get('username'), self.user.username)
         self.assertEqual(data.get('id_string'), self.xform.id_string)
+
+    def test_api_with_unavailable_id_string(self):
+        self.public_api_url = reverse(public_api, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string'
+        })
+
+        response = self.client.get(self.public_api_url, {})
+        self.assertEqual(response.status_code, 400)

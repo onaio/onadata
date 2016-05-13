@@ -12,7 +12,7 @@ from onadata.apps.main.views import show, form_photos, update_xform, profile,\
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.views import download_xlsform, download_jsonform,\
     download_xform, delete_xform
-from onadata.apps.viewer.views import export_list, map_view
+from onadata.apps.viewer.views import export_list, map_view, data_export
 from onadata.libs.utils.logger_tools import publish_xml_form
 from onadata.libs.utils.user_auth import http_auth_string
 from onadata.libs.utils.user_auth import get_user_default_project
@@ -77,6 +77,13 @@ class TestFormShow(TestBase):
             response['Content-Disposition'],
             "attachment; filename=exp_one.xlsx")
 
+        # test with unavailable id_string
+        response = self.client.get(reverse(download_xlsform, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string'
+        }))
+        self.assertEqual(response.status_code, 400)
+
     def test_dl_xls_to_anon_if_public(self):
         self.xform.shared = True
         self.xform.save()
@@ -105,6 +112,13 @@ class TestFormShow(TestBase):
             'id_string': self.xform.id_string
         }))
         self.assertEqual(response.status_code, 200)
+
+        # test with unavailable id_string
+        response = self.anon.get(reverse(download_jsonform, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string'
+        }))
+        self.assertEqual(response.status_code, 400)
 
     def test_dl_jsonp_to_anon_if_public(self):
         self.xform.shared = True
@@ -170,6 +184,12 @@ class TestFormShow(TestBase):
         }))
         self.assertEqual(response.status_code, 200)
 
+        # test with unavailable id_string
+        response = self.client.get(reverse(download_xform, kwargs={
+            'username': 'bob',
+            'id_string': 'random_id_string'
+        }))
+
     def test_show_private_if_shared_but_not_data(self):
         self.xform.shared = True
         self.xform.save()
@@ -189,6 +209,21 @@ class TestFormShow(TestBase):
             'id_string': self.xform.id_string,
             'export_type': 'csv'
         }))
+
+    def test_return_error_if_xform_not_found(self):
+        map_url = reverse(map_view, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_string'
+        })
+        response = self.client.get(map_url)
+        self.assertEqual(response.status_code, 400)
+
+        map_url = reverse(data_export, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_string'
+        })
+        response = self.client.get(map_url)
+        self.assertEqual(response.status_code, 400)
 
     def test_show_link_if_owner(self):
         self._submit_transport_instance()
@@ -398,6 +433,14 @@ class TestFormShow(TestBase):
             user=self.user, id_string=id_string).count() == 0
         self.assertTrue(form_deleted)
 
+        # test with unavailable id_string
+        xform_delete_url = reverse(delete_xform, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string'
+        })
+        response = self.client.post(xform_delete_url)
+        self.assertEqual(response.status_code, 400)
+
     @mock.patch('onadata.apps.logger.views.get_object_or_404',
                 side_effect=raise_multiple_objects_returned_error)
     def test_delete_xforms_with_same_id_string_in_same_account(
@@ -410,11 +453,8 @@ class TestFormShow(TestBase):
         response = self.client.post(xform_delete_url)
         form_deleted = XForm.objects.filter(
             user=self.user, id_string=id_string).count() == 0
-        self.assertFalse(form_deleted)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            response.content,
-            'Your account has multiple forms with same formid')
+        self.assertTrue(form_deleted)
+        self.assertEqual(response.status_code, 302)
 
     def test_non_owner_cant_delete_xform(self):
         id_string = self.xform.id_string

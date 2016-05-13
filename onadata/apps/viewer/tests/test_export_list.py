@@ -42,6 +42,28 @@ class TestExportList(TestBase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 400)
 
+    def test_export_data_with_unavailable_id_string(self):
+        kwargs = {'username': self.user.username.upper(),
+                  'id_string': 'random_id_string',
+                  'export_type': Export.CSV_EXPORT}
+        url = reverse(export_list, kwargs=kwargs)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 400)
+
+        kwargs = {'username': self.user.username.upper(),
+                  'id_string': 'random_id_string',
+                  'export_type': Export.ZIP_EXPORT}
+        url = reverse(export_list, kwargs=kwargs)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 400)
+
+        kwargs = {'username': self.user.username.upper(),
+                  'id_string': 'random_id_string',
+                  'export_type': Export.KML_EXPORT}
+        url = reverse(export_list, kwargs=kwargs)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 400)
+
     def test_csv_export_list(self):
         kwargs = {'username': self.user.username.upper(),
                   'id_string': self.xform.id_string.upper(),
