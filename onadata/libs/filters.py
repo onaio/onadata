@@ -141,8 +141,7 @@ class XFormPermissionFilterMixin(object):
         xform = request.query_params.get('xform')
         if xform:
             int_or_parse_error(xform, u"Invalid value for formid %s.")
-            xform = get_object_or_404(XForm, pk=xform)
-            xform_qs = XForm.objects.filter(pk=xform.pk)
+            xform_qs = XForm.objects.filter(pk=xform).first()
         else:
             xform_qs = XForm.objects.all()
 
