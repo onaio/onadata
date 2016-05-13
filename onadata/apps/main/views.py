@@ -64,6 +64,11 @@ from onadata.libs.utils.export_tools import upload_template_for_external_export
 from onadata.libs.utils.user_auth import get_user_default_project
 
 
+def get_form(kwargs):
+    xform = XForm.objects.filter(**kwargs).first()
+    return xform or HttpResponseBadRequest("XForm does not exist.")
+
+
 def home(request):
     if request.user.username:
         return HttpResponseRedirect(
@@ -520,10 +525,13 @@ def public_api(request, username, id_string):
     """
     Returns public information about the form as JSON
     """
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
 
-    xform = get_object_or_404(XForm,
-                              user__username__iexact=username,
-                              id_string__iexact=id_string)
+    if not isinstance(xform, XForm):
+        return xform
 
     _DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
     exports = {'username': xform.user.username,
@@ -881,9 +889,14 @@ def form_gallery(request):
 
 
 def download_metadata(request, username, id_string, data_id):
-    xform = get_object_or_404(XForm,
-                              user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
+
+    if not isinstance(xform, XForm):
+        return xform
+
     owner = xform.user
     if username == request.user.username or xform.shared:
         data = get_object_or_404(MetaData, pk=data_id)
@@ -915,9 +928,14 @@ def download_metadata(request, username, id_string, data_id):
 
 @login_required()
 def delete_metadata(request, username, id_string, data_id):
-    xform = get_object_or_404(XForm,
-                              user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
+
+    if not isinstance(xform, XForm):
+        return xform
+
     owner = xform.user
     data = get_object_or_404(MetaData, pk=data_id)
     dfs = get_storage_class()()
@@ -1060,9 +1078,14 @@ def form_photos(request, username, id_string):
 
 @require_POST
 def set_perm(request, username, id_string):
-    xform = get_object_or_404(XForm,
-                              user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
+
+    if not isinstance(xform, XForm):
+        return xform
+
     owner = xform.user
     if username != request.user.username\
             and not has_permission(xform, username, request):

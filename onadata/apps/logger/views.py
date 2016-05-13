@@ -10,7 +10,6 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.contrib import messages
-from django.core.exceptions import MultipleObjectsReturned
 from django.core.files.storage import get_storage_class
 from django.core.files import File
 from django.core.urlresolvers import reverse
@@ -47,7 +46,6 @@ from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.user_auth import helper_auth_helper, has_permission,\
     has_edit_permission, HttpResponseNotAuthorized, add_cors_headers
-
 from onadata.libs.utils.viewer_tools import get_form_url
 
 
@@ -55,6 +53,11 @@ IO_ERROR_STRINGS = [
     'request data read error',
     'error during read(65536) on wsgi.input'
 ]
+
+
+def get_form(kwargs):
+    xform = XForm.objects.filter(**kwargs).first()
+    return xform or HttpResponseBadRequest("XForm does not exist.")
 
 
 def _bad_request(e):
@@ -327,10 +330,12 @@ def submission(request, username=None):
 
 def download_xform(request, username, id_string):
     user = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm,
-                              user=user, id_string__iexact=id_string)
+    xform = get_form({'user': user, 'id_string__iexact': id_string})
     profile, created =\
         UserProfile.objects.get_or_create(user=user)
+
+    if not isinstance(xform, XForm):
+        return xform
 
     if profile.require_auth:
         authenticator = HttpDigestAuthenticator()
@@ -352,10 +357,15 @@ def download_xform(request, username, id_string):
 
 
 def download_xlsform(request, username, id_string):
-    xform = get_object_or_404(XForm,
-                              user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
     owner = User.objects.get(username__iexact=username)
+
+    if not isinstance(xform, XForm):
+        return xform
+
     helper_auth_helper(request)
 
     if not has_permission(xform, owner, request, xform.shared):
@@ -397,8 +407,14 @@ def download_xlsform(request, username, id_string):
 
 def download_jsonform(request, username, id_string):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
+
+    if not isinstance(xform, XForm):
+        return xform
+
     if request.method == "OPTIONS":
         response = HttpResponse()
         add_cors_headers(response)
@@ -422,11 +438,13 @@ def download_jsonform(request, username, id_string):
 @is_owner
 @require_POST
 def delete_xform(request, username, id_string):
-    try:
-        xform = get_object_or_404(XForm, user__username__iexact=username,
-                                  id_string__iexact=id_string)
-    except MultipleObjectsReturned:
-        return HttpResponse("Your account has multiple forms with same formid")
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
+
+    if not isinstance(xform, XForm):
+        return xform
 
     # delete xform and submissions
     remove_xform(xform)
@@ -461,8 +479,14 @@ def toggle_downloadable(request, username, id_string):
 
 def enter_data(request, username, id_string):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
+
+    if not isinstance(xform, XForm):
+        return xform
+
     if not has_edit_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
 
