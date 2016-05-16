@@ -180,7 +180,7 @@ Where:
 
 ::
 
-        curl -X POST -d "{"xform": 62548, "name": "google_sheets", "google_sheet_title": "population-sync","send_existing_data": true,"sync_updates": false}" https://api.ona.io/api/v1/restservices/236/textit -H "Content-Type: appliction/json"
+        curl -X POST -d "{"xform": 62548, "name": "google_sheets", "google_sheet_title": "population-sync","send_existing_data": true,"sync_updates": false}" https://api.ona.io/api/v1/restservices -H "Content-Type: appliction/json"
 
 ::
 

@@ -459,6 +459,8 @@ def _get_google_credential(request):
     if not credential:
         if 'redirect_uri' in request.GET:
             redirect_uri = request.GET.get('redirect_uri')
+        elif 'redirect_uri' in request.POST:
+            redirect_uri = request.POST.get('redirect_uri')
         else:
             redirect_uri = settings.GOOGLE_STEP2_URI
         google_flow = OAuth2WebServerFlow(

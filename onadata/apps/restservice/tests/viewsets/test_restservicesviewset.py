@@ -29,7 +29,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             'delete': 'destroy',
             'get': 'retrieve',
             'post': 'create',
-            'put': 'update'
+            'put': 'update',
+            'patch': 'partial_update'
         })
         self._publish_xls_form_to_project()
 
@@ -473,3 +474,51 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self._make_submission(xml_submission_file_path)
 
         self.assertEqual(4, mock_sheet_builder.call_count)
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch.object(SheetsExportBuilder, 'live_update')
+    @patch.object(SheetsClient, 'get_google_sheet_id')
+    def test_push_existing_data_google_sheet(self, mock_sheet_client,
+                                             mock_sheet_builder):
+        self._make_submissions()
+
+        storage = Storage(TokenStorageModel, 'id', self.user, 'credential')
+        google_creds = AccessTokenCredentials("fake_token", user_agent="onaio")
+        google_creds.set_store(storage)
+        storage.put(google_creds)
+
+        count = RestService.objects.all().count()
+
+        post_data = {
+            "name": GOOGLE_SHEET,
+            "xform": self.xform.pk,
+            "google_sheet_title": "Data-sync",
+            "send_existing_data": False,
+            "sync_updates": False
+        }
+
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = self.view(request)
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(count + 1, RestService.objects.all().count())
+
+        rest_service = RestService.objects.last()
+
+        google_sheet_details = MetaData.get_google_sheet_details(self.xform)
+        self.assertIsNotNone(google_sheet_details)
+
+        put_data = {
+            "name": GOOGLE_SHEET,
+            "xform": self.xform.pk,
+            "google_sheet_title": "Data-sync",
+            "send_existing_data": True,
+            "sync_updates": False
+        }
+
+        request = self.factory.put('/', data=put_data, **self.extra)
+        response = self.view(request, pk=rest_service.pk)
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(1, mock_sheet_builder.call_count)

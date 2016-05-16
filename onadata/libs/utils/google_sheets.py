@@ -159,7 +159,7 @@ class SheetsClient(gspread.client.Client):
         resp = json.loads(r.content)
         return resp['id']
 
-    def create_or_get_spreadsheet(self, title):
+    def get_or_create_spreadsheet(self, title):
         try:
             return self.open(title)
         except SpreadsheetNotFound:
@@ -246,7 +246,7 @@ class SheetsExportBuilder(ExportBuilder):
         :param path:
         :param data:
         :param xform:
-        :param spreadsheet_id: google sheent id that receives sync data
+        :param spreadsheet_id: google sheet id that receives sync data
         :param delete: boolean value indicating if its a delete sync
         defaults False
         :param update: boolean value indicating its an edit sync default False
@@ -258,7 +258,7 @@ class SheetsExportBuilder(ExportBuilder):
         if spreadsheet_id:
             self.spreadsheet = self.client.open_by_key(spreadsheet_id)
         else:
-            self.spreadsheet = self.client.create_or_get_spreadsheet(
+            self.spreadsheet = self.client.get_or_create_spreadsheet(
                 title=self.spreadsheet_title)
 
         # Add Service account as editor

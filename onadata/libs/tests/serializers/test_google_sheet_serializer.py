@@ -67,7 +67,8 @@ class TestGoogleSheetSerializer(TestAbstractViewSet):
         # create a project with a form
         self._publish_xls_form_to_project()
 
-        request = self.factory.post('/', **self.extra)
+        data = {'redirect_uri': 'http://custom_redirect_uri'}
+        request = self.factory.post('/', data=data, **self.extra)
         request.user = self.user
 
         pre_count = RestService.objects.filter(xform=self.xform).count()
@@ -85,6 +86,10 @@ class TestGoogleSheetSerializer(TestAbstractViewSet):
         with self.assertRaises(ValidationError):
             serializer.is_valid(raise_exception=True)
             serializer.save()
+
+        # assert custom redirect uri is used
+        self.assertTrue(serializer.errors.get('url')[0]
+                        .find('custom_redirect_uri') > 0)
 
         count = RestService.objects.filter(xform=self.xform).count()
 
