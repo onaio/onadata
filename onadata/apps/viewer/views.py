@@ -139,7 +139,7 @@ def map_view(request, username, id_string, template='map.html'):
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -237,7 +237,7 @@ def data_export(request, username, id_string, export_type):
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
@@ -320,7 +320,7 @@ def create_export(request, username, id_string, export_type):
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -422,7 +422,7 @@ def export_list(request, username, id_string, export_type):
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -478,7 +478,7 @@ def export_progress(request, username, id_string, export_type):
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -524,7 +524,7 @@ def export_download(request, username, id_string, export_type, filename):
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
@@ -573,7 +573,7 @@ def delete_export(request, username, id_string, export_type):
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -611,7 +611,7 @@ def zip_export(request, username, id_string):
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
@@ -660,7 +660,7 @@ def kml_export(request, username, id_string):
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
@@ -714,7 +714,7 @@ def google_xls_export(request, username, id_string):
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))

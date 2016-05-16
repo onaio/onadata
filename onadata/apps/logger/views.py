@@ -335,7 +335,7 @@ def download_xform(request, username, id_string):
         UserProfile.objects.get_or_create(user=user)
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     if profile.require_auth:
         authenticator = HttpDigestAuthenticator()
@@ -364,7 +364,7 @@ def download_xlsform(request, username, id_string):
     owner = User.objects.get(username__iexact=username)
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     helper_auth_helper(request)
 
@@ -413,7 +413,7 @@ def download_jsonform(request, username, id_string):
     })
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     if request.method == "OPTIONS":
         response = HttpResponse()
@@ -444,7 +444,7 @@ def delete_xform(request, username, id_string):
     })
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     # delete xform and submissions
     remove_xform(xform)
@@ -485,7 +485,7 @@ def enter_data(request, username, id_string):
     })
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     if not has_edit_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))

@@ -532,7 +532,7 @@ def public_api(request, username, id_string):
     })
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     _DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
     exports = {'username': xform.user.username,
@@ -896,7 +896,7 @@ def download_metadata(request, username, id_string, data_id):
     })
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     owner = xform.user
     if username == request.user.username or xform.shared:
@@ -935,7 +935,7 @@ def delete_metadata(request, username, id_string, data_id):
     })
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     owner = xform.user
     data = get_object_or_404(MetaData, pk=data_id)
@@ -1085,7 +1085,7 @@ def set_perm(request, username, id_string):
     })
 
     if not isinstance(xform, XForm):
-        return xform
+        raise xform
 
     owner = xform.user
     if username != request.user.username\
