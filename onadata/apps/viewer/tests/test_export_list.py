@@ -55,14 +55,14 @@ class TestExportList(TestBase):
                   'export_type': Export.ZIP_EXPORT}
         url = reverse(export_list, kwargs=kwargs)
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
         kwargs = {'username': self.user.username.upper(),
                   'id_string': 'random_id_string',
                   'export_type': Export.KML_EXPORT}
         url = reverse(export_list, kwargs=kwargs)
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
     def test_csv_export_list(self):
         kwargs = {'username': self.user.username.upper(),
