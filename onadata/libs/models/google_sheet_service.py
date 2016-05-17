@@ -1,4 +1,5 @@
 from oauth2client.contrib.django_orm import Storage
+from django.conf import settings
 
 from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.restservice.models import RestService
@@ -57,10 +58,21 @@ class GoogleSheetService(object):
             storage = Storage(TokenStorageModel, 'id', self.user,
                               'credential')
             google_credentials = storage.get()
+            retry_policy = {
+                'max_retries': getattr(settings, 'DEFAULT_CELERY_MAX_RETIRES',
+                                       3),
+                'interval_start':
+                    getattr(settings, 'DEFAULT_CELERY_INTERVAL_START', 1),
+                'interval_step': getattr(settings,
+                                         'DEFAULT_CELERY_INTERVAL_STEP',
+                                         0.5),
+                'interval_max': getattr(settings,
+                                        'DEFAULT_CELERY_INTERVAL_MAX', 0.5)
+            }
             initial_google_sheet_export.apply_async(
                 args=[self.xform.pk, google_credentials,
                       self.google_sheet_title, spreadsheet_id],
-                countdown=1
+                countdown=10, retry_policy=retry_policy
             )
 
     def retrieve(self):

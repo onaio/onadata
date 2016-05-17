@@ -417,6 +417,14 @@ class ParsedInstance(models.Model):
 def google_sync_post_save_signal(parsed_instance, created):
     xform = parsed_instance.instance.xform
     google_sheets_details = MetaData.get_google_sheet_details(xform)
+    retry_policy = {
+        'max_retries': getattr(settings, 'DEFAULT_CELERY_MAX_RETIRES', 3),
+        'interval_start':
+            getattr(settings, 'DEFAULT_CELERY_INTERVAL_START', 1),
+        'interval_step':  getattr(settings, 'DEFAULT_CELERY_INTERVAL_STEP',
+                                  0.5),
+        'interval_max':  getattr(settings, 'DEFAULT_CELERY_INTERVAL_MAX', 0.5)
+    }
 
     # Check whethe google sheet is configured for this form
     if google_sheets_details:
@@ -424,7 +432,8 @@ def google_sync_post_save_signal(parsed_instance, created):
             # Always run in async mode
             call_google_sheet_service.apply_async(
                 args=[parsed_instance.instance_id],
-                countdown=1
+                countdown=1,
+                retry_policy=retry_policy
             )
         else:
             should_sync_updates = \
@@ -436,13 +445,15 @@ def google_sync_post_save_signal(parsed_instance, created):
                 if parsed_instance.instance.deleted_at:
                     sync_delete_google_sheets.apply_async(
                         args=[parsed_instance.instance_id, xform.pk],
-                        countdown=1
+                        countdown=1,
+                        retry_policy=retry_policy
                     )
                 else:
                     # normal update
                     sync_update_google_sheets.apply_async(
                         args=[parsed_instance.instance_id, xform.pk],
-                        countdown=1
+                        countdown=1,
+                        retry_policy=retry_policy
                     )
 
 

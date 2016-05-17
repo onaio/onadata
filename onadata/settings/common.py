@@ -519,6 +519,11 @@ CACHE_MIXIN_SECONDS = 60
 
 TAGGIT_CASE_INSENSITIVE = True
 
+DEFAULT_CELERY_MAX_RETIRES = 3
+DEFAULT_CELERY_INTERVAL_START = 2
+DEFAULT_CELERY_INTERVAL_MAX = 0.5
+DEFAULT_CELERY_INTERVAL_STEP = 0.5
+
 # legacy setting for old sites who still use a local_settings.py file and have
 # not updated to presets/
 try:

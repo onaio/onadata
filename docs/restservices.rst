@@ -71,8 +71,8 @@ Add a Rest Service to a form
 *Payload*
 ::
 
-	       {"xform": <formid>, "service_url": "<service_url>",
-	       "name": "<name>"}
+	{"xform": <formid>, "service_url": "<service_url>",
+	"name": "<name>"}
 
 Where:
 
@@ -87,6 +87,7 @@ Supported external services are:
 - generic_xml
 - bamboo
 - textit
+- google_sheets
 
 Example:
 ^^^^^^^^
@@ -106,14 +107,14 @@ Example:
         }
 
 Delete a Rest Service
-^^^^^^^^^^^^^^^^^^^^^
+---------------------
 .. raw:: html
 
 	<pre class="prettyprint">DELETE /api/v1/restservices/<code>{pk}</code></pre>
 
 
-Adding TextIt:
-^^^^^^^^^^^^^^
+Adding TextIt
+-------------
 .. raw:: html
 
 	<pre class="prettyprint">POST /api/v1/restservices</pre>
@@ -121,13 +122,12 @@ Adding TextIt:
 *Payload*
 ::
 
-	       {"auth_token": <auth_token>, "flow_uuid": "<flow_uuid>",
-	       "contacts": "<contacts>", "name": "textit",
-	        "service_url": "service_url", "xform": "xform"}
+	{"auth_token": <auth_token>, "flow_uuid": "<flow_uuid>",
+	"contacts": "<contacts>", "name": "textit",
+	"service_url": "service_url", "xform": "xform"}
 
 Where:
 
-- ``service`` - Service which is being configured.
 - ``auth_token`` - The authentication token for the rest service.
 - ``flow_uuid`` - The flow uuid in textit.
 - ``contacts`` - The contact used in the flow.
@@ -137,7 +137,7 @@ Where:
 
 ::
 
-        curl -X POST -d "{"auth_token": "abffbbb8f16f7a1bc75f141b5aa538sasdsd", "flow_uuid":"cf7d7891-a01b-4ca9-99d2-weqqrwqd", "contacts": "52d4ff71-4d4e-464c-bksadfsdiwew", "service": "textit"}" https://api.ona.io/api/v1/restservices/236/textit -H "Content-Type: appliction/json"
+        curl -X POST -d "{"auth_token": "abffbbb8f16f7a1bc75f141b5aa538sasdsd", "flow_uuid":"cf7d7891-a01b-4ca9-99d2-weqqrwqd", "contacts": "52d4ff71-4d4e-464c-bksadfsdiwew", "name": "textit", "service_url":"https://textit.in/api/v1/runs.json"}" https://api.ona.io/api/v1/restservices -H "Content-Type: appliction/json"
 
 ::
 
@@ -153,8 +153,8 @@ Where:
             service_url: "https://textit.in/api/v1/runs.json"
         }
 
-Adding Google Sheet Sync:
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Adding Google Sheet Sync
+------------------------
 .. raw:: html
 
 	<pre class="prettyprint">POST /api/v1/restservices</pre>
@@ -188,7 +188,9 @@ Where:
 
 
 Pushing Data To An Already linked Google Sheet
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------
+
+Set send_existing_data to `true`
 .. raw:: html
 
 	<pre class="prettyprint">PATCH /api/v1/restservices/<code>pk</code></pre>
@@ -197,6 +199,15 @@ Pushing Data To An Already linked Google Sheet
 ::
 
         {
-            "send_existing_data": true
+            "xform": 62548,
+            "name": "google_sheets",
+            "google_sheet_title": "population-sync",
+            "send_existing_data": true,
+            "sync_updates": false
         }
+
+Overiding The Default Google Oauth2 redirect_uri
+------------------------------------------------
+
+Add this `redirect_uri` and set your custom redirect url in the payload.
 
