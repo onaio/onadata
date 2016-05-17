@@ -449,7 +449,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch.object(SheetsExportBuilder, 'live_update',
-                  side_effect=[ConnectionError(), ConnectionError(), ConnectionError()])
+                  side_effect=[ConnectionError(), ConnectionError(),
+                               ConnectionError()])
     @patch.object(SheetsClient, 'get_google_sheet_id')
     def test_google_sheets_service_retries_all_fail(self, mock_sheet_client,
                                                     mock_sheet_builder):
