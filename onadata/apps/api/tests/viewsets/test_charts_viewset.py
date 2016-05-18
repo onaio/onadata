@@ -369,9 +369,9 @@ class TestChartsViewSet(TestBase):
         res = renderer.render(response.data)
 
         expected = ('{"field_type":"calculate","data_type":"numeric",'
-                    '"field_xpath":"networth_calc","data":[{"sum":"150000.00"'
-                    ',"pizza_fan":["No"],"mean":"75000.00"},{"sum":"nan",'
-                    '"pizza_fan":["Yes"],"mean":"nan"}],"grouped_by":'
-                    '"pizza_fan","field_label":"Networth Calc","field_name"'
-                    ':"networth_calc","xform":' + str(self.xform.pk) + '}')
+                    '"field_xpath":"networth_calc","data":[{"sum":150000.0,'
+                    '"pizza_fan":["No"],"mean":75000.0},{"sum":null,'
+                    '"pizza_fan":["Yes"],"mean":null}],"grouped_by":'
+                    '"pizza_fan","field_label":"Networth Calc","field_name":'
+                    '"networth_calc","xform":' + str(self.xform.pk) + '}')
         self.assertEqual(expected, res)

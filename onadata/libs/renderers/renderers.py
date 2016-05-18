@@ -1,5 +1,6 @@
 import json
 import decimal
+import math
 
 from cStringIO import StringIO
 from django.utils.encoding import smart_text
@@ -19,8 +20,9 @@ from onadata.libs.utils.osm import get_combined_osm
 
 class DecimalEncoder(JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, decimal.Decimal):
-            return '%.2f' % obj
+        # Handle Decimal NaN values
+        if isinstance(obj, decimal.Decimal) and math.isnan(obj):
+            return None
         return JSONEncoder.default(self, obj)
 
 
