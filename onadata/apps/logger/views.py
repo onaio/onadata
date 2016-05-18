@@ -57,7 +57,10 @@ IO_ERROR_STRINGS = [
 
 def get_form(kwargs):
     xform = XForm.objects.filter(**kwargs).first()
-    return xform or Http404("XForm does not exist.")
+    if xform:
+        return xform
+
+    raise Http404("XForm does not exist.")
 
 
 def _bad_request(e):
@@ -334,9 +337,6 @@ def download_xform(request, username, id_string):
     profile, created =\
         UserProfile.objects.get_or_create(user=user)
 
-    if not isinstance(xform, XForm):
-        raise xform
-
     if profile.require_auth:
         authenticator = HttpDigestAuthenticator()
         if not authenticator.authenticate(request):
@@ -362,9 +362,6 @@ def download_xlsform(request, username, id_string):
         'id_string__iexact': id_string
     })
     owner = User.objects.get(username__iexact=username)
-
-    if not isinstance(xform, XForm):
-        raise xform
 
     helper_auth_helper(request)
 
@@ -412,9 +409,6 @@ def download_jsonform(request, username, id_string):
         'id_string__iexact': id_string
     })
 
-    if not isinstance(xform, XForm):
-        raise xform
-
     if request.method == "OPTIONS":
         response = HttpResponse()
         add_cors_headers(response)
@@ -442,9 +436,6 @@ def delete_xform(request, username, id_string):
         'user__username__iexact': username,
         'id_string__iexact': id_string
     })
-
-    if not isinstance(xform, XForm):
-        raise xform
 
     # delete xform and submissions
     remove_xform(xform)
@@ -483,9 +474,6 @@ def enter_data(request, username, id_string):
         'user__username__iexact': username,
         'id_string__iexact': id_string
     })
-
-    if not isinstance(xform, XForm):
-        raise xform
 
     if not has_edit_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))

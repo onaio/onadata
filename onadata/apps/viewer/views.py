@@ -53,7 +53,10 @@ from oauth2client import client as google_client
 
 def get_form(kwargs):
     xform = XForm.objects.filter(**kwargs).first()
-    return xform or Http404("XForm does not exist.")
+    if xform:
+        return xform
+
+    raise Http404("XForm does not exist.")
 
 
 def _get_start_end_submission_time(request):
@@ -137,9 +140,6 @@ def average(values):
 def map_view(request, username, id_string, template='map.html'):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
-
-    if not isinstance(xform, XForm):
-        raise xform
 
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -236,9 +236,6 @@ def data_export(request, username, id_string, export_type):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
-    if not isinstance(xform, XForm):
-        raise xform
-
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -318,9 +315,6 @@ def data_export(request, username, id_string, export_type):
 def create_export(request, username, id_string, export_type):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
-
-    if not isinstance(xform, XForm):
-        raise xform
 
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -421,9 +415,6 @@ def export_list(request, username, id_string, export_type):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
-    if not isinstance(xform, XForm):
-        raise xform
-
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
@@ -477,9 +468,6 @@ def export_progress(request, username, id_string, export_type):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
-    if not isinstance(xform, XForm):
-        raise xform
-
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
@@ -522,9 +510,6 @@ def export_progress(request, username, id_string, export_type):
 def export_download(request, username, id_string, export_type, filename):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
-
-    if not isinstance(xform, XForm):
-        raise xform
 
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
@@ -572,9 +557,6 @@ def delete_export(request, username, id_string, export_type):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
 
-    if not isinstance(xform, XForm):
-        raise xform
-
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
@@ -609,9 +591,6 @@ def delete_export(request, username, id_string, export_type):
 def zip_export(request, username, id_string):
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
-
-    if not isinstance(xform, XForm):
-        raise xform
 
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
@@ -658,9 +637,6 @@ def kml_export(request, username, id_string):
     # read the locations from the database
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
-
-    if not isinstance(xform, XForm):
-        raise xform
 
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
@@ -712,9 +688,6 @@ def google_xls_export(request, username, id_string):
 
     owner = get_object_or_404(User, username__iexact=username)
     xform = get_form({'user': owner, 'id_string__iexact': id_string})
-
-    if not isinstance(xform, XForm):
-        raise xform
 
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))

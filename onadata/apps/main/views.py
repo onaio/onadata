@@ -67,7 +67,10 @@ from onadata.libs.utils.user_auth import get_user_default_project
 
 def get_form(kwargs):
     xform = XForm.objects.filter(**kwargs).first()
-    return xform or Http404("XForm does not exist.")
+    if xform:
+        return xform
+
+    raise Http404("XForm does not exist.")
 
 
 def home(request):
@@ -531,9 +534,6 @@ def public_api(request, username, id_string):
         'id_string__iexact': id_string
     })
 
-    if not isinstance(xform, XForm):
-        raise xform
-
     _DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
     exports = {'username': xform.user.username,
                'id_string': xform.id_string,
@@ -895,9 +895,6 @@ def download_metadata(request, username, id_string, data_id):
         'id_string__iexact': id_string
     })
 
-    if not isinstance(xform, XForm):
-        raise xform
-
     owner = xform.user
     if username == request.user.username or xform.shared:
         data = get_object_or_404(MetaData, pk=data_id)
@@ -933,9 +930,6 @@ def delete_metadata(request, username, id_string, data_id):
         'user__username__iexact': username,
         'id_string__iexact': id_string
     })
-
-    if not isinstance(xform, XForm):
-        raise xform
 
     owner = xform.user
     data = get_object_or_404(MetaData, pk=data_id)
@@ -1083,9 +1077,6 @@ def set_perm(request, username, id_string):
         'user__username__iexact': username,
         'id_string__iexact': id_string
     })
-
-    if not isinstance(xform, XForm):
-        raise xform
 
     owner = xform.user
     if username != request.user.username\
