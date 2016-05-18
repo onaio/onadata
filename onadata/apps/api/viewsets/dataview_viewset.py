@@ -20,6 +20,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
+from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import custom_response_handler
@@ -141,6 +142,15 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         response['Content-Disposition'] = 'attachment; filename=' + filename
 
         return response
+
+    @detail_route(methods=['GET'])
+    def form_details(self, request, *args, **kwargs):
+        dataview = self.get_object()
+        xform = dataview.xform
+        serializer = XFormSerializer(xform, context={'request': request})
+
+        return Response(data=serializer.data,
+                        content_type="application/json")
 
     @detail_route(methods=['GET'])
     def charts(self, request, *args, **kwargs):

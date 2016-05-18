@@ -113,6 +113,24 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertDictContainsSubset(data, response.data)
 
+    def test_get_dataview_form_details(self):
+        self._create_dataview()
+
+        self.view = DataViewViewSet.as_view({
+            'get': 'form_details',
+        })
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEquals(response.status_code, 200)
+
+        response = self.view(request, pk=self.data_view.pk, format='json')
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIn("title", response.data)
+        self.assertIn("created_by", response.data)
+        self.assertIn("id_string", response.data)
+        self.assertIn("metadata", response.data)
+
     def test_get_dataview(self):
         self._create_dataview()
 
