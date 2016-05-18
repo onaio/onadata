@@ -470,6 +470,6 @@ def _get_google_credential(request):
                 ['https://docs.google.com/feeds/',
                  'https://spreadsheets.google.com/feeds/',
                  'https://www.googleapis.com/auth/drive.file']),
-            redirect_uri=redirect_uri)
+            redirect_uri=redirect_uri, prompt="consent")
         return HttpResponseRedirect(google_flow.step1_get_authorize_url())
     return credential

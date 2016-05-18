@@ -13,7 +13,7 @@ google_flow = OAuth2WebServerFlow(
         ['https://docs.google.com/feeds/',
          'https://spreadsheets.google.com/feeds/',
          'https://www.googleapis.com/auth/drive.file']),
-    redirect_uri=settings.GOOGLE_STEP2_URI)
+    redirect_uri=settings.GOOGLE_STEP2_URI,  prompt="consent")
 
 
 def get_refreshed_token(token):
