@@ -191,6 +191,24 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         return Response(data)
 
+    @detail_route(methods=['GET'])
+    def xls_export(self, request, *args, **kwargs):
+        dataview = self.get_object()
+        xform = dataview.xform
+
+        token = None
+        export_type = "xls"
+        query = request.query_params.get("query", {})
+        meta = request.GET.get('meta')
+
+        return custom_response_handler(request,
+                                       xform,
+                                       query,
+                                       export_type,
+                                       token,
+                                       meta,
+                                       dataview.id)
+
 
 def dataview_post_save_callback(sender, instance=None, created=False,
                                 **kwargs):
