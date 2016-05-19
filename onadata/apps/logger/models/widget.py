@@ -10,9 +10,9 @@ from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.utils.model_tools import generate_uuid_for_form
-from onadata.libs.utils.chart_tools import get_field_from_field_name, \
-    DATA_TYPE_MAP, get_field_label, _flatten_multiple_dict_into_one,\
-    _use_labels_from_group_by_name, get_field_from_field_xpath
+from onadata.libs.utils.chart_tools import DATA_TYPE_MAP, get_field_label,\
+    _flatten_multiple_dict_into_one, _use_labels_from_group_by_name,\
+    get_field_from_field_xpath
 from onadata.libs.utils.common_tags import NUMERIC_LIST, SUBMISSION_TIME, \
     SELECT_ONE
 
@@ -71,7 +71,10 @@ class Widget(OrderedModel):
         elif isinstance(widget.content_object, DataView):
             xform = widget.content_object.xform
 
-        field = get_field_from_field_name(column, xform)
+        # try:
+        #     field = get_field_from_field_name(column, xform)
+        # except Http404 as e:
+        field = get_field_from_field_xpath(column, xform)
 
         if isinstance(field, basestring) and field == SUBMISSION_TIME:
             field_label = 'Submission Time'

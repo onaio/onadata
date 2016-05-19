@@ -660,3 +660,53 @@ class TestWidgetViewSet(TestAbstractViewSet):
         response = view(request)
 
         self.assertEquals(response.status_code, 201)
+
+    def test_create_multiple_choice(self):
+        data = {
+            'content_object': 'http://testserver/api/v1/forms/%s' %
+                              self.xform.pk,
+            'widget_type': "charts",
+            'view_type': "horizontal-bar",
+            'column': "favorite_toppings/pepperoni",
+        }
+
+        self._create_widget(data)
+
+        data = {
+            "data": True
+        }
+        pk = self.widget.pk
+        request = self.factory.get('/', data=data, **self.extra)
+        response = self.view(request, pk=pk)
+
+        self.assertEqual(response.status_code, 200)
+
+        form_pk = self.xform.pk
+        expected = {
+            'content_object':
+                u'http://testserver/api/v1/forms/{}'.format(form_pk),
+            'description': None,
+            'title': None,
+            'url': u'http://testserver/api/v1/widgets/{}'.format(pk),
+            'view_type': u'horizontal-bar',
+            'aggregation': None,
+            'order': 0,
+            'widget_type': 'charts',
+            'column': u'favorite_toppings/pepperoni',
+            'group_by': None,
+            'key': self.widget.key,
+            'data': {
+                'field_type': u'',
+                'data_type': 'categorized',
+                'field_xpath': u'favorite_toppings/pepperoni',
+                'grouped_by': None,
+                'field_label': u'Pepperoni',
+                'data': [{''
+                          'count': 0L,
+                          'favorite_toppings/pepperoni': None
+                          }]
+                },
+            'id': pk,
+            'metadata': {}
+        }
+        self.assertEqual(expected, response.data)
