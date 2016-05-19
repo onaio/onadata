@@ -14,7 +14,7 @@ class GoogleSheetService(object):
 
     def __init__(self, user=None, xform=None, service_url=None, name=None,
                  google_sheet_title=None, send_existing_data=True,
-                 sync_updates=True, pk=None):
+                 sync_updates=True, google_sheet_id=None, pk=None):
         self.pk = pk
         self.xform = xform
         self.user = user
@@ -23,6 +23,7 @@ class GoogleSheetService(object):
         self.google_sheet_title = google_sheet_title
         self.send_existing_data = send_existing_data
         self.sync_updates = sync_updates
+        self.google_sheet_id = google_sheet_id
 
     def save(self, **kwargs):
 
@@ -53,6 +54,7 @@ class GoogleSheetService(object):
         MetaData.set_google_sheet_details(self.xform, google_sheets_metadata)
 
         self.pk = rs.pk
+        self.google_sheet_id = spreadsheet_id
 
         if self.send_existing_data and self.xform.instances.count() > 0:
             storage = Storage(TokenStorageModel, 'id', self.user,
@@ -78,7 +80,9 @@ class GoogleSheetService(object):
     def retrieve(self):
         google_sheet_details = MetaData.get_google_sheet_details(self.xform)
 
-        self.google_sheet_title = google_sheet_details.get(GOOGLE_SHEET_ID)
+        self.google_sheet_title = google_sheet_details.get(GOOGLE_SHEET_TITLE)
         self.sync_updates = \
             google_sheet_details.get(UPDATE_OR_DELETE_GOOGLE_SHEET_DATA)
         self.send_existing_data = False
+        self.user = google_sheet_details.get(USER_ID)
+        self.google_sheet_id = google_sheet_details.get(GOOGLE_SHEET_ID)

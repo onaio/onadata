@@ -47,8 +47,9 @@ class RestServicesViewSet(AuthenticateHeaderMixin,
 
         if instance.name == TEXTIT:
             serializer = TextItSerializer(instance)
+        elif instance.name == GOOGLE_SHEET:
+            serializer = GoogleSheetsSerializer(instance)
         else:
             serializer = self.get_serializer(instance)
 
         return Response(serializer.data)
-

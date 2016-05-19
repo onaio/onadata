@@ -17,8 +17,8 @@ class TextItSerializer(serializers.Serializer):
 
     def to_representation(self, instance):
         text_it = TextItService(pk=instance.pk, xform=instance.xform,
-                               service_url=instance.service_url,
-                               name=instance.name)
+                                service_url=instance.service_url,
+                                name=instance.name)
         text_it.retrieve()
         return super(TextItSerializer, self).to_representation(text_it)
 

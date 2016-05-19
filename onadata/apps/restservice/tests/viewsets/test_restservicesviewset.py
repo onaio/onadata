@@ -246,6 +246,28 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertTrue(mock_sheet_client.called)
         self.assertFalse(mock_sheet_builder.called)
 
+    @patch.object(SheetsClient, 'get_google_sheet_id')
+    def test_retrieve_google_sheets_service(self, mock_sheet_client):
+        mock_sheet_client.return_value = "very_mocked_id"
+        data = self._create_google_sheet_service()
+        _id = data.get('id')
+
+        self.assertTrue(mock_sheet_client.called)
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=_id)
+        expected_dict = {
+            "name": GOOGLE_SHEET,
+            "xform": self.xform.pk,
+            "google_sheet_title": "Data-sync",
+            "send_existing_data": False,
+            "sync_updates": False,
+            "id": _id,
+            "service_url": 'https://drive.google.com',
+            "google_sheet_id": 'very_mocked_id'
+        }
+        self.assertEqual(response.data, expected_dict)
+
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch.object(SheetsExportBuilder, 'live_update')
     @patch.object(SheetsClient, 'get_google_sheet_id')

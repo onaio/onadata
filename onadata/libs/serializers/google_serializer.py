@@ -10,7 +10,7 @@ from onadata.libs.serializers.fields.xform_field import XFormField
 from onadata.libs.models.google_sheet_service import GoogleSheetService
 from onadata.libs.utils.api_export_tools import _get_google_credential
 from onadata.libs.utils.common_tags import GOOGLE_SHEET_TITLE,\
-    UPDATE_OR_DELETE_GOOGLE_SHEET_DATA
+    UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, GOOGLE_SHEET_ID
 
 
 class GoogleCredentialSerializer(serializers.Serializer):
@@ -36,6 +36,15 @@ class GoogleSheetsSerializer(serializers.Serializer):
     google_sheet_title = serializers.CharField(max_length=255, required=True)
     send_existing_data = serializers.BooleanField(default=True)
     sync_updates = serializers.BooleanField(default=True)
+    google_sheet_id = serializers.ReadOnlyField(default=None)
+
+    def to_representation(self, instance):
+        google = GoogleSheetService(pk=instance.pk, xform=instance.xform,
+                                    service_url=instance.service_url,
+                                    name=instance.name)
+
+        google.retrieve()
+        return super(GoogleSheetsSerializer, self).to_representation(google)
 
     def validate(self, attrs):
         request = self.context.get('request')
@@ -63,6 +72,7 @@ class GoogleSheetsSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         meta = MetaData.get_google_sheet_details(instance.xform)
         title = meta.get(GOOGLE_SHEET_TITLE)
+        sheet_id = meta.get(GOOGLE_SHEET_ID)
         updates = meta.get(UPDATE_OR_DELETE_GOOGLE_SHEET_DATA)
         request = self.context.get('request')
         user = request.user
@@ -71,13 +81,14 @@ class GoogleSheetsSerializer(serializers.Serializer):
         name = validated_data.get('name', instance.name)
         xform = validated_data.get('xform', instance.xform)
         google_sheet_title = validated_data.get('google_sheet_title', title)
+        google_sheet_id = sheet_id
         send_existing_data = validated_data.get('send_existing_data', False)
         service_url = validated_data.get('service_url', instance.service_url)
         sync_updates = validated_data.get('sync_updates', updates)
 
         instance = GoogleSheetService(user, xform, service_url, name,
                                       google_sheet_title, send_existing_data,
-                                      sync_updates, pk)
+                                      sync_updates, google_sheet_id, pk)
         instance.save(update=True)
 
         return instance
