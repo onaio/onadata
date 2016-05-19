@@ -15,6 +15,13 @@ class TextItSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=50, required=True)
     service_url = serializers.URLField(required=True)
 
+    def to_representation(self, instance):
+        text_it = TextItService(pk=instance.pk, xform=instance.xform,
+                               service_url=instance.service_url,
+                               name=instance.name)
+        text_it.retrieve()
+        return super(TextItSerializer, self).to_representation(text_it)
+
     def update(self, instance, validated_data):
         meta = MetaData.textit(instance.xform)
         values = meta.data_value.split(settings.METADATA_SEPARATOR)

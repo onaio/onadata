@@ -1,4 +1,5 @@
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.response import Response
 
 from onadata.apps.api.permissions import RestServiceObjectPermissions
 from onadata.libs.serializers.textit_serializer import TextItSerializer
@@ -36,3 +37,14 @@ class RestServicesViewSet(AuthenticateHeaderMixin,
             return TextItSerializer
 
         return super(RestServicesViewSet, self).get_serializer_class()
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        if instance.name == TEXTIT:
+            serializer = TextItSerializer(instance)
+        else:
+            serializer = self.get_serializer(instance)
+
+        return Response(serializer.data)
+

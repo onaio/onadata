@@ -73,6 +73,24 @@ class TestRestServicesViewSet(TestAbstractViewSet):
     def test_create_textit_service(self):
         self._create_textit_service()
 
+    def test_retrieve_textit_services(self):
+        response_data = self._create_textit_service()
+
+        _id = response_data.get('id')
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=_id)
+        expected_dict = {
+            'name': u'textit',
+            'contacts': u'ksadaskjdajsda',
+            'auth_token': u'sadsdfhsdf',
+            'flow_uuid': u'sdfskhfskdjhfs',
+            'service_url': u'https://textit.io',
+            'id': _id,
+            'xform': self.xform.pk
+        }
+        self.assertEqual(response.data, expected_dict)
+
     def test_delete_textit_service(self):
         rest = self._create_textit_service()
         count = RestService.objects.all().count()
