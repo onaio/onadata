@@ -71,9 +71,6 @@ class Widget(OrderedModel):
         elif isinstance(widget.content_object, DataView):
             xform = widget.content_object.xform
 
-        # try:
-        #     field = get_field_from_field_name(column, xform)
-        # except Http404 as e:
         field = get_field_from_field_xpath(column, xform)
 
         if isinstance(field, basestring) and field == SUBMISSION_TIME:
