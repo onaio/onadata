@@ -19,7 +19,6 @@ from django.http import HttpResponseForbidden
 from django.http import HttpResponseNotFound
 from django.http import HttpResponseRedirect
 from django.http import HttpResponseServerError
-from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.template import loader, RequestContext
@@ -60,17 +59,9 @@ from onadata.libs.utils.user_auth import helper_auth_helper
 from onadata.libs.utils.user_auth import set_profile_data
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.qrcode import generate_qrcode
-from onadata.libs.utils.viewer_tools import enketo_url
+from onadata.libs.utils.viewer_tools import enketo_url, get_form
 from onadata.libs.utils.export_tools import upload_template_for_external_export
 from onadata.libs.utils.user_auth import get_user_default_project
-
-
-def get_form(kwargs):
-    xform = XForm.objects.filter(**kwargs).first()
-    if xform:
-        return xform
-
-    raise Http404("XForm does not exist.")
 
 
 def home(request):

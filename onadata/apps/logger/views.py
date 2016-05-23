@@ -14,7 +14,7 @@ from django.core.files.storage import get_storage_class
 from django.core.files import File
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
-    HttpResponseRedirect, HttpResponseForbidden, Http404
+    HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from django.shortcuts import render
 from django.template import loader
@@ -46,21 +46,13 @@ from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.user_auth import helper_auth_helper, has_permission,\
     has_edit_permission, HttpResponseNotAuthorized, add_cors_headers
-from onadata.libs.utils.viewer_tools import get_form_url
+from onadata.libs.utils.viewer_tools import get_form_url, get_form
 
 
 IO_ERROR_STRINGS = [
     'request data read error',
     'error during read(65536) on wsgi.input'
 ]
-
-
-def get_form(kwargs):
-    xform = XForm.objects.filter(**kwargs).first()
-    if xform:
-        return xform
-
-    raise Http404("XForm does not exist.")
 
 
 def _bad_request(e):

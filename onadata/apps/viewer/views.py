@@ -14,7 +14,8 @@ from django.core.files.storage import get_storage_class
 from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponseForbidden, HttpResponseRedirect, HttpResponseNotFound,
-    HttpResponseBadRequest, HttpResponse, Http404)
+    HttpResponseBadRequest, HttpResponse
+)
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -42,21 +43,13 @@ from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
     generate_content_disposition_header
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
-    export_def_from_filename
+    export_def_from_filename, get_form
 from onadata.libs.utils.user_auth import has_permission, get_xform_and_perms,\
     helper_auth_helper
 from xls_writer import XlsWriter
 from onadata.libs.utils.chart_tools import build_chart_data
 from oauth2client.contrib.django_orm import Storage
 from oauth2client import client as google_client
-
-
-def get_form(kwargs):
-    xform = XForm.objects.filter(**kwargs).first()
-    if xform:
-        return xform
-
-    raise Http404("XForm does not exist.")
 
 
 def _get_start_end_submission_time(request):
