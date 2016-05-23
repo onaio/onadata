@@ -1,8 +1,33 @@
+import os
+from django.conf import settings
+from django.db import connection
+
 from onadata.apps.main.tests.test_base import TestBase
-from onadata.apps.logger.models.data_view import append_where_list
+from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
+    TestAbstractViewSet
+from onadata.apps.logger.models.data_view import (
+    append_where_list,
+    DataView)
+
+
+def is_sorted_asc(s):
+    if len(s) in [0, 1]:
+        return True
+    if s[0] <= s[1]:
+        return is_sorted_asc(s[1:])
+    return False
+
+
+def is_sorted_desc(s):
+    if len(s) in [0, 1]:
+        return True
+    if s[0] >= s[1]:
+        return is_sorted_desc(s[1:])
+    return False
 
 
 class TestDataView(TestBase):
+
     def test_append_where_list(self):
         json_str = 'json->>%s'
         self.assertEqual(
@@ -33,3 +58,162 @@ class TestDataView(TestBase):
             append_where_list('<=', [], json_str),
             [u'json->>%s <= %s']
         )
+
+
+class TestIntegratedDataView(TestAbstractViewSet):
+    def setUp(self):
+        super(self.__class__, self).setUp()
+
+        self.start_index = None
+        self.limit = None
+        self.count = None
+        self.last_submission_time = False
+        self.all_data = False
+        self.order_by = None
+
+        self._setup_dataview()
+
+        self.cursor = connection.cursor()
+
+    def _setup_dataview(self):
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "tutorial.xls")
+
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+
+        for x in range(1, 9):
+            path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'tutorial', 'instances', 'uuid{}'.format(x), 'submission.xml')
+            self._make_submission(path)
+            x += 1
+
+        self._create_dataview()
+
+    def test_generate_query_string_for_data_without_filter(self):
+        expected_sql = "SELECT json->%s,json->%s,json->%s,json->%s,json->%s,"\
+                       "json->%s,json->%s,json->%s FROM "\
+                       "logger_instance WHERE xform_id = %s  AND "\
+                       "CAST(json->>%s AS INT) > %s AND "\
+                       "CAST(json->>%s AS INT) < %s AND deleted_at IS NULL"\
+                       " ORDER BY id"
+
+        (sql, columns, params) = DataView.generate_query_string(
+            self.data_view,
+            self.start_index,
+            self.limit,
+            self.count,
+            self.last_submission_time,
+            self.all_data,
+            self.order_by)
+
+        self.assertEquals(sql, expected_sql)
+
+        self.cursor.execute(sql, [unicode(i) for i in (columns + params)])
+        results = self.cursor.fetchall()
+
+        self.assertEquals(len(results), 3)
+
+    def test_generate_query_string_for_data_with_limit_filter(self):
+        limit_filter = 1
+        expected_sql = "SELECT json->%s,json->%s,json->%s,json->%s,json->%s,"\
+                       "json->%s,json->%s,json->%s FROM logger_instance"\
+                       " WHERE xform_id = %s  AND CAST(json->>%s AS INT) > %s"\
+                       " AND CAST(json->>%s AS INT) < %s AND deleted_at "\
+                       "IS NULL ORDER BY id LIMIT %s"
+
+        (sql, columns, params) = DataView.generate_query_string(
+            self.data_view,
+            self.start_index,
+            limit_filter,
+            self.count,
+            self.last_submission_time,
+            self.all_data,
+            self.order_by)
+
+        self.assertEquals(sql, expected_sql)
+
+        records = [record for record in DataView.query_iterator(sql,
+                                                                columns,
+                                                                params,
+                                                                self.count)]
+
+        self.assertEquals(len(records), limit_filter)
+
+    def test_generate_query_string_for_data_with_start_index_filter(self):
+        start_index = 2
+        expected_sql = "SELECT json->%s,json->%s,json->%s,json->%s,json->%s,"\
+                       "json->%s,json->%s,json->%s FROM logger_instance WHERE"\
+                       " xform_id = %s  AND CAST(json->>%s AS INT) > %s AND"\
+                       " CAST(json->>%s AS INT) < %s AND deleted_at IS NULL "\
+                       "ORDER BY id OFFSET %s"
+
+        (sql, columns, params) = DataView.generate_query_string(
+            self.data_view,
+            start_index,
+            self.limit,
+            self.count,
+            self.last_submission_time,
+            self.all_data,
+            self.order_by)
+
+        self.assertEquals(sql, expected_sql)
+
+        records = [record for record in DataView.query_iterator(sql,
+                                                                columns,
+                                                                params,
+                                                                self.count)]
+        self.assertEquals(len(records), 1)
+
+    def test_generate_query_string_for_data_with_sort_column_asc(self):
+        order_by = '{"age":1}'
+        expected_sql = "SELECT json->%s,json->%s,json->%s,json->%s,json->%s,"\
+                       "json->%s,json->%s,json->%s FROM logger_instance WHERE"\
+                       " xform_id = %s  AND CAST(json->>%s AS INT) > %s AND"\
+                       " CAST(json->>%s AS INT) < %s AND deleted_at IS NULL"\
+                       " ORDER BY  json->>%s ASC"
+
+        (sql, columns, params) = DataView.generate_query_string(
+            self.data_view,
+            self.start_index,
+            self.limit,
+            self.count,
+            self.last_submission_time,
+            self.all_data,
+            order_by)
+
+        self.assertEquals(sql, expected_sql)
+
+        records = [record for record in DataView.query_iterator(sql,
+                                                                columns,
+                                                                params,
+                                                                self.count)]
+
+        self.assertTrue(is_sorted_asc([r.get("age") for r in records]))
+
+    def test_generate_query_string_for_data_with_sort_column_desc(self):
+        order_by = '{"age": -1}'
+        expected_sql = "SELECT json->%s,json->%s,json->%s,json->%s,json->%s,"\
+                       "json->%s,json->%s,json->%s FROM logger_instance WHERE"\
+                       " xform_id = %s  AND CAST(json->>%s AS INT) > %s AND"\
+                       " CAST(json->>%s AS INT) < %s AND deleted_at IS NULL"\
+                       " ORDER BY  json->>%s DESC"
+
+        (sql, columns, params) = DataView.generate_query_string(
+            self.data_view,
+            self.start_index,
+            self.limit,
+            self.count,
+            self.last_submission_time,
+            self.all_data,
+            order_by)
+
+        self.assertEquals(sql, expected_sql)
+
+        records = [record for record in DataView.query_iterator(sql,
+                                                                columns,
+                                                                params,
+                                                                self.count)]
+
+        self.assertTrue(is_sorted_desc([r.get("age") for r in records]))

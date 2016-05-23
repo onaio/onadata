@@ -1,4 +1,6 @@
 import datetime
+import json
+import six
 
 from django.utils.translation import ugettext as _
 from django.contrib.gis.db import models
@@ -79,6 +81,51 @@ def has_attachments_fields(data_view):
                     return True
 
     return False
+
+
+def sort_from_mongo_sort_str(sort_str):
+    sort_values = []
+    if isinstance(sort_str, six.string_types):
+        if sort_str.startswith('{'):
+            sort_dict = json.loads(sort_str)
+            for k, v in sort_dict.items():
+                try:
+                    v = int(v)
+                except ValueError:
+                    pass
+                if v < 0:
+                    k = u'-{}'.format(k)
+                sort_values.append(k)
+        else:
+            sort_values.append(sort_str)
+
+    return sort_values
+
+
+def json_order_by(sort_list):
+    _list = []
+
+    for field in sort_list:
+        _str = u" json->>%s"
+        if field.startswith('-'):
+            _str += u" DESC"
+        else:
+            _str += u" ASC"
+        _list.append(_str)
+
+    if len(_list) > 0:
+        return u"ORDER BY {}".format(u",".join(_list))
+
+    return u""
+
+
+def json_order_by_params(sort_list):
+    params = []
+
+    for field in sort_list:
+        params.append(field.lstrip('-'))
+
+    return params
 
 
 class DataView(models.Model):
@@ -186,10 +233,6 @@ class DataView(models.Model):
 
             sql_params = params
             fields = [u'count']
-        else:
-            order_pos = sql.upper().find('ORDER BY')
-            if order_pos == -1:
-                sql += ' ORDER BY id'
 
         cursor.execute(sql, [unicode(i) for i in sql_params])
 
@@ -201,9 +244,8 @@ class DataView(models.Model):
                 yield dict(zip(fields, row))
 
     @classmethod
-    def query_data(cls, data_view, start_index=None, limit=None, count=None,
-                   last_submission_time=False, all_data=False):
-
+    def generate_query_string(cls, data_view, start_index, limit, count,
+                              last_submission_time, all_data, order_by):
         additional_columns = [GEOLOCATION] \
             if data_view.instances_with_geopoints else []
 
@@ -244,6 +286,15 @@ class DataView(models.Model):
                + u" AND deleted_at IS NULL"
         params = [data_view.xform.pk] + where_params
 
+        if order_by is not None:
+            sort = ['id'] if order_by is None\
+                else sort_from_mongo_sort_str(order_by)
+            sql = u"{} {}".format(sql, json_order_by(sort))
+            params = params + json_order_by_params(sort)
+
+        elif last_submission_time is False:
+            sql += ' ORDER BY id'
+
         if start_index is not None:
             sql += u" OFFSET %s"
             params += [start_index]
@@ -254,6 +305,16 @@ class DataView(models.Model):
         if last_submission_time:
             sql += u" ORDER BY date_created DESC"
             sql += u" LIMIT 1"
+
+        return (sql, columns, params, )
+
+    @classmethod
+    def query_data(cls, data_view, start_index=None, limit=None, count=None,
+                   last_submission_time=False, all_data=False, order_by=None):
+
+        (sql, columns, params) = cls.generate_query_string(
+            data_view, start_index, limit, count, last_submission_time,
+            all_data, order_by)
 
         try:
             records = [record for record in DataView.query_iterator(sql,
