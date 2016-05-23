@@ -245,6 +245,20 @@ def create_attachments_zipfile(attachments):
     return tmp
 
 
+def get_form(kwargs):
+    # adding inline imports here because adding them at the top of the file
+    # triggers the following error:
+    # django.core.exceptions.AppRegistryNotReady: Apps aren't loaded yet.
+    from onadata.apps.logger.models import XForm
+    from django.http import Http404
+
+    xform = XForm.objects.filter(**kwargs).first()
+    if xform:
+        return xform
+
+    raise Http404("XForm does not exist.")
+
+
 def get_form_url(request, username=None, protocol='https'):
     if settings.TESTING_MODE:
         http_host = settings.TEST_HTTP_HOST
