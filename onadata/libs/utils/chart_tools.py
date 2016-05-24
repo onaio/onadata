@@ -77,9 +77,10 @@ def get_field_choices(field, xform):
     """
     choices = xform.survey.get('choices')
 
-    if field.name in choices:
+    if isinstance(field, basestring):
+        choices = choices.get(field)
+    elif 'name' in field and field.name in choices:
         choices = choices.get(field.name)
-
     elif 'itemset' in field:
         choices = choices.get(field.itemset)
 
