@@ -11,6 +11,7 @@ from onadata.libs.models.google_sheet_service import GoogleSheetService
 from onadata.libs.utils.api_export_tools import _get_google_credential
 from onadata.libs.utils.common_tags import GOOGLE_SHEET_TITLE,\
     UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, GOOGLE_SHEET_ID
+from onadata.apps.restservice.models import RestService
 
 
 class GoogleCredentialSerializer(serializers.Serializer):
@@ -37,11 +38,18 @@ class GoogleSheetsSerializer(serializers.Serializer):
     send_existing_data = serializers.BooleanField(default=True)
     sync_updates = serializers.BooleanField(default=True)
     google_sheet_id = serializers.ReadOnlyField(default=None)
+    date_created = serializers.DateTimeField(read_only=True)
+    date_modified = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = RestService
 
     def to_representation(self, instance):
         google = GoogleSheetService(pk=instance.pk, xform=instance.xform,
                                     service_url=instance.service_url,
                                     name=instance.name)
+        google.date_modified = instance.date_modified
+        google.date_created = instance.date_created
 
         google.retrieve()
         return super(GoogleSheetsSerializer, self).to_representation(google)

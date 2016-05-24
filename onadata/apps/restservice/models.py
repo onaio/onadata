@@ -18,6 +18,9 @@ class RestService(models.Model):
     service_url = models.URLField(ugettext_lazy("Service URL"))
     xform = models.ForeignKey(XForm)
     name = models.CharField(max_length=50, choices=SERVICE_CHOICES)
+    date_created = models.DateTimeField(auto_now_add=True, null=True,
+                                        blank=True)
+    date_modified = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     def __unicode__(self):
         return u"%s:%s - %s" % (self.xform, self.long_name, self.service_url)

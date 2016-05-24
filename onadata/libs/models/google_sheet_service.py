@@ -24,6 +24,8 @@ class GoogleSheetService(object):
         self.send_existing_data = send_existing_data
         self.sync_updates = sync_updates
         self.google_sheet_id = google_sheet_id
+        self.date_created = None
+        self.date_modified = None
 
     def save(self, **kwargs):
 
@@ -34,6 +36,9 @@ class GoogleSheetService(object):
         rs.service_url = self.service_url
         rs.xform = self.xform
         rs.save()
+
+        self.date_created = rs.date_created
+        self.date_modified = rs.date_modified
 
         # Check if its an update and retrieve the google sheet id
         if kwargs.get('update'):

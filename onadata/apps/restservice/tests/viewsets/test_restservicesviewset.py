@@ -17,7 +17,7 @@ from onadata.apps.restservice.models import RestService
 from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 from onadata.apps.main.models.meta_data import MetaData
-from onadata.libs.utils.common_tags import GOOGLE_SHEET
+from onadata.libs.utils.common_tags import GOOGLE_SHEET, GOOGLE_SHEET_ID
 from onadata.libs.utils.google_sheets import SheetsExportBuilder, SheetsClient
 
 
@@ -168,6 +168,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             'name': u'testservice',
             'service_url': u'http://serviec.io'
         }
+        response.data.pop('date_modified')
+        response.data.pop('date_created')
         self.assertEquals(response.status_code, 200)
 
         self.assertEquals(response.data, data)
@@ -234,6 +236,24 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         google_sheet_details = MetaData.get_google_sheet_details(self.xform)
         self.assertIsNotNone(google_sheet_details)
 
+        rest_service = RestService.objects.last()
+
+        expected_data = {
+            'google_sheet_title': post_data.get('google_sheet_title'),
+            'name': u'google_sheets',
+            'send_existing_data': False,
+            'google_sheet_id':  google_sheet_details.get(GOOGLE_SHEET_ID),
+            'sync_updates': post_data.get('sync_updates'),
+            'service_url': u'https://drive.google.com',
+            'id': rest_service.pk,
+            'xform': self.xform.pk
+        }
+
+        response.data.pop('date_modified')
+        response.data.pop('date_created')
+
+        self.assertEqual(response.data, expected_data)
+
         return response.data
 
     @patch.object(SheetsExportBuilder, 'live_update')
@@ -266,6 +286,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             "service_url": 'https://drive.google.com',
             "google_sheet_id": 'very_mocked_id'
         }
+        response.data.pop('date_modified')
+        response.data.pop('date_created')
         self.assertEqual(response.data, expected_dict)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
