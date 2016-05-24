@@ -69,8 +69,8 @@ class TestDataViewViewSet(TestAbstractViewSet):
         data = {
             'name': "My DataView",
             'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
-            'project':  'http://testserver/api/v1/projects/%s'
-                        % self.project.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
             # ensure there's an attachment column(photo) in you dataview
             'columns': '["name", "age", "gender", "photo"]'
         }
@@ -947,3 +947,17 @@ class TestDataViewViewSet(TestAbstractViewSet):
                             'note': comment,
                             'owner': self.user.username}],
                           data_with_notes["_notes"])
+
+    def test_sort_dataview_data(self):
+        self._create_dataview()
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        data = {"sort": '{"age": -1}'}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEquals(response.status_code, 200)
+        self.assertTrue(
+            self.is_sorted_desc([r.get("age") for r in response.data]))

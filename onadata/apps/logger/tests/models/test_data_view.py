@@ -10,22 +10,6 @@ from onadata.apps.logger.models.data_view import (
     DataView)
 
 
-def is_sorted_asc(s):
-    if len(s) in [0, 1]:
-        return True
-    if s[0] <= s[1]:
-        return is_sorted_asc(s[1:])
-    return False
-
-
-def is_sorted_desc(s):
-    if len(s) in [0, 1]:
-        return True
-    if s[0] >= s[1]:
-        return is_sorted_desc(s[1:])
-    return False
-
-
 class TestDataView(TestBase):
 
     def test_append_where_list(self):
@@ -69,7 +53,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
         self.count = None
         self.last_submission_time = False
         self.all_data = False
-        self.order_by = None
+        self.sort = None
 
         self._setup_dataview()
 
@@ -106,7 +90,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.count,
             self.last_submission_time,
             self.all_data,
-            self.order_by)
+            self.sort)
 
         self.assertEquals(sql, expected_sql)
 
@@ -130,7 +114,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.count,
             self.last_submission_time,
             self.all_data,
-            self.order_by)
+            self.sort)
 
         self.assertEquals(sql, expected_sql)
 
@@ -156,7 +140,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.count,
             self.last_submission_time,
             self.all_data,
-            self.order_by)
+            self.sort)
 
         self.assertEquals(sql, expected_sql)
 
@@ -167,7 +151,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
         self.assertEquals(len(records), 1)
 
     def test_generate_query_string_for_data_with_sort_column_asc(self):
-        order_by = '{"age":1}'
+        sort = '{"age":1}'
         expected_sql = "SELECT json->%s,json->%s,json->%s,json->%s,json->%s,"\
                        "json->%s,json->%s,json->%s FROM logger_instance WHERE"\
                        " xform_id = %s  AND CAST(json->>%s AS INT) > %s AND"\
@@ -181,7 +165,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.count,
             self.last_submission_time,
             self.all_data,
-            order_by)
+            sort)
 
         self.assertEquals(sql, expected_sql)
 
@@ -190,10 +174,10 @@ class TestIntegratedDataView(TestAbstractViewSet):
                                                                 params,
                                                                 self.count)]
 
-        self.assertTrue(is_sorted_asc([r.get("age") for r in records]))
+        self.assertTrue(self.is_sorted_asc([r.get("age") for r in records]))
 
     def test_generate_query_string_for_data_with_sort_column_desc(self):
-        order_by = '{"age": -1}'
+        sort = '{"age": -1}'
         expected_sql = "SELECT json->%s,json->%s,json->%s,json->%s,json->%s,"\
                        "json->%s,json->%s,json->%s FROM logger_instance WHERE"\
                        " xform_id = %s  AND CAST(json->>%s AS INT) > %s AND"\
@@ -207,7 +191,7 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.count,
             self.last_submission_time,
             self.all_data,
-            order_by)
+            sort)
 
         self.assertEquals(sql, expected_sql)
 
@@ -216,4 +200,4 @@ class TestIntegratedDataView(TestAbstractViewSet):
                                                                 params,
                                                                 self.count)]
 
-        self.assertTrue(is_sorted_desc([r.get("age") for r in records]))
+        self.assertTrue(self.is_sorted_desc([r.get("age") for r in records]))

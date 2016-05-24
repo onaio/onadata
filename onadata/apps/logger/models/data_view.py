@@ -245,7 +245,7 @@ class DataView(models.Model):
 
     @classmethod
     def generate_query_string(cls, data_view, start_index, limit, count,
-                              last_submission_time, all_data, order_by):
+                              last_submission_time, all_data, sort):
         additional_columns = [GEOLOCATION] \
             if data_view.instances_with_geopoints else []
 
@@ -286,9 +286,9 @@ class DataView(models.Model):
                + u" AND deleted_at IS NULL"
         params = [data_view.xform.pk] + where_params
 
-        if order_by is not None:
-            sort = ['id'] if order_by is None\
-                else sort_from_mongo_sort_str(order_by)
+        if sort is not None:
+            sort = ['id'] if sort is None\
+                else sort_from_mongo_sort_str(sort)
             sql = u"{} {}".format(sql, json_order_by(sort))
             params = params + json_order_by_params(sort)
 
@@ -310,11 +310,11 @@ class DataView(models.Model):
 
     @classmethod
     def query_data(cls, data_view, start_index=None, limit=None, count=None,
-                   last_submission_time=False, all_data=False, order_by=None):
+                   last_submission_time=False, all_data=False, sort=None):
 
         (sql, columns, params) = cls.generate_query_string(
             data_view, start_index, limit, count, last_submission_time,
-            all_data, order_by)
+            all_data, sort)
 
         try:
             records = [record for record in DataView.query_iterator(sql,
