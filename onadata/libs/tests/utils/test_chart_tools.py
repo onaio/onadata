@@ -9,7 +9,8 @@ from onadata.libs.utils.chart_tools import (
     build_chart_data,
     calculate_ranges,
     get_choice_label,
-    utc_time_string_for_javascript)
+    utc_time_string_for_javascript,
+    get_field_choices)
 from onadata.apps.logger.models import XForm
 
 
@@ -314,6 +315,41 @@ class TestChartTools(TestBase):
         string = 'Banadir Urban'
 
         self.assertEqual(get_choice_label(choices, string), [string])
+
+    def test_select_one_choices(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "apps", "api", "tests", "fixtures", "forms",
+                            "select_one_choices_test.xlsx")
+
+        self._publish_xls_file_and_set_xform(path)
+
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "apps", "api", "tests", "fixtures",
+                            "select_one_choices_instance.xml")
+
+        self._make_submission(path)
+
+        field = find_field_by_name(self.xform, 'name_I')
+
+        choices = get_field_choices(field, self.xform)
+        data = build_chart_data_for_field(self.xform, field, choices=choices)
+
+        expected_data = {
+            'field_type': u'select one',
+            'data_type': 'categorized',
+            'field_xpath': u'name_I',
+            'data': [
+                {
+                    'count': 1L,
+                    'name_I': [u'Aynalem Tenaw']
+                }
+            ],
+            'grouped_by': None,
+            'field_label': u'Name of interviewer',
+            'field_name': u'name_I'
+        }
+
+        self.assertEqual(data, expected_data)
 
 
 class TestChartUtilFunctions(unittest.TestCase):

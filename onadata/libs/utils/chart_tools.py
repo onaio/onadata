@@ -68,6 +68,25 @@ def find_choice_label(choices, string):
             return choice['label']
 
 
+def get_field_choices(field, xform):
+    """
+    Retrieve field choices from a form survey element
+    :param field:
+    :param xform:
+    :return: Form field choices
+    """
+    choices = xform.survey.get('choices')
+
+    if isinstance(field, basestring):
+        choices = choices.get(field)
+    elif 'name' in field and field.name in choices:
+        choices = choices.get(field.name)
+    elif 'itemset' in field:
+        choices = choices.get(field.itemset)
+
+    return choices
+
+
 def get_choice_label(choices, string):
     """
     `string` is the name value found in the choices sheet.
@@ -386,10 +405,7 @@ def get_chart_data_for_field(field_name, xform, accepted_format, group_by,
     if field_xpath:
         field = get_field_from_field_xpath(field_xpath, xform)
 
-    choices = xform.survey.get('choices')
-
-    if choices:
-        choices = choices.get(field_name)
+    choices = get_field_choices(field, xform)
 
     try:
         data = build_chart_data_for_field(
