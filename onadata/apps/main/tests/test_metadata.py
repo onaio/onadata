@@ -1,5 +1,4 @@
 from test_base import TestBase
-from django.contrib.auth.models import User
 from onadata.apps.logger.models import Instance
 from onadata.apps.main.models.meta_data import (
     MetaData,
@@ -61,7 +60,7 @@ class TestMetaData(TestBase):
                                             'formid-media',
                                             filename))
         # test instance with anonymous user
-        anonymous_username = User.get_anonymous().username.lower()
+        anonymous_username = "anonymous"
         instance_without_user = Instance()
         metadata.content_object = instance_without_user
         self.assertEquals(upload_to(metadata, filename),

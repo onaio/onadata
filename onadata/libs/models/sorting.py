@@ -1,6 +1,7 @@
 import json
 import six
 
+
 def sort_from_mongo_sort_str(sort_str):
     sort_values = []
     if isinstance(sort_str, six.string_types):
