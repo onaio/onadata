@@ -208,6 +208,22 @@ class TestXFormViewSet(TestAbstractViewSet):
             'get': 'list',
         })
 
+    def test_form_publishing_arabic(self):
+        with HTTMock(enketo_mock):
+            xforms = XForm.objects.count()
+            view = XFormViewSet.as_view({
+                'post': 'create'
+            })
+            path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "subdistrict_profiling_tool.xlsx")
+            with open(path) as xls_file:
+                post_data = {'xls_file': xls_file}
+                request = self.factory.post('/', data=post_data, **self.extra)
+                response = view(request)
+                self.assertEqual(xforms + 1, XForm.objects.count())
+                self.assertEqual(response.status_code, 201)
+
     def test_replace_form_with_external_choices(self):
         with HTTMock(enketo_mock):
             xls_file_path = os.path.join(
