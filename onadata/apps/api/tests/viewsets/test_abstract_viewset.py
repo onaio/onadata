@@ -567,3 +567,17 @@ class TestAbstractViewSet(TestCase):
         self.assertDictContainsSubset(data, response.data)
         self.team_data = response.data
         self.team = team
+
+    def is_sorted_desc(self, s):
+        if len(s) in [0, 1]:
+            return True
+        if s[0] >= s[1]:
+            return self.is_sorted_desc(s[1:])
+        return False
+
+    def is_sorted_asc(self, s):
+        if len(s) in [0, 1]:
+            return True
+        if s[0] <= s[1]:
+            return self.is_sorted_asc(s[1:])
+        return False

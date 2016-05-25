@@ -16,6 +16,8 @@ from onadata.apps.logger.models.instance import _get_attachments_from_instance
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import _encode_for_mongo
 from onadata.apps.restservice.tasks import call_service_async
+from onadata.libs.models.sorting import (
+    json_order_by, json_order_by_params, sort_from_mongo_sort_str)
 from onadata.libs.utils.common_tags import ID, UUID, ATTACHMENTS, GEOLOCATION,\
     SUBMISSION_TIME, MONGO_STRFTIME, BAMBOO_DATASET_ID, DELETEDAT, TAGS,\
     NOTES, SUBMITTED_BY, VERSION, DURATION, EDITED
@@ -79,51 +81,6 @@ def _decode_from_mongo(key):
 def _is_invalid_for_mongo(key):
     return key not in\
         key_whitelist and (key.startswith('$') or key.count('.') > 0)
-
-
-def sort_from_mongo_sort_str(sort_str):
-    sort_values = []
-    if isinstance(sort_str, six.string_types):
-        if sort_str.startswith('{'):
-            sort_dict = json.loads(sort_str)
-            for k, v in sort_dict.items():
-                try:
-                    v = int(v)
-                except ValueError:
-                    pass
-                if v < 0:
-                    k = u'-{}'.format(k)
-                sort_values.append(k)
-        else:
-            sort_values.append(sort_str)
-
-    return sort_values
-
-
-def _json_order_by(sort_list):
-    _list = []
-
-    for field in sort_list:
-        _str = u" json->>%s"
-        if field.startswith('-'):
-            _str += u" DESC"
-        else:
-            _str += u" ASC"
-        _list.append(_str)
-
-    if len(_list) > 0:
-        return u"ORDER BY {}".format(u",".join(_list))
-
-    return u""
-
-
-def _json_order_by_params(sort_list):
-    params = []
-
-    for field in sort_list:
-        params.append(field.lstrip('-'))
-
-    return params
 
 
 def _json_sql_str(key, known_integers=[], known_dates=[]):
@@ -286,8 +243,8 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
 
         # apply sorting
         if ParsedInstance._has_json_fields(sort):
-            sql = u"{} {}".format(sql, _json_order_by(sort))
-            params = params + _json_order_by_params(sort)
+            sql = u"{} {}".format(sql, json_order_by(sort))
+            params = params + json_order_by_params(sort)
 
         if start_index is not None:
             sql += u" OFFSET %s"
@@ -305,8 +262,8 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
             # we have to do an sql query for json field order
             records = instances.values_list('json', flat=True)
             _sql, _params = records.query.sql_with_params()
-            sql = u"{} {}".format(_sql, _json_order_by(sort))
-            params = list(_params) + _json_order_by_params(sort)
+            sql = u"{} {}".format(_sql, json_order_by(sort))
+            params = list(_params) + json_order_by_params(sort)
             records = _query_iterator(sql, None, params)
         else:
             records = instances.order_by(*sort)\

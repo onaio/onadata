@@ -19,8 +19,14 @@ from onadata.libs.utils.cache_tools import safe_delete, XFORM_METADATA_CACHE
 from onadata.libs.utils.common_tags import TEXTIT
 
 CHUNK_SIZE = 1024
+INSTANCE_MODEL_NAME = "instance"
+PROJECT_MODEL_NAME = "project"
+XFORM_MODEL_NAME = "xform"
+
 
 urlvalidate = URLValidator()
+
+ANONYMOUS_USERNAME = "anonymous"
 
 
 def is_valid_url(uri):
@@ -33,17 +39,18 @@ def is_valid_url(uri):
 
 
 def upload_to(instance, filename):
+    username = None
+
+    if instance.content_object.user is None and \
+            instance.content_type.model == INSTANCE_MODEL_NAME:
+        username = instance.content_object.xform.user.username
+    else:
+        username = instance.content_object.user.username
+
     if instance.data_type == 'media':
-        return os.path.join(
-            instance.content_object.user.username,
-            'formid-media',
-            filename
-        )
-    return os.path.join(
-        instance.content_object.user.username,
-        'docs',
-        filename
-    )
+        return os.path.join(username, 'formid-media', filename)
+
+    return os.path.join(username, 'docs', filename)
 
 
 def save_metadata(metadata_obj):
@@ -57,7 +64,7 @@ def save_metadata(metadata_obj):
 
 def get_default_content_type():
     content_object, created = ContentType.objects.get_or_create(
-        app_label="logger", model="xform")
+        app_label="logger", model=XFORM_MODEL_NAME)
 
     return content_object.id
 

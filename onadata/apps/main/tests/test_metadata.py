@@ -1,5 +1,9 @@
 from test_base import TestBase
-from onadata.apps.main.models.meta_data import MetaData, unique_type_for_form
+from onadata.apps.logger.models import Instance, Project, XForm
+from onadata.apps.main.models.meta_data import (
+    MetaData,
+    unique_type_for_form,
+    upload_to)
 
 
 class TestMetaData(TestBase):
@@ -45,3 +49,36 @@ class TestMetaData(TestBase):
         self.assertNotEqual(metadata.data_value, metadata_1.data_value)
         self.assertEqual(metadata.data_type, metadata_1.data_type)
         self.assertEqual(metadata.content_object, metadata_1.content_object)
+
+    def test_upload_to_with_anonymous_user(self):
+        instance = Instance(user=self.user, xform=self.xform)
+        metadata = MetaData(data_type="media")
+        metadata.content_object = instance
+        filename = "filename"
+        self.assertEquals(upload_to(metadata, filename),
+                          "{}/{}/{}".format(self.user.username,
+                                            'formid-media',
+                                            filename))
+        # test instance with anonymous user
+
+        instance_without_user = Instance(xform=self.xform)
+        metadata.content_object = instance_without_user
+        self.assertEquals(upload_to(metadata, filename),
+                          "{}/{}/{}".format(self.xform.user.username,
+                                            'formid-media',
+                                            filename))
+
+    def test_upload_to_with_project_and_xform_instance(self):
+        models = [Project, XForm]
+
+        for model in models:
+            model_instance = model(user=self.user, created_by=self.user)
+            metadata = MetaData(data_type="media")
+            metadata.content_object = model_instance
+
+            filename = "filename"
+
+            self.assertEquals(upload_to(metadata, filename),
+                              "{}/{}/{}".format(self.user.username,
+                                                'formid-media',
+                                                filename))

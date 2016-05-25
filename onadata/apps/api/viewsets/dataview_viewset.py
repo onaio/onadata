@@ -20,6 +20,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.dataview_serializer import DataViewSerializer
+from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.utils import common_tags
 from onadata.libs.utils.api_export_tools import custom_response_handler
@@ -74,12 +75,13 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         start = request.GET.get("start")
         limit = request.GET.get("limit")
         count = request.GET.get("count")
+        sort = request.GET.get("sort")
         export_type = self.kwargs.get('format', request.GET.get("format"))
         self.object = self.get_object()
 
         if export_type is None or export_type in ['json', 'debug']:
             data = DataView.query_data(self.object, start, limit,
-                                       str_to_bool(count))
+                                       str_to_bool(count), sort=sort)
             if 'error' in data:
                 raise ParseError(data.get('error'))
 
@@ -143,6 +145,15 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         return response
 
     @detail_route(methods=['GET'])
+    def form_details(self, request, *args, **kwargs):
+        dataview = self.get_object()
+        xform = dataview.xform
+        serializer = XFormSerializer(xform, context={'request': request})
+
+        return Response(data=serializer.data,
+                        content_type="application/json")
+
+    @detail_route(methods=['GET'])
     def charts(self, request, *args, **kwargs):
         dataview = self.get_object()
         xform = dataview.xform
@@ -180,6 +191,24 @@ class DataViewViewSet(AuthenticateHeaderMixin,
                 data["fields"][field.name] = field_url
 
         return Response(data)
+
+    @detail_route(methods=['GET'])
+    def xls_export(self, request, *args, **kwargs):
+        dataview = self.get_object()
+        xform = dataview.xform
+
+        token = None
+        export_type = "xls"
+        query = request.query_params.get("query", {})
+        meta = request.GET.get('meta')
+
+        return custom_response_handler(request,
+                                       xform,
+                                       query,
+                                       export_type,
+                                       token,
+                                       meta,
+                                       dataview.id)
 
 
 def dataview_post_save_callback(sender, instance=None, created=False,
