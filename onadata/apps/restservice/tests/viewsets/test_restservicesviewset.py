@@ -79,6 +79,21 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         meta = MetaData.objects.filter(object_id=self.xform.id,
                                        data_type='textit')
         self.assertEquals(len(meta), 1)
+        rs = RestService.objects.last()
+
+        expected_dict = {
+            'name': u'textit',
+            'contacts': u'ksadaskjdajsda',
+            'auth_token': u'sadsdfhsdf',
+            'flow_uuid': u'sdfskhfskdjhfs',
+            'service_url': u'https://textit.io',
+            'id': rs.pk,
+            'xform': self.xform.pk
+        }
+        response.data.pop('date_modified')
+        response.data.pop('date_created')
+
+        self.assertEqual(response.data, expected_dict)
 
         return response.data
 
@@ -101,6 +116,9 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             'id': _id,
             'xform': self.xform.pk
         }
+        response.data.pop('date_modified')
+        response.data.pop('date_created')
+
         self.assertEqual(response.data, expected_dict)
 
     def test_delete_textit_service(self):

@@ -17,6 +17,8 @@ class TextItService(object):
         self.contacts = contacts
         self.name = name
         self.service_url = service_url
+        self.date_created = None
+        self.date_modified = None
 
     def save(self, **kwargs):
 
@@ -27,6 +29,9 @@ class TextItService(object):
         rs.service_url = self.service_url
         rs.xform = self.xform
         rs.save()
+
+        self.date_created = rs.date_created
+        self.date_modified = rs.date_modified
 
         data_value = '{}|{}|{}'.format(self.auth_token,
                                        self.flow_uuid,

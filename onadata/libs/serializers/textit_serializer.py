@@ -14,11 +14,15 @@ class TextItSerializer(serializers.Serializer):
     contacts = serializers.CharField(max_length=255, required=True)
     name = serializers.CharField(max_length=50, required=True)
     service_url = serializers.URLField(required=True)
+    date_created = serializers.DateTimeField(read_only=True)
+    date_modified = serializers.DateTimeField(read_only=True)
 
     def to_representation(self, instance):
         text_it = TextItService(pk=instance.pk, xform=instance.xform,
                                 service_url=instance.service_url,
                                 name=instance.name)
+        text_it.date_modified = instance.date_modified
+        text_it.date_created = instance.date_created
         text_it.retrieve()
         return super(TextItSerializer, self).to_representation(text_it)
 
