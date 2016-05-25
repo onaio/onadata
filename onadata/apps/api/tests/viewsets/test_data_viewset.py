@@ -584,7 +584,7 @@ class TestDataViewSet(TestBase):
         self.assertEqual(len(response.data), 1)
 
         # search an integer
-        query_str = 75
+        query_str = 7545
         request = self.factory.get('/?query=%s' % query_str, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
