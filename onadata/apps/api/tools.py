@@ -218,7 +218,10 @@ def get_organization_members(organization):
 
 def _get_owners(organization):
     # Get users with owners perms and not the org itself
-    return [user for user in get_organization_members(organization)
+
+    return [user
+            for user in get_organization_owners_team(
+                organization).user_set.all()
             if get_role_in_org(user, organization) == 'owner' and
             organization.user != user]
 
