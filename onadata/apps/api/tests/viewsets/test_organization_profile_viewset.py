@@ -147,7 +147,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         previous_user = self.user
         self._login_user_and_profile(extra_post_data=alice_data)
         self.assertEqual(self.user.username, 'alice')
-        self.assertNotEqual(previous_user,  self.user)
+        self.assertNotEqual(previous_user, self.user)
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
         self.assertNotEqual(response.get('Cache-Control'), None)
@@ -431,7 +431,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
     def test_publish_xls_form_to_organization_project(self):
         self._org_create()
         project_data = {
-            'owner':  self.company_data['user']
+            'owner': self.company_data['user']
         }
         self._project_create(project_data)
         self._publish_xls_form_to_project()
@@ -691,6 +691,21 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['name'], "Dennis2")
+
+    def test_org_always_has_admin_or_owner(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'put': 'members',
+        })
+        data = {'username': self.user.username, 'role': 'editor'}
+        request = self.factory.put(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(response.data, u"Organization cannot be without"
+                                         u" an owner")
 
     def test_owner_not_allowed_to_be_removed(self):
         self._org_create()
