@@ -754,7 +754,17 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         for user in [u'denoinc', aboy.username]:
             self.assertIn(user, response.data)
 
+        # at this point we have bob and aboy as owners
         data = {'username': aboy.username}
+        request = self.factory.delete(
+            '/', json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+
+        # at this point we only have bob as the owner
+        data = {'username': self.user.username}
         request = self.factory.delete(
             '/', json.dumps(data),
             content_type="application/json", **self.extra)
