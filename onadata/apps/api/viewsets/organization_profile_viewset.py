@@ -32,6 +32,7 @@ from onadata.libs.serializers.organization_serializer import(
 from onadata.settings.common import (DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT)
 from onadata.apps.api.tools import load_class
 from onadata.apps.api.tools import get_baseviewset_class
+from onadata.apps.api.tools import _get_owners
 
 
 BaseViewset = get_baseviewset_class()
@@ -67,7 +68,11 @@ def _add_role(org, user, role_cls):
 
 def _update_username_role(organization, username, role_cls):
     def _set_organization_role_to_user(org, user, role_cls):
-        role_cls.add(user, organization)
+        owners = _get_owners(organization)
+        if user in owners and len(owners) <= 1:
+            raise ValidationError(_("Organization cannot be without an owner"))
+        else:
+            role_cls.add(user, organization)
 
     return _try_function_org_username(_set_organization_role_to_user,
                                       organization,
@@ -124,7 +129,10 @@ def _check_set_role(request, organization, username, required=False):
 
         return status.HTTP_400_BAD_REQUEST, {'role': [message]}
     else:
-        _update_username_role(organization, username, role_cls)
+        data, status_code = _update_username_role(
+            organization, username, role_cls)
+        if status_code not in [status.HTTP_200_OK, status.HTTP_201_CREATED]:
+            return (status_code, data)
 
         owners_team = get_organization_owners_team(organization)
 
