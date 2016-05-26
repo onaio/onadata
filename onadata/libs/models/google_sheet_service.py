@@ -5,7 +5,8 @@ from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.restservice.models import RestService
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.restservice.tasks import initial_google_sheet_export
-from onadata.libs.utils.google_sheets import get_google_sheet_id
+from onadata.libs.utils.google_sheets import get_google_sheet_id,\
+    get_google_sheet_url
 from onadata.libs.utils.common_tags import GOOGLE_SHEET_ID,\
     UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, USER_ID, GOOGLE_SHEET_TITLE
 
@@ -14,7 +15,7 @@ class GoogleSheetService(object):
 
     def __init__(self, user=None, xform=None, service_url=None, name=None,
                  google_sheet_title=None, send_existing_data=True,
-                 sync_updates=True, google_sheet_id=None, pk=None):
+                 sync_updates=True, google_sheet_url=None, pk=None):
         self.pk = pk
         self.xform = xform
         self.user = user
@@ -23,7 +24,7 @@ class GoogleSheetService(object):
         self.google_sheet_title = google_sheet_title
         self.send_existing_data = send_existing_data
         self.sync_updates = sync_updates
-        self.google_sheet_id = google_sheet_id
+        self.google_sheet_url = google_sheet_url
         self.date_created = None
         self.date_modified = None
 
@@ -59,7 +60,7 @@ class GoogleSheetService(object):
         MetaData.set_google_sheet_details(self.xform, google_sheets_metadata)
 
         self.pk = rs.pk
-        self.google_sheet_id = spreadsheet_id
+        self.google_sheet_url = get_google_sheet_url(spreadsheet_id)
 
         if self.send_existing_data and self.xform.instances.count() > 0:
             storage = Storage(TokenStorageModel, 'id', self.user,
@@ -90,4 +91,5 @@ class GoogleSheetService(object):
             google_sheet_details.get(UPDATE_OR_DELETE_GOOGLE_SHEET_DATA)
         self.send_existing_data = False
         self.user = google_sheet_details.get(USER_ID)
-        self.google_sheet_id = google_sheet_details.get(GOOGLE_SHEET_ID)
+        self.google_sheet_url = get_google_sheet_url(
+            google_sheet_details.get(GOOGLE_SHEET_ID))

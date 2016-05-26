@@ -18,7 +18,8 @@ from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.common_tags import GOOGLE_SHEET, GOOGLE_SHEET_ID
-from onadata.libs.utils.google_sheets import SheetsExportBuilder, SheetsClient
+from onadata.libs.utils.google_sheets import SheetsExportBuilder, \
+    SheetsClient, get_google_sheet_url
 
 
 class TestRestServicesViewSet(TestAbstractViewSet):
@@ -260,7 +261,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             'google_sheet_title': post_data.get('google_sheet_title'),
             'name': u'google_sheets',
             'send_existing_data': False,
-            'google_sheet_id':  google_sheet_details.get(GOOGLE_SHEET_ID),
+            'google_sheet_url': get_google_sheet_url(
+                google_sheet_details.get(GOOGLE_SHEET_ID)),
             'sync_updates': post_data.get('sync_updates'),
             'service_url': u'https://drive.google.com',
             'id': rest_service.pk,
@@ -302,7 +304,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             "sync_updates": False,
             "id": _id,
             "service_url": 'https://drive.google.com',
-            "google_sheet_id": 'very_mocked_id'
+            "google_sheet_url": get_google_sheet_url('very_mocked_id')
         }
         response.data.pop('date_modified')
         response.data.pop('date_created')

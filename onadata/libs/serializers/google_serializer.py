@@ -12,6 +12,7 @@ from onadata.libs.utils.api_export_tools import _get_google_credential
 from onadata.libs.utils.common_tags import GOOGLE_SHEET_TITLE,\
     UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, GOOGLE_SHEET_ID
 from onadata.apps.restservice.models import RestService
+from onadata.libs.utils.google_sheets import get_google_sheet_url
 
 
 class GoogleCredentialSerializer(serializers.Serializer):
@@ -32,12 +33,13 @@ class GoogleCredentialSerializer(serializers.Serializer):
 class GoogleSheetsSerializer(serializers.Serializer):
     id = serializers.IntegerField(source='pk', read_only=True)
     name = serializers.CharField(max_length=50, required=True)
-    service_url = serializers.URLField(default="https://drive.google.com")
+    service_url = serializers.URLField(default="https://drive.google.com",
+                                       required=False)
     xform = XFormField()
     google_sheet_title = serializers.CharField(max_length=255, required=True)
     send_existing_data = serializers.BooleanField(default=True)
     sync_updates = serializers.BooleanField(default=True)
-    google_sheet_id = serializers.ReadOnlyField(default=None)
+    google_sheet_url = serializers.ReadOnlyField(default=None)
     date_created = serializers.DateTimeField(read_only=True)
     date_modified = serializers.DateTimeField(read_only=True)
 
@@ -89,14 +91,14 @@ class GoogleSheetsSerializer(serializers.Serializer):
         name = validated_data.get('name', instance.name)
         xform = validated_data.get('xform', instance.xform)
         google_sheet_title = validated_data.get('google_sheet_title', title)
-        google_sheet_id = sheet_id
+        google_sheet_url = get_google_sheet_url(sheet_id)
         send_existing_data = validated_data.get('send_existing_data', False)
         service_url = validated_data.get('service_url', instance.service_url)
         sync_updates = validated_data.get('sync_updates', updates)
 
         instance = GoogleSheetService(user, xform, service_url, name,
                                       google_sheet_title, send_existing_data,
-                                      sync_updates, google_sheet_id, pk)
+                                      sync_updates, google_sheet_url, pk)
         instance.save(update=True)
 
         return instance

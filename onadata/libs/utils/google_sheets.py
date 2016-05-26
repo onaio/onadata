@@ -95,6 +95,10 @@ def get_google_sheet_id(user, title):
     return client.get_google_sheet_id(title)
 
 
+def get_google_sheet_url(spread_sheet_id):
+    return SheetsExportBuilder.SHEETS_BASE_URL % spread_sheet_id
+
+
 class SheetsClient(gspread.client.Client):
     """An instance of this class communicates with Google Data API."""
 

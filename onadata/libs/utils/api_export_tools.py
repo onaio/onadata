@@ -461,6 +461,10 @@ def _get_google_credential(request):
             redirect_uri = request.GET.get('redirect_uri')
         elif 'redirect_uri' in request.POST:
             redirect_uri = request.POST.get('redirect_uri')
+        elif 'redirect_uri' in request.query_params:
+            redirect_uri = request.query_params.get('redirect_uri')
+        elif 'redirect_uri' in request.data:
+            redirect_uri = request.data.get('redirect_uri')
         else:
             redirect_uri = settings.GOOGLE_STEP2_URI
         google_flow = OAuth2WebServerFlow(
