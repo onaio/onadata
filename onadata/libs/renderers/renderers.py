@@ -1,4 +1,6 @@
 import json
+import decimal
+import math
 
 from cStringIO import StringIO
 from django.utils.encoding import smart_text
@@ -11,8 +13,17 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.renderers import StaticHTMLRenderer
 from rest_framework_xml.renderers import XMLRenderer
+from rest_framework.utils.encoders import JSONEncoder
 
 from onadata.libs.utils.osm import get_combined_osm
+
+
+class DecimalEncoder(JSONEncoder):
+    def default(self, obj):
+        # Handle Decimal NaN values
+        if isinstance(obj, decimal.Decimal) and math.isnan(obj):
+            return None
+        return JSONEncoder.default(self, obj)
 
 
 class XLSRenderer(BaseRenderer):
@@ -236,3 +247,10 @@ class ZipRenderer(BaseRenderer):
     media_type = 'application/octet-stream'
     format = 'zip'
     charset = None
+
+
+class DecimalJSONRenderer(JSONRenderer):
+    """
+    Extends the default json renderer to handle Decimal('NaN') values
+    """
+    encoder_class = DecimalEncoder

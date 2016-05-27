@@ -10,6 +10,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models.instance import Instance
 from django.db.utils import DataError
 from onadata.libs.utils.timing import calculate_duration
+from onadata.libs.renderers.renderers import DecimalJSONRenderer
 
 
 def raise_data_error(a):
@@ -348,3 +349,29 @@ class TestChartsViewSet(TestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(sum([i['count'] for i in response.data['data']]), 2)
+
+    def test_nan_not_json_response(self):
+        self._make_submission(
+            os.path.join(
+                os.path.dirname(__file__), '..', 'fixtures', 'forms',
+                'tutorial', 'instances', 'nan_net_worth.xml'))
+
+        data = {'field_name': 'networth_calc',
+                'group_by': 'pizza_fan'}
+        request = self.factory.get('/charts', data)
+        force_authenticate(request, user=self.user)
+        response = self.view(
+            request,
+            pk=self.xform.id,
+            format='json'
+        )
+        renderer = DecimalJSONRenderer()
+        res = renderer.render(response.data)
+
+        expected = ('{"field_type":"calculate","data_type":"numeric",'
+                    '"field_xpath":"networth_calc","data":[{"sum":150000.0,'
+                    '"pizza_fan":["No"],"mean":75000.0},{"sum":null,'
+                    '"pizza_fan":["Yes"],"mean":null}],"grouped_by":'
+                    '"pizza_fan","field_label":"Networth Calc","field_name":'
+                    '"networth_calc","xform":' + str(self.xform.pk) + '}')
+        self.assertEqual(expected, res)
