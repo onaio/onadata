@@ -3,7 +3,8 @@ import os
 from django.conf import settings
 from mock import patch
 
-from oauth2client.client import OAuth2WebServerFlow, OAuth2Credentials
+from oauth2client.client import OAuth2WebServerFlow, OAuth2Credentials,\
+    FlowExchangeError
 
 from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.api.viewsets.export_viewset import ExportViewSet
@@ -81,6 +82,30 @@ class TestExportViewSet(TestBase):
         response = view(request)
 
         self.assertEqual(response.status_code, 401)
+
+        current_creds = TokenStorageModel.objects.filter(id=self.user.id) \
+            .count()
+
+        # creds not created
+        self.assertEqual(creds_count, current_creds)
+
+    @patch.object(OAuth2WebServerFlow, 'step2_exchange')
+    def test_google_auth_flow2_exchange_error(self, mock_oauth2):
+        mock_oauth2.side_effect = FlowExchangeError('invalid grant')
+        view = ExportViewSet.as_view({
+            'get': 'google_auth'
+        })
+        creds_count = TokenStorageModel.objects.filter(id=self.user.id).count()
+
+        data = {'code': 'codeexample'}
+        request = self.factory.get('/', data=data)
+        force_authenticate(request, user=self.user)
+        response = view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {
+                u"details": u"invalid grant",
+            })
 
         current_creds = TokenStorageModel.objects.filter(id=self.user.id) \
             .count()
