@@ -151,6 +151,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         data_view_obj_keys = response.data.get('data_views')[0].keys()
         self.assertEqual(['date_created',
                           'downloadable',
+                          'encrypted',
                           'formid',
                           'last_submission_time',
                           'name',

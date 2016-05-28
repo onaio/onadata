@@ -163,7 +163,7 @@ class ProjectXFormSerializer(serializers.HyperlinkedModelSerializer):
         model = XForm
         fields = (
             'name', 'formid', 'num_of_submissions', 'downloadable',
-            'last_submission_time', 'date_created', 'url'
+            'encrypted', 'last_submission_time', 'date_created', 'url'
         )
 
 
