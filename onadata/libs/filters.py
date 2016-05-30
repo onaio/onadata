@@ -197,16 +197,17 @@ class InstancePermissionFilterMixin(XFormPermissionFilterMixin):
                                u"Invalid value for instanceid %s.")
 
             instance = get_object_or_404(Instance, pk=instance_id)
-            xform = instance.xform
-            xform_qs = XForm.objects.filter(pk=xform.pk).filter(
-                deleted_at=None)
+            # test if user has permissions on the project
 
-            # test if user has permission to xform
-            xforms = super(InstancePermissionFilterMixin,
-                           self).filter_queryset(
-                request, xform_qs, view)
+            project_id = request.query_params.get("project")
+            project = get_object_or_404(Project, pk=project_id)
+            project_qs = Project.objects.filter(pk=project.id)
 
-            instances = xforms[0].instances.filter(id=instance_id)
+            projects = super(
+                InstancePermissionFilterMixin, self).filter_queryset(
+                request, project_qs, view)
+
+            instances = [instance.id] if projects else []
 
             return {"%s__in" % keyword: instances}
         else:
@@ -255,7 +256,7 @@ class MetaDataFilter(ProjectPermissionFilterMixin,
             return queryset.filter(Q(**xform_kwarg))
 
         # return project specific metadata
-        elif project_id:
+        elif project_id and instance_id is None:
             return queryset.filter(Q(**project_kwarg))
 
         # return instance specific metadata
