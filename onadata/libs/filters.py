@@ -9,7 +9,7 @@ from rest_framework import filters
 
 
 from onadata.apps.api.models import Team, OrganizationProfile
-from onadata.apps.logger.models import Project, XForm, Instance
+from onadata.apps.logger.models import DataView, Project, XForm, Instance
 from onadata.libs.utils.numeric import int_or_parse_error
 
 
@@ -187,29 +187,42 @@ class ProjectPermissionFilterMixin(object):
         return queryset.filter(**kwarg)
 
 
-class InstancePermissionFilterMixin(XFormPermissionFilterMixin):
+class InstancePermissionFilterMixin(object):
 
     def _instance_filter(self, request, view, keyword):
         instance_id = request.query_params.get("instance")
+        project_id = request.query_params.get("project")
+        xform_id = request.query_params.get('xform')
+        dataview_id = request.query_params.get('dataview')
 
-        if instance_id:
-            int_or_parse_error(instance_id,
-                               u"Invalid value for instanceid %s.")
+        if instance_id and project_id and (xform_id or dataview_id):
+            for object_id in [instance_id, project_id]:
+                int_or_parse_error(object_id,
+                                   u"Invalid value for instanceid %s.")
 
             instance = get_object_or_404(Instance, pk=instance_id)
             # test if user has permissions on the project
 
-            project_id = request.query_params.get("project")
             project = get_object_or_404(Project, pk=project_id)
             project_qs = Project.objects.filter(pk=project.id)
 
-            projects = super(
-                InstancePermissionFilterMixin, self).filter_queryset(
-                request, project_qs, view)
+            if xform_id:
+                parent = get_object_or_404(XForm, pk=xform_id)
+            else:
+                parent = get_object_or_404(DataView, pk=dataview_id)
 
-            instances = [instance.id] if projects else []
+            if parent.project == project:
+                projects = super(
+                    InstancePermissionFilterMixin, self).filter_queryset(
+                    request, project_qs, view)
 
-            return {"%s__in" % keyword: instances}
+                instances = [instance.id] if projects else []
+
+                return {"%s__in" % keyword: instances}
+
+            else:
+                return {}
+
         else:
             return {}
 
@@ -229,12 +242,14 @@ class RestServiceFilter(XFormPermissionFilterMixin,
 
 class MetaDataFilter(ProjectPermissionFilterMixin,
                      InstancePermissionFilterMixin,
+                     XFormPermissionFilterMixin,
                      filters.DjangoObjectPermissionsFilter):
 
     def filter_queryset(self, request, queryset, view):
         keyword = "object_id"
 
         xform_id = request.query_params.get('xform')
+        dataview_id = request.query_params.get('dataview')
         project_id = request.query_params.get("project")
         instance_id = request.query_params.get("instance")
 
@@ -251,17 +266,16 @@ class MetaDataFilter(ProjectPermissionFilterMixin,
         instance_kwarg = self._instance_filter(request, view, keyword)
         instance_kwarg["content_type"] = instance_content_type
 
-        # return xform specific metadata
-        if xform_id:
+        # return instance specific metadata
+        if instance_id and project_id and (xform_id or dataview_id):
+            return queryset.filter(Q(**instance_kwarg))
+        elif xform_id:
+            # return xform specific metadata
             return queryset.filter(Q(**xform_kwarg))
 
         # return project specific metadata
-        elif project_id and instance_id is None:
+        elif project_id:
             return queryset.filter(Q(**project_kwarg))
-
-        # return instance specific metadata
-        elif instance_id:
-            return queryset.filter(Q(**instance_kwarg))
 
         # return all project,instance and xform metadata information
         return queryset.filter(Q(**xform_kwarg) | Q(**project_kwarg) |
