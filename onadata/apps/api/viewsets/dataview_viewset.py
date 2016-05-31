@@ -99,6 +99,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         params = request.query_params
         job_uuid = params.get('job_uuid')
         export_type = params.get('format')
+        include_hxl = params.get('include_hxl')
         dataview = self.get_object()
         xform = dataview.xform
 
@@ -106,7 +107,8 @@ class DataViewViewSet(AuthenticateHeaderMixin,
 
         options = {
             'remove_group_name': remove_group_name,
-            'dataview_pk': dataview.pk
+            'dataview_pk': dataview.pk,
+            'include_hxl': xform.has_hxl_support and include_hxl or False
         }
 
         if job_uuid:
