@@ -448,6 +448,27 @@ def response_for_format(data, format=None):
     return Response(formatted_data)
 
 
+def generate_google_web_flow(request):
+    if 'redirect_uri' in request.GET:
+        redirect_uri = request.GET.get('redirect_uri')
+    elif 'redirect_uri' in request.POST:
+        redirect_uri = request.POST.get('redirect_uri')
+    elif 'redirect_uri' in request.query_params:
+        redirect_uri = request.query_params.get('redirect_uri')
+    elif 'redirect_uri' in request.data:
+        redirect_uri = request.data.get('redirect_uri')
+    else:
+        redirect_uri = settings.GOOGLE_STEP2_URI
+    return OAuth2WebServerFlow(
+        client_id=settings.GOOGLE_CLIENT_ID,
+        client_secret=settings.GOOGLE_CLIENT_SECRET,
+        scope=' '.join(
+            ['https://docs.google.com/feeds/',
+             'https://spreadsheets.google.com/feeds/',
+             'https://www.googleapis.com/auth/drive.file']),
+        redirect_uri=redirect_uri, prompt="consent")
+
+
 def _get_google_credential(request):
     token = None
     credential = None
@@ -457,23 +478,6 @@ def _get_google_credential(request):
     elif request.session.get('access_token'):
         credential = google_client.OAuth2Credentials.from_json(token)
     if not credential:
-        if 'redirect_uri' in request.GET:
-            redirect_uri = request.GET.get('redirect_uri')
-        elif 'redirect_uri' in request.POST:
-            redirect_uri = request.POST.get('redirect_uri')
-        elif 'redirect_uri' in request.query_params:
-            redirect_uri = request.query_params.get('redirect_uri')
-        elif 'redirect_uri' in request.data:
-            redirect_uri = request.data.get('redirect_uri')
-        else:
-            redirect_uri = settings.GOOGLE_STEP2_URI
-        google_flow = OAuth2WebServerFlow(
-            client_id=settings.GOOGLE_CLIENT_ID,
-            client_secret=settings.GOOGLE_CLIENT_SECRET,
-            scope=' '.join(
-                ['https://docs.google.com/feeds/',
-                 'https://spreadsheets.google.com/feeds/',
-                 'https://www.googleapis.com/auth/drive.file']),
-            redirect_uri=redirect_uri, prompt="consent")
+        google_flow = generate_google_web_flow(request)
         return HttpResponseRedirect(google_flow.step1_get_authorize_url())
     return credential

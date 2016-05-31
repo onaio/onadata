@@ -5,7 +5,7 @@ from rest_framework import serializers
 from oauth2client.client import FlowExchangeError
 
 from onadata.apps.main.models import TokenStorageModel
-from onadata.libs.utils.google import google_flow
+from onadata.libs.utils.api_export_tools import generate_google_web_flow
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.fields.xform_field import XFormField
 from onadata.libs.models.google_sheet_service import GoogleSheetService
@@ -27,6 +27,7 @@ class GoogleCredentialSerializer(serializers.Serializer):
             storage = Storage(TokenStorageModel, 'id', request.user,
                               'credential')
             code = self.validated_data['code']
+            google_flow = generate_google_web_flow(request)
             google_creds = google_flow.step2_exchange(code)
             google_creds.set_store(storage)
             storage.put(google_creds)
