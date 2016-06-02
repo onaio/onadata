@@ -190,6 +190,10 @@ class ProjectPermissionFilterMixin(object):
 class InstancePermissionFilterMixin(object):
 
     def _instance_filter(self, request, view, keyword):
+        instance_kwarg = {}
+        instance_content_type = ContentType.objects.get_for_model(Instance)
+        instance_kwarg["content_type"] = instance_content_type
+
         instance_id = request.query_params.get("instance")
         project_id = request.query_params.get("project")
         xform_id = request.query_params.get('xform')
@@ -203,22 +207,32 @@ class InstancePermissionFilterMixin(object):
             instance = get_object_or_404(Instance, pk=instance_id)
             # test if user has permissions on the project
 
+            if xform_id:
+                xform = get_object_or_404(XForm, pk=xform_id)
+
+                parent = (xform
+                          if xform.instances.filter(id=instance.id) else None)
+
+            elif dataview_id:
+                dataview = get_object_or_404(DataView, pk=dataview_id)
+
+                parent = dataview if dataview.has_instance(instance) else None
+            else:
+                return {}
+
             project = get_object_or_404(Project, pk=project_id)
             project_qs = Project.objects.filter(pk=project.id)
 
-            if xform_id:
-                parent = get_object_or_404(XForm, pk=xform_id)
-            else:
-                parent = get_object_or_404(DataView, pk=dataview_id)
-
-            if parent.project == project:
+            if parent and parent.project == project:
                 projects = super(
                     InstancePermissionFilterMixin, self).filter_queryset(
                     request, project_qs, view)
 
                 instances = [instance.id] if projects else []
 
-                return {"%s__in" % keyword: instances}
+                instance_kwarg["%s__in" % keyword] = instances
+
+                return instance_kwarg
 
             else:
                 return {}
@@ -249,7 +263,6 @@ class MetaDataFilter(ProjectPermissionFilterMixin,
         keyword = "object_id"
 
         xform_id = request.query_params.get('xform')
-        dataview_id = request.query_params.get('dataview')
         project_id = request.query_params.get("project")
         instance_id = request.query_params.get("instance")
 
@@ -262,13 +275,12 @@ class MetaDataFilter(ProjectPermissionFilterMixin,
         project_kwarg = self._project_filter(request, view, keyword)
         project_kwarg["content_type"] = project_content_type
 
-        instance_content_type = ContentType.objects.get_for_model(Instance)
         instance_kwarg = self._instance_filter(request, view, keyword)
-        instance_kwarg["content_type"] = instance_content_type
 
         # return instance specific metadata
-        if instance_id and project_id and (xform_id or dataview_id):
-            return queryset.filter(Q(**instance_kwarg))
+        if instance_id:
+            return (queryset.filter(Q(**instance_kwarg))
+                    if instance_kwarg else [])
         elif xform_id:
             # return xform specific metadata
             return queryset.filter(Q(**xform_kwarg))
