@@ -32,6 +32,7 @@ class TestProjectSerializer(TestAbstractViewSet):
         serializer.context['request'] = request
 
         self.assertEqual(len(serializer.data['forms']), 1)
+        self.assertEqual(serializer.data['forms'][0]['encrypted'], False)
         self.assertEqual(serializer.data['num_datasets'], 1)
 
         # delete form in project
