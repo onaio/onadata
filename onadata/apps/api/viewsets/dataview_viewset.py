@@ -27,6 +27,7 @@ from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.api_export_tools import _export_async_export_response
 from onadata.libs.utils.api_export_tools import process_async_export
 from onadata.libs.utils.api_export_tools import response_for_format
+from onadata.libs.utils.api_export_tools import include_hxl_row
 from onadata.libs.utils.chart_tools import get_chart_data_for_field, \
     get_field_from_field_name
 from onadata.libs.utils.export_tools import str_to_bool
@@ -41,25 +42,6 @@ BaseViewset = get_baseviewset_class()
 
 def get_form_field_chart_url(url, field):
     return u'%s?field_name=%s' % (url, field)
-
-
-def include_hxl_row(dv_columns, hxl_columns):
-    """
-    This function returns a boolean value. If the dataview's columns are not
-    part of the hxl columns, we return False. Returning False would mean that
-    we don't have to add the hxl column row if there aren't any hxl columns
-    in the dataview.
-    :param dv_columns - dataview columns
-    :param hxl_columns - hxl columns from the dataview's xform
-
-    :return True or False
-    """
-    dv_columns = set(dv_columns)
-    hxl_columns = set(hxl_columns)
-    if len(hxl_columns) > len(dv_columns):
-        return dv_columns.issubset(hxl_columns)
-
-    return hxl_columns.issubset(dv_columns)
 
 
 class DataViewViewSet(AuthenticateHeaderMixin,

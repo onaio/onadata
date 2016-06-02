@@ -39,7 +39,6 @@ from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.utils.common_tags import SUBMISSION_TIME,\
     GROUPNAME_REMOVED_FLAG, DATAVIEW_EXPORT
 from onadata.libs.utils.model_tools import get_columns_with_hxl
-from onadata.apps.api.viewsets.dataview_viewset import include_hxl_row
 
 # Supported external exports
 external_export_types = ['xls']
@@ -60,6 +59,25 @@ EXPORT_EXT = {
 EXPORT_SUCCESS = "Success"
 EXPORT_PENDING = "Pending"
 EXPORT_FAILED = "Failed"
+
+
+def include_hxl_row(dv_columns, hxl_columns):
+    """
+    This function returns a boolean value. If the dataview's columns are not
+    part of the hxl columns, we return False. Returning False would mean that
+    we don't have to add the hxl column row if there aren't any hxl columns
+    in the dataview.
+    :param dv_columns - dataview columns
+    :param hxl_columns - hxl columns from the dataview's xform
+
+    :return True or False
+    """
+    dv_columns = set(dv_columns)
+    hxl_columns = set(hxl_columns)
+    if len(hxl_columns) > len(dv_columns):
+        return dv_columns.issubset(hxl_columns)
+
+    return hxl_columns.issubset(dv_columns)
 
 
 def _get_export_type(export_type):
