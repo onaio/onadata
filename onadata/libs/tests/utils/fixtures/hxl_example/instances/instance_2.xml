@@ -1,0 +1,10 @@
+<hxl_example id="hxl_example" version="201604111259">
+  <formhub>
+    <uuid>55abe8dae02f46a6af59ff8b25beedf8</uuid>
+  </formhub>
+  <age hxl="#age">29</age>
+  <name>Lionel Messi</name>
+  <meta>
+    <instanceID>uuid:74ee8b73-48aa-4ced-9072-862f93d49c16</instanceID>
+  </meta>
+</hxl_example>

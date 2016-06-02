@@ -529,6 +529,60 @@ class TestDataViewViewSet(TestAbstractViewSet):
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
 
+    def _publish_form_with_hxl_support(self):
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "hxl_example", "hxl_example.xlsx")
+
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        for x in range(1, 3):
+            path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'hxl_example', 'instances', 'instance_%s.xml' % x)
+            self._make_submission(path)
+
+    def _test_csv_export_with_hxl_support(self, columns, expected_output):
+        data = {
+            'name': "Hxl example dataview",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
+            'columns': columns,
+            'query': '[]'
+        }
+
+        self._create_dataview(data=data)
+
+        dataview_pk = DataView.objects.last().pk
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get(
+            '/', data={"format": "csv", "include_hxl": True}, **self.extra)
+        response = view(request, pk=dataview_pk)
+
+        self.assertIsNotNone(
+            response.streaming_content.next(),
+            expected_output
+        )
+
+    def test_csv_export_with_hxl_support(self):
+        self._publish_form_with_hxl_support()
+        self._test_csv_export_with_hxl_support(
+            '["name"]',
+            'name\nCristiano Ronaldo\nLionel Messi\n'
+        )
+        self._test_csv_export_with_hxl_support(
+            '["age"]',
+            'age\n#age,\n31\n29\n'
+        )
+        self._test_csv_export_with_hxl_support(
+            '["age", "name"]',
+            'age,name\n#age,\n31,Cristiano Ronaldo\n29,Lionel Messi\n'
+        )
+
     def test_get_charts_data(self):
         self._create_dataview()
         self.view = DataViewViewSet.as_view({
