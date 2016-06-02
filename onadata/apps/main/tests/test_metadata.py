@@ -37,7 +37,7 @@ class TestMetaData(TestBase):
         self.assertEquals(count + 1, MetaData.objects.filter(
             object_id=self.xform.id, data_type=GOOGLE_SHEET_DATA_TYPE).count())
 
-        gsheet_details = MetaData.get_google_sheet_details(self.xform)
+        gsheet_details = MetaData.get_google_sheet_details(self.xform.pk)
         self.assertEqual({
             GOOGLE_SHEET_ID: 'ABC100',
             UPDATE_OR_DELETE_GOOGLE_SHEET_DATA: 'True',

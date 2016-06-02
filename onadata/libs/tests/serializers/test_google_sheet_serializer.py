@@ -55,7 +55,7 @@ class TestGoogleSheetSerializer(TestAbstractViewSet):
 
         self.assertEqual(pre_count + 1, count)
 
-        gsheet_details = MetaData.get_google_sheet_details(self.xform)
+        gsheet_details = MetaData.get_google_sheet_details(self.xform.pk)
         self.assertEqual(gsheet_details.get('USER_ID'),
                          '{}'.format(self.user.pk))
         self.assertEqual(gsheet_details.get('GOOGLE_SHEET_ID'),
@@ -94,7 +94,7 @@ class TestGoogleSheetSerializer(TestAbstractViewSet):
         count = RestService.objects.filter(xform=self.xform).count()
 
         self.assertEqual(pre_count, count)
-        gsheet_details = MetaData.get_google_sheet_details(self.xform)
+        gsheet_details = MetaData.get_google_sheet_details(self.xform.pk)
         self.assertIsNone(gsheet_details)
 
     def test_create_google_sheet_webhook_without_auth(self):
@@ -123,7 +123,7 @@ class TestGoogleSheetSerializer(TestAbstractViewSet):
         count = RestService.objects.filter(xform=self.xform).count()
 
         self.assertEqual(pre_count, count)
-        gsheet_details = MetaData.get_google_sheet_details(self.xform)
+        gsheet_details = MetaData.get_google_sheet_details(self.xform.pk)
         self.assertIsNone(gsheet_details)
 
     @patch.object(SheetsClient, 'get_google_sheet_id')
@@ -176,7 +176,7 @@ class TestGoogleSheetSerializer(TestAbstractViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        gsheet_details = MetaData.get_google_sheet_details(self.xform)
+        gsheet_details = MetaData.get_google_sheet_details(self.xform.pk)
         self.assertEqual(gsheet_details.get('USER_ID'),
                          '{}'.format(self.user.pk))
         self.assertEqual(gsheet_details.get('GOOGLE_SHEET_ID'),

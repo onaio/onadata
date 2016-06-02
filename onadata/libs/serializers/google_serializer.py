@@ -88,7 +88,7 @@ class GoogleSheetsSerializer(serializers.Serializer):
         return instance
 
     def update(self, instance, validated_data):
-        meta = MetaData.get_google_sheet_details(instance.xform)
+        meta = MetaData.get_google_sheet_details(instance.xform.pk)
         title = meta.get(GOOGLE_SHEET_TITLE)
         sheet_id = meta.get(GOOGLE_SHEET_ID)
         updates = meta.get(UPDATE_OR_DELETE_GOOGLE_SHEET_DATA)

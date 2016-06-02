@@ -105,7 +105,7 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
             data_type=GOOGLE_SHEET_DATA_TYPE, object_id=pk).first()
         if self.object and self.object.data_type == GOOGLE_SHEET_DATA_TYPE:
             google_sheet_details = MetaData.get_google_sheet_details(
-                self.object.content_object)
+                self.object.data_value)
             title = self.get_google_sheet_title(google_sheet_details)
 
             if title.get('updated'):

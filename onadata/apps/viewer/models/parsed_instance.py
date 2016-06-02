@@ -416,7 +416,7 @@ class ParsedInstance(models.Model):
 
 def google_sync_post_save_signal(parsed_instance, created):
     xform = parsed_instance.instance.xform
-    google_sheets_details = MetaData.get_google_sheet_details(xform)
+    google_sheets_details = MetaData.get_google_sheet_details(xform.pk)
     retry_policy = {
         'max_retries': getattr(settings, 'DEFAULT_CELERY_MAX_RETIRES', 3),
         'interval_start':

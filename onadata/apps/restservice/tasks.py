@@ -68,7 +68,7 @@ def initial_google_sheet_export(self, xform_pk, google_credentials,
 @task(bind=True)
 def sync_update_google_sheets(self, instance_pk, xform_pk):
     xform = XForm.objects.get(pk=xform_pk)
-    spreadsheet_details = MetaData.get_google_sheet_details(xform)
+    spreadsheet_details = MetaData.get_google_sheet_details(xform.pk)
 
     user_id = spreadsheet_details.get(USER_ID)
     spreadsheet_id = spreadsheet_details.get(GOOGLE_SHEET_ID)
@@ -90,7 +90,7 @@ def sync_update_google_sheets(self, instance_pk, xform_pk):
 @task(bind=True)
 def sync_delete_google_sheets(self, instance_pk, xform_pk):
     xform = XForm.objects.get(pk=xform_pk)
-    spreadsheet_details = MetaData.get_google_sheet_details(xform)
+    spreadsheet_details = MetaData.get_google_sheet_details(xform.pk)
 
     user_id = spreadsheet_details.get(USER_ID)
     spreadsheet_id = spreadsheet_details.get(GOOGLE_SHEET_ID)

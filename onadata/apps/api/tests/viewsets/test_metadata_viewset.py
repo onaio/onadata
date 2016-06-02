@@ -171,7 +171,7 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data.get('title'), new_google_sheet_name)
-        metadata_details = MetaData.get_google_sheet_details(self.xform)
+        metadata_details = MetaData.get_google_sheet_details(self.xform.pk)
 
         self.assertEqual(
             metadata_details.get(GOOGLE_SHEET_TITLE),

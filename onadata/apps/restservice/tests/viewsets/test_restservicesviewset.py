@@ -252,7 +252,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 201)
         self.assertEquals(count + 1, RestService.objects.all().count())
 
-        google_sheet_details = MetaData.get_google_sheet_details(self.xform)
+        google_sheet_details = MetaData.get_google_sheet_details(self.xform.pk)
         self.assertIsNotNone(google_sheet_details)
 
         rest_service = RestService.objects.last()
@@ -570,7 +570,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         rest_service = RestService.objects.last()
 
-        google_sheet_details = MetaData.get_google_sheet_details(self.xform)
+        google_sheet_details = MetaData.get_google_sheet_details(self.xform.pk)
         self.assertIsNotNone(google_sheet_details)
 
         put_data = {

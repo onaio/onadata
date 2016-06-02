@@ -217,19 +217,24 @@ class MetaData(models.Model):
         return unique_type_for_form(content_object, data_type, data_value)
 
     @staticmethod
-    def get_google_sheet_details(content_object):
-        '''
+    def get_google_sheet_details(obj):
+        """
         Converts a metadata google sheet value, which contains data that is
         pipe separated, to a dictionary e.g 'valueA a | valueB b' to
         { 'valueA': 'a', 'valueB': 'b'}
-        :param content_object: xform
+        :param content_object_pk: xform primary key
         :return dictionary containing google sheet details
-        '''
-        metadata = MetaData.objects.filter(
-            object_id=content_object.id, data_type=GOOGLE_SHEET_DATA_TYPE
-        ).first()
-        if metadata:
-            data_list = metadata.data_value.split('|')
+        """
+        if isinstance(obj, basestring):
+            metadata_data_value = obj
+        else:
+            metadata = MetaData.objects.filter(
+                object_id=obj, data_type=GOOGLE_SHEET_DATA_TYPE
+            ).first()
+            metadata_data_value = metadata and metadata.data_value
+
+        if metadata_data_value:
+            data_list = metadata_data_value.split('|')
             if data_list:
                 # the data_list format is something like ['A a', 'B b c'] and
                 # the list comprehension and dict cast results to

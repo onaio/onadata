@@ -12,7 +12,7 @@ class ServiceDefinition(RestServiceInterface):
 
     def send(self, url, submission_instance):
         spreadsheet_details = MetaData.get_google_sheet_details(
-            submission_instance.xform)
+            submission_instance.xform.pk)
         xform = submission_instance.xform
         user_id = spreadsheet_details.get(USER_ID)
 

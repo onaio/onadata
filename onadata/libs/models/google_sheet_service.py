@@ -43,7 +43,7 @@ class GoogleSheetService(object):
 
         # Check if its an update and retrieve the google sheet id
         if kwargs.get('update'):
-            google_details = MetaData.get_google_sheet_details(self.xform)
+            google_details = MetaData.get_google_sheet_details(self.xform.pk)
             spreadsheet_id = google_details.get(GOOGLE_SHEET_ID)
         else:
             spreadsheet_id = \
@@ -84,7 +84,7 @@ class GoogleSheetService(object):
             )
 
     def retrieve(self):
-        google_sheet_details = MetaData.get_google_sheet_details(self.xform)
+        google_sheet_details = MetaData.get_google_sheet_details(self.xform.pk)
 
         self.google_sheet_title = google_sheet_details.get(GOOGLE_SHEET_TITLE)
         self.sync_updates = \
