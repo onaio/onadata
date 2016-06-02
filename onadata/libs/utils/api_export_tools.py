@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from requests import ConnectionError
 
+from django.conf import settings
 from django.http import Http404, HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.utils import six
@@ -16,6 +17,7 @@ from rest_framework.reverse import reverse
 from celery.result import AsyncResult
 
 from oauth2client.contrib.django_orm import Storage
+from oauth2client.client import OAuth2WebServerFlow
 from oauth2client import client as google_client
 
 from onadata.apps.viewer.models.export import Export
@@ -36,8 +38,8 @@ from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.utils.common_tags import SUBMISSION_TIME,\
     GROUPNAME_REMOVED_FLAG, DATAVIEW_EXPORT
-from oauth2client.client import OAuth2WebServerFlow
-from django.conf import settings
+from onadata.libs.utils.model_tools import get_columns_with_hxl
+from onadata.apps.api.viewsets.dataview_viewset import include_hxl_row
 
 # Supported external exports
 external_export_types = ['xls']
@@ -73,7 +75,7 @@ def _get_export_type(export_type):
 
 
 def custom_response_handler(request, xform, query, export_type,
-                            token=None, meta=None, dataview_pk=False,
+                            token=None, meta=None, dataview=False,
                             filename=None):
     export_type = _get_export_type(export_type)
     if export_type in external_export_types and \
@@ -82,7 +84,17 @@ def custom_response_handler(request, xform, query, export_type,
 
     options = parse_request_export_options(request.query_params)
 
+    dataview_pk = hasattr(dataview, 'pk') and dataview.pk or dataview
     options["dataview_pk"] = dataview_pk
+
+    if dataview:
+        columns_with_hxl = get_columns_with_hxl(xform.survey.get('children'))
+
+        if columns_with_hxl:
+            options['include_hxl'] = include_hxl_row(
+                dataview.columns, columns_with_hxl.keys()
+            )
+
     options['query'] = query
 
     remove_group_name = options.get("remove_group_name")
