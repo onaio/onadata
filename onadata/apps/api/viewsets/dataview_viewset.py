@@ -34,12 +34,32 @@ from onadata.apps.api.tools import get_baseviewset_class
 from onadata.libs.utils.cache_tools import (
     PROJECT_LINKED_DATAVIEWS,
     safe_delete)
+from onadata.libs.utils.model_tools import get_columns_with_hxl
 
 BaseViewset = get_baseviewset_class()
 
 
 def get_form_field_chart_url(url, field):
     return u'%s?field_name=%s' % (url, field)
+
+
+def include_hxl_row(dv_columns, hxl_columns):
+    """
+    This function returns a boolean value. If the dataview's columns are not
+    part of the hxl columns, we return False. Returning False would mean that
+    we don't have to add the hxl column row if there aren't any hxl columns
+    in the dataview.
+    :param dv_columns - dataview columns
+    :param hxl_columns - hxl columns from the dataview's xform
+
+    :return True or False
+    """
+    dv_columns = set(dv_columns)
+    hxl_columns = set(hxl_columns)
+    if len(hxl_columns) > len(dv_columns):
+        return dv_columns.issubset(hxl_columns)
+
+    return hxl_columns.issubset(dv_columns)
 
 
 class DataViewViewSet(AuthenticateHeaderMixin,
@@ -92,23 +112,29 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         else:
             return custom_response_handler(request, self.object.xform, None,
                                            export_type,
-                                           dataview_pk=self.object.pk)
+                                           dataview=self.object)
 
     @detail_route(methods=['GET'])
     def export_async(self, request, *args, **kwargs):
         params = request.query_params
         job_uuid = params.get('job_uuid')
         export_type = params.get('format')
-        include_hxl = params.get('include_hxl')
+        include_hxl = params.get('include_hxl', False)
         dataview = self.get_object()
         xform = dataview.xform
 
         remove_group_name = params.get('remove_group_name', False)
+        columns_with_hxl = get_columns_with_hxl(xform.survey.get('children'))
+
+        if columns_with_hxl and include_hxl:
+            include_hxl = include_hxl_row(
+                dataview.columns, columns_with_hxl.keys()
+            )
 
         options = {
             'remove_group_name': remove_group_name,
             'dataview_pk': dataview.pk,
-            'include_hxl': xform.has_hxl_support and include_hxl or False
+            'include_hxl': include_hxl
         }
 
         if job_uuid:
@@ -210,7 +236,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
                                        export_type,
                                        token,
                                        meta,
-                                       dataview.id)
+                                       dataview)
 
 
 def dataview_post_save_callback(sender, instance=None, created=False,
