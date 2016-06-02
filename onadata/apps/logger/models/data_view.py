@@ -132,19 +132,18 @@ class DataView(models.Model):
         self.instances_with_geopoints = self.has_geo_columnn_n_data()
         return super(DataView, self).save(*args, **kwargs)
 
-    def get_known_integers(self):
-        known_integers = [
+    def _get_known_type(self, type_str):
+        return [
             get_name_from_survey_element(e)
-            for e in self.xform.get_survey_elements_of_type('integer')]
+            for e in self.xform.get_survey_elements_of_type(type_str)]
 
-        return known_integers
+    def get_known_integers(self):
+        "Return elements of type integer"
+        return self._get_known_type('integer')
 
     def get_known_dates(self):
-        known_dates = [
-            get_name_from_survey_element(e)
-            for e in self.xform.get_survey_elements_of_type('date')]
-
-        return known_dates
+        "Return elements of type date"
+        return self._get_known_type('date')
 
     def has_instance(self, instance):
         cursor = connection.cursor()
@@ -153,7 +152,7 @@ class DataView(models.Model):
         where, where_params = self._get_where_clause(self,
                                                      self.get_known_integers(),
                                                      self.get_known_dates())
-        sql_where = ""
+        sql_where = u""
         if where:
             sql_where = u" AND " + u" AND ".join(where)
 
