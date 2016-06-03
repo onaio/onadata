@@ -72,12 +72,7 @@ def include_hxl_row(dv_columns, hxl_columns):
 
     :return True or False
     """
-    dv_columns = set(dv_columns)
-    hxl_columns = set(hxl_columns)
-    if len(hxl_columns) > len(dv_columns):
-        return dv_columns.issubset(hxl_columns)
-
-    return hxl_columns.issubset(dv_columns)
+    return bool(set(hxl_columns).intersection(set(dv_columns)))
 
 
 def _get_export_type(export_type):
@@ -102,7 +97,7 @@ def custom_response_handler(request, xform, query, export_type,
 
     options = parse_request_export_options(request.query_params)
 
-    dataview_pk = hasattr(dataview, 'pk') and dataview.pk or dataview
+    dataview_pk = hasattr(dataview, 'pk') and dataview.pk
     options["dataview_pk"] = dataview_pk
 
     if dataview:
