@@ -132,6 +132,42 @@ class DataView(models.Model):
         self.instances_with_geopoints = self.has_geo_columnn_n_data()
         return super(DataView, self).save(*args, **kwargs)
 
+    def _get_known_type(self, type_str):
+        return [
+            get_name_from_survey_element(e)
+            for e in self.xform.get_survey_elements_of_type(type_str)]
+
+    def get_known_integers(self):
+        """Return elements of type integer"""
+        return self._get_known_type('integer')
+
+    def get_known_dates(self):
+        """Return elements of type date"""
+        return self._get_known_type('date')
+
+    def has_instance(self, instance):
+        """Return True if instance in set of dataview data"""
+        cursor = connection.cursor()
+        sql = u"SELECT count(json) FROM logger_instance"
+
+        where, where_params = self._get_where_clause(self,
+                                                     self.get_known_integers(),
+                                                     self.get_known_dates())
+        sql_where = u""
+        if where:
+            sql_where = u" AND " + u" AND ".join(where)
+
+        sql += u" WHERE xform_id = %s AND id = %s" + sql_where \
+               + u" AND deleted_at IS NULL"
+        params = [self.xform.pk, instance.id] + where_params
+
+        cursor.execute(sql, [unicode(i) for i in params])
+
+        for row in cursor.fetchall():
+            records = row[0]
+
+        return True if records else False
+
     @classmethod
     def _get_where_clause(cls, data_view, form_integer_fields=[],
                           form_date_fields=[]):
@@ -199,7 +235,7 @@ class DataView(models.Model):
                 yield dict(zip(fields, row))
 
     @classmethod
-    def generate_query_string(cls, data_view, start_index, limit, count,
+    def generate_query_string(cls, data_view, start_index, limit,
                               last_submission_time, all_data, sort):
         additional_columns = [GEOLOCATION] \
             if data_view.instances_with_geopoints else []
@@ -221,17 +257,10 @@ class DataView(models.Model):
 
             sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
 
-        xform = data_view.xform
-        known_integers = [
-            get_name_from_survey_element(e)
-            for e in xform.get_survey_elements_of_type('integer')]
-
-        known_dates = [
-            get_name_from_survey_element(e)
-            for e in xform.get_survey_elements_of_type('date')]
-
-        where, where_params = cls._get_where_clause(data_view, known_integers,
-                                                    known_dates)
+        where, where_params = cls._get_where_clause(
+            data_view,
+            data_view.get_known_integers(),
+            data_view.get_known_dates())
 
         sql_where = ""
         if where:
@@ -268,7 +297,7 @@ class DataView(models.Model):
                    last_submission_time=False, all_data=False, sort=None):
 
         (sql, columns, params) = cls.generate_query_string(
-            data_view, start_index, limit, count, last_submission_time,
+            data_view, start_index, limit, last_submission_time,
             all_data, sort)
 
         try:
