@@ -146,6 +146,7 @@ class DataView(models.Model):
         return self._get_known_type('date')
 
     def has_instance(self, instance):
+        """Return True if instance in set of dataview data"""
         cursor = connection.cursor()
         sql = u"SELECT count(json) FROM logger_instance"
 
