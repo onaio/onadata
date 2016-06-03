@@ -87,7 +87,6 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.data_view,
             self.start_index,
             self.limit,
-            self.count,
             self.last_submission_time,
             self.all_data,
             self.sort)
@@ -111,7 +110,6 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.data_view,
             self.start_index,
             limit_filter,
-            self.count,
             self.last_submission_time,
             self.all_data,
             self.sort)
@@ -137,7 +135,6 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.data_view,
             start_index,
             self.limit,
-            self.count,
             self.last_submission_time,
             self.all_data,
             self.sort)
@@ -162,7 +159,6 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.data_view,
             self.start_index,
             self.limit,
-            self.count,
             self.last_submission_time,
             self.all_data,
             sort)
@@ -188,7 +184,6 @@ class TestIntegratedDataView(TestAbstractViewSet):
             self.data_view,
             self.start_index,
             self.limit,
-            self.count,
             self.last_submission_time,
             self.all_data,
             sort)

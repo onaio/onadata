@@ -209,14 +209,11 @@ class InstancePermissionFilterMixin(object):
 
             if xform_id:
                 xform = get_object_or_404(XForm, pk=xform_id)
-
-                parent = (xform
-                          if xform.instances.filter(id=instance.id) else None)
+                parent = xform.instances.filter(id=instance.id) and xform
 
             elif dataview_id:
                 dataview = get_object_or_404(DataView, pk=dataview_id)
-
-                parent = dataview if dataview.has_instance(instance) else None
+                parent = dataview.has_instance(instance) and dataview
             else:
                 return {}
 
@@ -226,7 +223,7 @@ class InstancePermissionFilterMixin(object):
             if parent and parent.project == project:
                 projects = super(
                     InstancePermissionFilterMixin, self).filter_queryset(
-                    request, project_qs, view)
+                        request, project_qs, view)
 
                 instances = [instance.id] if projects else []
 
