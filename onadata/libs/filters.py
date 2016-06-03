@@ -235,7 +235,7 @@ class InstancePermissionFilterMixin(object):
                 return {}
 
         else:
-            return {}
+            return instance_kwarg
 
     def _instance_filter_queryset(self, request, queryset, view, keyword):
         kwarg = self._instance_filter(request, view, keyword)
