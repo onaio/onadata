@@ -23,6 +23,10 @@ import djcelery
 
 djcelery.setup_loader()
 
+# setting default encoding to utf-8
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
 CURRENT_FILE = os.path.abspath(__file__)
 PROJECT_ROOT = os.path.realpath(
     os.path.join(os.path.dirname(CURRENT_FILE), '../'))
