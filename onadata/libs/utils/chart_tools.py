@@ -242,9 +242,10 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
 
     if group_by:
         group_by_data_type = DATA_TYPE_MAP.get(group_by.type, 'categorized')
+        grp_choices = get_field_choices(group_by, xform)
         result = _use_labels_from_group_by_name(group_by_name, group_by,
                                                 group_by_data_type, result,
-                                                choices=choices)
+                                                choices=grp_choices)
 
     if not group_by:
         result = sorted(result, key=lambda d: d['count'])

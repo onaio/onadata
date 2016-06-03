@@ -3,6 +3,7 @@
 import os
 import unittest
 
+from decimal import Decimal
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.chart_tools import (
     build_chart_data_for_field,
@@ -347,6 +348,46 @@ class TestChartTools(TestBase):
             'grouped_by': None,
             'field_label': u'Name of interviewer',
             'field_name': u'name_I'
+        }
+
+        self.assertEqual(data, expected_data)
+
+    def test_select_one_choices_group_by(self):
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "apps", "api", "tests", "fixtures", "forms",
+                            "select_one_choices_test.xlsx")
+
+        self._publish_xls_file_and_set_xform(path)
+
+        path = os.path.join(os.path.dirname(__file__), "..", "..", "..",
+                            "apps", "api", "tests", "fixtures",
+                            "select_one_choices_instance.xml")
+
+        self._make_submission(path)
+
+        group_by = find_field_by_name(self.xform, 'name_I')
+        field = find_field_by_name(self.xform, 'toexppc')
+
+        choices = get_field_choices(field, self.xform)
+
+        data = build_chart_data_for_field(self.xform, field,
+                                          choices=choices,
+                                          group_by=group_by)
+
+        expected_data = {
+            'field_type': u'calculate',
+            'data_type': 'numeric',
+            'field_xpath': u'toexppc',
+            'data': [
+                {
+                    'sum': Decimal('3.357142857142857'),
+                    'name_I': [u'Aynalem Tenaw'],
+                    'mean': Decimal('3.3571428571428570')
+                }
+            ],
+            'grouped_by': u'name_I',
+            'field_label': u'Total expenditure per capita',
+            'field_name': u'toexppc'
         }
 
         self.assertEqual(data, expected_data)

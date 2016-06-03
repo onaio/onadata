@@ -12,7 +12,7 @@ from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.utils.model_tools import generate_uuid_for_form
 from onadata.libs.utils.chart_tools import DATA_TYPE_MAP, get_field_label,\
     _flatten_multiple_dict_into_one, _use_labels_from_group_by_name,\
-    get_field_from_field_xpath
+    get_field_from_field_xpath, get_field_choices
 from onadata.libs.utils.common_tags import NUMERIC_LIST, SUBMISSION_TIME, \
     SELECT_ONE
 
@@ -148,9 +148,7 @@ class Widget(OrderedModel):
         # use labels if group by
         if group_by:
             group_by_field = get_field_from_field_xpath(group_by, xform)
-            choices = xform.survey.get('choices')
-            if choices:
-                choices = choices.get(column)
+            choices = get_field_choices(group_by, xform)
             records = _use_labels_from_group_by_name(group_by, group_by_field,
                                                      data_type, records,
                                                      choices=choices)
