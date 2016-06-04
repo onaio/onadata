@@ -202,6 +202,7 @@ def save_osm_data(instance_id):
                         osm_data.geom = geom
                         osm_data.filename = filename
                         osm_data.save()
+        instance.save()
 
 
 def osm_flat_dict(instance_id):
