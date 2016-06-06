@@ -198,6 +198,18 @@ class TestAbstractViewSet(TestCase):
         self.organization = OrganizationProfile.objects.get(
             user__username=data['org'])
 
+    def _publish_form_with_hxl_support(self):
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "hxl_example", "hxl_example.xlsx")
+
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        for x in range(1, 3):
+            path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'hxl_example', 'instances', 'instance_%s.xml' % x)
+            self._make_submission(path)
+
     def _project_create(self, project_data={}, merge=True):
         view = ProjectViewSet.as_view({
             'post': 'create'
