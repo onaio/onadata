@@ -163,6 +163,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                           'dataviewid',
                           'date_created',
                           'date_modified',
+                          'has_hxl_support',
                           'instances_with_geopoints',
                           'last_submission_time',
                           'matches_parent',
