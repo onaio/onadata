@@ -12,6 +12,8 @@ from onadata.apps.logger.models.project import Project
 from onadata.libs.utils.cache_tools import (
     DATAVIEW_COUNT,
     DATAVIEW_LAST_SUBMISSION_TIME)
+from onadata.libs.utils.model_tools import get_columns_with_hxl
+from onadata.libs.utils.api_export_tools import include_hxl_row
 
 
 LAST_SUBMISSION_TIME = '_submission_time'
@@ -49,6 +51,7 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
     instances_with_geopoints = serializers.SerializerMethodField()
     matches_parent = serializers.BooleanField(default=True)
     last_submission_time = serializers.SerializerMethodField()
+    has_hxl_support = serializers.SerializerMethodField()
 
     class Meta:
         model = DataView
@@ -163,3 +166,10 @@ class DataViewSerializer(serializers.HyperlinkedModelSerializer):
             return obj.instances_with_geopoints
 
         return False
+
+    def get_has_hxl_support(self, obj):
+        columns_with_hxl = get_columns_with_hxl(
+            obj.xform.survey.get('children')
+        )
+
+        return include_hxl_row(obj.columns, columns_with_hxl.keys())
