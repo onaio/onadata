@@ -529,18 +529,6 @@ class TestDataViewViewSet(TestAbstractViewSet):
         export = Export.objects.get(task_id=task_id)
         self.assertTrue(export.is_successful)
 
-    def _publish_form_with_hxl_support(self):
-        xlsform_path = os.path.join(
-            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
-            "hxl_example", "hxl_example.xlsx")
-
-        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
-        for x in range(1, 3):
-            path = os.path.join(
-                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
-                'hxl_example', 'instances', 'instance_%s.xml' % x)
-            self._make_submission(path)
-
     def _test_csv_export_with_hxl_support(self, columns, expected_output):
         data = {
             'name': "Hxl example dataview",
