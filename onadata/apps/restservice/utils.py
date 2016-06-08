@@ -1,3 +1,5 @@
+from django.contrib.auth.models import User
+
 from oauth2client.contrib.django_orm import Storage
 
 from onadata.apps.main.models import TokenStorageModel
@@ -20,8 +22,9 @@ def call_service(submission_instance):
             pass
 
 
-def retrieve_user_google_credentials(user_pk):
-    return Storage(TokenStorageModel, 'id', user_pk, 'credential').get()
+def retrieve_user_google_credentials(user_id):
+    user = User.objects.get(id=user_id)
+    return Storage(TokenStorageModel, 'id', user, 'credential').get()
 
 
 def initialize_google_sheet_builder(xform, google_credentials,
