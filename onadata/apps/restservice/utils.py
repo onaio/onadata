@@ -1,3 +1,5 @@
+from django.contrib.auth.models import User
+
 from oauth2client.contrib.django_orm import Storage
 
 from onadata.apps.main.models import TokenStorageModel
@@ -7,8 +9,8 @@ from onadata.libs.utils.common_tags import GOOGLE_SHEET
 
 def call_service(submission_instance):
     # lookup service which is not google sheet service
-    services = RestService.objects.exclude(
-        xform_id=submission_instance.xform_id, name=GOOGLE_SHEET)
+    services = RestService.objects.filter(
+        xform_id=submission_instance.xform_id).exclude(name=GOOGLE_SHEET)
     # call service send with url and data parameters
     for sv in services:
         # TODO: Queue service
@@ -20,8 +22,9 @@ def call_service(submission_instance):
             pass
 
 
-def retrieve_user_google_credentials(user_pk):
-    return Storage(TokenStorageModel, 'id', user_pk, 'credential').get()
+def retrieve_user_google_credentials(user_id):
+    user = User.objects.get(id=user_id)
+    return Storage(TokenStorageModel, 'id', user, 'credential').get()
 
 
 def initialize_google_sheet_builder(xform, google_credentials,
