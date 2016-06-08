@@ -16,7 +16,7 @@ class Command(BaseCommand):
         RestService.objects.filter(name='bamboo').delete()
 
         # Get all the rest services
-        for rest in queryset_iterator( RestService.objects.all()):
+        for rest in queryset_iterator(RestService.objects.all()):
             rest.save()
 
         print "Task ended ..."
