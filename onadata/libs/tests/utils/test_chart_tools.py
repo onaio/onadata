@@ -62,15 +62,15 @@ class TestChartTools(TestBase):
 
         field = find_field_by_name(xform, u'tête')
         data = build_chart_data_for_field(self.xform, field)
-        self.assertEqual(data['field_name'], u'words_with_accents-tête')
+        self.assertEqual(data['field_name'], u'tête')
 
         field = find_field_by_name(xform, u'té')
         data = build_chart_data_for_field(self.xform, field)
-        self.assertEqual(data['field_name'], u'words_with_accents-té')
+        self.assertEqual(data['field_name'], u'té')
 
         field = find_field_by_name(xform, u'père')
         data = build_chart_data_for_field(self.xform, field)
-        self.assertEqual(data['field_name'], u'words_with_accents-père')
+        self.assertEqual(data['field_name'], u'père')
 
     def test_build_chart_data_for_field_on_select_one(self):
         field_name = 'gender'
@@ -89,8 +89,8 @@ class TestChartTools(TestBase):
     def test_build_chart_data_for_field_on_grouped_field(self):
         field = find_field_by_xpath(self.xform, 'a_group/a_text')
         data = build_chart_data_for_field(self.xform, field)
-        self.assertEqual(data['field_name'], 'a_group-a_text')
-        self.assertEqual(data['field_xpath'], 'a_text')
+        self.assertEqual(data['field_name'], 'a_text')
+        self.assertEqual(data['field_xpath'], 'a_group/a_text')
         self.assertEqual(data['field_type'], 'text')
         self.assertEqual(data['data_type'], 'categorized')
 
@@ -165,10 +165,10 @@ class TestChartTools(TestBase):
         data = build_chart_data(self.xform)
         self.assertIsInstance(data, list)
         # check expected fields
-        expected_fields = sorted(['_submission_time', 'pizza_type', 'age',
-                                  'gender', 'date', 'pizza_fan', 'net_worth',
-                                  'start_time', 'end_time', 'today',
-                                  'a_group-grouped'])
+        expected_fields = sorted([u'_submission_time', u'pizza_type', u'age',
+                                  u'gender', u'date', u'pizza_fan',
+                                  u'net_worth', u'start_time', u'end_time',
+                                  u'today', u'grouped'])
         data_field_names = sorted([f['field_name'] for f in data])
         self.assertEqual(expected_fields, data_field_names)
 
