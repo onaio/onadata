@@ -632,7 +632,7 @@ class TestDataViewViewSet(TestAbstractViewSet):
 
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data['field_type'], 'select one')
-        self.assertEqual(response.data['field_name'], 'a_group-grouped')
+        self.assertEqual(response.data['field_name'], 'grouped')
         self.assertEqual(response.data['data_type'], 'categorized')
         self.assertEqual(len(response.data['data']), 2)
 
