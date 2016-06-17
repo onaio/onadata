@@ -27,7 +27,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.mixins.object_lookup_mixin import ObjectLookupMixin
 from onadata.libs.permissions import ROLES, OwnerRole
-from onadata.libs.serializers.organization_serializer import(
+from onadata.libs.serializers.organization_serializer import (
     OrganizationSerializer)
 from onadata.settings.common import (DEFAULT_FROM_EMAIL, SHARE_ORG_SUBJECT)
 from onadata.apps.api.tools import load_class

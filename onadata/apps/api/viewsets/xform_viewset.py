@@ -367,7 +367,7 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
                 self.object, **request_vars)
             url = enketo_url(form_url, self.object.id_string, **defaults)
             preview_url = get_enketo_preview_url(request,
-                                                 request.user.username,
+                                                 self.object.user.username,
                                                  self.object.id_string)
         except EnketoError as e:
             data = {'message': _(u"Enketo error: %s" % e)}
