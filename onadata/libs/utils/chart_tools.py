@@ -271,7 +271,7 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
         'data': result,
         'data_type': data_type,
         'field_label': field_label,
-        'field_xpath': field_name,
+        'field_xpath': field_xpath,
         'field_name': field_name,
         'field_type': field_type,
         'grouped_by': group_by_name if group_by else None
