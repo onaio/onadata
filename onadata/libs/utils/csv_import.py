@@ -104,8 +104,9 @@ def dict_pathkeys_to_nested_dicts(dictionary):
 
 
 @task()
-def submit_csv_async(username, xform, csv_file):
-    return submit_csv(username, xform, csv_file)
+def submit_csv_async(username, xform, csv_file_temp_path):
+    with open(csv_file_temp_path) as csv_file:
+        return submit_csv(username, xform, csv_file)
 
 
 def submit_csv(username, xform, csv_file):

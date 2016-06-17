@@ -1877,6 +1877,22 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.data.get('additions'), 9)
             self.assertEqual(response.data.get('updates'), 0)
 
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @override_settings(CSV_ROW_IMPORT_ASYNC_THRESHOLD=5)
+    def test_csv_import_async(self):
+        with HTTMock(enketo_mock):
+            xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                    "tests", "fixtures", "tutorial.xls")
+            self._publish_xls_form_to_project(xlsform_path=xls_path)
+            count_before = self.xform.instances.count()
+            view = XFormViewSet.as_view({'post': 'csv_import'})
+            csv_import = fixtures_path('good.csv')
+            post_data = {'csv_file': csv_import}
+            request = self.factory.post('/', data=post_data, **self.extra)
+            response = view(request, pk=self.xform.id)
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(count_before + 9, self.xform.instances.count())
+
     def test_csv_import_diff_column(self):
         with HTTMock(enketo_mock):
             xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
