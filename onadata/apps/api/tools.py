@@ -1,5 +1,6 @@
 import os
 import importlib
+import tempfile
 
 from datetime import datetime
 
@@ -21,6 +22,7 @@ from django.utils.translation import ugettext as _
 from django.shortcuts import get_object_or_404
 from django.core.validators import URLValidator
 from django.core.validators import ValidationError
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from registration.models import RegistrationProfile
 from rest_framework import exceptions
 from taggit.forms import TagField
@@ -500,3 +502,21 @@ def get_baseviewset_class():
     """
     return load_class(settings.BASE_VIEWSET) \
         if settings.BASE_VIEWSET else DefaultBaseViewset
+
+
+def generate_tmp_path(uploaded_csv_file):
+    """
+    Write file to temporary folder if not already there
+    :param uploaded_csv_file:
+    :return: path to the tmp folder
+    """
+    if isinstance(uploaded_csv_file, InMemoryUploadedFile):
+        uploaded_csv_file.open()
+        tmp_file = tempfile.NamedTemporaryFile(delete=False)
+        tmp_file.write(uploaded_csv_file.read())
+        tmp_path = tmp_file.name
+        uploaded_csv_file.close()
+    else:
+        tmp_path = uploaded_csv_file.temporary_file_path()
+
+    return tmp_path

@@ -7,7 +7,8 @@
 
 # get most settings from staging_example.py (which in turn, imports from
 # settings.py)
-from onadata.settings.common import *  # noqa
+# flake8: noqa
+from onadata.settings.common import *
 
 # # # now override the settings which came from staging # # # #
 DATABASES = {

@@ -1,4 +1,5 @@
-from common import *  # nopep8
+# flake8: noqa
+from common import *
 
 # this setting file will not work on "runserver" -- it needs a server for
 # static files

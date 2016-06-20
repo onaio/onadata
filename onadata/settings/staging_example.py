@@ -1,4 +1,5 @@
-from common import *  # nopep8
+# flake8: noqa
+from common import *
 
 DEBUG = True
 TEMPLATES[0]['OPTIONS']['debug'] = DEBUG
