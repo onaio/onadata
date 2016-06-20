@@ -2,6 +2,7 @@ import cStringIO
 import json
 import unicodecsv as ucsv
 import uuid
+import codecs
 
 
 from celery import task
@@ -105,7 +106,7 @@ def dict_pathkeys_to_nested_dicts(dictionary):
 
 @task()
 def submit_csv_async(username, xform, csv_file_temp_path):
-    with open(csv_file_temp_path) as csv_file:
+    with codecs.open(csv_file_temp_path, encoding='utf-8') as csv_file:
         return submit_csv(username, xform, csv_file)
 
 
