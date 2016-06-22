@@ -133,7 +133,7 @@ def submit_csv(username, xform, csv_file):
     num_rows = sum(1 for row in csv_file) - 1
     csv_file.seek(0)
 
-    csv_reader = ucsv.DictReader(csv_file)
+    csv_reader = ucsv.DictReader(csv_file, encoding='utf-8-sig')
     csv_header = csv_reader.fieldnames
 
     # check for spaces in headers
