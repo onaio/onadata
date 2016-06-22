@@ -29,12 +29,13 @@ def retrieve_user_google_credentials(user_id):
 
 def initialize_google_sheet_builder(xform, google_credentials,
                                     sheet_title=None):
-    from onadata.libs.utils.google_sheets import SheetsExportBuilder
+    from onadata.libs.utils.google_sheets_tools import \
+        GoogleSheetsExportBuilder
 
     if not sheet_title:
         sheet_title = xform.id_string
     config = {
         "spreadsheet_title": sheet_title,
-        "flatten_repeated_fields": False
+
     }
-    return SheetsExportBuilder(xform, google_credentials, config)
+    return GoogleSheetsExportBuilder(xform, google_credentials, config)

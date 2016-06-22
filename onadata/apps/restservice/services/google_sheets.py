@@ -18,9 +18,7 @@ class ServiceDefinition(RestServiceInterface):
 
         google_credentials = retrieve_user_google_credentials(user_id)
         spreadsheet_id = spreadsheet_details.get(GOOGLE_SHEET_ID)
-        path = None
         data = [submission_instance.json]
         google_sheets = initialize_google_sheet_builder(xform,
                                                         google_credentials)
-        google_sheets.live_update(path, data, xform,
-                                  spreadsheet_id=spreadsheet_id)
+        google_sheets.live_update(data, spreadsheet_id, append=True)

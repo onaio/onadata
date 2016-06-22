@@ -5,10 +5,10 @@ from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.restservice.models import RestService
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.restservice.tasks import initial_google_sheet_export
-from onadata.libs.utils.google_sheets import get_google_sheet_id,\
-    get_google_sheet_url
+from onadata.libs.utils.google_sheets_tools import get_spread_sheet_url
 from onadata.libs.utils.common_tags import GOOGLE_SHEET_ID,\
     UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, USER_ID, GOOGLE_SHEET_TITLE
+from onadata.libs.utils.google_sheets_tools import create_google_sheet
 
 
 class GoogleSheetService(object):
@@ -46,8 +46,9 @@ class GoogleSheetService(object):
             google_details = MetaData.get_google_sheet_details(self.xform.pk)
             spreadsheet_id = google_details.get(GOOGLE_SHEET_ID)
         else:
-            spreadsheet_id = \
-                get_google_sheet_id(self.user, self.google_sheet_title)
+            spreadsheet_id = create_google_sheet(self.user,
+                                                 self.google_sheet_title,
+                                                 self.xform)
 
         google_sheets_metadata = \
             '{} {} | {} {}| {} {} | {} {}'.format(
@@ -60,7 +61,7 @@ class GoogleSheetService(object):
         MetaData.set_google_sheet_details(self.xform, google_sheets_metadata)
 
         self.pk = rs.pk
-        self.google_sheet_url = get_google_sheet_url(spreadsheet_id)
+        self.google_sheet_url = get_spread_sheet_url(spreadsheet_id)
 
         if self.send_existing_data and self.xform.instances.count() > 0:
             storage = Storage(TokenStorageModel, 'id', self.user,
@@ -91,5 +92,5 @@ class GoogleSheetService(object):
             google_sheet_details.get(UPDATE_OR_DELETE_GOOGLE_SHEET_DATA)
         self.send_existing_data = False
         self.user = google_sheet_details.get(USER_ID)
-        self.google_sheet_url = get_google_sheet_url(
+        self.google_sheet_url = get_spread_sheet_url(
             google_sheet_details.get(GOOGLE_SHEET_ID))
