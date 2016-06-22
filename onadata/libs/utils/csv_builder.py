@@ -1,6 +1,4 @@
-import csv
-import codecs
-import cStringIO
+import unicodecsv as csv
 from collections import OrderedDict
 from itertools import chain
 
@@ -83,43 +81,13 @@ def get_column_names_only(columns, dd, group_delimiter):
     return new_columns
 
 
-class UnicodeWriter:
-    """
-    A CSV writer which will write rows to CSV file "f",
-    which is encoded in the given encoding.
-    """
-
-    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-        # Redirect output to a queue
-        self.queue = cStringIO.StringIO()
-        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
-        self.stream = f
-        self.encoder = codecs.getincrementalencoder(encoding)()
-
-    def writerow(self, row):
-        self.writer.writerow([unicode(s).encode("utf-8") for s in row])
-        # Fetch UTF-8 output from the queue ...
-        data = self.queue.getvalue()
-        data = data.decode("utf-8")
-        # ... and reencode it into the target encoding
-        data = self.encoder.encode(data)
-        # write to the target stream
-        self.stream.write(data)
-        # empty queue
-        self.queue.truncate(0)
-
-    def writerows(self, rows):
-        for row in rows:
-            self.writerow(row)
-
-
 def write_to_csv(path, rows, columns, columns_with_hxl=None,
                  remove_group_name=False, dd=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER, include_labels=False,
                  include_labels_only=False, include_hxl=False):
     na_rep = getattr(settings, 'NA_REP', NA_REP)
     with open(path, 'wb') as csvfile:
-        writer = UnicodeWriter(csvfile, lineterminator='\n')
+        writer = csv.writer(csvfile, encoding='utf-8-sig', lineterminator='\n')
 
         # Check if to truncate the group name prefix
         if not include_labels_only:
