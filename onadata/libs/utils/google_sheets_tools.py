@@ -1,5 +1,6 @@
 import httplib2
 
+from itertools import islice, chain
 from apiclient import discovery
 from oauth2client.contrib.django_orm import Storage
 
@@ -144,12 +145,12 @@ def get_spread_sheet_title(service, spread_sheet_id):
     return google_sheet_details.get('properties').get('title')
 
 
-def get_spread_sheet_rows(service, spread_sheet_details, row=None):
+def get_spread_sheet_rows(service, spread_sheet_details, row_index=None):
     """
     Retrieve sheet data
     :param service:
     :param spread_sheet_details:
-    :param row:
+    :param row_index:
     :return:
     spread_sheet_details ->
 
@@ -209,8 +210,9 @@ def get_spread_sheet_rows(service, spread_sheet_details, row=None):
     rows = grid_properties.get('rowCount')
     columns = grid_properties.get('columnCount')
 
-    if row:
-        sheet_range = 'A{}:{}{}'.format(row, colnum_string(columns), row)
+    if row_index:
+        sheet_range = 'A{}:{}{}'.format(row_index, colnum_string(columns),
+                                        row_index)
     else:
         sheet_range = 'A{}:{}{}'.format(1, colnum_string(columns), rows)
 
@@ -347,6 +349,13 @@ def colnum_string(n):
     return alpha_numeric
 
 
+def batch(iterable, size):
+    source_iter = iter(iterable)
+    while True:
+        batch_iter = islice(source_iter, size)
+        yield chain([batch_iter.next()], batch_iter)
+
+
 class GoogleSheetsExportBuilder(ExportBuilder):
     google_credentials = None
     service = None
@@ -449,6 +458,8 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         current_rows = sheet_details.get('properties').get('gridProperties')\
             .get('rowCount')
 
+        import ipdb
+        ipdb.set_trace()
         # Check if we should expand the sheet row and columns
         columns_to_add = rows_to_add = 0
         if columns > current_columns:
