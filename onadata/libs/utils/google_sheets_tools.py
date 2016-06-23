@@ -458,8 +458,6 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         current_rows = sheet_details.get('properties').get('gridProperties')\
             .get('rowCount')
 
-        import ipdb
-        ipdb.set_trace()
         # Check if we should expand the sheet row and columns
         columns_to_add = rows_to_add = 0
         if columns > current_columns:
