@@ -394,6 +394,45 @@ class TestCSVDataFrameBuilder(TestBase):
         self.assertEqual(rows[4][5], NA_REP)
         # close and delete file
         csv_file.close()
+
+    def test_windows_excel_compatible_csv_export(self):
+        self._publish_single_level_repeat_form()
+        # submit 7 instances
+        for i in range(4):
+            self._submit_fixture_instance("new_repeats", "01")
+        self._submit_fixture_instance("new_repeats", "02")
+        for i in range(2):
+            self._submit_fixture_instance("new_repeats", "01")
+        csv_df_builder = CSVDataFrameBuilder(self.user.username,
+                                             self.xform.id_string,
+                                             remove_group_name=True,
+                                             include_images=False,
+                                             win_excel_utf8=True)
+        record_count = csv_df_builder._query_data(count=True)
+        self.assertEqual(record_count, 7)
+        temp_file = NamedTemporaryFile(suffix=".csv", delete=False)
+        csv_df_builder.export_to(temp_file.name)
+        csv_file = open(temp_file.name)
+        csv_reader = csv.reader(csv_file)
+        header = csv_reader.next()
+        self.assertEqual(
+            len(header), 17 + len(AbstractDataFrameBuilder.ADDITIONAL_COLUMNS))
+        expected_header = [
+            '\xef\xbb\xbfname', '\xef\xbb\xbfage', '\xef\xbb\xbfhas_kids',
+            '\xef\xbb\xbfkids_name', '\xef\xbb\xbfkids_age',
+            '\xef\xbb\xbfkids_name', '\xef\xbb\xbfkids_age',
+            '\xef\xbb\xbfgps', '\xef\xbb\xbf_gps_latitude',
+            '\xef\xbb\xbf_gps_longitude', '\xef\xbb\xbf_gps_altitude',
+            '\xef\xbb\xbf_gps_precision', '\xef\xbb\xbfweb_browsers/firefox',
+            '\xef\xbb\xbfweb_browsers/chrome', '\xef\xbb\xbfweb_browsers/ie',
+            '\xef\xbb\xbfweb_browsers/safari', '\xef\xbb\xbfinstanceID',
+            '\xef\xbb\xbf_uuid', '\xef\xbb\xbf_submission_time',
+            '\xef\xbb\xbf_tags', '\xef\xbb\xbf_notes', '\xef\xbb\xbf_version',
+            '\xef\xbb\xbf_duration', '\xef\xbb\xbf_submitted_by'
+        ]
+        self.assertEqual(expected_header, header)
+        # close and delete file
+        csv_file.close()
         os.unlink(temp_file.name)
 
     def test_csv_column_indices_in_groups_within_repeats(self):
