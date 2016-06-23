@@ -24,8 +24,8 @@ account.
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>POST</b> /api/v1/forms</pre>
+    <pre class="prettyprint">
+    <b>POST</b> /api/v1/forms</pre>
 
 Example
 ^^^^^^^
@@ -72,8 +72,8 @@ Get list of forms
 .. raw:: html
 
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms</pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms</pre>
 
 Request
 ^^^^^^^
@@ -86,22 +86,22 @@ Get list of forms filter by owner
 ----------------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms?<code>owner</code>=<code>owner_username</code></pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms?<code>owner</code>=<code>owner_username</code></pre>
 
 Request
 ^^^^^^^
 ::
 
-	curl -X GET https://api.ona.io/api/v1/forms?owner=ona
+    curl -X GET https://api.ona.io/api/v1/forms?owner=ona
 
 
 Get Form Information
 ---------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/<code>{pk}</code></pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/<code>{pk}</code></pre>
 
 Example
 ^^^^^^^
@@ -151,8 +151,8 @@ Form can only be updated when there are no submissions.
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>PATCH</b> /api/v1/forms/<code>{pk}</code></pre>
+    <pre class="prettyprint">
+    <b>PATCH</b> /api/v1/forms/<code>{pk}</code></pre>
 
 Example
 ^^^^^^^
@@ -190,8 +190,8 @@ Delete Form
 .. raw:: html
 
 
-	<pre class="prettyprint">
-	<b>DELETE</b> /api/v1/forms/<code>{pk}</code></pre>
+    <pre class="prettyprint">
+    <b>DELETE</b> /api/v1/forms/<code>{pk}</code></pre>
 
 Example
 ^^^^^^^
@@ -220,9 +220,9 @@ Supported formats for exports are:
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/<code>{pk}</code>/export_async?format=<code>{format}</code>
-	</pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/<code>{pk}</code>/export_async?format=<code>{format}</code>
+    </pre>
 
 Example
 ^^^^^^^^
@@ -263,7 +263,7 @@ Use that url for authorization.
 Google Sheet Authorization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 Optional `redirect_uri` can be provided in this step.
-This `redirect_uri` will recieve `code` from google and with this code pass it to this 
+This `redirect_uri` will recieve `code` from google and with this code pass it to this
 url `https://api.ona.io/api/v1/export/google_auth` to finish the authorization steps.
 
 Example
@@ -308,9 +308,9 @@ Check progress of exporting form data asynchronously
 -----------------------------------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/<code>{pk}</code>/export_async?job_uuid=UUID
-	</pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/<code>{pk}</code>/export_async?job_uuid=UUID
+    </pre>
 
 Example
 ^^^^^^^^
@@ -431,13 +431,30 @@ Example
      curl -X GET https://api.ona.io/api/v1/forms/28058.xls?include_hxl=false
 
 
+Windows Excel compatible unicode CSV exports
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For a Windows Excel compatible unicode CSV export use the `win_excel_utf8`
+ param, acceptable values are `true` and `false`. This allows you to open the
+ CSV file in Windows Excel by default without following the data import from
+ file process which allows you to select the encoding format. The default
+ value is `false`.
+
+Example
+^^^^^^^
+
+::
+
+     curl -X GET https://api.ona.io/api/v1/forms/28058/export_async?format=csv&win_excel_utf8=true
+     curl -X GET https://api.ona.io/api/v1/forms/28058.csv?win_excel_utf8=true
+
+
 Delete an XLS form asynchronously
 -----------------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>POST</b> /api/v1/forms/<code>{pk}</code>/delete_async
-	</pre>
+    <pre class="prettyprint">
+    <b>POST</b> /api/v1/forms/<code>{pk}</code>/delete_async
+    </pre>
 
 Example
 ^^^^^^^
@@ -459,9 +476,9 @@ Check on XLS form deletion progress
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/<code>{pk}</code>/delete_async?job_uuid=UUID
-	</pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/<code>{pk}</code>/delete_async?job_uuid=UUID
+    </pre>
 
 Example
 ^^^^^^^
@@ -483,9 +500,9 @@ List Forms
 ------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms
-	</pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms
+    </pre>
 
 Example
 ^^^^^^^
@@ -582,8 +599,8 @@ comma separated list of tags.
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms?<code>tags</code>=<code>tag1,tag2</code></pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms?<code>tags</code>=<code>tag1,tag2</code></pre>
 
 List forms tagged ``smart`` or ``brand new`` or both.
 
@@ -621,9 +638,9 @@ Get list of Tags for a specific Form
 -------------------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/<code>{pk}</code>/labels
-	</pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/<code>{pk}</code>/labels
+    </pre>
 
 Request
 ^^^^^^^
@@ -650,9 +667,9 @@ Examples
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>POST</b> /api/v1/forms/<code>{pk}</code>/labels
-	</pre>
+    <pre class="prettyprint">
+    <b>POST</b> /api/v1/forms/<code>{pk}</code>/labels
+    </pre>
 
 Payload
 ::
@@ -663,9 +680,9 @@ Delete a specific tag
 ------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>DELETE</b> /api/v1/forms/<code>{pk}</code>/labels/<code>tag_name</code>
-	</pre>
+    <pre class="prettyprint">
+    <b>DELETE</b> /api/v1/forms/<code>{pk}</code>/labels/<code>tag_name</code>
+    </pre>
 
 Request
 ^^^^^^^
@@ -694,8 +711,8 @@ Use the ``instances_with__osm`` query parameter to filter the list of forms
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms?<code>instances_with_osm</code>=<code>True</code></pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms?<code>instances_with_osm</code>=<code>True</code></pre>
 
 
         HTTP 200 OK
@@ -704,8 +721,8 @@ Get webform/enketo link
 ------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo</pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/<code>{pk}</code>/enketo</pre>
 
 Request
 ^^^^^^^
@@ -775,9 +792,9 @@ Params for the custom xls report
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/{pk}.{format}</code>
-	</pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/{pk}.{format}</code>
+    </pre>
 
 Example
 ^^^^^^^
@@ -818,8 +835,8 @@ Example 3 Custom XLS reports with meta or token and data_id(beta)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/{pk}.{format}?{meta}&{data_id} -L -o {filename.xls}</code></pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/{pk}.{format}?{meta}&{data_id} -L -o {filename.xls}</code></pre>
 
 ::
 
@@ -845,9 +862,9 @@ Get list of public forms
 --------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/public
-	</pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/public
+    </pre>
 
 Share a form with a specific user
 ----------------------------------
@@ -859,8 +876,8 @@ You can share a form with a  specific user by `POST` a payload with
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>POST</b> /api/v1/forms/<code>{pk}</code>/share</pre>
+    <pre class="prettyprint">
+    <b>POST</b> /api/v1/forms/<code>{pk}</code>/share</pre>
 
 Example
 ^^^^^^^
@@ -928,9 +945,9 @@ You can clone a form to a specific user account using `POST` with
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>POST</b> /api/v1/forms/<code>{pk}</code>/clone
-	</pre>
+    <pre class="prettyprint">
+    <b>POST</b> /api/v1/forms/<code>{pk}</code>/clone
+    </pre>
 
 Example
 ^^^^^^^
@@ -998,9 +1015,9 @@ Import CSV data to existing form
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>POST</b> /api/v1/forms/<code>{pk}</code>/csv_import
-	</pre>
+    <pre class="prettyprint">
+    <b>POST</b> /api/v1/forms/<code>{pk}</code>/csv_import
+    </pre>
 
 Example
 ^^^^^^^
@@ -1036,13 +1053,13 @@ Check on CSV data import progress
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - `job_uuid` a valid csv import job_uuid returned by a long running import \
-	previous call
+    previous call
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>GET</b> /api/v1/forms/<code>{pk}</code>/csv_import?job_uuid=UUID
-	</pre>
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/forms/<code>{pk}</code>/csv_import?job_uuid=UUID
+    </pre>
 
 Example
 ^^^^^^^
@@ -1078,14 +1095,14 @@ Upload a XLS form async
 
 .. raw:: html
 
-	<pre class="prettyprint"><b>POST</b> /api/v1/forms/create_async</pre>
+    <pre class="prettyprint"><b>POST</b> /api/v1/forms/create_async</pre>
 
 
 Example
 ^^^^^^^
 ::
 
-      	curl -X POST https://api.ona.io/api/v1/forms/create_async -F xls_file=@/path/to/xls_file
+          curl -X POST https://api.ona.io/api/v1/forms/create_async -F xls_file=@/path/to/xls_file
 
 Response
 ^^^^^^^^
@@ -1101,7 +1118,7 @@ Check on XLS form upload progress
 
 .. raw:: html
 
-	<pre class="prettyprint"><b>GET</b> /api/v1/forms/create_async/?job_uuid=UUID</pre>
+    <pre class="prettyprint"><b>GET</b> /api/v1/forms/create_async/?job_uuid=UUID</pre>
 
 Example
 ^^^^^^^
