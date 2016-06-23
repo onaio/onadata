@@ -76,7 +76,8 @@ class Export(models.Model):
         "include_hxl",
         "query",
         "remove_group_name",
-        "split_select_multiples"
+        "split_select_multiples",
+        "win_excel_utf8"
     ]
 
     EXPORT_TYPE_DICT = dict(export_type for export_type in EXPORT_TYPES)
