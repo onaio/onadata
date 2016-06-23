@@ -52,7 +52,7 @@ from onadata.libs.utils.cache_tools import (
     PROJ_FORMS_CACHE)
 from onadata.libs.utils.cache_tools import XFORM_PERMISSIONS_CACHE
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
-from onadata.libs.utils.google_sheets import SheetsExportBuilder
+from onadata.libs.utils.google_sheets_tools import GoogleSheetsExportBuilder
 
 
 @urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
@@ -3974,8 +3974,9 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.data, expected_response)
 
-    @patch.object(SheetsExportBuilder, 'export')
+    @patch.object(GoogleSheetsExportBuilder, 'export')
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    @override_settings(CELERY_ALWAYS_EAGER=True)
     def test_xform_gsheets_export_async_mode(self, mock_async,
                                              mock_sheet_builder):
         # user authorized and credentials saved in the db

@@ -18,8 +18,8 @@ from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.utils.common_tags import GOOGLE_SHEET, GOOGLE_SHEET_ID
-from onadata.libs.utils.google_sheets import SheetsExportBuilder, \
-    SheetsClient, get_google_sheet_url
+from onadata.libs.utils.google_sheets_tools import GoogleSheetsExportBuilder, \
+    get_spread_sheet_url
 
 
 class TestRestServicesViewSet(TestAbstractViewSet):
@@ -261,7 +261,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             'google_sheet_title': post_data.get('google_sheet_title'),
             'name': u'google_sheets',
             'send_existing_data': False,
-            'google_sheet_url': get_google_sheet_url(
+            'google_sheet_url': get_spread_sheet_url(
                 google_sheet_details.get(GOOGLE_SHEET_ID)),
             'sync_updates': post_data.get('sync_updates'),
             'service_url': u'https://drive.google.com',
@@ -276,8 +276,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         return response.data
 
-    @patch.object(SheetsExportBuilder, 'live_update')
-    @patch.object(SheetsClient, 'get_google_sheet_id')
+    @patch.object(GoogleSheetsExportBuilder, 'live_update')
+    @patch('onadata.libs.models.google_sheet_service.create_google_sheet')
     def test_create_google_sheets_service(self, mock_sheet_client,
                                           mock_sheet_builder):
         mock_sheet_client.return_value = "very_mocked_id"
@@ -286,7 +286,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertTrue(mock_sheet_client.called)
         self.assertFalse(mock_sheet_builder.called)
 
-    @patch.object(SheetsClient, 'get_google_sheet_id')
+    @patch('onadata.libs.models.google_sheet_service.create_google_sheet')
     def test_retrieve_google_sheets_service(self, mock_sheet_client):
         mock_sheet_client.return_value = "very_mocked_id"
         data = self._create_google_sheet_service()
@@ -304,15 +304,15 @@ class TestRestServicesViewSet(TestAbstractViewSet):
             "sync_updates": False,
             "id": _id,
             "service_url": 'https://drive.google.com',
-            "google_sheet_url": get_google_sheet_url('very_mocked_id')
+            "google_sheet_url": get_spread_sheet_url('very_mocked_id')
         }
         response.data.pop('date_modified')
         response.data.pop('date_created')
         self.assertEqual(response.data, expected_dict)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch.object(SheetsExportBuilder, 'live_update')
-    @patch.object(SheetsClient, 'get_google_sheet_id')
+    @patch.object(GoogleSheetsExportBuilder, 'live_update')
+    @patch('onadata.libs.models.google_sheet_service.create_google_sheet')
     def test_create_google_sheets_service_w_initial_upload(self,
                                                            mock_sheet_client,
                                                            mock_sheet_builder):
@@ -324,8 +324,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertTrue(mock_sheet_builder.called)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch.object(SheetsExportBuilder, 'live_update')
-    @patch.object(SheetsClient, 'get_google_sheet_id')
+    @patch.object(GoogleSheetsExportBuilder, 'live_update')
+    @patch('onadata.libs.models.google_sheet_service.create_google_sheet')
     def test_create_google_sheets_service_submission(self, mock_sheet_client,
                                                      mock_sheet_builder):
         mock_sheet_client.return_value = "very_mocked_id"
@@ -342,8 +342,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(4, mock_sheet_builder.call_count)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch.object(SheetsExportBuilder, 'live_update')
-    @patch.object(SheetsClient, 'get_google_sheet_id')
+    @patch.object(GoogleSheetsExportBuilder, 'live_update')
+    @patch('onadata.libs.models.google_sheet_service.create_google_sheet')
     def test_edit_submission_google_sheets_service(self, mock_sheet_client,
                                                    mock_sheet_builder):
         xls_file_path = os.path.join(
@@ -371,9 +371,9 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         self.assertEqual(1, mock_sheet_builder.call_count)
         instance = self.xform.instances.last()
-        mock_sheet_builder.assert_called_with(None, [instance.json],
-                                              self.xform,
-                                              spreadsheet_id=u'very_mocked_id')
+        mock_sheet_builder.assert_called_with([instance.json],
+                                              u'very_mocked_id',
+                                              append=True)
         mock_sheet_builder.reset_mock()
 
         xml_edit_submission_file_path = os.path.join(
@@ -386,14 +386,13 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(1, mock_sheet_builder.call_count)
         instance = self.xform.instances.last()
 
-        mock_sheet_builder.assert_called_with(None, [instance.json],
-                                              self.xform,
-                                              spreadsheet_id=u'very_mocked_id',
+        mock_sheet_builder.assert_called_with([instance.json],
+                                              u'very_mocked_id',
                                               update=True)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch.object(SheetsExportBuilder, 'live_update')
-    @patch.object(SheetsClient, 'get_google_sheet_id')
+    @patch.object(GoogleSheetsExportBuilder, 'live_update')
+    @patch('onadata.libs.models.google_sheet_service.create_google_sheet')
     def test_edit_sub_google_sheets_sync_update_false(self, mock_sheet_client,
                                                       mock_sheet_builder):
         xls_file_path = os.path.join(
@@ -421,9 +420,9 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         self.assertEqual(1, mock_sheet_builder.call_count)
         instance = self.xform.instances.last()
-        mock_sheet_builder.assert_called_with(None, [instance.json],
-                                              self.xform,
-                                              spreadsheet_id=u'very_mocked_id')
+        mock_sheet_builder.assert_called_with([instance.json],
+                                              u'very_mocked_id',
+                                              append=True)
         mock_sheet_builder.reset_mock()
 
         xml_edit_submission_file_path = os.path.join(
@@ -438,8 +437,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(0, mock_sheet_builder.call_count)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch.object(SheetsExportBuilder, 'live_update')
-    @patch.object(SheetsClient, 'get_google_sheet_id')
+    @patch.object(GoogleSheetsExportBuilder, 'live_update')
+    @patch('onadata.libs.models.google_sheet_service.create_google_sheet')
     def test_delete_submission_google_sheets_service(self, mock_sheet_client,
                                                      mock_sheet_builder):
         xls_file_path = os.path.join(
@@ -464,9 +463,9 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         self.assertEqual(1, mock_sheet_builder.call_count)
         instance = self.xform.instances.last()
-        mock_sheet_builder.assert_called_with(None, [instance.json],
-                                              self.xform,
-                                              spreadsheet_id=u'very_mocked_id')
+        mock_sheet_builder.assert_called_with([instance.json],
+                                              u'very_mocked_id',
+                                              append=True)
         mock_sheet_builder.reset_mock()
 
         instance = self.xform.instances.last()
@@ -475,14 +474,13 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         instance.set_deleted(timezone.now())
         self.assertEqual(1, mock_sheet_builder.call_count)
 
-        mock_sheet_builder.assert_called_with(None, instance.pk, self.xform,
-                                              spreadsheet_id=u'very_mocked_id',
+        mock_sheet_builder.assert_called_with(instance.pk, u'very_mocked_id',
                                               delete=True)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch.object(SheetsExportBuilder, 'live_update',
+    @patch.object(GoogleSheetsExportBuilder, 'live_update',
                   side_effect=[ConnectionError(), ConnectionError(), Mock()])
-    @patch.object(SheetsClient, 'get_google_sheet_id')
+    @patch('onadata.libs.models.google_sheet_service.create_google_sheet')
     def test_google_sheets_service_retries(self, mock_sheet_client,
                                            mock_sheet_builder):
         xls_file_path = os.path.join(
@@ -507,15 +505,15 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         self.assertEqual(3, mock_sheet_builder.call_count)
         instance = self.xform.instances.last()
-        mock_sheet_builder.assert_called_with(None, [instance.json],
-                                              self.xform,
-                                              spreadsheet_id=u'very_mocked_id')
+        mock_sheet_builder.assert_called_with([instance.json],
+                                              u'very_mocked_id',
+                                              append=True)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch.object(SheetsExportBuilder, 'live_update',
+    @patch.object(GoogleSheetsExportBuilder, 'live_update',
                   side_effect=[ConnectionError(), ConnectionError(),
                                ConnectionError()])
-    @patch.object(SheetsClient, 'get_google_sheet_id')
+    @patch('onadata.libs.models.google_sheet_service.create_google_sheet')
     def test_google_sheets_service_retries_all_fail(self, mock_sheet_client,
                                                     mock_sheet_builder):
         xls_file_path = os.path.join(
@@ -541,8 +539,8 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(4, mock_sheet_builder.call_count)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
-    @patch.object(SheetsExportBuilder, 'live_update')
-    @patch.object(SheetsClient, 'get_google_sheet_id')
+    @patch.object(GoogleSheetsExportBuilder, 'live_update')
+    @patch('onadata.libs.models.google_sheet_service.create_google_sheet')
     def test_push_existing_data_google_sheet(self, mock_sheet_client,
                                              mock_sheet_builder):
         self._make_submissions()

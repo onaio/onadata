@@ -709,8 +709,7 @@ class ExportBuilder(object):
         }
         google_sheets = GoogleSheetsExportBuilder(xform, google_credentials,
                                                   config)
-        google_sheets.export(data)
-        self.url = google_sheets.url
+        self.url = google_sheets.export(data)
 
     def to_zipped_sav(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):

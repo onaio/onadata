@@ -244,6 +244,8 @@ class GoogleSheetsExportBuilder(ExportBuilder):
 
         self.url = get_spread_sheet_url(spread_sheet_id)
 
+        return self.url
+
     def _get_headers(self):
         """Writes headers for each section."""
         for section in self.sections:

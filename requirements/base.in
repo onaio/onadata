@@ -79,7 +79,6 @@ Markdown
 
 dpath
 elaphe
-gspread
 httplib2
 modilabs-python-utils
 numpy
