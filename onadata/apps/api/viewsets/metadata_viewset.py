@@ -17,7 +17,8 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
     MediaFileRenderer
-from onadata.libs.utils.google_sheets import SheetsClient
+from onadata.libs.utils.google_sheets_tools import create_service,\
+    get_spread_sheet_title
 from onadata.libs.utils.common_tags import (
     GOOGLE_SHEET_ID,
     GOOGLE_SHEET_TITLE,
@@ -74,8 +75,8 @@ class MetaDataViewSet(AuthenticateHeaderMixin,
         user = User.objects.get(pk=user_id)
         storage = Storage(TokenStorageModel, 'id', user, 'credential')
         credential = storage.get()
-        sheets_client = SheetsClient(auth=credential)
-        title = sheets_client.get_google_sheet_title(spreadsheet_id)
+        service = create_service(credential)
+        title = get_spread_sheet_title(service, spreadsheet_id)
 
         return {
             'name': title,
