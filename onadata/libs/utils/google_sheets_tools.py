@@ -1,6 +1,5 @@
 import httplib2
 
-from itertools import islice, chain
 from apiclient import discovery
 from oauth2client.contrib.django_orm import Storage
 
@@ -221,6 +220,21 @@ def get_spread_sheet_rows(service, spread_sheet_details, row_index=None):
         .execute()
 
 
+def get_spread_sheet_column(service, spread_sheet_details, column_index=None):
+    spread_sheet_id = spread_sheet_details.get('spreadsheetId')
+    sheet_detail = spread_sheet_details.get('sheets')[0]
+    grid_properties = sheet_detail.get('properties').get('gridProperties')
+    rows = grid_properties.get('rowCount')
+
+    column_alpha = colnum_string(column_index)
+
+    sheet_range = '{}{}:{}{}'.format(column_alpha, 1, column_alpha, rows)
+
+    return service.spreadsheets().values() \
+        .get(spreadsheetId=spread_sheet_id, range=sheet_range,
+             majorDimension="COLUMNS").execute()
+
+
 def get_spread_sheet_url(spread_sheet_id):
     """
     Generate google sheet url from the spread sheet id
@@ -349,11 +363,21 @@ def colnum_string(n):
     return alpha_numeric
 
 
-def batch(iterable, size):
-    source_iter = iter(iterable)
-    while True:
-        batch_iter = islice(source_iter, size)
-        yield chain([batch_iter.next()], batch_iter)
+def search_rows(service, spread_sheet_id, column, value):
+    spread_sheet_details = get_spread_sheet(service, spread_sheet_id)
+    headers_details = get_spread_sheet_rows(service, spread_sheet_details,
+                                            row_index=1)
+
+    headers = headers_details.get("values")[0]
+    header_index = headers.index(column) + 1
+
+    data_column = get_spread_sheet_column(service, spread_sheet_details,
+                                          column_index=header_index)
+    data = data_column.get("values")[0]
+
+    row_index = data.index(str(value)) + 1
+
+    return row_index
 
 
 class GoogleSheetsExportBuilder(ExportBuilder):
@@ -449,16 +473,48 @@ class GoogleSheetsExportBuilder(ExportBuilder):
 
         self.spread_sheet_details = \
             get_spread_sheet(self.service, spreadsheet_id)
+        sheet_id = self.spread_sheet_details.get('properties').get('sheetId')
+
+        if delete:
+            start_index = search_rows(self.service, spreadsheet_id, '_id',
+                                      data)
+            return delete_row_or_column(self.service, spreadsheet_id, sheet_id,
+                                        start_index, start_index+1)
 
         sheet_details = self.spread_sheet_details.get('sheets')[0]
-        sheet_id = sheet_details.get('properties').get('sheetId')
-
-        current_columns = sheet_details.get('properties')\
-            .get('gridProperties').get('columnCount')
-        current_rows = sheet_details.get('properties').get('gridProperties')\
+        current_rows = sheet_details.get('properties').get('gridProperties') \
             .get('rowCount')
 
-        # Check if we should expand the sheet row and columns
+        # extend sheet if necessary
+        self._extend_spread_sheet(sheet_details, columns, rows, append)
+
+        if append:
+            start_index = current_rows + 1
+        elif update:
+
+            data_id = data[0].get('_id')
+            start_index = search_rows(self.service, spreadsheet_id, '_id',
+                                      data_id)
+
+            data = data[0]
+        else:
+            start_index = 2
+
+        self._add_headers(headers, spreadsheet_id, section_name)
+        self._insert_data(data, row_index=start_index)
+
+        self.url = get_spread_sheet_url(
+            self.spread_sheet_details.get('spreadsheetId')
+        )
+
+    def _extend_spread_sheet(self, sheet_details, columns, rows, append):
+        current_columns = sheet_details.get('properties') \
+            .get('gridProperties').get('columnCount')
+        current_rows = sheet_details.get('properties').get('gridProperties') \
+            .get('rowCount')
+        sheet_id = sheet_details.get('properties').get('sheetId')
+        spreadsheet_id = sheet_details.get('spreadsheetId')
+
         columns_to_add = rows_to_add = 0
         if columns > current_columns:
             columns_to_add = columns - current_columns
@@ -472,15 +528,3 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         if columns_to_add or rows_to_add:
             add_row_or_column(self.service, spreadsheet_id, sheet_id,
                               columns=columns_to_add, rows=rows_to_add)
-
-        if append:
-            start_index = current_rows + 1
-        else:
-            start_index = 2
-
-        self._add_headers(headers, spreadsheet_id, section_name)
-        self._insert_data(data, row_index=start_index)
-
-        self.url = get_spread_sheet_url(
-            self.spread_sheet_details.get('spreadsheetId')
-        )
