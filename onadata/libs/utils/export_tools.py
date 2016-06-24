@@ -1514,7 +1514,6 @@ def parse_request_export_options(params):
     else:
         options["include_images"] = settings.EXPORT_WITH_IMAGE_DEFAULT
 
-    if 'win_excel_utf8' in params:
-        options['win_excel_utf8'] = str_to_bool(params.get('win_excel_utf8'))
+    options['win_excel_utf8'] = str_to_bool(params.get('win_excel_utf8'))
 
     return options

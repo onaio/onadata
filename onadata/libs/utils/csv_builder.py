@@ -87,7 +87,7 @@ def write_to_csv(path, rows, columns, columns_with_hxl=None,
                  include_labels_only=False, include_hxl=False,
                  win_excel_utf8=False):
     na_rep = getattr(settings, 'NA_REP', NA_REP)
-    encoding = 'utf-8' if win_excel_utf8 is False else 'utf-8-sig'
+    encoding = 'utf-8-sig' if win_excel_utf8 else 'utf-8'
     with open(path, 'wb') as csvfile:
         writer = csv.writer(csvfile, encoding=encoding, lineterminator='\n')
 
