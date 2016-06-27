@@ -486,13 +486,11 @@ class GoogleSheetsExportBuilder(ExportBuilder):
 
     def live_update(self, data, spreadsheet_id, delete=False, update=False,
                     append=False):
-        section_name, headers = self._get_headers()
-        columns = len(headers)
-        rows = len(data) + 1  # include headers
 
         self.spread_sheet_details = \
             get_spread_sheet(self.service, spreadsheet_id)
-        sheet_id = self.spread_sheet_details.get('properties').get('sheetId')
+        sheet_id = self.spread_sheet_details.get("sheets")[0]\
+            .get('properties').get('sheetId')
         spreadsheet_id = self.spread_sheet_details.get('spreadsheetId')
 
         if delete:
@@ -500,6 +498,10 @@ class GoogleSheetsExportBuilder(ExportBuilder):
                                       data)
             return delete_row_or_column(self.service, spreadsheet_id, sheet_id,
                                         start_index, start_index+1)
+
+        section_name, headers = self._get_headers()
+        columns = len(headers)
+        rows = len(data) + 1  # include headers
 
         sheet_details = self.spread_sheet_details.get('sheets')[0]
         current_rows = sheet_details.get('properties').get('gridProperties') \
@@ -517,7 +519,6 @@ class GoogleSheetsExportBuilder(ExportBuilder):
             start_index = search_rows(self.service, spreadsheet_id, '_id',
                                       data_id)
 
-            data = data[0]
         else:
             start_index = 2
 
