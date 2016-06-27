@@ -193,6 +193,33 @@ class TestRestServicesViewSet(TestAbstractViewSet):
 
         self.assertEquals(response.data, data)
 
+    def test_duplicate_rest_service(self):
+        post_data = {
+            "name": "textit",
+            "service_url": "https://textit.io",
+            "xform": self.xform.pk,
+            "auth_token": "sadsdfhsdf",
+            "flow_uuid": "sdfskhfskdjhfs",
+            "contacts": "ksadaskjdajsda"
+        }
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = self.view(request)
+
+        self.assertEquals(response.status_code, 201)
+
+        post_data = {
+            "name": "textit",
+            "service_url": "https://textit.io",
+            "xform": self.xform.pk,
+            "auth_token": "sadsdfhsdf",
+            "flow_uuid": "sdfskhfskdjhfs",
+            "contacts": "ksadaskjdajsda"
+        }
+        request = self.factory.post('/', data=post_data, **self.extra)
+        response = self.view(request)
+
+        self.assertEquals(response.status_code, 400)
+
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('httplib2.Http')
     def test_textit_flow(self, mock_http):

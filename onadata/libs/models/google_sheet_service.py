@@ -1,5 +1,8 @@
 from oauth2client.contrib.django_orm import Storage
 from django.conf import settings
+from django.db import IntegrityError
+from django.utils.translation import ugettext as _
+from rest_framework import serializers
 
 from onadata.apps.main.models import TokenStorageModel
 from onadata.apps.restservice.models import RestService
@@ -36,7 +39,16 @@ class GoogleSheetService(object):
         rs.name = self.name
         rs.service_url = self.service_url
         rs.xform = self.xform
-        rs.save()
+        try:
+            rs.save()
+        except IntegrityError as e:
+            if str(e).startswith("duplicate key value violates unique "
+                                 "constraint"):
+                msg = _(u"The service already created for this form.")
+            else:
+                msg = _(str(e))
+
+            raise serializers.ValidationError(msg)
 
         self.date_created = rs.date_created
         self.date_modified = rs.date_modified
