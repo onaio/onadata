@@ -3,6 +3,8 @@ import httplib2
 from apiclient import discovery
 from oauth2client.contrib.django_orm import Storage
 
+from django.conf import settings
+
 from onadata.apps.main.models import TokenStorageModel
 from onadata.libs.utils.export_tools import (
     ExportBuilder,
@@ -13,6 +15,8 @@ from onadata.libs.utils.common_tags import INDEX, PARENT_INDEX
 
 DISCOVERY_URL = "https://sheets.googleapis.com/$discovery/rest?version=v4"
 SHEETS_BASE_URL = 'https://docs.google.com/spreadsheet/ccc?key=%s&hl'
+GOOGLE_SHEET_UPLOAD_BATCH = \
+    getattr(settings, 'GOOGLE_SHEET_UPLOAD_BATCH', 1000)
 
 
 def create_service(credentials):
@@ -430,6 +434,8 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         indices = {}
         survey_name = self.survey.name
         finalized_rows = list()
+        batch_size = GOOGLE_SHEET_UPLOAD_BATCH
+        processed_data = 0
         for index, d in enumerate(data, 1):
             joined_export = dict_to_joined_export(
                 d, index, indices, survey_name, self.survey, d)
@@ -461,9 +467,22 @@ class GoogleSheetsExportBuilder(ExportBuilder):
                                 self.pre_process_row(child_row, section),
                                 fields))
 
-        spread_sheet_id = self.spread_sheet_details.get('spreadsheetId')
-        return set_spread_sheet_data(self.service, spread_sheet_id,
-                                     finalized_rows, section_name, row_index)
+                if processed_data > batch_size:
+                    spread_sheet_id = \
+                        self.spread_sheet_details.get('spreadsheetId')
+                    set_spread_sheet_data(self.service, spread_sheet_id,
+                                          finalized_rows, section_name,
+                                          row_index)
+                    finalized_rows = []
+                    row_index += processed_data + 1
+                    processed_data = 0
+                else:
+                    processed_data += 1
+
+        if finalized_rows:
+            spread_sheet_id = self.spread_sheet_details.get('spreadsheetId')
+            set_spread_sheet_data(self.service, spread_sheet_id,
+                                  finalized_rows, section_name, row_index)
 
     def live_update(self, data, spreadsheet_id, delete=False, update=False,
                     append=False):
@@ -474,6 +493,7 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         self.spread_sheet_details = \
             get_spread_sheet(self.service, spreadsheet_id)
         sheet_id = self.spread_sheet_details.get('properties').get('sheetId')
+        spreadsheet_id = self.spread_sheet_details.get('spreadsheetId')
 
         if delete:
             start_index = search_rows(self.service, spreadsheet_id, '_id',
@@ -486,7 +506,8 @@ class GoogleSheetsExportBuilder(ExportBuilder):
             .get('rowCount')
 
         # extend sheet if necessary
-        self._extend_spread_sheet(sheet_details, columns, rows, append)
+        self._extend_spread_sheet(sheet_details, spreadsheet_id,
+                                  columns, rows, append)
 
         if append:
             start_index = current_rows + 1
@@ -503,17 +524,15 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         self._add_headers(headers, spreadsheet_id, section_name)
         self._insert_data(data, row_index=start_index)
 
-        self.url = get_spread_sheet_url(
-            self.spread_sheet_details.get('spreadsheetId')
-        )
+        self.url = get_spread_sheet_url(spreadsheet_id)
 
-    def _extend_spread_sheet(self, sheet_details, columns, rows, append):
+    def _extend_spread_sheet(self, sheet_details, spreadsheet_id, columns,
+                             rows, append):
         current_columns = sheet_details.get('properties') \
             .get('gridProperties').get('columnCount')
         current_rows = sheet_details.get('properties').get('gridProperties') \
             .get('rowCount')
         sheet_id = sheet_details.get('properties').get('sheetId')
-        spreadsheet_id = sheet_details.get('spreadsheetId')
 
         columns_to_add = rows_to_add = 0
         if columns > current_columns:
