@@ -251,6 +251,37 @@ Example using curl:
 
     curl -X GET https://api.ona.io/api/v1 -H "Authorization: Bearer ACCESS_TOKEN"
 
+Making CORS - Cross-Origin Resource Sharing - requests to the Ona API
+----------------------------------------------------------------------
+To find out more about CORS, you can read about it `here <http://www.html5rocks.com/en/tutorials/cors/>`_. The following is a javascript code snippet on how to make a CORS request.
+
+.. code-block:: javascript
+
+   var xhr = new XMLHttpRequest();
+   xhr.withCredentials = false;
+   xhr.open('GET', 'https://api.ona.io/api/v1/user', true);
+   xhr.setRequestHeader('Content-Type', 'application/json');
+   xhr.setRequestHeader('Authorization', 'Token TOKEN_KEY');
+   xhr.send();
+
+
+The following is a jquery code snippet on how to make a CORS request.
+
+.. code-block:: javascript
+
+   $.ajax({
+       method: "GET",
+       url: 'https://api.ona.io/api/v1/user',
+       dataType: 'json',
+       xhrFields: {
+           withCredentials: false
+       },
+       headers: {
+           'Authorization': 'Token TOKEN_KEY'
+       },
+   });
+
+
 Quick start
 -----------
 
