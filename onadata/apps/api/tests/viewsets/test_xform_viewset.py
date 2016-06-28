@@ -3034,6 +3034,78 @@ class TestXFormViewSet(TestAbstractViewSet):
             for v in expected:
                 self.assertIn(v, response.data.get('form_versions'))
 
+    def test_csv_export_with_win_excel_utf8(self):
+        with HTTMock(enketo_mock):
+            # provide hxl file path
+            xlsform_path = os.path.join(
+                settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                "hxl_test", "hxl_example.xlsx")
+            self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+            # submit one hxl instance
+            _submission_time = parse_datetime('2013-02-18 15:54:01Z')
+            self._make_submission(
+                os.path.join(
+                    settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+                    "hxl_test", "hxl_example.xml"),
+                forced_submission_time=_submission_time)
+            self.assertTrue(self.xform.has_hxl_support)
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve'
+            })
+
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk)
+            # check that response has property 'has_hxl_support' which is true
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.data.get('has_hxl_support'))
+
+            data = {'win_excel_utf8': True}
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            content = get_response_content(response)
+            expected_content = (
+                '\xef\xbb\xbfage,\xef\xbb\xbfname,\xef\xbb\xbfmeta/instanceID,'
+                '\xef\xbb\xbf_uuid,\xef\xbb\xbf_submission_time,'
+                '\xef\xbb\xbf_tags,\xef\xbb\xbf_notes,\xef\xbb\xbf_version,'
+                '\xef\xbb\xbf_duration,\xef\xbb\xbf_submitted_by\n'
+                '\xef\xbb\xbf#age,,,,,,,,,\n29,\xef\xbb\xbfLionel Messi,'
+                '\xef\xbb\xbf''uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
+                '\xef\xbb\xbf74ee8b73-48aa-4ced-9072-862f93d49c16,\xef\xbb\xbf'
+                '2013-02-18T15:54:01,\xef\xbb\xbf,\xef\xbb\xbf,'
+                '\xef\xbb\xbf201604121155,\xef\xbb\xbf,\xef\xbb\xbfbob\n')
+            self.assertEqual(expected_content, content)
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
+            data = {'win_excel_utf8': False}
+            request = self.factory.get('/', data=data, **self.extra)
+            response = view(request, pk=self.xform.pk, format='csv')
+            self.assertEqual(response.status_code, 200)
+
+            content = get_response_content(response)
+            expected_content = (
+                'age,name,meta/instanceID,_uuid,_submission_time,_tags,'
+                '_notes,_version,_duration,_submitted_by\n'
+                '#age,,,,,,,,,\n'
+                '29,Lionel Messi,uuid:74ee8b73-48aa-4ced-9072-862f93d49c16,'
+                '74ee8b73-48aa-4ced-9072-862f93d49c16,2013-02-18T15:54:01,'
+                ',,201604121155,,bob\n')
+            self.assertEqual(expected_content, content)
+
+            headers = dict(response.items())
+            self.assertEqual(headers['Content-Type'], 'application/csv')
+            content_disposition = headers['Content-Disposition']
+            filename = filename_from_disposition(content_disposition)
+            basename, ext = os.path.splitext(filename)
+            self.assertEqual(ext, '.csv')
+
     def test_csv_export_with_and_without_include_hxl(self):
         with HTTMock(enketo_mock):
             # provide hxl file path

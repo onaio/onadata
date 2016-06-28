@@ -1,6 +1,4 @@
-import csv
-import codecs
-import cStringIO
+import unicodecsv as csv
 from collections import OrderedDict
 from itertools import chain
 
@@ -83,43 +81,15 @@ def get_column_names_only(columns, dd, group_delimiter):
     return new_columns
 
 
-class UnicodeWriter:
-    """
-    A CSV writer which will write rows to CSV file "f",
-    which is encoded in the given encoding.
-    """
-
-    def __init__(self, f, dialect=csv.excel, encoding="utf-8", **kwds):
-        # Redirect output to a queue
-        self.queue = cStringIO.StringIO()
-        self.writer = csv.writer(self.queue, dialect=dialect, **kwds)
-        self.stream = f
-        self.encoder = codecs.getincrementalencoder(encoding)()
-
-    def writerow(self, row):
-        self.writer.writerow([unicode(s).encode("utf-8") for s in row])
-        # Fetch UTF-8 output from the queue ...
-        data = self.queue.getvalue()
-        data = data.decode("utf-8")
-        # ... and reencode it into the target encoding
-        data = self.encoder.encode(data)
-        # write to the target stream
-        self.stream.write(data)
-        # empty queue
-        self.queue.truncate(0)
-
-    def writerows(self, rows):
-        for row in rows:
-            self.writerow(row)
-
-
 def write_to_csv(path, rows, columns, columns_with_hxl=None,
                  remove_group_name=False, dd=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER, include_labels=False,
-                 include_labels_only=False, include_hxl=False):
+                 include_labels_only=False, include_hxl=False,
+                 win_excel_utf8=False):
     na_rep = getattr(settings, 'NA_REP', NA_REP)
+    encoding = 'utf-8-sig' if win_excel_utf8 else 'utf-8'
     with open(path, 'wb') as csvfile:
-        writer = UnicodeWriter(csvfile, lineterminator='\n')
+        writer = csv.writer(csvfile, encoding=encoding, lineterminator='\n')
 
         # Check if to truncate the group name prefix
         if not include_labels_only:
@@ -168,7 +138,8 @@ class AbstractDataFrameBuilder(object):
                  split_select_multiples=True, binary_select_multiples=False,
                  start=None, end=None, remove_group_name=False, xform=None,
                  include_labels=False, include_labels_only=False,
-                 include_images=True, include_hxl=False):
+                 include_images=True, include_hxl=False,
+                 win_excel_utf8=False):
 
         self.username = username
         self.id_string = id_string
@@ -189,6 +160,7 @@ class AbstractDataFrameBuilder(object):
         self.include_labels_only = include_labels_only
         self.include_images = include_images
         self.include_hxl = include_hxl
+        self.win_excel_utf8 = win_excel_utf8
         self._setup()
 
     def _setup(self):
@@ -334,12 +306,14 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                  split_select_multiples=True, binary_select_multiples=False,
                  start=None, end=None, remove_group_name=False, xform=None,
                  include_labels=False, include_labels_only=False,
-                 include_images=False, include_hxl=False):
+                 include_images=False, include_hxl=False,
+                 win_excel_utf8=False):
         super(CSVDataFrameBuilder, self).__init__(
             username, id_string, filter_query, group_delimiter,
             split_select_multiples, binary_select_multiples, start, end,
             remove_group_name, xform, include_labels, include_labels_only,
-            include_images, include_hxl
+            include_images, include_hxl, win_excel_utf8
+
         )
         self.ordered_columns = OrderedDict()
 
@@ -513,4 +487,5 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
                      dd=self.dd, group_delimiter=self.group_delimiter,
                      include_labels=self.include_labels,
                      include_labels_only=self.include_labels_only,
-                     include_hxl=self.include_hxl)
+                     include_hxl=self.include_hxl,
+                     win_excel_utf8=self.win_excel_utf8)

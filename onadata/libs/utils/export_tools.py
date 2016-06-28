@@ -683,13 +683,15 @@ class ExportBuilder(object):
         end = kwargs.get('end')
         dataview = kwargs.get('dataview')
         xform = kwargs.get('xform')
+        options = kwargs.get('options')
+        win_excel_utf8 = options.get('win_excel_utf8') if options else False
 
         csv_builder = CSVDataFrameBuilder(
             username, id_string, filter_query, self.GROUP_DELIMITER,
             self.SPLIT_SELECT_MULTIPLES, self.BINARY_SELECT_MULTIPLES,
             start, end, self.TRUNCATE_GROUP_TITLE, xform,
             self.INCLUDE_LABELS, self.INCLUDE_LABELS_ONLY, self.INCLUDE_IMAGES,
-            self.INCLUDE_HXL
+            self.INCLUDE_HXL, win_excel_utf8=win_excel_utf8
         )
 
         csv_builder.export_to(path, dataview=dataview)
@@ -922,6 +924,11 @@ def generate_export(export_type, xform, export_id=None, options=None):
 
     export_builder.INCLUDE_IMAGES \
         = options.get("include_images", settings.EXPORT_WITH_IMAGE_DEFAULT)
+
+    # 'win_excel_utf8' is only relevant for CSV exports
+    if 'win_excel_utf8' in options and export_type != Export.CSV_EXPORT:
+        del options['win_excel_utf8']
+
     export_builder.set_survey(xform.survey)
 
     temp_file = NamedTemporaryFile(suffix=("." + extension))
@@ -1506,4 +1513,7 @@ def parse_request_export_options(params):
             params.get("include_images"))
     else:
         options["include_images"] = settings.EXPORT_WITH_IMAGE_DEFAULT
+
+    options['win_excel_utf8'] = str_to_bool(params.get('win_excel_utf8'))
+
     return options
