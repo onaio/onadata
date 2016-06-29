@@ -1,5 +1,6 @@
 import os
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from onadata.apps.main.tests.test_base import TestBase
@@ -211,7 +212,9 @@ class TestDataExportURL(TestBase):
         self.assertEqual(ext, '.zip')
 
     def test_sav_zip_export_url(self):
-        self._submit_transport_instance()
+        filename = os.path.join(settings.PROJECT_ROOT, 'apps', 'logger',
+                                'tests', 'fixtures', 'childrens_survey.xls')
+        self._publish_xls_file_and_set_xform(filename)
         url = reverse('sav_zip_export', kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
@@ -223,3 +226,13 @@ class TestDataExportURL(TestBase):
         filename = self._filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
         self.assertEqual(ext, '.zip')
+
+    def test_sav_zip_export_long_variable_length(self):
+        url = reverse('sav_zip_export', kwargs={
+            'username': self.user.username,
+            'id_string': self.xform.id_string,
+        })
+        response = self.client.get(url)
+        self.assertContains(response,
+                            'SPSS_NAME_BADLTH: Empty or longer than 64 chars',
+                            status_code=400)

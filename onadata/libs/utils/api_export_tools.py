@@ -14,6 +14,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.reverse import reverse
 
+from savReaderWriter import SPSSIOError
+
 from celery.result import AsyncResult
 
 from oauth2client.contrib.django_orm import Storage
@@ -236,6 +238,8 @@ def _generate_new_export(request, xform, query, export_type,
     except J2XException as e:
         # j2x exception
         return {'error': str(e)}
+    except SPSSIOError as e:
+        raise exceptions.ParseError(str(e))
     else:
         return export
 

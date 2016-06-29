@@ -21,6 +21,7 @@ from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_POST
+from savReaderWriter import SPSSIOError
 from wsgiref.util import FileWrapper
 
 from onadata.apps.main.models import UserProfile, MetaData, TokenStorageModel
@@ -273,6 +274,8 @@ def data_export(request, username, id_string, export_type):
                 }, audit, request)
         except NoRecordsFoundError:
             return HttpResponseNotFound(_("No records found to export"))
+        except SPSSIOError as e:
+            return HttpResponseBadRequest(str(e))
     else:
         export = newest_export_for(xform, export_type, options)
 
