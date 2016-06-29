@@ -228,6 +228,7 @@ class TestDataExportURL(TestBase):
         self.assertEqual(ext, '.zip')
 
     def test_sav_zip_export_long_variable_length(self):
+        self._submit_transport_instance()
         url = reverse('sav_zip_export', kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
