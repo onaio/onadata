@@ -864,7 +864,7 @@ def get_or_create_export(export_id, xform, export_type, options):
         try:
             return Export.objects.get(id=export_id)
         except Export.DoesNotExist:
-            return create_export_object(xform, export_type, options)
+            pass
 
     return create_export_object(xform, export_type, options)
 
