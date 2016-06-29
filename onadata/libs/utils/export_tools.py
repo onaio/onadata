@@ -720,23 +720,23 @@ class ExportBuilder(object):
 
         # write headers
         for section in self.sections:
-            _title = 'label' \
-                if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY else 'title'
-            fields = [element[_title] for element in section['elements']]\
+            fields = [element['title'] for element in section['elements']]\
                 + self.EXTRA_FIELDS
-            c = 0
+            labels = [element['label'] for element in section['elements']]\
+                + self.EXTRA_FIELDS
             var_labels = {}
             var_names = []
             tmp_k = {}
-            for field in fields:
-                c += 1
-                var_name = 'var%d' % c
-                var_labels[var_name] = field
+            for field, label in zip(fields, labels):
+                var_name = field.replace('/', '.')
+                var_name = '@' + var_name \
+                    if var_name.startswith('_') else var_name
+                var_labels[var_name] = label
                 var_names.append(var_name)
                 tmp_k[field] = var_name
 
             var_types = dict(
-                [(tmp_k[element[_title]],
+                [(tmp_k[element['title']],
                   0 if element['type'] in ['decimal', 'int'] else 255)
                  for element in section['elements']] +
                 [(tmp_k[item],
@@ -904,7 +904,8 @@ def generate_export(export_type, xform, export_id=None, options=None):
 
     export_builder = ExportBuilder()
 
-    export_builder.TRUNCATE_GROUP_TITLE = remove_group_name
+    export_builder.TRUNCATE_GROUP_TITLE = True \
+        if export_type == Export.SAV_ZIP_EXPORT else remove_group_name
     export_builder.GROUP_DELIMITER = options.get(
         "group_delimiter", DEFAULT_GROUP_DELIMITER
     )

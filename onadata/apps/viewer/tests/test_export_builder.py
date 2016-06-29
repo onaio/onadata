@@ -1025,6 +1025,7 @@ class TestExportBuilder(TestBase):
     def test_to_sav_export(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
         export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         filename = temp_zip_file.name
@@ -1344,6 +1345,8 @@ class TestExportBuilder(TestBase):
     def test_to_sav_export_with_labels(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
         export_builder.INCLUDE_LABELS = True
         export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
