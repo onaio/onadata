@@ -415,7 +415,7 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
     :param request:
     :param xform:
     :param export:
-    :return: response dict
+    :return: response dict example {"job_status": "Success", "export_url": ...}
     """
     if export.status == Export.SUCCESSFUL:
         if export.export_type not in [Export.EXTERNAL_EXPORT,
@@ -432,12 +432,14 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
         }
     elif export.status == Export.PENDING:
         resp = {
-            'export_status': EXPORT_PENDING
+            'job_status': EXPORT_PENDING
         }
     else:
         resp = {
-            'export_status': EXPORT_FAILED
+            'job_status': EXPORT_FAILED
         }
+        if export.reason:
+            resp['reason'] = export.reason
 
     return resp
 

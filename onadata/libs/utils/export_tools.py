@@ -19,6 +19,7 @@ from openpyxl.workbook import Workbook
 from pyxform.question import Question
 from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
+from savReaderWriter import SPSSIOError
 from json2xlsclient.client import Client
 
 from onadata.apps.logger.models import Attachment
@@ -858,6 +859,16 @@ def get_export_options_query_kwargs(options):
     return options_kwargs
 
 
+def get_or_create_export(export_id, xform, export_type, options):
+    if export_id:
+        try:
+            return Export.objects.get(id=export_id)
+        except Export.DoesNotExist:
+            return create_export_object(xform, export_type, options)
+
+    return create_export_object(xform, export_type, options)
+
+
 def generate_export(export_type, xform, export_id=None, options=None):
     """
     Create appropriate export object given the export type.
@@ -945,6 +956,13 @@ def generate_export(export_type, xform, export_id=None, options=None):
         )
     except NoRecordsFoundError:
         pass
+    except SPSSIOError as e:
+        export = get_or_create_export(export_id, xform, export_type, options)
+        export.reason = str(e)
+        export.internal_status = Export.FAILED
+        export.save()
+
+        return export
 
     # generate filename
     basename = "%s_%s" % (
@@ -979,14 +997,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
     dir_name, basename = os.path.split(export_filename)
 
     # get or create export object
-    if export_id:
-        try:
-            export = Export.objects.get(id=export_id)
-        except Export.DoesNotExist:
-            export = create_export_object(xform, export_type, options)
-
-    else:
-        export = create_export_object(xform, export_type, options)
+    export = get_or_create_export(export_id, xform, export_type, options)
 
     export.filedir = dir_name
     export.filename = basename
