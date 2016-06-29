@@ -288,9 +288,11 @@ def data_export(request, username, id_string, export_type):
             'export_type': export_type.upper()
         }, audit, request)
 
-    if not export.filename:
+    if not export.filename and not export.reason:
         # tends to happen when using newset_export_for.
         return HttpResponseNotFound("File does not exist!")
+    elif not export.filename and export.reason:
+        return HttpResponseBadRequest(str(export.reason))
 
     # get extension from file_path, exporter could modify to
     # xlsx if it exceeds limits

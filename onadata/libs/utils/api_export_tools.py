@@ -140,7 +140,7 @@ def custom_response_handler(request, xform, query, export_type,
         else:
             export = newest_export_for(xform, export_type, options)
 
-            if not export.filename:
+            if not export.filename and not export.reason:
                 export = new_export()
 
         log_export(request, xform, export_type)
@@ -148,13 +148,16 @@ def custom_response_handler(request, xform, query, export_type,
         if export_type == Export.EXTERNAL_EXPORT:
             return external_export_response(export)
 
+    if export.filename is None and export.reason:
+        raise exceptions.ParseError(export.reason)
+
     # get extension from file_path, exporter could modify to
     # xlsx if it exceeds limits
     path, ext = os.path.splitext(export.filename)
     ext = ext[1:]
 
     show_date = True
-    if filename is None:
+    if filename is None and export.status == Export.SUCCESSFUL:
         filename = _generate_filename(request, xform, remove_group_name,
                                       dataview_pk=dataview_pk)
     else:
