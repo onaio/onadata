@@ -49,10 +49,16 @@ class TestGoogleSheetTools(TestBase):
                                   discoveryServiceUrl=DISCOVERY_URL)
         return service
 
-    def test_new_spread_sheets(self):
+    @patch('onadata.libs.utils.google_sheets_tools.create_service')
+    def test_new_spread_sheets(self, mock_sheet_service):
         service = self._google_sheet_detail_service()
+        mock_sheet_service.return_value = service
+        google_sheets = GoogleSheetsExportBuilder(self.xform, {},
+                                                  {})
 
-        response = new_spread_sheets(service, 'weka-sync', 'tom', 41, 11)
+        section_details = google_sheets.create_sheets_n_headers()
+
+        response = new_spread_sheets(service, 'weka-sync', section_details)
 
         self.assertIsNotNone(response)
         spread_sheet_id = "16-58Zf5gDfKwWFywtMOnJVN2PTELjd4Q3yTWAwMA"
@@ -105,8 +111,10 @@ class TestGoogleSheetTools(TestBase):
                          "select_one_choices_test!A2:R2")
 
     def test_set_spread_sheet_data(self):
-        path = os.path.join(self.google_folder_path, "set_data.json")
+        service = self._google_sheet_detail_service()
         spread_sheet_id = "16-58Zf5gDfKwWFywtMOnJVN2PTELjd4Q3yTWAwMA"
+        spread_sheet_details = get_spread_sheet(service, spread_sheet_id)
+        path = os.path.join(self.google_folder_path, "set_data.json")
 
         http = HttpMock(path, {'status': '200'})
         service = discovery.build('sheets', 'v4', http=http,
@@ -118,8 +126,14 @@ class TestGoogleSheetTools(TestBase):
                  "db18b4dd-aaf8-417b-b179-ff962c3e3cc8", "2016-05-23T13:17:04",
                  "1", "", "-1", "", "", "201605231316", "7"]]
 
-        results = set_spread_sheet_data(service, spread_sheet_id, data,
-                                        'select_one_choices_test', 6)
+        sections_details = [{
+            "title": "sheet1",
+            "data": data,
+            "index": 2
+        }]
+
+        results = set_spread_sheet_data(service, spread_sheet_details,
+                                        sections_details)
 
         self.assertIsNotNone(results)
         self.assertEqual(results.get('updatedCells'), 17)
@@ -136,12 +150,15 @@ class TestGoogleSheetTools(TestBase):
             self.google_folder_path, "google_sheet_detail.json"))
         set_headers = self._read_file(os.path.join(self.google_folder_path,
                                                    "set_data.json"))
+        extend_sheet = self._read_file(os.path.join(self.google_folder_path,
+                                                    "add_row_column.json"))
         set_data = self._read_file(os.path.join(self.google_folder_path,
                                                 "set_data.json"))
 
         http = HttpMockSequence([
             ({'status': '200'}, new_google_sheet_path),
             ({'status': '200'}, set_headers),
+            ({'status': '200'}, extend_sheet),
             ({'status': '200'}, set_data)])
         service = discovery.build('sheets', 'v4', http=http,
                                   discoveryServiceUrl=DISCOVERY_URL)

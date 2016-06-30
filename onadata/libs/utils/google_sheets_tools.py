@@ -43,14 +43,17 @@ def create_google_sheet(user, title, xform=None):
     storage = Storage(TokenStorageModel, 'id', user, 'credential')
     google_credentials = storage.get()
 
-    service = create_service(google_credentials)
+    config = {
+        "spreadsheet_title": title,
 
-    if xform:
-        section_name = xform.survey.name
-    else:
-        section_name = 'data'
-    spread_sheet_details = new_spread_sheets(service, title,
-                                             sheet_title=section_name)
+    }
+
+    google_sheets = GoogleSheetsExportBuilder(xform, google_credentials,
+                                              config)
+    section_details = google_sheets.create_sheets_n_headers()
+
+    spread_sheet_details = new_spread_sheets(google_sheets.service, title,
+                                             section_details)
 
     return spread_sheet_details.get('spreadsheetId')
 
@@ -92,7 +95,7 @@ def get_sheets_folder_id(credentials, folder_name="onadata"):
     return create_drive_folder(credentials, folder_name)
 
 
-def new_spread_sheets(service, title, sheet_title=None, columns=26, rows=1):
+def new_spread_sheets(service, title, sheets_details):
     """
     Creates a new google sheet witj one sheet
     :param service: Authenticated service
@@ -102,25 +105,27 @@ def new_spread_sheets(service, title, sheet_title=None, columns=26, rows=1):
     :param rows: default to 1
     :return:
     """
+    sheets = list()
+    for sheet in sheets_details:
+        sheets.append({
+            u'properties':
+                {
+                    u'title': sheet.get('title'),
+
+                    u'gridProperties':
+                        {
+                            u'columnCount': len(sheet.get('data')[0]),
+                            u'rowCount': 1
+                        }
+
+                }
+        })
+
     spread_sheet_details = {
         "properties":  {
             "title": title
         },
-        'sheets': [
-            {
-                u'properties':
-                    {
-                        u'title': sheet_title,
-
-                        u'gridProperties':
-                        {
-                            u'columnCount': columns,
-                            u'rowCount': rows
-                        }
-
-                    }
-            }
-        ]
+        'sheets': sheets
     }
 
     return service.spreadsheets().create(body=spread_sheet_details).execute()
@@ -258,25 +263,36 @@ def prepare_row(data, fields):
     return [encode_if_str(data, f, True) for f in fields]
 
 
-def set_spread_sheet_data(service, spread_sheet_id, data, section, index):
-    """
-    Uploads data to google spread sheet
-    :param service:
-    :param spread_sheet_id:
-    :param data:
-    :param section:
-    :param index:
-    :return:
-    """
+def set_spread_sheet_data(service, spread_sheet_details,
+                          section_details, should_extend=True):
+    details = list()
+    sheets = spread_sheet_details.get('sheets')
+    spread_sheet_id = spread_sheet_details.get('spreadsheetId')
+
+    for idx, section in enumerate(section_details):
+        data = section.get("data")
+        rows = len(data)
+
+        if rows > 0:
+            if should_extend:
+                add_row_or_column(service, spread_sheet_id,
+                                  sheets[idx].get('properties').get('sheetId'),
+                                  rows=rows)
+            details.append(
+                {
+                    "range": "{}!A{}".format(section.get('title'),
+                                             section.get('index')),
+                    "majorDimension": "ROWS",
+                    "values": data
+                })
+
     payload = {
-            "majorDimension": "ROWS",
-            "values": data,
-    }
-    sheet_range = "{}!A{}".format(section, index)
-    results = service.spreadsheets()\
-        .values()\
-        .update(spreadsheetId=spread_sheet_id, body=payload, range=sheet_range,
-                valueInputOption="USER_ENTERED").execute()
+                "valueInputOption": "USER_ENTERED",
+                "data": details
+            }
+
+    results = service.spreadsheets().values()\
+        .batchUpdate(spreadsheetId=spread_sheet_id, body=payload).execute()
 
     return results
 
@@ -384,6 +400,31 @@ def search_rows(service, spread_sheet_id, column, value):
     return row_index
 
 
+def create_sheet_details(sections, row_index, row_index_2):
+    sheets_details = list()
+    """Writes headers for each section."""
+    for idx, section in enumerate(sections):
+        if idx == 1:
+            row_index = row_index_2
+        sheets_details.append({
+            "title": section['name'],
+            "data": list(),
+            "index": row_index
+        })
+
+    return sheets_details
+
+
+def get_last_data_last_row(spread_sheet_details):
+    sheets = spread_sheet_details.get('sheets')
+    last_rows = list()
+    for sheet in sheets:
+        last_rows.append(sheet.get('properties').get('gridProperties')
+                         .get('rowCount'))
+
+    return last_rows
+
+
 class GoogleSheetsExportBuilder(ExportBuilder):
     google_credentials = None
     service = None
@@ -397,16 +438,15 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         self.set_survey(xform.survey)
 
     def export(self, data):
-        section_name, headers = self._get_headers()
-        columns = len(headers)
-        rows = len(data) + 1  # include headers
+        sections_details = self.create_sheets_n_headers()
 
         self.spread_sheet_details = \
             new_spread_sheets(self.service, self.spreadsheet_title,
-                              section_name, columns, rows)
+                              sections_details)
         spread_sheet_id = self.spread_sheet_details.get('spreadsheetId')
 
-        self._add_headers(headers, spread_sheet_id, section_name)
+        set_spread_sheet_data(self.service, self.spread_sheet_details,
+                              sections_details, should_extend=False)
         self._insert_data(data)
 
         self.url = get_spread_sheet_url(spread_sheet_id)
@@ -422,6 +462,23 @@ class GoogleSheetsExportBuilder(ExportBuilder):
 
         return section_name, headers
 
+    def create_sheets_n_headers(self):
+        sheets_details = list()
+        """Writes headers for each section."""
+        for section in self.sections:
+            section_name = section['name']
+            headers = [element['title'] for element in
+                       section['elements']] + self.EXTRA_FIELDS
+
+            details = {
+                "title": section_name,
+                "data": [headers],
+                "index": 1
+            }
+            sheets_details.append(details)
+
+        return sheets_details
+
     def _add_headers(self, headers, spread_sheet_id, section_name):
         finalized_rows = list()
         finalized_rows.append(headers)
@@ -429,13 +486,14 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         return set_spread_sheet_data(self.service, spread_sheet_id,
                                      finalized_rows, section_name, 1)
 
-    def _insert_data(self, data, row_index=2):
+    def _insert_data(self, data, row_index=2, row_index_2=2, new_row=True):
         """Writes data rows for each section."""
         indices = {}
         survey_name = self.survey.name
-        finalized_rows = list()
         batch_size = GOOGLE_SHEET_UPLOAD_BATCH
         processed_data = 0
+        sheet_details = create_sheet_details(self.sections, row_index,
+                                             row_index_2)
         for index, d in enumerate(data, 1):
             joined_export = dict_to_joined_export(
                 d, index, indices, survey_name, self.survey, d)
@@ -447,7 +505,7 @@ class GoogleSheetsExportBuilder(ExportBuilder):
                 output[survey_name] = {}
             output[survey_name][INDEX] = index
             output[survey_name][PARENT_INDEX] = -1
-            for section in self.sections:
+            for idx, section in enumerate(self.sections):
                 # get data for this section and write to xls
                 section_name = section['name']
                 fields = [element['xpath'] for element in
@@ -457,94 +515,76 @@ class GoogleSheetsExportBuilder(ExportBuilder):
                 # not provided for said repeat - write test to check this
                 row = output.get(section_name, None)
                 if type(row) == dict:
-                    finalized_rows.append(
-                        prepare_row(self.pre_process_row(row, section),
-                                    fields))
+                    finalized_rows = prepare_row(
+                        self.pre_process_row(row, section), fields)
+                    sheet_details[idx].get("data").append(finalized_rows)
                 elif type(row) == list:
                     for child_row in row:
-                        finalized_rows.append(
-                            prepare_row(
-                                self.pre_process_row(child_row, section),
-                                fields))
+                        finalized_rows = prepare_row(
+                            self.pre_process_row(child_row, section), fields)
+                        sheet_details[idx].get("data").append(finalized_rows)
 
-                if processed_data > batch_size:
-                    spread_sheet_id = \
-                        self.spread_sheet_details.get('spreadsheetId')
-                    set_spread_sheet_data(self.service, spread_sheet_id,
-                                          finalized_rows, section_name,
-                                          row_index)
-                    finalized_rows = []
-                    row_index += processed_data + 1
-                    processed_data = 0
-                else:
-                    processed_data += 1
+            if processed_data > batch_size:
+                set_spread_sheet_data(self.service, self.spread_sheet_details,
+                                      sheet_details, should_extend=new_row)
 
-        if finalized_rows:
-            spread_sheet_id = self.spread_sheet_details.get('spreadsheetId')
-            set_spread_sheet_data(self.service, spread_sheet_id,
-                                  finalized_rows, section_name, row_index)
+                row_index_2 = 0
+                if len(sheet_details) > 1:
+                    row_index_2 = len(sheet_details[1].get('data')[0])
+                row_index_2 += row_index + 1
+                row_index += processed_data + 1
+                sheet_details = create_sheet_details(self.sections, row_index,
+                                                     row_index_2)
+                processed_data = 0
+            else:
+                processed_data += 1
+
+        if processed_data > 0:
+            set_spread_sheet_data(self.service, self.spread_sheet_details,
+                                  sheet_details, should_extend=new_row)
 
     def live_update(self, data, spreadsheet_id, delete=False, update=False,
                     append=False):
 
         self.spread_sheet_details = \
             get_spread_sheet(self.service, spreadsheet_id)
-        sheet_id = self.spread_sheet_details.get("sheets")[0]\
-            .get('properties').get('sheetId')
         spreadsheet_id = self.spread_sheet_details.get('spreadsheetId')
 
         if delete:
+            sheet_id = self.spread_sheet_details.get("sheets")[0] \
+                .get('properties').get('sheetId')
             start_index = search_rows(self.service, spreadsheet_id, '_id',
                                       data)
             return delete_row_or_column(self.service, spreadsheet_id, sheet_id,
                                         start_index, start_index+1)
 
-        section_name, headers = self._get_headers()
-        columns = len(headers)
-        rows = len(data) + 1  # include headers
-
-        sheet_details = self.spread_sheet_details.get('sheets')[0]
-        current_rows = sheet_details.get('properties').get('gridProperties') \
-            .get('rowCount')
-
-        # extend sheet if necessary
-        self._extend_spread_sheet(sheet_details, spreadsheet_id,
-                                  columns, rows, append)
+        section_details = self.create_sheets_n_headers()
 
         if append:
-            start_index = current_rows + 1
-        elif update:
+            last_rows = get_last_data_last_row(self.spread_sheet_details)
 
+            if len(last_rows) > 1:
+                sheet_2_start_index = last_rows[1] + 1
+
+            start_index = last_rows[0] + 1
+
+        elif update:
             data_id = data[0].get('_id')
             start_index = search_rows(self.service, spreadsheet_id, '_id',
                                       data_id)
+            last_rows = get_last_data_last_row(self.spread_sheet_details)
+            if len(last_rows) > 1:
+                sheet_2_start_index = last_rows[1] + 1
 
         else:
             start_index = 2
+            sheet_2_start_index = 2
 
-        self._add_headers(headers, spreadsheet_id, section_name)
-        self._insert_data(data, row_index=start_index)
+        set_spread_sheet_data(self.service, self.spread_sheet_details,
+                              section_details, should_extend=False)
+        is_new_records = not update
+        self._insert_data(data, row_index=start_index,
+                          row_index_2=sheet_2_start_index,
+                          new_row=is_new_records)
 
         self.url = get_spread_sheet_url(spreadsheet_id)
-
-    def _extend_spread_sheet(self, sheet_details, spreadsheet_id, columns,
-                             rows, append):
-        current_columns = sheet_details.get('properties') \
-            .get('gridProperties').get('columnCount')
-        current_rows = sheet_details.get('properties').get('gridProperties') \
-            .get('rowCount')
-        sheet_id = sheet_details.get('properties').get('sheetId')
-
-        columns_to_add = rows_to_add = 0
-        if columns > current_columns:
-            columns_to_add = columns - current_columns
-
-        if rows > current_rows:
-            rows_to_add = rows - current_rows
-
-        if append:
-            rows_to_add = rows if current_rows == 0 else rows - 1
-
-        if columns_to_add or rows_to_add:
-            add_row_or_column(self.service, spreadsheet_id, sheet_id,
-                              columns=columns_to_add, rows=rows_to_add)
