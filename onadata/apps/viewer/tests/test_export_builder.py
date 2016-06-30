@@ -1070,6 +1070,11 @@ class TestExportBuilder(TestBase):
                     expected_rows = [r for r in fixture_reader]
                     self.assertEqual(rows, expected_rows)
 
+                if section == 'children_cartoons_charactors':
+                    self.assertEqual(reader.valueLabels, {
+                        'good_or_evil': {'good': 'Good'}
+                    })
+
         for section in export_builder.sections:
             section_name = section['name'].replace('/', '_')
             _test_sav_file(section_name)

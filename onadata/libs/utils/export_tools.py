@@ -712,6 +712,60 @@ class ExportBuilder(object):
                                                   config)
         self.url = google_sheets.export(data)
 
+    def _get_sav_value_labels(self):
+        choice_questions = self.dd.get_survey_elements_with_choices()
+        value_labels = {}
+
+        for q in choice_questions:
+            choices = q.to_json_dict().get('children')
+            _value_labels = {}
+            for choice in choices:
+                name = choice['name'].strip()
+                label = choice['label'].strip()
+                _value_labels[name] = label
+            value_labels[q['name']] = _value_labels
+
+        return value_labels
+
+    def _get_sav_options(self, section):
+        all_value_labels = self._get_sav_value_labels()
+        tmp_k = {}
+        value_labels = {}
+        var_labels = {}
+        var_names = []
+
+        fields = [element['title'] for element in section['elements']]\
+            + self.EXTRA_FIELDS
+        labels = [element['label'] for element in section['elements']]\
+            + self.EXTRA_FIELDS
+
+        for field, label in zip(fields, labels):
+            var_name = field.replace('/', '.')
+            var_name = '@' + var_name \
+                if var_name.startswith('_') else var_name
+            var_labels[var_name] = label
+            var_names.append(var_name)
+            tmp_k[field] = var_name
+            if field in all_value_labels:
+                value_labels[field] = all_value_labels.get(field)
+
+        var_types = dict(
+            [(tmp_k[element['title']],
+                0 if element['type'] in ['decimal', 'int'] else 255)
+                for element in section['elements']] +
+            [(tmp_k[item],
+                0 if item in ['_id', '_index', '_parent_index'] else 255)
+                for item in self.EXTRA_FIELDS]
+        )
+
+        return {
+            'varLabels': var_labels,
+            'varNames': var_names,
+            'varTypes': var_types,
+            'valueLabels': value_labels,
+            'ioUtf8': True
+        }
+
     def to_zipped_sav(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):
             sav_writer.writerow(
@@ -721,33 +775,9 @@ class ExportBuilder(object):
 
         # write headers
         for section in self.sections:
-            fields = [element['title'] for element in section['elements']]\
-                + self.EXTRA_FIELDS
-            labels = [element['label'] for element in section['elements']]\
-                + self.EXTRA_FIELDS
-            var_labels = {}
-            var_names = []
-            tmp_k = {}
-            for field, label in zip(fields, labels):
-                var_name = field.replace('/', '.')
-                var_name = '@' + var_name \
-                    if var_name.startswith('_') else var_name
-                var_labels[var_name] = label
-                var_names.append(var_name)
-                tmp_k[field] = var_name
-
-            var_types = dict(
-                [(tmp_k[element['title']],
-                  0 if element['type'] in ['decimal', 'int'] else 255)
-                 for element in section['elements']] +
-                [(tmp_k[item],
-                    0 if item in ['_id', '_index', '_parent_index'] else 255)
-                 for item in self.EXTRA_FIELDS]
-            )
+            sav_options = self._get_sav_options(section)
             sav_file = NamedTemporaryFile(suffix=".sav")
-            sav_writer = SavWriter(sav_file.name, varNames=var_names,
-                                   varTypes=var_types,
-                                   varLabels=var_labels, ioUtf8=True)
+            sav_writer = SavWriter(sav_file.name, **sav_options)
             sav_defs[section['name']] = {
                 'sav_file': sav_file, 'sav_writer': sav_writer}
 
