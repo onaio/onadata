@@ -92,6 +92,12 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.user_profile_data())
 
+        # by username mixed case
+        response = view(request, user='BoB')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data, self.user_profile_data())
+
         # by pk
         response = view(request, user=self.user.pk)
         self.assertNotEqual(response.get('Cache-Control'), None)

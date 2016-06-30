@@ -96,7 +96,7 @@ class UserProfileViewSet(AuthenticateHeaderMixin,
         try:
             pk = int(lookup)
         except (TypeError, ValueError):
-            pass
+            filter_kwargs = {'%s__iexact' % lookup_field: lookup}
         else:
             filter_kwargs = {'user__pk': pk}
 
