@@ -28,6 +28,13 @@ class TestUserViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.data)
 
+        # user with username BoB, mixed case
+        view = UserViewSet.as_view({'get': 'retrieve'})
+        response = view(request, username='BoB')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data, self.data)
+
     def test_user_anon(self):
         """Test anonymous user can access user info"""
         request = self.factory.get('/')

@@ -43,7 +43,7 @@ class UserViewSet(AuthenticateHeaderMixin,
         try:
             pk = int(lookup)
         except ValueError:
-            pass
+            filter_kwargs = {'%s__iexact' % self.lookup_field: lookup}
         else:
             filter_kwargs = {'pk': pk}
 
