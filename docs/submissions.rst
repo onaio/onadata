@@ -14,8 +14,8 @@ Submit an XML XForm submission
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>POST</b> /api/v1/submissions</pre>
+    <pre class="prettyprint">
+    <b>POST</b> /api/v1/submissions</pre>
 
 Example
 ^^^^^^^
@@ -28,8 +28,8 @@ Submit a JSON XForm submission
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>POST</b> /api/v1/submissions</pre>
+    <pre class="prettyprint">
+    <b>POST</b> /api/v1/submissions</pre>
 
 Example
 ^^^^^^^^
@@ -67,12 +67,12 @@ Here is some example JSON, it would replace `[the JSON]` above:
            }
        }
 
-Update an existing XForm submission
---------------------------------
+Edit an existing XForm submission
+---------------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	<b>POST</b> /api/v1/submissions</pre>
+    <pre class="prettyprint">
+    <b>POST</b> /api/v1/submissions</pre>
 
 Same request as above for both XML and JSON XForm submission while providing a ``deprecatedID`` and newly generated ``instanceID``.
 
@@ -82,12 +82,12 @@ Example
 
     curl -X POST -d '{"id": "[id_string]", "submission": [the JSON]} http://api.ona.io/api/v1/submissions -u user:pass -H "Content-Type: application/json"
 
-.. important:: When updating an existing submission, ``deprecatedID`` needs to be provided as one of the meta fields. ``deprecatedID`` the is instanceID of the submission which is being updated and ``instanceID`` is the newly generated instanceID. See OpenRosa MetaDataSchema |OpenRosaMetaDataSchema| for more details.
+.. important:: When editing an existing submission, ``deprecatedID`` needs to be provided as one of the meta fields. ``deprecatedID`` is the instanceID of the submission which is being updated and ``instanceID`` is the newly generated ``instanceID``. See |OpenRosaMetaDataSchema| for more details.
 
 .. |OpenRosaMetaDataSchema| raw:: html
 
     <a href="https://bitbucket.org/javarosa/javarosa/wiki/OpenRosaMetaDataSchema"
-    target="_blank">here</a>
+    target="_blank">OpenRosa MetaData Schema</a>
 
 Here is some example JSON provided for updating an exisiting instance, it would
 replace `[the JSON]` above:
