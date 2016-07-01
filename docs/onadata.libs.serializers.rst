@@ -51,10 +51,26 @@ onadata.libs.serializers.dataview_serializer module
     :undoc-members:
     :show-inheritance:
 
+onadata.libs.serializers.export_serializer module
+-------------------------------------------------
+
+.. automodule:: onadata.libs.serializers.export_serializer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.libs.serializers.geojson_serializer module
 --------------------------------------------------
 
 .. automodule:: onadata.libs.serializers.geojson_serializer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.serializers.google_serializer module
+-------------------------------------------------
+
+.. automodule:: onadata.libs.serializers.google_serializer
     :members:
     :undoc-members:
     :show-inheritance:
@@ -179,10 +195,10 @@ onadata.libs.serializers.user_serializer module
     :undoc-members:
     :show-inheritance:
 
-onadata.libs.serializers.widget_serilizer module
-------------------------------------------------
+onadata.libs.serializers.widget_serializer module
+-------------------------------------------------
 
-.. automodule:: onadata.libs.serializers.widget_serilizer
+.. automodule:: onadata.libs.serializers.widget_serializer
     :members:
     :undoc-members:
     :show-inheritance:

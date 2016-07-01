@@ -36,6 +36,14 @@ onadata.apps.logger.models.note module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.logger.models.osmdata module
+-----------------------------------------
+
+.. automodule:: onadata.apps.logger.models.osmdata
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.logger.models.project module
 -----------------------------------------
 

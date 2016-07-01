@@ -12,6 +12,7 @@ Subpackages
     onadata.libs.profiling
     onadata.libs.renderers
     onadata.libs.serializers
+    onadata.libs.tests
     onadata.libs.utils
 
 Submodules
@@ -21,6 +22,14 @@ onadata.libs.authentication module
 ----------------------------------
 
 .. automodule:: onadata.libs.authentication
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.baseviewset module
+-------------------------------
+
+.. automodule:: onadata.libs.baseviewset
     :members:
     :undoc-members:
     :show-inheritance:
@@ -37,6 +46,14 @@ onadata.libs.filters module
 ---------------------------
 
 .. automodule:: onadata.libs.filters
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.pagination module
+------------------------------
+
+.. automodule:: onadata.libs.pagination
     :members:
     :undoc-members:
     :show-inheritance:

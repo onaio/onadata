@@ -7,8 +7,10 @@ Subpackages
 .. toctree::
 
     onadata.apps.main.management
+    onadata.apps.main.migrations
     onadata.apps.main.models
     onadata.apps.main.templatetags
+    onadata.apps.main.tests
 
 Submodules
 ----------
@@ -33,14 +35,6 @@ onadata.apps.main.forms module
 ------------------------------
 
 .. automodule:: onadata.apps.main.forms
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-onadata.apps.main.google_doc module
------------------------------------
-
-.. automodule:: onadata.apps.main.google_doc
     :members:
     :undoc-members:
     :show-inheritance:

@@ -7,11 +7,21 @@ Subpackages
 .. toctree::
 
     onadata.apps.api.management
+    onadata.apps.api.migrations
     onadata.apps.api.models
+    onadata.apps.api.tests
     onadata.apps.api.viewsets
 
 Submodules
 ----------
+
+onadata.apps.api.admin module
+-----------------------------
+
+.. automodule:: onadata.apps.api.admin
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 onadata.apps.api.permissions module
 -----------------------------------

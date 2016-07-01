@@ -7,11 +7,21 @@ Subpackages
 .. toctree::
 
     onadata.apps.viewer.management
+    onadata.apps.viewer.migrations
     onadata.apps.viewer.models
     onadata.apps.viewer.templatetags
+    onadata.apps.viewer.tests
 
 Submodules
 ----------
+
+onadata.apps.viewer.admin module
+--------------------------------
+
+.. automodule:: onadata.apps.viewer.admin
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 onadata.apps.viewer.tasks module
 --------------------------------
