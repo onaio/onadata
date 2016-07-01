@@ -99,10 +99,8 @@ def new_spread_sheets(service, title, sheets_details):
     """
     Creates a new google sheet witj one sheet
     :param service: Authenticated service
-    :param title: s
-    :param sheet_title:
-    :param columns: default to 26
-    :param rows: default to 1
+    :param title:
+    :param sheets_details: List of sheets to be created
     :return:
     """
     sheets = list()
@@ -230,6 +228,13 @@ def get_spread_sheet_rows(service, spread_sheet_details, row_index=None):
 
 
 def get_spread_sheet_column(service, spread_sheet_details, column_index=None):
+    """
+    Return data on a specific column
+    :param service:
+    :param spread_sheet_details:
+    :param column_index:
+    :return: list of data column
+    """
     spread_sheet_id = spread_sheet_details.get('spreadsheetId')
     sheet_detail = spread_sheet_details.get('sheets')[0]
     grid_properties = sheet_detail.get('properties').get('gridProperties')
@@ -265,6 +270,14 @@ def prepare_row(data, fields):
 
 def set_spread_sheet_data(service, spread_sheet_details,
                           section_details, should_extend=True):
+    """
+    Upload data to google sheets
+    :param service:
+    :param spread_sheet_details:
+    :param section_details: data to be loadedup
+    :param should_extend: if should add a row
+    :return:
+    """
     details = list()
     sheets = spread_sheet_details.get('sheets')
     spread_sheet_id = spread_sheet_details.get('spreadsheetId')
@@ -384,6 +397,14 @@ def colnum_string(n):
 
 
 def search_rows(service, spread_sheet_id, column, value):
+    """
+    Search a value on a specific column
+    :param service:
+    :param spread_sheet_id:
+    :param column:
+    :param value:
+    :return: row index of the found value
+    """
     spread_sheet_details = get_spread_sheet(service, spread_sheet_id)
     headers_details = get_spread_sheet_rows(service, spread_sheet_details,
                                             row_index=1)
@@ -401,8 +422,14 @@ def search_rows(service, spread_sheet_id, column, value):
 
 
 def create_sheet_details(sections, row_index, row_index_2):
+    """
+    Creates dict with details about data upload
+    :param sections:
+    :param row_index:
+    :param row_index_2:
+    :return:
+    """
     sheets_details = list()
-    """Writes headers for each section."""
     for idx, section in enumerate(sections):
         if idx == 1:
             row_index = row_index_2
@@ -416,6 +443,11 @@ def create_sheet_details(sections, row_index, row_index_2):
 
 
 def get_last_data_last_row(spread_sheet_details):
+    """
+    Returns the last row with data
+    :param spread_sheet_details:
+    :return:
+    """
     sheets = spread_sheet_details.get('sheets')
     last_rows = list()
     for sheet in sheets:
@@ -426,11 +458,20 @@ def get_last_data_last_row(spread_sheet_details):
 
 
 class GoogleSheetsExportBuilder(ExportBuilder):
+    """
+    Class that handles google sheet export and live syncing
+    """
     google_credentials = None
     service = None
     spread_sheet_details = None
 
     def __init__(self, xform, google_credentials, config={}):
+        """
+        Constructor
+        :param xform:
+        :param google_credentials:
+        :param config: dict that has spreadsheet title
+        """
         self.spreadsheet_title = \
             config.get('spreadsheet_title', xform.id_string)
         self.google_credentials = google_credentials
@@ -438,6 +479,11 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         self.set_survey(xform.survey)
 
     def export(self, data):
+        """
+        Uploads the data to google sheets and returns download url
+        :param data:
+        :return:
+        """
         sections_details = self.create_sheets_n_headers()
 
         self.spread_sheet_details = \
@@ -452,15 +498,6 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         self.url = get_spread_sheet_url(spread_sheet_id)
 
         return self.url
-
-    def _get_headers(self):
-        """Writes headers for each section."""
-        for section in self.sections:
-            section_name = section['name']
-            headers = [element['title'] for element in
-                       section['elements']] + self.EXTRA_FIELDS
-
-        return section_name, headers
 
     def create_sheets_n_headers(self):
         sheets_details = list()
@@ -478,13 +515,6 @@ class GoogleSheetsExportBuilder(ExportBuilder):
             sheets_details.append(details)
 
         return sheets_details
-
-    def _add_headers(self, headers, spread_sheet_id, section_name):
-        finalized_rows = list()
-        finalized_rows.append(headers)
-
-        return set_spread_sheet_data(self.service, spread_sheet_id,
-                                     finalized_rows, section_name, 1)
 
     def _insert_data(self, data, row_index=2, row_index_2=2, new_row=True):
         """Writes data rows for each section."""
@@ -545,7 +575,18 @@ class GoogleSheetsExportBuilder(ExportBuilder):
 
     def live_update(self, data, spreadsheet_id, delete=False, update=False,
                     append=False):
+        """
+        Keeps google sheet in sync with onadata
+        :param data:
+        :param spreadsheet_id:
+        :param delete: delete the row
+        :param update: update already existing row
+        :param append: add row at the end
+        :return:
+        """
 
+        import ipdb
+        ipdb.set_trace()
         self.spread_sheet_details = \
             get_spread_sheet(self.service, spreadsheet_id)
         spreadsheet_id = self.spread_sheet_details.get('spreadsheetId')
@@ -556,7 +597,7 @@ class GoogleSheetsExportBuilder(ExportBuilder):
             start_index = search_rows(self.service, spreadsheet_id, '_id',
                                       data)
             return delete_row_or_column(self.service, spreadsheet_id, sheet_id,
-                                        start_index, start_index+1)
+                                        start_index - 1, start_index)
 
         section_details = self.create_sheets_n_headers()
 
