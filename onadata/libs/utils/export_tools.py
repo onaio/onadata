@@ -734,12 +734,12 @@ class ExportBuilder(object):
         var_labels = {}
         var_names = []
 
-        fields = [element['title'] for element in section['elements']]\
-            + self.EXTRA_FIELDS
-        labels = [element['label'] for element in section['elements']]\
-            + self.EXTRA_FIELDS
+        fields_and_labels = [
+            (element['title'], element['label'])
+            for element in section['elements']
+        ] + zip(self.EXTRA_FIELDS, self.EXTRA_FIELDS)
 
-        for field, label in zip(fields, labels):
+        for field, label in fields_and_labels:
             var_name = field.replace('/', '.')
             var_name = '@' + var_name \
                 if var_name.startswith('_') else var_name
