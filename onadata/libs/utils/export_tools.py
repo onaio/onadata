@@ -713,6 +713,16 @@ class ExportBuilder(object):
         self.url = google_sheets.export(data)
 
     def _get_sav_value_labels(self):
+        """GET/SET SPSS `VALUE LABELS`. It takes the dictionay of the form
+        `{varName: {value: valueLabel}}`:
+
+        .. code-block: python
+
+            {
+                'favourite_color': {'red': 'Red', 'blue': 'Blue'},
+                'available': {0: 'No', 1: 'Yes'}
+            }
+        """
         if not hasattr(self, '_sav_value_labels'):
             choice_questions = self.dd.get_survey_elements_with_choices()
             self._sav_value_labels = {}
@@ -728,16 +738,30 @@ class ExportBuilder(object):
 
         return self._sav_value_labels
 
-    def _get_sav_options(self, section):
+    def _get_sav_options(self, elements):
+        """GET/SET SPSS options.
+        @param elements - a list of survey elements
+
+        @return dictionary with options for `SavWriter`:
+
+        .. code-block: python
+
+            {
+                'varLabels': var_labels,  # a dict of varLabels
+                'varNames': var_names,   # a list of varNames
+                'varTypes': var_types,  # a dict of varTypes
+                'valueLabels': value_labels,  # a dict of valueLabels
+                'ioUtf8': True
+            }
+        """
         all_value_labels = self._get_sav_value_labels()
-        tmp_k = {}
+        _var_types = {}
         value_labels = {}
         var_labels = {}
         var_names = []
 
         fields_and_labels = [
-            (element['title'], element['label'])
-            for element in section['elements']
+            (element['title'], element['label']) for element in elements
         ] + zip(self.EXTRA_FIELDS, self.EXTRA_FIELDS)
 
         for field, label in fields_and_labels:
@@ -746,15 +770,15 @@ class ExportBuilder(object):
                 if var_name.startswith('_') else var_name
             var_labels[var_name] = label
             var_names.append(var_name)
-            tmp_k[field] = var_name
+            _var_types[field] = var_name
             if field in all_value_labels:
                 value_labels[field] = all_value_labels.get(field)
 
         var_types = dict(
-            [(tmp_k[element['title']],
+            [(_var_types[element['title']],
                 0 if element['type'] in ['decimal', 'int'] else 255)
-                for element in section['elements']] +
-            [(tmp_k[item],
+                for element in elements] +
+            [(_var_types[item],
                 0 if item in ['_id', '_index', '_parent_index'] else 255)
                 for item in self.EXTRA_FIELDS]
         )
@@ -776,7 +800,7 @@ class ExportBuilder(object):
 
         # write headers
         for section in self.sections:
-            sav_options = self._get_sav_options(section)
+            sav_options = self._get_sav_options(section['elements'])
             sav_file = NamedTemporaryFile(suffix=".sav")
             sav_writer = SavWriter(sav_file.name, **sav_options)
             sav_defs[section['name']] = {
