@@ -585,8 +585,6 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         :return:
         """
 
-        import ipdb
-        ipdb.set_trace()
         self.spread_sheet_details = \
             get_spread_sheet(self.service, spreadsheet_id)
         spreadsheet_id = self.spread_sheet_details.get('spreadsheetId')
