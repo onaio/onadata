@@ -713,19 +713,20 @@ class ExportBuilder(object):
         self.url = google_sheets.export(data)
 
     def _get_sav_value_labels(self):
-        choice_questions = self.dd.get_survey_elements_with_choices()
-        value_labels = {}
+        if not hasattr(self, '_sav_value_labels'):
+            choice_questions = self.dd.get_survey_elements_with_choices()
+            self._sav_value_labels = {}
 
-        for q in choice_questions:
-            choices = q.to_json_dict().get('children')
-            _value_labels = {}
-            for choice in choices:
-                name = choice['name'].strip()
-                label = choice['label'].strip()
-                _value_labels[name] = label
-            value_labels[q['name']] = _value_labels
+            for q in choice_questions:
+                choices = q.to_json_dict().get('children')
+                _value_labels = {}
+                for choice in choices:
+                    name = choice['name'].strip()
+                    label = choice['label'].strip()
+                    _value_labels[name] = label
+                self._sav_value_labels[q['name']] = _value_labels
 
-        return value_labels
+        return self._sav_value_labels
 
     def _get_sav_options(self, section):
         all_value_labels = self._get_sav_value_labels()
