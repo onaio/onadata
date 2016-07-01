@@ -599,6 +599,7 @@ class GoogleSheetsExportBuilder(ExportBuilder):
 
         section_details = self.create_sheets_n_headers()
 
+        sheet_2_start_index = 2
         if append:
             last_rows = get_last_data_last_row(self.spread_sheet_details)
 
@@ -617,7 +618,6 @@ class GoogleSheetsExportBuilder(ExportBuilder):
 
         else:
             start_index = 2
-            sheet_2_start_index = 2
 
         set_spread_sheet_data(self.service, self.spread_sheet_details,
                               section_details, should_extend=False)
