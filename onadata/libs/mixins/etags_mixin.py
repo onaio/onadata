@@ -12,7 +12,13 @@ MODELS_WITH_DATE_MODIFIED = ('XForm', 'Instance', 'Project', 'Attachment',
 def get_etag_value(obj, object_list):
     etag_value = '{}'.format(now())
 
-    if object_list.model.__name__ in MODELS_WITH_DATE_MODIFIED:
+    if isinstance(object_list, list):
+        etag_value = json.dumps([
+            '{}'.format(
+                o.date_modified if hasattr(o, 'date_modified') else o.pk
+            ) for o in object_list
+        ])
+    elif object_list.model.__name__ in MODELS_WITH_DATE_MODIFIED:
         object_list = object_list
 
         if object_list.query.can_filter():
