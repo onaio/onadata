@@ -1013,7 +1013,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
         pass
     except SPSSIOError as e:
         export = get_or_create_export(export_id, xform, export_type, options)
-        export.reason = str(e)
+        export.error_message = str(e)
         export.internal_status = Export.FAILED
         export.save()
 

@@ -4085,7 +4085,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         export = Export.objects.get(task_id=task_id)
         self.assertFalse(export.is_successful)
         self.assertEqual(
-            export.reason,
+            export.error_message,
             u"'available_transportation_types_to_referral_facility"
             ".donkey_mule_cart' is an invalid variable name "
             "['SPSS_NAME_BADLTH: Empty or longer than 64 chars']"

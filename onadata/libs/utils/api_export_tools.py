@@ -140,7 +140,7 @@ def custom_response_handler(request, xform, query, export_type,
         else:
             export = newest_export_for(xform, export_type, options)
 
-            if not export.filename and not export.reason:
+            if not export.filename and not export.error_message:
                 export = new_export()
 
         log_export(request, xform, export_type)
@@ -148,8 +148,8 @@ def custom_response_handler(request, xform, query, export_type,
         if export_type == Export.EXTERNAL_EXPORT:
             return external_export_response(export)
 
-    if export.filename is None and export.reason:
-        raise exceptions.ParseError(export.reason)
+    if export.filename is None and export.error_message:
+        raise exceptions.ParseError(export.error_message)
 
     # get extension from file_path, exporter could modify to
     # xlsx if it exceeds limits
@@ -441,8 +441,8 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
         resp = {
             'job_status': EXPORT_FAILED
         }
-        if export.reason:
-            resp['reason'] = export.reason
+        if export.error_message:
+            resp['error_message'] = export.error_message
 
     return resp
 

@@ -60,6 +60,14 @@ onadata.libs.tests.utils.test_export_tools module
     :undoc-members:
     :show-inheritance:
 
+onadata.libs.tests.utils.test_google_sheets_tools module
+--------------------------------------------------------
+
+.. automodule:: onadata.libs.tests.utils.test_google_sheets_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.libs.tests.utils.test_image_tools module
 ------------------------------------------------
 

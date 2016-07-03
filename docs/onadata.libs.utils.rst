@@ -132,18 +132,10 @@ onadata.libs.utils.google module
     :undoc-members:
     :show-inheritance:
 
-onadata.libs.utils.google_sheets module
----------------------------------------
+onadata.libs.utils.google_sheets_tools module
+---------------------------------------------
 
-.. automodule:: onadata.libs.utils.google_sheets
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-onadata.libs.utils.googlesheets_urls module
--------------------------------------------
-
-.. automodule:: onadata.libs.utils.googlesheets_urls
+.. automodule:: onadata.libs.utils.google_sheets_tools
     :members:
     :undoc-members:
     :show-inheritance:

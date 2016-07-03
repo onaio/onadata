@@ -132,14 +132,6 @@ onadata.apps.main.tests.test_form_show module
     :undoc-members:
     :show-inheritance:
 
-onadata.apps.main.tests.test_google_sheets_export module
---------------------------------------------------------
-
-.. automodule:: onadata.apps.main.tests.test_google_sheets_export
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 onadata.apps.main.tests.test_gps module
 ---------------------------------------
 

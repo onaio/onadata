@@ -232,7 +232,7 @@ Example
 
 Response
 ^^^^^^^^
-JSON response could include the `job_status`, `job_uuid` and `reason` for why an export failed.
+JSON response could include the `job_status`, `job_uuid` and `error_message` for why an export failed.
 
 ::
 

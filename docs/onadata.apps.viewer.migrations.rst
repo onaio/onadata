@@ -52,10 +52,10 @@ onadata.apps.viewer.migrations.0006_auto_20160418_0525 module
     :undoc-members:
     :show-inheritance:
 
-onadata.apps.viewer.migrations.0007_export_reason module
---------------------------------------------------------
+onadata.apps.viewer.migrations.0007_export_error_message module
+---------------------------------------------------------------
 
-.. automodule:: onadata.apps.viewer.migrations.0007_export_reason
+.. automodule:: onadata.apps.viewer.migrations.0007_export_error_message
     :members:
     :undoc-members:
     :show-inheritance:
