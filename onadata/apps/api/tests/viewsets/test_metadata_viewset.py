@@ -13,7 +13,6 @@ from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.xform_serializer import XFormSerializer
 from onadata.libs.serializers.metadata_serializer import UNIQUE_TOGETHER_ERROR
-from onadata.libs.utils.google_sheets import SheetsClient
 from onadata.libs.utils.common_tags import GOOGLE_SHEET_TITLE,\
     GOOGLE_SHEET_DATA_TYPE
 
@@ -133,8 +132,10 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [data])
 
-    @patch.object(SheetsClient, 'get_google_sheet_title')
-    def test_get_google_sheet_title(self, mock_get_google_sheet_title):
+    @patch('onadata.apps.api.viewsets.metadata_viewset.create_service')
+    @patch('onadata.apps.api.viewsets.metadata_viewset.get_spread_sheet_title')
+    def test_get_google_sheet_title(self, mock_get_google_sheet_title,
+                                    mock_create_service):
         new_google_sheet_name = 'New Googlesheet Title'
         mock_get_google_sheet_title.return_value = new_google_sheet_name
         view = MetaDataViewSet.as_view({

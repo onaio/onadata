@@ -53,14 +53,12 @@ def initial_google_sheet_export(self, xform_pk, google_credentials,
 
     try:
         xform = XForm.objects.get(pk=xform_pk)
-        path = None
         data = query_data(xform)
-
         google_sheets = initialize_google_sheet_builder(xform,
                                                         google_credentials,
                                                         spreadsheet_title)
 
-        google_sheets.live_update(path, data, xform, spreadsheet_id)
+        google_sheets.live_update(data, spreadsheet_id)
     except ConnectionError, exc:
         self.retry(exc=exc, countdown=60)
 
@@ -74,15 +72,13 @@ def sync_update_google_sheets(self, instance_pk, xform_pk):
     spreadsheet_id = spreadsheet_details.get(GOOGLE_SHEET_ID)
     google_credentials = retrieve_user_google_credentials(user_id)
 
-    path = None
     submission_instance = Instance.objects.get(pk=instance_pk)
     data = [submission_instance.json]
 
     google_sheets = initialize_google_sheet_builder(xform, google_credentials)
 
     try:
-        google_sheets.live_update(path, data, xform,
-                                  spreadsheet_id=spreadsheet_id, update=True)
+        google_sheets.live_update(data, spreadsheet_id, update=True)
     except ConnectionError, exc:
         self.retry(exc=exc, countdown=60)
 
@@ -95,13 +91,10 @@ def sync_delete_google_sheets(self, instance_pk, xform_pk):
     user_id = spreadsheet_details.get(USER_ID)
     spreadsheet_id = spreadsheet_details.get(GOOGLE_SHEET_ID)
     google_credentials = retrieve_user_google_credentials(user_id)
-
-    path = None
     data = instance_pk
 
     google_sheets = initialize_google_sheet_builder(xform, google_credentials)
     try:
-        google_sheets.live_update(path, data, xform,
-                                  spreadsheet_id=spreadsheet_id, delete=True)
+        google_sheets.live_update(data, spreadsheet_id, delete=True)
     except ConnectionError, exc:
         self.retry(exc=exc, countdown=60)

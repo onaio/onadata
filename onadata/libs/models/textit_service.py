@@ -1,6 +1,9 @@
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.restservice.models import RestService
 from django.conf import settings
+from django.utils.translation import ugettext as _
+from django.db import IntegrityError
+from rest_framework import serializers
 
 METADATA_SEPARATOR = settings.METADATA_SEPARATOR
 
@@ -28,7 +31,15 @@ class TextItService(object):
         rs.name = self.name
         rs.service_url = self.service_url
         rs.xform = self.xform
-        rs.save()
+        try:
+            rs.save()
+        except IntegrityError as e:
+            if str(e).startswith("duplicate key value violates unique "
+                                 "constraint"):
+                msg = _(u"The service already created for this form.")
+            else:
+                msg = _(str(e))
+            raise serializers.ValidationError(msg)
 
         self.date_created = rs.date_created
         self.date_modified = rs.date_modified

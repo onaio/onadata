@@ -697,21 +697,19 @@ class ExportBuilder(object):
         csv_builder.export_to(path, dataview=dataview)
 
     def to_google_sheets(self,  path, data, *args, **kwargs):
-        from onadata.libs.utils.google_sheets import SheetsExportBuilder
+        from onadata.libs.utils.google_sheets_tools import \
+            GoogleSheetsExportBuilder
 
-        username = args[0]
-        filter_query = args[2]
         xform = kwargs.get('xform')
         options = kwargs.get("options")
         google_credentials = options and options.get("google_credentials")
 
         config = {
             "spreadsheet_title": xform.id_string,
-            "flatten_repeated_fields": True
         }
-        google_sheets = SheetsExportBuilder(xform, google_credentials, config)
-        self.url = google_sheets.export(path, data, username, xform,
-                                        filter_query)
+        google_sheets = GoogleSheetsExportBuilder(xform, google_credentials,
+                                                  config)
+        self.url = google_sheets.export(data)
 
     def to_zipped_sav(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):

@@ -14,7 +14,6 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
 from onadata.libs.serializers.google_serializer import GoogleSheetsSerializer
-from onadata.libs.utils.google_sheets import SheetsClient
 
 
 class TestGoogleSheetSerializer(TestAbstractViewSet):
@@ -23,7 +22,7 @@ class TestGoogleSheetSerializer(TestAbstractViewSet):
         self.factory = APIRequestFactory()
         self._login_user_and_profile()
 
-    @patch.object(SheetsClient, 'get_google_sheet_id')
+    @patch('onadata.libs.models.google_sheet_service.create_google_sheet')
     def test_create_google_sheet_service(self, mock_sheet_client):
         mock_sheet_client.return_value = "very_mocked_id"
         # create a project with a form
@@ -126,7 +125,7 @@ class TestGoogleSheetSerializer(TestAbstractViewSet):
         gsheet_details = MetaData.get_google_sheet_details(self.xform.pk)
         self.assertIsNone(gsheet_details)
 
-    @patch.object(SheetsClient, 'get_google_sheet_id')
+    @patch('onadata.libs.models.google_sheet_service.create_google_sheet')
     def test_update_google_sheet_service(self, mock_sheet_client):
         mock_sheet_client.return_value = "very_mocked_id"
         # create a project with a form
