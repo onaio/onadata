@@ -723,6 +723,14 @@ class ExportBuilder(object):
                 'available': {0: 'No', 1: 'Yes'}
             }
         """
+        def get_default_language(languages):
+            language = self.dd.default_language
+            if not language and languages:
+                languages.sort()
+                language = languages[0]
+
+            return language
+
         if not hasattr(self, '_sav_value_labels'):
             choice_questions = self.dd.get_survey_elements_with_choices()
             self._sav_value_labels = {}
@@ -732,8 +740,11 @@ class ExportBuilder(object):
                 _value_labels = {}
                 for choice in choices:
                     name = choice['name'].strip()
-                    label = choice['label'].strip()
-                    _value_labels[name] = label
+                    label = choice['label']
+                    if isinstance(label, dict):
+                        language = get_default_language(label.keys())
+                        label = label.get(language)
+                    _value_labels[name] = label.strip()
                 self._sav_value_labels[q['name']] = _value_labels
 
         return self._sav_value_labels
