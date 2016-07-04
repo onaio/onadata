@@ -314,8 +314,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if is_public_request:
             self.object_list = self._get_public_forms_queryset()
         elif lookup:
-            qs = self.filter_queryset(self.get_queryset())
-            self.object_list = Instance.objects.filter(xform__in=qs,
+            qs = self.filter_queryset(self.get_queryset())\
+                .values_list('pk', flat=True)
+            xform_id = qs[0] if qs else lookup
+            self.object_list = Instance.objects.filter(xform_id=xform_id,
                                                        deleted_at=None)
             tags = self.request.query_params.get('tags')
             not_tagged = self.request.query_params.get('not_tagged')
