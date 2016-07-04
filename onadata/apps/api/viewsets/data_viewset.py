@@ -1,8 +1,10 @@
-import types
+import json
+# import types
 
 from django.db.models import Q
 from django.db.utils import DataError
 from django.http import Http404
+from django.http import StreamingHttpResponse
 from django.utils import six
 from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
@@ -381,12 +383,30 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         except DataError, e:
             raise ParseError(unicode(e))
 
-        if not isinstance(self.object_list, types.GeneratorType):
-            self.object_list = self.paginate_queryset(self.object_list)
+        # if not isinstance(self.object_list, types.GeneratorType):
+        #     self.object_list = self.paginate_queryset(self.object_list)
 
-        serializer = self.get_serializer(self.object_list, many=True)
+        # serializer = self.get_serializer(self.object_list, many=True)
+        def stream_json(data, length):
+            counter = 0
+            for i in data:
+                if counter == 0:
+                    yield u"["
+                else:
+                    yield json.dumps(i.json)
+                    yield "" if counter + 1 == length else ","
+                counter += 1
 
-        return Response(serializer.data)
+            yield u"]"
+
+        response = StreamingHttpResponse(
+            stream_json(self.object_list, self.total_count),
+            content_type="application/json"
+        )
+
+        return response
+
+        # return Response(serializer.data)
 
 
 class AuthenticatedDataViewSet(DataViewSet):
