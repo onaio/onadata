@@ -14,6 +14,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.reverse import reverse
 
+from savReaderWriter import SPSSIOError
+
 from celery.result import AsyncResult
 
 from oauth2client.contrib.django_orm import Storage
@@ -138,7 +140,7 @@ def custom_response_handler(request, xform, query, export_type,
         else:
             export = newest_export_for(xform, export_type, options)
 
-            if not export.filename:
+            if not export.filename and not export.error_message:
                 export = new_export()
 
         log_export(request, xform, export_type)
@@ -146,13 +148,16 @@ def custom_response_handler(request, xform, query, export_type,
         if export_type == Export.EXTERNAL_EXPORT:
             return external_export_response(export)
 
+    if export.filename is None and export.error_message:
+        raise exceptions.ParseError(export.error_message)
+
     # get extension from file_path, exporter could modify to
     # xlsx if it exceeds limits
     path, ext = os.path.splitext(export.filename)
     ext = ext[1:]
 
     show_date = True
-    if filename is None:
+    if filename is None and export.status == Export.SUCCESSFUL:
         filename = _generate_filename(request, xform, remove_group_name,
                                       dataview_pk=dataview_pk)
     else:
@@ -236,6 +241,8 @@ def _generate_new_export(request, xform, query, export_type,
     except J2XException as e:
         # j2x exception
         return {'error': str(e)}
+    except SPSSIOError as e:
+        raise exceptions.ParseError(str(e))
     else:
         return export
 
@@ -411,7 +418,7 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
     :param request:
     :param xform:
     :param export:
-    :return: response dict
+    :return: response dict example {"job_status": "Success", "export_url": ...}
     """
     if export.status == Export.SUCCESSFUL:
         if export.export_type not in [Export.EXTERNAL_EXPORT,
@@ -428,12 +435,14 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
         }
     elif export.status == Export.PENDING:
         resp = {
-            'export_status': EXPORT_PENDING
+            'job_status': EXPORT_PENDING
         }
     else:
         resp = {
-            'export_status': EXPORT_FAILED
+            'job_status': EXPORT_FAILED
         }
+        if export.error_message:
+            resp['error_message'] = export.error_message
 
     return resp
 

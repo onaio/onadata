@@ -232,6 +232,8 @@ Example
 
 Response
 ^^^^^^^^
+JSON response could include the `job_status`, `job_uuid` and `error_message` for why an export failed.
+
 ::
 
        HTTP 202 Accepted

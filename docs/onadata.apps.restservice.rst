@@ -6,7 +6,9 @@ Subpackages
 
 .. toctree::
 
+    onadata.apps.restservice.migrations
     onadata.apps.restservice.services
+    onadata.apps.restservice.tests
     onadata.apps.restservice.viewsets
 
 Submodules
@@ -36,10 +38,10 @@ onadata.apps.restservice.models module
     :undoc-members:
     :show-inheritance:
 
-onadata.apps.restservice.task module
-------------------------------------
+onadata.apps.restservice.tasks module
+-------------------------------------
 
-.. automodule:: onadata.apps.restservice.task
+.. automodule:: onadata.apps.restservice.tasks
     :members:
     :undoc-members:
     :show-inheritance:

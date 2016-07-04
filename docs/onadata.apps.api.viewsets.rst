@@ -52,6 +52,14 @@ onadata.apps.api.viewsets.dataview_viewset module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.api.viewsets.export_viewset module
+-----------------------------------------------
+
+.. automodule:: onadata.apps.api.viewsets.export_viewset
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.api.viewsets.media_viewset module
 ----------------------------------------------
 

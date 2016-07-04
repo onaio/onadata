@@ -197,10 +197,10 @@ class TestExportBuilder(TestBase):
         }
     ]
 
-    def _create_childrens_survey(self):
+    def _create_childrens_survey(self, filename="childrens_survey.xls"):
         survey = create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey.xls')
-        )
+            filename
+        ))
         self.dd = DataDictionary()
         self.dd._survey = survey
 
@@ -1025,6 +1025,7 @@ class TestExportBuilder(TestBase):
     def test_to_sav_export(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
         export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         filename = temp_zip_file.name
@@ -1068,6 +1069,70 @@ class TestExportBuilder(TestBase):
                     self.assertEqual(header, fixture_header)
                     expected_rows = [r for r in fixture_reader]
                     self.assertEqual(rows, expected_rows)
+
+                if section == 'children_cartoons_charactors':
+                    self.assertEqual(reader.valueLabels, {
+                        'good_or_evil': {'good': 'Good'}
+                    })
+
+        for section in export_builder.sections:
+            section_name = section['name'].replace('/', '_')
+            _test_sav_file(section_name)
+
+    def test_to_sav_export_language(self):
+        survey = self._create_childrens_survey('childrens_survey_sw.xls')
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        filename = temp_zip_file.name
+        export_builder.to_zipped_sav(filename, self.data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+
+        # generate data to compare with
+        index = 1
+        indices = {}
+        survey_name = survey.name
+        outputs = []
+        for d in self.data:
+            outputs.append(
+                dict_to_joined_export(
+                    d, index, indices, survey_name, survey, d))
+            index += 1
+
+        # check that each file exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "{0}.sav".format(survey.name))))
+
+        def _test_sav_file(section):
+            with SavReader(
+                    os.path.join(
+                        temp_dir, "{0}.sav".format(section)),
+                    returnHeader=True) as reader:
+                header = next(reader)
+                rows = [r for r in reader]
+                if section != 'childrens_survey_sw':
+                    section += '_sw'
+
+                # open comparison file
+                with SavReader(_logger_fixture_path(
+                        'spss', "{0}.sav".format(section)),
+                        returnHeader=True) as fixture_reader:
+                    fixture_header = next(fixture_reader)
+                    self.assertEqual(header, fixture_header)
+                    expected_rows = [r for r in fixture_reader]
+                    self.assertEqual(rows, expected_rows)
+
+                if section == 'children_cartoons_charactors':
+                    self.assertEqual(reader.valueLabels, {
+                        'good_or_evil': {'good': 'Good'}
+                    })
 
         for section in export_builder.sections:
             section_name = section['name'].replace('/', '_')
@@ -1344,6 +1409,8 @@ class TestExportBuilder(TestBase):
     def test_to_sav_export_with_labels(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
         export_builder.INCLUDE_LABELS = True
         export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')

@@ -111,6 +111,7 @@ class Export(models.Model):
     export_url = models.URLField(null=True, default=None)
 
     options = JSONField(default=dict, null=False)
+    error_message = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         app_label = "viewer"

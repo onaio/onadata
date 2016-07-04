@@ -19,6 +19,7 @@ from django.utils.translation import ugettext_lazy, ugettext as _
 from guardian.models import UserObjectPermissionBase
 from guardian.models import GroupObjectPermissionBase
 
+from pyxform import constants
 from pyxform import SurveyElementBuilder
 from pyxform.question import Question
 from pyxform.section import RepeatingSection
@@ -547,6 +548,19 @@ class XFormMixin(object):
     def get_survey_elements_of_type(self, element_type):
         return [e for e in self.get_survey_elements()
                 if e.type == element_type]
+
+    def get_survey_elements_with_choices(self):
+        if not hasattr(self, '_survey_elements_with_choices'):
+            choices_type = [
+                constants.SELECT_ONE,
+                constants.SELECT_ALL_THAT_APPLY
+            ]
+
+            self._survey_elements_with_choices = [
+                e for e in self.get_survey_elements() if e.type in choices_type
+            ]
+
+        return self._survey_elements_with_choices
 
     def get_media_survey_xpaths(self):
         return [

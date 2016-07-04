@@ -19,6 +19,7 @@ from openpyxl.workbook import Workbook
 from pyxform.question import Question
 from pyxform.section import Section, RepeatingSection
 from savReaderWriter import SavWriter
+from savReaderWriter import SPSSIOError
 from json2xlsclient.client import Client
 
 from onadata.apps.logger.models import Attachment
@@ -711,6 +712,96 @@ class ExportBuilder(object):
                                                   config)
         self.url = google_sheets.export(data)
 
+    def _get_sav_value_labels(self):
+        """GET/SET SPSS `VALUE LABELS`. It takes the dictionay of the form
+        `{varName: {value: valueLabel}}`:
+
+        .. code-block: python
+
+            {
+                'favourite_color': {'red': 'Red', 'blue': 'Blue'},
+                'available': {0: 'No', 1: 'Yes'}
+            }
+        """
+        def get_default_language(languages):
+            language = self.dd.default_language
+            if not language and languages:
+                languages.sort()
+                language = languages[0]
+
+            return language
+
+        if not hasattr(self, '_sav_value_labels'):
+            choice_questions = self.dd.get_survey_elements_with_choices()
+            self._sav_value_labels = {}
+
+            for q in choice_questions:
+                choices = q.to_json_dict().get('children')
+                _value_labels = {}
+                for choice in choices:
+                    name = choice['name'].strip()
+                    label = choice['label']
+                    if isinstance(label, dict):
+                        language = get_default_language(label.keys())
+                        label = label.get(language)
+                    _value_labels[name] = label.strip()
+                self._sav_value_labels[q['name']] = _value_labels
+
+        return self._sav_value_labels
+
+    def _get_sav_options(self, elements):
+        """GET/SET SPSS options.
+        @param elements - a list of survey elements
+
+        @return dictionary with options for `SavWriter`:
+
+        .. code-block: python
+
+            {
+                'varLabels': var_labels,  # a dict of varLabels
+                'varNames': var_names,   # a list of varNames
+                'varTypes': var_types,  # a dict of varTypes
+                'valueLabels': value_labels,  # a dict of valueLabels
+                'ioUtf8': True
+            }
+        """
+        all_value_labels = self._get_sav_value_labels()
+        _var_types = {}
+        value_labels = {}
+        var_labels = {}
+        var_names = []
+
+        fields_and_labels = [
+            (element['title'], element['label']) for element in elements
+        ] + zip(self.EXTRA_FIELDS, self.EXTRA_FIELDS)
+
+        for field, label in fields_and_labels:
+            var_name = field.replace('/', '.')
+            var_name = '@' + var_name \
+                if var_name.startswith('_') else var_name
+            var_labels[var_name] = label
+            var_names.append(var_name)
+            _var_types[field] = var_name
+            if field in all_value_labels:
+                value_labels[field] = all_value_labels.get(field)
+
+        var_types = dict(
+            [(_var_types[element['title']],
+                0 if element['type'] in ['decimal', 'int'] else 255)
+                for element in elements] +
+            [(_var_types[item],
+                0 if item in ['_id', '_index', '_parent_index'] else 255)
+                for item in self.EXTRA_FIELDS]
+        )
+
+        return {
+            'varLabels': var_labels,
+            'varNames': var_names,
+            'varTypes': var_types,
+            'valueLabels': value_labels,
+            'ioUtf8': True
+        }
+
     def to_zipped_sav(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):
             sav_writer.writerow(
@@ -720,33 +811,9 @@ class ExportBuilder(object):
 
         # write headers
         for section in self.sections:
-            _title = 'label' \
-                if self.INCLUDE_LABELS or self.INCLUDE_LABELS_ONLY else 'title'
-            fields = [element[_title] for element in section['elements']]\
-                + self.EXTRA_FIELDS
-            c = 0
-            var_labels = {}
-            var_names = []
-            tmp_k = {}
-            for field in fields:
-                c += 1
-                var_name = 'var%d' % c
-                var_labels[var_name] = field
-                var_names.append(var_name)
-                tmp_k[field] = var_name
-
-            var_types = dict(
-                [(tmp_k[element[_title]],
-                  0 if element['type'] in ['decimal', 'int'] else 255)
-                 for element in section['elements']] +
-                [(tmp_k[item],
-                    0 if item in ['_id', '_index', '_parent_index'] else 255)
-                 for item in self.EXTRA_FIELDS]
-            )
+            sav_options = self._get_sav_options(section['elements'])
             sav_file = NamedTemporaryFile(suffix=".sav")
-            sav_writer = SavWriter(sav_file.name, varNames=var_names,
-                                   varTypes=var_types,
-                                   varLabels=var_labels, ioUtf8=True)
+            sav_writer = SavWriter(sav_file.name, **sav_options)
             sav_defs[section['name']] = {
                 'sav_file': sav_file, 'sav_writer': sav_writer}
 
@@ -858,6 +925,16 @@ def get_export_options_query_kwargs(options):
     return options_kwargs
 
 
+def get_or_create_export(export_id, xform, export_type, options):
+    if export_id:
+        try:
+            return Export.objects.get(id=export_id)
+        except Export.DoesNotExist:
+            pass
+
+    return create_export_object(xform, export_type, options)
+
+
 def generate_export(export_type, xform, export_id=None, options=None):
     """
     Create appropriate export object given the export type.
@@ -904,7 +981,8 @@ def generate_export(export_type, xform, export_id=None, options=None):
 
     export_builder = ExportBuilder()
 
-    export_builder.TRUNCATE_GROUP_TITLE = remove_group_name
+    export_builder.TRUNCATE_GROUP_TITLE = True \
+        if export_type == Export.SAV_ZIP_EXPORT else remove_group_name
     export_builder.GROUP_DELIMITER = options.get(
         "group_delimiter", DEFAULT_GROUP_DELIMITER
     )
@@ -944,6 +1022,13 @@ def generate_export(export_type, xform, export_id=None, options=None):
         )
     except NoRecordsFoundError:
         pass
+    except SPSSIOError as e:
+        export = get_or_create_export(export_id, xform, export_type, options)
+        export.error_message = str(e)
+        export.internal_status = Export.FAILED
+        export.save()
+
+        return export
 
     # generate filename
     basename = "%s_%s" % (
@@ -978,14 +1063,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
     dir_name, basename = os.path.split(export_filename)
 
     # get or create export object
-    if export_id:
-        try:
-            export = Export.objects.get(id=export_id)
-        except Export.DoesNotExist:
-            export = create_export_object(xform, export_type, options)
-
-    else:
-        export = create_export_object(xform, export_type, options)
+    export = get_or_create_export(export_id, xform, export_type, options)
 
     export.filedir = dir_name
     export.filename = basename

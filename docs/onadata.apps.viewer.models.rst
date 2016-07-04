@@ -4,6 +4,14 @@ onadata.apps.viewer.models package
 Submodules
 ----------
 
+onadata.apps.viewer.models.column_rename module
+-----------------------------------------------
+
+.. automodule:: onadata.apps.viewer.models.column_rename
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.viewer.models.data_dictionary module
 -------------------------------------------------
 

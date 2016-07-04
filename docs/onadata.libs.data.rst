@@ -1,6 +1,13 @@
 onadata.libs.data package
 =========================
 
+Subpackages
+-----------
+
+.. toctree::
+
+    onadata.libs.data.tests
+
 Submodules
 ----------
 

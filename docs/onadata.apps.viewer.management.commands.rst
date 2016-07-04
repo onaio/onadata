@@ -36,14 +36,6 @@ onadata.apps.viewer.management.commands.set_uuid_in_xml module
     :undoc-members:
     :show-inheritance:
 
-onadata.apps.viewer.management.commands.sync_mongo module
----------------------------------------------------------
-
-.. automodule:: onadata.apps.viewer.management.commands.sync_mongo
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 onadata.apps.viewer.management.commands.update_delete_from_mongo module
 -----------------------------------------------------------------------
 

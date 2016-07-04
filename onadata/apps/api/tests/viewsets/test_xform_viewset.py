@@ -4035,3 +4035,58 @@ class TestXFormViewSet(TestAbstractViewSet):
                          {u'job_status': 'Success',
                           u'export_url': gsheets_export_url
                           })
+
+    def test_sav_zip_export_long_variable_length(self):
+        self._publish_xls_form_to_project()
+        survey = self.surveys[0]
+        _submission_time = parse_datetime('2013-02-18 15:54:01Z')
+        self._make_submission(
+            os.path.join(
+                settings.PROJECT_ROOT, 'apps',
+                'main', 'tests', 'fixtures', 'transportation',
+                'instances', survey, survey + '.xml'),
+            forced_submission_time=_submission_time)
+
+        view = XFormViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, format='savzip')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data.get('detail'),
+            u"'available_transportation_types_to_referral_facility"
+            ".donkey_mule_cart' is an invalid variable name "
+            "['SPSS_NAME_BADLTH: Empty or longer than 64 chars']"
+        )
+
+    @override_settings(CELERY_ALWAYS_EAGER=True)
+    @patch('onadata.libs.utils.api_export_tools.AsyncResult')
+    def test_sav_zip_export_long_variable_length_async(self, async_result):
+        self._publish_xls_form_to_project()
+        view = XFormViewSet.as_view({
+            'get': 'export_async',
+        })
+        formid = self.xform.pk
+        request = self.factory.get(
+            '/', data={"format": 'savzip'}, **self.extra)
+        response = view(request, pk=formid)
+        self.assertIsNotNone(response.data)
+        self.assertEqual(response.status_code, 202)
+        self.assertTrue('job_uuid' in response.data)
+        task_id = response.data.get('job_uuid')
+        get_data = {'job_uuid': task_id}
+        request = self.factory.get('/', data=get_data, **self.extra)
+        response = view(request, pk=formid)
+
+        self.assertTrue(async_result.called)
+        self.assertEqual(response.status_code, 202)
+        export = Export.objects.get(task_id=task_id)
+        self.assertFalse(export.is_successful)
+        self.assertEqual(
+            export.error_message,
+            u"'available_transportation_types_to_referral_facility"
+            ".donkey_mule_cart' is an invalid variable name "
+            "['SPSS_NAME_BADLTH: Empty or longer than 64 chars']"
+        )
