@@ -25,7 +25,7 @@ from savReaderWriter import SPSSIOError
 from wsgiref.util import FileWrapper
 
 from onadata.apps.main.models import UserProfile, MetaData, TokenStorageModel
-from onadata.apps.logger.models import XForm, Attachment
+from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.views import download_jsonform
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.export import Export
