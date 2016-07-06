@@ -3,6 +3,7 @@ import datetime
 import json
 import re
 import six
+import types
 
 from dateutil import parser
 from django.conf import settings
@@ -154,13 +155,18 @@ def _query_iterator(sql, fields=None, params=[], count=False):
     sql_params = fields + params if fields is not None else params
 
     if count:
-        from_pos = sql.upper().find(' FROM')
-        if from_pos != -1:
-            sql = u"SELECT COUNT(*) " + sql[from_pos:]
+        sql = u"SELECT COUNT(*) FROM (" + sql + ") AS CQ"
+        # from_pos = sql.upper().find(' FROM')
+        # if from_pos != -1:
+        #     sql = u"SELECT COUNT(*) " + sql[from_pos:]
 
-        order_pos = sql.upper().find('ORDER BY')
-        if order_pos != -1:
-            sql = sql[:order_pos]
+        # order_pos = sql.upper().find('ORDER BY')
+        # if order_pos != -1:
+        #     # remove order by params from params list
+        #     params = params[:-sql[order_pos:].count('%s')]
+
+        #     # remove order by clause for a count query
+        #     sql = sql[:order_pos]
 
         sql_params = params
         fields = [u'count']
@@ -269,12 +275,12 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
             _sql, _params = records.query.sql_with_params()
             sql = u"{} {}".format(_sql, json_order_by(sort))
             params = list(_params) + json_order_by_params(sort)
-            records = _query_iterator(sql, None, params)
+            records = _query_iterator(sql, None, params, count)
         else:
             records = instances.order_by(*sort)\
                 .values_list('json', flat=True)
 
-        if count:
+        if count and not isinstance(records, types.GeneratorType):
             return [{"count": records.count()}]
 
         if start_index is not None:
@@ -291,7 +297,10 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
             if limit is not None:
                 sql = u"{} LIMIT %s".format(sql)
                 params += [limit]
-            records = _query_iterator(sql, None, params)
+            records = _query_iterator(sql, None, params, count)
+
+    if count and isinstance(records, types.GeneratorType):
+        return [i for i in records]
 
     return records
 
