@@ -25,7 +25,7 @@ from savReaderWriter import SPSSIOError
 from wsgiref.util import FileWrapper
 
 from onadata.apps.main.models import UserProfile, MetaData, TokenStorageModel
-from onadata.apps.logger.models import XForm, Attachment
+from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.views import download_jsonform
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.export import Export
@@ -718,7 +718,10 @@ def google_xls_export(request, username, id_string):
 
 def data_view(request, username, id_string):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
+    xform = get_form({
+        'id_string__iexact': id_string,
+        'user': owner
+    })
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 

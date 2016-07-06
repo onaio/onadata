@@ -492,6 +492,13 @@ class TestFormShow(TestBase):
             response = self.anon.get(url)
             self.assertEqual(response.status_code, 302)
 
+    def test_enketo_preview_with_unavailable_id_string(self):
+        response = self.client.get(reverse(enketo_preview, kwargs={
+            'username': self.user.username,
+            'id_string': 'random_id_string'
+        }))
+        self.assertEqual(response.status_code, 404)
+
     # TODO PLD disabling this test
     @skip('Insensitivity is not enforced upon creation of id_strings.')
     def test_form_urls_case_insensitive(self):
