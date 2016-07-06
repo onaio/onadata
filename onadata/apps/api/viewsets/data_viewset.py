@@ -395,12 +395,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         # serializer = self.get_serializer(self.object_list, many=True)
         def stream_json(data, length):
             counter = 0
+            yield u"["
             for i in data:
-                if counter == 0:
-                    yield u"["
-                else:
-                    yield json.dumps(i.json)
-                    yield "" if counter + 1 == length else ","
+                yield json.dumps(i.json if isinstance(i, Instance) else i)
+                yield "" if counter + 1 == length else ","
                 counter += 1
 
             yield u"]"
