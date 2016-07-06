@@ -380,7 +380,12 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             # anything that's not a list will be in the top level dict so its
             # safe to simply assign
             if key == NOTES:
-                d[key] = u"\r\n".join(value)
+                dd = list()
+                for note in value:
+                    dd.append("{}:{}".format(note.get("note"),
+                                             note.get("owner")))
+
+                d[key] = u"/r/n".join(dd)
             else:
                 d[key] = get_value_or_attachment_uri(
                     key, value, row, data_dictionary, include_images

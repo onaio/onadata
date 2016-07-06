@@ -1,8 +1,15 @@
+import os
+
 from django.test import RequestFactory
+from django.conf import settings
 from guardian.shortcuts import assign_perm
+from datetime import datetime
 
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
+from onadata.apps.api.tests.viewsets.test_xform_viewset import \
+    get_response_content
 
 
 class TestNoteViewSet(TestBase):
@@ -189,3 +196,28 @@ class TestNoteViewSet(TestBase):
 
         instance = self.xform.instances.all()[0]
         self.assertEquals(len(instance.json["_notes"]), 0)
+
+    def test_csv_export_form_w_notes(self):
+        self._add_notes_to_data_point()
+
+        time = datetime(2016, 7, 1)
+        for instance in self.xform.instances.all():
+            instance.date_created = time
+            instance.save()
+            instance.parsed_instance.save()
+
+        view = XFormViewSet.as_view({
+            'get': 'retrieve'
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk, format='csv')
+
+        content = get_response_content(response)
+
+        test_file_path = os.path.join(settings.PROJECT_ROOT, 'apps',
+                                      'viewer', 'tests', 'fixtures',
+                                      'transportation_w_notes.csv')
+
+        with open(test_file_path, 'r') as test_file:
+            self.assertEqual(content, test_file.read())
