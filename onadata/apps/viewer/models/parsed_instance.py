@@ -162,20 +162,9 @@ def _query_iterator(sql, fields=None, params=[], count=False):
     sql_params = fields + params if fields is not None else params
 
     if count:
+        # do sql count of subquery, takes into account all options sql has and
+        # is less hacky
         sql = u"SELECT COUNT(*) FROM (" + sql + ") AS CQ"
-        # from_pos = sql.upper().find(' FROM')
-        # if from_pos != -1:
-        #     sql = u"SELECT COUNT(*) " + sql[from_pos:]
-
-        # order_pos = sql.upper().find('ORDER BY')
-        # if order_pos != -1:
-        #     # remove order by params from params list
-        #     params = params[:-sql[order_pos:].count('%s')]
-
-        #     # remove order by clause for a count query
-        #     sql = sql[:order_pos]
-
-        sql_params = params
         fields = [u'count']
 
     cursor.execute(sql, [unicode(i) for i in sql_params])
