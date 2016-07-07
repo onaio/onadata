@@ -33,6 +33,7 @@ from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
+from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.mixins.total_header_mixin import TotalHeaderMixin
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import DataSerializer
@@ -50,8 +51,6 @@ from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.data import parse_int
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.libs.mixins.profiler_mixin import ProfilerMixin
-from onadata.libs.utils.profiler import profile
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 BaseViewset = get_baseviewset_class()
@@ -68,7 +67,7 @@ def get_data_and_form(kwargs):
 class DataViewSet(AnonymousUserPublicFormsMixin,
                   AuthenticateHeaderMixin,
                   ETagsMixin, CacheControlMixin,
-                  TotalHeaderMixin, ProfilerMixin,
+                  LastModifiedMixin, TotalHeaderMixin,
                   BaseViewset,
                   ModelViewSet):
     """
@@ -295,7 +294,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 _(u"'%(_format)s' format unknown or not implemented!" %
                   {'_format': _format}))
 
-    @profile("get_data.prof")
     def list(self, request, *args, **kwargs):
         fields = request.GET.get("fields")
         query = request.GET.get("query", {})
