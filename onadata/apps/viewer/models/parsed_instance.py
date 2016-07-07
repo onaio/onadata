@@ -250,7 +250,7 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
         params = [xform.pk] + where_params
 
         # apply sorting
-        if ParsedInstance._has_json_fields(sort):
+        if not count and ParsedInstance._has_json_fields(sort):
             sql = u"{} {}".format(sql, json_order_by(sort))
             params = params + json_order_by_params(sort)
 
@@ -263,41 +263,41 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
         records = _query_iterator(sql, fields, params, count)
     else:
 
+        records = instances.values_list('json', flat=True)
         if where_params:
-            instances = instances.extra(where=where, params=where_params)
+            records = records.extra(where=where, params=where_params)
 
-        if ParsedInstance._has_json_fields(sort):
-            # we have to do an sql query for json field order
-            records = instances.values_list('json', flat=True)
-            _sql, _params = records.query.sql_with_params()
-            sql = u"{} {}".format(_sql, json_order_by(sort))
-            params = list(_params) + json_order_by_params(sort)
-            records = _query_iterator(sql, None, params, count)
-        else:
-            records = instances.order_by(*sort)\
-                .values_list('json', flat=True)
-
-        if count and not isinstance(records, types.GeneratorType):
-            return [{"count": records.count()}]
+        # apply sorting
+        if not count and sort:
+            if ParsedInstance._has_json_fields(sort):
+                # we have to do an sql query for json field order
+                _sql, _params = records.query.sql_with_params()
+                sql = u"{} {}".format(_sql, json_order_by(sort))
+                params = list(_params) + json_order_by_params(sort)
+            else:
+                records = records.order_by(*sort)
 
         if start_index is not None:
             if ParsedInstance._has_json_fields(sort):
                 _sql, _params = sql, params
                 params = _params + [start_index]
+                sql = u"{} OFFSET %s".format(_sql)
+                if limit is not None:
+                    sql = u"{} LIMIT %s".format(sql)
+                    params += [limit]
             else:
-                _sql, _params = records.query.sql_with_params()
-                params = list(_params + (start_index,))
-            # some inconsistent/weird behavior I noticed with django's
-            # queryset made me have to do a raw query
-            # records = records[start_index: limit]
-            sql = u"{} OFFSET %s".format(_sql)
-            if limit is not None:
-                sql = u"{} LIMIT %s".format(sql)
-                params += [limit]
+                if limit:
+                    records = records[start_index: start_index + limit]
+                else:
+                    records = records[start_index:]
+
+        if ParsedInstance._has_json_fields(sort):
             records = _query_iterator(sql, None, params, count)
 
     if count and isinstance(records, types.GeneratorType):
         return [i for i in records]
+    elif count:
+        return [{"count": records.count()}]
 
     return records
 
