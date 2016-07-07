@@ -370,18 +370,15 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     self.object_list.order_by('pk')[start: limit]
                 self.total_count = self.object_list.count()
             elif (sort or limit or start or fields) and not is_public_request:
-                if self.object_list.count():
-                    xform = self.object_list[0].xform
-                    self.object_list = \
-                        query_data(xform, query=query, sort=sort,
-                                   start_index=start, limit=limit,
-                                   fields=fields)
-                    self.total_count = query_data(
-                        xform, query=query, sort=sort,
-                        start_index=start, limit=limit,
-                        fields=fields, count=True)[0].get('count')
-                else:
-                    self.total_count = self.object_list.count()
+                xform = self.get_object()
+                self.last_modified_date = xform.date_modified
+                self.object_list = \
+                    query_data(xform, query=query, sort=sort,
+                               start_index=start, limit=limit, fields=fields)
+                self.total_count = query_data(
+                    xform, query=query, sort=sort, start_index=start,
+                    limit=limit, fields=fields, count=True
+                )[0].get('count')
         except ValueError, e:
             raise ParseError(unicode(e))
         except DataError, e:
