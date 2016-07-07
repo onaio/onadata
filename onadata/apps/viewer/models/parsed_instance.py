@@ -40,6 +40,7 @@ key_whitelist = ['$or', '$and', '$exists', '$in', '$gt', '$gte',
                  '$lt', '$lte', '$regex', '$options', '$all']
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
 KNOWN_DATES = ['_submission_time']
+NONE_JSON_FIELDS = {'_submission_time': 'date_created'}
 
 
 class ParseError(Exception):
@@ -104,16 +105,22 @@ def get_name_from_survey_element(element):
     return element.get_abbreviated_xpath()
 
 
+def _parse_sort_fields(fields):
+    for field in fields:
+        if field in NONE_JSON_FIELDS.keys():
+            field = NONE_JSON_FIELDS[field]
+        yield field
+
+
 def _parse_where(query, known_integers, or_where, or_params):
     # using a dictionary here just incase we will need to filter using
     # other table columns
-    none_json_filter = {'_submission_time': 'date_created'}
     where, where_params = [], []
 
     for field_key, field_value in query.iteritems():
         if isinstance(field_value, dict):
-            if field_key in none_json_filter:
-                json_str = none_json_filter.get(field_key)
+            if field_key in NONE_JSON_FIELDS:
+                json_str = NONE_JSON_FIELDS.get(field_key)
             else:
                 json_str = _json_sql_str(
                     field_key, known_integers, KNOWN_DATES)
@@ -139,7 +146,7 @@ def _parse_where(query, known_integers, or_where, or_params):
                 if field_key in KNOWN_DATES:
                     _v = datetime.datetime.strptime(
                         _v[:19], MONGO_STRFTIME)
-                if field_key in none_json_filter:
+                if field_key in NONE_JSON_FIELDS:
                     where_params.extend([unicode(_v)])
                 else:
                     where_params.extend((field_key, unicode(_v)))
@@ -231,6 +238,7 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
     if isinstance(end, datetime.datetime):
         instances = instances.filter(date_created__lte=end)
     sort = ['id'] if sort is None else sort_from_mongo_sort_str(sort)
+    sort = [i for i in _parse_sort_fields(sort)] if sort else sort
 
     sql_where = u""
     known_integers = [
