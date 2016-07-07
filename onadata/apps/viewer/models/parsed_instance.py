@@ -249,50 +249,52 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
             + u" AND deleted_at IS NULL"
         params = [xform.pk] + where_params
 
-        # apply sorting
-        if not count and ParsedInstance._has_json_fields(sort):
-            sql = u"{} {}".format(sql, json_order_by(sort))
-            params = params + json_order_by_params(sort)
+        # # apply sorting
+        # if not count and ParsedInstance._has_json_fields(sort):
+        #     sql = u"{} {}".format(sql, json_order_by(sort))
+        #     params = params + json_order_by_params(sort)
 
-        if start_index is not None:
-            sql += u" OFFSET %s"
-            params += [start_index]
-        if limit is not None:
-            sql += u" LIMIT %s"
-            params += [limit]
-        records = _query_iterator(sql, fields, params, count)
+        # if start_index is not None:
+        #     sql += u" OFFSET %s"
+        #     params += [start_index]
+        # if limit is not None:
+        #     sql += u" LIMIT %s"
+        #     params += [limit]
+        # records = _query_iterator(sql, fields, params, count)
     else:
 
         records = instances.values_list('json', flat=True)
         if where_params:
             records = records.extra(where=where, params=where_params)
 
-        # apply sorting
-        if not count and sort:
-            if ParsedInstance._has_json_fields(sort):
-                # we have to do an sql query for json field order
-                _sql, _params = records.query.sql_with_params()
-                sql = u"{} {}".format(_sql, json_order_by(sort))
-                params = list(_params) + json_order_by_params(sort)
-            else:
-                records = records.order_by(*sort)
-
-        if start_index is not None:
-            if ParsedInstance._has_json_fields(sort):
-                _sql, _params = sql, params
-                params = _params + [start_index]
-                sql = u"{} OFFSET %s".format(_sql)
-                if limit is not None:
-                    sql = u"{} LIMIT %s".format(sql)
-                    params += [limit]
-            else:
-                if limit:
-                    records = records[start_index: start_index + limit]
-                else:
-                    records = records[start_index:]
-
+    # apply sorting
+    if not count and sort:
         if ParsedInstance._has_json_fields(sort):
-            records = _query_iterator(sql, None, params, count)
+            # we have to do an sql query for json field order
+            _sql, _params = records.query.sql_with_params()
+            sql = u"{} {}".format(_sql, json_order_by(sort))
+            params = list(_params) + json_order_by_params(sort)
+        elif not fields:
+            records = records.order_by(*sort)
+
+    if start_index is not None and \
+            (ParsedInstance._has_json_fields(sort) or fields):
+        _sql, _params = sql, params
+        params = _params + [start_index]
+        sql = u"{} OFFSET %s".format(_sql)
+    if limit is not None and \
+            (ParsedInstance._has_json_fields(sort) or fields):
+        sql = u"{} LIMIT %s".format(sql)
+        params += [limit]
+    if start_index is not None and limit is not None and not fields and  \
+            not ParsedInstance._has_json_fields(sort):
+        records = records[start_index: start_index + limit]
+    if start_index is not None and limit is None and not fields and \
+            not ParsedInstance._has_json_fields(sort):
+        records = records[start_index:]
+
+    if ParsedInstance._has_json_fields(sort) or fields:
+        records = _query_iterator(sql, fields, params, count)
 
     if count and isinstance(records, types.GeneratorType):
         return [i for i in records]
