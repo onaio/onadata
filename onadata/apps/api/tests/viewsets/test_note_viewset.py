@@ -199,6 +199,7 @@ class TestNoteViewSet(TestBase):
 
     def test_csv_export_form_w_notes(self):
         self._add_notes_to_data_point()
+        self._add_notes_to_data_point()
 
         time = datetime(2016, 7, 1)
         for instance in self.xform.instances.all():
