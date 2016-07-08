@@ -212,70 +212,13 @@ def get_where_clause(query, form_integer_fields=[]):
     return where, where_params
 
 
-def query_data(xform, query=None, fields=None, sort=None, start=None,
-               end=None, start_index=None, limit=None, count=None):
+def _start_index_limit(records, sql, fields, params, sort, start_index, limit):
     if start_index is not None and \
-            (start_index is not None and start_index < 0 or
-             (limit is not None and limit < 0)):
+            (start_index < 0 or (limit is not None and limit < 0)):
         raise ValueError(_("Invalid start/limit params"))
-    if limit is not None and start_index is None:
-        start_index = 0
 
-    instances = xform.instances.filter(deleted_at=None)
-    if isinstance(start, datetime.datetime):
-        instances = instances.filter(date_created__gte=start)
-    if isinstance(end, datetime.datetime):
-        instances = instances.filter(date_created__lte=end)
-    sort = ['id'] if sort is None else sort_from_mongo_sort_str(sort)
-    sort = [i for i in _parse_sort_fields(sort)] if sort else sort
-
-    sql_where = u""
-    known_integers = [
-        get_name_from_survey_element(e)
-        for e in xform.get_survey_elements_of_type('integer')]
-    where, where_params = get_where_clause(query, known_integers)
-
-    if fields and isinstance(fields, six.string_types):
-        fields = json.loads(fields)
-
-    if fields:
-        field_list = [u"json->%s" for i in fields]
-        sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
-
-        if where_params:
-            sql_where = u" AND " + u" AND ".join(where)
-
-        sql += u" WHERE xform_id = %s " + sql_where \
-            + u" AND deleted_at IS NULL"
-        params = [xform.pk] + where_params
-
-        # # apply sorting
-        # if not count and ParsedInstance._has_json_fields(sort):
-        #     sql = u"{} {}".format(sql, json_order_by(sort))
-        #     params = params + json_order_by_params(sort)
-
-        # if start_index is not None:
-        #     sql += u" OFFSET %s"
-        #     params += [start_index]
-        # if limit is not None:
-        #     sql += u" LIMIT %s"
-        #     params += [limit]
-        # records = _query_iterator(sql, fields, params, count)
-    else:
-
-        records = instances.values_list('json', flat=True)
-        if where_params:
-            records = records.extra(where=where, params=where_params)
-
-    # apply sorting
-    if not count and sort:
-        if ParsedInstance._has_json_fields(sort):
-            # we have to do an sql query for json field order
-            _sql, _params = records.query.sql_with_params()
-            sql = u"{} {}".format(_sql, json_order_by(sort))
-            params = list(_params) + json_order_by_params(sort)
-        elif not fields:
-            records = records.order_by(*sort)
+    start_index = 0 \
+        if limit is not None and start_index is None else start_index
 
     if start_index is not None and \
             (ParsedInstance._has_json_fields(sort) or fields):
@@ -292,6 +235,75 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
     if start_index is not None and limit is None and not fields and \
             not ParsedInstance._has_json_fields(sort):
         records = records[start_index:]
+
+    return records, sql, params
+
+
+def _get_instances(xform, start, end):
+    instances = xform.instances.filter(deleted_at=None)
+    if isinstance(start, datetime.datetime):
+        instances = instances.filter(date_created__gte=start)
+    if isinstance(end, datetime.datetime):
+        instances = instances.filter(date_created__lte=end)
+
+    return instances
+
+
+def _get_sort_fields(sort):
+    sort = ['id'] if sort is None else sort_from_mongo_sort_str(sort)
+
+    return [i for i in _parse_sort_fields(sort)] if sort else sort
+
+
+def query_data(xform, query=None, fields=None, sort=None, start=None,
+               end=None, start_index=None, limit=None, count=None):
+    records = _get_instances(xform, start, end)
+    params = []
+    sort = _get_sort_fields(sort)
+    sql = ""
+
+    known_integers = [
+        get_name_from_survey_element(e)
+        for e in xform.get_survey_elements_of_type('integer')]
+    where, where_params = get_where_clause(query, known_integers)
+
+    if fields and isinstance(fields, six.string_types):
+        fields = json.loads(fields)
+
+    if fields:
+        field_list = [u"json->%s" for i in fields]
+        sql = u"SELECT %s FROM logger_instance" % u",".join(field_list)
+
+        sql_where = u""
+        if where_params:
+            sql_where = u" AND " + u" AND ".join(where)
+
+        sql += u" WHERE xform_id = %s " + sql_where \
+            + u" AND deleted_at IS NULL"
+        params = [xform.pk] + where_params
+    else:
+
+        records = records.values_list('json', flat=True)
+        if where_params:
+            records = records.extra(where=where, params=where_params)
+
+    # apply sorting
+    if not count and sort:
+        if ParsedInstance._has_json_fields(sort):
+            if not fields:
+                # we have to do an sql query for json field order
+                _sql, _params = records.query.sql_with_params()
+                params = list(_params) + json_order_by_params(sort)
+                sql = u"{} {}".format(_sql, json_order_by(sort))
+            else:
+                sql = u"{} {}".format(sql, json_order_by(sort))
+                params = params + json_order_by_params(sort)
+        elif not fields:
+            records = records.order_by(*sort)
+
+    records, sql, params = _start_index_limit(
+        records, sql, fields, params, sort, start_index, limit
+    )
 
     if ParsedInstance._has_json_fields(sort) or fields:
         records = _query_iterator(sql, fields, params, count)
