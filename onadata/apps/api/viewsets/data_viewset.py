@@ -388,7 +388,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         except DataError, e:
             raise ParseError(unicode(e))
 
-        if not isinstance(self.object_list, types.GeneratorType):
+        pagination_keys = [self.paginator.page_query_param,
+                           self.paginator.page_size_query_param]
+        query_param_keys = self.request.query_params
+        should_paginate = any([k in query_param_keys for k in pagination_keys])
+        if not isinstance(self.object_list, types.GeneratorType) and \
+                should_paginate:
             self.object_list = self.paginate_queryset(self.object_list)
             self.total_count = len(self.object_list)
 
