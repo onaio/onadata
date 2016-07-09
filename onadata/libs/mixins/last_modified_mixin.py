@@ -15,7 +15,13 @@ class LastModifiedMixin(object):
             else:
                 obj = None
                 if hasattr(self, 'object_list'):
-                    if not isinstance(self.object_list, types.GeneratorType):
+                    generator_type = isinstance(self.object_list,
+                                                types.GeneratorType)
+                    if isinstance(self.object_list, list) \
+                            and len(self.object_list):
+                        obj = self.object_list[len(self.object_list) - 1]
+                    elif not isinstance(self.object_list, list) and \
+                            not generator_type:
                         obj = self.object_list.last()
 
                 if hasattr(self, 'object'):
