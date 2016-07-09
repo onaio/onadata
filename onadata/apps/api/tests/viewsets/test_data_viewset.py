@@ -282,7 +282,8 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
-        self.assertIsNotNone(response.get('ETag'))
+        self.assertTrue(response.has_header('Last-Modified'))
+        self.assertFalse(response.has_header('ETag'))
 
         request = self.factory.get('/', data={"start": "1", "limit": 2},
                                    **self.extra)
@@ -294,7 +295,6 @@ class TestDataViewSet(TestBase):
         self.assertEqual([i['_uuid'] for i in data],
                          [u'f3d8dc65-91a6-4d0f-9e97-802128083390',
                           u'9c6f3468-cfda-46e8-84c1-75458e72805d'])
-        self.assertIsNotNone(response.get('ETag'))
 
         request = self.factory.get('/', data={"start": "3", "limit": 1},
                                    **self.extra)
@@ -305,20 +305,17 @@ class TestDataViewSet(TestBase):
         data = json.loads(response.content)
         self.assertEqual([i['_uuid'] for i in data],
                          [u'9f0a1508-c3b7-4c99-be00-9b237c26bcbf'])
-        self.assertIsNotNone(response.get('ETag'))
 
         request = self.factory.get('/', data={"limit": "3"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
-        self.assertIsNotNone(response.get('ETag'))
 
         request = self.factory.get(
             '/', data={"start": "1", "limit": "2"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
-        self.assertIsNotNone(response.get('ETag'))
 
         # invalid start is ignored, all data is returned
         request = self.factory.get('/', data={"start": "invalid"},
@@ -326,7 +323,6 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
-        self.assertIsNotNone(response.get('ETag'))
 
         # invalid limit is ignored, all data is returned
         request = self.factory.get('/', data={"limit": "invalid"},
@@ -334,7 +330,6 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
-        self.assertIsNotNone(response.get('ETag'))
 
     def test_data_anon(self):
         self._make_submissions()
@@ -1372,7 +1367,7 @@ class TestDataViewSet(TestBase):
 
         self.assertEquals(len(response.data), 1)
 
-    def test_etag_on_response(self):
+    def test_last_modified_on_data_list_response(self):
         self._make_submissions()
 
         view = DataViewSet.as_view({'get': 'list'})
@@ -1383,8 +1378,9 @@ class TestDataViewSet(TestBase):
         self.assertEquals(response.status_code, 200)
         self.assertEqual(response.get('Cache-Control'), 'max-age=60')
 
-        self.assertIsNotNone(response.get('ETag'))
-        etag_hash = response.get('ETag')
+        self.assertTrue(response.has_header('Last-Modified'))
+        self.assertFalse(response.has_header('ETag'))
+        last_modified = response.get('Last-Modified')
 
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
@@ -1393,7 +1389,7 @@ class TestDataViewSet(TestBase):
 
         self.assertEquals(response.status_code, 200)
 
-        self.assertEquals(etag_hash, response.get('ETag'))
+        self.assertEquals(last_modified, response.get('Last-Modified'))
 
         # delete one submission
         inst = Instance.objects.filter(xform=self.xform)
@@ -1405,8 +1401,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
 
         self.assertEquals(response.status_code, 200)
-
-        self.assertNotEquals(etag_hash, response.get('ETag'))
+        self.assertNotEquals(last_modified, response.get('Last-Modified'))
 
     def test_submission_history(self):
         """Test submission json includes has_history key"""
