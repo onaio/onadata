@@ -4,10 +4,10 @@ import os
 import requests
 import datetime
 from mock import patch
-
 from datetime import timedelta
 from django.utils import timezone
 from django.test import RequestFactory
+from django.test.utils import override_settings
 from django_digest.test import DigestAuth
 from django_digest.test import Client as DigestClient
 from httmock import urlmatch, HTTMock
@@ -91,6 +91,44 @@ class TestDataViewSet(TestBase):
         dataid = self.xform.instances.all().order_by('id')[0].pk
         data = _data_instance(dataid)
         self.assertDictContainsSubset(data, sorted(response.data)[0])
+
+        data = {
+            u'_xform_id_string': u'transportation_2011_07_25',
+            u'transport/available_transportation_types_to_referral_facility':
+            u'none',
+            u'_submitted_by': u'bob',
+        }
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertIsInstance(response.data, dict)
+        self.assertDictContainsSubset(data, response.data)
+
+    @override_settings(STREAM_DATA=True)
+    def test_data_streaming(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+        formid = self.xform.pk
+        data = _data_list(formid)
+        self.assertEqual(response.data, data)
+
+        # expect streaming response
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        streaming_data = json.loads(
+            u''.join([i for i in response.streaming_content])
+        )
+        self.assertIsInstance(streaming_data, list)
+        self.assertTrue(self.xform.instances.count())
+
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        data = _data_instance(dataid)
+        self.assertDictContainsSubset(data, sorted(streaming_data)[0])
 
         data = {
             u'_xform_id_string': u'transportation_2011_07_25',

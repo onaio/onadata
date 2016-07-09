@@ -3,6 +3,7 @@ import types
 
 from django.db.models import Q
 from django.db.utils import DataError
+from django.conf import settings
 from django.http import Http404
 from django.http import StreamingHttpResponse
 from django.utils import six
@@ -389,27 +390,31 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         if not isinstance(self.object_list, types.GeneratorType):
             self.object_list = self.paginate_queryset(self.object_list)
+            self.total_count = len(self.object_list)
 
-        serializer = self.get_serializer(self.object_list, many=True)
+        STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
+        if STREAM_DATA:
+            def stream_json(data, length):
+                counter = 0
 
-        def stream_json(data, length):
-            counter = 0
-            yield u"["
-            for i in data:
-                yield json.dumps(i.json if isinstance(i, Instance) else i)
-                yield "" if counter + 1 == length else ","
-                counter += 1
+                yield u"["
 
-            yield u"]"
+                for i in data:
+                    yield json.dumps(i.json if isinstance(i, Instance) else i)
+                    yield "" if counter + 1 == length else ","
+                    counter += 1
 
-        response = StreamingHttpResponse(
-            stream_json(self.object_list, self.total_count),
-            content_type="application/json"
-        )
+                yield u"]"
+
+            response = StreamingHttpResponse(
+                stream_json(self.object_list, self.total_count),
+                content_type="application/json"
+            )
+        else:
+            serializer = self.get_serializer(self.object_list, many=True)
+            response = Response(serializer.data)
 
         return response
-
-        # return Response(serializer.data)
 
 
 class AuthenticatedDataViewSet(DataViewSet):
