@@ -250,7 +250,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
-        # invalid page size is ignores
+        # invalid page size is ignored
         request = self.factory.get('/', data={"page_size": "invalid"},
                                    **self.extra)
         response = view(request, pk=formid)

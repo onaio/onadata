@@ -395,7 +395,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if not isinstance(self.object_list, types.GeneratorType) and \
                 should_paginate:
             self.object_list = self.paginate_queryset(self.object_list)
-            self.total_count = len(self.object_list)
 
         STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
         if STREAM_DATA:
@@ -411,8 +410,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
                 yield u"]"
 
+            length = self.total_count \
+                if should_paginate else len(self.object_list)
             response = StreamingHttpResponse(
-                stream_json(self.object_list, self.total_count),
+                stream_json(self.object_list, length),
                 content_type="application/json"
             )
         else:
