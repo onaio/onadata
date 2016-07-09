@@ -8,7 +8,7 @@ class LastModifiedMixin(object):
     last_modified_date = None
 
     def finalize_response(self, request, response, *args, **kwargs):
-        if request.method == 'GET':
+        if request.method == 'GET' and response.status_code < 300:
             if self.last_modified_date is not None:
                 self.headers.update(
                     last_modified_header(self.last_modified_date))
@@ -24,8 +24,7 @@ class LastModifiedMixin(object):
                 if not obj:
                     obj = self.queryset.last()
 
-                if response.status_code < 400:
-                    self.headers.update(last_modified_header(get_date(obj)))
+                self.headers.update(last_modified_header(get_date(obj)))
 
         return super(LastModifiedMixin, self).finalize_response(
             request, response, *args, **kwargs)
