@@ -1,5 +1,5 @@
 import json
-# import types
+import types
 
 from django.db.models import Q
 from django.db.utils import DataError
@@ -357,8 +357,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
         try:
-            where, where_params = get_where_clause(query)
+            if not is_public_request:
+                xform = self.get_object()
+                self.last_modified_date = xform.date_modified
 
+            where, where_params = get_where_clause(query)
             if where:
                 self.object_list = self.object_list.extra(where=where,
                                                           params=where_params)
@@ -370,8 +373,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     self.object_list.order_by('pk')[start: limit]
                 self.total_count = self.object_list.count()
             elif (sort or limit or start or fields) and not is_public_request:
-                xform = self.get_object()
-                self.last_modified_date = xform.date_modified
                 self.object_list = \
                     query_data(xform, query=query, sort=sort,
                                start_index=start, limit=limit, fields=fields)
@@ -379,15 +380,18 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     xform, query=query, sort=sort, start_index=start,
                     limit=limit, fields=fields, count=True
                 )[0].get('count')
+            else:
+                self.total_count = self.object_list.count()
         except ValueError, e:
             raise ParseError(unicode(e))
         except DataError, e:
             raise ParseError(unicode(e))
 
-        # if not isinstance(self.object_list, types.GeneratorType):
-        #     self.object_list = self.paginate_queryset(self.object_list)
+        if not isinstance(self.object_list, types.GeneratorType):
+            self.object_list = self.paginate_queryset(self.object_list)
 
-        # serializer = self.get_serializer(self.object_list, many=True)
+        serializer = self.get_serializer(self.object_list, many=True)
+
         def stream_json(data, length):
             counter = 0
             yield u"["
