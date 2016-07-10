@@ -116,7 +116,13 @@ def _parse_where(query, known_integers, or_where, or_params):
     # using a dictionary here just incase we will need to filter using
     # other table columns
     where, where_params = [], []
-
+    OPERANDS = {
+        '$gt': '>',
+        '$gte': '>=',
+        '$lt': '<',
+        '$lte': '<=',
+        '$i': '~*'
+    }
     for field_key, field_value in query.iteritems():
         if isinstance(field_value, dict):
             if field_key in NONE_JSON_FIELDS:
@@ -126,23 +132,11 @@ def _parse_where(query, known_integers, or_where, or_params):
                     field_key, known_integers, KNOWN_DATES)
             for key, value in field_value.iteritems():
                 _v = None
-                if '$gt' == key:
-                    where.append(u"{} > %s".format(json_str))
-                    _v = value
-                if '$gte' == key:
-                    where.append(u"{} >= %s".format(json_str))
-                    _v = value
-                if '$lt' == key:
-                    where.append(u"{} < %s".format(json_str))
-                    _v = value
-                if '$lte' == key:
-                    where.append(u"{} <= %s".format(json_str))
-                    _v = value
-                if '$i' == key:
-                    where.append(u"{} ~* %s".format(json_str))
-                    _v = value
-                if _v is None:
-                    _v = value
+                if key in OPERANDS:
+                    where.append(
+                        u' '.join([json_str, OPERANDS.get(key), u'%s'])
+                    )
+                _v = value
                 if field_key in KNOWN_DATES:
                     _v = datetime.datetime.strptime(
                         _v[:19], MONGO_STRFTIME)
