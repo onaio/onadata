@@ -16,8 +16,7 @@ class ETagsMixin(object):
 
     def finalize_response(self, request, response, *args, **kwargs):
         if request.method == 'GET' and not response.streaming and \
-                response.status_code in [200, 201, 202] and \
-                not hasattr(self, 'object_list'):
+                response.status_code in [200, 201, 202]:
             etag_value = None
             if hasattr(self, 'etag_data') and self.etag_data:
                 etag_value = str(self.etag_data)
@@ -25,12 +24,11 @@ class ETagsMixin(object):
                 if self.object.__class__.__name__ in MODELS_WITH_DATE_MODIFIED:
                     etag_value = self.object.date_modified
 
-            hash_value = md5(
-                '%s' % (etag_value if etag_value is not None else now())
-            ).hexdigest()
-            value = "W/{}".format(hash_value)
+            if etag_value:
+                hash_value = md5('%s' % (etag_value)).hexdigest()
+                value = "W/{}".format(hash_value)
 
-            self.headers.update({'ETag': value})
+                self.headers.update({'ETag': value})
 
         return super(ETagsMixin, self).finalize_response(
             request, response, *args, **kwargs)
