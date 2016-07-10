@@ -397,27 +397,45 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
         if STREAM_DATA:
-            def stream_json(data, length):
-                counter = 0
-
-                yield u"["
-
-                for i in data:
-                    yield json.dumps(i.json if isinstance(i, Instance) else i)
-                    yield "" if counter + 1 == length else ","
-                    counter += 1
-
-                yield u"]"
-
             length = self.total_count \
                 if should_paginate else len(self.object_list)
-            response = StreamingHttpResponse(
-                stream_json(self.object_list, length),
-                content_type="application/json"
-            )
+            response = self._get_streaming_response(length)
         else:
             serializer = self.get_serializer(self.object_list, many=True)
             response = Response(serializer.data)
+
+        return response
+
+    def _get_streaming_response(self, length):
+        """Get a StreamingHttpResponse response object
+
+        @param length ensures a valid JSON is generated, avoid a trailing comma
+        """
+        def stream_json(data, length):
+            """Generator function to stream JSON data"""
+            counter = 0
+
+            yield u"["
+
+            for i in data:
+                yield json.dumps(i.json if isinstance(i, Instance) else i)
+                yield "" if counter + 1 == length else ","
+                counter += 1
+
+            yield u"]"
+
+        response = StreamingHttpResponse(
+            stream_json(self.object_list, length),
+            content_type="application/json"
+        )
+
+        # calculate etag value and add it to response headers
+        if hasattr(self, 'etag_data'):
+            self.set_etag_header(self.etag_data)
+
+        # set headers on streaming response
+        for k, v in self.headers.items():
+            response[k] = v
 
         return response
 
