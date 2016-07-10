@@ -320,8 +320,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
-        self.assertTrue(response.has_header('Last-Modified'))
-        self.assertFalse(response.has_header('ETag'))
+        self.assertTrue(response.has_header('ETag'))
 
         request = self.factory.get('/', data={"start": "1", "limit": 2},
                                    **self.extra)
@@ -1416,9 +1415,8 @@ class TestDataViewSet(TestBase):
         self.assertEquals(response.status_code, 200)
         self.assertEqual(response.get('Cache-Control'), 'max-age=60')
 
-        self.assertTrue(response.has_header('Last-Modified'))
-        self.assertFalse(response.has_header('ETag'))
-        last_modified = response.get('Last-Modified')
+        self.assertTrue(response.has_header('ETag'))
+        etag_value = response.get('ETag')
 
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
@@ -1427,7 +1425,7 @@ class TestDataViewSet(TestBase):
 
         self.assertEquals(response.status_code, 200)
 
-        self.assertEquals(last_modified, response.get('Last-Modified'))
+        self.assertEquals(etag_value, response.get('ETag'))
 
         # delete one submission
         inst = Instance.objects.filter(xform=self.xform)
@@ -1439,7 +1437,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
 
         self.assertEquals(response.status_code, 200)
-        self.assertNotEquals(last_modified, response.get('Last-Modified'))
+        self.assertNotEquals(etag_value, response.get('ETag'))
 
     def test_submission_history(self):
         """Test submission json includes has_history key"""
