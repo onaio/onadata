@@ -1,4 +1,3 @@
-from django.utils.timezone import now
 from hashlib import md5
 
 MODELS_WITH_DATE_MODIFIED = ('XForm', 'Instance', 'Project', 'Attachment',
@@ -14,6 +13,13 @@ class ETagsMixin(object):
         otherwise the date_modifed of self.object or self.object_list is used.
     """
 
+    def set_etag_header(self, etag_value):
+        if etag_value:
+            hash_value = md5('%s' % (etag_value)).hexdigest()
+            value = "W/{}".format(hash_value)
+
+            self.headers.update({'ETag': value})
+
     def finalize_response(self, request, response, *args, **kwargs):
         if request.method == 'GET' and not response.streaming and \
                 response.status_code in [200, 201, 202]:
@@ -24,11 +30,8 @@ class ETagsMixin(object):
                 if self.object.__class__.__name__ in MODELS_WITH_DATE_MODIFIED:
                     etag_value = self.object.date_modified
 
-            if etag_value:
-                hash_value = md5('%s' % (etag_value)).hexdigest()
-                value = "W/{}".format(hash_value)
-
-                self.headers.update({'ETag': value})
+            self.set_etag_header(etag_value)
 
         return super(ETagsMixin, self).finalize_response(
-            request, response, *args, **kwargs)
+            request, response, *args, **kwargs
+        )
