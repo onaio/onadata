@@ -624,6 +624,11 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
 
     def list(self, request, *args, **kwargs):
         try:
+            queryset = self.filter_queryset(self.get_queryset())
+            last_modified = queryset.values_list('date_modified', flat=True)\
+                .order_by('-date_modified')
+            if last_modified:
+                self.etag_data = last_modified[0]
             resp = super(XFormViewSet, self).list(request, *args, **kwargs)
         except XLSFormError, e:
             resp = HttpResponseBadRequest(e.message)
