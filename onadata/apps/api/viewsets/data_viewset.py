@@ -34,7 +34,6 @@ from onadata.libs.mixins.authenticate_header_mixin import \
     AuthenticateHeaderMixin
 from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
 from onadata.libs.mixins.total_header_mixin import TotalHeaderMixin
 from onadata.libs.pagination import StandardPageNumberPagination
 from onadata.libs.serializers.data_serializer import DataSerializer
@@ -68,7 +67,7 @@ def get_data_and_form(kwargs):
 class DataViewSet(AnonymousUserPublicFormsMixin,
                   AuthenticateHeaderMixin,
                   ETagsMixin, CacheControlMixin,
-                  LastModifiedMixin, TotalHeaderMixin,
+                  TotalHeaderMixin,
                   BaseViewset,
                   ModelViewSet):
     """
@@ -360,7 +359,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         try:
             if not is_public_request:
                 xform = self.get_object()
-                self.last_modified_date = xform.date_modified
+                self.etag_data = xform.date_modified
 
             where, where_params = get_where_clause(query)
             if where:
