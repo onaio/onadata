@@ -15,8 +15,8 @@ class ETagsMixin(object):
 
     def set_etag_header(self, etag_value):
         if etag_value:
-            hash_value = md5('%s' % (etag_value)).hexdigest()
-            value = "W/{}".format(hash_value)
+            hash_value = md5(str(etag_value)).hexdigest()
+            value = "W/%s" % hash_value
 
             self.headers.update({'ETag': value})
 
