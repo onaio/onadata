@@ -252,7 +252,7 @@ def _get_instances(xform, start, end):
 def _get_sort_fields(sort):
     sort = ['id'] if sort is None else sort_from_mongo_sort_str(sort)
 
-    return [i for i in _parse_sort_fields(sort)] if sort else sort
+    return [i for i in _parse_sort_fields(sort)]
 
 
 def query_data(xform, query=None, fields=None, sort=None, start=None,
@@ -291,13 +291,10 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
     if not count and sort:
         if ParsedInstance._has_json_fields(sort):
             if not fields:
-                # we have to do an sql query for json field order
-                _sql, _params = records.query.sql_with_params()
-                params = list(_params) + json_order_by_params(sort)
-                sql = u"{} {}".format(_sql, json_order_by(sort))
-            else:
-                sql = u"{} {}".format(sql, json_order_by(sort))
-                params = params + json_order_by_params(sort)
+                # we have to do a sql query for json field order
+                sql, params = records.query.sql_with_params()
+            params = list(params) + json_order_by_params(sort)
+            sql = u"%s %s" % (sql, json_order_by(sort))
         elif not fields:
             records = records.order_by(*sort)
 
