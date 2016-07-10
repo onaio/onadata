@@ -222,12 +222,11 @@ def _start_index_limit(records, sql, fields, params, sort, start_index, limit):
 
     if start_index is not None and \
             (ParsedInstance._has_json_fields(sort) or fields):
-        _sql, _params = sql, params
-        params = _params + [start_index]
-        sql = u"{} OFFSET %s".format(_sql)
+        params += [start_index]
+        sql = u"%s OFFSET %%s" % sql
     if limit is not None and \
             (ParsedInstance._has_json_fields(sort) or fields):
-        sql = u"{} LIMIT %s".format(sql)
+        sql = u"%s LIMIT %%s" % sql
         params += [limit]
     if start_index is not None and limit is not None and not fields and  \
             not ParsedInstance._has_json_fields(sort):
