@@ -107,9 +107,7 @@ def get_name_from_survey_element(element):
 
 def _parse_sort_fields(fields):
     for field in fields:
-        if field in NONE_JSON_FIELDS.keys():
-            field = NONE_JSON_FIELDS[field]
-        yield field
+        yield NONE_JSON_FIELDS.get(field, field)
 
 
 def _parse_where(query, known_integers, or_where, or_params):
