@@ -81,20 +81,6 @@ def get_column_names_only(columns, dd, group_delimiter):
     return new_columns
 
 
-def process_notes(notes):
-    """
-    Retrieve a list of notes with their authors
-    :param notes:
-    :return:
-    """
-    notes_list = []
-    for note in notes:
-        notes_list.append("{}: {}".format(note.get("note"),
-                                          note.get("owner")))
-
-    return notes_list
-
-
 def write_to_csv(path, rows, columns, columns_with_hxl=None,
                  remove_group_name=False, dd=None,
                  group_delimiter=DEFAULT_GROUP_DELIMITER, include_labels=False,
@@ -394,7 +380,8 @@ class CSVDataFrameBuilder(AbstractDataFrameBuilder):
             # anything that's not a list will be in the top level dict so its
             # safe to simply assign
             if key == NOTES:
-                d[key] = u" ".join(process_notes(value))
+                # Do not include notes
+                d[key] = u""
             else:
                 d[key] = get_value_or_attachment_uri(
                     key, value, row, data_dictionary, include_images
