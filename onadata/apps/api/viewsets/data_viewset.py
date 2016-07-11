@@ -413,14 +413,11 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         """
         def stream_json(data, length):
             """Generator function to stream JSON data"""
-            counter = 0
-
             yield u"["
 
-            for i in data:
-                yield json.dumps(i.json if isinstance(i, Instance) else i)
-                yield "" if counter + 1 == length else ","
-                counter += 1
+            for i, d in enumerate(data, start=1):
+                yield json.dumps(d.json if isinstance(d, Instance) else d)
+                yield "" if i == length else ","
 
             yield u"]"
 
