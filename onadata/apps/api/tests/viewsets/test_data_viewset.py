@@ -4,10 +4,10 @@ import os
 import requests
 import datetime
 from mock import patch
-
 from datetime import timedelta
 from django.utils import timezone
 from django.test import RequestFactory
+from django.test.utils import override_settings
 from django_digest.test import DigestAuth
 from django_digest.test import Client as DigestClient
 from httmock import urlmatch, HTTMock
@@ -91,6 +91,44 @@ class TestDataViewSet(TestBase):
         dataid = self.xform.instances.all().order_by('id')[0].pk
         data = _data_instance(dataid)
         self.assertDictContainsSubset(data, sorted(response.data)[0])
+
+        data = {
+            u'_xform_id_string': u'transportation_2011_07_25',
+            u'transport/available_transportation_types_to_referral_facility':
+            u'none',
+            u'_submitted_by': u'bob',
+        }
+        view = DataViewSet.as_view({'get': 'retrieve'})
+        response = view(request, pk=formid, dataid=dataid)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertIsInstance(response.data, dict)
+        self.assertDictContainsSubset(data, response.data)
+
+    @override_settings(STREAM_DATA=True)
+    def test_data_streaming(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/', **self.extra)
+        response = view(request)
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+        formid = self.xform.pk
+        data = _data_list(formid)
+        self.assertEqual(response.data, data)
+
+        # expect streaming response
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        streaming_data = json.loads(
+            u''.join([i for i in response.streaming_content])
+        )
+        self.assertIsInstance(streaming_data, list)
+        self.assertTrue(self.xform.instances.count())
+
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        data = _data_instance(dataid)
+        self.assertDictContainsSubset(data, sorted(streaming_data)[0])
 
         data = {
             u'_xform_id_string': u'transportation_2011_07_25',
@@ -212,7 +250,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 404)
 
-        # invalid page size is ignores
+        # invalid page size is ignored
         request = self.factory.get('/', data={"page_size": "invalid"},
                                    **self.extra)
         response = view(request, pk=formid)
@@ -282,7 +320,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
-        self.assertIsNotNone(response.get('ETag'))
+        self.assertTrue(response.has_header('ETag'))
 
         request = self.factory.get('/', data={"start": "1", "limit": 2},
                                    **self.extra)
@@ -294,7 +332,6 @@ class TestDataViewSet(TestBase):
         self.assertEqual([i['_uuid'] for i in data],
                          [u'f3d8dc65-91a6-4d0f-9e97-802128083390',
                           u'9c6f3468-cfda-46e8-84c1-75458e72805d'])
-        self.assertIsNotNone(response.get('ETag'))
 
         request = self.factory.get('/', data={"start": "3", "limit": 1},
                                    **self.extra)
@@ -305,20 +342,17 @@ class TestDataViewSet(TestBase):
         data = json.loads(response.content)
         self.assertEqual([i['_uuid'] for i in data],
                          [u'9f0a1508-c3b7-4c99-be00-9b237c26bcbf'])
-        self.assertIsNotNone(response.get('ETag'))
 
         request = self.factory.get('/', data={"limit": "3"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
-        self.assertIsNotNone(response.get('ETag'))
 
         request = self.factory.get(
             '/', data={"start": "1", "limit": "2"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
-        self.assertIsNotNone(response.get('ETag'))
 
         # invalid start is ignored, all data is returned
         request = self.factory.get('/', data={"start": "invalid"},
@@ -326,7 +360,6 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
-        self.assertIsNotNone(response.get('ETag'))
 
         # invalid limit is ignored, all data is returned
         request = self.factory.get('/', data={"limit": "invalid"},
@@ -334,7 +367,6 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
-        self.assertIsNotNone(response.get('ETag'))
 
     def test_data_anon(self):
         self._make_submissions()
@@ -1372,7 +1404,7 @@ class TestDataViewSet(TestBase):
 
         self.assertEquals(len(response.data), 1)
 
-    def test_etag_on_response(self):
+    def test_last_modified_on_data_list_response(self):
         self._make_submissions()
 
         view = DataViewSet.as_view({'get': 'list'})
@@ -1383,8 +1415,8 @@ class TestDataViewSet(TestBase):
         self.assertEquals(response.status_code, 200)
         self.assertEqual(response.get('Cache-Control'), 'max-age=60')
 
-        self.assertIsNotNone(response.get('ETag'))
-        etag_hash = response.get('ETag')
+        self.assertTrue(response.has_header('ETag'))
+        etag_value = response.get('ETag')
 
         view = DataViewSet.as_view({'get': 'list'})
         request = self.factory.get('/', **self.extra)
@@ -1393,7 +1425,7 @@ class TestDataViewSet(TestBase):
 
         self.assertEquals(response.status_code, 200)
 
-        self.assertEquals(etag_hash, response.get('ETag'))
+        self.assertEquals(etag_value, response.get('ETag'))
 
         # delete one submission
         inst = Instance.objects.filter(xform=self.xform)
@@ -1405,8 +1437,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
 
         self.assertEquals(response.status_code, 200)
-
-        self.assertNotEquals(etag_hash, response.get('ETag'))
+        self.assertNotEquals(etag_value, response.get('ETag'))
 
     def test_submission_history(self):
         """Test submission json includes has_history key"""

@@ -93,10 +93,9 @@ def _submission_response(request, instance):
     data['submissionDate'] = instance.date_created.isoformat()
     data['markedAsCompleteDate'] = instance.date_modified.isoformat()
 
-    context = RequestContext(request, data)
     t = loader.get_template('submission.xml')
 
-    return BaseOpenRosaResponse(t.render(context))
+    return BaseOpenRosaResponse(t.render(data))
 
 
 @require_POST

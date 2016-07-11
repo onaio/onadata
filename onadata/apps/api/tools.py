@@ -459,7 +459,8 @@ def check_inherit_permission_from_project(xform_id, user):
         return
 
     # get the project_xform
-    xforms = XForm.objects.filter(pk=xform_id)
+    xforms = XForm.objects.filter(pk=xform_id)\
+        .select_related('project')
 
     if not xforms:
         return

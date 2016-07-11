@@ -1,8 +1,11 @@
+import json
 import types
 
 from django.db.models import Q
 from django.db.utils import DataError
+from django.conf import settings
 from django.http import Http404
+from django.http import StreamingHttpResponse
 from django.utils import six
 from django.utils.translation import ugettext as _
 from django.core.exceptions import PermissionDenied
@@ -48,8 +51,6 @@ from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.data import parse_int
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
-from onadata.libs.mixins.profiler_mixin import ProfilerMixin
-from onadata.libs.utils.profiler import profile
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 BaseViewset = get_baseviewset_class()
@@ -66,7 +67,7 @@ def get_data_and_form(kwargs):
 class DataViewSet(AnonymousUserPublicFormsMixin,
                   AuthenticateHeaderMixin,
                   ETagsMixin, CacheControlMixin,
-                  TotalHeaderMixin, ProfilerMixin,
+                  TotalHeaderMixin,
                   BaseViewset,
                   ModelViewSet):
     """
@@ -293,7 +294,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 _(u"'%(_format)s' format unknown or not implemented!" %
                   {'_format': _format}))
 
-    @profile("get_data.prof")
     def list(self, request, *args, **kwargs):
         fields = request.GET.get("fields")
         query = request.GET.get("query", {})
@@ -314,8 +314,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         if is_public_request:
             self.object_list = self._get_public_forms_queryset()
         elif lookup:
-            qs = self.filter_queryset(self.get_queryset())
-            self.object_list = Instance.objects.filter(xform__in=qs,
+            qs = self.filter_queryset(self.get_queryset())\
+                .values_list('pk', flat=True)
+            xform_id = qs[0] if qs else lookup
+            self.object_list = Instance.objects.filter(xform_id=xform_id,
                                                        deleted_at=None)
             tags = self.request.query_params.get('tags')
             not_tagged = self.request.query_params.get('not_tagged')
@@ -355,39 +357,87 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
     def _get_data(self, query, fields, sort, start, limit, is_public_request):
         try:
-            where, where_params = get_where_clause(query)
+            if not is_public_request:
+                xform = self.get_object()
+                self.etag_data = xform.date_modified
 
+            where, where_params = get_where_clause(query)
             if where:
                 self.object_list = self.object_list.extra(where=where,
                                                           params=where_params)
-            self.total_count = self.object_list.count()
 
             if (start and limit or limit) and (not sort and not fields):
                 start = start if start is not None else 0
                 limit = limit if start is None or start == 0 else start + limit
                 self.object_list = \
                     self.object_list.order_by('pk')[start: limit]
+                self.total_count = self.object_list.count()
             elif (sort or limit or start or fields) and not is_public_request:
-                if self.object_list.count():
-                    xform = self.object_list[0].xform
-                    self.object_list = \
-                        query_data(xform, query=query, sort=sort,
-                                   start_index=start, limit=limit,
-                                   fields=fields)
+                self.object_list = \
+                    query_data(xform, query=query, sort=sort,
+                               start_index=start, limit=limit, fields=fields)
+                self.total_count = query_data(
+                    xform, query=query, sort=sort, start_index=start,
+                    limit=limit, fields=fields, count=True
+                )[0].get('count')
+            else:
+                self.total_count = self.object_list.count()
         except ValueError, e:
             raise ParseError(unicode(e))
         except DataError, e:
             raise ParseError(unicode(e))
 
-        page = None
-        if not isinstance(self.object_list, types.GeneratorType):
-            page = self.paginate_queryset(self.object_list)
-            if page is not None:
-                serializer = self.get_serializer(page, many=True)
-        if page is None:
-            serializer = self.get_serializer(self.object_list, many=True)
+        pagination_keys = [self.paginator.page_query_param,
+                           self.paginator.page_size_query_param]
+        query_param_keys = self.request.query_params
+        should_paginate = any([k in query_param_keys for k in pagination_keys])
+        if not isinstance(self.object_list, types.GeneratorType) and \
+                should_paginate:
+            self.object_list = self.paginate_queryset(self.object_list)
 
-        return Response(serializer.data)
+        STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
+        if STREAM_DATA:
+            length = self.total_count \
+                if should_paginate else len(self.object_list)
+            response = self._get_streaming_response(length)
+        else:
+            serializer = self.get_serializer(self.object_list, many=True)
+            response = Response(serializer.data)
+
+        return response
+
+    def _get_streaming_response(self, length):
+        """Get a StreamingHttpResponse response object
+
+        @param length ensures a valid JSON is generated, avoid a trailing comma
+        """
+        def stream_json(data, length):
+            """Generator function to stream JSON data"""
+            counter = 0
+
+            yield u"["
+
+            for i in data:
+                yield json.dumps(i.json if isinstance(i, Instance) else i)
+                yield "" if counter + 1 == length else ","
+                counter += 1
+
+            yield u"]"
+
+        response = StreamingHttpResponse(
+            stream_json(self.object_list, length),
+            content_type="application/json"
+        )
+
+        # calculate etag value and add it to response headers
+        if hasattr(self, 'etag_data'):
+            self.set_etag_header(self.etag_data)
+
+        # set headers on streaming response
+        for k, v in self.headers.items():
+            response[k] = v
+
+        return response
 
 
 class AuthenticatedDataViewSet(DataViewSet):
