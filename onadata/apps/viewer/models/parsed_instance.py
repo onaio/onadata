@@ -40,7 +40,10 @@ key_whitelist = ['$or', '$and', '$exists', '$in', '$gt', '$gte',
                  '$lt', '$lte', '$regex', '$options', '$all']
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
 KNOWN_DATES = ['_submission_time']
-NONE_JSON_FIELDS = {'_submission_time': 'date_created'}
+NONE_JSON_FIELDS = {
+    '_submission_time': 'date_created',
+    '_id': 'id'
+}
 
 
 class ParseError(Exception):
@@ -208,6 +211,9 @@ def _start_index_limit(records, sql, fields, params, sort, start_index, limit):
     if start_index is not None and \
             (start_index < 0 or (limit is not None and limit < 0)):
         raise ValueError(_("Invalid start/limit params"))
+    if (start_index is not None or limit is not None) and not sql:
+        sql, params = records.query.sql_with_params()
+        params = list(params)
 
     start_index = 0 \
         if limit is not None and start_index is None else start_index

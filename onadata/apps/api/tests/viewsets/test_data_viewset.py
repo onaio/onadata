@@ -368,6 +368,22 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
 
+    def test_data_start_limit_sort(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        data = {"start": 1, "limit": 2, "sort": '{"_id":1}'}
+        request = self.factory.get('/', data=data,
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+        response.render()
+        data = json.loads(response.content)
+        self.assertEqual([i['_uuid'] for i in data],
+                         [u'f3d8dc65-91a6-4d0f-9e97-802128083390',
+                          u'9c6f3468-cfda-46e8-84c1-75458e72805d'])
+
     def test_data_anon(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})
