@@ -384,6 +384,44 @@ class TestDataViewSet(TestBase):
                          [u'f3d8dc65-91a6-4d0f-9e97-802128083390',
                           u'9c6f3468-cfda-46e8-84c1-75458e72805d'])
 
+    @override_settings(STREAM_DATA=True)
+    def test_data_start_limit_sort_json_field(self):
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        # will result in a generator due to the JSON sort
+        # hence self.total_count will be used for length in streaming response
+        data = {
+            "start": 1,
+            "limit": 2,
+            "sort": '{"transport/available_transportation_types_to_referral_facility":1}'  # noqa
+        }
+        request = self.factory.get('/', data=data,
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(''.join([c for c in response.streaming_content]))
+        self.assertEqual(len(data), 2)
+        self.assertEqual([i['_uuid'] for i in data],
+                         [u'f3d8dc65-91a6-4d0f-9e97-802128083390',
+                          u'5b2cc313-fc09-437e-8149-fcd32f695d41'])
+
+        # will result in a queryset due to the page and page_size params
+        # hence paging and thus len(self.object_list) for length
+        data = {
+            "page": 1,
+            "page_size": 2,
+        }
+        request = self.factory.get('/', data=data,
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(''.join([c for c in response.streaming_content]))
+        self.assertEqual(len(data), 2)
+        self.assertEqual([i['_uuid'] for i in data],
+                         [u'5b2cc313-fc09-437e-8149-fcd32f695d41',
+                          u'9c6f3468-cfda-46e8-84c1-75458e72805d'])
+
     def test_data_anon(self):
         self._make_submissions()
         view = DataViewSet.as_view({'get': 'list'})

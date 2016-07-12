@@ -397,8 +397,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         STREAM_DATA = getattr(settings, 'STREAM_DATA', False)
         if STREAM_DATA:
-            length = self.total_count \
-                if should_paginate else len(self.object_list)
+            length = self.total_count
+            if should_paginate and \
+                    not isinstance(self.object_list, types.GeneratorType):
+                length = len(self.object_list)
             response = self._get_streaming_response(length)
         else:
             serializer = self.get_serializer(self.object_list, many=True)
