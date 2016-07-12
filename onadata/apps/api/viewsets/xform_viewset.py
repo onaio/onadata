@@ -235,13 +235,19 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         renderers.ZipRenderer,
         renderers.GoogleSheetsRenderer
     ]
-    queryset = XForm.objects.select_related().prefetch_related(Prefetch(
-        'xformuserobjectpermission_set',
-        queryset=XFormUserObjectPermission.objects.select_related(
-            'user__profile__organizationprofile',
-            'permission'
+    queryset = XForm.objects.select_related('user', 'created_by')\
+        .prefetch_related(
+            Prefetch(
+                'xformuserobjectpermission_set',
+                queryset=XFormUserObjectPermission.objects.select_related(
+                    'user__profile__organizationprofile',
+                    'permission'
+                )
+            ),
+            Prefetch('metadata_set'),
+            Prefetch('tags'),
+            Prefetch('dataview_set')
         )
-    ))
     serializer_class = XFormSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
