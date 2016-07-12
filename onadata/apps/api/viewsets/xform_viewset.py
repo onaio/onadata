@@ -43,7 +43,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import (
-    XFormSerializer, XFormCreateSerializer)
+    XFormBaseSerializer, XFormSerializer, XFormCreateSerializer)
 from onadata.libs.serializers.clone_xform_serializer import \
     CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import (
@@ -261,6 +261,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     filter_fields = ('instances_with_osm',)
 
     public_forms_endpoint = 'public'
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return XFormBaseSerializer
+
+        return super(XFormViewSet, self).get_serializer_class()
 
     def create(self, request, *args, **kwargs):
         try:

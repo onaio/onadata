@@ -69,9 +69,8 @@ def user_to_username(item):
     return item
 
 
-class XFormSerializer(serializers.HyperlinkedModelSerializer):
+class XFormBaseSerializer(serializers.HyperlinkedModelSerializer):
     formid = serializers.ReadOnlyField(source='id')
-    metadata = serializers.SerializerMethodField()
     owner = serializers.HyperlinkedRelatedField(
         view_name='user-detail', source='user', lookup_field='username',
         queryset=User.objects.exclude(
@@ -87,7 +86,6 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     public = serializers.BooleanField(source='shared')
     public_data = serializers.BooleanField(source='shared_data')
     require_auth = serializers.BooleanField()
-    submission_count_for_today = serializers.ReadOnlyField()
     tags = TagListSerializer(read_only=True)
     title = serializers.CharField(max_length=255)
     url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
@@ -95,9 +93,7 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
     users = serializers.SerializerMethodField()
     enketo_url = serializers.SerializerMethodField()
     enketo_preview_url = serializers.SerializerMethodField()
-    instances_with_geopoints = serializers.SerializerMethodField()
     num_of_submissions = serializers.ReadOnlyField()
-    form_versions = serializers.SerializerMethodField()
     data_views = serializers.SerializerMethodField()
 
     class Meta:
@@ -115,15 +111,6 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                     return m.data_value
         else:
             return obj.metadata_set.all()
-
-    def get_instances_with_geopoints(self, obj):
-        if not obj.instances_with_geopoints and obj.num_of_submissions:
-            has_geo = obj.instances.exclude(geom=None).count() > 0
-            if has_geo:
-                obj.instances_with_geopoints = has_geo
-                obj.save(update_fields=['instances_with_geopoints'])
-
-        return obj.instances_with_geopoints
 
     def get_users(self, obj):
         xform_perms = []
@@ -203,6 +190,62 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
 
         return None
 
+    def get_data_views(self, obj):
+        if obj:
+            key = '{}{}'.format(XFORM_LINKED_DATAVIEWS, obj.pk)
+            data_views = cache.get(key)
+            if data_views:
+                return data_views
+
+            data_views = DataViewSerializer(
+                obj.dataview_set.all(),
+                many=True,
+                context=self.context).data
+
+            cache.set(key, list(data_views))
+
+            return data_views
+        return []
+
+
+class XFormSerializer(XFormBaseSerializer):
+    formid = serializers.ReadOnlyField(source='id')
+    metadata = serializers.SerializerMethodField()
+    owner = serializers.HyperlinkedRelatedField(
+        view_name='user-detail', source='user', lookup_field='username',
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
+    )
+    created_by = serializers.HyperlinkedRelatedField(
+        view_name='user-detail', lookup_field='username',
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
+    )
+    public = serializers.BooleanField(source='shared')
+    public_data = serializers.BooleanField(source='shared_data')
+    require_auth = serializers.BooleanField()
+    submission_count_for_today = serializers.ReadOnlyField()
+    tags = TagListSerializer(read_only=True)
+    title = serializers.CharField(max_length=255)
+    url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
+                                               lookup_field='pk')
+    users = serializers.SerializerMethodField()
+    enketo_url = serializers.SerializerMethodField()
+    enketo_preview_url = serializers.SerializerMethodField()
+    num_of_submissions = serializers.ReadOnlyField()
+    form_versions = serializers.SerializerMethodField()
+    data_views = serializers.SerializerMethodField()
+
+    class Meta:
+        model = XForm
+        read_only_fields = (
+            'json', 'xml', 'date_created', 'date_modified', 'encrypted',
+            'bamboo_dataset', 'last_submission_time')
+        exclude = ('json', 'xml', 'xls', 'user', 'has_start_time',
+                   'shared', 'shared_data', 'deleted_at')
+
     def get_metadata(self, obj):
         xform_metadata = []
         if obj:
@@ -238,23 +281,6 @@ class XFormSerializer(serializers.HyperlinkedModelSerializer):
                           list(versions))
 
         return versions
-
-    def get_data_views(self, obj):
-        if obj:
-            key = '{}{}'.format(XFORM_LINKED_DATAVIEWS, obj.pk)
-            data_views = cache.get(key)
-            if data_views:
-                return data_views
-
-            data_views = DataViewSerializer(
-                obj.dataview_set.all(),
-                many=True,
-                context=self.context).data
-
-            cache.set(key, list(data_views))
-
-            return data_views
-        return []
 
 
 class XFormCreateSerializer(XFormSerializer):
