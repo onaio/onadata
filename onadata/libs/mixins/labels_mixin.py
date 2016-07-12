@@ -49,8 +49,8 @@ def _labels_delete(label, instance):
         xform_tags_delete.send(sender=XForm, xform=instance, tag=label)
 
     # Accepted, label does not exist hence nothing removed
-    http_status = status.HTTP_202_ACCEPTED if count == instance.tags.count()\
-        else status.HTTP_200_OK
+    http_status = status.HTTP_202_ACCEPTED \
+        if count == instance.tags.names().count() else status.HTTP_200_OK
 
     return [http_status, list(instance.tags.names())]
 
