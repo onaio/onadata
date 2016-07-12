@@ -69,41 +69,7 @@ def user_to_username(item):
     return item
 
 
-class XFormBaseSerializer(serializers.HyperlinkedModelSerializer):
-    formid = serializers.ReadOnlyField(source='id')
-    owner = serializers.HyperlinkedRelatedField(
-        view_name='user-detail', source='user', lookup_field='username',
-        queryset=User.objects.exclude(
-            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
-        )
-    )
-    created_by = serializers.HyperlinkedRelatedField(
-        view_name='user-detail', lookup_field='username',
-        queryset=User.objects.exclude(
-            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
-        )
-    )
-    public = serializers.BooleanField(source='shared')
-    public_data = serializers.BooleanField(source='shared_data')
-    require_auth = serializers.BooleanField()
-    tags = TagListSerializer(read_only=True)
-    title = serializers.CharField(max_length=255)
-    url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
-                                               lookup_field='pk')
-    users = serializers.SerializerMethodField()
-    enketo_url = serializers.SerializerMethodField()
-    enketo_preview_url = serializers.SerializerMethodField()
-    num_of_submissions = serializers.ReadOnlyField()
-    data_views = serializers.SerializerMethodField()
-
-    class Meta:
-        model = XForm
-        read_only_fields = (
-            'json', 'xml', 'date_created', 'date_modified', 'encrypted',
-            'bamboo_dataset', 'last_submission_time')
-        exclude = ('json', 'xml', 'xls', 'user', 'has_start_time',
-                   'shared', 'shared_data', 'deleted_at')
-
+class XFormMixin(object):
     def _get_metadata(self, obj, key):
         if key:
             for m in obj.metadata_set.all():
@@ -208,7 +174,43 @@ class XFormBaseSerializer(serializers.HyperlinkedModelSerializer):
         return []
 
 
-class XFormSerializer(XFormBaseSerializer):
+class XFormBaseSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
+    formid = serializers.ReadOnlyField(source='id')
+    owner = serializers.HyperlinkedRelatedField(
+        view_name='user-detail', source='user', lookup_field='username',
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
+    )
+    created_by = serializers.HyperlinkedRelatedField(
+        view_name='user-detail', lookup_field='username',
+        queryset=User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
+    )
+    public = serializers.BooleanField(source='shared')
+    public_data = serializers.BooleanField(source='shared_data')
+    require_auth = serializers.BooleanField()
+    tags = TagListSerializer(read_only=True)
+    title = serializers.CharField(max_length=255)
+    url = serializers.HyperlinkedIdentityField(view_name='xform-detail',
+                                               lookup_field='pk')
+    users = serializers.SerializerMethodField()
+    enketo_url = serializers.SerializerMethodField()
+    enketo_preview_url = serializers.SerializerMethodField()
+    num_of_submissions = serializers.ReadOnlyField()
+    data_views = serializers.SerializerMethodField()
+
+    class Meta:
+        model = XForm
+        read_only_fields = (
+            'json', 'xml', 'date_created', 'date_modified', 'encrypted',
+            'bamboo_dataset', 'last_submission_time')
+        exclude = ('json', 'xml', 'xls', 'user', 'has_start_time',
+                   'shared', 'shared_data', 'deleted_at')
+
+
+class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
     formid = serializers.ReadOnlyField(source='id')
     metadata = serializers.SerializerMethodField()
     owner = serializers.HyperlinkedRelatedField(
