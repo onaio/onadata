@@ -4,7 +4,6 @@ import json
 import os
 import re
 import requests
-import pytz
 import jwt
 import hashlib
 import mock
@@ -13,7 +12,6 @@ from collections import OrderedDict
 from cStringIO import StringIO
 from django.db.models import Q
 from datetime import datetime
-from django.utils import timezone
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
@@ -44,6 +42,7 @@ from onadata.apps.logger.models import Attachment
 from onadata.libs.permissions import (
     OwnerRole, ReadOnlyRole, ManagerRole, DataEntryRole, EditorRole)
 from onadata.libs.serializers.xform_serializer import XFormSerializer
+from onadata.libs.serializers.xform_serializer import XFormBaseSerializer
 from onadata.apps.main.models import MetaData
 from onadata.libs.utils.common_tags import GROUPNAME_REMOVED_FLAG
 from onadata.libs.utils.cache_tools import (
@@ -280,13 +279,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             self.assertEqual(response.status_code, 200)
             self.assertTrue(response.data.get('instances_with_geopoints'))
 
-            self.xform.instances_with_geopoints = False
-            self.xform.save(update_fields=['instances_with_geopoints'])
-            request = self.factory.get('/', **self.extra)
-            response = view(request, pk=formid)
-            self.assertEqual(response.status_code, 200)
-            self.assertTrue(response.data.get('instances_with_geopoints'))
-
             Instance.objects.get(xform__id=formid).delete()
             request = self.factory.get('/', **self.extra)
             response = view(request, pk=formid)
@@ -307,79 +299,6 @@ class TestXFormViewSet(TestAbstractViewSet):
         response = self.view(request)
         self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
-
-    def test_submission_count_for_today_in_form_list(self):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            request = self.factory.get('/', **self.extra)
-            response = self.view(request)
-            self.assertNotEqual(response.get('Cache-Control'), None)
-            self.assertEqual(response.status_code, 200)
-            self.assertIn(
-                'submission_count_for_today', response.data[0].keys())
-            self.assertEqual(response.data[0]['submission_count_for_today'], 0)
-            self.assertEqual(response.data[0]['num_of_submissions'], 0)
-
-            paths = [os.path.join(
-                self.main_directory, 'fixtures', 'transportation',
-                'instances_w_uuid', s, s + '.xml')
-                for s in ['transport_2011-07-25_19-05-36']]
-
-            # instantiate date that is NOT naive; timezone is enabled
-            current_timzone_name = timezone.get_current_timezone_name()
-            current_timezone = pytz.timezone(current_timzone_name)
-            today = datetime.today()
-            current_date = current_timezone.localize(
-                datetime(today.year,
-                         today.month,
-                         today.day))
-            self._make_submission(
-                paths[0], forced_submission_time=current_date)
-            self.assertEqual(self.response.status_code, 201)
-
-            request = self.factory.get('/', **self.extra)
-            response = self.view(request)
-            self.assertNotEqual(response.get('Cache-Control'), None)
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.data[0]['submission_count_for_today'], 1)
-            self.assertEqual(response.data[0]['num_of_submissions'], 1)
-
-    @override_settings(ASYNC_POST_SUBMISSION_PROCESSING_ENABLED=True)
-    def test_submission_count_for_today_in_form_list_async_count(self):
-        with HTTMock(enketo_mock):
-            self._publish_xls_form_to_project()
-            request = self.factory.get('/', **self.extra)
-            response = self.view(request)
-            self.assertNotEqual(response.get('Cache-Control'), None)
-            self.assertEqual(response.status_code, 200)
-            self.assertIn(
-                'submission_count_for_today', response.data[0].keys())
-            self.assertEqual(response.data[0]['submission_count_for_today'], 0)
-            self.assertEqual(response.data[0]['num_of_submissions'], 0)
-
-            paths = [os.path.join(
-                self.main_directory, 'fixtures', 'transportation',
-                'instances_w_uuid', s, s + '.xml')
-                for s in ['transport_2011-07-25_19-05-36']]
-
-            # instantiate date that is NOT naive; timezone is enabled
-            current_timzone_name = timezone.get_current_timezone_name()
-            current_timezone = pytz.timezone(current_timzone_name)
-            today = datetime.today()
-            current_date = current_timezone.localize(
-                datetime(today.year,
-                         today.month,
-                         today.day))
-            self._make_submission(
-                paths[0], forced_submission_time=current_date)
-            self.assertEqual(self.response.status_code, 201)
-
-            request = self.factory.get('/', **self.extra)
-            response = self.view(request)
-            self.assertNotEqual(response.get('Cache-Control'), None)
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.data[0]['submission_count_for_today'], 1)
-            self.assertEqual(response.data[0]['num_of_submissions'], 1)
 
     def test_form_list_anon(self):
         with HTTMock(enketo_mock):
@@ -540,48 +459,15 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = self.view(request)
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
-            # should be both bob's and alice's form
-            resultset = MetaData.objects.filter(
-                Q(object_id=self.xform.pk),
-                Q(data_type='enketo_url') |
-                Q(data_type='enketo_preview_url'))
-            url = resultset.get(data_type='enketo_url')
-            preview_url = resultset.get(data_type='enketo_preview_url')
-
-            self.form_data['metadata'] = [{
-                'id': preview_url.pk,
-                'xform': self.xform.pk,
-                'data_value': u"https://enketo.ona.io/preview/::YY8M",
-                'data_type': u'enketo_preview_url',
-                'data_file': None,
-                'data_file_type': None,
-                u'url': u'http://testserver/api/v1/metadata/%s' %
-                preview_url.pk,
-                'file_hash': None,
-                'media_url': None,
-                'date_created': preview_url.date_created
-            }, {
-                'id': url.pk,
-                'xform': self.xform.pk,
-                'data_value': u"https://enketo.ona.io/::YY8M",
-                'data_type': u'enketo_url',
-                'data_file': None,
-                'data_file_type': None,
-                u'url': u'http://testserver/api/v1/metadata/%s' % url.pk,
-                'file_hash': None,
-                'media_url': None,
-                'date_created': url.date_created
-            }]
 
             self.form_data.pop('has_id_string_changed')
             response_data = sorted(response.data)
+            for k in ['submission_count_for_today', 'metadata',
+                      'form_versions']:
+                bobs_form_data.pop(k)
+                self.form_data.pop(k)
             expected_data = sorted([OrderedDict(bobs_form_data),
                                     OrderedDict(self.form_data)])
-            for a in response_data:
-                a['metadata'].sort()
-
-            for b in expected_data:
-                b['metadata'].sort()
 
             self.assertTrue(len(response_data), 2)
 
@@ -599,8 +485,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = self.view(request)
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
-            bobs_form_data['metadata'].sort()
-            response.data[0]['metadata'].sort()
             self.assertEqual(response.data, [bobs_form_data])
 
             # apply filter, see only bob's forms, case insensitive
@@ -609,8 +493,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = self.view(request)
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
-            bobs_form_data['metadata'].sort()
-            response.data[0]['metadata'].sort()
             self.assertEqual(response.data, [bobs_form_data])
 
             # apply filter, see only alice's forms
@@ -619,8 +501,6 @@ class TestXFormViewSet(TestAbstractViewSet):
             response = self.view(request)
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
-            self.form_data['metadata'].sort()
-            response.data[0]['metadata'].sort()
 
             # remove date-modified
             response.data[0].pop("date_modified")
@@ -797,9 +677,9 @@ class TestXFormViewSet(TestAbstractViewSet):
             # check filter by tag
             request = self.factory.get(
                 '/', data={"tags": "hello"}, **self.extra)
-            self.form_data = XFormSerializer(
+            self.form_data = XFormBaseSerializer(
                 self.xform, context={'request': request}).data
-            response = list_view(request, pk=formid)
+            response = list_view(request)
             self.assertNotEqual(response.get('Cache-Control'), None)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.data, [self.form_data])
@@ -1747,6 +1627,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             'project': None,
             'created_by': None,
             'instances_with_osm': False,
+            'instances_with_geopoints': False,
             'has_hxl_support': False
         }
         self.assertEqual(data, XFormSerializer(None).data)
