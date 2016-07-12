@@ -209,7 +209,7 @@ Example of Descending sort
 
 
 Get a single data submission for a given form
-----------------------------------------------
+---------------------------------------------
 
 Get a single specific submission json data providing ``pk``
 
