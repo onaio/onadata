@@ -263,42 +263,35 @@ class ExportBuilder(object):
 
     def _get_select_mulitples_choices(self, child, dd, field_delimiter,
                                       remove_group_name):
+        def get_choice_dict(xpath, label):
+            title = ExportBuilder.format_field_title(
+                xpath, field_delimiter, dd, remove_group_name
+            )
+
+            return {
+                'label': field_delimiter.join([
+                    child.name, label or title
+                ]),
+                'title': title,
+                'xpath': xpath,
+                'type': 'string'
+            }
+
         choices = []
-        if not child.children and child.choice_filter \
-                and child.itemset:
-            itemset = \
-                dd.survey.to_json_dict()['choices'].get(child.itemset)
+
+        if not child.children and child.choice_filter and child.itemset:
+            itemset = dd.survey.to_json_dict()['choices'].get(child.itemset)
             if itemset:
                 for i in itemset:
-                    xpath = u'/'.join([child.get_abbreviated_xpath(),
-                                       i['name']])
-                    title = ExportBuilder.format_field_title(
-                        xpath, field_delimiter, dd, remove_group_name
-                    )
-                    label = self.get_choice_label_from_dict(i['label'])
-
-                    choices.append({
-                        'label': field_delimiter.join([
-                            child.name, label
-                        ]),
-                        'title': title,
-                        'xpath': xpath,
-                        'type': 'string'
-                    })
-
+                    choices.append(get_choice_dict(
+                        u'/'.join([child.get_abbreviated_xpath(), i['name']]),
+                        self.get_choice_label_from_dict(i['label'])
+                    ))
         for c in child.children:
-            _xpath = c.get_abbreviated_xpath()
-            _title = ExportBuilder.format_field_title(
-                _xpath, field_delimiter, dd, remove_group_name)
-            _label = dd.get_label(_xpath, elem=c) or _title
-            choices.append({
-                'label': field_delimiter.join([
-                    child.name, _label
-                ]),
-                'title': _title,
-                'xpath': _xpath,
-                'type': 'string'
-            })
+            choices.append(get_choice_dict(
+                c.get_abbreviated_xpath(),
+                dd.get_label(c.get_abbreviated_xpath(), elem=c)
+            ))
 
         return choices
 
