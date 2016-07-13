@@ -254,6 +254,13 @@ class ExportBuilder(object):
 
         return title
 
+    def get_choice_label_from_dict(self, label):
+        if isinstance(label, dict):
+            language = self.get_default_language(label.keys())
+            label = label.get(language)
+
+        return label
+
     def set_survey(self, survey):
         dd = get_data_dictionary_from_survey(survey)
 
@@ -261,6 +268,7 @@ class ExportBuilder(object):
                 current_section, survey_element, sections, select_multiples,
                 gps_fields, encoded_fields, field_delimiter='/',
                 remove_group_name=False):
+
             for child in survey_element.children:
                 current_section_name = current_section['name']
                 # if a section, recurs
@@ -740,10 +748,7 @@ class ExportBuilder(object):
                 _value_labels = {}
                 for choice in choices:
                     name = choice['name'].strip()
-                    label = choice['label']
-                    if isinstance(label, dict):
-                        language = self.get_default_language(label.keys())
-                        label = label.get(language)
+                    label = self.get_choice_label_from_dict(choice['label'])
                     _value_labels[name] = label.strip()
                 self._sav_value_labels[q['name']] = _value_labels
 
