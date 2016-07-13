@@ -16,6 +16,43 @@ Permissions
 
 This endpoint applies the same permissions someone has on the form.
 
+Post Payload
+------------
+
+The post data is a single json submission like it appears on the data endpoint.
+It includes form fields and form metadata.
+
+Example
+::
+
+    {
+         "_id": 4503,
+         "_bamboo_dataset_id": "",
+         "_deleted_at": null,
+         "expense_type": "service",
+         "_xform_id_string": "exp",
+         "_geolocation": [
+             null,
+             null
+         ],
+         "end": "2013-01-03T10:26:25.674+03",
+         "start": "2013-01-03T10:25:17.409+03",
+         "expense_date": "2011-12-23",
+         "_status": "submitted_via_web",
+         "today": "2013-01-03",
+         "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
+         "imei": "351746052013466",
+         "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
+         "kind": "monthly",
+         "_submission_time": "2013-01-03T02:27:19",
+         "required": "yes",
+         "_attachments": [],
+         "item": "Rent",
+         "amount": "35000.0",
+         "deviceid": "351746052013466",
+         "subscriberid": "639027...60317"
+     }
+
 
 Get list of Rest Services
 -------------------------
