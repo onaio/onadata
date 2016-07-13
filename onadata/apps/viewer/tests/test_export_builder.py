@@ -1549,3 +1549,101 @@ class TestExportBuilder(TestBase):
         self.assertIn('1. Jina lako ni?', labels)
         self.assertIn('2. Umri wako ni?', labels)
         self.assertIn('fav_colors/Nyekundu', labels)
+
+    def test_select_multiples_choices(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_sw.xls'))
+        dd = DataDictionary()
+        dd._survey = survey
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        child = [e for e in dd.get_survey_elements_with_choices()
+                 if e.bind.get('type') == 'select'][0]
+        self.assertNotEqual(child.children, [])
+        choices = export_builder._get_select_mulitples_choices(
+            child, dd, ExportBuilder.GROUP_DELIMITER,
+            ExportBuilder.TRUNCATE_GROUP_TITLE
+        )
+        expected_choices = [
+            {
+                'xpath': u'children/fav_colors/red',
+                'title': u'children/fav_colors/red',
+                'type': 'string',
+                'label': u'fav_colors/Nyekundu'
+            }, {
+                'xpath': u'children/fav_colors/blue',
+                'title': u'children/fav_colors/blue',
+                'type': 'string', 'label': u'fav_colors/Bluu'
+            }, {
+                'xpath': u'children/fav_colors/pink',
+                'title': u'children/fav_colors/pink',
+                'type': 'string', 'label': u'fav_colors/Pink'
+            }
+        ]
+        self.assertEqual(choices, expected_choices)
+        select_multiples = {
+            u'children/fav_colors': [
+                u'children/fav_colors/red', u'children/fav_colors/blue',
+                u'children/fav_colors/pink'
+            ], u'children/ice.creams': [
+                u'children/ice.creams/vanilla',
+                u'children/ice.creams/strawberry',
+                u'children/ice.creams/chocolate'
+            ]
+        }
+        self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
+                         select_multiples)
+
+    def test_select_multiples_choices_with_choice_filter(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'choice_filter.xls'
+        ))
+        dd = DataDictionary()
+        dd._survey = survey
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        child = [e for e in dd.get_survey_elements_with_choices()
+                 if e.bind.get('type') == 'select'][0]
+        choices = export_builder._get_select_mulitples_choices(
+            child, dd, ExportBuilder.GROUP_DELIMITER,
+            ExportBuilder.TRUNCATE_GROUP_TITLE
+        )
+        self.assertEqual(child.children, [])
+        expected_choices = [
+            {
+                'label': u'county/King',
+                'title': u'county/king',
+                'type': 'string',
+                'xpath': u'county/king'
+            },  {
+                'label': u'county/Pierce',
+                'title': u'county/pierce',
+                'type': 'string',
+                'xpath': u'county/pierce'
+            },  {
+                'label': u'county/King',
+                'title': u'county/king',
+                'type': 'string',
+                'xpath': u'county/king'
+            },  {
+                'label': u'county/Cameron',
+                'title': u'county/cameron',
+                'type': 'string',
+                'xpath': u'county/cameron'
+            }
+        ]
+        self.assertEqual(choices, expected_choices)
+        select_multiples = {
+            u'county': [
+                u'county/king',
+                u'county/pierce',
+                u'county/king',
+                u'county/cameron'
+            ]
+        }
+        self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
+                         select_multiples)
