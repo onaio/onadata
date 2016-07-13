@@ -30,6 +30,7 @@ from onadata.libs.serializers.xform_serializer import XFormListSerializer
 from onadata.libs.serializers.xform_serializer import XFormManifestSerializer
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.logger_tools import PublishXForm
+from onadata.libs.utils.viewer_tools import get_form
 
 
 def _extract_uuid(text):
@@ -115,7 +116,13 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
         if formId.find('[') != -1:
             formId = _extract_id_string(formId)
 
-        xform = get_object_or_404(queryset, id_string__iexact=formId)
+        xform_kwargs = {
+            'queryset': queryset,
+            'id_string__iexact': formId
+        }
+        if username:
+            xform_kwargs['user__username__iexact'] = username
+        xform = get_form(xform_kwargs)
         self.check_object_permissions(self.request, xform)
         instances = Instance.objects.filter(
             xform=xform, deleted_at__isnull=True).order_by('pk')

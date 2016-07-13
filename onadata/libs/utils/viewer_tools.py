@@ -252,7 +252,8 @@ def get_form(kwargs):
     from onadata.apps.logger.models import XForm
     from django.http import Http404
 
-    xform = XForm.objects.filter(**kwargs).first()
+    queryset = kwargs.pop('queryset',  XForm.objects.filter())
+    xform = queryset.filter(**kwargs).first()
     if xform:
         return xform
 
