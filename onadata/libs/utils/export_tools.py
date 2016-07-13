@@ -282,16 +282,15 @@ class ExportBuilder(object):
         if not child.children and child.choice_filter and child.itemset:
             itemset = dd.survey.to_json_dict()['choices'].get(child.itemset)
             if itemset:
-                for i in itemset:
-                    choices.append(get_choice_dict(
-                        u'/'.join([child.get_abbreviated_xpath(), i['name']]),
-                        self.get_choice_label_from_dict(i['label'])
-                    ))
-        for c in child.children:
-            choices.append(get_choice_dict(
+                choices = [get_choice_dict(
+                    u'/'.join([child.get_abbreviated_xpath(), i['name']]),
+                    self.get_choice_label_from_dict(i['label'])
+                ) for i in itemset]
+        else:
+            choices = [get_choice_dict(
                 c.get_abbreviated_xpath(),
                 dd.get_label(c.get_abbreviated_xpath(), elem=c)
-            ))
+            ) for c in child.children]
 
         return choices
 
