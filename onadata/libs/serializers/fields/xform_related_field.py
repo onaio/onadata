@@ -17,7 +17,9 @@ class XFormRelatedField(serializers.RelatedField):
         try:
             return XForm.objects.get(id=data)
         except ValueError:
-            raise Exception("xform id should be an integer")
+            raise serializers.ValidationError("xform id should be an integer")
+        except XForm.DoesNotExist:
+            raise serializers.ValidationError("XForm does not exist")
 
     def to_representation(self, instance):
         """Serialize xform object"""

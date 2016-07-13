@@ -463,3 +463,20 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         response = self._create_metadata_object()
         self.assertEqual(response.status_code, 400)
+
+    def test_invalid_form_metadata(self):
+        view = MetaDataViewSet.as_view({'post': 'create'})
+        with open(self.path) as media_file:
+            data = {
+                'data_type': "media",
+                'data_value': self.data_value,
+                'xform': 999912,
+                'data_file': media_file,
+            }
+
+            request = self.factory.post('/', data, **self.extra)
+            response = view(request)
+
+            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.data,
+                             {'xform': ['XForm does not exist']})
