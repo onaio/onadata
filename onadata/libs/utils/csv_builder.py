@@ -185,9 +185,8 @@ class AbstractDataFrameBuilder(object):
             choices = [c.get_abbreviated_xpath() for c in e.children]
             if not choices and e.choice_filter and e.itemset:
                 itemset = dd.survey.to_json_dict()['choices'].get(e.itemset)
-                if itemset:
-                    choices = [u'/'.join([xpath, i.get('name')])
-                               for i in itemset]
+                choices = [u'/'.join([xpath, i.get('name')])
+                           for i in itemset] if itemset else choices
             select_multiples.append((xpath, choices))
 
         return dict(select_multiples)
