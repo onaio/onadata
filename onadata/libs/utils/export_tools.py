@@ -261,6 +261,47 @@ class ExportBuilder(object):
 
         return label
 
+    def _get_select_mulitples_choices(self, child, dd, field_delimiter,
+                                      remove_group_name):
+        choices = []
+        if not child.children and child.choice_filter \
+                and child.itemset:
+            itemset = \
+                dd.survey.to_json_dict()['choices'].get(child.itemset)
+            if itemset:
+                for i in itemset:
+                    xpath = u'/'.join([child.get_abbreviated_xpath(),
+                                       i['name']])
+                    title = ExportBuilder.format_field_title(
+                        xpath, field_delimiter, dd, remove_group_name
+                    )
+                    label = self.get_choice_label_from_dict(i['label'])
+
+                    choices.append({
+                        'label': field_delimiter.join([
+                            child.name, label
+                        ]),
+                        'title': title,
+                        'xpath': xpath,
+                        'type': 'string'
+                    })
+
+        for c in child.children:
+            _xpath = c.get_abbreviated_xpath()
+            _title = ExportBuilder.format_field_title(
+                _xpath, field_delimiter, dd, remove_group_name)
+            _label = dd.get_label(_xpath, elem=c) or _title
+            choices.append({
+                'label': field_delimiter.join([
+                    child.name, _label
+                ]),
+                'title': _title,
+                'xpath': _xpath,
+                'type': 'string'
+            })
+
+        return choices
+
     def set_survey(self, survey):
         dd = get_data_dictionary_from_survey(survey)
 
@@ -317,27 +358,18 @@ class ExportBuilder(object):
                     # if its a select multiple, make columns out of its choices
                     if child.bind.get(u"type") == MULTIPLE_SELECT_BIND_TYPE\
                             and self.SPLIT_SELECT_MULTIPLES:
-                        for c in child.children:
-                            _xpath = c.get_abbreviated_xpath()
-                            _title = ExportBuilder.format_field_title(
-                                _xpath, field_delimiter, dd, remove_group_name)
-                            _label = dd.get_label(_xpath, elem=c) or _title
-                            choice = {
-                                'label': field_delimiter.join([
-                                    child.name, _label
-                                ]),
-                                'title': _title,
-                                'xpath': _xpath,
-                                'type': 'string'
-                            }
-
+                        choices = self._get_select_mulitples_choices(
+                            child, dd, field_delimiter, remove_group_name
+                        )
+                        for choice in choices:
                             if choice not in current_section['elements']:
                                 current_section['elements'].append(choice)
+
+                        choices_xpaths = [c['xpath'] for c in choices]
                         _append_xpaths_to_section(
                             current_section_name, select_multiples,
-                            child.get_abbreviated_xpath(),
-                            [c.get_abbreviated_xpath()
-                             for c in child.children])
+                            child.get_abbreviated_xpath(), choices_xpaths
+                        )
 
                     # split gps fields within this section
                     if child.bind.get(u"type") == GEOPOINT_BIND_TYPE:
