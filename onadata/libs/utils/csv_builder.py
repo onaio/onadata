@@ -175,10 +175,22 @@ class AbstractDataFrameBuilder(object):
 
     @classmethod
     def _collect_select_multiples(cls, dd):
-        return dict([(e.get_abbreviated_xpath(), [c.get_abbreviated_xpath()
-                                                  for c in e.children])
-                     for e in dd.get_survey_elements()
-                     if e.bind.get("type") == "select"])
+        select_multiples = []
+        select_multiple_elements = [
+            e for e in dd.get_survey_elements_with_choices()
+            if e.bind.get('type') == 'select'
+        ]
+        for e in select_multiple_elements:
+            xpath = e.get_abbreviated_xpath()
+            choices = [c.get_abbreviated_xpath() for c in e.children]
+            if not choices and e.choice_filter and e.itemset:
+                itemset = dd.survey.to_json_dict()['choices'].get(e.itemset)
+                if itemset:
+                    choices = [u'/'.join([xpath, i.get('name')])
+                               for i in itemset]
+            select_multiples.append((xpath, choices))
+
+        return dict(select_multiples)
 
     @classmethod
     def _split_select_multiples(cls, record, select_multiples,
