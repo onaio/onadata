@@ -712,6 +712,14 @@ class ExportBuilder(object):
                                                   config)
         self.url = google_sheets.export(data)
 
+    def get_default_language(self, languages):
+        language = self.dd.default_language
+        if not language and languages:
+            languages.sort()
+            language = languages[0]
+
+        return language
+
     def _get_sav_value_labels(self):
         """GET/SET SPSS `VALUE LABELS`. It takes the dictionay of the form
         `{varName: {value: valueLabel}}`:
@@ -723,14 +731,6 @@ class ExportBuilder(object):
                 'available': {0: 'No', 1: 'Yes'}
             }
         """
-        def get_default_language(languages):
-            language = self.dd.default_language
-            if not language and languages:
-                languages.sort()
-                language = languages[0]
-
-            return language
-
         if not hasattr(self, '_sav_value_labels'):
             choice_questions = self.dd.get_survey_elements_with_choices()
             self._sav_value_labels = {}
@@ -742,7 +742,7 @@ class ExportBuilder(object):
                     name = choice['name'].strip()
                     label = choice['label']
                     if isinstance(label, dict):
-                        language = get_default_language(label.keys())
+                        language = self.get_default_language(label.keys())
                         label = label.get(language)
                     _value_labels[name] = label.strip()
                 self._sav_value_labels[q['name']] = _value_labels
