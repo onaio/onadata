@@ -1,10 +1,14 @@
+from django.http import Http404
 from django.test.client import RequestFactory
 
+from onadata.apps.logger.models import XForm
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.viewer_tools import (
     export_def_from_filename,
     generate_enketo_form_defaults,
-    get_client_ip)
+    get_client_ip,
+    get_form
+)
 
 
 class TestViewerTools(TestBase):
@@ -78,3 +82,20 @@ class TestViewerTools(TestBase):
         kwargs = {'name': 'bla'}
         defaults = generate_enketo_form_defaults(self.xform, **kwargs)
         self.assertEqual(defaults, {})
+
+    def test_get_form(self):
+        # non existent id_string
+        with self.assertRaises(Http404):
+            get_form({'id_string': 'non_existent_form'})
+
+        self._publish_transportation_form()
+
+        # valid xform id_string
+        kwarg = {'id_string__iexact': self.xform.id_string}
+        xform = get_form(kwarg)
+        self.assertIsInstance(xform, XForm)
+
+        # pass a queryset
+        kwarg['queryset'] = XForm.objects.all()
+        xform = get_form(kwarg)
+        self.assertIsInstance(xform, XForm)
