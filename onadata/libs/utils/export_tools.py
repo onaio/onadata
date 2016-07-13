@@ -1101,6 +1101,9 @@ def should_create_new_export(xform,
     """
     split_select_multiples = options.get('split_select_multiples', True)
 
+    if getattr(settings, 'SHOULD_ALWAYS_CREATE_NEW_EXPORT', False):
+        return True
+
     if (request and (frozenset(request.GET.keys()) &
                      frozenset(['start', 'end', 'data_id']))) or\
             not split_select_multiples:
