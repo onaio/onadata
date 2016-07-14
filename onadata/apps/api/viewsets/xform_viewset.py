@@ -43,7 +43,7 @@ from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
 from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers import renderers
 from onadata.libs.serializers.xform_serializer import (
-    XFormSerializer, XFormCreateSerializer)
+    XFormBaseSerializer, XFormSerializer, XFormCreateSerializer)
 from onadata.libs.serializers.clone_xform_serializer import \
     CloneXFormSerializer
 from onadata.libs.serializers.share_xform_serializer import (
@@ -235,13 +235,19 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
         renderers.ZipRenderer,
         renderers.GoogleSheetsRenderer
     ]
-    queryset = XForm.objects.select_related().prefetch_related(Prefetch(
-        'xformuserobjectpermission_set',
-        queryset=XFormUserObjectPermission.objects.select_related(
-            'user__profile__organizationprofile',
-            'permission'
+    queryset = XForm.objects.select_related('user', 'created_by')\
+        .prefetch_related(
+            Prefetch(
+                'xformuserobjectpermission_set',
+                queryset=XFormUserObjectPermission.objects.select_related(
+                    'user__profile__organizationprofile',
+                    'permission'
+                )
+            ),
+            Prefetch('metadata_set'),
+            Prefetch('tags'),
+            Prefetch('dataview_set')
         )
-    ))
     serializer_class = XFormSerializer
     lookup_field = 'pk'
     extra_lookup_fields = None
@@ -255,6 +261,12 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
     filter_fields = ('instances_with_osm',)
 
     public_forms_endpoint = 'public'
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return XFormBaseSerializer
+
+        return super(XFormViewSet, self).get_serializer_class()
 
     def create(self, request, *args, **kwargs):
         try:
