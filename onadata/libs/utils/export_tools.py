@@ -1060,7 +1060,7 @@ def generate_export(export_type, xform, export_id=None, options=None):
 
     # generate filename
     basename = "%s_%s" % (
-        id_string, datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+        id_string, datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f"))
 
     if remove_group_name:
         # add 'remove group name' flag to filename
