@@ -464,39 +464,36 @@ class TestExports(TestBase):
         expected_filename = "file_name-124.txt"
         self.assertEqual(new_filename, expected_filename)
 
+    class FakeDate(datetime.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2010, 1, 1)
+
+    @patch('onadata.libs.utils.export_tools.datetime', FakeDate)
     def test_duplicate_export_filename_is_renamed(self):
         self._publish_transportation_form()
         self._submit_transport_instance()
 
-        # TODO: mock the time
-        # only works if the time we time we generate the basename
-        # is exact to the second with the time the 2nd export is created
-
+        target = datetime.datetime(2010, 1, 1)
         # create an export object in the db
         basename = "%s_%s" % (
             self.xform.id_string,
-            datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
+            target.strftime("%Y_%m_%d_%H_%M_%S_%f"))
         filename = basename + ".csv"
 
         self.options["extension"] = Export.CSV_EXPORT
-        export = Export.objects.create(
-            xform=self.xform, export_type=Export.CSV_EXPORT, filename=filename,
-            options=self.options)
+        Export.objects.create(xform=self.xform, export_type=Export.CSV_EXPORT,
+                              filename=filename, options=self.options)
 
         # 2nd export
-
         export_2 = generate_export(
             Export.CSV_EXPORT,
             self.xform,
             None,
             self.options)
 
-        if export.created_on.timetuple() == export_2.created_on.timetuple():
-            new_filename = increment_index_in_filename(filename)
-            self.assertEqual(new_filename, export_2.filename)
-        else:
-            self.skipTest("duplicate export filename test skipped "
-                          "because export times differ.")
+        new_filename = increment_index_in_filename(filename)
+        self.assertEqual(new_filename, export_2.filename)
 
     def test_export_download_url(self):
         self._publish_transportation_form()
