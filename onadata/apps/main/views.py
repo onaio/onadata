@@ -1213,8 +1213,12 @@ def delete_data(request, username=None, id_string=None):
 @require_POST
 @is_owner
 def update_xform(request, username, id_string):
-    xform = get_object_or_404(
-        XForm, user__username__iexact=username, id_string__iexact=id_string)
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     owner = xform.user
 
     def set_form():

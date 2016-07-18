@@ -214,8 +214,12 @@ def formList(request, username):
 
 @require_GET
 def xformsManifest(request, username, id_string):
-    xform = get_object_or_404(
-        XForm, id_string__iexact=id_string, user__username__iexact=username)
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     formlist_user = xform.user
     profile, created = \
         UserProfile.objects.get_or_create(user=formlist_user)
@@ -502,8 +506,12 @@ def enter_data(request, username, id_string):
 def edit_data(request, username, id_string, data_id):
     context = RequestContext(request)
     owner = User.objects.get(username__iexact=username)
-    xform = get_object_or_404(
-        XForm, user__username__iexact=username, id_string__iexact=id_string)
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     instance = get_object_or_404(
         Instance, pk=data_id, xform=xform)
     if not has_edit_permission(xform, owner, request, xform.shared):
@@ -555,8 +563,12 @@ def view_submission_list(request, username):
     if not authenticator.authenticate(request):
         return authenticator.build_challenge_response()
     id_string = request.GET.get('formId', None)
-    xform = get_object_or_404(
-        XForm, id_string__iexact=id_string, user__username__iexact=username)
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     if not has_permission(xform, form_user, request, xform.shared_data):
         return HttpResponseForbidden('Not shared.')
     num_entries = request.GET.get('numEntries', None)
