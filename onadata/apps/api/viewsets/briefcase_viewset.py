@@ -20,6 +20,7 @@ from onadata.apps.api.permissions import ViewDjangoObjectPermissions
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.logger.xform_instance_parser import clean_and_parse_xml
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.libs import filters
@@ -200,7 +201,8 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
     def retrieve(self, request, *args, **kwargs):
         self.object = self.get_object()
 
-        submission_xml_root_node = self.object.get_root_node()
+        xml_obj = clean_and_parse_xml(self.object.xml)
+        submission_xml_root_node = xml_obj.documentElement
         submission_xml_root_node.setAttribute(
             'instanceID', u'uuid:%s' % self.object.uuid)
         submission_xml_root_node.setAttribute(
@@ -212,10 +214,12 @@ class BriefcaseViewset(OpenRosaHeadersMixin, mixins.CreateModelMixin,
             'host': request.build_absolute_uri().replace(
                 request.get_full_path(), '')
         }
-        return Response(data,
-                        headers=self.get_openrosa_headers(request,
-                                                          location=False),
-                        template_name='downloadSubmission.xml')
+
+        return Response(
+            data,
+            headers=self.get_openrosa_headers(request, location=False),
+            template_name='downloadSubmission.xml'
+        )
 
     @detail_route(methods=['GET'])
     def manifest(self, request, *args, **kwargs):

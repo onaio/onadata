@@ -1,6 +1,7 @@
 import os
 import shutil
 import codecs
+import mock
 
 from django.utils import timezone
 from django.core.urlresolvers import reverse
@@ -395,6 +396,38 @@ class TestBriefcaseViewSet(test_abstract_viewset.TestAbstractViewSet):
         self.view = XFormViewSet.as_view({'get': 'form'})
         response = self.view(request, pk=xform.pk, format='xls')
         self.assertEqual(response.status_code, 404)
+
+    @mock.patch.object(BriefcaseViewset, 'get_object')
+    def test_view_downloadSubmission_multiple_nodes(self, mock_get_object):
+        view = BriefcaseViewset.as_view({'get': 'retrieve'})
+        self._publish_xml_form()
+        self.maxDiff = None
+        self._submit_transport_instance_w_attachment()
+        instanceId = u'5b2cc313-fc09-437e-8149-fcd32f695d41'
+        instance = Instance.objects.get(uuid=instanceId)
+        instance.xml = u'<?xml version=\'1.0\' ?><transportation id="transportation_2011_07_25"><transport><available_transportation_types_to_referral_facility>none</available_transportation_types_to_referral_facility><available_transportation_types_to_referral_facility>none</available_transportation_types_to_referral_facility><loop_over_transport_types_frequency><ambulance /><bicycle /><boat_canoe /><bus /><donkey_mule_cart /><keke_pepe /><lorry /><motorbike /><taxi /><other /></loop_over_transport_types_frequency></transport><meta><instanceID>uuid:5b2cc313-fc09-437e-8149-fcd32f695d41</instanceID></meta></transportation>\n'  # noqa
+        mock_get_object.return_value = instance
+        formId = u'%(formId)s[@version=null and @uiVersion=null]/' \
+                 u'%(formId)s[@key=uuid:%(instanceId)s]' % {
+                     'formId': self.xform.id_string,
+                     'instanceId': instanceId}
+        params = {'formId': formId}
+        auth = DigestAuth(self.login_username, self.login_password)
+        request = self.factory.get(
+            self._download_submission_url, data=params)
+        response = view(request, username=self.user.username)
+        self.assertEqual(response.status_code, 401)
+        request.META.update(auth(request.META, response))
+        response = view(request, username=self.user.username)
+        text = "uuid:%s" % instanceId
+        download_submission_path = os.path.join(
+            self.main_directory, 'fixtures', 'transportation',
+            'view', 'downloadSubmission.xml')
+        with codecs.open(download_submission_path, encoding='utf-8') as f:
+            text = f.read()
+            text = text.replace(u'{{submissionDate}}',
+                                instance.date_created.isoformat())
+            self.assertContains(response, instanceId, status_code=200)
 
     def tearDown(self):
         # remove media files
