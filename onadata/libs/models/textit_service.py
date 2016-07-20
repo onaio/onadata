@@ -59,4 +59,6 @@ class TextItService(object):
                 meta.data_value.split(METADATA_SEPARATOR)
         except ValueError:
             raise serializers.ValidationError(
-                    _("Error occured when loading textit service"))
+                    _("Error occurred when loading textit service."
+                      "Resolve by updating auth_token, flow_uuid and contacts"
+                      " fields"))
