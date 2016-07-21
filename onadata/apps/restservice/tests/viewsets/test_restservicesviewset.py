@@ -158,6 +158,35 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.data['name'], "textit")
 
+    def test_update_with_errors(self):
+        rest = self._create_textit_service()
+
+        data_value = "{}|{}".format("test", "test2")
+        MetaData.textit(self.xform, data_value)
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request, pk=rest.get('id'))
+
+        self.assertEquals(response.status_code, 400)
+        self.assertEquals(response.data,
+                          [u"Error occurred when loading textit service."
+                           u"Resolve by updating auth_token, flow_uuid and "
+                           u"contacts fields"])
+
+        post_data = {
+            "name": "textit",
+            "service_url": "https://textit.io",
+            "xform": self.xform.pk,
+            "auth_token": "sadsdfhsdf",
+            "flow_uuid": "sdfskhfskdjhfs",
+            "contacts": "ksadaskjdajsda"
+        }
+
+        request = self.factory.put('/', data=post_data, **self.extra)
+        response = self.view(request, pk=rest.get('id'))
+
+        self.assertEquals(response.status_code, 200)
+
     def test_delete(self):
         rest = RestService(name="testservice",
                            service_url="http://serviec.io",
