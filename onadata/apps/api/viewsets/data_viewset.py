@@ -51,6 +51,7 @@ from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.data import parse_int
 from onadata.apps.api.permissions import ConnectViewsetPermissions
 from onadata.apps.api.tools import get_baseviewset_class
+from onadata.apps.logger.models.instance import FormInactiveError
 
 SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 BaseViewset = get_baseviewset_class()
@@ -62,6 +63,19 @@ def get_data_and_form(kwargs):
         raise ParseError(_(u"Data ID should be an integer"))
 
     return (data_id, kwargs.get('format'))
+
+
+def delete_instance(instance):
+    """
+    Function that calls Instance.set_deleted and catches any exception that may
+     occur.
+    :param instance:
+    :return:
+    """
+    try:
+        instance.set_deleted(timezone.now())
+    except FormInactiveError as e:
+        raise ParseError(str(e))
 
 
 class DataViewSet(AnonymousUserPublicFormsMixin,
@@ -251,7 +265,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
             if request.user.has_perm(
                     CAN_DELETE_SUBMISSION, self.object.xform):
-                self.object.set_deleted(timezone.now())
+                delete_instance(self.object)
             else:
                 raise PermissionDenied(_(u"You do not have delete "
                                          u"permissions."))
