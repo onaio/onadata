@@ -361,6 +361,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 xform = self.get_object()
                 self.etag_data = xform.date_modified \
                     if not xform.last_submission_time \
+                    or xform.date_modified > xform.last_submission_time\
                     else xform.last_submission_time
 
             where, where_params = get_where_clause(query)
