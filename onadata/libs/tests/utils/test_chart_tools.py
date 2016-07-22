@@ -4,6 +4,9 @@ import os
 import unittest
 
 from decimal import Decimal
+
+from rest_framework.exceptions import ParseError
+
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.chart_tools import (
     build_chart_data_for_field,
@@ -160,6 +163,15 @@ class TestChartTools(TestBase):
              'items': [{u'a_group/grouped': [u'Yes'], 'count': 1L}]},
             {u'gender': [u'Female'],
              'items': [{u'a_group/grouped': [u'Yes'], 'count': 1L}]}])
+
+    def test_build_chart_data_cannot_group_by_field(self):
+        field = find_field_by_name(self.xform, 'gender')
+        group_by_field = find_field_by_xpath(self.xform, 'name')
+        with self.assertRaises(ParseError) as e:
+            build_chart_data_for_field(self.xform, field,
+                                       group_by=group_by_field)
+
+        self.assertEqual(str(e.exception), "Cannot group by name")
 
     def test_build_chart_data_output(self):
         data = build_chart_data(self.xform)

@@ -229,10 +229,12 @@ def build_chart_data_for_field(xform, field, language_index=0, choices=None,
                                                      group_by_name,
                                                      result)
 
-        if field_type in common_tags.NUMERIC_LIST \
+        elif field_type in common_tags.NUMERIC_LIST \
                 and group_by.type == common_tags.SELECT_ONE:
             result = get_form_submissions_aggregated_by_select_one(
                 xform, field_xpath, field_name, group_by_name, data_view)
+        else:
+            raise ParseError(u'Cannot group by %s' % group_by_name)
     else:
         result = get_form_submissions_grouped_by_field(
             xform, field_xpath, field_name, data_view)
