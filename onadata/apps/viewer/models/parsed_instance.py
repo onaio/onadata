@@ -153,6 +153,8 @@ def _parse_where(query, known_integers, or_where, or_params):
 
 
 def _query_iterator(sql, fields=None, params=[], count=False):
+    if not sql:
+        raise ValueError(_(u"Bad SQL: %s" % sql))
     cursor = connection.cursor()
     sql_params = fields + params if fields is not None else params
 
@@ -299,7 +301,7 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
         records, sql, fields, params, sort, start_index, limit
     )
 
-    if ParsedInstance._has_json_fields(sort) or fields:
+    if (ParsedInstance._has_json_fields(sort) or fields) and sql:
         records = _query_iterator(sql, fields, params, count)
 
     if count and isinstance(records, types.GeneratorType):

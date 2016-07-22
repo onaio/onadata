@@ -294,6 +294,13 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data.get('detail'), error_message)
 
+        # test sort with a key that os likely in the json data
+        request = self.factory.get('/', data={"sort": u'random'},
+                                   **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
     def test_data_start_limit_no_records(self):
         view = DataViewSet.as_view({'get': 'list'})
         formid = self.xform.pk
