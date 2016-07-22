@@ -1083,6 +1083,31 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(len(response.data), 2)
 
+    def test_delete_submission_inactive_form(self):
+        self._make_submissions()
+        formid = self.xform.pk
+        dataid = self.xform.instances.all().order_by('id')[0].pk
+        view = DataViewSet.as_view({
+            'delete': 'destroy',
+        })
+
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 204)
+
+        # make form inactive
+        self.xform.downloadable = False
+        self.xform.save()
+
+        dataid = self.xform.instances.filter(deleted_at=None)\
+            .order_by('id')[0].pk
+
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, pk=formid, dataid=dataid)
+
+        self.assertEqual(response.status_code, 400)
+
     def test_delete_submission_by_editor(self):
         self._make_submissions()
         formid = self.xform.pk
