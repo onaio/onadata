@@ -111,14 +111,16 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
             return obj.data_file.url
         elif obj.data_type in [MEDIA_TYPE] and obj.is_linked_dataset:
             kwargs = {
-                'pk': obj.content_object.pk,
-                'username': obj.content_object.user.username,
-                'metadata': obj.pk
+                'kwargs': {
+                    'pk': obj.content_object.pk,
+                    'username': obj.content_object.user.username,
+                    'metadata': obj.pk
+                },
+                'request': self.context.get('request'),
+                'format': 'csv'
             }
-            request = self.context.get('request')
 
-            return reverse('xform-media', kwargs=kwargs, request=request,
-                           format='csv')
+            return reverse('xform-media', **kwargs)
 
     def validate(self, attrs):
         """
