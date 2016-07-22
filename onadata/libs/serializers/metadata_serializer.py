@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 
 from onadata.apps.logger.models import DataView
 from onadata.apps.logger.models import Project
@@ -108,6 +109,16 @@ class MetaDataSerializer(serializers.HyperlinkedModelSerializer):
         if obj.data_type in [DOC_TYPE, MEDIA_TYPE] and\
                 getattr(obj, "data_file") and getattr(obj.data_file, "url"):
             return obj.data_file.url
+        elif obj.data_type in [MEDIA_TYPE] and obj.is_linked_dataset:
+            kwargs = {
+                'pk': obj.content_object.pk,
+                'username': obj.content_object.user.username,
+                'metadata': obj.pk
+            }
+            request = self.context.get('request')
+
+            return reverse('xform-media', kwargs=kwargs, request=request,
+                           format='csv')
 
     def validate(self, attrs):
         """

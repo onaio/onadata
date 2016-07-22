@@ -391,6 +391,14 @@ class MetaData(models.Model):
         data_type = TEXTIT
         return unique_type_for_form(content_object, data_type, data_value)
 
+    @property
+    def is_linked_dataset(self):
+        return (
+            isinstance(self.data_value, basestring) and
+            (self.data_value.startswith('xform') or
+             self.data_value.startswith('dataview'))
+        )
+
 
 def clear_cached_metadata_instance_object(
         sender, instance=None, created=False, **kwargs):

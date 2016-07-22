@@ -290,6 +290,8 @@ class TestMetaDataViewSet(TestAbstractViewSet):
 
         data_value = 'xform {} transportation'.format(self.xform.pk)
         self._add_form_metadata(self.xform, data_type, data_value)
+        self.assertIsNotNone(self.metadata_data['media_url'])
+
         request = self.factory.get('/', **self.extra)
         ext = self.data_value[self.data_value.rindex('.') + 1:]
         response = self.view(request, pk=self.metadata.pk, format=ext)
@@ -302,6 +304,8 @@ class TestMetaDataViewSet(TestAbstractViewSet):
         data_type = 'media'
         data_value = 'dataview {} transportation'.format(self.data_view.pk)
         self._add_form_metadata(self.xform, data_type, data_value)
+        self.assertIsNotNone(self.metadata_data['media_url'])
+
         request = self.factory.get('/', **self.extra)
         ext = self.data_value[self.data_value.rindex('.') + 1:]
         response = self.view(request, pk=self.metadata.pk, format=ext)
