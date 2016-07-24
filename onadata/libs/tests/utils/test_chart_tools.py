@@ -14,7 +14,9 @@ from onadata.libs.utils.chart_tools import (
     calculate_ranges,
     get_choice_label,
     utc_time_string_for_javascript,
-    get_field_choices)
+    get_field_choices,
+    _flatten_multiple_dict_into_one
+)
 from onadata.apps.logger.models import XForm
 
 
@@ -434,3 +436,22 @@ class TestChartUtilFunctions(unittest.TestCase):
         num_items = 41
         ranges = calculate_ranges(requested_page, items_per_page, num_items)
         self.assertEqual(ranges, (41, 41))
+
+    def test_flatten_multiple_dict_into_one(self):
+        input_data = [{
+            'count': 1L,
+            'a_var': u'female',
+            'a_super_group_name/extra_long_variable_name_to_see_if_postgresq':
+            u'melon'
+        }]
+        expected_data = [{
+            'items': [{
+                'count': 1L,
+                'a_super_group_name/extra_long_variable_name_to_see_if_postgresq': u'melon'  # noqa
+            }],
+            'a_var': u'female'
+        }]
+        group_by = 'a_super_group_name/extra_long_variable_name_to_see_if_postgresql_breaks_when_using_the_json_field_to_store_data'  # noqa
+        result = _flatten_multiple_dict_into_one('a_var', group_by, input_data)
+        self.maxDiff = None
+        self.assertEqual(result, expected_data)

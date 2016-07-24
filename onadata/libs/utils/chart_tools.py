@@ -121,14 +121,17 @@ def get_choice_label(choices, string):
 
 
 def _flatten_multiple_dict_into_one(field_name, group_by_name, data):
-    final = [{field_name: b, 'items': []}
-             for b in list({a.get(field_name) for a in data})]
+    # truncate field name to 63 characters to fix #354
+    truncated_field_name = field_name[0:POSTGRES_ALIAS_LENGTH]
+    truncated_group_by_name = group_by_name[0:POSTGRES_ALIAS_LENGTH]
+    final = [{truncated_field_name: b, 'items': []}
+             for b in list({a.get(truncated_field_name) for a in data})]
 
     for a in data:
         for b in final:
-            if a.get(field_name) == b.get(field_name):
+            if a.get(truncated_field_name) == b.get(truncated_field_name):
                 b['items'].append({
-                    group_by_name: a.get(group_by_name),
+                    truncated_group_by_name: a.get(truncated_group_by_name),
                     'count': a.get('count')
                     })
 
