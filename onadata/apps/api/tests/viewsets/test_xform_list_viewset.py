@@ -46,6 +46,38 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertEqual(response['Content-Type'],
                              'text/xml; charset=utf-8')
 
+    def test_get_xform_list_with_username_param(self):
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        self._login_user_and_profile(extra_post_data=alice_data)
+
+        # publish 2 forms that belong to alice
+        xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
+                                "tests", "fixtures", "tutorial.xls")
+        self._publish_xls_form_to_project(xlsform_path=xls_path)
+
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+            "external_choice_form_v1.xlsx")
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+        # anonymous user
+        request = self.factory.get('/')
+        response = self.view(request, username='alice')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        # log in as bob, alice forms are public
+        for x in self.user.xforms.all():
+            x.shared = True
+            x.save()
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('bob', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username='alice')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
     def test_get_xform_list_with_malformed_cookie(self):
         request = self.factory.get('/')
         response = self.view(request)
@@ -194,10 +226,9 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         content = response.render().content
-        self.assertNotIn(self.xform.id_string, content)
-        self.assertEqual(
-            content, '<?xml version="1.0" encoding="utf-8"?>\n<xforms '
-            'xmlns="http://openrosa.org/xforms/xformsList"></xforms>')
+        self.assertIn(self.xform.id_string, content)
+        self.assertIn(
+            '<?xml version="1.0" encoding="utf-8"?>\n<xforms ', content)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
         self.assertTrue(
             response.has_header('X-OpenRosa-Accept-Content-Length'))
@@ -220,10 +251,9 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         content = response.render().content
-        self.assertNotIn(self.xform.id_string, content)
-        self.assertEqual(
-            content, '<?xml version="1.0" encoding="utf-8"?>\n<xforms '
-            'xmlns="http://openrosa.org/xforms/xformsList"></xforms>')
+        self.assertIn(self.xform.id_string, content)
+        self.assertIn(
+            '<?xml version="1.0" encoding="utf-8"?>\n<xforms ', content)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
         self.assertTrue(
             response.has_header('X-OpenRosa-Accept-Content-Length'))

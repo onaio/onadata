@@ -86,11 +86,10 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
                 # raises a permission denied exception, forces authentication
                 self.permission_denied(self.request)
             else:
-                queryset = queryset.filter(user=profile.user)
+                queryset = queryset.filter(
+                    user=profile.user, downloadable=True)
 
         if not self.request.user.is_anonymous():
-            queryset = super(XFormListViewSet, self).filter_queryset(queryset)
-
             if self.action == 'list' and profile:
                 forms_shared_with_user = get_forms_shared_with_user(
                     profile.user)

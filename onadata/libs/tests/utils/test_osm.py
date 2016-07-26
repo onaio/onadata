@@ -39,7 +39,8 @@ OSMWay = """
 OSMNode = """
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="OpenMapKit 0.12" user="theoutpost">
-  <node id="-1" action="modify" lat="-9.24311382416424" lon="28.805980682373047">
+  <node id="-1" action="modify" lat="-9.24311382416424"
+  lon="28.805980682373047">
     <tag k="spray_status" v="sprayed" />
   </node>
 </osm>
@@ -48,7 +49,8 @@ OSMNode = """
 OSMNodeFaulty = """
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="OpenMapKit 0.12" user="theoutpost">
-  <node id="-1" action="modify" lat="-9.24311382416424" lon="28.805980682373047" action="modify">
+  <node id="-1" action="modify" lat="-9.24311382416424"
+  lon="28.805980682373047" action="modify">
     <tag k="spray_status" v="sprayed" />
   </node>
 </osm>
