@@ -46,11 +46,8 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertEqual(response['Content-Type'],
                              'text/xml; charset=utf-8')
 
-    def test_get_xform_list_with_username_param(self):
-        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
-        self._login_user_and_profile(extra_post_data=alice_data)
-
-        # publish 2 forms that belong to alice
+    def test_get_xform_list_of_logged_in_user_with_username_param(self):
+        # publish 2 forms as bob
         xls_path = os.path.join(settings.PROJECT_ROOT, "apps", "main",
                                 "tests", "fixtures", "tutorial.xls")
         self._publish_xls_form_to_project(xlsform_path=xls_path)
@@ -60,23 +57,42 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
             "external_choice_form_v1.xlsx")
         self._publish_xls_form_to_project(xlsform_path=xls_file_path)
 
-        # anonymous user
-        request = self.factory.get('/')
-        response = self.view(request, username='alice')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 2)
+        # change one of bob's forms to public
+        xform = self.user.xforms.first()
+        xform.shared = True
+        xform.save()
+        xform_id_string = xform.id_string
 
-        # log in as bob, alice forms are public
-        for x in self.user.xforms.all():
-            x.shared = True
-            x.save()
+        # check that bob still has 2 private forms
+        self.assertEqual(self.user.xforms.filter(shared=False).count(), 2)
+
+        request = self.factory.get('/')
         response = self.view(request)
         self.assertEqual(response.status_code, 401)
         auth = DigestAuth('bob', 'bobbob')
         request.META.update(auth(request.META, response))
-        response = self.view(request, username='alice')
+        response = self.view(request, username='bob')
+        # check that bob's request is succesful and it returns both public and
+        # private forms that belong to bob
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data), 3)
+
+        alice_data = {
+            'username': 'alice',
+            'email': 'alice@localhost.com',
+        }
+        self._login_user_and_profile(extra_post_data=alice_data)
+        request = self.factory.get('/')
+        response = self.view(request)
+        self.assertEqual(response.status_code, 401)
+        auth = DigestAuth('alice', 'bobbob')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, username='bob')
+        # check that alice's request is succesful and it returns public forms
+        # owned by bob
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0].get('formID'), xform_id_string)
 
     def test_get_xform_list_with_malformed_cookie(self):
         request = self.factory.get('/')
@@ -226,7 +242,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         content = response.render().content
-        self.assertIn(self.xform.id_string, content)
+        self.assertNotIn(self.xform.id_string, content)
         self.assertIn(
             '<?xml version="1.0" encoding="utf-8"?>\n<xforms ', content)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
@@ -251,7 +267,7 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request)
         self.assertEqual(response.status_code, 200)
         content = response.render().content
-        self.assertIn(self.xform.id_string, content)
+        self.assertNotIn(self.xform.id_string, content)
         self.assertIn(
             '<?xml version="1.0" encoding="utf-8"?>\n<xforms ', content)
         self.assertTrue(response.has_header('X-OpenRosa-Version'))
