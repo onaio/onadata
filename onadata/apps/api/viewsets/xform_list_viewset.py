@@ -93,11 +93,12 @@ class XFormListViewSet(CacheControlMixin, ETagsMixin, BaseViewset,
             queryset = super(XFormListViewSet, self).filter_queryset(queryset)
 
             if self.action == 'list' and profile:
-                public_forms = profile.user.xforms.filter(
-                    downloadable=True, shared=True)
                 forms_shared_with_user = get_forms_shared_with_user(
                     profile.user)
-                queryset = queryset | forms_shared_with_user | public_forms
+                if self.request.user != profile.user:
+                    public_forms = profile.user.xforms.filter(
+                        downloadable=True, shared=True)
+                    queryset = queryset | forms_shared_with_user | public_forms
 
         return queryset
 
