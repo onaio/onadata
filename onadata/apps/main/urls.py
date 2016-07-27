@@ -31,7 +31,7 @@ urlpatterns = [
     url(r'^i18n/', include(i18n)),
     url('^api/v1/', include(router.urls)),
     url('^api/v1/dataviews/(?P<pk>[^/]+)/(?P<action>[^/]+).'
-        '(?P<format>[a-z]+[0-9]*)$', DataViewViewSet,
+        '(?P<format>([a-z]|[0-9])*)$', DataViewViewSet,
         name='dataviews-data'),
     url(r'^api-docs/',
         RedirectView.as_view(url=settings.STATIC_DOC, permanent=True)),
@@ -203,12 +203,12 @@ urlpatterns = [
         '/(?P<metadata>[\d+^/.]+)$',
         XFormListViewSet.as_view({'get': 'media'}), name='xform-media'),
     url(r'^(?P<username>\w+)/xformsMedia/(?P<pk>[\d+^/]+)'
-        '/(?P<metadata>[\d+^/.]+)\.(?P<format>[a-z]+[0-9]*)$',
+        '/(?P<metadata>[\d+^/.]+)\.(?P<format>([a-z]|[0-9])*)$',
         XFormListViewSet.as_view({'get': 'media'}), name='xform-media'),
     url(r'^xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)$',
         XFormListViewSet.as_view({'get': 'media'}), name='xform-media'),
     url(r'^xformsMedia/(?P<pk>[\d+^/]+)/(?P<metadata>[\d+^/.]+)\.'
-        '(?P<format>[a-z]+[0-9]*)$',
+        '(?P<format>([a-z]|[0-9])*)$',
         XFormListViewSet.as_view({'get': 'media'}), name='xform-media'),
     url(r'^(?P<username>\w+)/submission$',
         XFormSubmissionViewSet.as_view({'post': 'create', 'head': 'create'}),
