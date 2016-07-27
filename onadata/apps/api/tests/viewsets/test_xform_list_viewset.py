@@ -4,6 +4,7 @@ from mock import patch
 from django.conf import settings
 from django.test import TransactionTestCase
 from django_digest.test import DigestAuth
+from django.core.urlresolvers import reverse
 
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
@@ -474,3 +475,14 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Disposition'],
                          'attachment; filename=transportation.csv')
+
+    def test_xform_3gp_media_type(self):
+
+        for fmt in ["png", "jpg", "mp3", "3gp", "wav"]:
+            url = reverse('xform-media', kwargs={
+                'username': 'bob',
+                'pk': 1,
+                'metadata': '1234',
+                'format': fmt})
+
+            self.assertEqual(url, '/bob/xformsMedia/1/1234.{}'.format(fmt))
