@@ -421,22 +421,20 @@ def search_rows(service, spread_sheet_id, column, value):
     return row_index
 
 
-def create_sheet_details(sections, row_index, row_index_2):
+def create_sheet_details(sections, row_indexes):
     """
     Creates dict with details about data upload
     :param sections:
-    :param row_index:
-    :param row_index_2:
+    :param row_indexes:
     :return:
     """
     sheets_details = list()
     for idx, section in enumerate(sections):
-        if idx == 1:
-            row_index = row_index_2
+
         sheets_details.append({
             "title": section['name'],
             "data": list(),
-            "index": row_index
+            "index": row_indexes[idx]
         })
 
     return sheets_details
@@ -493,7 +491,9 @@ class GoogleSheetsExportBuilder(ExportBuilder):
 
         set_spread_sheet_data(self.service, self.spread_sheet_details,
                               sections_details, should_extend=False)
-        self._insert_data(data)
+        last_rows = get_last_data_last_row(self.spread_sheet_details)
+        row_indexes = map(lambda x: x + 1, last_rows)
+        self._insert_data(data, row_indexes)
 
         self.url = get_spread_sheet_url(spread_sheet_id)
 
@@ -516,15 +516,15 @@ class GoogleSheetsExportBuilder(ExportBuilder):
 
         return sheets_details
 
-    def _insert_data(self, data, row_index=2, row_index_2=2, new_row=True):
+    def _insert_data(self, data, row_indexes=[2], new_row=True):
         """Writes data rows for each section."""
         indices = {}
         survey_name = self.survey.name
         batch_size = GOOGLE_SHEET_UPLOAD_BATCH
         processed_data = 0
-        sheet_details = create_sheet_details(self.sections, row_index,
-                                             row_index_2)
+        sheet_details = create_sheet_details(self.sections, row_indexes)
         for index, d in enumerate(data, 1):
+            _id = d.get('_id')
             joined_export = dict_to_joined_export(
                 d, index, indices, survey_name, self.survey, d)
             output = ExportBuilder.decode_mongo_encoded_section_names(
@@ -550,6 +550,8 @@ class GoogleSheetsExportBuilder(ExportBuilder):
                     sheet_details[idx].get("data").append(finalized_rows)
                 elif type(row) == list:
                     for child_row in row:
+                        if not child_row.get('_id'):
+                            child_row['_id'] = _id
                         finalized_rows = prepare_row(
                             self.pre_process_row(child_row, section), fields)
                         sheet_details[idx].get("data").append(finalized_rows)
@@ -558,13 +560,10 @@ class GoogleSheetsExportBuilder(ExportBuilder):
                 set_spread_sheet_data(self.service, self.spread_sheet_details,
                                       sheet_details, should_extend=new_row)
 
-                row_index_2 = 0
-                if len(sheet_details) > 1:
-                    row_index_2 = len(sheet_details[1].get('data')[0])
-                row_index_2 += row_index + 1
-                row_index += processed_data + 1
-                sheet_details = create_sheet_details(self.sections, row_index,
-                                                     row_index_2)
+                self.update_sheet_details()
+                row_indexes = get_last_data_last_row(self.spread_sheet_details)
+                sheet_details = create_sheet_details(self.sections,
+                                                     row_indexes)
                 processed_data = 0
             else:
                 processed_data += 1
@@ -572,6 +571,11 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         if processed_data > 0:
             set_spread_sheet_data(self.service, self.spread_sheet_details,
                                   sheet_details, should_extend=new_row)
+
+    def update_sheet_details(self):
+        spreadsheet_id = self.spread_sheet_details.get('spreadsheetId')
+        self.spread_sheet_details = get_spread_sheet(self.service,
+                                                     spreadsheet_id)
 
     def live_update(self, data, spreadsheet_id, delete=False, update=False,
                     append=False):
@@ -599,31 +603,18 @@ class GoogleSheetsExportBuilder(ExportBuilder):
 
         section_details = self.create_sheets_n_headers()
 
-        sheet_2_start_index = 2
-        if append:
-            last_rows = get_last_data_last_row(self.spread_sheet_details)
-
-            if len(last_rows) > 1:
-                sheet_2_start_index = last_rows[1] + 1
-
-            start_index = last_rows[0] + 1
-
-        elif update:
+        last_rows = get_last_data_last_row(self.spread_sheet_details)
+        row_indexes = map(lambda x: x + 1, last_rows)
+        if update:
             data_id = data[0].get('_id')
             start_index = search_rows(self.service, spreadsheet_id, '_id',
                                       data_id)
-            last_rows = get_last_data_last_row(self.spread_sheet_details)
-            if len(last_rows) > 1:
-                sheet_2_start_index = last_rows[1] + 1
-
-        else:
-            start_index = 2
+            row_indexes[0] = start_index
 
         set_spread_sheet_data(self.service, self.spread_sheet_details,
                               section_details, should_extend=False)
         is_new_records = not update
-        self._insert_data(data, row_index=start_index,
-                          row_index_2=sheet_2_start_index,
+        self._insert_data(data, row_indexes=row_indexes,
                           new_row=is_new_records)
 
         self.url = get_spread_sheet_url(spreadsheet_id)
