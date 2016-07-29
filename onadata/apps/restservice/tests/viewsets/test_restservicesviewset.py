@@ -428,8 +428,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(1, mock_sheet_builder.call_count)
         instance = self.xform.instances.last()
         mock_sheet_builder.assert_called_with([instance.json],
-                                              u'very_mocked_id',
-                                              append=True)
+                                              u'very_mocked_id')
         mock_sheet_builder.reset_mock()
 
         xml_edit_submission_file_path = os.path.join(
@@ -477,8 +476,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(1, mock_sheet_builder.call_count)
         instance = self.xform.instances.last()
         mock_sheet_builder.assert_called_with([instance.json],
-                                              u'very_mocked_id',
-                                              append=True)
+                                              u'very_mocked_id')
         mock_sheet_builder.reset_mock()
 
         xml_edit_submission_file_path = os.path.join(
@@ -520,8 +518,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(1, mock_sheet_builder.call_count)
         instance = self.xform.instances.last()
         mock_sheet_builder.assert_called_with([instance.json],
-                                              u'very_mocked_id',
-                                              append=True)
+                                              u'very_mocked_id')
         mock_sheet_builder.reset_mock()
 
         instance = self.xform.instances.last()
@@ -562,8 +559,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         self.assertEqual(3, mock_sheet_builder.call_count)
         instance = self.xform.instances.last()
         mock_sheet_builder.assert_called_with([instance.json],
-                                              u'very_mocked_id',
-                                              append=True)
+                                              u'very_mocked_id')
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch.object(GoogleSheetsExportBuilder, 'live_update',
