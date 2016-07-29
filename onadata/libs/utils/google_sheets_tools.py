@@ -11,7 +11,7 @@ from onadata.libs.utils.export_tools import (
     dict_to_joined_export,
     encode_if_str
 )
-from onadata.libs.utils.common_tags import INDEX, PARENT_INDEX
+from onadata.libs.utils.common_tags import INDEX, PARENT_INDEX, ID
 
 DISCOVERY_URL = "https://sheets.googleapis.com/$discovery/rest?version=v4"
 SHEETS_BASE_URL = 'https://docs.google.com/spreadsheet/ccc?key=%s&hl'
@@ -151,12 +151,14 @@ def get_spread_sheet_title(service, spread_sheet_id):
     return google_sheet_details.get('properties').get('title')
 
 
-def get_spread_sheet_rows(service, spread_sheet_details, row_index=None):
+def get_spread_sheet_rows(service, spread_sheet_details, row_index=None,
+                          sheet_idx=0):
     """
     Retrieve sheet data
     :param service:
     :param spread_sheet_details:
     :param row_index:
+    :param sheet_idx:
     :return:
     spread_sheet_details ->
 
@@ -211,38 +213,44 @@ def get_spread_sheet_rows(service, spread_sheet_details, row_index=None):
     """
 
     spread_sheet_id = spread_sheet_details.get('spreadsheetId')
-    sheet_detail = spread_sheet_details.get('sheets')[0]
+    sheet_detail = spread_sheet_details.get('sheets')[sheet_idx]
     grid_properties = sheet_detail.get('properties').get('gridProperties')
     rows = grid_properties.get('rowCount')
     columns = grid_properties.get('columnCount')
+    sheet_title = sheet_detail.get('properties').get('title')
 
     if row_index:
-        sheet_range = 'A{}:{}{}'.format(row_index, colnum_string(columns),
-                                        row_index)
+        sheet_range = '{}!A{}:{}{}'.format(sheet_title, row_index,
+                                           colnum_string(columns), row_index)
     else:
-        sheet_range = 'A{}:{}{}'.format(1, colnum_string(columns), rows)
+        sheet_range = '{}!A{}:{}{}'.format(sheet_title, 1,
+                                           colnum_string(columns), rows)
 
     return service.spreadsheets().values()\
         .get(spreadsheetId=spread_sheet_id, range=sheet_range)\
         .execute()
 
 
-def get_spread_sheet_column(service, spread_sheet_details, column_index=None):
+def get_spread_sheet_column(service, spread_sheet_details, column_index=None,
+                            sheet_idx=0):
     """
     Return data on a specific column
     :param service:
     :param spread_sheet_details:
     :param column_index:
+    :param sheet_idx:
     :return: list of data column
     """
     spread_sheet_id = spread_sheet_details.get('spreadsheetId')
-    sheet_detail = spread_sheet_details.get('sheets')[0]
+    sheet_detail = spread_sheet_details.get('sheets')[sheet_idx]
     grid_properties = sheet_detail.get('properties').get('gridProperties')
     rows = grid_properties.get('rowCount')
+    sheet_title = sheet_detail.get('properties').get('title')
 
     column_alpha = colnum_string(column_index)
 
-    sheet_range = '{}{}:{}{}'.format(column_alpha, 1, column_alpha, rows)
+    sheet_range = '{}!{}{}:{}{}'.format(sheet_title, column_alpha, 1,
+                                        column_alpha, rows)
 
     return service.spreadsheets().values() \
         .get(spreadsheetId=spread_sheet_id, range=sheet_range,
@@ -396,27 +404,30 @@ def colnum_string(n):
     return alpha_numeric
 
 
-def search_rows(service, spread_sheet_id, column, value):
+def search_rows(service, spread_sheet_details, column, value):
     """
     Search a value on a specific column
     :param service:
-    :param spread_sheet_id:
+    :param spread_sheet_details:
     :param column:
     :param value:
     :return: row index of the found value
     """
-    spread_sheet_details = get_spread_sheet(service, spread_sheet_id)
-    headers_details = get_spread_sheet_rows(service, spread_sheet_details,
-                                            row_index=1)
+    sheets = spread_sheet_details.get('sheets')
+    row_index = list()
+    for index, d in enumerate(sheets):
 
-    headers = headers_details.get("values")[0]
-    header_index = headers.index(column) + 1
+        headers_details = get_spread_sheet_rows(service, spread_sheet_details,
+                                                row_index=1, sheet_idx=index)
+        headers = headers_details.get("values")[0]
+        header_index = headers.index(column) + 1
 
-    data_column = get_spread_sheet_column(service, spread_sheet_details,
-                                          column_index=header_index)
-    data = data_column.get("values")[0]
+        data_column = get_spread_sheet_column(service, spread_sheet_details,
+                                              column_index=header_index,
+                                              sheet_idx=index)
+        data = data_column.get("values")[0]
 
-    row_index = data.index(str(value)) + 1
+        row_index.append(data.index(str(value)) + 1)
 
     return row_index
 
@@ -524,7 +535,7 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         processed_data = 0
         sheet_details = create_sheet_details(self.sections, row_indexes)
         for index, d in enumerate(data, 1):
-            _id = d.get('_id')
+            _id = d.get(ID)
             joined_export = dict_to_joined_export(
                 d, index, indices, survey_name, self.survey, d)
             output = ExportBuilder.decode_mongo_encoded_section_names(
@@ -550,8 +561,8 @@ class GoogleSheetsExportBuilder(ExportBuilder):
                     sheet_details[idx].get("data").append(finalized_rows)
                 elif type(row) == list:
                     for child_row in row:
-                        if not child_row.get('_id'):
-                            child_row['_id'] = _id
+                        if not child_row.get(ID):
+                            child_row[ID] = _id
                         finalized_rows = prepare_row(
                             self.pre_process_row(child_row, section), fields)
                         sheet_details[idx].get("data").append(finalized_rows)
@@ -577,15 +588,45 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         self.spread_sheet_details = get_spread_sheet(self.service,
                                                      spreadsheet_id)
 
-    def live_update(self, data, spreadsheet_id, delete=False, update=False,
-                    append=False):
+    def delete_rows(self, data_id):
+        """
+        Delete all the rows with the specified data id
+        :param data_id:
+        :return:
+        """
+        spreadsheet_id = self.spread_sheet_details.get('spreadsheetId')
+        sheets = self.spread_sheet_details.get("sheets")
+
+        for index, sheet in enumerate(sheets):
+            sheet_id = sheet.get('properties').get('sheetId')
+
+            headers_details = get_spread_sheet_rows(self.service,
+                                                    self.spread_sheet_details,
+                                                    row_index=1,
+                                                    sheet_idx=index)
+            headers = headers_details.get("values")[0]
+            header_index = headers.index(ID) + 1
+
+            data_column = get_spread_sheet_column(self.service,
+                                                  self.spread_sheet_details,
+                                                  column_index=header_index,
+                                                  sheet_idx=index)
+
+            data = data_column.get("values")[0]
+            delete_row = data.index(str(data_id))
+            count_row = data.count(str(data_id))
+            last_delete_row = delete_row + count_row
+
+            delete_row_or_column(self.service, spreadsheet_id, sheet_id,
+                                 delete_row, last_delete_row)
+
+    def live_update(self, data, spreadsheet_id, delete=False, update=False):
         """
         Keeps google sheet in sync with onadata
         :param data:
         :param spreadsheet_id:
         :param delete: delete the row
         :param update: update already existing row
-        :param append: add row at the end
         :return:
         """
 
@@ -594,22 +635,18 @@ class GoogleSheetsExportBuilder(ExportBuilder):
         spreadsheet_id = self.spread_sheet_details.get('spreadsheetId')
 
         if delete:
-            sheet_id = self.spread_sheet_details.get("sheets")[0] \
-                .get('properties').get('sheetId')
-            start_index = search_rows(self.service, spreadsheet_id, '_id',
-                                      data)
-            return delete_row_or_column(self.service, spreadsheet_id, sheet_id,
-                                        start_index - 1, start_index)
+            return self.delete_rows(data)
 
         section_details = self.create_sheets_n_headers()
 
         last_rows = get_last_data_last_row(self.spread_sheet_details)
+
+        # add 1 to all the last row index
         row_indexes = map(lambda x: x + 1, last_rows)
         if update:
-            data_id = data[0].get('_id')
-            start_index = search_rows(self.service, spreadsheet_id, '_id',
-                                      data_id)
-            row_indexes[0] = start_index
+            data_id = data[0].get(ID)
+            row_indexes = search_rows(self.service, self.spread_sheet_details,
+                                      ID, data_id)
 
         set_spread_sheet_data(self.service, self.spread_sheet_details,
                               section_details, should_extend=False)

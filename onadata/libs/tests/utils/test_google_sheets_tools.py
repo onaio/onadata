@@ -272,3 +272,37 @@ class TestGoogleSheetTools(TestBase):
         expected_url = get_spread_sheet_url(spread_sheet_id)
 
         self.assertEqual(url, expected_url)
+
+    @patch('onadata.libs.utils.google_sheets_tools.create_service')
+    def test_google_sheet_live_update_sync_update(self, mock_sheet_service):
+        get_google_sheet = self._read_file(os.path.join(
+            self.google_folder_path, "google_sheet_detail.json"))
+        get_headers = self._read_file(os.path.join(self.google_folder_path,
+                                                   "get_headers.json"))
+        get_column = self._read_file(os.path.join(self.google_folder_path,
+                                                  "get_column.json"))
+        set_headers = self._read_file(os.path.join(self.google_folder_path,
+                                                   "set_data.json"))
+        set_data = self._read_file(os.path.join(self.google_folder_path,
+                                                "set_data.json"))
+
+        http = HttpMockSequence([
+            ({'status': '200'}, get_google_sheet),
+            ({'status': '200'}, get_headers),
+            ({'status': '200'}, get_column),
+            ({'status': '200'}, set_headers),
+            ({'status': '200'}, set_data)])
+        service = discovery.build('sheets', 'v4', http=http,
+                                  discoveryServiceUrl=DISCOVERY_URL)
+        mock_sheet_service.return_value = service
+        fake_creds = {}
+        spread_sheet_id = "16-58Zf5gDfKwWFywtMOnJVN2PTELjd4Q3yTWAwMA"
+
+        google_sheets = GoogleSheetsExportBuilder(self.xform, fake_creds)
+        data_row = query_data(self.xform)[0]
+        data_row['_id'] = 3634033
+        data = [data_row]
+        google_sheets.live_update(data, spread_sheet_id, update=True)
+
+        expected_url = get_spread_sheet_url(spread_sheet_id)
+        self.assertEqual(google_sheets.url, expected_url)
