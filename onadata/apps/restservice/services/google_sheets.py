@@ -21,4 +21,4 @@ class ServiceDefinition(RestServiceInterface):
         data = [submission_instance.json]
         google_sheets = initialize_google_sheet_builder(xform,
                                                         google_credentials)
-        google_sheets.live_update(data, spreadsheet_id, append=True)
+        google_sheets.live_update(data, spreadsheet_id)
