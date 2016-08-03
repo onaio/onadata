@@ -316,7 +316,7 @@ class TestRestServicesViewSet(TestAbstractViewSet):
         expected_data = {
             'google_sheet_title': post_data.get('google_sheet_title'),
             'name': u'google_sheets',
-            'send_existing_data': False,
+            'send_existing_data': post_data.get('send_existing_data'),
             'google_sheet_url': get_spread_sheet_url(
                 google_sheet_details.get(GOOGLE_SHEET_ID)),
             'sync_updates': post_data.get('sync_updates'),
