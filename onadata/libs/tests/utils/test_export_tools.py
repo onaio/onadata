@@ -268,6 +268,31 @@ class TestExportTools(PyxformTestCase, TestBase):
         expected_data = {'fruit': {'orange': 'Orange', 'mango': 'Mango'}}
         self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
 
+    def test_get_sav_value_labels_multi_language(self):
+        md = """
+        | survey |
+        |        | type              | name  | label:English | label:Swahili |
+        |        | select one fruits | fruit | Fruit         | Tunda         |
+
+        | choices |
+        |         | list name | name   | label: English | label:Swahili |
+        |         | fruits    | orange | Orange         | Chungwa       |
+        |         | fruits    | mango  | Mango          | Maembe        |
+        """
+        survey = self.md_to_pyxform_survey(md)
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        expected_data = {'fruit': {'orange': 'Orange', 'mango': 'Mango'}}
+        self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
+
+        del export_builder._sav_value_labels
+        export_builder.dd._default_language = 'Swahili'
+        expected_data = {'fruit': {'orange': 'Chungwa', 'mango': 'Maembe'}}
+        self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
+
     def test_get_sav_value_labels_for_choice_filter(self):
         md = """
         | survey |

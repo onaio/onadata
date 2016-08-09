@@ -745,7 +745,8 @@ class ExportBuilder(object):
 
     def get_default_language(self, languages):
         language = self.dd.default_language
-        if not language and languages:
+        if languages and \
+                ((language and language not in languages) or not language):
             languages.sort()
             language = languages[0]
 
