@@ -10,7 +10,8 @@ from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.restservice.tasks import initial_google_sheet_export
 from onadata.libs.utils.google_sheets_tools import get_spread_sheet_url
 from onadata.libs.utils.common_tags import GOOGLE_SHEET_ID,\
-    UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, USER_ID, GOOGLE_SHEET_TITLE
+    UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, USER_ID, GOOGLE_SHEET_TITLE, \
+    SYNC_EXISTING_DATA
 from onadata.libs.utils.google_sheets_tools import create_google_sheet
 
 
@@ -63,11 +64,12 @@ class GoogleSheetService(object):
                                                  self.xform)
 
         google_sheets_metadata = \
-            '{} {} | {} {}| {} {} | {} {}'.format(
+            '{} {} | {} {}| {} {} | {} {} | {} {}'.format(
                 GOOGLE_SHEET_ID, spreadsheet_id,
                 UPDATE_OR_DELETE_GOOGLE_SHEET_DATA, self.sync_updates,
                 USER_ID, self.user.pk,
-                GOOGLE_SHEET_TITLE, self.google_sheet_title
+                GOOGLE_SHEET_TITLE, self.google_sheet_title,
+                SYNC_EXISTING_DATA, self.send_existing_data
             )
 
         MetaData.set_google_sheet_details(self.xform, google_sheets_metadata)
@@ -102,7 +104,8 @@ class GoogleSheetService(object):
         self.google_sheet_title = google_sheet_details.get(GOOGLE_SHEET_TITLE)
         self.sync_updates = \
             google_sheet_details.get(UPDATE_OR_DELETE_GOOGLE_SHEET_DATA)
-        self.send_existing_data = False
+        self.send_existing_data = google_sheet_details.get(SYNC_EXISTING_DATA,
+                                                           True)
         self.user = google_sheet_details.get(USER_ID)
         self.google_sheet_url = get_spread_sheet_url(
             google_sheet_details.get(GOOGLE_SHEET_ID))
