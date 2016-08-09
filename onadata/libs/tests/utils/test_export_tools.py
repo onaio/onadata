@@ -248,6 +248,26 @@ class TestExportTools(PyxformTestCase, TestBase):
         self.assertFalse(str_to_bool(0))
         self.assertFalse(str_to_bool('0'))
 
+    def test_get_sav_value_labels(self):
+        md = """
+        | survey |
+        |        | type              | name  | label |
+        |        | select one fruits | fruit | Fruit |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | fruits    | orange | Orange |
+        |         | fruits    | mango  | Mango  |
+        """
+        survey = self.md_to_pyxform_survey(md)
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        expected_data = {'fruit': {'orange': 'Orange', 'mango': 'Mango'}}
+        self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
+
     def test_get_sav_value_labels_for_choice_filter(self):
         md = """
         | survey |
