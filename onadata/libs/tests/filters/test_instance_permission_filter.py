@@ -112,7 +112,8 @@ class TestMetaDataFilter(TestBase):
 
         self.assertEquals(len(response.data), 0)
 
-    def test_filter_for_dataview_instance_request(self):
+    def test_filter_for_dataview_metadata_instance_request(self):
+        # """Dataview IDs should not yield any submission metadata"""
         self._setup_dataview_test_data()
 
         # retrieve the xform instance that is part of the dataview objects
@@ -127,9 +128,10 @@ class TestMetaDataFilter(TestBase):
         request = self.factory.get('/', data=params, **self.extra)
         response = self.view(request)
 
-        self.assertEquals(len(response.data), 1)
+        self.assertEquals(len(response.data), 0)
 
-    def test_filter_given_user_without_permissions(self):
+    def test_filter_given_user_without_permissions_to_xform(self):
+        """Instance metadata isn't listed for users without form perms"""
         self._setup_dataview_test_data()
 
         # retrieve the xform instance that is part of the dataview objects
@@ -153,6 +155,8 @@ class TestMetaDataFilter(TestBase):
         self.assertEquals(len(response.data), 0)
 
     def test_filter_given_dataview_in_project_without_instance(self):
+        """Meta data for submissions shouldn't be accessible from dataview"""
+
         data_view_query = [
             {"column": "gender", "filter": "=", "value": "female"}]
         self._setup_dataview_test_data(query=data_view_query)

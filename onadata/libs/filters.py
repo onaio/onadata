@@ -9,7 +9,7 @@ from rest_framework import filters
 
 
 from onadata.apps.api.models import Team, OrganizationProfile
-from onadata.apps.logger.models import DataView, Project, XForm, Instance
+from onadata.apps.logger.models import Project, XForm, Instance
 from onadata.libs.utils.numeric import int_or_parse_error
 
 
@@ -197,9 +197,8 @@ class InstancePermissionFilterMixin(object):
         instance_id = request.query_params.get("instance")
         project_id = request.query_params.get("project")
         xform_id = request.query_params.get('xform')
-        dataview_id = request.query_params.get('dataview')
 
-        if instance_id and project_id and (xform_id or dataview_id):
+        if instance_id and project_id and xform_id:
             for object_id in [instance_id, project_id]:
                 int_or_parse_error(object_id,
                                    u"Invalid value for instanceid %s.")
@@ -211,9 +210,6 @@ class InstancePermissionFilterMixin(object):
                 xform = get_object_or_404(XForm, pk=xform_id)
                 parent = xform.instances.filter(id=instance.id) and xform
 
-            elif dataview_id:
-                dataview = get_object_or_404(DataView, pk=dataview_id)
-                parent = dataview.has_instance(instance) and dataview
             else:
                 return {}
 
@@ -277,7 +273,7 @@ class MetaDataFilter(ProjectPermissionFilterMixin,
         # return instance specific metadata
         if instance_id:
             return (queryset.filter(Q(**instance_kwarg))
-                    if instance_kwarg else [])
+                    if (xform_id and instance_kwarg) else [])
         elif xform_id:
             # return xform specific metadata
             return queryset.filter(Q(**xform_kwarg))
