@@ -745,7 +745,8 @@ class ExportBuilder(object):
 
     def get_default_language(self, languages):
         language = self.dd.default_language
-        if not language and languages:
+        if languages and \
+                ((language and language not in languages) or not language):
             languages.sort()
             language = languages[0]
 
@@ -768,6 +769,10 @@ class ExportBuilder(object):
 
             for q in choice_questions:
                 choices = q.to_json_dict().get('children')
+                if choices is None:
+                    choices = self.survey.get('choices')
+                    if choices is not None and q.get('itemset'):
+                        choices = choices.get(q.get('itemset'))
                 _value_labels = {}
                 for choice in choices:
                     name = choice['name'].strip()

@@ -2,6 +2,7 @@ import os
 from datetime import date, datetime
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
+from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
@@ -13,11 +14,12 @@ from onadata.libs.utils.export_tools import get_value_or_attachment_uri
 from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.export_tools import should_create_new_export
 from onadata.libs.utils.export_tools import str_to_bool
+from onadata.libs.utils.export_tools import ExportBuilder
 from onadata.apps.logger.models import Attachment
 from onadata.apps.api import tests as api_tests
 
 
-class TestExportTools(TestBase):
+class TestExportTools(PyxformTestCase, TestBase):
 
     def _create_old_export(self, xform, export_type, options):
         Export(xform=xform, export_type=export_type, options=options).save()
@@ -245,3 +247,68 @@ class TestExportTools(TestBase):
         self.assertFalse(str_to_bool(234))
         self.assertFalse(str_to_bool(0))
         self.assertFalse(str_to_bool('0'))
+
+    def test_get_sav_value_labels(self):
+        md = """
+        | survey |
+        |        | type              | name  | label |
+        |        | select one fruits | fruit | Fruit |
+
+        | choices |
+        |         | list name | name   | label  |
+        |         | fruits    | orange | Orange |
+        |         | fruits    | mango  | Mango  |
+        """
+        survey = self.md_to_pyxform_survey(md)
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        expected_data = {'fruit': {'orange': 'Orange', 'mango': 'Mango'}}
+        self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
+
+    def test_get_sav_value_labels_multi_language(self):
+        md = """
+        | survey |
+        |        | type              | name  | label:English | label:Swahili |
+        |        | select one fruits | fruit | Fruit         | Tunda         |
+
+        | choices |
+        |         | list name | name   | label: English | label:Swahili |
+        |         | fruits    | orange | Orange         | Chungwa       |
+        |         | fruits    | mango  | Mango          | Maembe        |
+        """
+        survey = self.md_to_pyxform_survey(md)
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        expected_data = {'fruit': {'orange': 'Orange', 'mango': 'Mango'}}
+        self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
+
+        del export_builder._sav_value_labels
+        export_builder.dd._default_language = 'Swahili'
+        expected_data = {'fruit': {'orange': 'Chungwa', 'mango': 'Maembe'}}
+        self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
+
+    def test_get_sav_value_labels_for_choice_filter(self):
+        md = """
+        | survey |
+        |        | type              | name  | label | choice_filter |
+        |        | select one fruits | fruit | Fruit | active=1      |
+
+        | choices |
+        |         | list name | name   | label  | active |
+        |         | fruits    | orange | Orange | 1      |
+        |         | fruits    | mango  | Mango  | 1      |
+        """
+        survey = self.md_to_pyxform_survey(md)
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        expected_data = {'fruit': {'orange': 'Orange', 'mango': 'Mango'}}
+        self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
