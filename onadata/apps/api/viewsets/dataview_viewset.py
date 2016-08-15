@@ -170,6 +170,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         serializer = self.get_serializer(dataview)
 
         field_name = request.query_params.get('field_name')
+        field_xpath = request.query_params.get('field_xpath')
         fmt = kwargs.get('format', request.accepted_renderer.format)
         group_by = request.query_params.get('group_by')
 
@@ -178,14 +179,18 @@ class DataViewViewSet(AuthenticateHeaderMixin,
             field_xpath = field_name if isinstance(field, basestring) \
                 else field.get_abbreviated_xpath()
 
-            if field_xpath not in dataview.columns and \
-                    field_xpath != common_tags.SUBMISSION_TIME:
-                raise Http404(
-                    "Field %s does not not exist on the dataview" % field_name)
-            else:
-                data = get_chart_data_for_field(
-                    field_name, xform, fmt, group_by, data_view=dataview)
-                return Response(data, template_name='chart_detail.html')
+        if field_xpath not in dataview.columns and \
+                field_xpath != common_tags.SUBMISSION_TIME:
+            raise Http404(
+                "Field %s does not not exist on the dataview" % field_name)
+
+        if field_name or field_xpath:
+            data = get_chart_data_for_field(
+                field_name, xform, fmt, group_by, field_xpath,
+                data_view=dataview
+            )
+
+            return Response(data, template_name='chart_detail.html')
 
         if fmt != 'json' and field_name is None:
             raise ParseError("Not supported")
