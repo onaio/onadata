@@ -592,6 +592,17 @@ class TestDataViewViewSet(TestAbstractViewSet):
         self.assertEqual(response.data['data_type'], 'numeric')
         self.assertEqual(len(response.data['data']), len(data_view_data))
 
+        data = {'field_xpath': 'age'}
+        request = self.factory.get('/charts', data, **self.extra)
+        response = self.view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.data['field_type'], 'integer')
+        self.assertEqual(response.data['field_name'], 'age')
+        self.assertEqual(response.data['data_type'], 'numeric')
+        self.assertEqual(len(response.data['data']), len(data_view_data))
+
     def test_get_charts_data_for_submission_time_field(self):
         self._create_dataview()
         self.view = DataViewViewSet.as_view({

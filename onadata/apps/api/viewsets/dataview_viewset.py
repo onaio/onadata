@@ -179,7 +179,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
             field_xpath = field_name if isinstance(field, basestring) \
                 else field.get_abbreviated_xpath()
 
-        if field_xpath not in dataview.columns and \
+        if field_xpath and field_xpath not in dataview.columns and \
                 field_xpath != common_tags.SUBMISSION_TIME:
             raise Http404(
                 "Field %s does not not exist on the dataview" % field_name)
