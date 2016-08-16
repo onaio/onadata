@@ -48,7 +48,7 @@ from onadata.libs.utils.common_tags import GROUPNAME_REMOVED_FLAG
 from onadata.libs.utils.cache_tools import (
     safe_delete,
     ENKETO_URL_CACHE,
-    PROJ_FORMS_CACHE)
+    PROJ_FORMS_CACHE, XFORM_DATA_VERSIONS)
 from onadata.libs.utils.cache_tools import XFORM_PERMISSIONS_CACHE
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.libs.utils.google_sheets_tools import GoogleSheetsExportBuilder
@@ -3971,3 +3971,31 @@ class TestXFormViewSet(TestAbstractViewSet):
             ".donkey_mule_cart' is an invalid variable name "
             "['SPSS_NAME_BADLTH: Empty or longer than 64 chars']"
         )
+
+    def test_xform_version_count(self):
+        self._publish_xls_form_to_project()
+
+        self._make_submissions()
+
+        view = XFormViewSet.as_view({
+            'get': 'retrieve',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertIn("form_versions", response.data)
+        self.assertEqual(response.data['form_versions'][0].get('total'), 4)
+
+        # soft delete an instance
+        instance = self.xform.instances.last()
+        instance.set_deleted()
+
+        # delete cache
+        safe_delete('{}{}'.format(XFORM_DATA_VERSIONS, self.xform.pk))
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.xform.pk)
+
+        self.assertIn("form_versions", response.data)
+        self.assertEqual(response.data['form_versions'][0].get('total'), 3)
