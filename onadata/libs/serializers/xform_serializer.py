@@ -274,7 +274,8 @@ class XFormSerializer(XFormMixin, serializers.HyperlinkedModelSerializer):
             if versions:
                 return versions
 
-            versions = list(Instance.objects.filter(xform=obj)
+            versions = list(Instance.objects.filter(xform=obj,
+                                                    deleted_at__isnull=True)
                             .values('version')
                             .annotate(total=Count('version')))
 
