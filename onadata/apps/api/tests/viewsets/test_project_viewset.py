@@ -152,6 +152,7 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertEqual(['date_created',
                           'downloadable',
                           'encrypted',
+                          'last_updated_at',
                           'formid',
                           'last_submission_time',
                           'name',

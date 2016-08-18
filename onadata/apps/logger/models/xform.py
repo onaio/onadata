@@ -644,6 +644,7 @@ class XForm(XFormMixin, BaseModel):
                                    content_type_field='content_type_id',
                                    object_id_field="object_id")
     has_hxl_support = models.BooleanField(default=False)
+    last_updated_at = models.DateTimeField(auto_now_add=True)
 
     tags = TaggableManager()
 

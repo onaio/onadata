@@ -1903,6 +1903,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             title_old = self.xform.title
             self.assertIsNotNone(self.xform.version)
+            last_updated_at = self.xform.last_updated_at
             version = self.xform.version
             form_id = self.xform.pk
             id_string = self.xform.id_string
@@ -1922,8 +1923,9 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.xform.reload()
             new_version = self.xform.version
-
+            new_last_updated_at = self.xform.last_updated_at
             # diff versions
+            self.assertNotEquals(last_updated_at, new_last_updated_at)
             self.assertNotEquals(version, new_version)
             self.assertNotEquals(title_old, self.xform.title)
             self.assertEquals(form_id, self.xform.pk)

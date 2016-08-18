@@ -1,6 +1,7 @@
 import csv
 import os
 import xlrd
+from django.utils import timezone
 
 from cStringIO import StringIO
 from django.db.models.signals import post_save, pre_save
@@ -111,6 +112,7 @@ class DataDictionary(XForm):
             self.json = survey.to_json()
             self.xml = survey.to_xml()
             self.version = survey.get('version')
+            self.last_updated_at = timezone.now()
             self.title = survey.get('title')
             self._mark_start_time_boolean()
             set_uuid(self)
