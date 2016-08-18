@@ -358,6 +358,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             }]
             del self.form_data['date_modified']
             del response.data[0]['date_modified']
+
+            del self.form_data['last_updated_at']
+            del response.data[0]['last_updated_at']
+
             self.form_data.pop('has_id_string_changed')
             self.form_data['metadata'].sort()
             response.data[0]['metadata'].sort()
@@ -471,10 +475,12 @@ class TestXFormViewSet(TestAbstractViewSet):
 
             self.assertTrue(len(response_data), 2)
 
-            # remove date modified
+            # remove date modified and last updated at
             for indx in [0, 1]:
                 response_data[indx].pop("date_modified")
                 expected_data[indx].pop("date_modified")
+                response_data[indx].pop('last_updated_at')
+                expected_data[indx].pop('last_updated_at')
 
             self.assertEqual(response_data[0], expected_data[0])
             self.assertEqual(response_data[1], expected_data[1])
@@ -505,6 +511,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             # remove date-modified
             response.data[0].pop("date_modified")
             self.form_data.pop("date_modified")
+
+            #remove last updated at
+            response.data[0].pop('last_updated_at')
+            self.form_data.pop('last_updated_at')
 
             self.assertEqual(response.data, [self.form_data])
 
@@ -564,6 +574,10 @@ class TestXFormViewSet(TestAbstractViewSet):
             # remove date modified
             self.form_data.pop('date_modified')
             response.data.pop('date_modified')
+            # remove last updated at
+            self.form_data.pop('last_updated_at')
+            response.data.pop('last_updated_at')
+
             self.form_data.pop('has_id_string_changed')
 
             self.assertEqual(response.data, self.form_data)
