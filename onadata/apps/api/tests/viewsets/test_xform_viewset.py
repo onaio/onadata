@@ -512,7 +512,7 @@ class TestXFormViewSet(TestAbstractViewSet):
             response.data[0].pop("date_modified")
             self.form_data.pop("date_modified")
 
-            #remove last updated at
+            # remove last updated at
             response.data[0].pop('last_updated_at')
             self.form_data.pop('last_updated_at')
 
