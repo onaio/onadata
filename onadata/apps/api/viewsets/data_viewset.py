@@ -350,9 +350,14 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                                   is_public_request)
 
         xform = self.get_object()
+        kwargs = {'instance__xform': xform}
 
         if export_type == Attachment.OSM:
-            osm_list = OsmData.objects.filter(instance__xform=xform)
+            if request.GET:
+                self.set_object_list_and_total_count(
+                    query, fields, sort, start, limit, is_public_request)
+                kwargs = {'instance__in': self.object_list}
+            osm_list = OsmData.objects.filter(**kwargs)
             page = self.paginate_queryset(osm_list)
             serializer = self.get_serializer(page)
 
@@ -369,7 +374,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
         return custom_response_handler(request, xform, query, export_type)
 
-    def _get_data(self, query, fields, sort, start, limit, is_public_request):
+    def set_object_list_and_total_count(
+            self, query, fields, sort, start, limit, is_public_request):
         try:
             if not is_public_request:
                 xform = self.get_object()
@@ -403,6 +409,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             raise ParseError(unicode(e))
         except DataError, e:
             raise ParseError(unicode(e))
+
+    def _get_data(self, query, fields, sort, start, limit, is_public_request):
+        self.set_object_list_and_total_count(
+            query, fields, sort, start, limit, is_public_request)
 
         pagination_keys = [self.paginator.page_query_param,
                            self.paginator.page_size_query_param]

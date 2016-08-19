@@ -1648,3 +1648,19 @@ class TestOSM(TestAbstractViewSet):
             response1.render()
             self.assertMultiLineEqual(response1.content.strip(), osm.strip())
             self.assertMultiLineEqual(response.content.strip(), osm.strip())
+
+        # filter using value that exists
+        request = self.factory.get(
+            '/',
+            data={"query": u'{"osm_road": "OSMWay234134797.osm"}'},
+            **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 1)
+
+        # filter using value that doesn't exists
+        request = self.factory.get(
+            '/',
+            data={"query": u'{"osm_road": "OSMWay123456789.osm"}'},
+            **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(len(response.data), 0)
