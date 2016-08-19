@@ -24,7 +24,7 @@ from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models import XForm
-from onadata.libs.permissions import ReadOnlyRole
+from onadata.libs.permissions import ReadOnlyRole, EditorRole
 from onadata.libs import permissions as role
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.apps.logger.models.instance import get_attachment_url
@@ -208,6 +208,86 @@ class TestDataViewSet(TestBase):
         self.assertTrue(response.content.startswith('callback('))
         self.assertTrue(response.content.endswith(');'))
         self.assertEqual(len(response.data), 4)
+
+    def test_returned_data_is_based_on_form_permissions(self):
+        # create a form and make submissions to it
+        self._make_submissions()
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        # create user alice
+        user_alice = self._create_user('alice', 'alice')
+
+        # check that alice does not have the edit role on bob's project
+        self.assertFalse(
+            EditorRole.user_has_role(user_alice, self.project)
+        )
+
+        # share bob's project with alice and give alice an editor role
+        data = {'username': 'alice', 'role': EditorRole.name}
+        request = self.factory.put('/', data=data, **self.extra)
+        project_view = ProjectViewSet.as_view({
+            'put': 'share'
+        })
+        response = project_view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 204)
+
+        # check that alice has an editor role on both bob's project and form
+        self.assertTrue(
+            EditorRole.user_has_role(user_alice, self.project)
+        )
+        self.assertTrue(
+            EditorRole.user_has_role(user_alice, self.xform)
+        )
+
+        # check that by default, alice can be able to access all the data
+        alices_extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % user_alice.auth_token.key
+        }
+        request = self.factory.get('/', **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+        # change xform permission for users with editor role - they should
+        # only view data that they submitted
+        self.xform.permissions['can_edit'] = 'own'
+        self.xform.save()
+
+        # change user in 2 instances to be owned by alice - they should appear
+        # as if they were submitted by alice
+        for i in self.xform.instances.all()[:2]:
+            i.user = user_alice
+            i.save()
+
+        # check that 2 instances were 'submitted by' alice
+        instances_submitted_by_alice = self.xform.instances.filter(
+            user=user_alice).count()
+        self.assertTrue(instances_submitted_by_alice, 2)
+
+        # check that alice will only be able to see the data she submitted
+        alices_extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % user_alice.auth_token.key
+        }
+        request = self.factory.get('/', **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)
+
+        # change xform permission for users with editor role - they should not
+        # view any data
+        self.xform.permissions['can_edit'] = 'none'
+        self.xform.save()
+
+        # check taht alice won't be able to see any data
+        request = self.factory.get('/', **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
 
     def test_data_pagination(self):
         self._make_submissions()
