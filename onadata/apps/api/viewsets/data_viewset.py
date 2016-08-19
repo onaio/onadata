@@ -350,9 +350,14 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                                   is_public_request)
 
         xform = self.get_object()
+        kwargs = {'instance__xform': xform}
 
         if export_type == Attachment.OSM:
-            osm_list = OsmData.objects.filter(instance__xform=xform)
+            if request.GET:
+                self.set_object_list_and_total_count(
+                    query, fields, sort, start, limit, is_public_request)
+                kwargs = {'instance__in': self.object_list}
+            osm_list = OsmData.objects.filter(**kwargs)
             page = self.paginate_queryset(osm_list)
             serializer = self.get_serializer(page)
 
