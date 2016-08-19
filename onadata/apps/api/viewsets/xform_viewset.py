@@ -453,7 +453,8 @@ class XFormViewSet(AnonymousUserPublicFormsMixin,
             return Response(serializer.data)
 
         xform = self.get_object()
-        export_type = kwargs.get('format')
+        export_type = kwargs.get('format') or \
+            request.query_params.get('format')
         query = request.query_params.get("query", {})
         token = request.GET.get('token')
         meta = request.GET.get('meta')
