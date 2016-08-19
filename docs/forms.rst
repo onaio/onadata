@@ -64,7 +64,8 @@ Response
            "public": false,
            "public_data": false,
            "date_created": "2013-07-25T14:14:22.892Z",
-           "date_modified": "2013-07-25T14:14:22.892Z"
+           "date_modified": "2013-07-25T14:14:22.892Z",
+           "last_updated_at": "2013-07-25T14:14:22.892Z"
        }
 
 Get list of forms
@@ -130,7 +131,8 @@ Response
            "public_data": false,
            "require_auth": false,
            "date_created": "2013-07-25T14:14:22.892Z",
-           "date_modified": "2013-07-25T14:14:22.892Z"
+           "date_modified": "2013-07-25T14:14:22.892Z",
+           "last_updated_at": "2013-07-25T14:14:22.892Z"
        }
 
 

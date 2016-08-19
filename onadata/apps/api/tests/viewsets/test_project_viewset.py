@@ -154,6 +154,7 @@ class TestProjectViewSet(TestAbstractViewSet):
                           'encrypted',
                           'formid',
                           'last_submission_time',
+                          'last_updated_at',
                           'name',
                           'num_of_submissions',
                           'url'],
@@ -343,7 +344,9 @@ class TestProjectViewSet(TestAbstractViewSet):
         # remove metadata and date_modified
         self.form_data.pop('metadata')
         self.form_data.pop('date_modified')
+        self.form_data.pop('last_updated_at')
         response.data[0].pop('date_modified')
+        response.data[0].pop('last_updated_at')
         self.form_data.pop('has_id_string_changed')
 
         self.assertDictEqual(dict(response.data[0]), dict(self.form_data))
