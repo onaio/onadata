@@ -1,3 +1,5 @@
+import math
+
 from celery import task
 from datetime import datetime
 
@@ -87,7 +89,10 @@ def numeric_checker(string_value):
         return int(string_value)
     else:
         try:
-            return float(string_value)
+            value = float(string_value)
+            if math.isnan(value):
+                value = 0
+            return value
         except ValueError:
             pass
 

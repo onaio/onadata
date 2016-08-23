@@ -3,6 +3,7 @@ import os
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.test import TransactionTestCase
 from django_digest.test import DigestAuth
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 import simplejson as json
 
@@ -360,3 +361,15 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request)
         self.assertContains(response, 'No submission key provided.',
                             status_code=400)
+
+    def test_NaN_in_submission(self):
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "tutorial.xls")
+
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+            'tutorial', 'instances', 'uuid_NaN', 'submission.xml')
+        self._make_submission(path)
