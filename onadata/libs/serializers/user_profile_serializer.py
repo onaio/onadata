@@ -7,6 +7,7 @@ from django.core.cache import cache
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.utils.translation import ugettext as _
+from django.db import IntegrityError, transaction
 from registration.models import RegistrationProfile
 from rest_framework import serializers
 from onadata.apps.api.models.temp_token import TempToken
@@ -272,8 +273,12 @@ class UserProfileWithTokenSerializer(serializers.HyperlinkedModelSerializer):
         """This should return a valid temp token for this user profile."""
         token, created = TempToken.objects.get_or_create(user=object.user)
 
-        if not created and expired(token.created):
-            TempToken.objects.get(user=object.user, key=token.key).delete()
-            token = TempToken.objects.create(user=object.user)
+        try:
+            if not created and expired(token.created):
+                with transaction.atomic():
+                    TempToken.objects.get(user=object.user).delete()
+                    token = TempToken.objects.create(user=object.user)
+        except IntegrityError:
+            pass
 
         return token.key
