@@ -2655,6 +2655,20 @@ class TestXFormViewSet(TestAbstractViewSet):
                 export = Export.objects.get(task_id=task_id)
                 self.assertTrue(export.is_successful)
 
+    def test_xform_retrieve_osm_format(self):
+        with HTTMock(enketo_mock):
+            self._publish_xls_form_to_project()
+
+            view = XFormViewSet.as_view({
+                'get': 'retrieve',
+            })
+            formid = self.xform.pk
+
+            request = self.factory.get('/', data={"format": "osm"},
+                                       **self.extra)
+            response = view(request, pk=formid)
+            self.assertEqual(response.status_code, 200)
+
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
     def test_export_zip_async(self, async_result):
