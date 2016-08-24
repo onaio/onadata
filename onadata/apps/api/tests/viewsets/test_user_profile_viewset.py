@@ -666,6 +666,8 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
         response = self.view(request)
-        self.assertIsNotNone(response.data['first_name'])
-        self.assertIsNotNone(response.data['last_name'])
+        self.assertEqual(response.data['first_name'][0],
+                         u'Ensure this field has no more than 30 characters.')
+        self.assertEqual(response.data['last_name'][0],
+                         u'Ensure this field has no more than 30 characters.')
         self.assertEqual(response.status_code, 400)
