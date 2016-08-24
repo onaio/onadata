@@ -651,7 +651,6 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 400)
 
-
     def test_profile_create_fails_with_long_first_and_last_names(self):
         data = {
             'username': u'machicimo',
