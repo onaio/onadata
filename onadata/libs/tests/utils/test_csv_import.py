@@ -173,3 +173,24 @@ class CSVImportTestCase(TestBase):
         csv_import.submit_csv(self.user.username, self.xform, repeats_csv)
         count = self.xform.instances.count()
         self.assertEqual(count, 1 + pre_count)
+
+    def test_csv_with__more_than_4_repeats_import(self):
+        self.xls_file_path = os.path.join(
+            self.this_directory, 'fixtures',
+            'csv_export', 'tutorial_w_repeats.xls'
+        )
+        repeats_csv = open(os.path.join(
+            self.this_directory, 'fixtures',
+            'csv_export', 'tutorial_w_repeats_import.csv')
+        )
+        self._publish_xls_file(self.xls_file_path)
+        self.xform = XForm.objects.get()
+        pre_count = self.xform.instances.count()
+        csv_import.submit_csv(self.user.username, self.xform, repeats_csv)
+
+        count = self.xform.instances.count()
+        self.assertEqual(count, 1 + pre_count)
+
+        instance = self.xform.instances.last()
+        # repeats should be 6
+        self.assertEqual(6, len(instance.json.get('children')))
