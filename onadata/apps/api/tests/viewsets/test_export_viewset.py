@@ -12,6 +12,7 @@ from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
 
 from rest_framework.test import APIRequestFactory, force_authenticate
+from rest_framework import status
 
 from tempfile import NamedTemporaryFile
 
@@ -20,12 +21,14 @@ class TestExportViewSet(TestBase):
 
     def setUp(self):
         super(self.__class__, self).setUp()
+        self.factory = APIRequestFactory()
+        self.formats = ['csv', 'csvzip', 'kml', 'osm', 'savzip', 'xls',
+                        'xlsx', 'zip']
         self.view = ExportViewSet.as_view({'get': 'retrieve'})
 
     def test_generates_expected_response(self):
         self._create_user_and_login()
         self._publish_transportation_form()
-        self.factory = APIRequestFactory()
         temp_dir = settings.MEDIA_ROOT
         dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
         filename = os.path.basename(dummy_export_file.name)
@@ -40,11 +43,18 @@ class TestExportViewSet(TestBase):
         self.assertIn(filename, response.get('Content-Disposition'))
 
     def test_export_format_renderers_present(self):
-        formats = ['csv', 'csvzip', 'kml', 'osm', 'savzip', 'xls', 'xlsx']
         renderer_formats = [rc.format for rc in self.view.cls.renderer_classes]
 
-        for f in formats:
+        for f in self.formats:
             self.assertIn(f, renderer_formats)
+
+    def test_export_non_existent_file(self):
+        self._create_user_and_login()
+        pk = 3
+        for f in self.formats:
+            request = self.factory.get('/export')
+            response = self.view(request, pk=pk)
+            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     @patch.object(OAuth2WebServerFlow, 'step2_exchange')
     def test_google_auth(self, mock_oauth2):
