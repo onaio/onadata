@@ -650,3 +650,24 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request, user=user.username)
 
         self.assertEqual(response.status_code, 400)
+
+    def test_profile_create_fails_with_long_first_and_last_names(self):
+        data = {
+            'username': u'machicimo',
+            'email': u'mike@columbia.edu',
+            'city': u'Denoville',
+            'country': u'US',
+            'last_name':
+                u'undeomnisistenatuserrorsitvoluptatem',
+            'first_name':
+                u'quirationevoluptatemsequinesciunt'
+        }
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.data['first_name'][0],
+                         u'Ensure this field has no more than 30 characters.')
+        self.assertEqual(response.data['last_name'][0],
+                         u'Ensure this field has no more than 30 characters.')
+        self.assertEqual(response.status_code, 400)

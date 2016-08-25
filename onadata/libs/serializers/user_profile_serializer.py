@@ -52,9 +52,11 @@ class UserProfileSerializer(serializers.HyperlinkedModelSerializer):
                                      max_length=30)
     name = serializers.CharField(required=False, allow_blank=True)
     first_name = serializers.CharField(source='user.first_name',
-                                       required=False, allow_blank=True)
+                                       required=False, allow_blank=True,
+                                       max_length=30)
     last_name = serializers.CharField(source='user.last_name',
-                                      required=False, allow_blank=True)
+                                      required=False, allow_blank=True,
+                                      max_length=30)
     email = serializers.EmailField(source='user.email')
     website = serializers.CharField(source='home_page', required=False,
                                     allow_blank=True)
