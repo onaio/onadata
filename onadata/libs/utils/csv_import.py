@@ -173,6 +173,10 @@ def submit_csv(username, xform, csv_file):
 
     # remove headers for repeats that might be missing from csv
     missing = [m for m in missing if m.find('[') == -1]
+
+    # Include additional repeats
+    addition_col = [a for a in addition_col if a.find('[') == -1]
+
     if missing:
         return {'error': u"Sorry uploaded file does not match the form. "
                          u"The file is missing the column(s): "
