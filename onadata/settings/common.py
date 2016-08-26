@@ -241,7 +241,6 @@ REST_FRAMEWORK = {
         'rest_framework_jsonp.renderers.JSONPRenderer',
         'rest_framework_csv.renderers.CSVRenderer',
     ),
-    'EXCEPTION_HANDLER': 'onadata.libs.exceptions.api_exception_handler'
 }
 
 SWAGGER_SETTINGS = {
