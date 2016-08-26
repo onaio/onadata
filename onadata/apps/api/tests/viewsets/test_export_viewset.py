@@ -50,7 +50,7 @@ class TestExportViewSet(TestBase):
 
     def test_export_non_existent_file(self):
         self._create_user_and_login()
-        pk = 3
+        pk = 1525266252676
         for f in self.formats:
             request = self.factory.get('/export')
             response = self.view(request, pk=pk)
