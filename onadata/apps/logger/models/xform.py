@@ -888,10 +888,10 @@ pre_save.connect(save_project, sender=XForm,
 
 
 def xform_post_delete_callback(sender, instance, **kwargs):
-    if instance.project:
-        safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project.pk))
-        safe_delete('{}{}'.format(PROJ_SUB_DATE_CACHE, instance.project.pk))
-        safe_delete('{}{}'.format(PROJ_NUM_DATASET_CACHE, instance.project.pk))
+    if instance.project_id:
+        safe_delete('{}{}'.format(PROJ_FORMS_CACHE, instance.project_id))
+        safe_delete('{}{}'.format(PROJ_SUB_DATE_CACHE, instance.project_id))
+        safe_delete('{}{}'.format(PROJ_NUM_DATASET_CACHE, instance.project_id))
 
 
 post_delete.connect(xform_post_delete_callback,
