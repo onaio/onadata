@@ -19,8 +19,8 @@ class ServiceUnavailable(APIException):
     default_detail = 'Service temporarily unavailable, try again later.'
 
 
-def api_exception_handler(exc, context):
-    response = exception_handler(exc, context)
+def api_exception_handler(exc, *args):
+    response = exception_handler(exc, *args)
 
     if isinstance(exc, ObjectDoesNotExist):
         msg = _('Record not found.')

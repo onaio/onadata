@@ -27,6 +27,10 @@ from onadata.apps.api import tools
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.tools import get_organization_owners_team
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import status
+from rest_framework.settings import api_settings
+from onadata.libs.exceptions import api_exception_handler
 
 ROLES = [ReadOnlyRoleNoDownload,
          ReadOnlyRole,
@@ -48,6 +52,10 @@ def enketo_mock(url, request):
 
 def get_latest_tags(project):
     return [tag.name for tag in project.reload().tags.all()]
+
+
+def project_destroy_mock(request, *args, **kwargs):
+    raise ObjectDoesNotExist()
 
 
 class TestProjectViewSet(TestAbstractViewSet):
@@ -1920,3 +1928,14 @@ class TestProjectViewSet(TestAbstractViewSet):
         self.assertTrue(len(response.data['data_views']) == 2)
         self.assertTrue(response.data['data_views'][1]['count'] == 4)
         self.assertTrue(response.data['data_views'][0]['count'] == 0)
+
+    @patch.object(ProjectViewSet, "destroy", project_destroy_mock)
+    def test_project_delete_exception_handling(self):
+        self.DEFAULT_HANDLER = api_settings.EXCEPTION_HANDLER
+        api_settings.EXCEPTION_HANDLER = api_exception_handler
+        self._project_create()
+        view = ProjectViewSet.as_view({'delete': 'destroy'})
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        api_settings.EXCEPTION_HANDLER = self.DEFAULT_HANDLER
