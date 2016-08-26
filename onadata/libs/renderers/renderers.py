@@ -249,7 +249,7 @@ class ZipRenderer(BaseRenderer):
     charset = None
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
-        if data['detail'] is not None:
+        if isinstance(data, dict):
             return json.dumps(data)
         else:
             return data

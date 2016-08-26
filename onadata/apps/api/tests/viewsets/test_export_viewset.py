@@ -53,7 +53,7 @@ class TestExportViewSet(TestBase):
         pk = 1525266252676
         for f in self.formats:
             request = self.factory.get('/export')
-            response = self.view(request, pk=pk)
+            response = self.view(request, pk=pk, format=f)
             self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     @patch.object(OAuth2WebServerFlow, 'step2_exchange')
