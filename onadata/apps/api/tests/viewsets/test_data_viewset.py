@@ -1592,6 +1592,55 @@ class TestDataViewSet(TestBase):
         history_instance_count = InstanceHistory.objects.count()
         self.assertEqual(history_instance_count, 0)
 
+    def test_data_endpoint_etag_on_submission_edit(self):
+        """Test etags get updated on submission edit"""
+        # create form
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/tutorial.xls"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+
+        def _data_response():
+            view = DataViewSet.as_view({'get': 'list'})
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk)
+            self.assertEqual(response.status_code, 200)
+
+            return response
+
+        response = _data_response()
+        etag_data = response['Etag']
+
+        # create submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid.xml"
+        )
+
+        self._make_submission(xml_submission_file_path)
+        response = _data_response()
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
+
+        # edit submission
+        xml_edit_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"
+        )
+        client = DigestClient()
+        client.set_authorization('bob', 'bob', 'Digest')
+        self._make_submission(xml_edit_submission_file_path, client=client)
+        self.assertEqual(self.response.status_code, 201)
+
+        response = _data_response()
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
+        response = _data_response()
+        self.assertEqual(etag_data, response['Etag'])
+
 
 class TestOSM(TestAbstractViewSet):
 

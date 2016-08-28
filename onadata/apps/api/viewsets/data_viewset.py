@@ -25,8 +25,9 @@ from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
-from onadata.apps.viewer.models.parsed_instance import (
-    get_where_clause, query_data)
+from onadata.apps.viewer.models.parsed_instance import get_etag_hash_from_query
+from onadata.apps.viewer.models.parsed_instance import get_where_clause
+from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -379,10 +380,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         try:
             if not is_public_request:
                 xform = self.get_object()
-                self.etag_data = xform.date_modified \
-                    if not xform.last_submission_time \
-                    or xform.date_modified > xform.last_submission_time\
-                    else xform.last_submission_time
 
             where, where_params = get_where_clause(query)
             if where:
@@ -404,6 +401,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                     limit=limit, fields=fields, count=True
                 )[0].get('count')
             else:
+                self.etag_data = get_etag_hash_from_query(self.object_list)
                 self.total_count = self.object_list.count()
         except ValueError, e:
             raise ParseError(unicode(e))

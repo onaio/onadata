@@ -174,6 +174,23 @@ def _query_iterator(sql, fields=None, params=[], count=False):
             yield dict(zip(fields, row))
 
 
+def get_etag_hash_from_query(queryset):
+    """Returns md5 hash from the date_modified field or
+    """
+    sql, params = queryset.query.sql_with_params()
+    sql = (
+        "SELECT string_agg(date_modified::text, '')"
+        " FROM (SELECT date_modified " + sql[sql.find('FROM '):] + ") AS A"
+    )
+    etag_hash = [i for i in _query_iterator(sql, params=params)
+                 if i is not None]
+
+    if etag_hash:
+        return etag_hash[0]
+
+    return u'%s' % datetime.datetime.utcnow()
+
+
 def get_where_clause(query, form_integer_fields=[]):
     known_integers = ['_id'] + form_integer_fields
     where = []
