@@ -328,6 +328,8 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
     sql, params, records = get_sql_with_params(
         xform, query, fields, sort, start, end, start_index, limit, count
     )
+    if fields and isinstance(fields, six.string_types):
+        fields = json.loads(fields)
     sort = _get_sort_fields(sort)
     if (ParsedInstance._has_json_fields(sort) or fields) and sql:
         records = _query_iterator(sql, fields, params, count)
