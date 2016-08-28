@@ -180,7 +180,7 @@ def get_etag_hash_from_query(queryset, sql=None, params=None):
     if sql is None:
         sql, params = queryset.query.sql_with_params()
     sql = (
-        "SELECT string_agg(date_modified::text, '')"
+        "SELECT md5(string_agg(date_modified::text, ''))"
         " FROM (SELECT date_modified " + sql[sql.find('FROM '):] + ") AS A"
     )
     etag_hash = [i for i in _query_iterator(sql, params=params)
