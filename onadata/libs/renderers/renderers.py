@@ -248,6 +248,9 @@ class ZipRenderer(BaseRenderer):
     format = 'zip'
     charset = None
 
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return json.dumps(data) if isinstance(data, dict) else data
+
 
 class DecimalJSONRenderer(JSONRenderer):
     """
