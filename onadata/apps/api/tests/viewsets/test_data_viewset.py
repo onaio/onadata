@@ -418,6 +418,7 @@ class TestDataViewSet(TestBase):
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.has_header('ETag'))
         data = json.loads(''.join([c for c in response.streaming_content]))
         self.assertEqual(len(data), 2)
         self.assertEqual([i['_uuid'] for i in data],

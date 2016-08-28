@@ -271,8 +271,8 @@ def _get_sort_fields(sort):
     return [i for i in _parse_sort_fields(sort)]
 
 
-def query_data(xform, query=None, fields=None, sort=None, start=None,
-               end=None, start_index=None, limit=None, count=None):
+def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
+                        end=None, start_index=None, limit=None, count=None):
     records = _get_instances(xform, start, end)
     params = []
     sort = _get_sort_fields(sort)
@@ -316,6 +316,16 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
 
     records, sql, params = _start_index_limit(
         records, sql, fields, params, sort, start_index, limit
+    )
+
+    return sql, params, records
+
+
+def query_data(xform, query=None, fields=None, sort=None, start=None,
+               end=None, start_index=None, limit=None, count=None):
+
+    sql, params, records = get_sql_with_params(
+        xform, query, fields, sort, start, end, start_index, limit, count
     )
 
     if (ParsedInstance._has_json_fields(sort) or fields) and sql:

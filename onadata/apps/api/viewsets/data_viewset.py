@@ -27,6 +27,7 @@ from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
 from onadata.apps.viewer.models.parsed_instance import get_etag_hash_from_query
+from onadata.apps.viewer.models.parsed_instance import get_sql_with_params
 from onadata.apps.viewer.models.parsed_instance import get_where_clause
 from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.renderers import renderers
@@ -406,6 +407,12 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
 
             if isinstance(self.object_list, QuerySet):
                 self.etag_data = get_etag_hash_from_query(self.object_list)
+            else:
+                sql, params, records = get_sql_with_params(
+                    xform, query=query, sort=sort, start_index=start,
+                    limit=limit, fields=fields
+                )
+                self.etag_data = get_etag_hash_from_query(records, sql, params)
         except ValueError, e:
             raise ParseError(unicode(e))
         except DataError, e:
