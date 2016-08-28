@@ -406,13 +406,13 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 self.total_count = self.object_list.count()
 
             if isinstance(self.object_list, QuerySet):
-                self.etag_data = get_etag_hash_from_query(self.object_list)
+                self.etag_hash = get_etag_hash_from_query(self.object_list)
             else:
                 sql, params, records = get_sql_with_params(
                     xform, query=query, sort=sort, start_index=start,
                     limit=limit, fields=fields
                 )
-                self.etag_data = get_etag_hash_from_query(records, sql, params)
+                self.etag_hash = get_etag_hash_from_query(records, sql, params)
         except ValueError, e:
             raise ParseError(unicode(e))
         except DataError, e:
@@ -464,8 +464,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         )
 
         # calculate etag value and add it to response headers
-        if hasattr(self, 'etag_data'):
-            self.set_etag_header(self.etag_data)
+        if hasattr(self, 'etag_hash'):
+            self.set_etag_header(None, self.etag_hash)
 
         # set headers on streaming response
         for k, v in self.headers.items():
