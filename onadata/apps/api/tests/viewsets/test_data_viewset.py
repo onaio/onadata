@@ -330,12 +330,15 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
         self.assertTrue(response.has_header('ETag'))
+        etag_data = response['Etag']
 
         request = self.factory.get('/', data={"start": "1", "limit": 2},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
         response.render()
         data = json.loads(response.content)
         self.assertEqual([i['_uuid'] for i in data],
@@ -347,6 +350,8 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
         response.render()
         data = json.loads(response.content)
         self.assertEqual([i['_uuid'] for i in data],
@@ -356,12 +361,15 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
 
         request = self.factory.get(
             '/', data={"start": "1", "limit": "2"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        self.assertNotEqual(etag_data, response['Etag'])
 
         # invalid start is ignored, all data is returned
         request = self.factory.get('/', data={"start": "invalid"},
@@ -387,6 +395,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        self.assertTrue(response.has_header('ETag'))
         response.render()
         data = json.loads(response.content)
         self.assertEqual([i['_uuid'] for i in data],
