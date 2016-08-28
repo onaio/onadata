@@ -310,12 +310,14 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
+        etag_data = response['Etag']
 
         request = self.factory.get('/', data={"start": "1", "limit": 2},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
+        self.assertNotEqual(etag_data, response['Etag'])
 
     def test_data_start_limit(self):
         self._make_submissions()

@@ -391,6 +391,7 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 limit = limit if start is None or start == 0 else start + limit
                 self.object_list = \
                     self.object_list.order_by('pk')[start: limit]
+                self.etag_data = get_etag_hash_from_query(self.object_list)
                 self.total_count = self.object_list.count()
             elif (sort or limit or start or fields) and not is_public_request:
                 self.object_list = \
