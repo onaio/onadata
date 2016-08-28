@@ -174,10 +174,11 @@ def _query_iterator(sql, fields=None, params=[], count=False):
             yield dict(zip(fields, row))
 
 
-def get_etag_hash_from_query(queryset):
+def get_etag_hash_from_query(queryset, sql=None, params=None):
     """Returns md5 hash from the date_modified field or
     """
-    sql, params = queryset.query.sql_with_params()
+    if sql is None:
+        sql, params = queryset.query.sql_with_params()
     sql = (
         "SELECT string_agg(date_modified::text, '')"
         " FROM (SELECT date_modified " + sql[sql.find('FROM '):] + ") AS A"
@@ -327,7 +328,7 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
     sql, params, records = get_sql_with_params(
         xform, query, fields, sort, start, end, start_index, limit, count
     )
-
+    sort = _get_sort_fields(sort)
     if (ParsedInstance._has_json_fields(sort) or fields) and sql:
         records = _query_iterator(sql, fields, params, count)
 
