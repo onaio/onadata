@@ -174,7 +174,7 @@ class OrganizationProfileViewSet(AuthenticateHeaderMixin,
     queryset = OrganizationProfile.objects.all()
     serializer_class = serializer_from_settings()
     lookup_field = 'user'
-    permission_classes = [permissions.DjangoObjectPermissionsAllowAnon]
+    permission_classes = [permissions.OrganizationProfilePermissions]
     filter_backends = (OrganizationPermissionFilter,
                        OrganizationsSharedWithUserFilter)
 

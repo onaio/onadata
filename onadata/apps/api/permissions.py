@@ -282,3 +282,17 @@ class WidgetViewSetPermissions(AlternateHasObjectPermissionMixin,
 
 
 __permissions__ = [DjangoObjectPermissions, IsAuthenticated]
+
+
+class OrganizationProfilePermissions(DjangoObjectPermissionsAllowAnon):
+
+    def has_object_permission(self, request, view, obj):
+        is_authenticated = request and request.user.is_authenticated() and \
+                           request.user.username == request.data.get(
+                               'username')
+        if is_authenticated and request.method == 'DELETE':
+            return True
+        else:
+            return super(OrganizationProfilePermissions,
+                         self).has_object_permission(
+                request=request, view=view, obj=obj)

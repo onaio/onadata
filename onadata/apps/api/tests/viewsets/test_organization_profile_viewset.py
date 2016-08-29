@@ -12,6 +12,7 @@ from onadata.libs.permissions import OwnerRole
 from onadata.apps.api.tools import (get_organization_owners_team,
                                     add_user_to_organization)
 from onadata.apps.api.models.organization_profile import OrganizationProfile
+from rest_framework import status
 
 
 class TestOrganizationProfileViewSet(TestAbstractViewSet):
@@ -790,3 +791,31 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEquals(0, OrganizationProfile.objects.filter(
             user__username='denoinc').count())
         self.assertEquals(0, User.objects.filter(username='denoinc').count())
+
+    def test_orgs_non_creator_delete(self):
+        self._org_create()
+
+        view = OrganizationProfileViewSet.as_view({
+            'delete': 'members',
+            'post': 'members'
+        })
+
+        self.profile_data['username'] = "alice"
+        self.profile_data['email'] = 'alice@localhost.com'
+        self._create_user_profile()
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        request = self.factory.post(
+            '/', data=json.dumps(alice_data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(status.HTTP_201_CREATED, response.status_code)
+
+        self._login_user_and_profile(extra_post_data=alice_data)
+
+        request = self.factory.delete('/', data=json.dumps(alice_data),
+                                      content_type="application/json",
+                                      **self.extra)
+        response = view(request, user='denoinc')
+        self.assertEqual(status.HTTP_201_CREATED, response.status_code)
