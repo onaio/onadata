@@ -810,7 +810,9 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
 
         response = view(request, user='denoinc')
+        expected_results = [u'denoinc', u'alice']
         self.assertEqual(status.HTTP_201_CREATED, response.status_code)
+        self.assertEqual(expected_results, response.data)
 
         self._login_user_and_profile(extra_post_data=alice_data)
 
@@ -818,4 +820,5 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
                                       content_type="application/json",
                                       **self.extra)
         response = view(request, user='denoinc')
-        self.assertEqual(status.HTTP_201_CREATED, response.status_code)
+        expected_results = [u'denoinc']
+        self.assertEqual(expected_results, response.data)
