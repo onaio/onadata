@@ -13,12 +13,11 @@ class ETagsMixin(object):
         otherwise the date_modifed of self.object or self.object_list is used.
     """
 
-    def set_etag_header(self, etag_value):
+    def set_etag_header(self, etag_value, etag_hash=None):
         if etag_value:
-            hash_value = md5(str(etag_value)).hexdigest()
-            value = "W/%s" % hash_value
-
-            self.headers.update({'ETag': value})
+            etag_hash = md5(str(etag_value)).hexdigest()
+        if etag_hash:
+            self.headers.update({'ETag': etag_hash})
 
     def finalize_response(self, request, response, *args, **kwargs):
         if request.method == 'GET' and not response.streaming and \
@@ -30,7 +29,10 @@ class ETagsMixin(object):
                 if self.object.__class__.__name__ in MODELS_WITH_DATE_MODIFIED:
                     etag_value = self.object.date_modified
 
-            self.set_etag_header(etag_value)
+            if hasattr(self, 'etag_hash') and self.etag_hash:
+                self.set_etag_header(None, self.etag_hash)
+            else:
+                self.set_etag_header(etag_value)
 
         return super(ETagsMixin, self).finalize_response(
             request, response, *args, **kwargs

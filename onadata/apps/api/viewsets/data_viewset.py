@@ -2,6 +2,7 @@ import json
 import types
 
 from django.db.models import Q
+from django.db.models.query import QuerySet
 from django.db.utils import DataError
 from django.conf import settings
 from django.http import Http404
@@ -25,8 +26,10 @@ from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models import OsmData
 from onadata.apps.logger.models.xform import XForm
 from onadata.apps.logger.models.instance import Instance
-from onadata.apps.viewer.models.parsed_instance import (
-    get_where_clause, query_data)
+from onadata.apps.viewer.models.parsed_instance import get_etag_hash_from_query
+from onadata.apps.viewer.models.parsed_instance import get_sql_with_params
+from onadata.apps.viewer.models.parsed_instance import get_where_clause
+from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.libs.renderers import renderers
 from onadata.libs.mixins.anonymous_user_public_forms_mixin import (
     AnonymousUserPublicFormsMixin)
@@ -379,10 +382,6 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         try:
             if not is_public_request:
                 xform = self.get_object()
-                self.etag_data = xform.date_modified \
-                    if not xform.last_submission_time \
-                    or xform.date_modified > xform.last_submission_time\
-                    else xform.last_submission_time
 
             where, where_params = get_where_clause(query)
             if where:
@@ -405,6 +404,15 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
                 )[0].get('count')
             else:
                 self.total_count = self.object_list.count()
+
+            if isinstance(self.object_list, QuerySet):
+                self.etag_hash = get_etag_hash_from_query(self.object_list)
+            else:
+                sql, params, records = get_sql_with_params(
+                    xform, query=query, sort=sort, start_index=start,
+                    limit=limit, fields=fields
+                )
+                self.etag_hash = get_etag_hash_from_query(records, sql, params)
         except ValueError, e:
             raise ParseError(unicode(e))
         except DataError, e:
@@ -456,8 +464,8 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
         )
 
         # calculate etag value and add it to response headers
-        if hasattr(self, 'etag_data'):
-            self.set_etag_header(self.etag_data)
+        if hasattr(self, 'etag_hash'):
+            self.set_etag_header(None, self.etag_hash)
 
         # set headers on streaming response
         for k, v in self.headers.items():

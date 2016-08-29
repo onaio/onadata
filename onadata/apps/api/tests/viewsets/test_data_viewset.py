@@ -310,12 +310,14 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
+        etag_data = response['Etag']
 
         request = self.factory.get('/', data={"start": "1", "limit": 2},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 0)
+        self.assertNotEqual(etag_data, response['Etag'])
 
     def test_data_start_limit(self):
         self._make_submissions()
@@ -328,12 +330,15 @@ class TestDataViewSet(TestBase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
         self.assertTrue(response.has_header('ETag'))
+        etag_data = response['Etag']
 
         request = self.factory.get('/', data={"start": "1", "limit": 2},
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
         response.render()
         data = json.loads(response.content)
         self.assertEqual([i['_uuid'] for i in data],
@@ -345,6 +350,8 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
         response.render()
         data = json.loads(response.content)
         self.assertEqual([i['_uuid'] for i in data],
@@ -354,12 +361,15 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
 
         request = self.factory.get(
             '/', data={"start": "1", "limit": "2"}, **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        self.assertNotEqual(etag_data, response['Etag'])
 
         # invalid start is ignored, all data is returned
         request = self.factory.get('/', data={"start": "invalid"},
@@ -385,6 +395,7 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
+        self.assertTrue(response.has_header('ETag'))
         response.render()
         data = json.loads(response.content)
         self.assertEqual([i['_uuid'] for i in data],
@@ -407,6 +418,7 @@ class TestDataViewSet(TestBase):
                                    **self.extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.has_header('ETag'))
         data = json.loads(''.join([c for c in response.streaming_content]))
         self.assertEqual(len(data), 2)
         self.assertEqual([i['_uuid'] for i in data],
@@ -1591,6 +1603,55 @@ class TestDataViewSet(TestBase):
 
         history_instance_count = InstanceHistory.objects.count()
         self.assertEqual(history_instance_count, 0)
+
+    def test_data_endpoint_etag_on_submission_edit(self):
+        """Test etags get updated on submission edit"""
+        # create form
+        xls_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../fixtures/tutorial/tutorial.xls"
+        )
+        self._publish_xls_file_and_set_xform(xls_file_path)
+
+        def _data_response():
+            view = DataViewSet.as_view({'get': 'list'})
+            request = self.factory.get('/', **self.extra)
+            response = view(request, pk=self.xform.pk)
+            self.assertEqual(response.status_code, 200)
+
+            return response
+
+        response = _data_response()
+        etag_data = response['Etag']
+
+        # create submission
+        xml_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid.xml"
+        )
+
+        self._make_submission(xml_submission_file_path)
+        response = _data_response()
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
+
+        # edit submission
+        xml_edit_submission_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "fixtures", "tutorial", "instances",
+            "tutorial_2012-06-27_11-27-53_w_uuid_edited.xml"
+        )
+        client = DigestClient()
+        client.set_authorization('bob', 'bob', 'Digest')
+        self._make_submission(xml_edit_submission_file_path, client=client)
+        self.assertEqual(self.response.status_code, 201)
+
+        response = _data_response()
+        self.assertNotEqual(etag_data, response['Etag'])
+        etag_data = response['Etag']
+        response = _data_response()
+        self.assertEqual(etag_data, response['Etag'])
 
 
 class TestOSM(TestAbstractViewSet):

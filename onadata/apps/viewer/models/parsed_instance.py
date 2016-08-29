@@ -174,6 +174,24 @@ def _query_iterator(sql, fields=None, params=[], count=False):
             yield dict(zip(fields, row))
 
 
+def get_etag_hash_from_query(queryset, sql=None, params=None):
+    """Returns md5 hash from the date_modified field or
+    """
+    if sql is None:
+        sql, params = queryset.query.sql_with_params()
+    sql = (
+        "SELECT md5(string_agg(date_modified::text, ''))"
+        " FROM (SELECT date_modified " + sql[sql.find('FROM '):] + ") AS A"
+    )
+    etag_hash = [i for i in _query_iterator(sql, params=params)
+                 if i is not None]
+
+    if etag_hash:
+        return etag_hash[0]
+
+    return u'%s' % datetime.datetime.utcnow()
+
+
 def get_where_clause(query, form_integer_fields=[]):
     known_integers = ['_id'] + form_integer_fields
     where = []
@@ -254,8 +272,8 @@ def _get_sort_fields(sort):
     return [i for i in _parse_sort_fields(sort)]
 
 
-def query_data(xform, query=None, fields=None, sort=None, start=None,
-               end=None, start_index=None, limit=None, count=None):
+def get_sql_with_params(xform, query=None, fields=None, sort=None, start=None,
+                        end=None, start_index=None, limit=None, count=None):
     records = _get_instances(xform, start, end)
     params = []
     sort = _get_sort_fields(sort)
@@ -301,6 +319,18 @@ def query_data(xform, query=None, fields=None, sort=None, start=None,
         records, sql, fields, params, sort, start_index, limit
     )
 
+    return sql, params, records
+
+
+def query_data(xform, query=None, fields=None, sort=None, start=None,
+               end=None, start_index=None, limit=None, count=None):
+
+    sql, params, records = get_sql_with_params(
+        xform, query, fields, sort, start, end, start_index, limit, count
+    )
+    if fields and isinstance(fields, six.string_types):
+        fields = json.loads(fields)
+    sort = _get_sort_fields(sort)
     if (ParsedInstance._has_json_fields(sort) or fields) and sql:
         records = _query_iterator(sql, fields, params, count)
 
