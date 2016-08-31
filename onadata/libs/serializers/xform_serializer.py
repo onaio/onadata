@@ -326,7 +326,7 @@ class XFormListSerializer(serializers.Serializer):
 
 
 class XFormManifestSerializer(serializers.Serializer):
-    filename = serializers.ReadOnlyField(source='data_value')
+    filename = serializers.SerializerMethodField()
     hash = serializers.SerializerMethodField()
     downloadUrl = serializers.SerializerMethodField('get_url')
 
@@ -347,3 +347,12 @@ class XFormManifestSerializer(serializers.Serializer):
     @check_obj
     def get_hash(self, obj):
         return u"%s" % (obj.file_hash or 'md5:')
+
+    @check_obj
+    def get_filename(self, obj):
+        filename = obj.data_value
+        parts = filename.split(' ')
+        if len(parts) > 2:
+            filename = u'%s.csv' % parts[2]
+
+        return filename

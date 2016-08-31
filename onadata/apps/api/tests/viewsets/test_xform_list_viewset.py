@@ -461,6 +461,19 @@ class TestXFormListViewSet(TestAbstractViewSet, TransactionTestCase):
         data_type = 'media'
         data_value = 'xform {} transportation'.format(self.xform.pk)
         self._add_form_metadata(self.xform, data_type, data_value)
+
+        self.view = XFormListViewSet.as_view({
+            "get": "manifest"
+        })
+        request = self.factory.head('/')
+        response = self.view(request, pk=self.xform.pk)
+        auth = DigestAuth('bob', 'bobbob')
+        request = self.factory.get('/')
+        request.META.update(auth(request.META, response))
+        response = self.view(request, pk=self.xform.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data[0]['filename'], 'transportation.csv')
+
         self.view = XFormListViewSet.as_view({
             "get": "media"
         })
