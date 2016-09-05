@@ -12,6 +12,7 @@ from onadata.libs.permissions import (
 from onadata.apps.api.tools import get_user_profile_or_none, \
     check_inherit_permission_from_project
 
+from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import DataView
@@ -180,9 +181,39 @@ class HasMetadataPermissionMixin(AbstractHasPermissionMixin):
         return super(HasMetadataPermissionMixin, self).has_permission(
             request, view)
 
+    def _has_object_permission(self, request, model_cls, user, obj):
 
-class MetaDataObjectPermissions(AlternateHasObjectPermissionMixin,
-                                HasMetadataPermissionMixin,
+        if isinstance(obj, Instance):
+            # Special handling for instance level metadata
+            model_cls = XForm
+            perms = self.get_required_object_permissions(
+                request.method, model_cls)
+            obj = obj.xform
+        else:
+            perms = self.get_required_object_permissions(
+                request.method, model_cls)
+
+        if not user.has_perms(perms, obj):
+            # If the user does not have permissions we need to determine if
+            # they have read permissions to see 403, or not, and simply see
+            # a 404 response.
+
+            if request.method in SAFE_METHODS:
+                # Read permissions already checked and failed, no need
+                # to make another lookup.
+                raise Http404
+
+            read_perms = self.get_required_object_permissions('GET', model_cls)
+            if not user.has_perms(read_perms, obj):
+                raise Http404
+
+            # Has read permissions.
+            return False
+
+        return True
+
+
+class MetaDataObjectPermissions(HasMetadataPermissionMixin,
                                 DjangoObjectPermissions):
 
     def has_object_permission(self, request, view, obj):
