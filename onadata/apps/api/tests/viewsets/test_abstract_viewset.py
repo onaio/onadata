@@ -593,3 +593,37 @@ class TestAbstractViewSet(TestCase):
         if s[0] <= s[1]:
             return self.is_sorted_asc(s[1:])
         return False
+
+    def _add_instance_metadata(self,
+                               data_type,
+                               data_value,
+                               path=None):
+        xls_file_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+            "tutorial", "tutorial.xls")
+
+        self._publish_xls_form_to_project(xlsform_path=xls_file_path)
+
+        xml_submission_file_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "logger", "fixtures",
+            "tutorial", "instances", "tutorial_2012-06-27_11-27-53.xml")
+
+        self._make_submission(xml_submission_file_path,
+                              username=self.user.username)
+        self.xform.reload()
+        self.instance = self.xform.instances.first()
+
+        data = {
+            'data_type': data_type,
+            'data_value': data_value,
+            'instance': self.instance.id
+        }
+
+        if path and data_value:
+            with open(path) as media_file:
+                data.update({
+                    'data_file': media_file,
+                })
+                self._post_metadata(data)
+        else:
+            self._post_metadata(data)
