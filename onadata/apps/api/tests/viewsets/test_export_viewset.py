@@ -90,8 +90,8 @@ class TestExportViewSet(TestBase):
         filename = os.path.basename(dummy_export_file.name)
         filedir = os.path.dirname(dummy_export_file.name)
         exports = [Export.objects.create(xform=self.xform,
-                                       filename=filename,
-                                       filedir=filedir)]
+                                         filename=filename,
+                                         filedir=filedir)]
         exports[0].save()
         view = ExportViewSet.as_view({'get': 'list'})
         request = self.factory.get('/export', data={'xform': self.xform.id})
