@@ -24,7 +24,7 @@ from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models import XForm
-from onadata.libs.permissions import ReadOnlyRole, EditorRole
+from onadata.libs.permissions import ReadOnlyRole, EditorRole, EditorMinorRole
 from onadata.libs import permissions as role
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.apps.logger.models.instance import get_attachment_url
@@ -228,7 +228,7 @@ class TestDataViewSet(TestBase):
         )
 
         # share bob's project with alice and give alice an editor role
-        data = {'username': 'alice', 'role': EditorRole.name}
+        data = {'username': 'alice', 'role': EditorMinorRole.name}
         request = self.factory.put('/', data=data, **self.extra)
         project_view = ProjectViewSet.as_view({
             'put': 'share'
@@ -238,10 +238,10 @@ class TestDataViewSet(TestBase):
 
         # check that alice has an editor role on both bob's project and form
         self.assertTrue(
-            EditorRole.user_has_role(user_alice, self.project)
+            EditorMinorRole.user_has_role(user_alice, self.project)
         )
         self.assertTrue(
-            EditorRole.user_has_role(user_alice, self.xform)
+            EditorMinorRole.user_has_role(user_alice, self.xform)
         )
 
         # check that by default, alice can be able to access all the data
@@ -255,7 +255,6 @@ class TestDataViewSet(TestBase):
 
         # change xform permission for users with editor role - they should
         # only view data that they submitted
-        self.xform.permissions['can_edit'] = 'own'
         self.xform.save()
 
         # change user in 2 instances to be owned by alice - they should appear
@@ -280,7 +279,6 @@ class TestDataViewSet(TestBase):
 
         # change xform permission for users with editor role - they should not
         # view any data
-        self.xform.permissions['can_edit'] = 'none'
         self.xform.save()
 
         # check taht alice won't be able to see any data
