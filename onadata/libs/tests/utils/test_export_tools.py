@@ -234,16 +234,15 @@ class TestExportTools(PyxformTestCase, TestBase):
 
     def test_kml_exports(self):
         export_type = "kml"
-        options = {"group_delimiter": "/",
-            "remove_group_name": False,
-            "split_select_multiples": True, "extension": 'kml'}
+        options = {"group_delimiter": "/",  "remove_group_name": False,
+                   "split_select_multiples": True, "extension": 'kml'}
 
         self._publish_transportation_form_and_submit_instance()
         username = self.xform.user.username
         id_string = self.xform.id_string
 
         export = generate_kml_export(export_type, username, id_string,
-                                     options= options)
+                                     options=options)
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
 
@@ -252,12 +251,10 @@ class TestExportTools(PyxformTestCase, TestBase):
         export.delete()
 
         export = generate_kml_export(export_type, username, id_string,
-                                     export_id = export_id, options=options)
+                                     export_id=export_id, options=options)
 
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
-
-
 
     def test_str_to_bool(self):
         self.assertTrue(str_to_bool(True))
