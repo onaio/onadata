@@ -10,7 +10,7 @@ class OsmData(models.Model):
     """
     instance = models.ForeignKey(Instance, related_name='osm_data')
     xml = models.TextField()
-    osm_id = models.CharField(max_length=10)
+    osm_id = models.CharField(max_length=20)
     osm_type = models.CharField(max_length=10, default='way')
     tags = JSONField(default=dict, null=False)
     geom = models.GeometryCollectionField()
