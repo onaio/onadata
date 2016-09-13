@@ -15,6 +15,7 @@ from onadata.libs.utils.export_tools import parse_request_export_options
 from onadata.libs.utils.export_tools import should_create_new_export
 from onadata.libs.utils.export_tools import str_to_bool
 from onadata.libs.utils.export_tools import ExportBuilder
+from onadata.libs.utils.export_tools import generate_kml_export
 from onadata.apps.logger.models import Attachment
 from onadata.apps.api import tests as api_tests
 
@@ -230,6 +231,30 @@ class TestExportTools(PyxformTestCase, TestBase):
         self.assertIsNotNone(export)
         self.assertTrue(export.is_successful)
         self.assertNotEqual(export_id, export.pk)
+
+    def test_kml_exports(self):
+        export_type = "kml"
+        options = {"group_delimiter": "/",  "remove_group_name": False,
+                   "split_select_multiples": True, "extension": 'kml'}
+
+        self._publish_transportation_form_and_submit_instance()
+        username = self.xform.user.username
+        id_string = self.xform.id_string
+
+        export = generate_kml_export(export_type, username, id_string,
+                                     options=options)
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
+
+        export_id = export.id
+
+        export.delete()
+
+        export = generate_kml_export(export_type, username, id_string,
+                                     export_id=export_id, options=options)
+
+        self.assertIsNotNone(export)
+        self.assertTrue(export.is_successful)
 
     def test_str_to_bool(self):
         self.assertTrue(str_to_bool(True))

@@ -1302,7 +1302,7 @@ def generate_kml_export(export_type, username, id_string, export_id=None,
     dir_name, basename = os.path.split(export_filename)
 
     # get or create export object
-    if(export_id):
+    if export_id and Export.objects.filter(pk=export_id).exists():
         export = Export.objects.get(id=export_id)
     else:
         export_options = get_export_options(options)
@@ -1405,7 +1405,7 @@ def generate_osm_export(export_type, username, id_string, export_id=None,
     dir_name, basename = os.path.split(export_filename)
 
     # get or create export object
-    if(export_id):
+    if export_id and Export.objects.filter(pk=export_id).exists():
         export = Export.objects.get(id=export_id)
     else:
         export_options = get_export_options(options)
