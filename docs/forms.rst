@@ -229,14 +229,14 @@ Response
 
     [{
         "id": 1,
-        "status": "SUCCESSFUL",
+        "job_status": "Success",
         "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcfe9",
         "type": "xls",
         "xform": "http://api.ona.io/api/v1/forms/1"
     },
     {
         "id": 2,
-        "status": "PENDING",
+        "job_status": "Pending",
         "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcde9",
         "type": "xls",
         "xform": "http://api.ona.io/api/v1/forms/17"
@@ -261,7 +261,7 @@ Response
 
     [{
         "id": 1,
-        "status": "SUCCESSFUL",
+        "job_status": "Success",
         "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcfe9",
         "type": "xls",
         "xform": "http://api.ona.io/api/v1/forms/1"
