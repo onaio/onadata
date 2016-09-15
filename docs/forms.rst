@@ -1049,9 +1049,9 @@ Response
 ::
 
     HTTP 200 OK
-    {"job_uuid": "04874cee-5fea-4552-a6c1-3c182b8b511f"}
+    {"task_id": "04874cee-5fea-4552-a6c1-3c182b8b511f"}
 
-You can use the `job_uuid value to check on the import progres` (see below)
+You can use the `task_id` value to check on the import progress (see below)
 
 Check on CSV data import progress
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
