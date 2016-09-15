@@ -3,6 +3,9 @@ from datetime import date, datetime
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
 from pyxform.tests_v1.pyxform_test_case import PyxformTestCase
+from django.core.files.temp import NamedTemporaryFile
+
+from savReaderWriter import SavWriter
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
@@ -337,3 +340,35 @@ class TestExportTools(PyxformTestCase, TestBase):
         export_builder.set_survey(survey)
         expected_data = {'fruit': {'orange': 'Orange', 'mango': 'Mango'}}
         self.assertEqual(export_builder._get_sav_value_labels(), expected_data)
+
+    def test_sav_duplicate_columns(self):
+        more_than_64_char = "akjasdlsakjdkjsadlsakjgdlsagdgdgdsajdgkjdsdgsj" \
+                "adsasdasgdsahdsahdsadgsdf"
+        md = """
+        | survey |
+        |        | type           | name | label | choice_filter |
+        |        | select one fts | fruit| Fruit | active=1      |
+        |	     | integer	      | age  | Age   |               |
+        |        | begin group    | {} | Resp  |               |
+        |	     | integer	      | age  | Resp  |               |
+        |	     | text 	      | name   | Name  |               |
+        |        | end group      |      |       |               |
+
+
+        | choices |
+        |         | list name | name   | label  | active |
+        |         | fts       | orange | Orange | 1      |
+        |         | fts       | mango  | Mango  | 1      |
+        """
+        md = md.format(more_than_64_char)
+        survey = self.md_to_pyxform_survey(md)
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+
+        for sec in export_builder.sections:
+            sav_options = export_builder._get_sav_options(sec['elements'])
+            sav_file = NamedTemporaryFile(suffix=".sav")
+            SavWriter(sav_file.name, **sav_options)

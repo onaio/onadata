@@ -805,11 +805,12 @@ class ExportBuilder(object):
         var_names = []
 
         fields_and_labels = [
-            (element['title'], element['label']) for element in elements
+            (element['xpath'], element['label']) for element in elements
         ] + zip(self.EXTRA_FIELDS, self.EXTRA_FIELDS)
 
         for field, label in fields_and_labels:
             var_name = field.replace('/', '.')
+            var_name = self._truncate_sav_column(var_name)
             var_name = '@' + var_name \
                 if var_name.startswith('_') else var_name
             var_labels[var_name] = label
@@ -819,7 +820,7 @@ class ExportBuilder(object):
                 value_labels[field] = all_value_labels.get(field)
 
         var_types = dict(
-            [(_var_types[element['title']],
+            [(_var_types[element['xpath']],
                 0 if element['type'] in ['decimal', 'int'] else 255)
                 for element in elements] +
             [(_var_types[item],
@@ -834,6 +835,19 @@ class ExportBuilder(object):
             'valueLabels': value_labels,
             'ioUtf8': True
         }
+
+    def _truncate_sav_column(self, column):
+        """
+        Sav column should not be greater than 64 chars
+        :param columns:
+        :return: truncated colums
+        """
+        if len(column) > 64:
+            split_col = column.split(".")
+            last_item = split_col[-1]
+            column = '.'.join([sc[:6] for sc in split_col[:-1]] +
+                              [last_item])
+        return column
 
     def to_zipped_sav(self, path, data, *args, **kwargs):
         def write_row(row, csv_writer, fields):
@@ -1056,6 +1070,8 @@ def generate_export(export_type, xform, export_id=None, options=None):
     except NoRecordsFoundError:
         pass
     except SPSSIOError as e:
+        import ipdb
+        ipdb.set_trace()
         export = get_or_create_export(export_id, xform, export_type, options)
         export.error_message = str(e)
         export.internal_status = Export.FAILED
