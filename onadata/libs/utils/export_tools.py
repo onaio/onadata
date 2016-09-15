@@ -839,8 +839,9 @@ class ExportBuilder(object):
     def _truncate_sav_column(self, column):
         """
         Sav column should not be greater than 64 chars
-        :param columns:
-        :return: truncated colums
+        truncates group names but not the field names
+        :param column:
+        :return: truncated column
         """
         if len(column) > 64:
             split_col = column.split(".")
@@ -1070,8 +1071,6 @@ def generate_export(export_type, xform, export_id=None, options=None):
     except NoRecordsFoundError:
         pass
     except SPSSIOError as e:
-        import ipdb
-        ipdb.set_trace()
         export = get_or_create_export(export_id, xform, export_type, options)
         export.error_message = str(e)
         export.internal_status = Export.FAILED
