@@ -241,7 +241,7 @@ JSON response could include the `job_status`, `job_uuid` and `error_message` for
        HTTP 202 Accepted
        {"job_uuid": "d1559e9e-5bab-480d-9804-e32111e8b2b8"}
 
-GOOGLE SHEETS EXPORT
+Google Sheets Export
 --------------------
 Google sheets export works similar to the normal async export but with one more step google authorization step.
 The first time generating google sheets export google authorization is required.
