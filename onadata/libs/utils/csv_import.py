@@ -16,6 +16,8 @@ from onadata.libs.utils.logger_tools import dict2xml, safe_create_instance
 from onadata.apps.logger.models import Instance
 from onadata.libs.utils.common_tags import MULTIPLE_SELECT_TYPE
 from onadata.libs.utils.dict_tools import csv_dict_to_nested_dict
+from onadata.libs.utils.async_status import (celery_state_to_status,
+                                             async_status, FAILED)
 
 
 def get_submission_meta_dict(xform, instance_id):
@@ -126,9 +128,11 @@ def submit_csv(username, xform, csv_file):
     if isinstance(csv_file, unicode):
         csv_file = cStringIO.StringIO(csv_file)
     elif csv_file is None or not hasattr(csv_file, 'read'):
-        return {'error': (u'Invalid param type for `csv_file`. '
-                          'Expected utf-8 encoded file or unicode string '
-                          'got {} instead.'.format(type(csv_file).__name__))}
+        return async_status(FAILED,
+                            (u'Invalid param type for `csv_file`. '
+                             'Expected utf-8 encoded file or unicode'
+                             ' string got {} instead.'
+                             .format(type(csv_file).__name__)))
 
     num_rows = sum(1 for row in csv_file) - 1
     csv_file.seek(0)
@@ -138,7 +142,8 @@ def submit_csv(username, xform, csv_file):
 
     # check for spaces in headers
     if any(' ' in header for header in csv_header):
-        return {'error': u'CSV file fieldnames should not contain spaces'}
+        return async_status(FAILED,
+                            u'CSV file fieldnames should not contain spaces')
 
     # Get the data dictionary
     xform_header = xform.get_headers()
@@ -178,9 +183,10 @@ def submit_csv(username, xform, csv_file):
     addition_col = [a for a in addition_col if a.find('[') == -1]
 
     if missing:
-        return {'error': u"Sorry uploaded file does not match the form. "
-                         u"The file is missing the column(s): "
-                         u"{0}.".format(', '.join(missing))}
+        return async_status(FAILED,
+                            u"Sorry uploaded file does not match the form. "
+                            u"The file is missing the column(s): "
+                            u"{0}.".format(', '.join(missing)))
 
     rollback_uuids = []
     submission_time = datetime.utcnow().isoformat()
@@ -252,7 +258,7 @@ def submit_csv(username, xform, csv_file):
             if error:
                 Instance.objects.filter(uuid__in=rollback_uuids,
                                         xform=xform).delete()
-                return {'error': str(error)}
+                return async_status(FAILED, str(error))
             else:
                 additions += 1
                 try:
@@ -272,11 +278,11 @@ def submit_csv(username, xform, csv_file):
     except UnicodeDecodeError:
         Instance.objects.filter(uuid__in=rollback_uuids,
                                 xform=xform).delete()
-        return {'error': u'CSV file must be utf-8 encoded'}
+        return async_status(FAILED, u'CSV file must be utf-8 encoded')
     except Exception as e:
         Instance.objects.filter(uuid__in=rollback_uuids,
                                 xform=xform).delete()
-        return {'error': str(e)}
+        return async_status(FAILED, str(e))
 
     return {u"additions": additions - inserts, u"updates": inserts,
             u"info": u"Additional column(s) excluded from the upload: '{0}'."
@@ -291,11 +297,11 @@ def get_async_csv_submission_status(job_uuid):
     :rtype: Dict
     """
     if not job_uuid:
-        return {u'error': u'Empty job uuid'}
+        return async_status(FAILED, u'Empty job uuid')
 
     job = AsyncResult(job_uuid)
     result = (job.result or job.state)
     if isinstance(result, (str, unicode)):
-        return {'JOB_STATUS': result}
+        return async_status(celery_state_to_status(job.state))
 
     return result

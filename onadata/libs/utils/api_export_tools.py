@@ -41,6 +41,9 @@ from onadata.libs.exceptions import ServiceUnavailable
 from onadata.libs.utils.common_tags import SUBMISSION_TIME,\
     GROUPNAME_REMOVED_FLAG, DATAVIEW_EXPORT
 from onadata.libs.utils.model_tools import get_columns_with_hxl
+from onadata.libs.utils.async_status import (celery_state_to_status,
+                                             async_status, SUCCESSFUL,
+                                             FAILED, PENDING)
 
 # Supported external exports
 external_export_types = ['xls']
@@ -57,10 +60,6 @@ EXPORT_EXT = {
     OSM: Export.OSM_EXPORT,
     'gsheets': Export.GOOGLE_SHEETS_EXPORT
 }
-
-EXPORT_SUCCESS = "Success"
-EXPORT_PENDING = "Pending"
-EXPORT_FAILED = "Failed"
 
 
 def include_hxl_row(dv_columns, hxl_columns):
@@ -240,7 +239,7 @@ def _generate_new_export(request, xform, query, export_type,
         raise Http404(_("No records found to export"))
     except J2XException as e:
         # j2x exception
-        return {'error': str(e)}
+        return async_status(FAILED, str(e))
     except SPSSIOError as e:
         raise exceptions.ParseError(str(e))
     else:
@@ -429,20 +428,12 @@ def _export_async_export_response(request, xform, export, dataview_pk=None):
                 request=request)
         else:
             export_url = export.export_url
-        resp = {
-            u'job_status': EXPORT_SUCCESS,
-            u'export_url': export_url
-        }
+        resp = async_status(SUCCESSFUL)
+        resp['export_url'] = export_url
     elif export.status == Export.PENDING:
-        resp = {
-            'job_status': EXPORT_PENDING
-        }
+        resp = async_status(PENDING)
     else:
-        resp = {
-            'job_status': EXPORT_FAILED
-        }
-        if export.error_message:
-            resp['error_message'] = export.error_message
+        resp = async_status(FAILED, export.error_message)
 
     return resp
 
@@ -457,9 +448,7 @@ def get_async_response(job_uuid, request, xform, count=0):
             resp = _export_async_export_response(
                 request, xform, export)
         else:
-            resp = {
-                'job_status': job.state
-            }
+            resp = async_status(celery_state_to_status(job.state))
     except ConnectionError, e:
         if count > 0:
             raise ServiceUnavailable(unicode(e))

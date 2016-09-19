@@ -9,6 +9,7 @@ from django.utils.translation import ugettext as _
 
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.common_tags import OSM
+from onadata.libs.utils import async_status
 
 
 def export_delete_callback(sender, **kwargs):
@@ -82,9 +83,9 @@ class Export(models.Model):
 
     EXPORT_TYPE_DICT = dict(export_type for export_type in EXPORT_TYPES)
 
-    PENDING = 0
-    SUCCESSFUL = 1
-    FAILED = 2
+    PENDING = async_status.PENDING
+    SUCCESSFUL = async_status.SUCCESSFUL
+    FAILED = async_status.FAILED
 
     # max no. of export files a user can keep
     MAX_EXPORTS = 10
