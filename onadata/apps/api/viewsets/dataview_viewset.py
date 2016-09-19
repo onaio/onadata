@@ -61,6 +61,7 @@ class DataViewViewSet(AuthenticateHeaderMixin,
         renderers.CSVRenderer,
         renderers.CSVZIPRenderer,
         renderers.SAVZIPRenderer,
+        renderers.ZipRenderer,
     ]
 
     def get_serializer_class(self):
