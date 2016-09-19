@@ -1,8 +1,6 @@
 from rest_framework import serializers
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.utils.api_export_tools import (EXPORT_FAILED,
-                                                 EXPORT_SUCCESS,
-                                                 EXPORT_PENDING)
+from onadata.libs.utils.async_status import status_msg
 
 
 class ExportSerializer(serializers.HyperlinkedModelSerializer):
@@ -14,12 +12,7 @@ class ExportSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('id', 'job_status', 'type', 'task_id', 'xform')
 
     def get_job_status(self, obj):
-        if obj.internal_status == Export.PENDING:
-            return EXPORT_PENDING
-        elif obj.internal_status == Export.SUCCESSFUL:
-            return EXPORT_SUCCESS
-        else:
-            return EXPORT_FAILED
+        return status_msg.get(obj.internal_status)
 
     def get_type(self, obj):
         return obj.export_type
