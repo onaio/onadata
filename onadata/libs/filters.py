@@ -406,3 +406,10 @@ class NoteFilter(filters.BaseFilterBackend):
             queryset = queryset.filter(instance=instance)
 
         return queryset
+
+
+class ExportFilter(XFormPermissionFilterMixin,
+                   filters.DjangoObjectPermissionsFilter):
+    def filter_queryset(self, request, queryset, view):
+        return self._xform_filter_queryset(
+            request, queryset, view, 'xform_id')

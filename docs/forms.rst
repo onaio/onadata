@@ -207,6 +207,66 @@ Response
 
        HTTP 204 NO CONTENT
 
+
+List of form data exports
+-------------------------
+Get a list of exports
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/export
+    </pre>
+
+Example
+^^^^^^^
+::
+
+       curl -X GET https://api.ona.io/api/v1/export
+
+Response
+^^^^^^^^
+::
+
+    [{
+        "id": 1,
+        "job_status": "Success",
+        "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcfe9",
+        "type": "xls",
+        "xform": "http://api.ona.io/api/v1/forms/1"
+    },
+    {
+        "id": 2,
+        "job_status": "Pending",
+        "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcde9",
+        "type": "xls",
+        "xform": "http://api.ona.io/api/v1/forms/17"
+    }]
+
+Get a list of exports on a form
+.. raw:: html
+
+    <pre class="prettyprint">
+    <b>GET</b> /api/v1/export?xform=<code>{pk}</code>
+    </pre>
+
+Example
+^^^^^^^
+::
+
+       curl -X GET https://api.ona.io/api/v1/export?xform=1
+
+Response
+^^^^^^^^
+::
+
+    [{
+        "id": 1,
+        "job_status": "Success",
+        "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcfe9",
+        "type": "xls",
+        "xform": "http://api.ona.io/api/v1/forms/1"
+    }]
+
 Export form data asynchronously
 -------------------------------
 

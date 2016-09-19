@@ -56,6 +56,70 @@ class TestExportViewSet(TestBase):
             response = self.view(request, pk=pk, format=f)
             self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_export_list(self):
+        view = ExportViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/export')
+        response = view(request)
+        self.assertFalse(bool(response.data))
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+
+    def test_export_list_public(self):
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        self.xform.shared_data = True
+        self.xform.save()
+        temp_dir = settings.MEDIA_ROOT
+        dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
+        filename = os.path.basename(dummy_export_file.name)
+        filedir = os.path.dirname(dummy_export_file.name)
+        export = Export.objects.create(xform=self.xform,
+                                       filename=filename,
+                                       filedir=filedir)
+        export.save()
+        view = ExportViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/export')
+        response = view(request)
+        self.assertTrue(bool(response.data))
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+
+    def test_export_list_on_user(self):
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        temp_dir = settings.MEDIA_ROOT
+        dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
+        filename = os.path.basename(dummy_export_file.name)
+        filedir = os.path.dirname(dummy_export_file.name)
+        exports = [Export.objects.create(xform=self.xform,
+                                         filename=filename,
+                                         filedir=filedir)]
+        exports[0].save()
+        view = ExportViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/export', data={'xform': self.xform.id})
+        force_authenticate(request, user=self.user)
+        response = view(request)
+        self.assertEqual(len(exports), len(response.data))
+        self.assertEqual(exports[0].id, response.data[0].get('id'))
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+
+    def test_export_list_on_with_different_users(self):
+        self._create_user_and_login()
+        self._publish_transportation_form()
+        temp_dir = settings.MEDIA_ROOT
+        dummy_export_file = NamedTemporaryFile(suffix='.xlsx', dir=temp_dir)
+        filename = os.path.basename(dummy_export_file.name)
+        filedir = os.path.dirname(dummy_export_file.name)
+        export = Export.objects.create(xform=self.xform,
+                                       filename=filename,
+                                       filedir=filedir)
+        export.save()
+        view = ExportViewSet.as_view({'get': 'list'})
+        request = self.factory.get('/export', data={'xform': self.xform.id})
+        self._create_user_and_login(username='mary', password='password1')
+        force_authenticate(request, user=self.user)
+        response = view(request)
+        self.assertFalse(bool(response.data))
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+
     @patch.object(OAuth2WebServerFlow, 'step2_exchange')
     def test_google_auth(self, mock_oauth2):
         mock_oauth2.return_value = OAuth2Credentials("access_token",

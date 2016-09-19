@@ -17,6 +17,7 @@ from onadata.libs.authentication import (
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.serializers.google_serializer import \
     GoogleCredentialSerializer
+from onadata.libs import filters
 
 
 class ExportViewSet(ReadOnlyModelViewSet):
@@ -36,6 +37,7 @@ class ExportViewSet(ReadOnlyModelViewSet):
         renderers.ZipRenderer
     ]
     serializer_class = ExportSerializer
+    filter_backends = (filters.ExportFilter,)
 
     def retrieve(self, request, *args, **kwargs):
         export = self.get_object()
