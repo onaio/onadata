@@ -1,10 +1,12 @@
 import csv
-from datetime import datetime, date
 import json
 import hashlib
 import os
 import re
 import six
+import uuid
+
+from datetime import datetime, date
 from urlparse import urlparse
 from zipfile import ZipFile
 
@@ -805,17 +807,18 @@ class ExportBuilder(object):
         var_names = []
 
         fields_and_labels = [
-            (element['xpath'], element['label']) for element in elements
-        ] + zip(self.EXTRA_FIELDS, self.EXTRA_FIELDS)
+            (element['title'], element['label'], element['xpath'])
+            for element in elements
+        ] + zip(self.EXTRA_FIELDS, self.EXTRA_FIELDS, self.EXTRA_FIELDS)
 
-        for field, label in fields_and_labels:
+        for field, label, xpath in fields_and_labels:
             var_name = field.replace('/', '.')
-            var_name = self._truncate_sav_column(var_name)
+            var_name = self._check_sav_column(var_name, var_names)
             var_name = '@' + var_name \
                 if var_name.startswith('_') else var_name
             var_labels[var_name] = label
             var_names.append(var_name)
-            _var_types[field] = var_name
+            _var_types[xpath] = var_name
             if field in all_value_labels:
                 value_labels[field] = all_value_labels.get(field)
 
@@ -836,18 +839,23 @@ class ExportBuilder(object):
             'ioUtf8': True
         }
 
-    def _truncate_sav_column(self, column):
+    def _check_sav_column(self, column, columns):
         """
-        Sav column should not be greater than 64 chars
-        truncates group names but not the field names
+        Check for duplicates and append @ 4 chars uuid.
+        Also checks for column length more than 64 chars
         :param column:
         :return: truncated column
         """
+
         if len(column) > 64:
-            split_col = column.split(".")
-            last_item = split_col[-1]
-            column = '.'.join([sc[:6] for sc in split_col[:-1]] +
-                              [last_item])
+            col_len_diff = len(column) - 64
+            column = column[:-col_len_diff]
+
+        if column in columns:
+            if len(column) > 59:
+                column = column[:-5]
+            column = column + "@" + str(uuid.uuid4()).split("-")[1]
+
         return column
 
     def to_zipped_sav(self, path, data, *args, **kwargs):

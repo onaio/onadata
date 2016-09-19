@@ -349,9 +349,14 @@ class TestExportTools(PyxformTestCase, TestBase):
         |        | type           | name | label | choice_filter |
         |        | select one fts | fruit| Fruit | active=1      |
         |	     | integer	      | age  | Age   |               |
-        |        | begin group    | {} | Resp  |               |
+        |	     | integer	      | {}   | Resp2 |               |
+        |        | begin group    | {}   | Resp  |               |
         |	     | integer	      | age  | Resp  |               |
-        |	     | text 	      | name   | Name  |               |
+        |	     | text 	      | name | Name  |               |
+        |        | begin group    | {}   | Resp2 |               |
+        |	     | integer	      | age  | Resp2 |               |
+        |	     | integer	      | {}   | Resp2 |               |
+        |        | end group      |      |       |               |
         |        | end group      |      |       |               |
 
 
@@ -360,7 +365,8 @@ class TestExportTools(PyxformTestCase, TestBase):
         |         | fts       | orange | Orange | 1      |
         |         | fts       | mango  | Mango  | 1      |
         """
-        md = md.format(more_than_64_char)
+        md = md.format(more_than_64_char, more_than_64_char, more_than_64_char,
+                       more_than_64_char)
         survey = self.md_to_pyxform_survey(md)
         export_builder = ExportBuilder()
         export_builder.TRUNCATE_GROUP_TITLE = True
@@ -371,4 +377,5 @@ class TestExportTools(PyxformTestCase, TestBase):
         for sec in export_builder.sections:
             sav_options = export_builder._get_sav_options(sec['elements'])
             sav_file = NamedTemporaryFile(suffix=".sav")
+            # No exception is raised
             SavWriter(sav_file.name, **sav_options)
