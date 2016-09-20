@@ -1216,7 +1216,15 @@ def generate_attachments_zip_export(export_type, username, id_string,
 
     if xform is None:
         xform = XForm.objects.get(user__username=username, id_string=id_string)
-    attachments = Attachment.objects.filter(instance__xform=xform)
+
+    if options.get("dataview_pk"):
+        dataview = DataView.objects.get(pk=options.get("dataview_pk"))
+        records = dataview.query_data(dataview, all_data=True)
+        instances_ids = [rec.get('_id') for rec in records]
+        attachments = Attachment.objects.filter(instance_id__in=instances_ids)
+    else:
+        attachments = Attachment.objects.filter(instance__xform=xform)
+
     basename = "%s_%s" % (id_string,
                           datetime.now().strftime("%Y_%m_%d_%H_%M_%S"))
     filename = basename + "." + extension

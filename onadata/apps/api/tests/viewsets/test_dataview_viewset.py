@@ -492,6 +492,52 @@ class TestDataViewViewSet(TestAbstractViewSet):
         with open(test_file_path, 'r') as test_file:
             self.assertEqual(content, test_file.read())
 
+    def test_zip_export_dataview(self):
+        media_file = "test-image.png"
+        attachment_file_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+            media_file)
+        submission_file_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+            'tutorial', 'instances', 'uuid10', 'submission.xml')
+
+        # make a submission with an attachment
+        with open(attachment_file_path) as f:
+            self._make_submission(submission_file_path, media_file=f)
+
+        data = {
+            'name': "My DataView",
+            'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+            'project': 'http://testserver/api/v1/projects/%s'
+                       % self.project.pk,
+            'columns': '["name", "age", "photo"]',
+            'query': '[{"column":"age","filter":"=","value":"90"}]'
+        }
+        self._create_dataview(data)
+        count = Export.objects.all().count()
+
+        view = DataViewViewSet.as_view({
+            'get': 'data',
+        })
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(1, len(response.data))
+
+        request = self.factory.get('/', **self.extra)
+        response = view(request, pk=self.data_view.pk, format='zip')
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEquals(count + 1, Export.objects.all().count())
+
+        headers = dict(response.items())
+        self.assertEqual(headers['Content-Type'], 'application/zip')
+        content_disposition = headers['Content-Disposition']
+        filename = self.filename_from_disposition(content_disposition)
+        basename, ext = os.path.splitext(filename)
+        self.assertEqual(ext, '.zip')
+
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.apps.api.viewsets.dataview_viewset.AsyncResult')
     def test_export_csv_dataview_data_async(self, async_result):
