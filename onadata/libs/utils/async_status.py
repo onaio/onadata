@@ -4,7 +4,7 @@ PENDING = 0
 SUCCESSFUL = 1
 FAILED = 2
 
-status_msg = {PENDING: 'Pending', SUCCESSFUL: 'Success', FAILED: 'Failed'}
+status_msg = {PENDING: 'PENDING', SUCCESSFUL: 'SUCCESS', FAILED: 'FAILURE'}
 
 
 def celery_state_to_status(state):
