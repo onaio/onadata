@@ -3964,13 +3964,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.xform.pk, format='savzip')
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            response.data.get('detail'),
-            u"'available_transportation_types_to_referral_facility"
-            ".donkey_mule_cart' is an invalid variable name "
-            "['SPSS_NAME_BADLTH: Empty or longer than 64 chars']"
-        )
+        self.assertEqual(response.status_code, 200)
 
     @override_settings(CELERY_ALWAYS_EAGER=True)
     @patch('onadata.libs.utils.api_export_tools.AsyncResult')
@@ -3994,13 +3988,7 @@ class TestXFormViewSet(TestAbstractViewSet):
         self.assertTrue(async_result.called)
         self.assertEqual(response.status_code, 202)
         export = Export.objects.get(task_id=task_id)
-        self.assertFalse(export.is_successful)
-        self.assertEqual(
-            export.error_message,
-            u"'available_transportation_types_to_referral_facility"
-            ".donkey_mule_cart' is an invalid variable name "
-            "['SPSS_NAME_BADLTH: Empty or longer than 64 chars']"
-        )
+        self.assertTrue(export.is_successful)
 
     def test_xform_version_count(self):
         self._publish_xls_form_to_project()

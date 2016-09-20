@@ -234,6 +234,4 @@ class TestDataExportURL(TestBase):
             'id_string': self.xform.id_string,
         })
         response = self.client.get(url)
-        self.assertContains(response,
-                            'SPSS_NAME_BADLTH: Empty or longer than 64 chars',
-                            status_code=400)
+        self.assertEqual(response.status_code, 200)
