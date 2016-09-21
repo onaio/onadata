@@ -52,6 +52,7 @@ from onadata.libs.utils.cache_tools import (
 from onadata.libs.utils.cache_tools import XFORM_PERMISSIONS_CACHE
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.libs.utils.google_sheets_tools import GoogleSheetsExportBuilder
+from onadata.libs.utils.async_status import status_msg, SUCCESSFUL
 
 
 @urlmatch(netloc=r'(.*\.)?ona\.io$', path=r'^/examples/forms/tutorial/form$')
@@ -3943,7 +3944,7 @@ class TestXFormViewSet(TestAbstractViewSet):
 
         self.assertEqual(response.status_code, 202)
         self.assertEqual(response.data,
-                         {u'job_status': 'Success',
+                         {u'job_status': status_msg[SUCCESSFUL],
                           u'export_url': gsheets_export_url
                           })
 
