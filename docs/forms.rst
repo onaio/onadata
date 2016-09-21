@@ -229,14 +229,14 @@ Response
 
     [{
         "id": 1,
-        "job_status": "Success",
+        "job_status": "SUCCESS",
         "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcfe9",
         "type": "xls",
         "xform": "http://api.ona.io/api/v1/forms/1"
     },
     {
         "id": 2,
-        "job_status": "Pending",
+        "job_status": "PENDING",
         "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcde9",
         "type": "xls",
         "xform": "http://api.ona.io/api/v1/forms/17"
@@ -261,7 +261,7 @@ Response
 
     [{
         "id": 1,
-        "job_status": "Success",
+        "job_status": "SUCCESS",
         "task_id": "54b7159b-3b53-4e3c-b2a7-a5ed51adcfe9",
         "type": "xls",
         "xform": "http://api.ona.io/api/v1/forms/1"
@@ -558,7 +558,7 @@ If the job is done:
 ::
 
     HTTP 202 Accepted
-    {"JOB_STATUS": "SUCCESS"}
+    {"job_status": "SUCCESS"}
 
 List Forms
 ------------
@@ -1222,5 +1222,5 @@ If the upload is still running:
 
        HTTP 202 Accepted
        {
-           "JOB_STATUS": "PENDING"
+           "job_status": "PENDING"
        }

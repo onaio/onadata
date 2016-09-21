@@ -5,9 +5,8 @@ from django.conf import settings
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.viewer.models.export import Export
-from onadata.libs.utils.api_export_tools import (
-    EXPORT_SUCCESS,
-    process_async_export)
+from onadata.libs.utils.api_export_tools import process_async_export
+from onadata.libs.utils.async_status import status_msg, SUCCESSFUL
 
 from rest_framework.request import Request
 
@@ -53,5 +52,5 @@ class TestApiExportTools(TestBase):
         resp = process_async_export(
             request, self.xform, export_type, options=options)
 
-        self.assertEquals(resp['job_status'], EXPORT_SUCCESS)
+        self.assertEquals(resp['job_status'], status_msg[SUCCESSFUL])
         self.assertIn("export_url", resp)
