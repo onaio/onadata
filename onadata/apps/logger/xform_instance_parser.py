@@ -170,9 +170,16 @@ def _xml_node_to_dict(node, repeats=[], encrypted=False):
                 if child_name not in value:
                     value[child_name] = d[child_name]
                 else:
-                    raise InstanceMultipleNodeError(
-                        _(u"Multiple nodes with the same name '%s'"
-                          u" while not a repeat" % child_name))
+                    # node is repeated, aggregate node values
+                    node_value = value[child_name]
+                    # 1. check if the node values is a list
+                    if type(node_value) is not list:
+                        # if not a list create
+                        value[child_name] = node_value = [node_value]
+                    # 2. parse the node
+                    d = _xml_node_to_dict(child, repeats)
+                    # 3. aggregate
+                    node_value.append(d[child_name])
             else:
                 if child_name not in value:
                     value[child_name] = [d[child_name]]
