@@ -31,6 +31,7 @@ CAN_CHANGE_XFORM = 'change_xform'
 CAN_ADD_XFORM = 'add_xform'
 CAN_DELETE_XFORM = 'delete_xform'
 CAN_VIEW_XFORM = 'view_xform'
+CAN_VIEW_XFORM_DATA = 'view_xform_data'
 CAN_VIEW_XFORM_ALL = 'view_xform_all'
 CAN_ADD_SUBMISSIONS = 'report_xform'
 CAN_DELETE_SUBMISSION = 'delete_submission'
@@ -112,6 +113,19 @@ class ReadOnlyRole(Role):
     )
 
 
+class DataEntryOnlyRole(Role):
+    name = 'dataentry-only'
+    permissions = (
+        (CAN_ADD_SUBMISSIONS, XForm),
+        (CAN_VIEW_XFORM, XForm),
+        (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
+        (CAN_VIEW_PROJECT, Project),
+        (CAN_ADD_SUBMISSIONS_PROJECT, Project),
+        (CAN_EXPORT_XFORM, XForm),
+        (CAN_EXPORT_PROJECT, Project),
+    )
+
+
 class DataEntryMinorRole(Role):
     name = 'dataentry-minor'
     permissions = (
@@ -122,6 +136,7 @@ class DataEntryMinorRole(Role):
         (CAN_ADD_SUBMISSIONS_PROJECT, Project),
         (CAN_EXPORT_XFORM, XForm),
         (CAN_EXPORT_PROJECT, Project),
+        (CAN_VIEW_XFORM_DATA, XForm),
     )
 
 
@@ -136,6 +151,7 @@ class DataEntryRole(Role):
         (CAN_EXPORT_XFORM, XForm),
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_ALL, XForm),
+        (CAN_VIEW_XFORM_DATA, XForm),
     )
 
 
@@ -152,6 +168,7 @@ class EditorMinorRole(Role):
         (CAN_ADD_SUBMISSIONS_PROJECT, Project),
         (CAN_EXPORT_XFORM, XForm),
         (CAN_EXPORT_PROJECT, Project),
+        (CAN_VIEW_XFORM_DATA, XForm),
     )
 
 
@@ -169,6 +186,7 @@ class EditorRole(Role):
         (CAN_EXPORT_XFORM, XForm),
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_ALL, XForm),
+        (CAN_VIEW_XFORM_DATA, XForm),
     )
 
 
@@ -193,6 +211,7 @@ class ManagerRole(Role):
         (CAN_EXPORT_XFORM, XForm),
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_ALL, XForm),
+        (CAN_VIEW_XFORM_DATA, XForm),
     )
 
 
@@ -243,10 +262,12 @@ class OwnerRole(Role):
         (CAN_EXPORT_XFORM, XForm),
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_ALL, XForm),
+        (CAN_VIEW_XFORM_DATA, XForm),
     )
 
 ROLES_ORDERED = [ReadOnlyRoleNoDownload,
                  ReadOnlyRole,
+                 DataEntryOnlyRole,
                  DataEntryMinorRole,
                  DataEntryRole,
                  EditorRole,
@@ -320,21 +341,11 @@ def get_team_project_default_permissions(team, project):
     return get_role(perms, project) or ""
 
 
-def get_queryset_after_perm_filter(perm_value, instance_queryset, user=None):
-    '''
-    Filter instance queryset based on user permission on a form
-    '''
+def filter_queryset_xform_meta_perms(xform, user, instance_queryset):
 
-    if perm_value == "none":
-        # assign empty object list if value is none - users with
-        # this permission aren't allowed to view any data
-
-        return instance_queryset.none()
-    elif perm_value == "own" and user is not None:
-        # users with this permission will only see data that they
-        # submitted
-
+    if user.has_perm(CAN_VIEW_XFORM_ALL, xform):
+        return instance_queryset
+    elif user.has_perm(CAN_VIEW_XFORM_DATA, xform):
         return instance_queryset.filter(user=user)
     else:
-
-        return instance_queryset
+        return instance_queryset.none()

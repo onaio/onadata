@@ -47,7 +47,8 @@ from onadata.libs.serializers.data_serializer import JsonDataSerializer
 from onadata.libs.serializers.data_serializer import OSMSerializer
 from onadata.libs.serializers.geojson_serializer import GeoJsonSerializer
 from onadata.libs import filters
-from onadata.libs.permissions import CAN_DELETE_SUBMISSION
+from onadata.libs.permissions import CAN_DELETE_SUBMISSION,\
+    filter_queryset_xform_meta_perms
 from onadata.libs.utils.viewer_tools import EnketoError
 from onadata.libs.utils.viewer_tools import get_enketo_edit_url
 from onadata.libs.utils.api_export_tools import custom_response_handler
@@ -336,6 +337,10 @@ class DataViewSet(AnonymousUserPublicFormsMixin,
             xform_id = qs[0] if qs else lookup
             self.object_list = Instance.objects.filter(xform_id=xform_id,
                                                        deleted_at=None)
+            xform = self.get_object()
+            self.object_list = \
+                filter_queryset_xform_meta_perms(xform, request.user,
+                                                 self.object_list)
             tags = self.request.query_params.get('tags')
             not_tagged = self.request.query_params.get('not_tagged')
 

@@ -18,13 +18,15 @@ from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.apps.api.viewsets.xform_viewset import XFormViewSet
 from onadata.apps.api.tests.viewsets.test_abstract_viewset import \
     TestAbstractViewSet
+from onadata.apps.main.models import UserProfile
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.libs.utils.logger_tools import create_instance
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models import XForm
-from onadata.libs.permissions import ReadOnlyRole, EditorRole, EditorMinorRole
+from onadata.libs.permissions import ReadOnlyRole, EditorRole, EditorMinorRole, \
+    DataEntryOnlyRole, DataEntryRole
 from onadata.libs import permissions as role
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.apps.logger.models.instance import get_attachment_url
@@ -209,6 +211,22 @@ class TestDataViewSet(TestBase):
         self.assertTrue(response.content.endswith(');'))
         self.assertEqual(len(response.data), 4)
 
+    def _assign_user_role(self, user, role):
+        self.assertFalse(role.user_has_role(user, self.xform))
+
+        # share bob's project with alice and give alice an editor role
+        data = {'username': 'alice', 'role': role.name}
+        request = self.factory.put('/', data=data, **self.extra)
+        project_view = ProjectViewSet.as_view({
+            'put': 'share'
+        })
+        response = project_view(request, pk=self.project.pk)
+        self.assertEqual(response.status_code, 204)
+
+        self.assertTrue(
+            role.user_has_role(user, self.xform)
+        )
+
     def test_returned_data_is_based_on_form_permissions(self):
         # create a form and make submissions to it
         self._make_submissions()
@@ -221,37 +239,29 @@ class TestDataViewSet(TestBase):
 
         # create user alice
         user_alice = self._create_user('alice', 'alice')
+        # create user profile and set require_auth to false for tests
+        profile, created = UserProfile.objects.get_or_create(user=user_alice)
+        profile.require_auth = False
+        profile.save()
 
-        # check that alice does not have the edit role on bob's project
-        self.assertFalse(
-            EditorRole.user_has_role(user_alice, self.project)
-        )
+        # self._assign_user_role(user_alice, DataEntryRole)
 
-        # share bob's project with alice and give alice an editor role
-        data = {'username': 'alice', 'role': EditorMinorRole.name}
-        request = self.factory.put('/', data=data, **self.extra)
-        project_view = ProjectViewSet.as_view({
-            'put': 'share'
-        })
-        response = project_view(request, pk=self.project.pk)
-        self.assertEqual(response.status_code, 204)
-
-        # check that alice has an editor role on both bob's project and form
-        self.assertTrue(
-            EditorMinorRole.user_has_role(user_alice, self.project)
-        )
-        self.assertTrue(
-            EditorMinorRole.user_has_role(user_alice, self.xform)
-        )
-
-        # check that by default, alice can be able to access all the data
         alices_extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % user_alice.auth_token.key
         }
+
+        # request = self.factory.get('/', **alices_extra)
+        # response = view(request, pk=formid)
+        # self.assertEqual(response.status_code, 200)
+        # self.assertEqual(len(response.data), 0)
+
+        self._assign_user_role(user_alice, EditorMinorRole)
+        # check that by default, alice can be able to access all the data
+
         request = self.factory.get('/', **alices_extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 4)
+        self.assertEqual(len(response.data), 0)
 
         # change xform permission for users with editor role - they should
         # only view data that they submitted
@@ -269,23 +279,18 @@ class TestDataViewSet(TestBase):
         self.assertTrue(instances_submitted_by_alice, 2)
 
         # check that alice will only be able to see the data she submitted
-        alices_extra = {
-            'HTTP_AUTHORIZATION': 'Token %s' % user_alice.auth_token.key
-        }
         request = self.factory.get('/', **alices_extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 2)
 
-        # change xform permission for users with editor role - they should not
-        # view any data
-        self.xform.save()
+        self._assign_user_role(user_alice, EditorRole)
 
-        # check taht alice won't be able to see any data
         request = self.factory.get('/', **alices_extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 0)
+        self.assertEqual(len(response.data), 4)
+
 
     def test_data_pagination(self):
         self._make_submissions()
