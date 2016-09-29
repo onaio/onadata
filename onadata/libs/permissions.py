@@ -42,6 +42,8 @@ CAN_EXPORT_XFORM = 'can_export_xform_data'
 # Project Permissions
 CAN_ADD_PROJECT = 'add_project'
 CAN_VIEW_PROJECT = 'view_project'
+CAN_VIEW_PROJECT_DATA = 'view_project_data'
+CAN_VIEW_PROJECT_ALL = 'view_project_all'
 CAN_CHANGE_PROJECT = 'change_project'
 CAN_TRANSFER_PROJECT_OWNERSHIP = 'transfer_project'
 CAN_DELETE_PROJECT = 'delete_project'
@@ -67,7 +69,6 @@ class Role(object):
     @classmethod
     def add(cls, user, obj):
         cls._remove_obj_permissions(user, obj)
-
         for codename, klass in cls.permissions:
             if type(obj) == klass:
                 assign_perm(codename, user, obj)
@@ -137,6 +138,7 @@ class DataEntryMinorRole(Role):
         (CAN_EXPORT_XFORM, XForm),
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_DATA, XForm),
+        (CAN_VIEW_PROJECT_DATA, Project),
     )
 
 
@@ -152,6 +154,8 @@ class DataEntryRole(Role):
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_ALL, XForm),
         (CAN_VIEW_XFORM_DATA, XForm),
+        (CAN_VIEW_PROJECT_DATA, Project),
+        (CAN_VIEW_PROJECT_ALL, Project),
     )
 
 
@@ -169,6 +173,7 @@ class EditorMinorRole(Role):
         (CAN_EXPORT_XFORM, XForm),
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_DATA, XForm),
+        (CAN_VIEW_PROJECT_DATA, Project),
     )
 
 
@@ -187,6 +192,8 @@ class EditorRole(Role):
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_ALL, XForm),
         (CAN_VIEW_XFORM_DATA, XForm),
+        (CAN_VIEW_PROJECT_DATA, Project),
+        (CAN_VIEW_PROJECT_ALL, Project),
     )
 
 
@@ -212,6 +219,8 @@ class ManagerRole(Role):
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_ALL, XForm),
         (CAN_VIEW_XFORM_DATA, XForm),
+        (CAN_VIEW_PROJECT_DATA, Project),
+        (CAN_VIEW_PROJECT_ALL, Project),
     )
 
 
@@ -263,6 +272,8 @@ class OwnerRole(Role):
         (CAN_EXPORT_PROJECT, Project),
         (CAN_VIEW_XFORM_ALL, XForm),
         (CAN_VIEW_XFORM_DATA, XForm),
+        (CAN_VIEW_PROJECT_DATA, Project),
+        (CAN_VIEW_PROJECT_ALL, Project),
     )
 
 ROLES_ORDERED = [ReadOnlyRoleNoDownload,
@@ -270,8 +281,8 @@ ROLES_ORDERED = [ReadOnlyRoleNoDownload,
                  DataEntryOnlyRole,
                  DataEntryMinorRole,
                  DataEntryRole,
-                 EditorRole,
                  EditorMinorRole,
+                 EditorRole,
                  ManagerRole,
                  OwnerRole]
 
@@ -343,7 +354,7 @@ def get_team_project_default_permissions(team, project):
 
 def filter_queryset_xform_meta_perms(xform, user, instance_queryset):
 
-    if user.has_perm(CAN_VIEW_XFORM_ALL, xform):
+    if user.has_perm(CAN_VIEW_XFORM_ALL, xform) or xform.shared_data:
         return instance_queryset
     elif user.has_perm(CAN_VIEW_XFORM_DATA, xform):
         return instance_queryset.filter(user=user)

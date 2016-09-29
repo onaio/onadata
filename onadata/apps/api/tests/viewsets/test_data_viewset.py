@@ -25,8 +25,8 @@ from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models import XForm
-from onadata.libs.permissions import ReadOnlyRole, EditorRole, EditorMinorRole, \
-    DataEntryOnlyRole, DataEntryRole
+from onadata.libs.permissions import ReadOnlyRole, EditorRole, \
+    EditorMinorRole, DataEntryOnlyRole
 from onadata.libs import permissions as role
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.apps.logger.models.instance import get_attachment_url
@@ -244,16 +244,16 @@ class TestDataViewSet(TestBase):
         profile.require_auth = False
         profile.save()
 
-        # self._assign_user_role(user_alice, DataEntryRole)
+        self._assign_user_role(user_alice, DataEntryOnlyRole)
 
         alices_extra = {
             'HTTP_AUTHORIZATION': 'Token %s' % user_alice.auth_token.key
         }
 
-        # request = self.factory.get('/', **alices_extra)
-        # response = view(request, pk=formid)
-        # self.assertEqual(response.status_code, 200)
-        # self.assertEqual(len(response.data), 0)
+        request = self.factory.get('/', **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
 
         self._assign_user_role(user_alice, EditorMinorRole)
         # check that by default, alice can be able to access all the data
@@ -290,7 +290,6 @@ class TestDataViewSet(TestBase):
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 4)
-
 
     def test_data_pagination(self):
         self._make_submissions()
