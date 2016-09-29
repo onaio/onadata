@@ -26,7 +26,7 @@ from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models.instance import InstanceHistory
 from onadata.apps.logger.models import XForm
 from onadata.libs.permissions import ReadOnlyRole, EditorRole, \
-    EditorMinorRole, DataEntryOnlyRole
+    EditorMinorRole, DataEntryOnlyRole, DataEntryMinorRole
 from onadata.libs import permissions as role
 from onadata.libs.utils.common_tags import MONGO_STRFTIME
 from onadata.apps.logger.models.instance import get_attachment_url
@@ -215,7 +215,7 @@ class TestDataViewSet(TestBase):
         self.assertFalse(role.user_has_role(user, self.xform))
 
         # share bob's project with alice and give alice an editor role
-        data = {'username': 'alice', 'role': role.name}
+        data = {'username': user.username, 'role': role.name}
         request = self.factory.put('/', data=data, **self.extra)
         project_view = ProjectViewSet.as_view({
             'put': 'share'
@@ -286,6 +286,47 @@ class TestDataViewSet(TestBase):
 
         self._assign_user_role(user_alice, EditorRole)
 
+        request = self.factory.get('/', **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 4)
+
+    def test_data_entryonly_can_submit_but_not_view(self):
+        # create user alice
+        user_alice = self._create_user('alice', 'alice')
+        # create user profile and set require_auth to false for tests
+        profile, created = UserProfile.objects.get_or_create(user=user_alice)
+        profile.require_auth = False
+        profile.save()
+
+        DataEntryOnlyRole.add(user_alice, self.xform)
+        DataEntryOnlyRole.add(user_alice, self.project)
+
+        auth = DigestAuth('alice', 'alice')
+
+        paths = [os.path.join(
+            self.this_directory, 'fixtures', 'transportation',
+            'instances', s, s + '.xml') for s in self.surveys]
+
+        for path in paths:
+            self._make_submission(path, auth=auth)
+
+        alices_extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % user_alice.auth_token.key
+        }
+
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
+        request = self.factory.get('/', **alices_extra)
+        response = view(request, pk=formid)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 0)
+
+        DataEntryMinorRole.add(user_alice, self.xform)
+        DataEntryMinorRole.add(user_alice, self.project)
+
+        view = DataViewSet.as_view({'get': 'list'})
+        formid = self.xform.pk
         request = self.factory.get('/', **alices_extra)
         response = view(request, pk=formid)
         self.assertEqual(response.status_code, 200)

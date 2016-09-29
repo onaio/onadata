@@ -12,6 +12,8 @@ from onadata.libs.permissions import (
     CAN_ADD_XFORM,
     CAN_ADD_SUBMISSIONS_PROJECT,
     CAN_EXPORT_PROJECT,
+    CAN_VIEW_PROJECT_DATA,
+    CAN_VIEW_PROJECT_ALL,
     get_team_project_default_permissions)
 
 
@@ -74,7 +76,9 @@ class TestTeam(TestAbstractModels):
         DataEntryRole.add(team, project)
 
         self.assertEqual([CAN_EXPORT_PROJECT, CAN_ADD_SUBMISSIONS_PROJECT,
-                          CAN_VIEW_PROJECT], sorted(get_perms(team, project)))
+                          CAN_VIEW_PROJECT, CAN_VIEW_PROJECT_ALL,
+                          CAN_VIEW_PROJECT_DATA],
+                         sorted(get_perms(team, project)))
 
         self.assertEqual(get_team_project_default_permissions(team, project),
                          DataEntryRole.name)
