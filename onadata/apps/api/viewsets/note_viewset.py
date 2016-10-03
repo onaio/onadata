@@ -1,88 +1,56 @@
-from django.utils.translation import ugettext as _
-from guardian.shortcuts import assign_perm
-
-from rest_framework import exceptions
 from rest_framework import status
+from rest_framework.filters import DjangoObjectPermissionsFilter
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from onadata.apps.api import permissions
-from onadata.libs.mixins.view_permission_mixin import ViewPermissionMixin
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
+
+from onadata.libs import filters
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.note_serializer import NoteSerializer
 from onadata.apps.logger.models import Note
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
-class NoteViewSet(ViewPermissionMixin, ModelViewSet):
-    """## Add Notes to a submission
-
-A `POST` payload of parameters:
-
-    `note` - the note string to add to a data point
-    `instance` - the data point id
-
- <pre class="prettyprint">
-  <b>POST</b> /api/v1/notes</pre>
-
-Payload
-
-    {"instance": 1, "note": "This is a note."}
-
-  > Response
-  >
-  >     {
-  >          "id": 1,
-  >          "instance": 1,
-  >          "note": "This is a note."
-  >          ...
-  >     }
-  >
-  >     HTTP 201 OK
-
-# Get List of notes for a data point
-
-A `GET` request will return the list of notes applied to a data point.
-
- <pre class="prettyprint">
-  <b>GET</b> /api/v1/notes</pre>
-
-
-  > Response
-  >
-  >     [{
-  >          "id": 1,
-  >          "instance": 1,
-  >          "note": "This is a note."
-  >          ...
-  >     }, ...]
-  >
-  >
-  >        HTTP 200 OK
-"""
+class NoteViewSet(AuthenticateHeaderMixin,
+                  CacheControlMixin,
+                  ETagsMixin,
+                  BaseViewset,
+                  ModelViewSet):
     queryset = Note.objects.all()
+    filter_backends = (filters.NoteFilter, DjangoObjectPermissionsFilter)
     serializer_class = NoteSerializer
     permission_classes = [permissions.ViewDjangoObjectPermissions,
                           permissions.IsAuthenticated, ]
 
-    def pre_save(self, obj):
-        # throws PermissionDenied if request.user has no permission to xform
-        if not self.request.user.has_perm('change_xform', obj.instance.xform):
-            raise exceptions.PermissionDenied(
-                _(u"You are not authorized to add/change notes on this form."))
+    def get_object(self):
+        obj = []
+        queryset = self.filter_queryset(self.get_queryset())
 
-    def post_save(self, obj, created=False):
-        if created:
-            assign_perm('add_note', self.request.user, obj)
-            assign_perm('change_note', self.request.user, obj)
-            assign_perm('delete_note', self.request.user, obj)
-            assign_perm('view_note', self.request.user, obj)
+        if queryset:
+            obj = super(NoteViewSet, self).get_object()
 
-        # make sure parsed_instance saves to mongo db
-        obj.instance.parsed_instance.save()
+        return obj
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        if instance:
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        else:
+            return Response(data=[])
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
         instance = obj.instance
         obj.delete()
-        # update mongo data
+        # should update Instance.json
         instance.parsed_instance.save()
+
         return Response(status=status.HTTP_204_NO_CONTENT)

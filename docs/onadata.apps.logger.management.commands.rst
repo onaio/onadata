@@ -36,10 +36,34 @@ onadata.apps.logger.management.commands.create_image_thumbnails module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.logger.management.commands.export_gps_points module
+----------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.management.commands.export_gps_points
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.logger.management.commands.export_xforms_and_instances module
 --------------------------------------------------------------------------
 
 .. automodule:: onadata.apps.logger.management.commands.export_xforms_and_instances
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.apps.logger.management.commands.fix_duplicate_instances module
+----------------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.management.commands.fix_duplicate_instances
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.apps.logger.management.commands.fix_submission_count module
+-------------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.management.commands.fix_submission_count
     :members:
     :undoc-members:
     :show-inheritance:
@@ -92,6 +116,14 @@ onadata.apps.logger.management.commands.move_media_to_s3 module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.logger.management.commands.populate_osmdata_model module
+---------------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.management.commands.populate_osmdata_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.logger.management.commands.publish_xls module
 ----------------------------------------------------------
 
@@ -124,10 +156,26 @@ onadata.apps.logger.management.commands.set_xform_surveys_with_geopoints module
     :undoc-members:
     :show-inheritance:
 
+onadata.apps.logger.management.commands.set_xform_surveys_with_osm module
+-------------------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.management.commands.set_xform_surveys_with_osm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.apps.logger.management.commands.sync_deleted_instances_fix module
 -------------------------------------------------------------------------
 
 .. automodule:: onadata.apps.logger.management.commands.sync_deleted_instances_fix
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.apps.logger.management.commands.update_moved_forms module
+-----------------------------------------------------------------
+
+.. automodule:: onadata.apps.logger.management.commands.update_moved_forms
     :members:
     :undoc-members:
     :show-inheritance:

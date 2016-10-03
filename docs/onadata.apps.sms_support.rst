@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
 
     onadata.apps.sms_support.providers
+    onadata.apps.sms_support.tests
 
 Submodules
 ----------

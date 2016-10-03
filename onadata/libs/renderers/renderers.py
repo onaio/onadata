@@ -1,17 +1,29 @@
 import json
+import decimal
+import math
 
-from rest_framework import negotiation
+from cStringIO import StringIO
+from django.utils.encoding import smart_text
 from django.utils.xmlutils import SimplerXMLGenerator
 
-from rest_framework.compat import StringIO
+from rest_framework import negotiation
 from rest_framework.compat import six
-from rest_framework.compat import smart_text
 from rest_framework.renderers import BaseRenderer
+from rest_framework.renderers import JSONRenderer
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.renderers import StaticHTMLRenderer
-from rest_framework.renderers import XMLRenderer
+from rest_framework_xml.renderers import XMLRenderer
+from rest_framework.utils.encoders import JSONEncoder
 
 from onadata.libs.utils.osm import get_combined_osm
+
+
+class DecimalEncoder(JSONEncoder):
+    def default(self, obj):
+        # Handle Decimal NaN values
+        if isinstance(obj, decimal.Decimal) and math.isnan(obj):
+            return None
+        return JSONEncoder.default(self, obj)
 
 
 class XLSRenderer(BaseRenderer):
@@ -50,6 +62,8 @@ class SurveyRenderer(BaseRenderer):
     format = 'xml'
     charset = 'utf-8'
 
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return data
 # TODO add ZIP(attachments) support
 
 
@@ -60,6 +74,10 @@ class KMLRenderer(BaseRenderer):
 
     def render(self, data, accepted_media_type=None, renderer_context=None):
         return data
+
+
+class GoogleSheetsRenderer(XLSRenderer):
+    format = 'gsheets'
 
 
 class MediaFileContentNegotiation(negotiation.DefaultContentNegotiation):
@@ -184,7 +202,12 @@ class OSMRenderer(BaseRenderer):
     charset = 'utf-8'
 
     def render(self, data, media_type=None, renderer_context=None):
-        """Combine/concatenate the list of osm files to one file"""
+        # Process error before making a list
+        if isinstance(data, dict):
+            if 'detail' in data:
+                return u'<error>' + data['detail'] + '</error>'
+
+        # Combine/concatenate the list of osm files to one file
         def _list(list_or_item):
             if isinstance(list_or_item, list):
                 return list_or_item
@@ -200,3 +223,37 @@ class OSMExportRenderer(BaseRenderer):
     media_type = 'text/xml'
     format = 'osm'
     charset = 'utf-8'
+
+
+class DebugToolbarRenderer(TemplateHTMLRenderer):
+    media_type = 'text/html'
+    charset = 'utf-8'
+    format = 'debug'
+    template_name = 'debug.html'
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        data = {
+            'debug_data': JSONRenderer().render(
+                data, renderer_context=renderer_context
+            )
+        }
+
+        return super(DebugToolbarRenderer, self).render(
+            data, accepted_media_type, renderer_context
+        )
+
+
+class ZipRenderer(BaseRenderer):
+    media_type = 'application/octet-stream'
+    format = 'zip'
+    charset = None
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return json.dumps(data) if isinstance(data, dict) else data
+
+
+class DecimalJSONRenderer(JSONRenderer):
+    """
+    Extends the default json renderer to handle Decimal('NaN') values
+    """
+    encoder_class = DecimalEncoder

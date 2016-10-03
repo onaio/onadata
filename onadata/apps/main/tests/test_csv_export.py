@@ -5,17 +5,20 @@ from django.utils.dateparse import parse_datetime
 
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.export import Export
+from onadata.apps.logger.models import XForm
 from onadata.libs.utils.export_tools import generate_export
 from test_base import TestBase
 
 
-class TestExport(TestBase):
+class TestCsvExport(TestBase):
 
     def setUp(self):
         self._create_user_and_login()
+
         self.fixture_dir = os.path.join(
             self.this_directory, 'fixtures', 'csv_export')
         self._submission_time = parse_datetime('2013-02-18 15:54:01Z')
+        self.options = {"extension": "csv"}
 
     def test_csv_export_url(self):
         """TODO: test data csv export"""
@@ -28,8 +31,12 @@ class TestExport(TestBase):
         self._make_submission(
             path, forced_submission_time=self._submission_time)
         # test csv
-        export = generate_export(Export.CSV_EXPORT, 'csv', self.user.username,
-                                 'tutorial_w_repeats')
+
+        export = generate_export(
+            Export.CSV_EXPORT,
+            self.xform,
+            None,
+            self.options)
         storage = get_storage_class()()
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
@@ -44,6 +51,7 @@ class TestExport(TestBase):
     def test_csv_nested_repeat_output(self):
         path = os.path.join(self.fixture_dir, 'double_repeat.xls')
         self._publish_xls_file(path)
+        self.xform = XForm.objects.get(id_string='double_repeat')
         path = os.path.join(self.fixture_dir, 'instance.xml')
         self._make_submission(
             path, forced_submission_time=self._submission_time)
@@ -58,8 +66,11 @@ class TestExport(TestBase):
         ]
         self.assertEquals(dd.xpaths(repeat_iterations=2), xpaths)
         # test csv
-        export = generate_export(Export.CSV_EXPORT, 'csv', self.user.username,
-                                 'double_repeat')
+        export = generate_export(
+            Export.CSV_EXPORT,
+            self.xform,
+            None,
+            self.options)
         storage = get_storage_class()()
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
@@ -79,8 +90,12 @@ class TestExport(TestBase):
         self._make_submission(
             path, forced_submission_time=self._submission_time)
         # test csv
-        export = generate_export(Export.CSV_EXPORT, 'csv', self.user.username,
-                                 'userone')
+        self.options['id_string'] = 'userone'
+        export = generate_export(
+            Export.CSV_EXPORT,
+            self.xform,
+            None,
+            self.options)
         storage = get_storage_class()()
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)
@@ -100,8 +115,12 @@ class TestExport(TestBase):
         self._make_submission(
             path, forced_submission_time=self._submission_time)
         # test csv
-        export = generate_export(Export.CSV_EXPORT, 'csv', self.user.username,
-                                 'tutorial_w_repeats', remove_group_name=True)
+        self.options['remove_group_name'] = True
+        export = generate_export(
+            Export.CSV_EXPORT,
+            self.xform,
+            None,
+            self.options)
         storage = get_storage_class()()
         self.assertTrue(storage.exists(export.filepath))
         path, ext = os.path.splitext(export.filename)

@@ -1,0 +1,10 @@
+<hxl_example id="hxl_example" version="201604111259">
+  <formhub>
+    <uuid>55abe8dae02f46a6af59ff8b25beedf8</uuid>
+  </formhub>
+  <age hxl="#age">31</age>
+  <name>Cristiano Ronaldo</name>
+  <meta>
+    <instanceID>uuid:acad1cb3-8dbd-4c7e-93fe-d1e76804094b</instanceID>
+  </meta>
+</hxl_example>

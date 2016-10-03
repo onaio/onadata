@@ -1,3 +1,5 @@
+from mock import patch
+
 from django.test import TestCase
 from django.test import RequestFactory
 from django.test.client import Client
@@ -6,6 +8,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.auth.models import AnonymousUser
 
 from onadata.apps.main.views import profile, api_token
+from onadata.apps.logger.xform_instance_parser import XLSFormError
 
 
 class TestUserProfile(TestCase):
@@ -40,6 +43,20 @@ class TestUserProfile(TestCase):
         self._login_user_and_profile()
         self.assertEqual(self.response.status_code, 302)
         self.assertEqual(self.user.username, 'bob')
+
+    @patch('onadata.apps.main.views.render')
+    def test_xlsform_error_returns_400(self, mock_render):
+        mock_render.side_effect = XLSFormError(
+            u"Title shouldn't have an ampersand")
+        self._login_user_and_profile()
+        response = self.client.get(
+            reverse(profile, kwargs={
+                'username': "bob"
+            }))
+
+        self.assertTrue(mock_render.called)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "Title shouldn't have an ampersand")
 
     def test_create_user_profile_for_user(self):
         self._login_user_and_profile()

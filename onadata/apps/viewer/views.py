@@ -11,40 +11,46 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.core.files.storage import get_storage_class
-from django.core.servers.basehttp import FileWrapper
 from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponseForbidden, HttpResponseRedirect, HttpResponseNotFound,
-    HttpResponseBadRequest, HttpResponse)
+    HttpResponseBadRequest, HttpResponse
+)
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils.translation import ugettext as _
 from django.views.decorators.http import require_POST
+from savReaderWriter import SPSSIOError
+from wsgiref.util import FileWrapper
 
 from onadata.apps.main.models import UserProfile, MetaData, TokenStorageModel
-from onadata.apps.logger.models import XForm, Attachment
+from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.views import download_jsonform
 from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.tasks import create_async_export
 from onadata.libs.exceptions import NoRecordsFoundError
 from onadata.libs.utils.export_tools import (
+    DEFAULT_GROUP_DELIMITER,
     generate_export,
     should_create_new_export,
     kml_export_data,
-    newset_export_for)
+    newest_export_for,
+    str_to_bool)
 from onadata.libs.utils.image_tools import image_url
-from onadata.libs.utils.google import google_export_xls, redirect_uri
+from onadata.libs.utils.google import google_flow
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
-    disposition_ext_and_date
+    generate_content_disposition_header
 from onadata.libs.utils.viewer_tools import create_attachments_zipfile,\
-    export_def_from_filename
+    export_def_from_filename, get_form
 from onadata.libs.utils.user_auth import has_permission, get_xform_and_perms,\
     helper_auth_helper
 from xls_writer import XlsWriter
 from onadata.libs.utils.chart_tools import build_chart_data
+from oauth2client.contrib.django_orm import Storage
+from oauth2client import client as google_client
 
 
 def _get_start_end_submission_time(request):
@@ -127,7 +133,8 @@ def average(values):
 
 def map_view(request, username, id_string, template='map.html'):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
+    xform = get_form({'user': owner, 'id_string__iexact': id_string})
+
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
     data = {'content_user': owner, 'xform': xform}
@@ -221,7 +228,8 @@ def thank_you_submission(request, username, id_string):
 
 def data_export(request, username, id_string, export_type):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
+    xform = get_form({'user': owner, 'id_string__iexact': id_string})
+
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -239,17 +247,24 @@ def data_export(request, username, id_string, export_type):
         "xform": xform.id_string,
         "export_type": export_type
     }
+
+    options = {"extension": extension,
+               "username": username,
+               "id_string": id_string,
+               "query": query}
+
     # check if we need to re-generate,
     # we always re-generate if a filter is specified
-    if should_create_new_export(xform, export_type) or query or\
+    if should_create_new_export(xform, export_type, options) or query or\
             'start' in request.GET or 'end' in request.GET:
         # check for start and end params
         start, end = _get_start_end_submission_time(request)
+        options.update({"start": start,
+                        "end": end})
+
         try:
             export = generate_export(
-                export_type, extension, username, id_string, None, query,
-                start=start, end=end
-            )
+                export_type, xform, None, options)
             audit_log(
                 Actions.EXPORT_CREATED, request.user, owner,
                 _("Created %(export_type)s export on '%(id_string)s'.") %
@@ -259,8 +274,10 @@ def data_export(request, username, id_string, export_type):
                 }, audit, request)
         except NoRecordsFoundError:
             return HttpResponseNotFound(_("No records found to export"))
+        except SPSSIOError as e:
+            return HttpResponseBadRequest(str(e))
     else:
-        export = newset_export_for(xform, export_type)
+        export = newest_export_for(xform, export_type, options)
 
     # log download as well
     audit_log(
@@ -271,9 +288,11 @@ def data_export(request, username, id_string, export_type):
             'export_type': export_type.upper()
         }, audit, request)
 
-    if not export.filename:
+    if not export.filename and not export.error_message:
         # tends to happen when using newset_export_for.
         return HttpResponseNotFound("File does not exist!")
+    elif not export.filename and export.error_message:
+        return HttpResponseBadRequest(str(export.error_message))
 
     # get extension from file_path, exporter could modify to
     # xlsx if it exceeds limits
@@ -293,14 +312,22 @@ def data_export(request, username, id_string, export_type):
 @require_POST
 def create_export(request, username, id_string, export_type):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
+    xform = get_form({'user': owner, 'id_string__iexact': id_string})
+
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
     if export_type == Export.EXTERNAL_EXPORT:
         # check for template before trying to generate a report
-        if not MetaData.external_export(xform=xform):
+        if not MetaData.external_export(xform):
             return HttpResponseForbidden(_(u'No XLS Template set.'))
+
+    credential = None
+    if export_type == Export.GOOGLE_SHEETS_EXPORT:
+
+        credential = _get_google_credential(request)
+        if isinstance(credential, HttpResponseRedirect):
+            return credential
 
     query = request.POST.get("query")
     force_xlsx = request.POST.get('xls') != 'true'
@@ -318,13 +345,17 @@ def create_export(request, username, id_string, export_type):
 
     binary_select_multiples = getattr(settings, 'BINARY_SELECT_MULTIPLES',
                                       False)
+    remove_group_name = request.POST.get("options[remove_group_name]", "false")
+
     # external export option
     meta = request.POST.get("meta")
     options = {
         'group_delimiter': group_delimiter,
         'split_select_multiples': split_select_multiples,
         'binary_select_multiples': binary_select_multiples,
-        'meta': meta.replace(",", "") if meta else None
+        'remove_group_name': str_to_bool(remove_group_name),
+        'meta': meta.replace(",", "") if meta else None,
+        'google_credentials': credential
     }
 
     try:
@@ -354,51 +385,55 @@ def create_export(request, username, id_string, export_type):
         )
 
 
-def _get_google_token(request, redirect_to_url):
+def _get_google_credential(request):
     token = None
     if request.user.is_authenticated():
-        try:
-            ts = TokenStorageModel.objects.get(id=request.user)
-        except TokenStorageModel.DoesNotExist:
-            pass
-        else:
-            token = ts.token
+        storage = Storage(TokenStorageModel, 'id', request.user, 'credential')
+        credential = storage.get()
     elif request.session.get('access_token'):
-        token = request.session.get('access_token')
-    if token is None:
-        request.session["google_redirect_url"] = redirect_to_url
-        return HttpResponseRedirect(redirect_uri)
-    return token
+        credential = google_client.OAuth2Credentials.from_json(token)
+
+    return credential or HttpResponseRedirect(
+        google_flow.step1_get_authorize_url())
 
 
 def export_list(request, username, id_string, export_type):
-    if export_type == Export.GDOC_EXPORT:
-        redirect_url = reverse(
-            export_list,
-            kwargs={
-                'username': username, 'id_string': id_string,
-                'export_type': export_type})
-        token = _get_google_token(request, redirect_url)
-        if isinstance(token, HttpResponse):
-            return token
+    credential = None
+
+    if export_type not in Export.EXPORT_TYPE_DICT:
+        return HttpResponseBadRequest(
+            _(u'Export type "%s" is not supported.' % export_type)
+        )
+
+    if export_type == Export.GOOGLE_SHEETS_EXPORT:
+        # Retrieve  google creds or redirect to google authorization page
+        credential = _get_google_credential(request)
+        if isinstance(credential, HttpResponseRedirect):
+            return credential
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
+    xform = get_form({'user': owner, 'id_string__iexact': id_string})
+
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
     if export_type == Export.EXTERNAL_EXPORT:
         # check for template before trying to generate a report
-        if not MetaData.external_export(xform=xform):
+        if not MetaData.external_export(xform):
             return HttpResponseForbidden(_(u'No XLS Template set.'))
     # Get meta and token
     export_token = request.GET.get('token')
     export_meta = request.GET.get('meta')
     options = {
+        'group_delimiter': DEFAULT_GROUP_DELIMITER,
+        'remove_group_name': False,
+        'split_select_multiples': True,
+        'binary_select_multiples': False,
         'meta': export_meta,
         'token': export_token,
+        'google_credentials': credential
     }
 
-    if should_create_new_export(xform, export_type):
+    if should_create_new_export(xform, export_type, options):
         try:
             create_async_export(
                 xform, export_type, query=None, force_xlsx=True,
@@ -407,7 +442,7 @@ def export_list(request, username, id_string, export_type):
             return HttpResponseBadRequest(
                 _("%s is not a valid export type" % export_type))
 
-    metadata = MetaData.objects.filter(xform=xform,
+    metadata = MetaData.objects.filter(object_id=xform.id,
                                        data_type="external_export")\
         .values('id', 'data_value')
 
@@ -429,7 +464,8 @@ def export_list(request, username, id_string, export_type):
 
 def export_progress(request, username, id_string, export_type):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
+    xform = get_form({'user': owner, 'id_string__iexact': id_string})
+
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
@@ -453,30 +489,12 @@ def export_progress(request, username, id_string, export_type):
                 'filename': export.filename
             })
             status['filename'] = export.filename
-            if export.export_type == Export.GDOC_EXPORT and \
+            if export.export_type == Export.GOOGLE_SHEETS_EXPORT and \
                     export.export_url is None:
-                redirect_url = reverse(
-                    export_progress,
-                    kwargs={
-                        'username': username, 'id_string': id_string,
-                        'export_type': export_type})
-                token = _get_google_token(request, redirect_url)
-                if isinstance(token, HttpResponse):
-                    return token
-                status['url'] = None
-                try:
-                    url = google_export_xls(
-                        export.full_filepath, xform.title, token, blob=True)
-                except Exception, e:
-                    status['error'] = True
-                    status['message'] = e.message
-                else:
-                    export.export_url = url
-                    export.save()
-                    status['url'] = url
+                    status['url'] = None
             if export.export_type == Export.EXTERNAL_EXPORT \
                     and export.export_url is None:
-                status['url'] = url
+                status['url'] = None
         # mark as complete if it either failed or succeeded but NOT pending
         if export.status == Export.SUCCESSFUL \
                 or export.status == Export.FAILED:
@@ -489,7 +507,8 @@ def export_progress(request, username, id_string, export_type):
 
 def export_download(request, username, id_string, export_type, filename):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
+    xform = get_form({'user': owner, 'id_string__iexact': id_string})
+
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -497,7 +516,7 @@ def export_download(request, username, id_string, export_type, filename):
     # find the export entry in the db
     export = get_object_or_404(Export, xform=xform, filename=filename)
 
-    if (export_type == Export.GDOC_EXPORT or
+    if (export_type == Export.GOOGLE_SHEETS_EXPORT or
         export_type == Export.EXTERNAL_EXPORT) and \
             export.export_url is not None:
         return HttpResponseRedirect(export.export_url)
@@ -534,7 +553,8 @@ def export_download(request, username, id_string, export_type, filename):
 @require_POST
 def delete_export(request, username, id_string, export_type):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
+    xform = get_form({'user': owner, 'id_string__iexact': id_string})
+
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
@@ -568,7 +588,8 @@ def delete_export(request, username, id_string, export_type):
 
 def zip_export(request, username, id_string):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
+    xform = get_form({'user': owner, 'id_string__iexact': id_string})
+
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -613,7 +634,8 @@ def zip_export(request, username, id_string):
 def kml_export(request, username, id_string):
     # read the locations from the database
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
+    xform = get_form({'user': owner, 'id_string__iexact': id_string})
+
     helper_auth_helper(request)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
@@ -622,7 +644,7 @@ def kml_export(request, username, id_string):
         render(request, "survey.kml", data,
                content_type="application/vnd.google-earth.kml+xml")
     response['Content-Disposition'] = \
-        disposition_ext_and_date(id_string, 'kml')
+        generate_content_disposition_header(id_string, 'kml')
     audit = {
         "xform": xform.id_string,
         "export_type": Export.KML_EXPORT
@@ -660,10 +682,11 @@ def google_xls_export(request, username, id_string):
         request.session["google_redirect_url"] = reverse(
             google_xls_export,
             kwargs={'username': username, 'id_string': id_string})
-        return HttpResponseRedirect(redirect_uri)
+        return HttpResponseRedirect(google_flow.step1_get_authorize_url())
 
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
+    xform = get_form({'user': owner, 'id_string__iexact': id_string})
+
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 
@@ -677,7 +700,7 @@ def google_xls_export(request, username, id_string):
     ddw.set_data_dictionary(dd)
     temp_file = ddw.save_workbook_to_file()
     temp_file.close()
-    url = google_export_xls(tmp.name, xform.title, token, blob=True)
+    url = None
     os.unlink(tmp.name)
     audit = {
         "xform": xform.id_string,
@@ -695,7 +718,10 @@ def google_xls_export(request, username, id_string):
 
 def data_view(request, username, id_string):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, id_string__iexact=id_string, user=owner)
+    xform = get_form({
+        'id_string__iexact': id_string,
+        'user': owner
+    })
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden(_(u'Not shared.'))
 

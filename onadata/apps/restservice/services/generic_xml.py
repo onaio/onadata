@@ -7,9 +7,8 @@ class ServiceDefinition(RestServiceInterface):
     id = u'xml'
     verbose_name = u'XML POST'
 
-    def send(self, url, parsed_instance):
-        instance = parsed_instance.instance
+    def send(self, url, submission_instance):
         headers = {"Content-Type": "application/xml"}
         http = httplib2.Http()
         resp, content = http.request(
-            url, method="POST", body=instance.xml, headers=headers)
+            url, method="POST", body=submission_instance.xml, headers=headers)

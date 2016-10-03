@@ -14,22 +14,38 @@ class TextItSerializer(serializers.Serializer):
     contacts = serializers.CharField(max_length=255, required=True)
     name = serializers.CharField(max_length=50, required=True)
     service_url = serializers.URLField(required=True)
+    date_created = serializers.DateTimeField(read_only=True)
+    date_modified = serializers.DateTimeField(read_only=True)
 
-    def restore_object(self, attrs, instance=None):
+    def to_representation(self, instance):
+        text_it = TextItService(pk=instance.pk, xform=instance.xform,
+                                service_url=instance.service_url,
+                                name=instance.name)
+        text_it.date_modified = instance.date_modified
+        text_it.date_created = instance.date_created
+        text_it.retrieve()
+        return super(TextItSerializer, self).to_representation(text_it)
 
-        if instance:
-            meta = MetaData.textit(instance.xform)
-            values = meta.data_value.split(settings.METADATA_SEPARATOR)
-            if len(values) < 3:
-                values = ['', '', '']
-            xform = attrs.get('xform', instance.xform)
-            auth_token = attrs.get('auth_token', values[0])
-            flow_uuid = attrs.get('flow_uuid', values[1])
-            contacts = attrs.get('contacts', values[2])
-            name = attrs.get('name', instance.name)
-            service_url = attrs.get('service_url', instance.service_url)
+    def update(self, instance, validated_data):
+        meta = MetaData.textit(instance.xform)
+        values = meta.data_value.split(settings.METADATA_SEPARATOR)
+        if len(values) < 3:
+            values = ['', '', '']
+        xform = validated_data.get('xform', instance.xform)
+        auth_token = validated_data.get('auth_token', values[0])
+        flow_uuid = validated_data.get('flow_uuid', values[1])
+        contacts = validated_data.get('contacts', values[2])
+        name = validated_data.get('name', instance.name)
+        service_url = validated_data.get('service_url', instance.service_url)
 
-            return TextItService(xform, service_url, name, auth_token,
+        instance = TextItService(xform, service_url, name, auth_token,
                                  flow_uuid, contacts, instance.pk)
+        instance.save()
 
-        return TextItService(**attrs)
+        return instance
+
+    def create(self, validated_data):
+        instance = TextItService(**validated_data)
+        instance.save()
+
+        return instance

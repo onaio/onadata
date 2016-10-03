@@ -1,10 +1,23 @@
+from django.utils.translation import ugettext as _
 from rest_framework import serializers
+
 from onadata.apps.logger.models.project import Project
 
 
-class ProjectField(serializers.WritableField):
-    def to_native(self, obj):
+class ProjectField(serializers.Field):
+    def to_representation(self, obj):
         return obj.pk
 
-    def from_native(self, data):
-        return Project.objects.get(pk=data)
+    def to_internal_value(self, data):
+        if data is not None:
+            try:
+                project = Project.objects.get(pk=data)
+            except Project.DoesNotExist:
+                raise serializers.ValidationError(_(
+                    u"Project with id '%(value)s' does not exist." %
+                    {"value": data}
+                ))
+            except ValueError as e:
+                raise serializers.ValidationError(unicode(e))
+
+            return project

@@ -1,11 +1,6 @@
-DEPRECATION WARNING
--------------------
-
-OnaData is an API only platform, the UI is not maintained and will be removed in future versions.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 Ona Platform
 =================
+
 Collect, Analyze and Share Data!
 
 .. image:: https://magnum.travis-ci.com/onaio/core.svg?token=zuW2DmA3xKoPXEdebzpS&branch=master
@@ -18,7 +13,8 @@ Ona is derived from the excellent `formhub <http://github.com/SEL-Columbia/formh
 
 Installation
 ------------
-Please read the `Installation and Deployment Guide <install.md>`_.
+
+See `install.md <install.md>`_.
 
 Contributing
 ------------
@@ -26,8 +22,19 @@ Contributing
 If you would like to contribute code please read
 `Contributing Code to Ona Data <https://github.com/onaio/onadata/wiki/Contributing-Code-to-OnaData>`_.
 
+Edit top level requirements in the file `requirements/base.in <requirements/base.in>`_. Use
+ `pip-compile <https://github.com/nvie/pip-tools>`_ to update `requirements/base.pip <requirements/base.pip>`_.
+ You will need to update `requirements.pip` and set `lxml==3.6.0`, for some unknown reason `pip-compile` seems to
+ pick a lower version of lxml when `openpyxl` requires `lxml>=3.3.4`.
+
+.. code-block:: sh
+
+    $ pip-compile --output-file requirements/base.pip requirements/base.in
+
 Code Structure
 --------------
+
+* **api** - This app provides the API functionality mostly made up of viewsets
 
 * **logger** - This app serves XForms to and receives submissions from
   ODK Collect and Enketo.
@@ -71,3 +78,39 @@ Api Documentation
     $ cd docs
     $ make html
     $ python manage.py collectstatic
+
+Django Debug Toolbar
+--------------------
+
+* `$ pip install django-debug-toolbar`
+* Use/see `onadata/settings/debug_toolbar_settings/py`
+* Access api endpoint on the browser and use `.debug` as the format extension e.g `/api/v1/projects.debug`
+
+Upgrading existing installation to django 1.9+
+----------------------------------------------
+
+**Requirements**
+
+* Postgres 9.4 or higher
+* xcode-select version 2343 or higher
+
+**Upgrading from a pervious Ona setup**
+Ensure you upgrade all your pip requirements using the following command:
+
+.. code-block:: sh
+
+    pip install -r requirements/base.pip
+
+Fake initial migration of `guardian`, `django_digest`, `registration`. Migrate `contenttypes` app first.
+
+.. code-block:: sh
+
+    $ python manage.py migrate contenttypes
+    $ python manage.py migrate --fake-initial django_digest
+    $ python manage.py migrate --fake-initial guardian
+    $ python manage.py migrate --fake-initial registration
+    $ python manage.py migrate
+
+
+**Major django changes affecting Ona**
+* The DATABASES settings key depricates the use of the *autocommit* setting in the *OPTIONS* dictionary.

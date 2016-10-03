@@ -1,7 +1,11 @@
 import os
+import importlib
+import tempfile
 
 from datetime import datetime
 
+from guardian.shortcuts import assign_perm, remove_perm
+from guardian.shortcuts import get_perms_for_model
 from django import forms
 from django.conf import settings
 from django.core.files.storage import get_storage_class
@@ -10,20 +14,28 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.db.models import Q
+from django.db.utils import IntegrityError
+from django.db import transaction
 from django.http import HttpResponseNotFound
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext as _
 from django.shortcuts import get_object_or_404
-from taggit.forms import TagField
-from rest_framework import exceptions
+from django.core.validators import URLValidator
+from django.core.validators import ValidationError
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from registration.models import RegistrationProfile
+from rest_framework import exceptions
+from taggit.forms import TagField
 
 from onadata.apps.api.models.organization_profile import OrganizationProfile
 from onadata.apps.api.models.team import Team
 from onadata.apps.main.forms import QuickConverter
+from onadata.apps.logger.models.data_view import DataView
 from onadata.apps.logger.models.project import Project
 from onadata.apps.logger.models.xform import XForm
+from onadata.apps.viewer.models.export import Export
 from onadata.apps.viewer.models.parsed_instance import datetime_from_str
+from onadata.libs.utils.api_export_tools import custom_response_handler
 from onadata.libs.utils.logger_tools import publish_form
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.project_utils import set_project_perms_to_xform
@@ -32,6 +44,8 @@ from onadata.libs.utils.user_auth import check_and_set_form_by_id_string
 from onadata.libs.permissions import ROLES
 from onadata.libs.permissions import ManagerRole
 from onadata.libs.permissions import get_role_in_org
+from onadata.libs.baseviewset import DefaultBaseViewset
+
 
 DECIMAL_PRECISION = 2
 
@@ -148,12 +162,28 @@ def get_organization_owners_team(org):
 
 def remove_user_from_organization(organization, user):
     """Remove a user from an organization"""
+    owners = _get_owners(organization)
+    if user in owners and len(owners) <= 1:
+        raise ValidationError(_("Organization cannot be without an owner"))
     team = get_organization_members_team(organization)
     remove_user_from_team(team, user)
+    owners_team = get_organization_owners_team(organization)
+    remove_user_from_team(owners_team, user)
 
 
 def remove_user_from_team(team, user):
     user.groups.remove(team)
+
+    # remove the permission
+    remove_perm('view_team', user, team)
+
+    # if team is owners team remove more perms
+    if team.name.find(Team.OWNER_TEAM_NAME) > 0:
+        owners_team = get_organization_owners_team(team.organization.profile)
+        members_team = get_organization_members_team(team.organization.profile)
+        for perm in get_perms_for_model(Team):
+            remove_perm(perm.codename, user, owners_team)
+            remove_perm(perm.codename, user, members_team)
 
 
 def add_user_to_organization(organization, user):
@@ -165,12 +195,37 @@ def add_user_to_organization(organization, user):
 def add_user_to_team(team, user):
     user.groups.add(team)
 
+    # give the user perms to view the team
+    assign_perm('view_team', user, team)
+
+    # if team is owners team assign more perms
+    if team.name.find(Team.OWNER_TEAM_NAME) > 0:
+        _assign_organization_team_perms(team.organization, user)
+
+
+def _assign_organization_team_perms(organization, user):
+    owners_team = get_organization_owners_team(organization.profile)
+    members_team = get_organization_members_team(organization.profile)
+    for perm in get_perms_for_model(Team):
+        assign_perm(perm.codename, user, owners_team)
+        assign_perm(perm.codename, user, members_team)
+
 
 def get_organization_members(organization):
     """Get members team user queryset"""
     team = get_organization_members_team(organization)
 
     return team.user_set.all()
+
+
+def _get_owners(organization):
+    # Get users with owners perms and not the org itself
+
+    return [user
+            for user in get_organization_owners_team(
+                organization).user_set.all()
+            if get_role_in_org(user, organization) == 'owner' and
+            organization.user != user]
 
 
 def create_organization_project(organization, project_name, created_by):
@@ -212,7 +267,7 @@ def add_team_to_project(team, project):
 
 def publish_xlsform(request, owner, id_string=None, project=None):
     return do_publish_xlsform(
-        request.user, request.POST, request.FILES, owner, id_string,
+        request.user, request.data, request.FILES, owner, id_string,
         project)
 
 
@@ -236,6 +291,7 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
             args = dict({'project': project.pk}.items() + post.items())
         else:
             args = post
+
         form = QuickConverter(args,  files)
 
         return form.publish(owner, id_string=id_string, created_by=user)
@@ -244,12 +300,14 @@ def do_publish_xlsform(user, post, files, owner, id_string=None, project=None):
 
 
 def publish_project_xform(request, project):
+
     def set_form():
         props = {
             'project': project.pk,
-            'dropbox_xls_url': request.DATA.get('dropbox_xls_url'),
-            'xls_url': request.DATA.get('xls_url'),
-            'csv_url': request.DATA.get('csv_url')
+            'dropbox_xls_url': request.data.get('dropbox_xls_url'),
+            'xls_url': request.data.get('xls_url'),
+            'csv_url': request.data.get('csv_url'),
+            'text_xls_form': request.data.get('text_xls_form')
         }
 
         form = QuickConverter(props, request.FILES)
@@ -258,14 +316,37 @@ def publish_project_xform(request, project):
 
     xform = None
 
-    if 'formid' in request.DATA:
-        xform = get_object_or_404(XForm, pk=request.DATA.get('formid'))
+    def id_string_exists_in_account():
+        try:
+            XForm.objects.get(
+                user=project.organization, id_string=xform.id_string)
+        except XForm.DoesNotExist:
+            return False
+
+        return True
+
+    if 'formid' in request.data:
+        xform = get_object_or_404(XForm, pk=request.data.get('formid'))
         if not ManagerRole.user_has_role(request.user, xform):
             raise exceptions.PermissionDenied(_(
                 "{} has no manager/owner role to the form {}". format(
                     request.user, xform)))
+
+        msg = 'Form with the same id_string already exists in this account'
+        # Without this check, a user can't transfer a form to projects that
+        # he/she owns because `id_string_exists_in_account` will always
+        # return true
+        if project.organization != xform.user and \
+                id_string_exists_in_account():
+            raise exceptions.ParseError(_(msg))
+        xform.user = project.organization
         xform.project = project
-        xform.save()
+
+        try:
+            with transaction.atomic():
+                xform.save()
+        except IntegrityError:
+            raise exceptions.ParseError(_(msg))
         set_project_perms_to_xform(xform, project)
     else:
         xform = publish_form(set_form)
@@ -306,7 +387,7 @@ def add_tags_to_instance(request, instance):
     class TagForm(forms.Form):
         tags = TagField()
 
-    form = TagForm(request.DATA)
+    form = TagForm(request.data)
 
     if form.is_valid():
         tags = form.cleaned_data.get('tags', None)
@@ -318,7 +399,24 @@ def add_tags_to_instance(request, instance):
         raise exceptions.ParseError(form.errors)
 
 
-def get_media_file_response(metadata):
+def get_media_file_response(metadata, request=None):
+
+    def get_data_value_objects(value):
+        model = None
+        if value.startswith('dataview'):
+            model = DataView
+        elif value.startswith('xform'):
+            model = XForm
+
+        if model:
+            parts = value.split()
+            if len(parts) > 1:
+                name = parts[2] if len(parts) > 2 else None
+
+                return (get_object_or_404(model, pk=parts[1]), name)
+
+        return (None, None)
+
     if metadata.data_file:
         file_path = metadata.data_file.name
         filename, extension = os.path.splitext(file_path.split('/')[-1])
@@ -335,6 +433,19 @@ def get_media_file_response(metadata):
         else:
             return HttpResponseNotFound()
     else:
+        try:
+            URLValidator()(metadata.data_value)
+        except ValidationError:
+            obj, filename = get_data_value_objects(metadata.data_value)
+            if obj:
+                dataview = obj if isinstance(obj, DataView) else False
+                xform = obj.xform if isinstance(obj, DataView) else obj
+
+                return custom_response_handler(
+                    request, xform, {}, Export.CSV_EXPORT, filename=filename,
+                    dataview=dataview
+                )
+
         return HttpResponseRedirect(metadata.data_value)
 
 
@@ -348,7 +459,8 @@ def check_inherit_permission_from_project(xform_id, user):
         return
 
     # get the project_xform
-    xforms = XForm.objects.filter(pk=xform_id)
+    xforms = XForm.objects.filter(pk=xform_id)\
+        .select_related('project')
 
     if not xforms:
         return
@@ -367,3 +479,45 @@ def _set_xform_permission(role, user, xform):
 
     if role_class:
         role_class.add(user, xform)
+
+
+def load_class(full_class_string):
+    """
+    dynamically load a class from a string
+    """
+
+    class_data = full_class_string.split(".")
+    module_path = ".".join(class_data[:-1])
+    class_str = class_data[-1]
+
+    module = importlib.import_module(module_path)
+    # Finally, we retrieve the Class
+    return getattr(module, class_str)
+
+
+def get_baseviewset_class():
+    """
+    Checks the setting if the default viewset is implementded otherwise loads
+    the default in onadata
+    :return: the default baseviewset
+    """
+    return load_class(settings.BASE_VIEWSET) \
+        if settings.BASE_VIEWSET else DefaultBaseViewset
+
+
+def generate_tmp_path(uploaded_csv_file):
+    """
+    Write file to temporary folder if not already there
+    :param uploaded_csv_file:
+    :return: path to the tmp folder
+    """
+    if isinstance(uploaded_csv_file, InMemoryUploadedFile):
+        uploaded_csv_file.open()
+        tmp_file = tempfile.NamedTemporaryFile(delete=False)
+        tmp_file.write(uploaded_csv_file.read())
+        tmp_path = tmp_file.name
+        uploaded_csv_file.close()
+    else:
+        tmp_path = uploaded_csv_file.temporary_file_path()
+
+    return tmp_path

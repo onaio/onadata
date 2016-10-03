@@ -9,6 +9,6 @@ class AnonymousUserMixin(object):
         """Set AnonymousUser from the database to allow object permissions."""
         if self.request and self.request.user.is_anonymous():
             self.request.user = get_object_or_404(
-                User, pk=settings.ANONYMOUS_USER_ID)
+                User, username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME)
 
         return super(AnonymousUserMixin, self).get_queryset()

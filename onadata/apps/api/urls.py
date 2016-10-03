@@ -1,5 +1,6 @@
 from django.conf.urls import url
 from django.conf import settings
+from django.contrib import admin
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import routers
@@ -9,6 +10,9 @@ from rest_framework.views import APIView
 from onadata.apps.api.viewsets.charts_viewset import ChartsViewSet
 from onadata.apps.api.viewsets.connect_viewset import ConnectViewSet
 from onadata.apps.api.viewsets.data_viewset import DataViewSet
+from onadata.apps.api.viewsets.data_viewset import AuthenticatedDataViewSet
+from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
+from onadata.apps.api.viewsets.export_viewset import ExportViewSet
 from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.note_viewset import NoteViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
@@ -30,6 +34,10 @@ from onadata.apps.api.viewsets.osm_viewset import OsmViewSet
 from onadata.apps.restservice.viewsets.restservices_viewset import \
     RestServicesViewSet
 from onadata.apps.api.viewsets.media_viewset import MediaViewSet
+from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
+
+
+admin.autodiscover()
 
 
 def make_routes(template_text):
@@ -156,6 +164,8 @@ class MultiLookupRouter(routers.DefaultRouter):
 ## Ona JSON Rest API endpoints:
 
 """
+            _ignore_model_permissions = True
+
             def get(self, request, format=None):
                 ret = {}
                 for key, url_name in api_root_dict.items():
@@ -214,6 +224,8 @@ router.register(r'projects', ProjectViewSet)
 router.register(r'teams', TeamViewSet)
 router.register(r'notes', NoteViewSet)
 router.register(r'data', DataViewSet, base_name='data')
+router.register(r'private-data', AuthenticatedDataViewSet,
+                base_name='private-data')
 router.register(r'stats', StatsViewSet, base_name='stats')
 router.register(r'stats/submissions', SubmissionStatsViewSet,
                 base_name='submissionstats')
@@ -227,3 +239,6 @@ router.register(r'briefcase', BriefcaseViewset, base_name='briefcase')
 router.register(r'osm', OsmViewSet, base_name='osm')
 router.register(r'restservices', RestServicesViewSet, base_name='restservices')
 router.register(r'files', MediaViewSet, base_name='files')
+router.register(r'dataviews', DataViewViewSet, base_name='dataviews')
+router.register(r'widgets', WidgetViewSet, base_name='widgets')
+router.register(r'export', ExportViewSet, base_name='export')

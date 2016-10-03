@@ -21,6 +21,17 @@ class XFormInstanceFS(object):
         return self._photos
 
     @property
+    def osm(self):
+        if not hasattr(self, '_osm'):
+            available_osm = glob.glob(os.path.join(self.directory, "*.osm"))
+            self._osm = []
+            for osm_path in available_osm:
+                _pdir, osm = os.path.split(osm_path)
+                if self.xml.find(osm) > 0:
+                    self._osm.append(osm_path)
+        return self._osm
+
+    @property
     def metadata_directory(self):
         if not hasattr(self, '_metadata_directory'):
             instances_dir = os.path.join(

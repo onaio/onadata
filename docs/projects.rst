@@ -21,8 +21,8 @@ Example
 ::
 
        {
-           "url": "https://ona.io/api/v1/projects/1",
-           "owner": "https://ona.io/api/v1/users/ona",
+           "url": "https://api.ona.io/api/v1/projects/1",
+           "owner": "https://api.ona.io/api/v1/users/ona",
            "name": "project 1",
            "date_created": "2013-07-24T13:37:39Z",
            "date_modified": "2013-07-24T13:37:39Z"
@@ -39,7 +39,7 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/projects
+       curl -X GET https://api.ona.io/api/v1/projects
 
 Response
 ^^^^^^^^^
@@ -47,15 +47,15 @@ Response
 
        [
            {
-               "url": "https://ona.io/api/v1/projects/1",
-               "owner": "https://ona.io/api/v1/users/ona",
+               "url": "https://api.ona.io/api/v1/projects/1",
+               "owner": "https://api.ona.io/api/v1/users/ona",
                "name": "project 1",
                "date_created": "2013-07-24T13:37:39Z",
                "date_modified": "2013-07-24T13:37:39Z"
            },
            {
-               "url": "https://ona.io/api/v1/projects/4",
-               "owner": "https://ona.io/api/v1/users/ona",
+               "url": "https://api.ona.io/api/v1/projects/4",
+               "owner": "https://api.ona.io/api/v1/users/ona",
                "name": "project 2",
                "date_created": "2013-07-24T13:59:10Z",
                "date_modified": "2013-07-24T13:59:10Z"
@@ -74,7 +74,7 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/projects?owner=ona
+       curl -X GET https://api.ona.io/api/v1/projects?owner=ona
 
 Retrieve Project Information
 --------------------------------
@@ -87,15 +87,15 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/projects/1
+       curl -X GET https://api.ona.io/api/v1/projects/1
 
 Response
 ^^^^^^^^
 ::
 
        {
-           "url": "https://ona.io/api/v1/projects/1",
-           "owner": "https://ona.io/api/v1/users/ona",
+           "url": "https://api.ona.io/api/v1/projects/1",
+           "owner": "https://api.ona.io/api/v1/users/ona",
            "name": "project 1",
            "date_created": "2013-07-24T13:37:39Z",
            "date_modified": "2013-07-24T13:37:39Z"
@@ -112,15 +112,15 @@ Example
 ^^^^^^^^
 ::
 
-        curl -X PATCH -d 'metadata={"description": "Lorem ipsum","location": "Nakuru, Kenya","category": "water"}' https://ona.io/api/v1/projects/1
+        curl -X PATCH -d 'metadata={"description": "Lorem ipsum","location": "Nakuru, Kenya","category": "water"}' https://api.ona.io/api/v1/projects/1
 
 Response
 ^^^^^^^^^
 ::
 
     {
-        "url": "https://ona.io/api/v1/projects/1",
-        "owner": "https://ona.io/api/v1/users/ona",
+        "url": "https://api.ona.io/api/v1/projects/1",
+        "owner": "https://api.ona.io/api/v1/users/ona",
         "name": "project 1",
         "metadata": {
             "description": "Lorem ipsum",
@@ -134,7 +134,7 @@ Response
 Share a project with a specific user
 -------------------------------------
 
-You can share a project with a specific user by ``POST`` a payload with
+You can share a project with a specific user by ``PUT`` a payload with
 
 - ``username`` of the user you want to share the form with and
 - ``role`` you want the user to have on the project.Available roles are ``readonly``, ``dataentry``, ``editor``, ``manager``.
@@ -142,14 +142,14 @@ You can share a project with a specific user by ``POST`` a payload with
 .. raw:: html
 
 	<pre class="prettyprint">
-	<b>POST</b> /api/v1/projects/<code>{pk}</code>/share
+	<b>PUT</b> /api/v1/projects/<code>{pk}</code>/share
 	</pre>
 
 Example
 ^^^^^^^^
 ::
 
-    curl -X POST -d username=alice -d role=readonly https://ona.io/api/v1/projects/1/share
+    curl -X PUT -d username=alice -d role=readonly https://api.ona.io/api/v1/projects/1/share
 
 Response
 ^^^^^^^^^
@@ -172,7 +172,7 @@ Example
 ^^^^^^^^^
 ::
 
-    curl -X POST -d username=alice -d role=readonly -d email_msg="I have shared the project with you" https://ona.io/api/v1/projects/1/share
+    curl -X POST -d username=alice -d role=readonly -d email_msg="I have shared the project with you" https://api.ona.io/api/v1/projects/1/share
 
 Response
 ^^^^^^^^^
@@ -191,7 +191,7 @@ Example
 ^^^^^^^^
 ::
 
-    curl -X POST -d "username=alice" -d "role=readonly" -d "remove=True" http://localhost:8000/api/v1/projects/1/share
+    curl -X POST -d "username=alice" -d "role=readonly" -d "remove=True" http://api.ona.io/api/v1/projects/1/share
 
 Response
 ^^^^^^^^^
@@ -212,14 +212,14 @@ Example
 ^^^^^^^^
 ::
 
-    curl -X POST -d '{"formid": 28058}' https://ona.io/api/v1/projects/1/forms -H "Content-Type: application/json"
+    curl -X POST -d '{"formid": 28058}' https://api.ona.io/api/v1/projects/1/forms -H "Content-Type: application/json"
 
 Response
 ^^^^^^^^^
 ::
 
     {
-        "url": "https://ona.io/api/v1/forms/28058",
+        "url": "https://api.ona.io/api/v1/forms/28058",
         "formid": 28058,
         "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
         "id_string": "Birds",
@@ -247,7 +247,7 @@ Example
 ^^^^^^^^
 ::
 
-    curl -X POST -F xls_file=@/path/to/form.xls https://ona.io/api/v1/projects/1/forms
+    curl -X POST -F xls_file=@/path/to/form.xls https://api.ona.io/api/v1/projects/1/forms
 
 Response
 ^^^^^^^^^
@@ -255,7 +255,7 @@ Response
 
 
        {
-           "url": "https://ona.io/api/v1/forms/28058",
+           "url": "https://api.ona.io/api/v1/forms/28058",
            "formid": 28058,
            "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
            "id_string": "Birds",
@@ -284,7 +284,7 @@ Example
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/projects/1/forms
+       curl -X GET https://api.ona.io/api/v1/projects/1/forms
 
 Response
 ^^^^^^^^^
@@ -292,7 +292,7 @@ Response
 
        [
            {
-               "url": "https://ona.io/api/v1/forms/28058",
+               "url": "https://api.ona.io/api/v1/forms/28058",
                "formid": 28058,
                "uuid": "853196d7d0a74bca9ecfadbf7e2f5c1f",
                "id_string": "Birds",
@@ -313,7 +313,7 @@ Response
                    {
                        "role": "owner",
                        "user": "alice",
-                       "permissions": ["report_xform", ...]
+                       ...
                    },
                    ...
                ]
@@ -337,7 +337,7 @@ Request
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/projects?tag=smart,brand+new
+       curl -X GET https://api.ona.io/api/v1/projects?tag=smart,brand+new
 
 Response
 ^^^^^^^^^
@@ -347,8 +347,8 @@ Response
 
        [
            {
-               "url": "https://ona.io/api/v1/projects/1",
-               "owner": "https://ona.io/api/v1/users/ona",
+               "url": "https://api.ona.io/api/v1/projects/1",
+               "owner": "https://api.ona.io/api/v1/users/ona",
                "name": "project 1",
                "date_created": "2013-07-24T13:37:39Z",
                "date_modified": "2013-07-24T13:37:39Z"
@@ -369,7 +369,7 @@ Request
 ^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/projects/28058/labels
+       curl -X GET https://api.ona.io/api/v1/projects/28058/labels
 
 Response
 ^^^^^^^^
@@ -411,13 +411,13 @@ Request
 ^^^^^^^^
 ::
 
-    curl -X DELETE https://ona.io/api/v1/projects/28058/labels/tag1
+    curl -X DELETE https://api.ona.io/api/v1/projects/28058/labels/tag1
 
 or to delete the tag "hello world"
 
 ::
 
-    curl -X DELETE https://ona.io/api/v1/projects/28058/labels/hello%20world
+    curl -X DELETE https://api.ona.io/api/v1/projects/28058/labels/hello%20world
 
 Response
 ^^^^^^^^^

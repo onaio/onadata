@@ -9,7 +9,7 @@ Example
 
 ::
 
-      curl -X GET https://ona.io/api/v1/users
+      curl -X GET https://api.ona.io/api/v1/users
 
 Response
 ^^^^^^^^
@@ -40,7 +40,7 @@ Example
 ^^^^^^^
 
 ::
-        curl -X GET https://ona.io/api/v1/users?orgs=false
+        curl -X GET https://api.ona.io/api/v1/users?orgs=false
 
 Retrieve a specific user info
 -----------------------------
@@ -54,7 +54,7 @@ Example
 
 ::
 
-       curl -X GET https://ona.io/api/v1/users/demo
+       curl -X GET https://api.ona.io/api/v1/users/demo
 
 Response
 ^^^^^^^^
@@ -75,7 +75,7 @@ Example
 
 ::
 
-      curl -X GET https://ona.io/api/v1/users?search=demo@email.com
+      curl -X GET https://api.ona.io/api/v1/users?search=demo@email.com
 
 Response
 ^^^^^^^^

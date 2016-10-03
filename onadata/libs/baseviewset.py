@@ -1,0 +1,2 @@
+class DefaultBaseViewset(object):
+    pass

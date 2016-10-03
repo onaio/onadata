@@ -18,7 +18,7 @@ Example
 ^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/files/1?filename=user/attachment/filename.JPG -v
+       curl -X GET https://api.ona.io/api/v1/files/1?filename=user/attachment/filename.JPG -v
 
 Response
 ^^^^^^^^
@@ -49,7 +49,7 @@ Example
 
 ::
 
-       curl -X GET https://ona.io/api/v1/files/1?filename=user/attachment/filename.JPG&suffix=small -v
+       curl -X GET https://api.ona.io/api/v1/files/1?filename=user/attachment/filename.JPG&suffix=small -v
 
 Response
 ^^^^^^^^

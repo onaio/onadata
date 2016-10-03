@@ -33,7 +33,7 @@ class TestBase(TransactionTestCase):
                'transport_2011-07-25_19-05-36',
                'transport_2011-07-25_19-06-01',
                'transport_2011-07-25_19-06-14']
-    this_directory = os.path.dirname(__file__)
+    this_directory = os.path.abspath(os.path.dirname(__file__))
 
     def setUp(self):
         self.maxDiff = None
@@ -80,10 +80,11 @@ class TestBase(TransactionTestCase):
         if not path.startswith('/%s/' % self.user.username):
             path = os.path.join(self.this_directory, path)
         with open(path) as f:
-            xls_file = InMemoryUploadedFile(f, 'xls_file',
-                                            os.path.basename(path),
-                                            'application/vnd.ms-excel',
-                                            os.path.getsize(path), None)
+            xls_file = InMemoryUploadedFile(
+                f, 'xls_file',
+                os.path.abspath(os.path.basename(path)),
+                'application/vnd.ms-excel',
+                os.path.getsize(path), None)
             if not hasattr(self, 'project'):
                 self.project = get_user_default_project(self.user)
 

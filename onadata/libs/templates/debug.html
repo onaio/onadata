@@ -1,0 +1,18 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Api debug</title>
+</head>
+<body>
+
+{% block content %}
+<div id='content'>&nbsp;</div>
+<script type="text/javascript">
+var data = {{ debug_data|safe }};
+document.getElementById('content').innerHTML = "<pre>" + JSON.stringify(data,null, 4) + "</pre>";
+</script>
+{% endblock %}
+</body>
+</html>

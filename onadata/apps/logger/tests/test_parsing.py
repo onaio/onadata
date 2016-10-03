@@ -45,7 +45,7 @@ class TestXFormInstanceParser(TestBase):
 
     def test_parse_xform_nested_repeats(self):
         self._publish_and_submit_new_repeats()
-        parser = XFormInstanceParser(self.xml, self.xform.data_dictionary())
+        parser = XFormInstanceParser(self.xml, self.xform)
         dict = parser.to_dict()
         expected_dict = {
             u'new_repeats': {

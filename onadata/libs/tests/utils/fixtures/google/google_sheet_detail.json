@@ -1,0 +1,48 @@
+{
+        "properties":
+            {
+                "atoRecalc": "ON_CHANGE",
+                "defaltFormat":
+                {
+                    "backgrondColor":
+                    {
+                        "ble": 1, "green": 1, "red": 1
+                    },
+                    "padding":
+                    {
+                        "bottom": 2, "left": 3, "right": 3, "top": 2
+                    },
+                    "textFormat":
+                    {
+                        "bold": false,
+                        "fontFamily": "arial,sans,sans-serif",
+                        "fontSize": 10, "foregrondColor": {},
+                        "italic": false, "strikethrogh": false,
+                        "nderline": false
+                    },
+                    "verticalAlignment": "BOTTOM",
+                    "wrapStrategy": "OVERFLOW_CELL"
+                },
+                "locale": "en_S",
+                "timeZone": "Asia/Baghdad",
+                "title": "weka-sync"
+            },
+            "sheets":
+                [
+                    {
+                        "properties":
+                            {
+                                "gridProperties":
+                                    {
+                                        "columnCount": 41,
+                                        "rowCount": 11
+                                    },
+                                "index": 0,
+                                "sheetId": 1836938579,
+                                "sheetType": "GRID",
+                                "title": "tom"
+                            }
+                    }
+                ],
+        "spreadsheetId": "16-58Zf5gDfKwWFywtMOnJVN2PTELjd4Q3yTWAwMA"
+}

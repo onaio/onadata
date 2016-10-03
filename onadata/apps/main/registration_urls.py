@@ -8,15 +8,14 @@ URLConf to include this URLConf for any URL beginning with
 """
 
 
-from django.conf.urls import patterns, url, include
+from django.conf.urls import url, include
 from django.views.generic import TemplateView
 from registration.backends.default.views import ActivationView
 
 from onadata.apps.main.registration_views import FHRegistrationView
 from onadata.apps.main.forms import RegistrationFormUserProfile
 
-urlpatterns = patterns(
-    '',
+urlpatterns = [
     url(r'^activate/complete/$',
         TemplateView.as_view(
             template_name='registration/activation_complete.html'),
@@ -35,5 +34,5 @@ urlpatterns = patterns(
         TemplateView.as_view(
             template_name='registration/registration_complete.html'),
         name='registration_complete'),
-    (r'', include('registration.auth_urls')),
-)
+    url(r'', include('registration.auth_urls')),
+]

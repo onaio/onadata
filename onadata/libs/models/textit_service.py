@@ -1,6 +1,9 @@
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.apps.restservice.models import RestService
 from django.conf import settings
+from django.utils.translation import ugettext as _
+from django.db import IntegrityError
+from rest_framework import serializers
 
 METADATA_SEPARATOR = settings.METADATA_SEPARATOR
 
@@ -17,6 +20,8 @@ class TextItService(object):
         self.contacts = contacts
         self.name = name
         self.service_url = service_url
+        self.date_created = None
+        self.date_modified = None
 
     def save(self, **kwargs):
 
@@ -26,7 +31,18 @@ class TextItService(object):
         rs.name = self.name
         rs.service_url = self.service_url
         rs.xform = self.xform
-        rs.save()
+        try:
+            rs.save()
+        except IntegrityError as e:
+            if str(e).startswith("duplicate key value violates unique "
+                                 "constraint"):
+                msg = _(u"The service already created for this form.")
+            else:
+                msg = _(str(e))
+            raise serializers.ValidationError(msg)
+
+        self.date_created = rs.date_created
+        self.date_modified = rs.date_modified
 
         data_value = '{}|{}|{}'.format(self.auth_token,
                                        self.flow_uuid,
@@ -38,5 +54,11 @@ class TextItService(object):
     def retrieve(self):
         meta = MetaData.textit(self.xform)
 
-        self.auth_token, self.flow_uuid, self.contacts = \
-            meta.data_value.split(METADATA_SEPARATOR)
+        try:
+            self.auth_token, self.flow_uuid, self.contacts = \
+                meta.data_value.split(METADATA_SEPARATOR)
+        except ValueError:
+            raise serializers.ValidationError(
+                _("Error occurred when loading textit service."
+                  "Resolve by updating auth_token, flow_uuid and contacts"
+                  " fields"))

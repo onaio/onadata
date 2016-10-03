@@ -3,6 +3,7 @@ import os
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.test import TransactionTestCase
 from django_digest.test import DigestAuth
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 import simplejson as json
 
@@ -23,6 +24,16 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         })
         self._publish_xls_form_to_project()
 
+    def test_unique_instanceid_per_form_only(self):
+        self._make_submissions()
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice = self._create_user_profile(alice_data)
+        self.user = alice.user
+        self.extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % self.user.auth_token}
+        self._publish_xls_form_to_project()
+        self._make_submissions()
+
     def test_post_submission_anonymous(self):
         s = self.surveys[0]
         media_file = "1335783522563.jpg"
@@ -37,7 +48,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             with open(submission_path) as sf:
                 data = {'xml_submission_file': sf, 'media_file': f}
                 request = self.factory.post(
-                    '%s/submission' % self.user.username, data)
+                    '/%s/submission' % self.user.username, data)
                 request.user = AnonymousUser()
                 response = self.view(request, username=self.user.username)
                 self.assertContains(response, 'Successful submission',
@@ -133,14 +144,41 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             self.assertEqual(response['Location'],
                              'http://testserver/submission')
 
-    def test_post_submission_authenticated_json_with_geo(self):
+    def test_post_submission_authenticated_bad_json_list(self):
         path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             '..',
             'fixtures',
-            'movie_form_submission.json')
+            'transport_submission.json')
         with open(path) as f:
             data = json.loads(f.read())
+            request = self.factory.post('/submission', [data], format='json')
+            response = self.view(request)
+            self.assertEqual(response.status_code, 401)
+
+            auth = DigestAuth('bob', 'bobbob')
+            request.META.update(auth(request.META, response))
+            response = self.view(request)
+            self.assertContains(response, 'Incorrect format',
+                                status_code=400)
+            self.assertTrue(response.has_header('X-OpenRosa-Version'))
+            self.assertTrue(
+                response.has_header('X-OpenRosa-Accept-Content-Length'))
+            self.assertTrue(response.has_header('Date'))
+            self.assertEqual(response['Content-Type'],
+                             'application/json')
+            self.assertEqual(response['Location'],
+                             'http://testserver/submission')
+
+    def test_post_submission_authenticated_bad_json_submission_list(self):
+        path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            '..',
+            'fixtures',
+            'transport_submission.json')
+        with open(path) as f:
+            data = json.loads(f.read())
+            data['submission'] = [data['submission']]
             request = self.factory.post('/submission', data, format='json')
             response = self.view(request)
             self.assertEqual(response.status_code, 401)
@@ -148,7 +186,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             auth = DigestAuth('bob', 'bobbob')
             request.META.update(auth(request.META, response))
             response = self.view(request)
-            self.assertContains(response, 'error": "Improperly',
+            self.assertContains(response, 'Incorrect format',
                                 status_code=400)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(
@@ -175,7 +213,7 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
             auth = DigestAuth('bob', 'bobbob')
             request.META.update(auth(request.META, response))
             response = self.view(request)
-            self.assertContains(response, 'error": "Received empty submission',
+            self.assertContains(response, 'Received empty submission',
                                 status_code=400)
             self.assertTrue(response.has_header('X-OpenRosa-Version'))
             self.assertTrue(
@@ -323,3 +361,15 @@ class TestXFormSubmissionViewSet(TestAbstractViewSet, TransactionTestCase):
         response = self.view(request)
         self.assertContains(response, 'No submission key provided.',
                             status_code=400)
+
+    def test_NaN_in_submission(self):
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "tutorial.xls")
+
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+
+        path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+            'tutorial', 'instances', 'uuid_NaN', 'submission.xml')
+        self._make_submission(path)

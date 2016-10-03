@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from onadata.apps.logger.models.attachment import Attachment
 from onadata.apps.logger.models.instance import get_attachment_url
+from onadata.apps.logger.models.instance import Instance
 from onadata.libs.utils.decorators import check_obj
 
 
@@ -37,24 +38,22 @@ def get_path(data, question_name, path_list):
     return None
 
 
-class AttachmentSerializer(serializers.ModelSerializer):
+class AttachmentSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name='attachment-detail',
                                                lookup_field='pk')
-    field_xpath = serializers.SerializerMethodField('get_field_xpath')
-    download_url = serializers.SerializerMethodField('get_download_url')
-    small_download_url = serializers.SerializerMethodField(
-        'get_small_download_url')
-    medium_download_url = serializers.SerializerMethodField(
-        'get_medium_download_url')
-    xform = serializers.Field(source='instance.xform.pk')
-    instance = serializers.Field(source='instance.pk')
-    filename = serializers.Field(source='media_file.name')
+    field_xpath = serializers.SerializerMethodField()
+    download_url = serializers.SerializerMethodField()
+    small_download_url = serializers.SerializerMethodField()
+    medium_download_url = serializers.SerializerMethodField()
+    xform = serializers.ReadOnlyField(source='instance.xform.pk')
+    instance = serializers.PrimaryKeyRelatedField(
+        queryset=Instance.objects.all())
+    filename = serializers.ReadOnlyField(source='media_file.name')
 
     class Meta:
         fields = ('url', 'filename', 'mimetype', 'field_xpath', 'id', 'xform',
                   'instance', 'download_url', 'small_download_url',
                   'medium_download_url')
-        lookup_field = 'pk'
         model = Attachment
 
     @check_obj

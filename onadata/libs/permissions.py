@@ -1,6 +1,5 @@
 from collections import defaultdict
 
-from django.contrib.contenttypes.models import ContentType
 from guardian.shortcuts import (
     assign_perm,
     remove_perm,
@@ -8,7 +7,6 @@ from guardian.shortcuts import (
     get_users_with_perms)
 
 from onadata.apps.api.models import OrganizationProfile
-from onadata.apps.api.models.team import Team
 from onadata.apps.main.models.user_profile import UserProfile
 from onadata.apps.logger.models import Project
 from onadata.apps.logger.models import XForm
@@ -34,6 +32,7 @@ CAN_ADD_XFORM = 'add_xform'
 CAN_DELETE_XFORM = 'delete_xform'
 CAN_VIEW_XFORM = 'view_xform'
 CAN_ADD_SUBMISSIONS = 'report_xform'
+CAN_DELETE_SUBMISSION = 'delete_submission'
 CAN_TRANSFER_OWNERSHIP = 'transfer_xform'
 CAN_MOVE_TO_FOLDER = 'move_xform'
 CAN_EXPORT_XFORM = 'can_export_xform_data'
@@ -60,19 +59,8 @@ class Role(object):
 
     @classmethod
     def _remove_obj_permissions(cls, user, obj):
-        content_type = ContentType.objects.get(
-            model=obj.__class__.__name__.lower(),
-            app_label=obj.__class__._meta.app_label
-        )
-        if isinstance(user, Team):
-            object_permissions = user.groupobjectpermission_set.filter(
-                object_pk=obj.pk, content_type=content_type)
-        else:
-            object_permissions = user.userobjectpermission_set.filter(
-                object_pk=obj.pk, content_type=content_type)
-
-        for perm in object_permissions:
-            remove_perm(perm.permission.codename, user, obj)
+        for perm in get_perms(user, obj):
+            remove_perm(perm, user, obj)
 
     @classmethod
     def add(cls, user, obj):
@@ -142,6 +130,7 @@ class EditorRole(Role):
         (CAN_ADD_SUBMISSIONS, XForm),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_VIEW_XFORM, XForm),
+        (CAN_DELETE_SUBMISSION, XForm),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
         (CAN_CHANGE_PROJECT, Project),
         (CAN_VIEW_PROJECT, Project),
@@ -158,6 +147,7 @@ class ManagerRole(Role):
         (CAN_ADD_XFORM, XForm),
         (CAN_CHANGE_XFORM, XForm),
         (CAN_VIEW_XFORM, XForm),
+        (CAN_DELETE_SUBMISSION, XForm),
         (CAN_DELETE_XFORM, XForm),
         (CAN_ADD_XFORM_TO_PROFILE, OrganizationProfile),
         (CAN_VIEW_ORGANIZATION_PROFILE, OrganizationProfile),
@@ -174,19 +164,18 @@ class ManagerRole(Role):
 
 
 class MemberRole(Role):
-
     """This is a role for a member of an organization.
     """
     name = 'member'
 
 
 class OwnerRole(Role):
-
     """This is a role for an owner of a dataset, organization, or project.
     """
     name = 'owner'
     permissions = (
         (CAN_ADD_SUBMISSIONS, XForm),
+        (CAN_DELETE_SUBMISSION, XForm),
         (CAN_ADD_XFORM, XForm),
         (CAN_VIEW_XFORM, XForm),
         (CAN_ADD_DATADICTIONARY, XForm),
@@ -238,8 +227,11 @@ for role in ROLES.values():
 
 
 def is_organization(obj):
+    """Some OrganizationProfiles have a pointer to the UserProfile, but no
+    UserProfiles do. Check for that first since it avoids a database hit.
+    """
     try:
-        obj.organizationprofile
+        hasattr(obj, 'userprofile_ptr') or obj.organizationprofile
         return True
     except OrganizationProfile.DoesNotExist:
         return False
@@ -260,8 +252,12 @@ def get_role_in_org(user, organization):
         return get_role(perms, organization) or MemberRole.name
 
 
-def get_object_users_with_permissions(obj, exclude=None):
-    """Returns users, roles and permissions for a object.
+def get_object_users_with_permissions(obj, username=False):
+    """
+    Returns users, roles and permissions for an object.
+
+    :param obj: object, the object to check permissions on
+    :param username: bool, when True set username instead of a User object
     """
     result = []
 
@@ -270,13 +266,13 @@ def get_object_users_with_permissions(obj, exclude=None):
             obj, attach_perms=True, with_group_users=False).items()
 
         result = [{
-            'user': user,
+            'user': user.username if username else user,
             'first_name': user.first_name,
             'last_name': user.last_name,
             'role': get_role(permissions, obj),
+            'is_org': is_organization(user.profile),
             'gravatar': user.profile.gravatar,
-            'metadata': user.profile.metadata,
-            'permissions': permissions} for user, permissions in
+            'metadata': user.profile.metadata} for user, permissions in
             users_with_perms]
 
     return result

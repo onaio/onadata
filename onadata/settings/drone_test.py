@@ -1,6 +1,7 @@
+# flake8: noqa
 # this preset is used for automated testing of formhub
 #
-from common import *  # nopep8
+from common import *
 
 DATABASES = {
     'default': {
@@ -8,11 +9,7 @@ DATABASES = {
         'NAME': 'onadata_test',
         'USER': 'postgres',
         'PASSWORD': '',
-        'HOST': '127.0.0.1',
-        'OPTIONS': {
-            # note: this option obsolete starting with django 1.6
-            'autocommit': True,
-        }
+        'HOST': '127.0.0.1'
     }
 }
 
@@ -35,7 +32,6 @@ else:
 if TESTING_MODE:
     MEDIA_ROOT = os.path.join(PROJECT_ROOT, 'test_media/')
     subprocess.call(["rm", "-r", MEDIA_ROOT])
-    MONGO_DATABASE['NAME'] = "formhub_test"
     # need to have CELERY_ALWAYS_EAGER True and BROKER_BACKEND as memory
     # to run tasks immediately while testing
     CELERY_ALWAYS_EAGER = True

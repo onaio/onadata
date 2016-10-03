@@ -199,8 +199,12 @@ def enketo_url(form_url, id_string, instance_xml=None,
         else:
             if 'edit_url' in response:
                 return response['edit_url']
+            if 'offline_url' in response:
+                return response['offline_url']
             if 'url' in response:
                 return response['url']
+            if 'offline_url' in response:
+                return response['offline_url']
     else:
         try:
             response = req.json()
@@ -217,7 +221,7 @@ def generate_enketo_form_defaults(xform, **kwargs):
 
     if kwargs:
         for name, value in kwargs.iteritems():
-            field = xform.data_dictionary().get_survey_element(name)
+            field = xform.get_survey_element(name)
             if field:
                 defaults["defaults[{}]".format(field.get_xpath())] = value
 
@@ -241,7 +245,22 @@ def create_attachments_zipfile(attachments):
     return tmp
 
 
-def _get_form_url(request, username=None, protocol='https'):
+def get_form(kwargs):
+    # adding inline imports here because adding them at the top of the file
+    # triggers the following error:
+    # django.core.exceptions.AppRegistryNotReady: Apps aren't loaded yet.
+    from onadata.apps.logger.models import XForm
+    from django.http import Http404
+
+    queryset = kwargs.pop('queryset',  XForm.objects.filter())
+    xform = queryset.filter(**kwargs).first()
+    if xform:
+        return xform
+
+    raise Http404("XForm does not exist.")
+
+
+def get_form_url(request, username=None, protocol='https'):
     if settings.TESTING_MODE:
         http_host = settings.TEST_HTTP_HOST
         username = settings.TEST_USERNAME
@@ -257,9 +276,9 @@ def _get_form_url(request, username=None, protocol='https'):
 
 
 def get_enketo_edit_url(request, instance, return_url):
-    form_url = _get_form_url(request,
-                             instance.xform.user.username,
-                             settings.ENKETO_PROTOCOL)
+    form_url = get_form_url(request,
+                            instance.xform.user.username,
+                            settings.ENKETO_PROTOCOL)
     url = enketo_url(
         form_url, instance.xform.id_string, instance_xml=instance.xml,
         instance_id=instance.uuid, return_url=return_url)

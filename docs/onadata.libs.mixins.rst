@@ -20,6 +20,30 @@ onadata.libs.mixins.anonymous_user_public_forms_mixin module
     :undoc-members:
     :show-inheritance:
 
+onadata.libs.mixins.authenticate_header_mixin module
+----------------------------------------------------
+
+.. automodule:: onadata.libs.mixins.authenticate_header_mixin
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.mixins.cache_control_mixin module
+----------------------------------------------
+
+.. automodule:: onadata.libs.mixins.cache_control_mixin
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.mixins.etags_mixin module
+--------------------------------------
+
+.. automodule:: onadata.libs.mixins.etags_mixin
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.libs.mixins.labels_mixin module
 ---------------------------------------
 
@@ -60,10 +84,18 @@ onadata.libs.mixins.openrosa_headers_mixin module
     :undoc-members:
     :show-inheritance:
 
-onadata.libs.mixins.view_permission_mixin module
-------------------------------------------------
+onadata.libs.mixins.profiler_mixin module
+-----------------------------------------
 
-.. automodule:: onadata.libs.mixins.view_permission_mixin
+.. automodule:: onadata.libs.mixins.profiler_mixin
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.mixins.total_header_mixin module
+---------------------------------------------
+
+.. automodule:: onadata.libs.mixins.total_header_mixin
     :members:
     :undoc-members:
     :show-inheritance:

@@ -7,6 +7,7 @@ from django.conf import settings
 
 from onadata.libs.permissions import ReadOnlyRole, DataEntryRole,\
     EditorRole, ManagerRole, OwnerRole, ReadOnlyRoleNoDownload
+from onadata.libs.utils.model_tools import queryset_iterator
 
 
 class Command(BaseCommand):
@@ -26,10 +27,11 @@ class Command(BaseCommand):
         model = args[1]
         new_perm = args[2]
 
-        from onadata.libs.utils.model_tools import queryset_iterator
+        users = User.objects.exclude(
+            username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+        )
         # Get all the users
-        for user in queryset_iterator(
-                User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)):
+        for user in queryset_iterator(users):
             self.reassign_perms(user, app, model, new_perm)
 
         self.stdout.write("Re-assigining finished", ending='\n')

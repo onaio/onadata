@@ -1,5 +1,6 @@
 import os
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from onadata.apps.main.tests.test_base import TestBase
@@ -34,6 +35,36 @@ class TestExportList(TestBase):
             value="New Export" type="submit">', response.content)
         self.assertEqual(response.status_code, 200)
 
+    def test_unsupported_type_export(self):
+        kwargs = {'username': self.user.username.upper(),
+                  'id_string': self.xform.id_string.upper(),
+                  'export_type': 'gdoc'}
+        url = reverse(export_list, kwargs=kwargs)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 400)
+
+    def test_export_data_with_unavailable_id_string(self):
+        kwargs = {'username': self.user.username.upper(),
+                  'id_string': 'random_id_string',
+                  'export_type': Export.CSV_EXPORT}
+        url = reverse(export_list, kwargs=kwargs)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+        kwargs = {'username': self.user.username.upper(),
+                  'id_string': 'random_id_string',
+                  'export_type': Export.ZIP_EXPORT}
+        url = reverse(export_list, kwargs=kwargs)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+        kwargs = {'username': self.user.username.upper(),
+                  'id_string': 'random_id_string',
+                  'export_type': Export.KML_EXPORT}
+        url = reverse(export_list, kwargs=kwargs)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
     def test_csv_export_list(self):
         kwargs = {'username': self.user.username.upper(),
                   'id_string': self.xform.id_string.upper(),
@@ -67,14 +98,6 @@ class TestExportList(TestBase):
         url = reverse(export_list, kwargs=kwargs)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-
-    def test_gdoc_export_list(self):
-        kwargs = {'username': self.user.username,
-                  'id_string': self.xform.id_string,
-                  'export_type': Export.GDOC_EXPORT}
-        url = reverse(export_list, kwargs=kwargs)
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
 
     def test_csv_zip_export_list(self):
         kwargs = {'username': self.user.username,
@@ -189,7 +212,9 @@ class TestDataExportURL(TestBase):
         self.assertEqual(ext, '.zip')
 
     def test_sav_zip_export_url(self):
-        self._submit_transport_instance()
+        filename = os.path.join(settings.PROJECT_ROOT, 'apps', 'logger',
+                                'tests', 'fixtures', 'childrens_survey.xls')
+        self._publish_xls_file_and_set_xform(filename)
         url = reverse('sav_zip_export', kwargs={
             'username': self.user.username,
             'id_string': self.xform.id_string,
@@ -201,3 +226,12 @@ class TestDataExportURL(TestBase):
         filename = self._filename_from_disposition(content_disposition)
         basename, ext = os.path.splitext(filename)
         self.assertEqual(ext, '.zip')
+
+    def test_sav_zip_export_long_variable_length(self):
+        self._submit_transport_instance()
+        url = reverse('sav_zip_export', kwargs={
+            'username': self.user.username,
+            'id_string': self.xform.id_string,
+        })
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)

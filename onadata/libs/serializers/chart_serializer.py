@@ -13,7 +13,6 @@ class ChartSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = XForm
         fields = ('id', 'id_string', 'url')
-        lookup_field = 'pk'
 
 
 class FieldsChartSerializer(serializers.ModelSerializer):
@@ -21,21 +20,20 @@ class FieldsChartSerializer(serializers.ModelSerializer):
     class Meta:
         model = XForm
 
-    def to_native(self, obj):
+    def to_representation(self, obj):
         data = {}
         request = self.context.get('request')
 
         if obj is not None:
-            dd = obj.data_dictionary()
-            fields = dd.survey_elements
+            fields = obj.survey_elements
 
             if request:
-                selected_fields = request.QUERY_PARAMS.get('fields')
+                selected_fields = request.query_params.get('fields')
 
                 if isinstance(selected_fields, basestring) \
                         and selected_fields != 'all':
                     fields = selected_fields.split(',')
-                    fields = [e for e in dd.survey_elements
+                    fields = [e for e in obj.survey_elements
                               if e.name in fields]
 
                     if len(fields) == 0:

@@ -3,14 +3,25 @@ from django.http import Http404
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
+from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
+from rest_framework.exceptions import ParseError
 
 from onadata.apps.logger.models import Attachment
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.utils.image_tools import image_url
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
-class MediaViewSet(viewsets.ViewSet):
+class MediaViewSet(AuthenticateHeaderMixin,
+                   CacheControlMixin, ETagsMixin, BaseViewset,
+                   viewsets.ViewSet):
     """A view to redirect to actual attachments url"""
     permission_classes = (AllowAny, )
 
@@ -22,7 +33,7 @@ class MediaViewSet(viewsets.ViewSet):
         query param filename: the filename of the associated attachment is
             required and has to match
         query param suffix: (optional) - specify small | medium | large to
-            retuurn resized images.
+            return resized images.
 
         return HttpResponseRedirect: redirects to final image url
         """
@@ -31,7 +42,7 @@ class MediaViewSet(viewsets.ViewSet):
         except ValueError:
             raise Http404()
         else:
-            filename = request.QUERY_PARAMS.get('filename')
+            filename = request.query_params.get('filename')
             attachments = Attachment.objects.all()
             obj = get_object_or_404(attachments, pk=pk)
 
@@ -41,11 +52,14 @@ class MediaViewSet(viewsets.ViewSet):
             url = None
 
             if obj.mimetype.startswith('image'):
-                suffix = request.QUERY_PARAMS.get('suffix')
+                suffix = request.query_params.get('suffix')
 
                 if suffix:
                     if suffix in settings.THUMB_CONF.keys():
-                        url = image_url(obj, suffix)
+                        try:
+                            url = image_url(obj, suffix)
+                        except Exception, e:
+                            raise ParseError(e.message)
                     else:
                         raise Http404()
 
@@ -55,3 +69,10 @@ class MediaViewSet(viewsets.ViewSet):
             return HttpResponseRedirect(url)
 
         raise Http404()
+
+    def list(self, request, *args, **kwargs):
+        """
+            Action NOT IMPLEMENTED, only needed because of the automatic url
+            routing in /api/v1/
+        """
+        return Response(data=[])

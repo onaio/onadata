@@ -43,9 +43,37 @@ class TestUserProfileViewSet(TestAbstractViewSet):
     def test_profiles_list(self):
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.user_profile_data()])
+
+    def test_user_profile_list(self):
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(_profile_data()),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
+        data = {"users": "bob,deno"}
+        request = self.factory.get('/', data=data, **self.extra)
+        response = self.view(request)
+
+        deno_profile_data = _profile_data()
+        deno_profile_data.pop('password', None)
+        user_deno = User.objects.get(username='deno')
+        deno_profile_data.update({
+            'id': user_deno.pk,
+            'url': 'http://testserver/api/v1/profiles/%s' % user_deno.username,
+            'user': 'http://testserver/api/v1/users/%s' % user_deno.username,
+            'gravatar': user_deno.profile.gravatar,
+            'metadata': {},
+            'joined_on': user_deno.date_joined
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([dict(d) for d in response.data],
+                         [self.user_profile_data(), deno_profile_data])
+        self.assertEqual(len(response.data), 2)
 
     def test_profiles_get(self):
         """Test get user profile"""
@@ -60,13 +88,19 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         # by username
         response = view(request, user='bob')
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, self.user_profile_data())
+
+        # by username mixed case
+        response = view(request, user='BoB')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data, self.user_profile_data())
 
         # by pk
         response = view(request, user=self.user.pk)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.user_profile_data())
 
@@ -113,6 +147,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 201)
+        password = data['password']
         del data['password']
         profile = UserProfile.objects.get(user__username=data['username'])
         data['id'] = profile.user.pk
@@ -126,6 +161,78 @@ class TestUserProfileViewSet(TestAbstractViewSet):
 
         user = User.objects.get(username='deno')
         self.assertTrue(user.is_active)
+        self.assertTrue(user.check_password(password), password)
+
+    def test_profile_create_without_last_name(self):
+        data = {
+            'username': u'deno',
+            'first_name': u'Dennis',
+            'email': u'deno@columbia.edu',
+        }
+
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+
+    def test_profile_create_with_malfunctioned_email(self):
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        data = {
+            'username': u'nguyenquynh',
+            'first_name': u'Nguy\u1ec5n Th\u1ecb',
+            'last_name': u'Di\u1ec5m Qu\u1ef3nh',
+            'email': u'onademo0+nguyenquynh@gmail.com\ufeff',
+            'city': u'Denoville',
+            'country': u'US',
+            'organization': u'Dono Inc.',
+            'website': u'nguyenquynh.com',
+            'twitter': u'nguyenquynh',
+            'require_auth': False,
+            'password': u'onademo',
+            'is_org': False,
+        }
+
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 201)
+        password = data['password']
+        del data['password']
+
+        profile = UserProfile.objects.get(user__username=data['username'])
+        data['id'] = profile.user.pk
+        data['gravatar'] = profile.gravatar
+        data['url'] = 'http://testserver/api/v1/profiles/nguyenquynh'
+        data['user'] = 'http://testserver/api/v1/users/nguyenquynh'
+        data['metadata'] = {}
+        data['joined_on'] = profile.user.date_joined
+        data['name'] = "%s %s" % (
+            u'Nguy\u1ec5n Th\u1ecb', u'Di\u1ec5m Qu\u1ef3nh')
+        self.assertEqual(response.data, data)
+
+        user = User.objects.get(username='nguyenquynh')
+        self.assertTrue(user.is_active)
+        self.assertTrue(user.check_password(password), password)
+
+    def test_profile_create_with_invalid_username(self):
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 200)
+        data = _profile_data()
+        data['username'] = u'de'
+        del data['name']
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data.get('username'),
+            [u'Ensure this field has at least 3 characters.'])
 
     def test_profile_create_anon(self):
         data = _profile_data()
@@ -172,15 +279,49 @@ class TestUserProfileViewSet(TestAbstractViewSet):
     def test_partial_updates(self):
         self.assertEqual(self.user.profile.country, u'US')
         country = u'KE'
+        username = 'george'
         metadata = {u'computer': u'mac'}
         json_metadata = json.dumps(metadata)
-        data = {'country': country, 'metadata': json_metadata}
+        data = {'username': username,
+                'country': country,
+                'metadata': json_metadata}
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, user=self.user.username)
         profile = UserProfile.objects.get(user=self.user)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.country, country)
         self.assertEqual(profile.metadata, metadata)
+        self.assertEqual(profile.user.username, username)
+
+    def test_partial_updates_empty_metadata(self):
+        profile = UserProfile.objects.get(user=self.user)
+        profile.metadata = dict()
+        profile.save()
+        metadata = {u"zebra": {u"key1": "value1", u"key2": "value2"}}
+        json_metadata = json.dumps(metadata)
+        data = {
+            'metadata': json_metadata,
+            'overwrite': 'false'
+        }
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(profile.metadata, metadata)
+
+    def test_partial_updates_too_long(self):
+        # the max field length for username is 30 in django
+        username = 'a' * 31
+        data = {'username': username}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data,
+            {'username':
+             [u'Ensure this field has no more than 30 characters.']})
+        self.assertNotEqual(profile.user.username, username)
 
     def test_partial_update_metadata_field(self):
         metadata = {u"zebra": {u"key1": "value1", u"key2": "value2"}}
@@ -414,8 +555,10 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         response = self.view(request)
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data['twitter'],
-                         [u'Invalid twitter username'])
+        self.assertEqual(
+            response.data['twitter'],
+            [u'Invalid twitter username {}'.format(data['twitter'])]
+        )
 
         user = User.objects.get(username='deno')
         self.assertTrue(user.is_active)
@@ -437,9 +580,7 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
 
         response = self.view(request, user='deno')
-
         self.assertEqual(response.status_code, 200)
-
         self.assertEqual(response.data['first_name'], data['first_name'])
 
         first_name = u'Henry'
@@ -470,23 +611,33 @@ class TestUserProfileViewSet(TestAbstractViewSet):
         user = User.objects.get(username='deno')
         self.assertTrue(user.is_active)
 
-    def test_partial_update_email(self):
-        self.assertEqual(self.user.profile.country, u'US')
-
+    def test_partial_update_without_password_fails(self):
         data = {'email': 'user@example.com'}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            [u'Your password is required when updating your email address.'],
+            response.data)
+
+    def test_partial_update_with_invalid_email_fails(self):
+        data = {'email': 'user@example'}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user=self.user.username)
+        self.assertEqual(response.status_code, 400)
+
+    def test_partial_update_email(self):
+        data = {'email': 'user@example.com',
+                'password': _profile_data().get("password")}
         request = self.factory.patch('/', data=data, **self.extra)
         response = self.view(request, user=self.user.username)
         profile = UserProfile.objects.get(user=self.user)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.user.email, 'user@example.com')
 
-        data = {'email': 'user@example'}
-        request = self.factory.patch('/', data=data, **self.extra)
-        response = self.view(request, user=self.user.username)
-        self.assertEqual(response.status_code, 400)
-
     def test_partial_update_unique_email_api(self):
-        data = {'email': 'example@gmail.com'}
+        data = {'email': 'example@gmail.com',
+                'password': _profile_data().get("password")}
         request = self.factory.patch(
             '/api/v1/profiles', data=json.dumps(data),
             content_type="application/json", **self.extra)
@@ -508,4 +659,25 @@ class TestUserProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
         response = self.view(request, user=user.username)
 
+        self.assertEqual(response.status_code, 400)
+
+    def test_profile_create_fails_with_long_first_and_last_names(self):
+        data = {
+            'username': u'machicimo',
+            'email': u'mike@columbia.edu',
+            'city': u'Denoville',
+            'country': u'US',
+            'last_name':
+                u'undeomnisistenatuserrorsitvoluptatem',
+            'first_name':
+                u'quirationevoluptatemsequinesciunt'
+        }
+        request = self.factory.post(
+            '/api/v1/profiles', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = self.view(request)
+        self.assertEqual(response.data['first_name'][0],
+                         u'Ensure this field has no more than 30 characters.')
+        self.assertEqual(response.data['last_name'][0],
+                         u'Ensure this field has no more than 30 characters.')
         self.assertEqual(response.status_code, 400)

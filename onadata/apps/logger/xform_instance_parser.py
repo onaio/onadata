@@ -47,6 +47,10 @@ class InstanceMultipleNodeError(Exception):
     pass
 
 
+class NonUniqueFormIdError(Exception):
+    pass
+
+
 def get_meta_from_xml(xml_str, meta_name):
     xml = clean_and_parse_xml(xml_str)
     children = xml.childNodes

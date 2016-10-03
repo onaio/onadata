@@ -1,7 +1,6 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.core.validators import ValidationError
 from django.template import loader
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode
@@ -15,7 +14,8 @@ from urlparse import urlparse
 def get_password_reset_email(user, reset_url,
                              subject_template_name='registration/password_reset_subject.txt',  # noqa
                              email_template_name='api_password_reset_email.html',  # noqa
-                             token_generator=default_token_generator):
+                             token_generator=default_token_generator,
+                             email_subject=None):
     """Creates the subject and email body for password reset email."""
     result = urlparse(reset_url)
     site_name = domain = result.hostname
@@ -30,7 +30,9 @@ def get_password_reset_email(user, reset_url,
         'token': token_generator.make_token(user),
         'protocol': result.scheme if result.scheme != '' else 'http',
     }
-    subject = loader.render_to_string(subject_template_name, c)
+    # if subject email provided don't load the subject template
+    subject = email_subject or loader.render_to_string(subject_template_name,
+                                                       c)
     # Email subject *must not* contain newlines
     subject = ''.join(subject.splitlines())
     email = loader.render_to_string(email_template_name, c)
@@ -40,12 +42,12 @@ def get_password_reset_email(user, reset_url,
 
 def get_user_from_uid(uid):
     if uid is None:
-        raise ValidationError(_("uid is required!"))
+        raise serializers.ValidationError(_("uid is required!"))
     try:
         uid = urlsafe_base64_decode(uid)
         user = User.objects.get(pk=uid)
     except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-        raise ValidationError(_(u"Invalid uid %s") % uid)
+        raise serializers.ValidationError(_(u"Invalid uid %s") % uid)
 
     return user
 
@@ -64,9 +66,10 @@ class PasswordResetChange(object):
 
 
 class PasswordReset(object):
-    def __init__(self, email, reset_url):
+    def __init__(self, email, reset_url, email_subject=None):
         self.email = email
         self.reset_url = reset_url
+        self.email_subject = email_subject
 
     def save(self,
              subject_template_name='registration/password_reset_subject.txt',
@@ -87,26 +90,40 @@ class PasswordReset(object):
             if not user.has_usable_password():
                 continue
             subject, email = get_password_reset_email(
-                user, reset_url, subject_template_name, email_template_name)
+                user, reset_url, subject_template_name, email_template_name,
+                email_subject=self.email_subject)
+
             send_mail(subject, email, from_email, [user.email])
 
 
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField(label=_("Email"), max_length=254)
     reset_url = serializers.URLField(label=_("Reset URL"), max_length=254)
+    email_subject = serializers.CharField(label=_("Email Subject"),
+                                          required=False, max_length=78,
+                                          allow_blank=True)
 
-    def validate_email(self, attrs, source):
-        value = attrs[source]
+    def validate_email(self, value):
         users = User.objects.filter(email__iexact=value)
 
         if users.count() == 0:
-            raise ValidationError(_(u"User '%(value)s' does not exist.")
-                                  % {"value": value})
+            raise serializers.ValidationError(_(
+                u"User '%(value)s' does not exist." % {"value": value}
+            ))
 
-        return attrs
+        return value
 
-    def restore_object(self, attrs, instance=None):
-        return PasswordReset(**attrs)
+    def validate_email_subject(self, value):
+        if len(value) == 0:
+            return None
+
+        return value
+
+    def create(self, validated_data):
+        instance = PasswordReset(**validated_data)
+        instance.save()
+
+        return instance
 
 
 class PasswordResetChangeSerializer(serializers.Serializer):
@@ -114,19 +131,22 @@ class PasswordResetChangeSerializer(serializers.Serializer):
     new_password = serializers.CharField(min_length=4, max_length=128)
     token = serializers.CharField(max_length=128)
 
-    def validate_uid(self, attrs, source):
-        get_user_from_uid(attrs['uid'])
+    def validate_uid(self, value):
+        get_user_from_uid(value)
 
-        return attrs
+        return value
 
-    def validate_token(self, attrs, source, *args, **kwargs):
+    def validate(self, attrs):
         user = get_user_from_uid(attrs.get('uid'))
-        value = attrs[source]
+        token = attrs.get('token')
 
-        if not default_token_generator.check_token(user, value):
-            raise ValidationError(_("Invalid token: %s") % value)
+        if not default_token_generator.check_token(user, token):
+            raise serializers.ValidationError(_("Invalid token: %s") % token)
 
         return attrs
 
-    def restore_object(self, attrs, instance=None):
-        return PasswordResetChange(**attrs)
+    def create(self, validated_data, instance=None):
+        instance = PasswordResetChange(**validated_data)
+        instance.save()
+
+        return instance

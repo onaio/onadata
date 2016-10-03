@@ -7,7 +7,9 @@ Subpackages
 .. toctree::
 
     onadata.apps.logger.management
+    onadata.apps.logger.migrations
     onadata.apps.logger.models
+    onadata.apps.logger.tests
 
 Submodules
 ----------
@@ -32,6 +34,14 @@ onadata.apps.logger.import_tools module
 ---------------------------------------
 
 .. automodule:: onadata.apps.logger.import_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.apps.logger.tasks module
+--------------------------------
+
+.. automodule:: onadata.apps.logger.tasks
     :members:
     :undoc-members:
     :show-inheritance:

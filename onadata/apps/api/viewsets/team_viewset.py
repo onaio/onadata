@@ -3,21 +3,30 @@ from django.utils.translation import ugettext as _
 
 from rest_framework import filters
 from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import DjangoObjectPermissions
 
 from onadata.libs.filters import TeamOrgFilter
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.team_serializer import TeamSerializer
 from onadata.libs.serializers.share_team_project_serializer import (
     ShareTeamProjectSerializer, RemoveTeamFromProjectSerializer)
 from onadata.apps.api.models import Team
 from onadata.apps.api.tools import add_user_to_team, remove_user_from_team
+from onadata.apps.api.tools import get_baseviewset_class
+
+BaseViewset = get_baseviewset_class()
 
 
-class TeamViewSet(LastModifiedMixin, ModelViewSet):
+class TeamViewSet(AuthenticateHeaderMixin,
+                  CacheControlMixin, ETagsMixin,
+                  BaseViewset,
+                  ModelViewSet):
     """
     This endpoint allows you to create, update and view team information.
     """
@@ -29,15 +38,15 @@ class TeamViewSet(LastModifiedMixin, ModelViewSet):
     filter_backends = (filters.DjangoObjectPermissionsFilter,
                        TeamOrgFilter)
 
-    @action(methods=['DELETE', 'GET', 'POST'])
+    @detail_route(methods=['DELETE', 'GET', 'POST'])
     def members(self, request, *args, **kwargs):
         team = self.get_object()
         data = {}
         status_code = status.HTTP_200_OK
 
         if request.method in ['DELETE', 'POST']:
-            username = request.DATA.get('username') or\
-                request.QUERY_PARAMS.get('username')
+            username = request.data.get('username') or\
+                request.query_params.get('username')
 
             if username:
                 try:
@@ -62,10 +71,10 @@ class TeamViewSet(LastModifiedMixin, ModelViewSet):
 
         return Response(data, status=status_code)
 
-    @action(methods=['POST'])
+    @detail_route(methods=['POST'])
     def share(self, request, *args, **kwargs):
         self.object = self.get_object()
-        data = dict(request.DATA.items() + [('team', self.object.pk)])
+        data = dict(request.data.items() + [('team', self.object.pk)])
 
         if data.get("remove"):
             serializer = RemoveTeamFromProjectSerializer(data=data)

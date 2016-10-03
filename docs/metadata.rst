@@ -21,7 +21,7 @@ Returns a list of metadata across all forms requesting user has access to.
 
 .. raw:: html
 
-	<pre class="prettyprint">GET /api/v1/metadata</pre>
+    <pre class="prettyprint">GET /api/v1/metadata</pre>
 
 ::
 
@@ -34,7 +34,7 @@ Returns a list of metadata across all forms requesting user has access to.
             "data_type": "public_link",
             "data_value": "http://mylink",
             "id": 406,
-            "url": "https://ona.io/api/v1/metadata/406",
+            "url": "https://api.ona.io/api/v1/metadata/406",
             "xform": 328
         },
         {
@@ -43,7 +43,7 @@ Returns a list of metadata across all forms requesting user has access to.
             "data_type": "media",
             "data_value": "a.png",
             "id": 7100,
-            "url": "https://ona.io/api/v1/metadata/7100",
+            "url": "https://api.ona.io/api/v1/metadata/7100",
             "xform": 320
         },
         ....
@@ -58,8 +58,8 @@ parameter ``xform`` with the `formid` as the value.
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	GET /api/v1/metdata?<code>xform=formid</code></pre>
+    <pre class="prettyprint">
+    GET /api/v1/metadata?<code>xform=formid</code></pre>
 
 ::
 
@@ -72,7 +72,7 @@ parameter ``xform`` with the `formid` as the value.
             "data_type": "media",
             "data_value": "a.png",
             "id": 7100,
-            "url": "https://ona.io/api/v1/metadata/7100",
+            "url": "https://api.ona.io/api/v1/metadata/7100",
             "xform": 320
         },
         ....
@@ -82,12 +82,12 @@ Get a specific metadata
 ------------------------
 .. raw:: html
 
-	<pre class="prettyprint">
-	GET /api/v1/metadata/<code>{pk}</code></pre>
+    <pre class="prettyprint">
+    GET /api/v1/metadata/<code>{pk}</code></pre>
 
 ::
 
-    curl -X GET https://ona.io/api/v1/metadata/7100
+    curl -X GET https://api.ona.io/api/v1/metadata/7100
 
 ::
 
@@ -99,7 +99,7 @@ Get a specific metadata
         "data_type": "media",
         "data_value": "a.png",
         "id": 7100,
-        "url": "https://ona.io/api/v1/metadata/7100",
+        "url": "https://api.ona.io/api/v1/metadata/7100",
         "xform": 320
     }
 
@@ -109,35 +109,35 @@ return the file itself e.g:
 
 .. raw:: html
 
-	<pre class="prettyprint">
-	GET /api/v1/metadata/<code>{pk}.{format}</code></pre>
+    <pre class="prettyprint">
+    GET /api/v1/metadata/<code>{pk}.{format}</code></pre>
 
 ::
 
-    curl -X GET https://ona.io/api/v1/metadata/7100.png -o a.png
+    curl -X GET https://api.ona.io/api/v1/metadata/7100.png -o a.png
 
 Alternatively, if the request is made with an ``Accept`` header of the
 content type of the file the file would be returned e.g
 
 .. raw:: html
 
-	<pre class="prettyprint">GET /api/v1/metadata/<code>{pk}</code> Accept: image/png </pre>
+    <pre class="prettyprint">GET /api/v1/metadata/<code>{pk}</code> Accept: image/png </pre>
 
 ::
 
-     curl -X GET https://ona.io/api/v1/metadata/7100 -H "Accept: image/png" -o a.png
+     curl -X GET https://api.ona.io/api/v1/metadata/7100 -H "Accept: image/png" -o a.png
 
 Add metadata or media file to a form
 -------------------------------------
 .. raw:: html
 
-	<pre class="prettyprint">POST /api/v1/metadata</pre>
+    <pre class="prettyprint">POST /api/v1/metadata</pre>
 
 *Payload*
 ::
 
-	       {"xform": <formid>, "data_type": "<data_type>", \
-	"data_value": "<data_value>"}
+           {"xform": <formid>, "data_type": "<data_type>", \
+    "data_value": "<data_value>"}
 
 Where:
 
@@ -150,7 +150,7 @@ Example:
 ^^^^^^^^
 ::
 
-        curl -X POST -d "{"data_type": "mapbox_layer", "data_value":"example||https://api.tiles.mapbox.com/v3/examples.map-0l53fhk2.json||example attribution", "xform": 320}" https://ona.io/api/v1/metadata -H "Content-Type: appliction/json"
+        curl -X POST -d "{"data_type": "mapbox_layer", "data_value":"example||https://api.tiles.mapbox.com/v3/examples.map-0l53fhk2.json||example attribution", "xform": 320}" https://api.ona.io/api/v1/metadata -H "Content-Type: appliction/json"
 
 ::
 
@@ -163,7 +163,7 @@ Example:
         "data_type": "mapbox_layer",
         "data_file": null,
         "data_file_type": null,
-        "url": "https://ona.io/api/v1/metadata/7119.json"
+        "url": "https://api.ona.io/api/v1/metadata/7119.json"
         }
 
 Media upload example:
@@ -171,8 +171,8 @@ Media upload example:
 ::
 
 
-	        curl -X POST -F 'data_type=media' -F 'data_value=demo.jpg' \
-	-F 'xform=320' -F "data_file=@folder.jpg" https://ona.io/api/v1/metadata.json
+            curl -X POST -F 'data_type=media' -F 'data_value=demo.jpg' \
+    -F 'xform=320' -F "data_file=@folder.jpg" https://api.ona.io/api/v1/metadata.json
 
 ::
 
@@ -185,7 +185,43 @@ Media upload example:
         "data_type": "media",
         "data_file": "ukanga/formid-media/folder.jpg",
         "data_file_type": "image/jpeg",
-        "url": "https://ona.io/api/v1/metadata/7121.json"
+        "url": "https://api.ona.io/api/v1/metadata/7121.json"
+        }
+
+
+Link XForm or Dataview as a media to a form
+-------------------------------------------
+
+It is possible to link another form or a dataview as a csv media resource to a form,
+the linked form will be downloadable by ODK Collect and Enketo as media. The ``data_type`` parameter
+will be 'media'm the ``xform`` parameter will be the form id you are adding the
+media to and the ``data_value`` param is a string of the form
+`"xform [form id] [filename]"` or `"dataview [dataview id] [filename]"`.
+
+Where:
+
+- ``[form id]`` - is the numeric id of the form
+- ``[dataview id]`` - is the numeric id of the dataview
+- ``[filename]`` - name of file for the linked resource, e.g `fruits` -> `fruits.csv`
+
+
+Link XForm or Dataview as a media example:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+::
+
+
+        curl -X POST -F 'data_type=media' -F 'xform=320' -F 'data_value="xform 328 places"' https://api.ona.io/api/v1/metadata.json
+
+::
+
+        HTTP 201 CREATED
+
+        {
+        "id": 7121,
+        "xform": 320,
+        "data_value": "xform 328 places",
+        "data_type": "media",
+        "url": "https://api.ona.io/api/v1/metadata/7121.json"
         }
 
 
@@ -193,5 +229,5 @@ Delete Metadata
 ^^^^^^^^^^^^^^^^
 .. raw:: html
 
-	<pre class="prettyprint">DELETE /api/v1/metadata/<code>{pk}</code></pre>
+    <pre class="prettyprint">DELETE /api/v1/metadata/<code>{pk}</code></pre>
 

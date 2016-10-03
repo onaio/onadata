@@ -10,7 +10,6 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
 from django.contrib import messages
-from django.core.exceptions import MultipleObjectsReturned
 from django.core.files.storage import get_storage_class
 from django.core.files import File
 from django.core.urlresolvers import reverse
@@ -47,8 +46,7 @@ from onadata.libs.utils.logger_tools import response_with_mimetype_and_name
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.user_auth import helper_auth_helper, has_permission,\
     has_edit_permission, HttpResponseNotAuthorized, add_cors_headers
-
-from onadata.libs.utils.viewer_tools import _get_form_url
+from onadata.libs.utils.viewer_tools import get_form_url, get_form
 
 
 IO_ERROR_STRINGS = [
@@ -95,10 +93,9 @@ def _submission_response(request, instance):
     data['submissionDate'] = instance.date_created.isoformat()
     data['markedAsCompleteDate'] = instance.date_modified.isoformat()
 
-    context = RequestContext(request, data)
     t = loader.get_template('submission.xml')
 
-    return BaseOpenRosaResponse(t.render(context))
+    return BaseOpenRosaResponse(t.render(data))
 
 
 @require_POST
@@ -217,8 +214,12 @@ def formList(request, username):
 
 @require_GET
 def xformsManifest(request, username, id_string):
-    xform = get_object_or_404(
-        XForm, id_string__iexact=id_string, user__username__iexact=username)
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     formlist_user = xform.user
     profile, created = \
         UserProfile.objects.get_or_create(user=formlist_user)
@@ -327,8 +328,7 @@ def submission(request, username=None):
 
 def download_xform(request, username, id_string):
     user = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm,
-                              user=user, id_string__iexact=id_string)
+    xform = get_form({'user': user, 'id_string__iexact': id_string})
     profile, created =\
         UserProfile.objects.get_or_create(user=user)
 
@@ -352,10 +352,12 @@ def download_xform(request, username, id_string):
 
 
 def download_xlsform(request, username, id_string):
-    xform = get_object_or_404(XForm,
-                              user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
     owner = User.objects.get(username__iexact=username)
+
     helper_auth_helper(request)
 
     if not has_permission(xform, owner, request, xform.shared):
@@ -397,8 +399,11 @@ def download_xlsform(request, username, id_string):
 
 def download_jsonform(request, username, id_string):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
+
     if request.method == "OPTIONS":
         response = HttpResponse()
         add_cors_headers(response)
@@ -422,11 +427,10 @@ def download_jsonform(request, username, id_string):
 @is_owner
 @require_POST
 def delete_xform(request, username, id_string):
-    try:
-        xform = get_object_or_404(XForm, user__username__iexact=username,
-                                  id_string__iexact=id_string)
-    except MultipleObjectsReturned:
-        return HttpResponse("Your account has multiple forms with same formid")
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
 
     # delete xform and submissions
     remove_xform(xform)
@@ -461,18 +465,21 @@ def toggle_downloadable(request, username, id_string):
 
 def enter_data(request, username, id_string):
     owner = get_object_or_404(User, username__iexact=username)
-    xform = get_object_or_404(XForm, user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
+
     if not has_edit_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
 
-    form_url = _get_form_url(request, username, settings.ENKETO_PROTOCOL)
+    form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL)
 
     try:
         url = enketo_url(form_url, xform.id_string)
         if not url:
             return HttpResponseRedirect(reverse(
-                'onadata.apps.main.views.show',
+                'form-show',
                 kwargs={'username': username, 'id_string': id_string}))
         return HttpResponseRedirect(url)
     except Exception as e:
@@ -491,7 +498,7 @@ def enter_data(request, username, id_string):
             _("Enketo error: enketo replied %s") % e, fail_silently=True)
         return render(request, "profile.html", data)
 
-    return HttpResponseRedirect(reverse('onadata.apps.main.views.show',
+    return HttpResponseRedirect(reverse('form-show',
                                         kwargs={'username': username,
                                                 'id_string': id_string}))
 
@@ -499,15 +506,19 @@ def enter_data(request, username, id_string):
 def edit_data(request, username, id_string, data_id):
     context = RequestContext(request)
     owner = User.objects.get(username__iexact=username)
-    xform = get_object_or_404(
-        XForm, user__username__iexact=username, id_string__iexact=id_string)
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     instance = get_object_or_404(
         Instance, pk=data_id, xform=xform)
     if not has_edit_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
     if not hasattr(settings, 'ENKETO_URL'):
         return HttpResponseRedirect(reverse(
-            'onadata.apps.main.views.show',
+            'form-show',
             kwargs={'username': username, 'id_string': id_string}))
 
     url = '%sdata/edit_url' % settings.ENKETO_URL
@@ -515,12 +526,12 @@ def edit_data(request, username, id_string, data_id):
     injected_xml = inject_instanceid(instance.xml, instance.uuid)
     return_url = request.build_absolute_uri(
         reverse(
-            'onadata.apps.viewer.views.instance',
+            'submission-instance',
             kwargs={
                 'username': username,
                 'id_string': id_string}
         ) + "#/" + str(instance.id))
-    form_url = _get_form_url(request, username, settings.ENKETO_PROTOCOL)
+    form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL)
 
     try:
         url = enketo_url(
@@ -539,7 +550,7 @@ def edit_data(request, username, id_string, data_id):
             context.enketo = url
             return HttpResponseRedirect(url)
     return HttpResponseRedirect(
-        reverse('onadata.apps.main.views.show',
+        reverse('form-show',
                 kwargs={'username': username,
                         'id_string': id_string}))
 
@@ -552,8 +563,12 @@ def view_submission_list(request, username):
     if not authenticator.authenticate(request):
         return authenticator.build_challenge_response()
     id_string = request.GET.get('formId', None)
-    xform = get_object_or_404(
-        XForm, id_string__iexact=id_string, user__username__iexact=username)
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     if not has_permission(xform, form_user, request, xform.shared_data):
         return HttpResponseForbidden('Not shared.')
     num_entries = request.GET.get('numEntries', None)

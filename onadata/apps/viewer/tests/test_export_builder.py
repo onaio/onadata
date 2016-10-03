@@ -3,20 +3,25 @@ import datetime
 import os
 import shutil
 import tempfile
+import xlrd
 import zipfile
 
+from collections import OrderedDict
 from django.conf import settings
 from django.core.files.temp import NamedTemporaryFile
 from openpyxl import load_workbook
 from pyxform.builder import create_survey_from_xls
 from savReaderWriter import SavReader
+from savReaderWriter import SavHeaderReader
 
 from onadata.apps.main.tests.test_base import TestBase
+from onadata.apps.viewer.models.data_dictionary import DataDictionary
 from onadata.apps.viewer.models.parsed_instance import _encode_for_mongo
 from onadata.apps.viewer.tests.export_helpers import viewer_fixture_path
-from onadata.libs.utils.export_tools import (
-    dict_to_joined_export,
-    ExportBuilder)
+from onadata.libs.utils.export_builder import dict_to_joined_export
+from onadata.libs.utils.export_tools import ExportBuilder, get_columns_with_hxl
+from onadata.libs.utils.csv_builder import CSVDataFrameBuilder
+from onadata.libs.utils.csv_builder import get_labels_from_columns
 
 
 def _logger_fixture_path(*args):
@@ -192,9 +197,14 @@ class TestExportBuilder(TestBase):
         }
     ]
 
-    def _create_childrens_survey(self):
-        return create_survey_from_xls(_logger_fixture_path(
-            'childrens_survey.xls'))
+    def _create_childrens_survey(self, filename="childrens_survey.xls"):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            filename
+        ))
+        self.dd = DataDictionary()
+        self.dd._survey = survey
+
+        return survey
 
     def test_build_sections_from_survey(self):
         survey = self._create_childrens_survey()
@@ -266,7 +276,8 @@ class TestExportBuilder(TestBase):
         outputs = []
         for d in self.data:
             outputs.append(
-                dict_to_joined_export(d, index, indices, survey_name))
+                dict_to_joined_export(
+                    d, index, indices, survey_name, survey, d))
             index += 1
 
         # check that each file exists
@@ -416,6 +427,38 @@ class TestExportBuilder(TestBase):
         self.assertFalse(data[u'children.info/fav_colors/pink\u2019s'])
         temp_xls_file.close()
 
+    def test_xls_export_with_hxl_adds_extra_row(self):
+        # hxl_example.xlsx contains `instance::hxl` column whose value is #age
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
+            "hxl_test", "hxl_example.xlsx")
+        survey = create_survey_from_xls(xlsform_path)
+        export_builder = ExportBuilder()
+        export_builder.INCLUDE_HXL = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+
+        survey_elements = [
+            survey_item[1]
+            for survey_item in survey.items()
+            if survey_item[0] == u'children'
+        ][0]
+
+        columns_with_hxl = export_builder.INCLUDE_HXL and get_columns_with_hxl(
+            survey_elements
+        )
+
+        export_builder.to_xls_export(
+            temp_xls_file.name, self.data_utf8,
+            columns_with_hxl=columns_with_hxl)
+        temp_xls_file.seek(0)
+        wb = load_workbook(temp_xls_file.name)
+        children_sheet = wb.get_sheet_by_name("hxl_example")
+        self.assertTrue(children_sheet)
+        # we pick the second row because the first row has xform fieldnames
+        hxl_row = [a.value for a in children_sheet.rows[1]]
+        self.assertIn(u'#age', hxl_row)
+
     def test_generation_of_multi_selects_works(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
@@ -490,6 +533,25 @@ class TestExportBuilder(TestBase):
                 'children/fav_colors/blue': None,
                 'children/fav_colors/pink': None
             }
+        self.assertEqual(new_row, expected_row)
+
+    def test_split_select_mutliples_works_with_int_value_in_row(self):
+        select_multiples = {
+            'children/fav_number': ['children/fav_number/1',
+                                    'children/fav_number/2',
+                                    'children/fav_number/3']
+        }
+        row = {'children/fav_number': 1}
+
+        expected_row = {
+            'children/fav_number/1': True,
+            'children/fav_number': 1,
+            'children/fav_number/3': False,
+            'children/fav_number/2': False
+        }
+
+        new_row = ExportBuilder.split_select_multiples(row, select_multiples)
+        self.assertTrue(new_row)
         self.assertEqual(new_row, expected_row)
 
     def test_split_select_multiples_works_when_data_is_blank(self):
@@ -631,8 +693,10 @@ class TestExportBuilder(TestBase):
         self.assertEqual(new_row, expected_row)
 
     def test_generate_field_title(self):
-        field_name = ExportBuilder.format_field_title("child/age", ".")
-        expected_field_name = "child.age"
+        self._create_childrens_survey()
+        field_name = ExportBuilder.format_field_title("children/age", ".",
+                                                      data_dictionary=self.dd)
+        expected_field_name = "children.age"
         self.assertEqual(field_name, expected_field_name)
 
     def test_delimiter_replacement_works_existing_fields(self):
@@ -708,16 +772,16 @@ class TestExportBuilder(TestBase):
         filename = xls_file.name
         export_builder.to_xls_export(filename, self.data)
         xls_file.seek(0)
-        wb = load_workbook(filename)
+        wb = xlrd.open_workbook(filename)
         # check that we have childrens_survey, children, children_cartoons
         # and children_cartoons_characters sheets
         expected_sheet_names = ['childrens_survey', 'children',
                                 'children_cartoons',
                                 'children_cartoons_characters']
-        self.assertEqual(wb.get_sheet_names(), expected_sheet_names)
+        self.assertEqual(wb.sheet_names(), expected_sheet_names)
 
         # check header columns
-        main_sheet = wb.get_sheet_by_name('childrens_survey')
+        main_sheet = wb.sheet_by_name('childrens_survey')
         expected_column_headers = [
             u'name', u'age', u'geo/geolocation', u'geo/_geolocation_latitude',
             u'geo/_geolocation_longitude', u'geo/_geolocation_altitude',
@@ -726,11 +790,11 @@ class TestExportBuilder(TestBase):
             u'_submission_time', u'_index', u'_parent_index',
             u'_parent_table_name', u'_tags', '_notes', '_version',
             '_duration', '_submitted_by']
-        column_headers = [c[0].value for c in main_sheet.columns]
+        column_headers = main_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
 
-        childrens_sheet = wb.get_sheet_by_name('children')
+        childrens_sheet = wb.sheet_by_name('children')
         expected_column_headers = [
             u'children/name', u'children/age', u'children/fav_colors',
             u'children/fav_colors/red', u'children/fav_colors/blue',
@@ -740,28 +804,28 @@ class TestExportBuilder(TestBase):
             u'_submission_time', u'_index', u'_parent_index',
             u'_parent_table_name', u'_tags', '_notes', '_version',
             '_duration', '_submitted_by']
-        column_headers = [c[0].value for c in childrens_sheet.columns]
+        column_headers = childrens_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
 
-        cartoons_sheet = wb.get_sheet_by_name('children_cartoons')
+        cartoons_sheet = wb.sheet_by_name('children_cartoons')
         expected_column_headers = [
             u'children/cartoons/name', u'children/cartoons/why', u'_id',
             u'_uuid', u'_submission_time', u'_index', u'_parent_index',
             u'_parent_table_name', u'_tags', '_notes', '_version',
             '_duration', '_submitted_by']
-        column_headers = [c[0].value for c in cartoons_sheet.columns]
+        column_headers = cartoons_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
 
-        characters_sheet = wb.get_sheet_by_name('children_cartoons_characters')
+        characters_sheet = wb.sheet_by_name('children_cartoons_characters')
         expected_column_headers = [
             u'children/cartoons/characters/name',
             u'children/cartoons/characters/good_or_evil', u'_id', u'_uuid',
             u'_submission_time', u'_index', u'_parent_index',
             u'_parent_table_name', u'_tags', '_notes', '_version',
             '_duration', '_submitted_by']
-        column_headers = [c[0].value for c in characters_sheet.columns]
+        column_headers = characters_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
 
@@ -776,10 +840,10 @@ class TestExportBuilder(TestBase):
         filename = xls_file.name
         export_builder.to_xls_export(filename, self.data)
         xls_file.seek(0)
-        wb = load_workbook(filename)
+        wb = xlrd.open_workbook(filename)
 
         # check header columns
-        main_sheet = wb.get_sheet_by_name('childrens_survey')
+        main_sheet = wb.sheet_by_name('childrens_survey')
         expected_column_headers = [
             u'name', u'age', u'geo.geolocation', u'geo._geolocation_latitude',
             u'geo._geolocation_longitude', u'geo._geolocation_altitude',
@@ -788,7 +852,7 @@ class TestExportBuilder(TestBase):
             u'_submission_time', u'_index', u'_parent_index',
             u'_parent_table_name', u'_tags', '_notes', '_version',
             '_duration', '_submitted_by']
-        column_headers = [c[0].value for c in main_sheet.columns]
+        column_headers = main_sheet.row_values(0)
         self.assertEqual(sorted(column_headers),
                          sorted(expected_column_headers))
         xls_file.close()
@@ -825,14 +889,14 @@ class TestExportBuilder(TestBase):
         filename = xls_file.name
         export_builder.to_xls_export(filename, self.data)
         xls_file.seek(0)
-        wb = load_workbook(filename)
+        wb = xlrd.open_workbook(filename)
         # check that we have childrens_survey, children, children_cartoons
         # and children_cartoons_characters sheets
         expected_sheet_names = ['childrens_survey_with_a_very_lo',
                                 'childrens_survey_with_a_very_l1',
                                 'childrens_survey_with_a_very_l2',
                                 'childrens_survey_with_a_very_l3']
-        self.assertEqual(wb.get_sheet_names(), expected_sheet_names)
+        self.assertEqual(wb.sheet_names(), expected_sheet_names)
         xls_file.close()
 
     def test_child_record_parent_table_is_updated_when_sheet_is_renamed(self):
@@ -905,7 +969,8 @@ class TestExportBuilder(TestBase):
         # format submission 1 for export
         survey_name = survey.name
         indices = {survey_name: 0}
-        data = dict_to_joined_export(submission_1, 1, indices, survey_name)
+        data = dict_to_joined_export(submission_1, 1, indices, survey_name,
+                                     survey, submission_1)
         new_row = export_builder.pre_process_row(data[survey_name],
                                                  export_builder.sections[0])
         self.assertIsInstance(new_row['age'], int)
@@ -914,7 +979,8 @@ class TestExportBuilder(TestBase):
 
         # check missing values dont break and empty values return blank strings
         indices = {survey_name: 0}
-        data = dict_to_joined_export(submission_2, 1, indices, survey_name)
+        data = dict_to_joined_export(submission_2, 1, indices, survey_name,
+                                     survey, submission_2)
         new_row = export_builder.pre_process_row(data[survey_name],
                                                  export_builder.sections[0])
         self.assertIsInstance(new_row['amount'], basestring)
@@ -959,6 +1025,7 @@ class TestExportBuilder(TestBase):
     def test_to_sav_export(self):
         survey = self._create_childrens_survey()
         export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
         export_builder.set_survey(survey)
         temp_zip_file = NamedTemporaryFile(suffix='.zip')
         filename = temp_zip_file.name
@@ -977,7 +1044,8 @@ class TestExportBuilder(TestBase):
         outputs = []
         for d in self.data:
             outputs.append(
-                dict_to_joined_export(d, index, indices, survey_name))
+                dict_to_joined_export(
+                    d, index, indices, survey_name, survey, d))
             index += 1
 
         # check that each file exists
@@ -1002,12 +1070,580 @@ class TestExportBuilder(TestBase):
                     expected_rows = [r for r in fixture_reader]
                     self.assertEqual(rows, expected_rows)
 
+                if section == 'children_cartoons_charactors':
+                    self.assertEqual(reader.valueLabels, {
+                        'good_or_evil': {'good': 'Good'}
+                    })
+
+        for section in export_builder.sections:
+            section_name = section['name'].replace('/', '_')
+            _test_sav_file(section_name)
+
+    def test_to_sav_export_language(self):
+        survey = self._create_childrens_survey('childrens_survey_sw.xls')
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        filename = temp_zip_file.name
+        export_builder.to_zipped_sav(filename, self.data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+
+        # generate data to compare with
+        index = 1
+        indices = {}
+        survey_name = survey.name
+        outputs = []
+        for d in self.data:
+            outputs.append(
+                dict_to_joined_export(
+                    d, index, indices, survey_name, survey, d))
+            index += 1
+
+        # check that each file exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "{0}.sav".format(survey.name))))
+
+        def _test_sav_file(section):
+            with SavReader(
+                    os.path.join(
+                        temp_dir, "{0}.sav".format(section)),
+                    returnHeader=True) as reader:
+                header = next(reader)
+                rows = [r for r in reader]
+                if section != 'childrens_survey_sw':
+                    section += '_sw'
+
+                # open comparison file
+                with SavReader(_logger_fixture_path(
+                        'spss', "{0}.sav".format(section)),
+                        returnHeader=True) as fixture_reader:
+                    fixture_header = next(fixture_reader)
+                    self.assertEqual(header, fixture_header)
+                    expected_rows = [r for r in fixture_reader]
+                    self.assertEqual(rows, expected_rows)
+
+                if section == 'children_cartoons_charactors':
+                    self.assertEqual(reader.valueLabels, {
+                        'good_or_evil': {'good': 'Good'}
+                    })
+
         for section in export_builder.sections:
             section_name = section['name'].replace('/', '_')
             _test_sav_file(section_name)
 
     def test_generate_field_title_truncated_titles(self):
-        field_name = ExportBuilder.format_field_title("child/age", "/",
+        self._create_childrens_survey()
+        field_name = ExportBuilder.format_field_title("children/age", "/",
+                                                      data_dictionary=self.dd,
                                                       remove_group_name=True)
         expected_field_name = "age"
         self.assertEqual(field_name, expected_field_name)
+
+    def test_generate_field_title_truncated_titles_select_multiple(self):
+        self._create_childrens_survey()
+        field_name = ExportBuilder.format_field_title(
+            "children/fav_colors/red", "/",
+            data_dictionary=self.dd,
+            remove_group_name=True
+        )
+        expected_field_name = "fav_colors/red"
+        self.assertEqual(field_name, expected_field_name)
+
+    def test_xls_export_remove_group_name(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_unicode.xls'))
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
+        temp_xls_file.seek(0)
+        # check that values for red\u2019s and blue\u2019s are set to true
+        wb = load_workbook(temp_xls_file.name)
+        children_sheet = wb.get_sheet_by_name("children.info")
+        data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
+        self.assertTrue(data[u'fav_colors/red\u2019s'])
+        self.assertTrue(data[u'fav_colors/blue\u2019s'])
+        self.assertFalse(data[u'fav_colors/pink\u2019s'])
+        temp_xls_file.close()
+
+    def test_zipped_csv_export_remove_group_name(self):
+        """
+        cvs writer doesnt handle unicode we we have to encode to ascii
+        """
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_unicode.xls'))
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_csv(temp_zip_file.name, self.data_utf8)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "children.info.csv")))
+        # check file's contents
+        with open(os.path.join(temp_dir, "children.info.csv")) as csv_file:
+            reader = csv.reader(csv_file)
+            expected_headers = ['name.first',
+                                'age',
+                                'fav_colors',
+                                u'fav_colors/red\u2019s',
+                                u'fav_colors/blue\u2019s',
+                                u'fav_colors/pink\u2019s',
+                                'ice_creams',
+                                'ice_creams/vanilla',
+                                'ice_creams/strawberry',
+                                'ice_creams/chocolate', '_id',
+                                '_uuid', '_submission_time', '_index',
+                                '_parent_table_name', '_parent_index',
+                                u'_tags', '_notes', '_version',
+                                '_duration', '_submitted_by']
+            rows = [row for row in reader]
+            actual_headers = [h.decode('utf-8') for h in rows[0]]
+            self.assertEqual(sorted(actual_headers), sorted(expected_headers))
+            data = dict(zip(rows[0], rows[1]))
+            self.assertEqual(
+                data[u'fav_colors/red\u2019s'.encode('utf-8')],
+                'True')
+            self.assertEqual(
+                data[u'fav_colors/blue\u2019s'.encode('utf-8')],
+                'True')
+            self.assertEqual(
+                data[u'fav_colors/pink\u2019s'.encode('utf-8')],
+                'False')
+            # check that red and blue are set to true
+        shutil.rmtree(temp_dir)
+
+    def test_xls_export_with_labels(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_unicode.xls'))
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
+        temp_xls_file.seek(0)
+        # check that values for red\u2019s and blue\u2019s are set to true
+        wb = load_workbook(temp_xls_file.name)
+        children_sheet = wb.get_sheet_by_name("children.info")
+        labels = dict([(r[0].value, r[1].value)
+                       for r in children_sheet.columns])
+        self.assertEqual(labels[u'name.first'], '3.1 Childs name')
+        self.assertEqual(labels[u'age'], '3.2 Child age')
+        self.assertEqual(labels[u'fav_colors/red\u2019s'], 'fav_colors/Red')
+        self.assertEqual(labels[u'fav_colors/blue\u2019s'], 'fav_colors/Blue')
+        self.assertEqual(labels[u'fav_colors/pink\u2019s'], 'fav_colors/Pink')
+
+        data = dict([(r[0].value, r[2].value) for r in children_sheet.columns])
+        self.assertEqual(data[u'name.first'], 'Mike')
+        self.assertEqual(data[u'age'], 5)
+        self.assertTrue(data[u'fav_colors/red\u2019s'])
+        self.assertTrue(data[u'fav_colors/blue\u2019s'])
+        self.assertFalse(data[u'fav_colors/pink\u2019s'])
+        temp_xls_file.close()
+
+    def test_xls_export_with_labels_only(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_unicode.xls'))
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS_ONLY = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file.name, self.data_utf8)
+        temp_xls_file.seek(0)
+        # check that values for red\u2019s and blue\u2019s are set to true
+        wb = load_workbook(temp_xls_file.name)
+        children_sheet = wb.get_sheet_by_name("children.info")
+        data = dict([(r[0].value, r[1].value) for r in children_sheet.columns])
+        self.assertEqual(data['3.1 Childs name'], 'Mike')
+        self.assertEqual(data['3.2 Child age'], 5)
+        self.assertTrue(data[u'fav_colors/Red'])
+        self.assertTrue(data[u'fav_colors/Blue'])
+        self.assertFalse(data[u'fav_colors/Pink'])
+        temp_xls_file.close()
+
+    def test_zipped_csv_export_with_labels(self):
+        """
+        cvs writer doesnt handle unicode we we have to encode to ascii
+        """
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_unicode.xls'))
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_csv(temp_zip_file.name, self.data_utf8)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "children.info.csv")))
+        # check file's contents
+        with open(os.path.join(temp_dir, "children.info.csv")) as csv_file:
+            reader = csv.reader(csv_file)
+            expected_headers = ['name.first',
+                                'age',
+                                'fav_colors',
+                                u'fav_colors/red\u2019s',
+                                u'fav_colors/blue\u2019s',
+                                u'fav_colors/pink\u2019s',
+                                'ice_creams',
+                                'ice_creams/vanilla',
+                                'ice_creams/strawberry',
+                                'ice_creams/chocolate', '_id',
+                                '_uuid', '_submission_time', '_index',
+                                '_parent_table_name', '_parent_index',
+                                u'_tags', '_notes', '_version',
+                                '_duration', '_submitted_by']
+            expected_labels = ['3.1 Childs name',
+                               '3.2 Child age',
+                               '3.3 Favorite Colors',
+                               'fav_colors/Red',
+                               'fav_colors/Blue',
+                               'fav_colors/Pink',
+                               '3.3 Ice Creams',
+                               'ice_creams/Vanilla',
+                               'ice_creams/Strawberry',
+                               'ice_creams/Chocolate', '_id',
+                               '_uuid', '_submission_time', '_index',
+                               '_parent_table_name', '_parent_index',
+                               u'_tags', '_notes', '_version',
+                               '_duration', '_submitted_by']
+            rows = [row for row in reader]
+            actual_headers = [h.decode('utf-8') for h in rows[0]]
+            self.assertEqual(sorted(actual_headers), sorted(expected_headers))
+            actual_labels = [h.decode('utf-8') for h in rows[1]]
+            self.assertEqual(sorted(actual_labels), sorted(expected_labels))
+            data = dict(zip(rows[0], rows[2]))
+            self.assertEqual(
+                data[u'fav_colors/red\u2019s'.encode('utf-8')],
+                'True')
+            self.assertEqual(
+                data[u'fav_colors/blue\u2019s'.encode('utf-8')],
+                'True')
+            self.assertEqual(
+                data[u'fav_colors/pink\u2019s'.encode('utf-8')],
+                'False')
+            # check that red and blue are set to true
+        shutil.rmtree(temp_dir)
+
+    def test_zipped_csv_export_with_labels_only(self):
+        """
+        cvs writer doesnt handle unicode we we have to encode to ascii
+        """
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_unicode.xls'))
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS_ONLY = True
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        export_builder.to_zipped_csv(temp_zip_file.name, self.data_utf8)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+        # check that the children's file (which has the unicode header) exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "children.info.csv")))
+        # check file's contents
+        with open(os.path.join(temp_dir, "children.info.csv")) as csv_file:
+            reader = csv.reader(csv_file)
+            expected_headers = [
+                '3.1 Childs name',
+                '3.2 Child age',
+                '3.3 Favorite Colors',
+                'fav_colors/Red',
+                'fav_colors/Blue',
+                'fav_colors/Pink',
+                '3.3 Ice Creams',
+                'ice_creams/Vanilla',
+                'ice_creams/Strawberry',
+                'ice_creams/Chocolate', '_id',
+                '_uuid', '_submission_time', '_index',
+                '_parent_table_name', '_parent_index',
+                u'_tags', '_notes', '_version',
+                '_duration', '_submitted_by'
+            ]
+            rows = [row for row in reader]
+            actual_headers = [h.decode('utf-8') for h in rows[0]]
+            self.assertEqual(sorted(actual_headers), sorted(expected_headers))
+            data = dict(zip(rows[0], rows[1]))
+            self.assertEqual(
+                data[u'fav_colors/Red'.encode('utf-8')],
+                'True')
+            self.assertEqual(
+                data[u'fav_colors/Blue'.encode('utf-8')],
+                'True')
+            self.assertEqual(
+                data[u'fav_colors/Pink'.encode('utf-8')],
+                'False')
+            # check that red and blue are set to true
+        shutil.rmtree(temp_dir)
+
+    def test_to_sav_export_with_labels(self):
+        survey = self._create_childrens_survey()
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.set_survey(survey)
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        temp_zip_file = NamedTemporaryFile(suffix='.zip')
+        filename = temp_zip_file.name
+        export_builder.to_zipped_sav(filename, self.data)
+        temp_zip_file.seek(0)
+        temp_dir = tempfile.mkdtemp()
+        zip_file = zipfile.ZipFile(temp_zip_file.name, "r")
+        zip_file.extractall(temp_dir)
+        zip_file.close()
+        temp_zip_file.close()
+
+        # generate data to compare with
+        index = 1
+        indices = {}
+        survey_name = survey.name
+        outputs = []
+        for d in self.data:
+            outputs.append(
+                dict_to_joined_export(
+                    d, index, indices, survey_name, survey, d))
+            index += 1
+
+        # check that each file exists
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(temp_dir, "{0}.sav".format(survey.name))))
+
+        def _test_sav_file(section):
+            sav_path = os.path.join(temp_dir, "{0}.sav".format(section))
+            if section == 'children_survey':
+                with SavHeaderReader(sav_path) as header:
+                    expected_labels = [
+                        '1. What is your name?', '2. How old are you?',
+                        '4. Geo-location', '5.1 Office telephone',
+                        '5.2 Mobile telephone', '_duration', '_id',
+                        '_index', '_notes', '_parent_index',
+                        '_parent_table_name', '_submission_time',
+                        '_submitted_by',
+                        '_tags', '_uuid', '_version',
+                        'geo/_geolocation_altitude',
+                        'geo/_geolocation_latitude',
+                        'geo/_geolocation_longitude',
+                        'geo/_geolocation_precision',
+                        'meta/instanceID'
+                    ]
+                    labels = header.varLabels.values()
+                    self.assertEqual(sorted(expected_labels), sorted(labels))
+
+            with SavReader(sav_path, returnHeader=True) as reader:
+                header = next(reader)
+                rows = [r for r in reader]
+
+                # open comparison file
+                with SavReader(_logger_fixture_path(
+                        'spss', "{0}.sav".format(section)),
+                        returnHeader=True) as fixture_reader:
+                    fixture_header = next(fixture_reader)
+                    self.assertEqual(header, fixture_header)
+                    expected_rows = [r for r in fixture_reader]
+                    self.assertEqual(rows, expected_rows)
+
+        for section in export_builder.sections:
+            section_name = section['name'].replace('/', '_')
+            _test_sav_file(section_name)
+
+    def test_xls_export_with_english_labels(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_en.xls'))
+        # no default_language is not set
+        self.assertEqual(
+            survey.to_json_dict().get('default_language'), 'default'
+        )
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file.name, self.data)
+        temp_xls_file.seek(0)
+        wb = load_workbook(temp_xls_file.name)
+        childrens_survey_sheet = wb.get_sheet_by_name("childrens_survey_en")
+        labels = dict([(r[0].value, r[1].value)
+                       for r in childrens_survey_sheet.columns])
+        self.assertEqual(labels[u'name'], '1. What is your name?')
+        self.assertEqual(labels[u'age'], '2. How old are you?')
+
+        children_sheet = wb.get_sheet_by_name("children")
+        labels = dict([(r[0].value, r[1].value)
+                       for r in children_sheet.columns])
+        self.assertEqual(labels['fav_colors/red'], 'fav_colors/Red')
+        self.assertEqual(labels['fav_colors/blue'], 'fav_colors/Blue')
+        temp_xls_file.close()
+
+    def test_xls_export_with_swahili_labels(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_sw.xls'))
+        # default_language is set to swahili
+        self.assertEqual(
+            survey.to_json_dict().get('default_language'), 'swahili'
+        )
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        temp_xls_file = NamedTemporaryFile(suffix='.xlsx')
+        export_builder.to_xls_export(temp_xls_file.name, self.data)
+        temp_xls_file.seek(0)
+        wb = load_workbook(temp_xls_file.name)
+        childrens_survey_sheet = wb.get_sheet_by_name("childrens_survey_sw")
+        labels = dict([(r[0].value, r[1].value)
+                       for r in childrens_survey_sheet.columns])
+        self.assertEqual(labels[u'name'], '1. Jina lako ni?')
+        self.assertEqual(labels[u'age'], '2. Umri wako ni?')
+
+        children_sheet = wb.get_sheet_by_name("children")
+        labels = dict([(r[0].value, r[1].value)
+                       for r in children_sheet.columns])
+        self.assertEqual(labels['fav_colors/red'], 'fav_colors/Nyekundu')
+        self.assertEqual(labels['fav_colors/blue'], 'fav_colors/Bluu')
+        temp_xls_file.close()
+
+    def test_csv_export_with_swahili_labels(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_sw.xls'))
+        # default_language is set to swahili
+        self.assertEqual(
+            survey.to_json_dict().get('default_language'), 'swahili'
+        )
+        dd = DataDictionary()
+        dd._survey = survey
+        ordered_columns = OrderedDict()
+        CSVDataFrameBuilder._build_ordered_columns(survey, ordered_columns)
+        ordered_columns['children/fav_colors/red'] = None
+        labels = get_labels_from_columns(ordered_columns, dd, '/')
+        self.assertIn('1. Jina lako ni?', labels)
+        self.assertIn('2. Umri wako ni?', labels)
+        self.assertIn('fav_colors/Nyekundu', labels)
+
+    def test_select_multiples_choices(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'childrens_survey_sw.xls'))
+        dd = DataDictionary()
+        dd._survey = survey
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        child = [e for e in dd.get_survey_elements_with_choices()
+                 if e.bind.get('type') == 'select'][0]
+        self.assertNotEqual(child.children, [])
+        choices = export_builder._get_select_mulitples_choices(
+            child, dd, ExportBuilder.GROUP_DELIMITER,
+            ExportBuilder.TRUNCATE_GROUP_TITLE
+        )
+        expected_choices = [
+            {
+                'xpath': u'children/fav_colors/red',
+                'title': u'children/fav_colors/red',
+                'type': 'string',
+                'label': u'fav_colors/Nyekundu'
+            }, {
+                'xpath': u'children/fav_colors/blue',
+                'title': u'children/fav_colors/blue',
+                'type': 'string', 'label': u'fav_colors/Bluu'
+            }, {
+                'xpath': u'children/fav_colors/pink',
+                'title': u'children/fav_colors/pink',
+                'type': 'string', 'label': u'fav_colors/Pink'
+            }
+        ]
+        self.assertEqual(choices, expected_choices)
+        select_multiples = {
+            u'children/fav_colors': [
+                u'children/fav_colors/red', u'children/fav_colors/blue',
+                u'children/fav_colors/pink'
+            ], u'children/ice.creams': [
+                u'children/ice.creams/vanilla',
+                u'children/ice.creams/strawberry',
+                u'children/ice.creams/chocolate'
+            ]
+        }
+        self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
+                         select_multiples)
+
+    def test_select_multiples_choices_with_choice_filter(self):
+        survey = create_survey_from_xls(_logger_fixture_path(
+            'choice_filter.xls'
+        ))
+        dd = DataDictionary()
+        dd._survey = survey
+        export_builder = ExportBuilder()
+        export_builder.TRUNCATE_GROUP_TITLE = True
+        export_builder.INCLUDE_LABELS = True
+        export_builder.set_survey(survey)
+        child = [e for e in dd.get_survey_elements_with_choices()
+                 if e.bind.get('type') == 'select'][0]
+        choices = export_builder._get_select_mulitples_choices(
+            child, dd, ExportBuilder.GROUP_DELIMITER,
+            ExportBuilder.TRUNCATE_GROUP_TITLE
+        )
+        self.assertEqual(child.children, [])
+        expected_choices = [
+            {
+                'label': u'county/King',
+                'title': u'county/king',
+                'type': 'string',
+                'xpath': u'county/king'
+            },  {
+                'label': u'county/Pierce',
+                'title': u'county/pierce',
+                'type': 'string',
+                'xpath': u'county/pierce'
+            },  {
+                'label': u'county/King',
+                'title': u'county/king',
+                'type': 'string',
+                'xpath': u'county/king'
+            },  {
+                'label': u'county/Cameron',
+                'title': u'county/cameron',
+                'type': 'string',
+                'xpath': u'county/cameron'
+            }
+        ]
+        self.assertEqual(choices, expected_choices)
+        select_multiples = {
+            u'county': [
+                u'county/king',
+                u'county/pierce',
+                u'county/king',
+                u'county/cameron'
+            ]
+        }
+        self.assertEqual(CSVDataFrameBuilder._collect_select_multiples(dd),
+                         select_multiples)

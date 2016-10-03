@@ -20,6 +20,14 @@ onadata.libs.models.clone_xform module
     :undoc-members:
     :show-inheritance:
 
+onadata.libs.models.google_sheet_service module
+-----------------------------------------------
+
+.. automodule:: onadata.libs.models.google_sheet_service
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 onadata.libs.models.share_project module
 ----------------------------------------
 
@@ -48,6 +56,22 @@ onadata.libs.models.signals module
 ----------------------------------
 
 .. automodule:: onadata.libs.models.signals
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.models.sorting module
+----------------------------------
+
+.. automodule:: onadata.libs.models.sorting
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+onadata.libs.models.textit_service module
+-----------------------------------------
+
+.. automodule:: onadata.libs.models.textit_service
     :members:
     :undoc-members:
     :show-inheritance:

@@ -2,6 +2,7 @@ import json
 import os
 import re
 import requests
+import StringIO
 
 from django.conf import settings
 from django.contrib.auth.models import Permission
@@ -20,22 +21,59 @@ from onadata.apps.api.viewsets.metadata_viewset import MetaDataViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
+from onadata.apps.api.viewsets.dataview_viewset import DataViewViewSet
+from onadata.apps.api.viewsets.widget_viewset import WidgetViewSet
 from onadata.apps.main.models import UserProfile, MetaData
 from onadata.apps.main import tests as main_tests
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
 from onadata.apps.logger.models import XForm
 from onadata.apps.logger.models import Project
+from onadata.apps.logger.models.widget import Widget
+from onadata.apps.logger.models.data_view import DataView
 from onadata.libs.serializers.project_serializer import ProjectSerializer
 from onadata.apps.logger.views import submission
+from onadata.apps.api.models import Team
+from onadata.apps.api.viewsets.team_viewset import TeamViewSet
 
 
-@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$')
-def enketo_mock(url, request):
+def filename_from_disposition(content_disposition):
+    filename_pos = content_disposition.index('filename=')
+    assert filename_pos != -1
+
+    return content_disposition[filename_pos + len('filename='):]
+
+
+def get_response_content(response):
+    contents = u''
+    if response.streaming:
+        actual_content = StringIO.StringIO()
+        for content in response.streaming_content:
+            actual_content.write(content)
+        contents = actual_content.getvalue()
+        actual_content.close()
+    else:
+        contents = response.content
+
+    return contents
+
+
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey/preview$')
+def enketo_preview_url_mock(url, request):
     response = requests.Response()
     response.status_code = 201
     response._content = \
-        '{\n  "url": "https:\\/\\/dmfrm.enketo.org\\/webform",\n'\
+        '{\n  "preview_url": "https:\\/\\/enketo.ona.io\\/preview/::YY8M",\n'\
+        '  "code": "201"\n}'
+    return response
+
+
+@urlmatch(netloc=r'(.*\.)?enketo\.ona\.io$', path=r'^/api_v1/survey$')
+def enketo_url_mock(url, request):
+    response = requests.Response()
+    response.status_code = 201
+    response._content = \
+        '{\n  "url": "https:\\/\\/enketo.ona.io\\/::YY8M",\n'\
         '  "code": "200"\n}'
     return response
 
@@ -160,6 +198,18 @@ class TestAbstractViewSet(TestCase):
         self.organization = OrganizationProfile.objects.get(
             user__username=data['org'])
 
+    def _publish_form_with_hxl_support(self):
+        xlsform_path = os.path.join(
+            settings.PROJECT_ROOT, 'libs', 'tests', "utils", "fixtures",
+            "hxl_example", "hxl_example.xlsx")
+
+        self._publish_xls_form_to_project(xlsform_path=xlsform_path)
+        for x in range(1, 3):
+            path = os.path.join(
+                settings.PROJECT_ROOT, 'libs', 'tests', "utils", 'fixtures',
+                'hxl_example', 'instances', 'instance_%s.xml' % x)
+            self._make_submission(path)
+
     def _project_create(self, project_data={}, merge=True):
         view = ProjectViewSet.as_view({
             'post': 'create'
@@ -184,7 +234,7 @@ class TestAbstractViewSet(TestCase):
             content_type="application/json", **self.extra)
         response = view(request, owner=self.user.username)
         self.assertEqual(response.status_code, 201)
-        self.project = Project.objects.filter(
+        self.project = Project.prefetched.filter(
             name=data['name'], created_by=self.user)[0]
         data['url'] = 'http://testserver/api/v1/projects/%s'\
             % self.project.pk
@@ -228,10 +278,12 @@ class TestAbstractViewSet(TestCase):
         path = xlsform_path or os.path.join(
             settings.PROJECT_ROOT, "apps", "main", "tests", "fixtures",
             "transportation", "transportation.xls")
-        with HTTMock(enketo_mock):
+
+        with HTTMock(enketo_preview_url_mock, enketo_url_mock):
             with open(path) as xls_file:
                 post_data = {'xls_file': xls_file}
-                request = self.factory.post('/', data=post_data, **self.extra)
+                request = self.factory.post(
+                    '/', data=post_data, **self.extra)
                 response = view(request, pk=project_id)
                 self.assertEqual(response.status_code, 201)
                 self.xform = XForm.objects.all().order_by('pk').reverse()[0]
@@ -322,6 +374,7 @@ class TestAbstractViewSet(TestCase):
             self.main_directory, 'fixtures', 'transportation',
             'instances', s, s + '.xml') for s in self.surveys]
         pre_count = Instance.objects.count()
+        xform_pre_count = self.xform.instances.count()
 
         auth = DigestAuth(self.profile_data['username'],
                           self.profile_data['password1'])
@@ -329,15 +382,19 @@ class TestAbstractViewSet(TestCase):
             self._make_submission(path, username, add_uuid, auth=auth)
         post_count = pre_count + len(self.surveys) if should_store\
             else pre_count
+        xform_post_count = xform_pre_count + len(self.surveys) \
+            if should_store else xform_pre_count
         self.assertEqual(Instance.objects.count(), post_count)
-        self.assertEqual(self.xform.instances.count(), post_count)
+        self.assertEqual(self.xform.instances.count(), xform_post_count)
         xform = XForm.objects.get(pk=self.xform.pk)
-        self.assertEqual(xform.num_of_submissions, post_count)
-        self.assertEqual(xform.user.profile.num_of_submissions, post_count)
+        self.assertEqual(xform.num_of_submissions, xform_post_count)
+        self.assertEqual(xform.user.profile.num_of_submissions,
+                         xform_post_count)
 
     def _submit_transport_instance_w_attachment(self,
                                                 survey_at=0,
-                                                media_file=None):
+                                                media_file=None,
+                                                forced_submission_time=None):
         s = self.surveys[survey_at]
         if not media_file:
             media_file = "1335783522563.jpg"
@@ -346,19 +403,21 @@ class TestAbstractViewSet(TestCase):
         with open(path) as f:
             self._make_submission(os.path.join(
                 self.main_directory, 'fixtures',
-                'transportation', 'instances', s, s + '.xml'), media_file=f)
+                'transportation', 'instances', s, s + '.xml'), media_file=f,
+                forced_submission_time=forced_submission_time)
 
         attachment = Attachment.objects.all().reverse()[0]
         self.attachment = attachment
 
-    def _post_form_metadata(self, data, test=True):
+    def _post_metadata(self, data, test=True):
         count = MetaData.objects.count()
         view = MetaDataViewSet.as_view({'post': 'create'})
         request = self.factory.post('/', data, **self.extra)
+
         response = view(request)
 
         if test:
-            self.assertEqual(response.status_code, 201)
+            self.assertEqual(response.status_code, 201, response.data)
             another_count = MetaData.objects.count()
             self.assertEqual(another_count, count + 1)
             self.metadata = MetaData.objects.get(pk=response.data['id'])
@@ -366,11 +425,12 @@ class TestAbstractViewSet(TestCase):
 
         return response
 
-    def _add_form_metadata(self, xform, data_type, data_value, path=None):
+    def _add_form_metadata(self, xform, data_type, data_value,
+                           path=None, test=True):
         data = {
             'data_type': data_type,
             'data_value': data_value,
-            'xform': xform.pk
+            'xform': xform.id
         }
 
         if path and data_value:
@@ -378,9 +438,9 @@ class TestAbstractViewSet(TestCase):
                 data.update({
                     'data_file': media_file,
                 })
-                self._post_form_metadata(data)
+                return self._post_metadata(data, test)
         else:
-            self._post_form_metadata(data)
+            return self._post_metadata(data, test)
 
     def _get_digest_client(self):
         self.user.profile.require_auth = True
@@ -390,3 +450,146 @@ class TestAbstractViewSet(TestCase):
                                  self.profile_data['password1'],
                                  'Digest')
         return client
+
+    def _create_dataview(self, data=None):
+        view = DataViewViewSet.as_view({
+            'post': 'create'
+        })
+
+        if not data:
+            data = {
+                'name': "My DataView",
+                'xform': 'http://testserver/api/v1/forms/%s' % self.xform.pk,
+                'project': 'http://testserver/api/v1/projects/%s'
+                           % self.project.pk,
+                'columns': '["name", "age", "gender"]',
+                'query': '[{"column":"age","filter":">","value":"20"},'
+                         '{"column":"age","filter":"<","value":"50"}]'
+            }
+
+        request = self.factory.post('/', data=data, **self.extra)
+
+        response = view(request)
+
+        self.assertEquals(response.status_code, 201)
+
+        # load the created dataview
+        self.data_view = DataView.objects.filter(xform=self.xform,
+                                                 project=self.project).last()
+
+        self.assertEquals(response.data['name'], data['name'])
+        self.assertEquals(response.data['xform'], data['xform'])
+        self.assertEquals(response.data['project'], data['project'])
+        self.assertEquals(response.data['columns'],
+                          json.loads(data['columns']))
+        self.assertEquals(response.data['query'],
+                          json.loads(data['query']) if 'query' in data else {})
+        self.assertEquals(response.data['url'],
+                          'http://testserver/api/v1/dataviews/%s'
+                          % self.data_view.pk)
+
+    def _create_widget(self, data=None, group_by=''):
+        view = WidgetViewSet.as_view({
+            'post': 'create'
+        })
+
+        if not data:
+            data = {
+                'title': "Widget that",
+                'content_object': 'http://testserver/api/v1/forms/%s' %
+                                  self.xform.pk,
+                'description': "Test widget",
+                'aggregation': "Sum",
+                'widget_type': "charts",
+                'view_type': "horizontal-bar",
+                'column': "age",
+                'group_by': group_by
+            }
+
+        count = Widget.objects.all().count()
+
+        request = self.factory.post('/', data=json.dumps(data),
+                                    content_type="application/json",
+                                    **self.extra)
+        response = view(request)
+
+        self.assertEquals(response.status_code, 201)
+        self.assertEquals(count + 1, Widget.objects.all().count())
+
+        self.widget = Widget.objects.all().order_by('pk').reverse()[0]
+
+        self.assertEquals(response.data['id'], self.widget.id)
+        self.assertEquals(response.data['title'], data.get('title'))
+        self.assertEquals(response.data['content_object'],
+                          data['content_object'])
+        self.assertEquals(response.data['widget_type'], data['widget_type'])
+        self.assertEquals(response.data['view_type'], data['view_type'])
+        self.assertEquals(response.data['column'], data['column'])
+        self.assertEquals(response.data['description'],
+                          data.get('description'))
+        self.assertEquals(response.data['group_by'], data.get('group_by'))
+        self.assertEquals(response.data['aggregation'],
+                          data.get('aggregation'))
+        self.assertEquals(response.data['order'], self.widget.order)
+        self.assertEquals(response.data['data'], [])
+        self.assertEquals(response.data['metadata'], data.get('metadata', {}))
+
+    def filename_from_disposition(self, content_disposition):
+        filename_pos = content_disposition.index('filename=')
+        assert filename_pos != -1
+        return content_disposition[filename_pos + len('filename='):]
+
+    def get_response_content(self, response):
+        contents = u''
+        if response.streaming:
+            actual_content = StringIO.StringIO()
+            for content in response.streaming_content:
+                actual_content.write(content)
+            contents = actual_content.getvalue()
+            actual_content.close()
+        else:
+            contents = response.content
+        return contents
+
+    def _team_create(self):
+        self._org_create()
+
+        view = TeamViewSet.as_view({
+            'get': 'list',
+            'post': 'create'
+        })
+
+        data = {
+            'name': u'dreamteam',
+            'organization': self.company_data['org']
+        }
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request)
+        self.assertEqual(response.status_code, 201)
+        self.owner_team = Team.objects.get(
+            organization=self.organization.user,
+            name='%s#Owners' % (self.organization.user.username))
+        team = Team.objects.get(
+            organization=self.organization.user,
+            name='%s#%s' % (self.organization.user.username, data['name']))
+        data['url'] = 'http://testserver/api/v1/teams/%s' % team.pk
+        data['teamid'] = team.id
+        self.assertDictContainsSubset(data, response.data)
+        self.team_data = response.data
+        self.team = team
+
+    def is_sorted_desc(self, s):
+        if len(s) in [0, 1]:
+            return True
+        if s[0] >= s[1]:
+            return self.is_sorted_desc(s[1:])
+        return False
+
+    def is_sorted_asc(self, s):
+        if len(s) in [0, 1]:
+            return True
+        if s[0] <= s[1]:
+            return self.is_sorted_asc(s[1:])
+        return False

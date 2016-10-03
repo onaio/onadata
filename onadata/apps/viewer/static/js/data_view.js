@@ -4,34 +4,40 @@
     // on the server).
     var root = this;
 
-    // Check if the `FH` namespace already exists and create it otherwise. We'll
+    // Check if the `FH` namespace already exists and create it otherwise. We"ll
     // attach all our exposed objects to it.
     var FH = root.FH = root.FH || {};
 
     // Map of FH types to Backgrid cell types
     var FHToBackgridTypes = {
-        'integer': 'integer',
-        'decimal': 'number',
-        /*'select': '',
-         'select all that apply': '',
-         'select one': '',*/
-        'photo': '',
-        'image': '',
-        'date': 'date',
-        'datetime': 'datetime'
+        "integer": "integer",
+        "decimal": "number",
+        /*"select": "",
+         "select all that apply": "",
+         "select one": "",*/
+        "photo": "",
+        "image": "",
+        "date": "date",
+        "datetime": "datetime"
     };
 
     var PageableDataset = FH.PageableDataset = Backbone.PageableCollection.extend({
         state: {
             pageSize: 50
         },
-        mode: "client", // page entirely on the client side,
+        mode: "server", // page entirely on the server side,
         model: FH.Data,
+        queryParams: {
+            pageSize: "limit"
+        },
+        parseState: function (resp, queryParams, state, options) {
+            return {totalRecords: parseInt(options.xhr.getResponseHeader("X-total"))};
+        },
         initialize: function (models, options) {
             // set the url
             /*if(! options.url) {
              throw new Error(
-             "You must specify the dataset's url within the options");
+             "You must specify the dataset"s url within the options");
              }*/
             this.url = options && options.url;
 
@@ -41,18 +47,18 @@
     });
 
     var NameLabelToggle = Backbone.View.extend({
-        className: 'table-control-container label-toggle-container',
+        className: "table-control-container label-toggle-container",
 
-        template: _.template('' +
-            '<span>' +
-            '<label class="checkbox">' +
-            '<input class="name-label-toggle" type="checkbox" name="toggle_labels" aria-controls="data-table" <% if (isChecked) { %>checked="checked" <% } %> />' +
-            ' Toggle between choice names and choice labels' +
-            '</label>' +
-            '</span>'),
+        template: _.template("" +
+            "<span>" +
+            "<label class=\"checkbox\">" +
+            "<input class=\"name-label-toggle\" type=\"checkbox\" name=\"toggle_labels\" aria-controls=\"data-table\" <% if (isChecked) { %>checked=\"checked\" <% } %> />" +
+            " Toggle between choice names and choice labels" +
+            "</label>" +
+            "</span>"),
 
         events: {
-            'click .name-label-toggle': "toggleLabels"
+            "click .name-label-toggle": "toggleLabels"
         },
 
         render: function () {
@@ -64,15 +70,15 @@
         },
 
         toggleLabels: function (e) {
-            var enabled = !!$(e.currentTarget).attr('checked');
-            this.trigger('toggled', enabled);
+            var enabled = !!$(e.currentTarget).attr("checked");
+            this.trigger("toggled", enabled);
         }
     });
 
     var ClickableRow = Backgrid.Row.extend({
-        highlightColor: 'lightYellow',
+        highlightColor: "lightYellow",
         events: {
-            'dblclick': 'rowDoubleClicked'
+            "dblclick": "rowDoubleClicked"
         },
         initialize: function (options) {
             return Backgrid.Row.prototype.initialize.apply(this, arguments);
@@ -127,27 +133,27 @@
                 model: this.form
             });
 
-            this.form.on('load', function () {
+            this.form.on("load", function () {
                 var dataTableView = this;
 
                 // Initialize the data
-                this.data.on('load', function () {
+                this.data.on("load", function () {
 
                     // Disable this callback - infinite loop
-                    this.data.off('load');
+                    this.data.off("load");
 
                     // Append the toggle labels checkbox
-                    $(this.labelToggleTemplate({isChecked: this.showLabels})).insertAfter(this.$('.dynatable-per-page'));
+                    $(this.labelToggleTemplate({isChecked: this.showLabels})).insertAfter(this.$(".dynatable-per-page"));
 
                     this.delegateEvents({
-                        'click input.toggle-labels': 'onToggleLabels'
+                        "click input.toggle-labels": "onToggleLabels"
                     });
                 }, this);
 
                 // Initialize the grid
                 this.dataGrid = new Backgrid.Grid({
                     row: ClickableRow,
-                    className: 'backgrid table table-striped table-hover',
+                    className: "backgrid table table-striped table-hover",
                     columns: this.form.fields.map(function (f) {
                         var column = {
                             name: f.get(FH.constants.XPATH),
@@ -158,7 +164,7 @@
                         if (f.isA(FH.types.SELECT_ONE) || f.isA(FH.types.SELECT_MULTIPLE)) {
                             column.formatter = {
                                 fromRaw: function (rawData) {
-                                    return DataTableView.NameOrLabel(f, rawData, dataTableView.showLabels, dataTableView.form.get('language'));
+                                    return DataTableView.NameOrLabel(f, rawData, dataTableView.showLabels, dataTableView.form.get("language"));
                                 }
                             };
                         }
@@ -184,9 +190,11 @@
                 this.$el.append(paginator.render().$el);
 
                 // Initialize a client-side filter to filter on the client
-                // mode pageable collection's cache.
-                var filter = new Backgrid.Extension.ClientSideFilter({
-                    collection: this.data.fullCollection
+                // mode pageable collection"s cache.
+
+                var filter = new Backgrid.Extension.ServerSideFilter({
+                    collection: this.data,
+                    name: "query"
                 });
 
                 // Render the filter
@@ -196,10 +204,10 @@
                 filter.$el.css({float: "right", margin: "20px"});
 
                 // catch the `switched` event
-                dataLangSwitcher.on('switch', function (language) {
+                dataLangSwitcher.on("switch", function (language) {
                     // if the new language is `0`, we want to show xml values, otherwise, we want labels in whatever language is specified
-                    this.showLabels = language !== '-1';
-                    // set the language if we're showing labels
+                    this.showLabels = language !== "-1";
+                    // set the language if we"re showing labels
                     if (this.showLabels) {
                         this.form.set({language: language}, {silent: true});
                     }
@@ -209,24 +217,24 @@
                 this.$el.prepend(dataLangSwitcher.render().$el);
 
                 // catch the `switched` event
-                headerLangSwitcher.on('switch', function (language) {
+                headerLangSwitcher.on("switch", function (language) {
                     // if the new language is `0`, we want to show xml values, otherwise, we want labels in whatever language is specified
-                    this.showHeaderLabels = language !== '-1';
-                    // set the language if we're showing labels
+                    this.showHeaderLabels = language !== "-1";
+                    // set the language if we"re showing labels
                     this.form.set({header_language: language});
                 }, this);
 
                 this.$el.prepend(headerLangSwitcher.render().$el);
 
                 // only add the language picker if we have multiple languages
-                if (this.form.get('languages') && this.form.get('languages').length > 1) {
+                if (this.form.get("languages") && this.form.get("languages").length > 1) {
                     // Initialize the language selector
                     var languagePicker = new FH.LanguagePicker({
                         model: this.form,
-                        className: 'table-control-container language-picker-container'
+                        className: "table-control-container language-picker-container"
                     });
 
-                    languagePicker.render().$el.insertBefore(this.$('.label-toggle-container'));
+                    languagePicker.render().$el.insertBefore(this.$(".label-toggle-container"));
                 }
 
                 // Fetch some data
@@ -235,14 +243,14 @@
             }, this);
 
             // Catch language change events
-            this.form.on('change:header_language', function (model, language) {
+            this.form.on("change:header_language", function (model, language) {
                 var dataTableView = this;
                 if (this.dataGrid) {
                     this.dataGrid.columns.each(function (column) {
                         var label,
                             field = dataTableView.form.fields
                                 .find(function (f) {
-                                    return f.get(FH.constants.XPATH) === column.get('name');
+                                    return f.get(FH.constants.XPATH) === column.get("name");
                                 });
 
                         if (dataTableView.showHeaderLabels) {
@@ -250,7 +258,7 @@
                         } else {
                             label = field.get(FH.constants.NAME);
                         }
-                        column.set({'label': label});
+                        column.set({"label": label});
                     });
                     this.dataGrid.header.render();
                 }
@@ -263,17 +271,17 @@
     var NameLabelLanguagePicker = Backbone.View.extend({
         label: void 0,
 
-        className: 'table-control-container',
+        className: "table-control-container",
 
         template: _.template(
-            '<label><%= label %></label><select><% _.each(languages, function(lang){ %>' +
-                '<option value="<%= lang["name"] %>"><%= lang["value"] %></option> ' +
-            '<% }); %></select>'),
+            "<label><%= label %></label><select><% _.each(languages, function(lang){ %>" +
+                "<option value=\"<%= lang[\"name\"] %>\"><%= lang[\"value\"] %></option> " +
+            "<% }); %></select>"),
 
         events: {
-            'change select': function (evt) {
+            "change select": function (evt) {
                 var value = $(evt.currentTarget).val() || undefined;
-                this.trigger('switch', value);
+                this.trigger("switch", value);
             }
         },
 
@@ -294,13 +302,13 @@
     });
 
     NameLabelLanguagePicker.LanguagesForSelect = function (model) {
-        var languages = model.get('languages').length == 0?
-            [{name: null, value: 'Show Labels'}]:
-            model.get('languages').map(
+        var languages = model.get("languages").length == 0?
+            [{name: null, value: "Show Labels"}]:
+            model.get("languages").map(
                 function(lang){
                     return {name: lang, value: "Show Labels in " + lang};
                 });
-        languages.unshift({name: '-1', value: 'Show XML Values'});
+        languages.unshift({name: "-1", value: "Show XML Values"});
         return languages
     };
 
@@ -316,7 +324,7 @@
             choices = new FH.FieldSet(field.get(FH.constants.CHILDREN));
 
             // Split the value on a space to get a list for multiple choices
-            selections = value && value.split(' ') || [];
+            selections = value && value.split(" ") || [];
             results = [];
 
             _.each(selections, function (selection) {
@@ -327,7 +335,7 @@
                     results.push(choice.get(FH.constants.LABEL, language));
                 }
             });
-            return results.join(', ');
+            return results.join(", ");
         } else {
             return value;
         }

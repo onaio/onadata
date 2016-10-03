@@ -1,7 +1,8 @@
-from datetime import date, datetime
+from datetime import datetime
 import os
 import pytz
 import re
+import sys
 import tempfile
 import traceback
 from xml.dom import Node
@@ -9,12 +10,13 @@ from xml.parsers.expat import ExpatError
 
 from dict2xml import dict2xml
 from django.conf import settings
-from django.core.exceptions import ValidationError, PermissionDenied
+from django.core.exceptions import (
+    ValidationError, PermissionDenied, MultipleObjectsReturned)
 from django.core.files.storage import get_storage_class
 from django.core.mail import mail_admins
-from django.core.servers.basehttp import FileWrapper
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseNotFound, \
     StreamingHttpResponse
 from django.shortcuts import get_object_or_404
@@ -24,7 +26,7 @@ from django.utils import timezone
 from modilabs.utils.subprocess_timeout import ProcessTimedOut
 from pyxform.errors import PyXFormError
 from pyxform.xform2json import create_survey_element_from_xml
-import sys
+from wsgiref.util import FileWrapper
 
 from onadata.apps.logger.models import Attachment
 from onadata.apps.logger.models import Instance
@@ -38,6 +40,7 @@ from onadata.apps.logger.xform_instance_parser import (
     InstanceEmptyError,
     InstanceInvalidUserError,
     InstanceMultipleNodeError,
+    NonUniqueFormIdError,
     DuplicateInstance,
     clean_and_parse_xml,
     get_uuid_from_xml,
@@ -60,21 +63,32 @@ uuid_regex = re.compile(r'<formhub>\s*<uuid>\s*([^<]+)\s*</uuid>\s*</formhub>',
 
 
 def _get_instance(xml, new_uuid, submitted_by, status, xform):
+    history = None
+    instance = None
     # check if its an edit submission
     old_uuid = get_deprecated_uuid_from_xml(xml)
-    instances = Instance.objects.filter(uuid=old_uuid)
+    if old_uuid:
+        instance = Instance.objects.filter(uuid=old_uuid).first()
+        history = InstanceHistory.objects.filter(
+            xform_instance__xform=xform, uuid=new_uuid
+        ).only('xform_instance').first()
 
-    if instances:
-        # edits
-        check_edit_submission_permissions(submitted_by, xform)
-        instance = instances[0]
-        InstanceHistory.objects.create(
-            xml=instance.xml, xform_instance=instance, uuid=old_uuid)
-        instance.xml = xml
-        instance.uuid = new_uuid
-        instance.json = instance.get_full_dict()
-        instance.save()
-    else:
+        if instance:
+            # edits
+            check_edit_submission_permissions(submitted_by, xform)
+
+            last_edited = timezone.now()
+            InstanceHistory.objects.create(
+                xml=instance.xml, xform_instance=instance, uuid=old_uuid,
+                user=submitted_by, geom=instance.geom,
+                submission_date=instance.last_edited or instance.date_created)
+            instance.xml = xml
+            instance.last_edited = last_edited
+            instance.uuid = new_uuid
+            instance.save()
+        elif history:
+            instance = history.xform_instance
+    if old_uuid is None or (instance is None and history is None):
         # new submission
         instance = Instance.objects.create(
             xml=xml, user=submitted_by, status=status, xform=xform)
@@ -111,8 +125,11 @@ def get_xform_from_submission(xml, username, uuid=None):
 
     id_string = get_id_string_from_xml_str(xml)
 
-    return get_object_or_404(XForm, id_string__iexact=id_string,
-                             user__username=username)
+    try:
+        return get_object_or_404(XForm, id_string__iexact=id_string,
+                                 user__username=username)
+    except MultipleObjectsReturned:
+        raise NonUniqueFormIdError()
 
 
 def _has_edit_xform_permission(xform, user):
@@ -206,7 +223,17 @@ def save_submission(xform, xml, media_files, new_uuid, submitted_by, status,
     return instance
 
 
-@transaction.commit_manually
+def get_filtered_instances(*args, **kwargs):
+    """Get filtered instances - mainly to allow mocking in tests"""
+
+    return Instance.objects.filter(*args, **kwargs)\
+        .select_related(
+            'user__username',
+            'xform__user__username',
+            'xform__has_start_time'
+        )
+
+
 def create_instance(username, xml_file, media_files,
                     status=u'submitted_via_web', uuid=None,
                     date_created_override=None, request=None):
@@ -219,58 +246,75 @@ def create_instance(username, xml_file, media_files,
     * If there is a username and no uuid, submitting an old ODK form.
     * If there is a username and a uuid, submitting a new ODK form.
     """
+    instance = None
+    submitted_by = request.user \
+        if request and request.user.is_authenticated() else None
+
+    if username:
+        username = username.lower()
+
+    xml = xml_file.read()
+    xform = get_xform_from_submission(xml, username, uuid)
+    check_submission_permissions(request, xform)
+
+    new_uuid = get_uuid_from_xml(xml)
+    filtered_instances = get_filtered_instances(
+        Q(xml=xml) | Q(uuid=new_uuid), xform_id=xform.pk
+    )
+    existing_instance = filtered_instances.first()
+
+    if existing_instance and \
+            (new_uuid or existing_instance.xform.has_start_time):
+        # ensure we have saved the extra attachments
+        with transaction.atomic():
+            save_attachments(xform, existing_instance, media_files)
+            existing_instance.save(update_fields=['json', 'date_modified'])
+
+        # Ignore submission as a duplicate IFF
+        #  * a submission's XForm collects start time
+        #  * the submitted XML is an exact match with one that
+        #    has already been submitted for that user.
+        return DuplicateInstance()
+
+    # get new and depracated uuid's
+    history = InstanceHistory.objects.filter(
+        xform_instance__xform_id=xform.pk, uuid=new_uuid
+    ).only('xform_instance').first()
+
+    if history:
+        duplicate_instance = history.xform_instance
+        # ensure we have saved the extra attachments
+        with transaction.atomic():
+            save_attachments(xform, duplicate_instance, media_files)
+            duplicate_instance.save()
+
+        return DuplicateInstance()
+
     try:
-        instance = None
-        submitted_by = request.user \
-            if request and request.user.is_authenticated() else None
+        with transaction.atomic():
+            instance = save_submission(
+                xform, xml, media_files, new_uuid, submitted_by, status,
+                date_created_override)
+    except IntegrityError:
+        instance = Instance.objects.filter(
+            xml=xml, xform__id=xform.pk).first()
 
-        if username:
-            username = username.lower()
+        if instance:
+            attachment_names = [
+                a.media_file.name.split('/')[-1]
+                for a in Attachment.objects.filter(instance=instance)
+            ]
 
-        xml = xml_file.read()
-        xform = get_xform_from_submission(xml, username, uuid)
-        check_submission_permissions(request, xform)
+            for a in media_files:
+                if a.name in attachment_names:
+                    media_files.remove(a)
 
-        existing_instance_count = Instance.objects.filter(
-            xml=xml, xform__user=xform.user).count()
+            save_attachments(xform, instance, media_files)
+            instance.save()
 
-        if existing_instance_count > 0:
-            existing_instance = Instance.objects.filter(
-                xml=xml, xform__user=xform.user)[0]
-            if not existing_instance.xform or\
-                    existing_instance.xform.has_start_time:
-                # ensure we have saved the extra attachments
-                save_attachments(xform, existing_instance, media_files)
-                existing_instance.save()
-                transaction.commit()
+        instance = DuplicateInstance()
 
-                # Ignore submission as a duplicate IFF
-                #  * a submission's XForm collects start time
-                #  * the submitted XML is an exact match with one that
-                #    has already been submitted for that user.
-                raise DuplicateInstance()
-
-        # get new and depracated uuid's
-        new_uuid = get_uuid_from_xml(xml)
-        duplicate_instances = Instance.objects.filter(uuid=new_uuid)
-
-        if duplicate_instances:
-            # ensure we have saved the extra attachments
-            save_attachments(xform, duplicate_instances[0], media_files)
-            duplicate_instances[0].save()
-
-            transaction.commit()
-            raise DuplicateInstance()
-
-        instance = save_submission(xform, xml, media_files, new_uuid,
-                                   submitted_by, status, date_created_override)
-        # commit all changes
-        transaction.commit()
-
-        return instance
-    except Exception:
-        transaction.rollback()
-        raise
+    return instance
 
 
 def safe_create_instance(username, xml_file, media_files, uuid, request):
@@ -311,6 +355,16 @@ def safe_create_instance(username, xml_file, media_files, uuid, request):
         error = OpenRosaResponseBadRequest(_(u"File likely corrupted during "
                                              u"transmission, please try later."
                                              ))
+    except NonUniqueFormIdError as e:
+        error = OpenRosaResponseBadRequest(_(
+            u"Unable to submit because there are multiple forms with this form"
+            u"ID."))
+    if isinstance(instance, DuplicateInstance):
+        response = OpenRosaResponse(_(u"Duplicate submission"))
+        response.status_code = 202
+        response['Location'] = request.build_absolute_uri(request.path)
+        error = response
+        instance = None
 
     return [error, instance]
 
@@ -360,16 +414,16 @@ def response_with_mimetype_and_name(
                 _(u"The requested file could not be found."))
     else:
         response = HttpResponse(content_type=mimetype)
-    response['Content-Disposition'] = disposition_ext_and_date(
+    response['Content-Disposition'] = generate_content_disposition_header(
         name, extension, show_date)
     return response
 
 
-def disposition_ext_and_date(name, extension, show_date=True):
+def generate_content_disposition_header(name, extension, show_date=True):
     if name is None:
         return 'attachment;'
     if show_date:
-        name = "%s_%s" % (name, date.today().strftime("%Y_%m_%d"))
+        name = "%s-%s" % (name, datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
     return 'attachment; filename=%s.%s' % (name, extension)
 
 
@@ -400,7 +454,6 @@ def publish_form(callback):
             'text': msg
         }
     except IntegrityError as e:
-        transaction.rollback()
         return {
             'type': 'alert-error',
             'text': _(u'Form with this id or SMS-keyword already exists.'),
@@ -424,8 +477,15 @@ def publish_form(callback):
             'type': 'alert-error',
             'text': _(u'Form validation timeout, please try again.'),
         }
+    except (MemoryError, OSError) as e:
+        return {
+            'type': 'alert-error',
+            'text': _((
+                u'An error occurred while publishing the form. '
+                'Please try again.'
+            )),
+        }
     except Exception as e:
-        transaction.rollback()
         # error in the XLS file; show an error to the user
 
         return {
@@ -435,8 +495,8 @@ def publish_form(callback):
 
 
 def publish_xls_form(xls_file, user, project, id_string=None, created_by=None):
-    """ Creates or updates a DataDictionary with supplied xls_file,
-        user and optional id_string - if updating
+    """Create or update DataDictionary with xls_file, user
+    id_string is optional when updating
     """
     # get or create DataDictionary based on user and id string
     if id_string:

@@ -7,9 +7,12 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
     TestAbstractViewSet
 from onadata.apps.api.viewsets.organization_profile_viewset import\
     OrganizationProfileViewSet
+from onadata.apps.api.viewsets.user_profile_viewset import UserProfileViewSet
 from onadata.libs.permissions import OwnerRole
-from onadata.apps.api.tools import get_organization_owners_team
+from onadata.apps.api.tools import (get_organization_owners_team,
+                                    add_user_to_organization)
 from onadata.apps.api.models.organization_profile import OrganizationProfile
+from rest_framework import status
 
 
 class TestOrganizationProfileViewSet(TestAbstractViewSet):
@@ -33,11 +36,21 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(profile.metadata, metadata)
 
+    def test_partial_updates_invalid(self):
+        self._org_create()
+        data = {'name': "a" * 31}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data['name'],
+            [u'Ensure this field has no more than 30 characters.'])
+
     def test_orgs_list(self):
         self._org_create()
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.company_data])
 
@@ -52,9 +65,42 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         self._org_create()
         request = self.factory.get('/', **self.extra)
         response = self.view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [self.company_data])
+
+    def test_orgs_list_shared_with_user(self):
+        authenticated_user = self.user
+        user_in_shared_organization, _ = User.objects.get_or_create(
+            username='the_stalked')
+
+        unshared_organization, _ = User.objects.get_or_create(
+            username='NotShared')
+        unshared_organization_profile, _ = OrganizationProfile\
+            .objects.get_or_create(
+                user=unshared_organization,
+                creator=authenticated_user)
+
+        add_user_to_organization(unshared_organization_profile,
+                                 authenticated_user)
+
+        shared_organization, _ = User.objects.get_or_create(username='Shared')
+        shared_organization_profile, _ = OrganizationProfile\
+            .objects.get_or_create(
+                user=shared_organization,
+                creator=user_in_shared_organization)
+
+        add_user_to_organization(shared_organization_profile,
+                                 authenticated_user)
+
+        request = self.factory.get('/', **self.extra)
+        response = self.view(request)
+        self.assertTrue(len(response.data), 2)
+        request = self.factory.get('/',
+                                   data={'shared_with': 'the_stalked'},
+                                   **self.extra)
+        response = self.view(request)
+        self.assertEqual(len(response.data), 1)
 
     def test_orgs_list_restricted(self):
         self._org_create()
@@ -70,7 +116,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         response = view(request)
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data, [])
 
     def test_orgs_get(self):
@@ -85,7 +131,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             response.data, {'detail': 'Expected URL keyword argument `user`.'})
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', response.data.keys())
@@ -102,10 +148,10 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         previous_user = self.user
         self._login_user_and_profile(extra_post_data=alice_data)
         self.assertEqual(self.user.username, 'alice')
-        self.assertNotEqual(previous_user,  self.user)
+        self.assertNotEqual(previous_user, self.user)
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', response.data.keys())
@@ -120,7 +166,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/')
         response = view(request, user='denoinc')
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.company_data)
         self.assertIn('users', response.data.keys())
@@ -148,8 +194,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
         response = self.view(request)
-        self.assertContains(response, '{"name": "name is required!"}',
-                            status_code=400)
+        self.assertEqual(response.data, {'name': [u'This field is required.']})
 
     def test_org_create_with_anonymous_user(self):
         data = {
@@ -179,7 +224,7 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
         request = self.factory.get('/', **self.extra)
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.data, [u'denoinc'])
 
     def test_add_members_to_org_username_required(self):
@@ -381,12 +426,13 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
             content_type="application/json", **self.extra)
         response = self.view(request)
         self.assertEqual(response.status_code, 400)
-        self.assertIn("%s already exists" % data['org'], response.data['org'])
+        self.assertIn("Organization %s already exists." % data['org'],
+                      response.data['org'])
 
     def test_publish_xls_form_to_organization_project(self):
         self._org_create()
         project_data = {
-            'owner':  self.company_data['user']
+            'owner': self.company_data['user']
         }
         self._project_create(project_data)
         self._publish_xls_form_to_project()
@@ -625,3 +671,154 @@ class TestOrganizationProfileViewSet(TestAbstractViewSet):
 
         response = view(request, user='denoinc')
         self.assertEqual(response.status_code, 400)
+
+    def test_update_org_name(self):
+        self._org_create()
+
+        # update name
+        data = {'name': "Dennis2"}
+        request = self.factory.patch('/', data=data, **self.extra)
+        response = self.view(request, user='denoinc')
+        self.assertEqual(response.data['name'], "Dennis2")
+        self.assertEqual(response.status_code, 200)
+
+        # check in user profile endpoint
+        view_user = UserProfileViewSet.as_view({
+            'get': 'retrieve'
+        })
+        request = self.factory.get('/', **self.extra)
+
+        response = view_user(request, user='denoinc')
+        self.assertNotEqual(response.get('Cache-Control'), None)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['name'], "Dennis2")
+
+    def test_org_always_has_admin_or_owner(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'put': 'members',
+        })
+        data = {'username': self.user.username, 'role': 'editor'}
+        request = self.factory.put(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(response.data, u"Organization cannot be without"
+                                         u" an owner")
+
+    def test_owner_not_allowed_to_be_removed(self):
+        self._org_create()
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members',
+            'delete': 'members',
+            'get': 'retrieve',
+        })
+
+        self.profile_data['username'] = "aboy"
+        aboy = self._create_user_profile().user
+
+        data = {'username': aboy.username,
+                'role': 'owner'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(set(response.data), set([u'denoinc',
+                                                  aboy.username]))
+
+        self.profile_data['username'] = "aboy2"
+        aboy2 = self._create_user_profile().user
+
+        data = {'username': aboy2.username,
+                'role': 'owner'}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(set(response.data), set([u'denoinc',
+                                                  aboy.username,
+                                                  aboy2.username]))
+
+        data = {'username': aboy2.username}
+        request = self.factory.delete(
+            '/', json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+        for user in [u'denoinc', aboy.username]:
+            self.assertIn(user, response.data)
+
+        # at this point we have bob and aboy as owners
+        data = {'username': aboy.username}
+        request = self.factory.delete(
+            '/', json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 201)
+
+        # at this point we only have bob as the owner
+        data = {'username': self.user.username}
+        request = self.factory.delete(
+            '/', json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(response.data, u"Organization cannot be without"
+                                         u" an owner")
+
+    def test_orgs_delete(self):
+        self._org_create()
+        self.assertTrue(self.organization.user.is_active)
+
+        view = OrganizationProfileViewSet.as_view({
+            'delete': 'destroy'
+        })
+
+        request = self.factory.delete('/', **self.extra)
+        response = view(request, user='denoinc')
+
+        self.assertEquals(204, response.status_code)
+
+        self.assertEquals(0, OrganizationProfile.objects.filter(
+            user__username='denoinc').count())
+        self.assertEquals(0, User.objects.filter(username='denoinc').count())
+
+    def test_orgs_non_creator_delete(self):
+        self._org_create()
+
+        view = OrganizationProfileViewSet.as_view({
+            'delete': 'members',
+            'post': 'members'
+        })
+
+        self.profile_data['username'] = "alice"
+        self.profile_data['email'] = 'alice@localhost.com'
+        self._create_user_profile()
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        request = self.factory.post(
+            '/', data=json.dumps(alice_data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user='denoinc')
+        expected_results = [u'denoinc', u'alice']
+        self.assertEqual(status.HTTP_201_CREATED, response.status_code)
+        self.assertEqual(expected_results, response.data)
+
+        self._login_user_and_profile(extra_post_data=alice_data)
+
+        request = self.factory.delete('/', data=json.dumps(alice_data),
+                                      content_type="application/json",
+                                      **self.extra)
+        response = view(request, user='denoinc')
+        expected_results = [u'denoinc']
+        self.assertEqual(expected_results, response.data)

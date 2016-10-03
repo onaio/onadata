@@ -2,12 +2,14 @@ import os
 from tempfile import NamedTemporaryFile
 
 from django.core.files.storage import get_storage_class
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.db.models.signals import post_delete
 from django.utils.translation import ugettext as _
 
 from onadata.apps.logger.models import XForm
 from onadata.libs.utils.common_tags import OSM
+from onadata.libs.utils import async_status
 
 
 def export_delete_callback(sender, **kwargs):
@@ -18,6 +20,10 @@ def export_delete_callback(sender, **kwargs):
 
 
 class Export(models.Model):
+    """
+    Class representing a data export from an XForm
+    """
+
     class ExportTypeError(Exception):
         def __unicode__(self):
             return _(u"Invalid export type specified")
@@ -29,12 +35,12 @@ class Export(models.Model):
     CSV_EXPORT = 'csv'
     KML_EXPORT = 'kml'
     ZIP_EXPORT = 'zip'
-    GDOC_EXPORT = 'gdoc'
     CSV_ZIP_EXPORT = 'csv_zip'
     SAV_ZIP_EXPORT = 'sav_zip'
     SAV_EXPORT = 'sav'
     EXTERNAL_EXPORT = 'external'
     OSM_EXPORT = OSM
+    GOOGLE_SHEETS_EXPORT = 'gsheets'
 
     EXPORT_MIMES = {
         'xls': 'vnd.ms-excel',
@@ -51,7 +57,6 @@ class Export(models.Model):
     EXPORT_TYPES = [
         (XLS_EXPORT, 'Excel'),
         (CSV_EXPORT, 'CSV'),
-        (GDOC_EXPORT, 'GDOC'),
         (ZIP_EXPORT, 'ZIP'),
         (KML_EXPORT, 'kml'),
         (CSV_ZIP_EXPORT, 'CSV ZIP'),
@@ -59,33 +64,55 @@ class Export(models.Model):
         (SAV_EXPORT, 'SAV'),
         (EXTERNAL_EXPORT, 'Excel'),
         (OSM, OSM),
+        (GOOGLE_SHEETS_EXPORT, 'Google Sheets'),
+    ]
+
+    EXPORT_OPTION_FIELDS = [
+        "binary_select_multiples",
+        "dataview_pk",
+        "group_delimiter",
+        "include_images",
+        "include_labels",
+        "include_labels_only",
+        "include_hxl",
+        "query",
+        "remove_group_name",
+        "split_select_multiples",
+        "win_excel_utf8"
     ]
 
     EXPORT_TYPE_DICT = dict(export_type for export_type in EXPORT_TYPES)
 
-    PENDING = 0
-    SUCCESSFUL = 1
-    FAILED = 2
+    PENDING = async_status.PENDING
+    SUCCESSFUL = async_status.SUCCESSFUL
+    FAILED = async_status.FAILED
 
     # max no. of export files a user can keep
     MAX_EXPORTS = 10
 
+    # Required fields
     xform = models.ForeignKey(XForm)
-    created_on = models.DateTimeField(auto_now=True, auto_now_add=True)
+    export_type = models.CharField(
+        max_length=10, choices=EXPORT_TYPES, default=XLS_EXPORT
+    )
+
+    # optional fields
+    created_on = models.DateTimeField(auto_now_add=True)
     filename = models.CharField(max_length=255, null=True, blank=True)
+
     # need to save an the filedir since when an xform is deleted, it cascades
     # its exports which then try to delete their files and try to access the
     # deleted xform - bad things happen
     filedir = models.CharField(max_length=255, null=True, blank=True)
-    export_type = models.CharField(
-        max_length=10, choices=EXPORT_TYPES, default=XLS_EXPORT
-    )
     task_id = models.CharField(max_length=255, null=True, blank=True)
     # time of last submission when this export was created
     time_of_last_submission = models.DateTimeField(null=True, default=None)
     # status
-    internal_status = models.SmallIntegerField(max_length=1, default=PENDING)
+    internal_status = models.SmallIntegerField(default=PENDING)
     export_url = models.URLField(null=True, default=None)
+
+    options = JSONField(default=dict, null=False)
+    error_message = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         app_label = "viewer"

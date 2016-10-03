@@ -3,7 +3,7 @@ from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from onadata.apps.main.views import delete_data
-from onadata.apps.viewer.models.parsed_instance import ParsedInstance
+from onadata.apps.viewer.models.parsed_instance import query_data
 from onadata.apps.logger.models.instance import Instance
 from test_base import TestBase
 
@@ -24,7 +24,7 @@ class TestFormAPIDelete(TestBase):
             'sort': '-pk', 'fields': '["_id","_uuid"]'}
 
     def _get_data(self):
-        cursor = ParsedInstance.query_data(**self.data_args)
+        cursor = query_data(**self.data_args)
         records = list(record for record in cursor)
         return records
 
@@ -82,5 +82,5 @@ class TestFormAPIDelete(TestBase):
         self.assertNotEqual(instance.deleted_at, None)
         query = '{"_id": %s}' % instance.id
         self.data_args.update({"query": query})
-        after = [r for r in ParsedInstance.query_data(**self.data_args)]
+        after = [r for r in query_data(**self.data_args)]
         self.assertEqual(len(after), count - 1)

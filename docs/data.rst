@@ -25,7 +25,7 @@ Example
 ^^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/data
+    curl -X GET https://api.ona.io/api/v1/data
 
 
 Response
@@ -38,7 +38,7 @@ Response
             "id_string": "dhis2form",
             "title": "dhis2form",
             "description": "dhis2form",
-            "url": "https://ona.io/api/v1/data/4240"
+            "url": "https://api.ona.io/api/v1/data/4240"
         },
         ...
     ]
@@ -58,7 +58,7 @@ of records and the limit parameter to limit the number of records returned.
 
 ::
 
-    curl -X GET 'https://ona.io/api/v1/data/2?start=5'
+    curl -X GET 'https://api.ona.io/api/v1/data/2?start=5'
 
 .. raw:: html
 
@@ -68,7 +68,7 @@ of records and the limit parameter to limit the number of records returned.
 
 ::
 
-	curl -X GET 'https://ona.io/api/v1/data/2?limit=2'
+	curl -X GET 'https://api.ona.io/api/v1/data/2?limit=2'
 
 .. raw:: html
 
@@ -78,7 +78,7 @@ of records and the limit parameter to limit the number of records returned.
 
 ::
 
-	 curl -X GET 'https://ona.io/api/v1/data/2?start=3&limit=4'
+	 curl -X GET 'https://api.ona.io/api/v1/data/2?start=3&limit=4'
 
 Download data in `csv` format
 -----------------------------
@@ -90,7 +90,7 @@ Download data in `csv` format
 
 ::
 
-	curl -O https://ona.io/api/v1/data.csv
+	curl -O https://api.ona.io/api/v1/data.csv
 
 GET JSON List of data end points filter by owner
 ------------------------------------------------
@@ -109,7 +109,7 @@ Example
 ^^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/data?owner=ona
+       curl -X GET https://api.ona.io/api/v1/data?owner=ona
 
 Get Submitted data for a specific form
 ------------------------------------------
@@ -124,7 +124,7 @@ Example
 ^^^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/data/22845
+      curl -X GET https://api.ona.io/api/v1/data/22845
 
 Response
 ^^^^^^^^^
@@ -169,7 +169,7 @@ Example
 ^^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/data/328.json?page=1&page_size=4
+      curl -X GET https://api.ona.io/api/v1/data/328.json?page=1&page_size=4
 
 
 Sort submitted data of a specific form using existing fields
@@ -198,18 +198,18 @@ Example of Ascending Sort
 
 ::
 
-      curl -X GET https://ona.io/api/v1/data/328.json?sort={"age":1}
+      curl -X GET https://api.ona.io/api/v1/data/328.json?sort={"age":1}
 
 Example of Descending sort
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ::
 
-      curl -X GET https://ona.io/api/v1/data/328.json?sort={"age":-1}
+      curl -X GET https://api.ona.io/api/v1/data/328.json?sort={"age":-1}
 
 
 Get a single data submission for a given form
-----------------------------------------------
+---------------------------------------------
 
 Get a single specific submission json data providing ``pk``
 
@@ -227,7 +227,7 @@ Example
 ^^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/data/22845/4503
+       curl -X GET https://api.ona.io/api/v1/data/22845/4503
 
 Response
 ^^^^^^^^^
@@ -264,9 +264,112 @@ Response
         ....
     ]
 
+Get the history of edits made to a submission
+----------------------------------------------
+
+Get a single specific submission json data providing ``pk``
+
+and ``dataid`` as url path parameters, where:
+
+- ``pk`` - is the identifying number for a specific form
+- ``dataid`` - is the unique id of the data, the value of ``_id`` or ``_uuid``
+
+.. raw:: html
+
+  <pre class="prettyprint">
+  <b>GET</b> /api/v1/data/<code>{pk}</code>/<code>{dataid}</code>/history</pre>
+
+Example
+^^^^^^^^^
+::
+
+       curl -X GET https://api.ona.io/api/v1/data/22845/4503/history
+
+Response
+^^^^^^^^^
+::
+
+    [
+        {
+            "_id": 3,
+            "_bamboo_dataset_id": "",
+            "_deleted_at": null,
+            "expense_type": "service",
+            "_xform_id_string": "exp",
+            "_geolocation": [
+                null,
+                null
+            ],
+            "end": "2013-01-03T10:26:25.674+03",
+            "start": "2013-01-03T10:25:17.409+03",
+            "expense_date": "2011-12-23",
+            "_status": "submitted_via_web",
+            "today": "2013-01-03",
+            "_uuid": "2e599f6fe0de42d3a1417fb7d821c859",
+            "imei": "351746052013466",
+            "formhub/uuid": "46ea15e2b8134624a47e2c4b77eef0d4",
+            "kind": "monthly",
+            "_submission_time": "2013-01-03T02:27:19",
+            "_attachments": [],
+            "_notes": [],
+            "item": "Rent",
+            "amount": "35000.0",
+            "deviceid": "351746052013466",
+            "subscriberid": "639027...60317"
+        },
+        ....
+    ]
+
+
 Query submitted data of a specific form
 ----------------------------------------
-Use the `query` parameter to pass in a JSON key/value query.
+Use the `query` or `data` parameter to pass in a JSON key/value query.
+
+Example I
+^^^^^^^
+Query submissions where name is `tom`
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"name":"tom"}
+
+Example II
+^^^^^^^
+Query submissions where age is greater than 21
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"age":{"$gt":"21"}}
+
+Example III
+^^^^^^^
+Query submissions where age is less than or equal to 21
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"age":{"$lte":"21"}}
+
+Example IV
+^^^^^^^
+Query submissions with case insensitive and partial search
+
+::
+
+    curl -X GET https://api.ona.io/api/v1/data/22845?query={"name":{"$i":"hosee"}}
+
+
+All Filters Options
+
+========  ===================================
+Filter    Description
+========  ===================================
+**$gt**   Greater than
+**$gte**  Greater than or Equal to
+**$lt**   Less than
+**$lte**  Less or Equal to
+**$i**    Case insensitive or partial search
+========  ===================================
+
 
 Query submitted data of a specific form using Tags
 --------------------------------------------------
@@ -292,7 +395,7 @@ Example
 ^^^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/data/22845?tags=monthly
+      curl -X GET https://api.ona.io/api/v1/data/22845?tags=monthly
 
 Tag a submission data point
 ----------------------------
@@ -326,13 +429,13 @@ Request
 ^^^^^^^^^
 ::
 
-    curl -X DELETE https://ona.io/api/v1/data/28058/20/labels/tag1
+    curl -X DELETE https://api.ona.io/api/v1/data/28058/20/labels/tag1
 
 or to delete the tag "hello world"
 
 ::
 
-    curl -X DELETE https://ona.io/api/v1/data/28058/20/labels/hello%20world
+    curl -X DELETE https://api.ona.io/api/v1/data/28058/20/labels/hello%20world
 
 Response
 ^^^^^^^^^
@@ -353,7 +456,7 @@ Example
 ^^^^^^^^^
 ::
 
-       curl -X GET https://ona.io/api/v1/data/public
+       curl -X GET https://api.ona.io/api/v1/data/public
 
 Response
 ^^^^^^^^^
@@ -365,7 +468,7 @@ Response
             "id_string": "dhis2form",
             "title": "dhis2form",
             "description": "dhis2form",
-            "url": "https://ona.io/api/v1/data/4240"
+            "url": "https://api.ona.io/api/v1/data/4240"
         },
         ...
     ]
@@ -382,7 +485,7 @@ Example
 ^^^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/data/28058/20/enketo?return_url=url
+    curl -X GET https://api.ona.io/api/v1/data/28058/20/enketo?return_url=url
 
 Response
 ^^^^^^^^^
@@ -405,7 +508,7 @@ Example
 ^^^^^^^^^
 ::
 
-    curl -X DELETE https://ona.io/api/v1/data/28058/20
+    curl -X DELETE https://api.ona.io/api/v1/data/28058/20
 
 Response
 ^^^^^^^^^
@@ -442,7 +545,7 @@ Example
 ^^^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/data/28058/20.geojson
+    curl -X GET https://api.ona.io/api/v1/data/28058/20.geojson
 
 Response
 ^^^^^^^^^
@@ -482,7 +585,7 @@ Example
 ^^^^^^^^^
 ::
 
-      curl -X GET https://ona.io/api/v1/data/28058.geojson
+      curl -X GET https://api.ona.io/api/v1/data/28058.geojson
 
 Response
 ^^^^^^^^^
@@ -543,7 +646,7 @@ Example
 ^^^^^^^^^
 ::
 
-	curl -X GET https://ona.io/api/v1/data/28058.osm
+	curl -X GET https://api.ona.io/api/v1/data/28058.osm
 
 OSM endpoint with all osm files for a specific submission concatenated.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -557,4 +660,4 @@ Example
 ^^^^^^^^^
 ::
 
-    curl -X GET https://ona.io/api/v1/data/28058/20.osm
+    curl -X GET https://api.ona.io/api/v1/data/28058/20.osm

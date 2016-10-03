@@ -4,6 +4,7 @@ import os
 from django.core.files.base import File
 from django.core.files.storage import default_storage
 from django.core.management import call_command
+from django.db.utils import DataError
 
 from onadata.apps.main.tests.test_base import TestBase
 from onadata.apps.logger.models import Attachment, Instance
@@ -26,6 +27,26 @@ class TestAttachment(TestBase):
 
     def test_mimetype(self):
         self.assertEqual(self.attachment.mimetype, 'image/jpeg')
+
+    def test_create_attachment_with_mimetype_more_than_50(self):
+        media_file = os.path.join(
+            self.this_directory, 'fixtures',
+            'transportation', 'instances', self.surveys[0], self.media_file)
+        media_file = File(open(media_file), media_file)
+        with self.assertRaises(DataError):
+            Attachment.objects.create(
+                instance=self.instance,
+                mimetype='a'*120,
+                media_file=media_file
+            )
+
+        pre_count = Attachment.objects.count()
+        Attachment.objects.create(
+            instance=self.instance,
+            mimetype='a'*100,
+            media_file=media_file
+        )
+        self.assertEqual(pre_count + 1, Attachment.objects.count())
 
     def test_create_attachment_with_media_file_length_more_the_100(self):
         with self.assertRaises(ValueError):

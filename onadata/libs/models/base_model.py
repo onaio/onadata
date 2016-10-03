@@ -10,3 +10,5 @@ class BaseModel(models.Model):
         # Clear and update the old dict.
         self.__dict__.clear()
         self.__dict__.update(new_self.__dict__)
+
+        return self

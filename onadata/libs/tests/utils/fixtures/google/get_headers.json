@@ -1,0 +1,11 @@
+{
+  "values":[["name", "name/first","name/middle","name/last","age","gender","photo",
+    "date","location","_location_latitude","_location_longitude","_location_altitude",
+    "_location_precision","pizza_fan","pizza_hater","pizza_type","favorite_toppings",
+    "favorite_toppings/cheese","favorite_toppings/pepperoni","favorite_toppings/sausauge",
+    "favorite_toppings/green_peppers","favorite_toppings/mushrooms","favorite_toppings/anchovies",
+    "thanks","start_time","end_time","today","imei","phonenumber",
+    "meta/instanceID","_id","_uuid",
+    "_submission_time","_index","_parent_table_name","_parent_index","_tags",
+    "_notes","_version","_duration","_submitted_by"]]
+}

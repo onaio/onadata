@@ -7,8 +7,13 @@ from onadata.apps.api.tests.viewsets.test_abstract_viewset import\
 from onadata.apps.api import tools
 from onadata.apps.logger.models import Project
 from onadata.apps.api.viewsets.team_viewset import TeamViewSet
+from onadata.apps.api.viewsets.organization_profile_viewset import\
+    OrganizationProfileViewSet
 from onadata.apps.api.viewsets.project_viewset import ProjectViewSet
 from onadata.libs.permissions import ReadOnlyRole, EditorRole
+from onadata.libs.permissions import OwnerRole
+from onadata.apps.api.tools import get_organization_owners_team, \
+    get_organization_members_team
 
 
 class TestTeamViewSet(TestAbstractViewSet):
@@ -58,7 +63,7 @@ class TestTeamViewSet(TestAbstractViewSet):
                        'first_name': u'Dennis',
                        'last_name': u''}]
         }
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, [owner_team, member_team,
                                          self.team_data])
@@ -70,32 +75,9 @@ class TestTeamViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=self.team.pk)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data, self.team_data)
-
-    def _team_create(self):
-        self._org_create()
-        data = {
-            'name': u'dreamteam',
-            'organization': self.company_data['org']
-        }
-        request = self.factory.post(
-            '/', data=json.dumps(data),
-            content_type="application/json", **self.extra)
-        response = self.view(request)
-        self.assertEqual(response.status_code, 201)
-        self.owner_team = Team.objects.get(
-            organization=self.organization.user,
-            name='%s#Owners' % (self.organization.user.username))
-        team = Team.objects.get(
-            organization=self.organization.user,
-            name='%s#%s' % (self.organization.user.username, data['name']))
-        data['url'] = 'http://testserver/api/v1/teams/%s' % team.pk
-        data['teamid'] = team.id
-        self.assertDictContainsSubset(data, response.data)
-        self.team_data = response.data
-        self.team = team
 
     def test_teams_create(self):
         self._team_create()
@@ -189,10 +171,7 @@ class TestTeamViewSet(TestAbstractViewSet):
 
     def test_team_share(self):
         self._team_create()
-        project = Project.objects.create(name="Test Project",
-                                         organization=self.team.organization,
-                                         created_by=self.user,
-                                         metadata='{}')
+        self._publish_xls_form_to_project()
         chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
         chuck_profile = self._create_user_profile(chuck_data)
         user_chuck = chuck_profile.user
@@ -206,23 +185,22 @@ class TestTeamViewSet(TestAbstractViewSet):
 
         for role_class in ROLES:
             self.assertFalse(role_class.user_has_role(user_chuck,
-                                                      project))
+                                                      self.project))
             data = {'role': role_class.name,
-                    'project': project.pk}
+                    'project': self.project.pk}
             request = self.factory.post(
                 '/', data=json.dumps(data),
                 content_type="application/json", **self.extra)
             response = view(request, pk=self.team.pk)
 
             self.assertEqual(response.status_code, 204)
-            self.assertTrue(role_class.user_has_role(user_chuck, project))
+
+            self.assertTrue(role_class.user_has_role(user_chuck, self.project))
+            self.assertTrue(role_class.user_has_role(user_chuck, self.xform))
 
     def test_remove_team_from_project(self):
         self._team_create()
-        project = Project.objects.create(name="Test Project",
-                                         organization=self.team.organization,
-                                         created_by=self.user,
-                                         metadata='{}')
+        self._publish_xls_form_to_project()
         chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
         chuck_profile = self._create_user_profile(chuck_data)
         user_chuck = chuck_profile.user
@@ -232,19 +210,19 @@ class TestTeamViewSet(TestAbstractViewSet):
             'post': 'share'})
 
         self.assertFalse(EditorRole.user_has_role(user_chuck,
-                                                  project))
+                                                  self.project))
         data = {'role': EditorRole.name,
-                'project': project.pk}
+                'project': self.project.pk}
         request = self.factory.post(
             '/', data=json.dumps(data),
             content_type="application/json", **self.extra)
         response = view(request, pk=self.team.pk)
 
         self.assertEqual(response.status_code, 204)
-        self.assertTrue(EditorRole.user_has_role(user_chuck, project))
+        self.assertTrue(EditorRole.user_has_role(user_chuck, self.project))
 
         data = {'role': EditorRole.name,
-                'project': project.pk,
+                'project': self.project.pk,
                 'remove': True}
 
         request = self.factory.post(
@@ -253,7 +231,8 @@ class TestTeamViewSet(TestAbstractViewSet):
         response = view(request, pk=self.team.pk)
 
         self.assertEqual(response.status_code, 204)
-        self.assertFalse(EditorRole.user_has_role(user_chuck, project))
+        self.assertFalse(EditorRole.user_has_role(user_chuck, self.project))
+        self.assertFalse(EditorRole.user_has_role(user_chuck, self.xform))
 
     def test_get_all_team(self):
         self._team_create()
@@ -278,7 +257,7 @@ class TestTeamViewSet(TestAbstractViewSet):
         get_data = {'org': 'denoinc'}
         request = self.factory.get('/', data=get_data, **self.extra)
         response = view(request)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 3)
 
@@ -324,7 +303,133 @@ class TestTeamViewSet(TestAbstractViewSet):
         })
         request = self.factory.get('/', **self.extra)
         response = view(request, pk=project.pk)
-        self.assertNotEqual(response.get('Last-Modified'), None)
+        self.assertNotEqual(response.get('Cache-Control'), None)
         self.assertEqual(response.status_code, 200)
 
         self.assertEqual(len(response.data.get('users')), 2)
+
+    def test_add_user_to_team_no_perms(self):
+        self._team_create()
+
+        view = TeamViewSet.as_view({
+            'post': 'members',
+            'get': 'retrieve',
+            'delete': 'members'
+        })
+
+        # add bob
+        data = {'username': self.user.username}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data,
+                         [self.user.username])
+
+        # create user alice
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        # add alice to the team
+        data = {'username': alice_profile.user.username}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(sorted(response.data),
+                         sorted([self.user.username,
+                                 alice_profile.user.username]))
+
+        # check that alice is able to access the team
+        alice_extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % alice_profile.user.auth_token}
+        request = self.factory.get(
+            '/', content_type="application/json", **alice_extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 200)
+
+        # remove alice from the team
+        data = {'username': alice_profile.user.username}
+        request = self.factory.delete(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data,
+                         [self.user.username])
+
+        # check alice cant access the team
+        request = self.factory.get(
+            '/', content_type="application/json", **alice_extra)
+        response = view(request, pk=self.team.pk)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_non_owners_should_be_able_to_change_member_permissions(self):
+        self._org_create()
+        self._publish_xls_form_to_project()
+
+        chuck_data = {'username': 'chuck', 'email': 'chuck@localhost.com'}
+        chuck_profile = self._create_user_profile(chuck_data)
+
+        view = OrganizationProfileViewSet.as_view({
+            'post': 'members'
+        })
+
+        data = {'username': chuck_profile.user.username,
+                'role': OwnerRole.name}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user=self.organization.user.username)
+
+        self.assertEqual(response.status_code, 201)
+
+        owners_team = get_organization_owners_team(self.organization)
+        self.assertIn(chuck_profile.user, owners_team.user_set.all())
+
+        alice_data = {'username': 'alice', 'email': 'alice@localhost.com'}
+        alice_profile = self._create_user_profile(alice_data)
+
+        data = {'username': alice_profile.user.username}
+        request = self.factory.post(
+            '/', data=json.dumps(data),
+            content_type="application/json", **self.extra)
+
+        response = view(request, user=self.organization.user.username)
+
+        self.assertEqual(response.status_code, 201)
+
+        member_team = get_organization_members_team(self.organization)
+        self.assertIn(alice_profile.user, member_team.user_set.all())
+
+        view = TeamViewSet.as_view({
+            'post': 'share'
+        })
+
+        post_data = {'role': EditorRole.name,
+                     'project': self.project.pk,
+                     'org': self.organization.user.username}
+        request = self.factory.post(
+            '/', data=post_data, **self.extra)
+        response = view(request, pk=member_team.pk)
+
+        self.assertEqual(response.status_code, 204)
+
+        post_data = {'role': ReadOnlyRole.name,
+                     'project': self.project.pk,
+                     'org': self.organization.user.username}
+
+        extra = {
+            'HTTP_AUTHORIZATION': 'Token %s' % chuck_profile.user.auth_token}
+        request = self.factory.post(
+            '/', data=post_data, **extra)
+        response = view(request, pk=member_team.pk)
+        self.assertEqual(response.status_code, 204)

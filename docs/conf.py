@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Onadata API documentation build configuration file, created by
+# Ona API documentation build configuration file, created by
 # sphinx-quickstart on Fri Feb 20 10:58:27 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -54,8 +54,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Onadata API'
-copyright = u'2015, Ona'
+project = u'Ona API'
+copyright = u'2016, Ona'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -188,7 +188,7 @@ html_static_path = ['_static']
 # html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'OnadataAPIdoc'
+htmlhelp_basename = 'OnaAPIdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -206,7 +206,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    ('index', 'OnadataAPI.tex', u'Onadata API Documentation', u'Ona',
+    ('index', 'OnaAPI.tex', u'Ona API Documentation', u'Ona',
         'manual'),
 ]
 
@@ -236,7 +236,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'onadataapi', u'Onadata API Documentation',
+    ('index', 'onaapi', u'Ona API Documentation',
      [u'Ona'], 1)
 ]
 
@@ -250,8 +250,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'OnadataAPI', u'Onadata API Documentation',
-        u'Ona', 'OnadataAPI', 'One line description of project.',
+    ('index', 'OnaAPI', u'Ona API Documentation',
+        u'Ona', 'OnaAPI', 'One line description of project.',
         'Miscellaneous'),
 ]
 

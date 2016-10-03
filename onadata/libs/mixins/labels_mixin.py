@@ -1,6 +1,6 @@
 from django import forms
 from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework.decorators import detail_route
 from rest_framework.response import Response
 from taggit.forms import TagField
 
@@ -19,7 +19,7 @@ def _labels_post(request, instance):
     :param instance: The instance to set tags on.
     :returns: A HTTP status code or None.
     """
-    form = TagForm(request.DATA)
+    form = TagForm(request.data)
 
     if form.is_valid():
         tags = form.cleaned_data.get('tags', None)
@@ -49,8 +49,8 @@ def _labels_delete(label, instance):
         xform_tags_delete.send(sender=XForm, xform=instance, tag=label)
 
     # Accepted, label does not exist hence nothing removed
-    http_status = status.HTTP_202_ACCEPTED if count == instance.tags.count()\
-        else status.HTTP_200_OK
+    http_status = status.HTTP_202_ACCEPTED \
+        if count == instance.tags.names().count() else status.HTTP_200_OK
 
     return [http_status, list(instance.tags.names())]
 
@@ -81,7 +81,8 @@ def process_label_request(request, label, instance):
 
 
 class LabelsMixin(object):
-    @action(methods=['GET', 'POST', 'DELETE'], extra_lookup_fields=['label', ])
+    @detail_route(methods=['GET', 'POST', 'DELETE'],
+                  extra_lookup_fields=['label', ])
     def labels(self, request, format='json', **kwargs):
         xform = self.get_object()
         label = kwargs.get('label')

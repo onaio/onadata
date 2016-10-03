@@ -1,5 +1,5 @@
+import requests
 from datetime import datetime
-from django.contrib.contenttypes.models import ContentType
 import os
 import json
 from bson import json_util
@@ -28,22 +28,25 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
 from guardian.shortcuts import assign_perm, remove_perm, get_users_with_perms
 
+from onadata.libs.utils.viewer_tools import get_form_url, EnketoError
 from onadata.apps.main.forms import UserProfileForm, FormLicenseForm,\
     DataLicenseForm, SupportDocForm, QuickConverterFile, QuickConverterURL,\
     QuickConverter, SourceForm, PermissionForm, MediaForm, MapboxLayerForm,\
     ActivateSMSSupportFom, ExternalExportForm
 from onadata.apps.main.models import AuditLog, UserProfile, MetaData
 from onadata.apps.logger.models import Instance, XForm
+from onadata.apps.logger.models.xform import get_forms_shared_with_user
 from onadata.apps.logger.views import enter_data
 from onadata.apps.viewer.models.data_dictionary import DataDictionary,\
     upload_to
 from onadata.apps.viewer.models.parsed_instance import\
-    DATETIME_FORMAT, ParsedInstance
+    DATETIME_FORMAT, query_data
 from onadata.apps.viewer.views import attachment_url
 from onadata.apps.sms_support.tools import check_form_sms_compatibility,\
     is_sms_related
 from onadata.apps.sms_support.autodoc import get_autodoc_for
 from onadata.apps.sms_support.providers import providers_doc
+from onadata.apps.logger.xform_instance_parser import XLSFormError
 from onadata.libs.utils.decorators import is_owner
 from onadata.libs.utils.logger_tools import response_with_mimetype_and_name,\
     publish_form
@@ -56,7 +59,7 @@ from onadata.libs.utils.user_auth import helper_auth_helper
 from onadata.libs.utils.user_auth import set_profile_data
 from onadata.libs.utils.log import audit_log, Actions
 from onadata.libs.utils.qrcode import generate_qrcode
-from onadata.libs.utils.viewer_tools import enketo_url
+from onadata.libs.utils.viewer_tools import enketo_url, get_form
 from onadata.libs.utils.export_tools import upload_template_for_external_export
 from onadata.libs.utils.user_auth import get_user_default_project
 
@@ -216,15 +219,10 @@ def profile(request, username):
             "/%s" % request.user.username)
         url = request_url.replace('http://', 'https://')
         xforms = XForm.objects.filter(user=content_user)\
-            .select_related('user', 'instances')
+            .select_related('user')
         user_xforms = xforms
         # forms shared with user
-        xfct = ContentType.objects.get(app_label='logger', model='xform')
-        xfs = content_user.userobjectpermission_set.filter(content_type=xfct)
-        shared_forms_pks = list(set([xf.object_pk for xf in xfs]))
-        forms_shared_with = XForm.objects.filter(
-            pk__in=shared_forms_pks).exclude(user=content_user)\
-            .select_related('user')
+        forms_shared_with = get_forms_shared_with_user(content_user)
         xforms_list = [
             {
                 'id': 'published',
@@ -252,7 +250,12 @@ def profile(request, username):
     # for any other user -> profile
     set_profile_data(data, content_user)
 
-    return render(request, "profile.html", data)
+    try:
+        resp = render(request, "profile.html", data)
+    except XLSFormError, e:
+        resp = HttpResponseBadRequest(e.__str__())
+
+    return resp
 
 
 def members_list(request):
@@ -389,20 +392,23 @@ def show(request, username=None, id_string=None, uuid=None):
         XForm.objects.filter(user__username__iexact=request.user.username,
                              id_string__iexact=id_string + XForm.CLONED_SUFFIX)
     ) > 0
-    data['public_link'] = MetaData.public_link(xform)
-    data['is_owner'] = is_owner
-    data['can_edit'] = can_edit
-    data['can_view'] = can_view or request.session.get('public_link')
-    data['xform'] = xform
-    data['content_user'] = xform.user
-    data['base_url'] = "https://%s" % request.get_host()
-    data['source'] = MetaData.source(xform)
-    data['form_license'] = MetaData.form_license(xform).data_value
-    data['data_license'] = MetaData.data_license(xform).data_value
-    data['supporting_docs'] = MetaData.supporting_docs(xform)
-    data['media_upload'] = MetaData.media_upload(xform)
-    data['mapbox_layer'] = MetaData.mapbox_layer_upload(xform)
-    data['external_export'] = MetaData.external_export(xform)
+    try:
+        data['public_link'] = MetaData.public_link(xform)
+        data['is_owner'] = is_owner
+        data['can_edit'] = can_edit
+        data['can_view'] = can_view or request.session.get('public_link')
+        data['xform'] = xform
+        data['content_user'] = xform.user
+        data['base_url'] = "https://%s" % request.get_host()
+        data['source'] = MetaData.source(xform)
+        data['form_license'] = MetaData.form_license(xform).data_value
+        data['data_license'] = MetaData.data_license(xform).data_value
+        data['supporting_docs'] = MetaData.supporting_docs(xform)
+        data['media_upload'] = MetaData.media_upload(xform)
+        data['mapbox_layer'] = MetaData.mapbox_layer_upload(xform)
+        data['external_export'] = MetaData.external_export(xform)
+    except XLSFormError, e:
+        return HttpResponseBadRequest(e.__str__())
 
     if is_owner:
         set_xform_owner_data(data, xform, request, username, id_string)
@@ -453,13 +459,36 @@ def api(request, username=None, id_string=None):
     if not xform:
         return HttpResponseForbidden(_(u'Not shared.'))
 
+    query = request.GET.get('query')
+    total_records = xform.num_of_submissions
+
     try:
         args = {
             'xform': xform,
-            'query': request.GET.get('query'),
+            'query': query,
             'fields': request.GET.get('fields'),
             'sort': request.GET.get('sort')
         }
+
+        if 'page' in request.GET:
+            page = int(request.GET.get('page'))
+            page_size = request.GET.get('page_size', request.GET.get('limit'))
+            if page_size:
+                page_size = int(page_size)
+            else:
+                page_size = 100
+
+            start_index = (page - 1) * page_size
+            args["start_index"] = start_index
+            args["limit"] = page_size
+        if query:
+            count_args = args.copy()
+            count_args['count'] = True
+            count_results = [
+                i for i in query_data(**count_args)
+            ]
+            total_records = count_results[0].get('count', total_records)\
+                if len(count_results) else total_records
         if 'start' in request.GET:
             args["start_index"] = int(request.GET.get('start'))
         if 'limit' in request.GET:
@@ -467,8 +496,9 @@ def api(request, username=None, id_string=None):
         if 'count' in request.GET:
             args["count"] = True if int(request.GET.get('count')) > 0\
                 else False
-        cursor = ParsedInstance.query_data(**args)
-    except ValueError as e:
+
+        cursor = query_data(**args)
+    except (ValueError, TypeError) as e:
         return HttpResponseBadRequest(e.__str__())
 
     records = list(record for record in cursor)
@@ -479,6 +509,7 @@ def api(request, username=None, id_string=None):
         response_text = ("%s(%s)" % (callback, response_text))
 
     response = HttpResponse(response_text, content_type='application/json')
+    response['X-total'] = total_records
     add_cors_headers(response)
 
     return response
@@ -489,10 +520,10 @@ def public_api(request, username, id_string):
     """
     Returns public information about the form as JSON
     """
-
-    xform = get_object_or_404(XForm,
-                              user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
 
     _DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
     exports = {'username': xform.user.username,
@@ -850,9 +881,11 @@ def form_gallery(request):
 
 
 def download_metadata(request, username, id_string, data_id):
-    xform = get_object_or_404(XForm,
-                              user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
+
     owner = xform.user
     if username == request.user.username or xform.shared:
         data = get_object_or_404(MetaData, pk=data_id)
@@ -884,9 +917,11 @@ def download_metadata(request, username, id_string, data_id):
 
 @login_required()
 def delete_metadata(request, username, id_string, data_id):
-    xform = get_object_or_404(XForm,
-                              user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
+
     owner = xform.user
     data = get_object_or_404(MetaData, pk=data_id)
     dfs = get_storage_class()()
@@ -1029,9 +1064,11 @@ def form_photos(request, username, id_string):
 
 @require_POST
 def set_perm(request, username, id_string):
-    xform = get_object_or_404(XForm,
-                              user__username__iexact=username,
-                              id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
+
     owner = xform.user
     if username != request.user.username\
             and not has_permission(xform, username, request):
@@ -1176,8 +1213,12 @@ def delete_data(request, username=None, id_string=None):
 @require_POST
 @is_owner
 def update_xform(request, username, id_string):
-    xform = get_object_or_404(
-        XForm, user__username__iexact=username, id_string__iexact=id_string)
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     owner = xform.user
 
     def set_form():
@@ -1327,23 +1368,43 @@ def qrcode(request, username, id_string):
 
 
 def get_enketo_preview_url(request, username, id_string):
-    return "%(enketo_url)s?server=%(profile_url)s&id=%(id_string)s" % {
-        'enketo_url': settings.ENKETO_PREVIEW_URL,
-        'profile_url': request.build_absolute_uri(
-            reverse(profile, kwargs={'username': username})),
-        'id_string': id_string
-    }
+    form_url = get_form_url(request, username, settings.ENKETO_PROTOCOL)
+    values = {'form_id': id_string, 'server_url': form_url}
+
+    res = requests.post(settings.ENKETO_PREVIEW_URL,
+                        data=values,
+                        auth=(settings.ENKETO_API_TOKEN, ''),
+                        verify=False)
+
+    try:
+        response = res.json()
+    except ValueError:
+        pass
+    else:
+        if 'preview_url' in response:
+            return response['preview_url']
+        elif 'message' in response:
+            raise EnketoError(response['message'])
+
+    return False
 
 
 def enketo_preview(request, username, id_string):
-    xform = get_object_or_404(
-        XForm, user__username__iexact=username, id_string__iexact=id_string)
+    xform = get_form({
+        'user__username__iexact': username,
+        'id_string__iexact': id_string
+    })
+
     owner = xform.user
     if not has_permission(xform, owner, request, xform.shared):
         return HttpResponseForbidden(_(u'Not shared.'))
-    enketo_preview_url = get_enketo_preview_url(request,
-                                                owner.username,
-                                                xform.id_string)
+
+    try:
+        enketo_preview_url = get_enketo_preview_url(request,
+                                                    owner.username,
+                                                    xform.id_string)
+    except EnketoError as e:
+        return HttpResponse(e)
 
     return HttpResponseRedirect(enketo_preview_url)
 

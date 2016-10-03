@@ -4,13 +4,12 @@ from django.contrib.auth.decorators import login_required
 from django.db.utils import IntegrityError
 from django.http import HttpResponse
 from django.shortcuts import render
-from django.shortcuts import get_object_or_404
 from django.template.base import Template
 from django.template.context import Context
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext as _
 
-from onadata.apps.logger.models.xform import XForm
+from onadata.libs.utils.viewer_tools import get_form
 from onadata.apps.restservice.forms import RestServiceForm
 from onadata.apps.restservice.models import RestService
 
@@ -19,8 +18,12 @@ from onadata.apps.restservice.models import RestService
 def add_service(request, username, id_string):
     data = {}
     form = RestServiceForm()
-    xform = get_object_or_404(
-        XForm, user__username__iexact=username, id_string__iexact=id_string)
+    xform_kwargs = {
+        'id_string__iexact': id_string,
+        'user__username__iexact': username
+    }
+
+    xform = get_form(xform_kwargs)
     if request.method == 'POST':
         form = RestServiceForm(request.POST)
         restservice = None

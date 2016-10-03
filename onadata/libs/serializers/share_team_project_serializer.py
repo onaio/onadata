@@ -1,4 +1,3 @@
-from django.core.validators import ValidationError
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers
@@ -13,34 +12,42 @@ class ShareTeamProjectSerializer(serializers.Serializer):
     project = ProjectField()
     role = serializers.CharField(max_length=50)
 
-    def restore_object(self, attrs, instance=None):
-        if instance is not None:
-            instance.team = attrs.get('team', instance.team)
-            instance.project = attrs.get('project', instance.project)
-            instance.role = attrs.get('role', instance.role)
+    def update(self, instance, validated_data):
+        instance.team = validated_data.get('team', instance.team)
+        instance.project = validated_data.get('project', instance.project)
+        instance.role = validated_data.get('role', instance.role)
+        instance.save()
 
-            return instance
+        return instance
 
-        return ShareTeamProject(**attrs)
+    def create(self, validated_data):
+        instance = ShareTeamProject(**validated_data)
+        instance.save()
 
-    def validate_role(self, attrs, source):
+        return instance
+
+    def validate_role(self, value):
         """check that the role exists"""
-        value = attrs[source]
 
         if value not in ROLES:
-            raise ValidationError(_(u"Unknown role '%(role)s'."
-                                    % {"role": value}))
+            raise serializers.ValidationError(_(
+                u"Unknown role '%(role)s'." % {"role": value}
+            ))
 
-        return attrs
+        return value
 
 
 class RemoveTeamFromProjectSerializer(ShareTeamProjectSerializer):
     remove = serializers.BooleanField()
 
-    def restore_object(self, attrs, instance=None):
-        if instance is not None:
-            instance.remove = attrs.get('remove', instance.remove)
+    def update(self, instance, validated_data):
+        instance.remove = validated_data.get('remove', instance.remove)
+        instance.save()
 
-            return instance
+        return instance
 
-        return ShareTeamProject(**attrs)
+    def create(self, validated_data):
+        instance = ShareTeamProject(**validated_data)
+        instance.save()
+
+        return instance

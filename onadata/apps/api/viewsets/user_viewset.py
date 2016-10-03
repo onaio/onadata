@@ -5,16 +5,27 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework import filters
 
 from onadata.libs.filters import UserNoOrganizationsFilter
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.serializers.user_serializer import UserSerializer
 from onadata.apps.api import permissions
+from onadata.apps.api.tools import get_baseviewset_class
 
 
-class UserViewSet(LastModifiedMixin, ReadOnlyModelViewSet):
+BaseViewset = get_baseviewset_class()
+
+
+class UserViewSet(AuthenticateHeaderMixin,
+                  CacheControlMixin, ETagsMixin, BaseViewset,
+                  ReadOnlyModelViewSet):
     """
     This endpoint allows you to list and retrieve user's first and last names.
     """
-    queryset = User.objects.exclude(pk=settings.ANONYMOUS_USER_ID)
+    queryset = User.objects.exclude(
+        username__iexact=settings.ANONYMOUS_DEFAULT_USERNAME
+    )
     serializer_class = UserSerializer
     lookup_field = 'username'
     permission_classes = [permissions.UserViewSetPermissions]
@@ -32,7 +43,7 @@ class UserViewSet(LastModifiedMixin, ReadOnlyModelViewSet):
         try:
             pk = int(lookup)
         except ValueError:
-            pass
+            filter_kwargs = {'%s__iexact' % self.lookup_field: lookup}
         else:
             filter_kwargs = {'pk': pk}
 

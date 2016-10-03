@@ -7,18 +7,30 @@ from onadata.apps.api.tools import get_media_file_response
 from onadata.apps.main.models.meta_data import MetaData
 from onadata.libs.serializers.metadata_serializer import MetaDataSerializer
 from onadata.libs import filters
-from onadata.libs.mixins.last_modified_mixin import LastModifiedMixin
+from onadata.libs.mixins.authenticate_header_mixin import \
+    AuthenticateHeaderMixin
+from onadata.libs.mixins.cache_control_mixin import CacheControlMixin
+from onadata.libs.mixins.etags_mixin import ETagsMixin
 from onadata.libs.renderers.renderers import MediaFileContentNegotiation, \
     MediaFileRenderer
+from onadata.apps.api.tools import get_baseviewset_class
 
 
-class MetaDataViewSet(LastModifiedMixin, viewsets.ModelViewSet):
+BaseViewset = get_baseviewset_class()
+
+
+class MetaDataViewSet(AuthenticateHeaderMixin,
+                      CacheControlMixin,
+                      ETagsMixin,
+                      BaseViewset,
+                      viewsets.ModelViewSet):
     """
     This endpoint provides access to form metadata.
     """
+
     content_negotiation_class = MediaFileContentNegotiation
     filter_backends = (filters.MetaDataFilter,)
-    queryset = MetaData.objects.select_related('xform')
+    queryset = MetaData.objects.select_related()
     permission_classes = (MetaDataObjectPermissions,)
     renderer_classes = (
         renderers.JSONRenderer,
@@ -32,7 +44,7 @@ class MetaDataViewSet(LastModifiedMixin, viewsets.ModelViewSet):
         if isinstance(request.accepted_renderer, MediaFileRenderer) \
                 and self.object.data_file is not None:
 
-            return get_media_file_response(self.object)
+            return get_media_file_response(self.object, request)
 
         serializer = self.get_serializer(self.object)
 
